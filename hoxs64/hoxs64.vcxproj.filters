@@ -1,0 +1,462 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{2a0d0171-c136-4594-945d-570deb527e33}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;idl;hpj;bat</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{6b31f14c-4173-4421-9b65-4cdd630bb29a}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{c895f7b1-bc37-4c3b-b369-71cbd073e684}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="roms">
+      <UniqueIdentifier>{34eaa1f1-5c32-4c49-a9d5-d33e1327856c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="casm">
+      <UniqueIdentifier>{72f79bd8-46fb-4f18-a384-032a1409b714}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="appstatus.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="break_point.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C64.CPP">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C64File.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C6502.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cia1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cia2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cia6526.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cmdarg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu6510.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="crc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D1541.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="d64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diagAbout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diagEmulationSettingsTab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diagfileSaveD64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diagjoystick.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diagkeyboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diagNewBlankDisk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diskinterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Dvia1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Dvia2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dxstuff9.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="emuwin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="errormsg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="filter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hconfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hexconv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Huff.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mainwin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mdidebuggerframe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="prgbrowse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ram64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sidfile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="T64.CPP">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="via6522.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vic6569.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disassemblychild.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disassemblyframe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disassemblyeditchild.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="monitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="disassemblyreg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cmdarg.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="appstatus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="break_point.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C64.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C64File.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="c64Keys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C6502.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cia1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cia2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cia6526.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpu6510.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="crc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D1541.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="d64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="defines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diagAbout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diagEmulationSettingsTab.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diagfileSaveD64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diagjoystick.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diagkeyboard.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diagNewBlankDisk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diskinterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dx_version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dxstuff9.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="emuwin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="errormsg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="filter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hexconv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hoxs64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Huff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mainwin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mdidebuggerframe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="prgbrowse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ram64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="register.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidfile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidwavetable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="t64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="user_message.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="via1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="via2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="via6522.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vic6569.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="servicerelease.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblyframe.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblychild.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblyeditchild.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="monitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblyreg.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="c64def.asm">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="bitmap1.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="break.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step in mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step in.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step out mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step out.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step over mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step over.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="icon1.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="icon_sma.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ledblueoff.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ledblueon.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ledgreenoff.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ledgreenon.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ledredoff.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ledredon.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="rebarbackground.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="break.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step one clock.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger step one clock mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger trace.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger trace mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger stop.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger stop mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger trace frame.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="debugger trace frame mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="candy_clock.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="candy clock mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Basic.rom">
+      <Filter>roms</Filter>
+    </None>
+    <None Include="Kernal.rom">
+      <Filter>roms</Filter>
+    </None>
+    <None Include="C1541.rom">
+      <Filter>roms</Filter>
+    </None>
+    <None Include="c64.ram">
+      <Filter>roms</Filter>
+    </None>
+    <None Include="Char.rom">
+      <Filter>roms</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resfile.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuildStep Include="siddrv.o65" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="siddrv.asm">
+      <Filter>casm</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>

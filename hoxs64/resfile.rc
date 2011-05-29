@@ -1,0 +1,807 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United Kingdom) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+HOXS64 ACCELERATORS
+BEGIN
+    VK_F9,          ID_FILE_MONITOR,        VIRTKEY, NOINVERT
+    "P",            ID_FILE_PAUSE,          VIRTKEY, ALT, NOINVERT
+    "/",            ID_HELP_ABOUT,          ASCII,  ALT, NOINVERT
+    "Q",            ID_SETTING_MAXSPEED,    VIRTKEY, ALT, NOINVERT
+    "M",            ID_SETTING_MUTESOUND,   VIRTKEY, ALT, NOINVERT
+    "J",            ID_SETTING_SWAPJOYSTICKS, VIRTKEY, ALT, NOINVERT
+    VK_F7,          ID_STEP_ONECLOCK,       VIRTKEY, NOINVERT
+    VK_F8,          ID_STEP_ONEINSTRUCTION, VIRTKEY, NOINVERT
+    VK_F5,          ID_STEP_TRACE,          VIRTKEY, NOINVERT
+    VK_RETURN,      ID_TOGGLEFULLSCREEN,    VIRTKEY, ALT, NOINVERT
+    VK_F6,          ID_STEP_TRACEFRAME,     VIRTKEY, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON_BIG            ICON                    "icon1.ico"
+IDI_ICON_SMALL          ICON                    "icon_sma.ico"
+IDI_BREAK               ICON                    "break.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+HOXS64 MENUEX
+BEGIN
+    POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "&Auto Load",                  ID_FILE_AUTOLOAD,MFT_STRING,MFS_ENABLED
+        MENUITEM "Hard Reset\tF12",             ID_FILE_HARDRESET,MFT_STRING,MFS_ENABLED
+        MENUITEM "Soft Reset \tF11",            ID_FILE_SOFTRESET,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "&Monitor\tF9",                ID_FILE_MONITOR,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
+        MENUITEM "Pause\tAlt P",                ID_FILE_PAUSE,MFT_STRING,MFS_CHECKED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "E&xit",                       IDM_EXIT,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Tape",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "&Insert",                     ID_TAPE_INSERT,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Play",                       ID_TAPE_PLAY,MFT_STRING,MFS_ENABLED
+        MENUITEM "S&top",                       ID_TAPE_STOP,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Rewind",                     ID_TAPE_REWIND,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Load Image",                 ID_TAPE_LOADIMAGE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Load T64",                    ID_TAPE_LOADT64,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Disk",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        POPUP "&Insert",                        65535,MFT_STRING,MFS_ENABLED
+        BEGIN
+            MENUITEM "Existing Disk",               ID_DISK_INSERT_EXISTINGDISK,MFT_STRING,MFS_ENABLED
+            MENUITEM "New Blank Disk",              ID_DISK_INSERT_NEWBLANKDISK,MFT_STRING,MFS_ENABLED
+        END
+        POPUP "&Save Disk",                     65535,MFT_STRING,MFS_ENABLED
+        BEGIN
+            MENUITEM "Save As D64",                 ID_DISK_SAVEDISK_D64,MFT_STRING,MFS_ENABLED
+            MENUITEM "Save As FDI",                 ID_DISK_SAVEDISK_FDI,MFT_STRING,MFS_ENABLED
+        END
+        POPUP "&Write Protect",                 65535,MFT_STRING,MFS_ENABLED
+        BEGIN
+            MENUITEM "On",                          ID_DISK_WRITEPROTECT_ON,MFT_STRING,MFS_ENABLED
+            MENUITEM "Off",                         ID_DISK_WRITEPROTECT_OFF,MFT_STRING,MFS_CHECKED
+        END
+        MENUITEM "&Remove Disk",                ID_DISK_REMOVEDISK,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Reset Drive",                 ID_DISK_RESETDRIVE,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Setting",                       65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Toggle Full Screen\tAlt Enter", ID_TOGGLEFULLSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM "Emulation",                   ID_SETTING_EMULATION2,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Keyboard",                   ID_SETTING_KEYBOARD,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Joystick",                   ID_SETTING_JOYSTICK,MFT_STRING,MFS_ENABLED
+        MENUITEM "Double Sized Window",         ID_SETTING_DOUBLESIZEDWINDOW,MFT_STRING,MFS_CHECKED
+        MENUITEM "Swap Joysticks\tAlt J",       ID_SETTING_SWAPJOYSTICKS,MFT_STRING,MFS_CHECKED
+        MENUITEM "Toggle Max Speed\tAlt Q",     ID_SETTING_MAXSPEED,MFT_STRING,MFS_CHECKED
+        MENUITEM "Mute Sound\tAlt M",           ID_SETTING_MUTESOUND,MFT_STRING,MFS_CHECKED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "&Save Settings",              ID_SETTING_SAVE,MFT_STRING,MFS_ENABLED
+        POPUP "&Load Settings",                 65535,MFT_STRING,MFS_ENABLED
+        BEGIN
+            MENUITEM "Restore &User Settings",      ID_SETTING_LOADSETTINGS_RESTOREUSER,MFT_STRING,MFS_ENABLED
+            MENUITEM "Restore &Default Settings",   ID_SETTING_RESTOREDEFAULT,MFT_STRING,MFS_ENABLED
+        END
+    END
+    POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "&About",                      ID_HELP_ABOUT,MFT_STRING,MFS_ENABLED
+    END
+END
+
+MENU_MDI_DEBUGGER MENU
+BEGIN
+    POPUP "Debug"
+    BEGIN
+        MENUITEM "CPU C64",                     ID_DEBUG_CPUC64
+        MENUITEM "CPU Disk",                    ID_DEBUG_CPUDISK
+    END
+    POPUP "Step"
+    BEGIN
+        MENUITEM "Trace\tF5",                   ID_STEP_TRACE
+        MENUITEM "Trace Frame\tF6",             ID_STEP_TRACEFRAME
+        MENUITEM "Stop\tF9",                    ID_STEP_STOP
+    END
+END
+
+MENU_CPUDISASSEMBLY MENU
+BEGIN
+    POPUP "Step"
+    BEGIN
+        MENUITEM "Clock\tF7",                   ID_STEP_ONECLOCK
+        MENUITEM "Instruction\tF8",             ID_STEP_ONEINSTRUCTION
+        MENUITEM SEPARATOR
+        MENUITEM "Trace\tF5",                   ID_STEP_TRACE
+        MENUITEM "Trace Frame\tF6",             ID_STEP_TRACEFRAME
+        MENUITEM "Trace Interrupt Taken",       ID_STEP_TRACEINTERRUPTTAKEN
+        MENUITEM "Stop\tF9",                    ID_STEP_STOP
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,7,3
+ PRODUCTVERSION 1,0,7,3
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080904b0"
+        BEGIN
+            VALUE "Comments", "A Commodore 64 cycle based emulation."
+            VALUE "CompanyName", "David Horrocks Enterprises"
+            VALUE "FileDescription", "Hoxs64 C64 Emulator"
+            VALUE "FileVersion", "1.0.7.3"
+            VALUE "InternalName", "Hoxs64"
+            VALUE "LegalCopyright", "Copyright © 2001"
+            VALUE "OriginalFilename", "hoxs64.exe"
+            VALUE "ProductName", "Hoxs64"
+            VALUE "ProductVersion", "1.0.7.3"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x809, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUT DIALOGEX 0, 0, 185, 154
+STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,69,126,50,14,BS_CENTER | BS_VCENTER
+    CTEXT           "Version",IDC_VERSION,35,110,121,8
+    CTEXT           "The Hoxs64 emulator is written by ",IDC_INFO1,35,13,121,8
+    ICON            IDI_ICON_BIG,IDC_STATIC,7,7,20,20
+    CTEXT           "David Horrocks",IDC_INFO2,35,23,121,8
+    CTEXT           "email: support@hoxs64.net",IDC_INFO3,35,33,121,10
+    LTEXT           "For updates visit:-\r\rwww.hoxs64.net\rwww.btinternet.com/~hoxs64",IDC_STATIC,36,47,129,56
+END
+
+IDD_NEWDISK DIALOGEX 0, 0, 186, 134
+STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "New Formatted Disk"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "Disk name",IDC_STATIC,7,13,44,13
+    EDITTEXT        IDC_DISKNAME,71,13,102,12,ES_AUTOHSCROLL
+    LTEXT           "Byte ID1 (0-255)",IDC_STATIC1,7,28,59,13
+    EDITTEXT        IDC_BYTEID1,71,28,35,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Byte ID2 (0-255)",IDC_STATIC2,7,43,59,13
+    EDITTEXT        IDC_BYTEID2,71,43,35,13,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Align Tracks",IDC_CHK_ALIGNTRACKS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,64,102,9
+    GROUPBOX        "Number of tracks to format",IDC_STATIC,7,78,158,33
+    CONTROL         "35",IDC_RAD_TRACKS35,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,91,56,10
+    CONTROL         "40",IDC_RAD_TRACKS40,"Button",BS_AUTORADIOBUTTON,85,91,56,10
+    DEFPUSHBUTTON   "OK",IDOK,7,113,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,63,113,50,14
+END
+
+IDD_KEYBOARD DIALOGEX 0, 0, 285, 182
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CLIPSIBLINGS | WS_CAPTION | WS_SYSMENU
+CAPTION "Keyboard Assignment"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "Tab1",IDC_KEYBOARDTAB,"SysTabControl32",WS_TABSTOP,53,21,170,106
+    DEFPUSHBUTTON   "OK",IDOK,7,161,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,67,161,50,14
+END
+
+IDD_KEYPAGE2 DIALOG 0, 0, 331, 182
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Custom1",IDC_TXT_A,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,29,15,81,12
+    CONTROL         "Custom1",IDC_TXT_B,"GetKeyPressClass",WS_TABSTOP,29,29,81,12
+    CONTROL         "Custom1",IDC_TXT_C,"GetKeyPressClass",WS_TABSTOP,29,43,81,12
+    CONTROL         "Custom1",IDC_TXT_D,"GetKeyPressClass",WS_TABSTOP,29,57,81,12
+    CONTROL         "Custom1",IDC_TXT_E,"GetKeyPressClass",WS_TABSTOP,29,71,81,12
+    CONTROL         "Custom1",IDC_TXT_F,"GetKeyPressClass",WS_TABSTOP,29,85,81,12
+    CONTROL         "Custom1",IDC_TXT_G,"GetKeyPressClass",WS_TABSTOP,29,99,81,12
+    CONTROL         "Custom1",IDC_TXT_H,"GetKeyPressClass",WS_TABSTOP,29,113,81,12
+    CONTROL         "Custom1",IDC_TXT_I,"GetKeyPressClass",WS_TABSTOP,29,127,81,12
+    CONTROL         "Custom1",IDC_TXT_J,"GetKeyPressClass",WS_TABSTOP,29,141,81,12
+    CONTROL         "Custom1",IDC_TXT_K,"GetKeyPressClass",WS_TABSTOP,29,155,81,12
+    CONTROL         "Custom2",IDC_TXT_L,"GetKeyPressClass",WS_TABSTOP,132,15,81,12
+    CONTROL         "Custom1",IDC_TXT_M,"GetKeyPressClass",WS_TABSTOP,132,29,81,12
+    CONTROL         "Custom1",IDC_TXT_N,"GetKeyPressClass",WS_TABSTOP,132,43,81,12
+    CONTROL         "Custom1",IDC_TXT_O,"GetKeyPressClass",WS_TABSTOP,132,57,81,12
+    CONTROL         "Custom1",IDC_TXT_P,"GetKeyPressClass",WS_TABSTOP,132,71,81,12
+    CONTROL         "Custom1",IDC_TXT_Q,"GetKeyPressClass",WS_TABSTOP,132,85,81,12
+    CONTROL         "Custom1",IDC_TXT_R,"GetKeyPressClass",WS_TABSTOP,132,99,81,12
+    CONTROL         "Custom1",IDC_TXT_S,"GetKeyPressClass",WS_TABSTOP,132,113,81,12
+    CONTROL         "Custom1",IDC_TXT_T,"GetKeyPressClass",WS_TABSTOP,132,127,81,12
+    CONTROL         "Custom1",IDC_TXT_U,"GetKeyPressClass",WS_TABSTOP,132,141,81,12
+    CONTROL         "Custom1",IDC_TXT_V,"GetKeyPressClass",WS_TABSTOP,132,155,81,12
+    CONTROL         "Custom3",IDC_TXT_W,"GetKeyPressClass",WS_TABSTOP,233,15,81,12
+    CONTROL         "Custom1",IDC_TXT_X,"GetKeyPressClass",WS_TABSTOP,233,29,81,12
+    CONTROL         "Custom1",IDC_TXT_Y,"GetKeyPressClass",WS_TABSTOP,233,43,81,12
+    CONTROL         "Custom1",IDC_TXT_Z,"GetKeyPressClass",WS_TABSTOP,233,57,81,12
+    RTEXT           "A",IDC_STATIC,13,15,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "B",IDC_STATIC,13,29,14,12,SS_CENTERIMAGE
+    RTEXT           "C",IDC_STATIC,13,43,14,12,SS_CENTERIMAGE
+    RTEXT           "D",IDC_STATIC,13,57,14,12,SS_CENTERIMAGE
+    RTEXT           "E",IDC_STATIC,13,71,14,12,SS_CENTERIMAGE
+    RTEXT           "F",IDC_STATIC,13,85,14,12,SS_CENTERIMAGE
+    RTEXT           "G",IDC_STATIC,13,99,14,12,SS_CENTERIMAGE
+    RTEXT           "H",IDC_STATIC,13,113,14,12,SS_CENTERIMAGE
+    RTEXT           "I",IDC_STATIC,13,127,14,12,SS_CENTERIMAGE
+    RTEXT           "J",IDC_STATIC,13,141,14,12,SS_CENTERIMAGE
+    RTEXT           "K",IDC_STATIC,13,155,14,12,SS_CENTERIMAGE
+    RTEXT           "L",IDC_STATIC,115,15,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "M",IDC_STATIC,115,29,14,12,SS_CENTERIMAGE
+    RTEXT           "N",IDC_STATIC,115,43,14,12,SS_CENTERIMAGE
+    RTEXT           "O",IDC_STATIC,115,57,14,12,SS_CENTERIMAGE
+    RTEXT           "P",IDC_STATIC,115,71,14,12,SS_CENTERIMAGE
+    RTEXT           "Q",IDC_STATIC,115,85,14,12,SS_CENTERIMAGE
+    RTEXT           "R",IDC_STATIC,115,99,14,12,SS_CENTERIMAGE
+    RTEXT           "S",IDC_STATIC,115,113,14,12,SS_CENTERIMAGE
+    RTEXT           "T",IDC_STATIC,115,127,14,12,SS_CENTERIMAGE
+    RTEXT           "U",IDC_STATIC,115,141,14,12,SS_CENTERIMAGE
+    RTEXT           "V",IDC_STATIC,115,155,14,12,SS_CENTERIMAGE
+    RTEXT           "W",IDC_STATIC,216,15,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "X",IDC_STATIC,216,29,14,12,SS_CENTERIMAGE
+    RTEXT           "Y",IDC_STATIC,216,43,14,12,SS_CENTERIMAGE
+    RTEXT           "Z",IDC_STATIC,216,57,14,12,SS_CENTERIMAGE
+END
+
+IDD_KEYPAGE4 DIALOG 0, 0, 328, 144
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "FIRE",IDC_TXT_JOY1FIRE,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,54,39,81,12
+    CONTROL         "UP",IDC_TXT_JOY1UP,"GetKeyPressClass",WS_TABSTOP,54,53,81,12
+    CONTROL         "DOWN",IDC_TXT_JOY1DOWN,"GetKeyPressClass",WS_TABSTOP,54,67,81,12
+    CONTROL         "LEFT",IDC_TXT_JOY1LEFT,"GetKeyPressClass",WS_TABSTOP,54,81,81,12
+    CONTROL         "RIGHT",IDC_TXT_JOY1RIGHT,"GetKeyPressClass",WS_TABSTOP,54,95,81,12
+    CONTROL         "FIRE",IDC_TXT_JOY2FIRE,"GetKeyPressClass",WS_TABSTOP,211,39,81,12
+    CONTROL         "UP",IDC_TXT_JOY2UP,"GetKeyPressClass",WS_TABSTOP,211,53,81,12
+    CONTROL         "DOWN",IDC_TXT_JOY2DOWN,"GetKeyPressClass",WS_TABSTOP,211,67,81,12
+    CONTROL         "LEFT",IDC_TXT_JOY2LEFT,"GetKeyPressClass",WS_TABSTOP,211,81,81,12
+    CONTROL         "RIGHT",IDC_TXT_JOY2RIGHT,"GetKeyPressClass",WS_TABSTOP,211,95,81,12
+    GROUPBOX        "Joystick 1",IDC_STATIC,16,20,137,106
+    GROUPBOX        "Joystick 2",IDC_STATIC,169,20,137,106
+    RTEXT           "FIRE",IDC_STATIC,22,39,28,12,SS_CENTERIMAGE
+    RTEXT           "UP",IDC_STATIC,22,53,28,12,SS_CENTERIMAGE
+    RTEXT           "DOWN",IDC_STATIC,22,67,28,12,SS_CENTERIMAGE
+    RTEXT           "LEFT",IDC_STATIC,22,81,28,12,SS_CENTERIMAGE
+    RTEXT           "RIGHT",IDC_STATIC,22,95,28,12,SS_CENTERIMAGE
+    RTEXT           "FIRE",IDC_STATIC,179,39,28,12,SS_CENTERIMAGE
+    RTEXT           "UP",IDC_STATIC,179,53,28,12,SS_CENTERIMAGE
+    RTEXT           "DOWN",IDC_STATIC,179,67,28,12,SS_CENTERIMAGE
+    RTEXT           "LEFT",IDC_STATIC,179,81,28,12,SS_CENTERIMAGE
+    RTEXT           "RIGHT",IDC_STATIC,179,95,28,12,SS_CENTERIMAGE
+END
+
+IDD_JOYSTICK DIALOG 0, 0, 326, 218
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Joystick Assignment"
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "Joystick 1",IDC_STATIC,5,7,155,190
+    LTEXT           "Device name",IDC_STATIC,13,17,66,8
+    COMBOBOX        IDC_CBO_JOY1DEVICE,13,26,142,12,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Vertical Axis",IDC_STATIC,13,41,122,49
+    LTEXT           "Axis",IDC_STATIC,20,50,92,8
+    COMBOBOX        IDC_CBO_JOY1V,20,58,107,13,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Reverse",IDC_CBO_JOY1VREV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,74,70,11
+    GROUPBOX        "Horizontal Axis",IDC_STATIC,13,94,122,49
+    LTEXT           "Axis",IDC_STATIC,19,105,92,8
+    COMBOBOX        IDC_CBO_JOY1H,19,113,107,13,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Reverse",IDC_CBO_JOY1HREV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,129,70,11
+    LTEXT           "Fire Button",IDC_STATIC,13,151,72,7
+    COMBOBOX        IDC_CBO_JOY1FIRE,13,160,122,12,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Enable",IDC_CBO_JOY1ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,182,75,8
+    GROUPBOX        "Joystick 2",IDC_STATIC,166,7,155,188
+    LTEXT           "Device name",IDC_STATIC,171,17,66,8
+    COMBOBOX        IDC_CBO_JOY2DEVICE,171,26,143,12,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Vertical Axis",IDC_STATIC,171,41,122,49
+    LTEXT           "Axis",IDC_STATIC,179,50,92,8
+    COMBOBOX        IDC_CBO_JOY2V,178,58,107,13,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Reverse",IDC_CBO_JOY2VREV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,74,70,11
+    GROUPBOX        "Horizontal Axis",IDC_STATIC,171,94,122,49
+    LTEXT           "Axis",IDC_STATIC,178,105,92,8
+    COMBOBOX        IDC_CBO_JOY2H,178,113,107,13,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Reverse",IDC_CBO_JOY2HREV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,178,129,70,11
+    LTEXT           "Fire Button",IDC_STATIC,172,151,62,8
+    COMBOBOX        IDC_CBO_JOY2FIRE,171,159,122,12,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Enable",IDC_CBO_JOY2ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,171,182,75,8
+    DEFPUSHBUTTON   "OK",IDOK,0,201,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,61,201,50,14
+END
+
+IDD_KEYPAGE1 DIALOG 0, 0, 346, 185
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Custom1",IDC_TXT_ARROWLEFT,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,69,16,81,12
+    CONTROL         "Custom22",IDC_TXT_CONTROL,"GetKeyPressClass",WS_TABSTOP,69,30,81,12
+    CONTROL         "Custom3",IDC_TXT_STOP,"GetKeyPressClass",WS_TABSTOP,69,44,81,12
+    CONTROL         "Custom4",IDC_TXT_COMMODORE,"GetKeyPressClass",WS_TABSTOP,69,58,81,12
+    CONTROL         "Custom5",IDC_TXT_DEL,"GetKeyPressClass",WS_TABSTOP,69,72,81,12
+    CONTROL         "Custom6",IDC_TXT_HOME,"GetKeyPressClass",WS_TABSTOP,69,86,81,12
+    CONTROL         "Custom7",IDC_TXT_PLUS,"GetKeyPressClass",WS_TABSTOP,69,100,81,12
+    CONTROL         "Custom8",IDC_TXT_MINUS,"GetKeyPressClass",WS_TABSTOP,69,114,81,12
+    CONTROL         "Custom9",IDC_TXT_EQUAL,"GetKeyPressClass",WS_TABSTOP,69,128,81,12
+    CONTROL         "Custom10",IDC_TXT_ASTERISK,"GetKeyPressClass",WS_TABSTOP,69,142,81,12
+    CONTROL         "Custom11",IDC_TXT_SLASH,"GetKeyPressClass",WS_TABSTOP,69,156,81,12
+    CONTROL         "Custom12",IDC_TXT_POUND,"GetKeyPressClass",WS_TABSTOP,247,16,81,12
+    CONTROL         "Custom13",IDC_TXT_AT,"GetKeyPressClass",WS_TABSTOP,247,30,81,12
+    CONTROL         "Custom14",IDC_TXT_COLON,"GetKeyPressClass",WS_TABSTOP,247,44,81,12
+    CONTROL         "Custom15",IDC_TXT_SEMICOLON,"GetKeyPressClass",WS_TABSTOP,247,58,81,12
+    CONTROL         "Custom16",IDC_TXT_ARROWUP,"GetKeyPressClass",WS_TABSTOP,247,72,81,12
+    CONTROL         "Custom17",IDC_TXT_CURSORDOWN,"GetKeyPressClass",WS_TABSTOP,247,86,81,12
+    CONTROL         "Custom18",IDC_TXT_CURSORRIGHT,"GetKeyPressClass",WS_TABSTOP,247,100,81,12
+    CONTROL         "Custom19",IDC_TXT_LEFTSHIFT,"GetKeyPressClass",WS_TABSTOP,247,114,81,12
+    CONTROL         "Custom20",IDC_TXT_RIGHTSHIFT,"GetKeyPressClass",WS_TABSTOP,247,128,81,12
+    CONTROL         "Custom21",IDC_TXT_RESTORE,"GetKeyPressClass",WS_TABSTOP,247,142,81,12
+    CONTROL         "Custom1",IDC_TXT_SPACE,"GetKeyPressClass",WS_TABSTOP,247,156,81,12
+    RTEXT           "ARROW LEFT",IDC_STATIC,7,16,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "POUND",IDC_STATIC,155,16,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "CTRL",IDC_STATIC,7,30,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "RUN/STOP",IDC_STATIC,7,44,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "COMMODORE",IDC_STATIC,7,58,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "INST/DEL",IDC_STATIC,7,72,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "CLR/HOME",IDC_STATIC,7,86,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "PLUS",IDC_STATIC,7,100,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "MINUS",IDC_STATIC,7,114,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "EQUAL",IDC_STATIC,7,128,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "ASTERISK",IDC_STATIC,7,142,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "SLASH",IDC_STATIC,7,156,60,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "@",IDC_STATIC,155,30,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "COLON",IDC_STATIC,155,44,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "SEMICOLON",IDC_STATIC,155,58,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "ARROWUP",IDC_STATIC,155,72,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "CURSOR UP/DOWN",IDC_STATIC,155,86,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "CURSOR LEFT/RIGHT",IDC_STATIC,155,100,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "LEFT SHIFT",IDC_STATIC,155,114,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "RIGHT SHIFT",IDC_STATIC,155,128,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "RESTORE",IDC_STATIC,155,142,89,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "SPACE",IDC_STATIC,155,156,89,12,SS_CENTERIMAGE
+END
+
+IDD_KEYPAGE3 DIALOG 0, 0, 275, 162
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Custom1",IDC_TXT_1,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,27,11,81,12
+    CONTROL         "Custom1",IDC_TXT_2,"GetKeyPressClass",WS_TABSTOP,27,25,81,12
+    CONTROL         "Custom1",IDC_TXT_3,"GetKeyPressClass",WS_TABSTOP,27,39,81,12
+    CONTROL         "Custom1",IDC_TXT_4,"GetKeyPressClass",WS_TABSTOP,27,53,81,12
+    CONTROL         "Custom1",IDC_TXT_5,"GetKeyPressClass",WS_TABSTOP,27,67,81,12
+    CONTROL         "Custom1",IDC_TXT_6,"GetKeyPressClass",WS_TABSTOP,27,81,81,12
+    CONTROL         "Custom1",IDC_TXT_7,"GetKeyPressClass",WS_TABSTOP,27,95,81,12
+    CONTROL         "Custom1",IDC_TXT_8,"GetKeyPressClass",WS_TABSTOP,27,109,81,12
+    CONTROL         "Custom1",IDC_TXT_9,"GetKeyPressClass",WS_TABSTOP,27,123,81,12
+    CONTROL         "Custom1",IDC_TXT_0,"GetKeyPressClass",WS_TABSTOP,27,137,81,12
+    CONTROL         "Custom1",IDC_TXT_F1,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,181,11,81,12
+    CONTROL         "Custom1",IDC_TXT_F3,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,181,25,81,12
+    CONTROL         "Custom1",IDC_TXT_F5,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,181,39,81,12
+    CONTROL         "Custom1",IDC_TXT_F7,"GetKeyPressClass",WS_GROUP | WS_TABSTOP,181,53,81,12
+    RTEXT           "1",IDC_STATIC,11,11,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "2",IDC_STATIC,11,25,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "3",IDC_STATIC,11,39,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "4",IDC_STATIC,11,53,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "5",IDC_STATIC,11,67,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "6",IDC_STATIC,11,81,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "7",IDC_STATIC,11,95,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "8",IDC_STATIC,11,109,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "9",IDC_STATIC,11,123,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "0",IDC_STATIC,11,137,14,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "F1/F2",IDC_STATIC,155,11,24,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "F3/F4",IDC_STATIC,155,25,24,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "F5/F6",IDC_STATIC,155,39,24,12,SS_CENTERIMAGE | NOT WS_GROUP
+    RTEXT           "F7/F8",IDC_STATIC,155,53,24,12,SS_CENTERIMAGE | NOT WS_GROUP
+END
+
+IDD_BROWSEPRG DIALOGEX 0, 0, 421, 202
+STYLE DS_SETFONT | DS_3DLOOK | DS_CONTROL | WS_CHILD | WS_CLIPSIBLINGS
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "",1119,7,7,262,189
+    LISTBOX         IDC_CUSTOMPRGLIST,269,7,145,149,LBS_OWNERDRAWFIXED | LBS_NOINTEGRALHEIGHT | LBS_DISABLENOSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Quick Load (Faster, less compatible)",IDC_CHKQUICKLOAD,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,269,161,137,8
+    CONTROL         "Align Tracks (Only for D64 files)",IDC_CHKALIGND64TRACKS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,269,178,137,8
+END
+
+IDD_SETTING2 DIALOGEX 0, 0, 238, 193
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CAPTION | WS_SYSMENU
+CAPTION "Settings"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "Tab1",IDC_SETTINGTAB,"SysTabControl32",WS_TABSTOP,41,31,134,106
+    DEFPUSHBUTTON   "OK",IDOK,7,172,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,65,172,50,14
+END
+
+IDD_SETTINGTABGENERAL DIALOGEX 0, 0, 160, 122
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    CONTROL         "Show speedometer",IDC_SHOWSPEED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,15,125,11
+    CONTROL         "Limit speed",IDC_LIMITSPEED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,26,125,11
+    CONTROL         "Disk on separate thread",IDC_DISKONSEPARATETHREAD,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,126,11
+    CONTROL         "Allow opposing joystick directions",IDC_ALLOWOPPOSINGJOYSTICK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,48,129,11
+    CONTROL         "Disable DWM (Aero) for full screen",IDC_DISABLE_DWM_FULLSCREEN,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,134,11
+    GROUPBOX        "Host CPU Usage",IDC_SETTINGS_HOSTCPUUSAGE,7,76,134,31
+    CONTROL         "Friendly",IDC_HOSTCPU_FRIENDLY,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,92,53,8
+    CONTROL         "Aggressive",IDC_HOSTCPU_AGGRESSIVE,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,75,92,53,8
+END
+
+IDD_SETTINGTABVIDEO DIALOGEX 0, 0, 249, 183
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "Display",IDC_STATIC1,7,7,233,66
+    LTEXT           "Adapter",IDC_STATIC,15,18,37,10
+    COMBOBOX        IDC_CBO_ADAPTER,58,17,172,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Mode",IDC_STATIC,15,34,31,10
+    COMBOBOX        IDC_CBO_MODE,58,33,172,13,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Format",IDC_STATIC,15,50,36,10
+    COMBOBOX        IDC_CBO_FORMAT,58,49,172,14,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Pixel Doubler",IDC_SETTINGS_PIXELDOUBLER,7,76,131,59
+    CONTROL         "DX Blit",IDC_DOUBLER_BLIT,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,87,37,8
+    CONTROL         "CPU",IDC_DOUBLER_CPU,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,76,87,34,8
+    LTEXT           "Stretch",IDC_LBL_STRETCH,15,101,29,8,SS_ENDELLIPSIS
+    COMBOBOX        IDC_CBO_STRETCH,47,98,83,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Filter",IDC_LBL_FILTER,15,120,29,8
+    COMBOBOX        IDC_CBO_FILTER,47,117,83,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Frame synchronisation mode",IDC_STATIC,7,141,132,30
+    CONTROL         "VBL Sync",IDC_VBLSYNC,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,154,51,10
+    CONTROL         "Line Sync",IDC_LINESYNC,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,76,154,53,10
+    CONTROL         "Skip frames",IDC_SKIPFRAMES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,146,83,81,8
+    LTEXT           "Border",IDC_STATIC,141,111,25,10,SS_ENDELLIPSIS
+    COMBOBOX        IDC_CBO_BORDER,174,108,57,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CBO_FPS,174,130,57,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "FPS",IDC_STATIC,141,132,25,8
+END
+
+IDD_SETTINGTABAUDIO DIALOGEX 0, 0, 166, 106
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    CONTROL         "Enable sound emulation",IDC_SID_EMULATION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,15,125,8
+    CONTROL         "Audio clock sync",IDC_AUDIOCLOCKSYNC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,26,127,9
+    CONTROL         "SID digi boost",IDC_SIDDIGIBOOT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,38,89,8
+    GROUPBOX        "SID sampling quality",IDC_STATIC,7,56,134,30
+    CONTROL         "Resample",IDC_SID_RESAMPLE,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,13,69,53,10
+    CONTROL         "Down sample",IDC_SID_DOWNSAMPLE,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,71,69,63,10
+END
+
+IDD_SETTINGTABDISK DIALOGEX 0, 0, 256, 75
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    CONTROL         "Enable 1541 disk drive emulation",IDC_1541_EMULATION,
+                    "Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,7,15,125,8
+    CONTROL         "Show floppy LEDs",IDC_CHK_SHOWFLOPPYLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,29,109,8
+    COMBOBOX        IDC_CBO_TRACKZEROSENSOR,97,43,132,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Track Zero Sensor",IDC_STATIC,7,45,83,10
+END
+
+IDD_SAVED64 DIALOGEX 0, 0, 303, 222
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_CLIPSIBLINGS
+FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
+BEGIN
+    LTEXT           "",1119,7,7,289,180
+    GROUPBOX        "Number of tracks to save",IDC_STA_TRACKS,189,189,107,26
+    CONTROL         "35",IDC_RAD_TRACKS35,"Button",BS_AUTORADIOBUTTON,198,202,37,9
+    CONTROL         "40",IDC_RAD_TRACKS40,"Button",BS_AUTORADIOBUTTON,245,202,36,9
+END
+
+IDD_SETTINGTABCHIP DIALOGEX 0, 0, 165, 86
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    GROUPBOX        "Complex Interface Adapter",IDC_GROUP_CIAMODE,14,15,126,54
+    CONTROL         "CIA 6526",IDC_RAD_CIA6526,"Button",BS_AUTORADIOBUTTON | WS_GROUP,23,30,50,11
+    CONTROL         "CIA 6526A",IDC_RAD_CIA6526A,"Button",BS_AUTORADIOBUTTON,83,30,50,11
+    CONTROL         "Enable Timer B bug",IDC_CHK_TIMERBBUG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,47,81,11
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 178
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 147
+    END
+
+    IDD_NEWDISK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 127
+    END
+
+    IDD_KEYBOARD, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 278
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 175
+    END
+
+    IDD_KEYPAGE2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 324
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 175
+    END
+
+    IDD_KEYPAGE4, DIALOG
+    BEGIN
+        LEFTMARGIN, 2
+        RIGHTMARGIN, 321
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 137
+    END
+
+    IDD_JOYSTICK, DIALOG
+    BEGIN
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 215
+    END
+
+    IDD_BROWSEPRG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 414
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 196
+    END
+
+    IDD_SETTING2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 231
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 186
+    END
+
+    IDD_SETTINGTABGENERAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 153
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 115
+    END
+
+    IDD_SETTINGTABVIDEO, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 240
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
+    END
+
+    IDD_SETTINGTABAUDIO, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 159
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 99
+    END
+
+    IDD_SETTINGTABDISK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 249
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 68
+    END
+
+    IDD_SAVED64, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 296
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 215
+    END
+
+    IDD_SETTINGTABCHIP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 158
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 79
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_JOYSTICK DLGINIT
+BEGIN
+    IDC_CBO_JOY1DEVICE, 0x403, 5, 0
+0x6574, 0x7473, "\000" 
+    IDC_CBO_JOY1DEVICE, 0x403, 6, 0
+0x6574, 0x7473, 0x0032, 
+    0
+END
+
+IDD_SETTINGTABVIDEO DLGINIT
+BEGIN
+    IDC_CBO_ADAPTER, 0x403, 5, 0
+0x6574, 0x7473, "\000" 
+    IDC_CBO_ADAPTER, 0x403, 6, 0
+0x6574, 0x7473, 0x0032, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BINARY
+//
+
+IDR_SIDDRIVER           BINARY                  "siddrv.o65"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_LEDREDON            BITMAP                  "ledredon.bmp"
+IDB_LEDBLUEOFF          BITMAP                  "ledblueoff.bmp"
+IDB_LEDBLUEON           BITMAP                  "ledblueon.bmp"
+IDB_LEDGREENOFF         BITMAP                  "ledgreenoff.bmp"
+IDB_LEDGREENON          BITMAP                  "ledgreenon.bmp"
+IDB_LEDREDOFF           BITMAP                  "ledredoff.bmp"
+IDB_REBARBKGND1         BITMAP                  "rebarbackground.bmp"
+IDB_DEBUGGERSTEPINMASK  BITMAP                  "debugger step in mask.bmp"
+IDB_DEBUGGERSTEPIN      BITMAP                  "debugger step in.bmp"
+IDB_DEBUGGERSTEPOUTMASK BITMAP                  "debugger step out mask.bmp"
+IDB_DEBUGGERSTEPOUT     BITMAP                  "debugger step out.bmp"
+IDB_DEBUGGERSTEPOVERMASK BITMAP                  "debugger step over mask.bmp"
+IDB_DEBUGGERSTEPOVER    BITMAP                  "debugger step over.bmp"
+IDB_BREAK               BITMAP                  "break.bmp"
+IDB_DEBUGGERSTEPONECLOCK BITMAP                  "debugger step one clock.bmp"
+IDB_DEBUGGERSTEPONECLOCKMASK BITMAP                  "debugger step one clock mask.bmp"
+IDB_DEBUGGERTRACE       BITMAP                  "debugger trace.bmp"
+IDB_DEBUGGERTRACEMASK   BITMAP                  "debugger trace mask.bmp"
+IDB_DEBUGGERSTOP        BITMAP                  "debugger stop.bmp"
+IDB_DEBUGGERSTOPMASK    BITMAP                  "debugger stop mask.bmp"
+IDB_DEBUGGERTRACEFRAME  BITMAP                  "debugger trace frame.bmp"
+IDB_DEBUGGERTRACEFRAMEMASK BITMAP                  "debugger trace frame mask.bmp"
+IDB_DEBUGGERTRACEINT    BITMAP                  "candy_clock.bmp"
+IDB_DEBUGGERTRACEINTMASK BITMAP                  "candy clock mask.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_TITLE           "Hoxs 64 C64 Emulator"
+    IDS_MONITOR_TITLE       "C64 Monitor"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_WINCLASS_KEYPRESS   "GetKeyPressClass"
+    IDS_PRESSANYKEY         "press any key"
+    ID_DISK_SAVEDISK_FDI    "Save disk as raw binary. Compatible with custom formats."
+END
+
+STRINGTABLE
+BEGIN
+    ID_DISK_SAVEDISK_D64    "Save disk in the standard CBM format. Not compatible with custom formats."
+END
+
+#endif    // English (United Kingdom) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

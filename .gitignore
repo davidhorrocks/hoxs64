@@ -1,0 +1,12 @@
+Release
+Debug
+bin
+ipch
+Win32
+x64
+*.aps
+*.user
+*.scc
+*.suo
+*.plg
+*.opt

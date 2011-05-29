@@ -1,0 +1,460 @@
+#ifndef __UTILS_H__
+#define __UTILS_H__
+
+// pragma pack (1)
+typedef struct tagOFN_500EXA {
+   DWORD        lStructSize;
+   HWND         hwndOwner;
+   HINSTANCE    hInstance;
+   LPCSTR       lpstrFilter;
+   LPSTR        lpstrCustomFilter;
+   DWORD        nMaxCustFilter;
+   DWORD        nFilterIndex;
+   LPSTR        lpstrFile;
+   DWORD        nMaxFile;
+   LPSTR        lpstrFileTitle;
+   DWORD        nMaxFileTitle;
+   LPCSTR       lpstrInitialDir;
+   LPCSTR       lpstrTitle;
+   DWORD        Flags;
+   WORD         nFileOffset;
+   WORD         nFileExtension;
+   LPCSTR       lpstrDefExt;
+   LPARAM       lCustData;
+   LPOFNHOOKPROC lpfnHook;
+   LPCSTR       lpTemplateName;
+#ifdef _MAC
+   LPEDITMENU   lpEditInfo;
+   LPCSTR       lpstrPrompt;
+#endif
+   void *       pvReserved;
+   DWORD        dwReserved;
+   DWORD        FlagsEx;
+} OPENFILENAME_500EXA, *LPOPENFILENAME_500EXA;
+
+typedef struct tagOFN_500EXW {
+   DWORD        lStructSize;
+   HWND         hwndOwner;
+   HINSTANCE    hInstance;
+   LPCWSTR      lpstrFilter;
+   LPWSTR       lpstrCustomFilter;
+   DWORD        nMaxCustFilter;
+   DWORD        nFilterIndex;
+   LPWSTR       lpstrFile;
+   DWORD        nMaxFile;
+   LPWSTR       lpstrFileTitle;
+   DWORD        nMaxFileTitle;
+   LPCWSTR      lpstrInitialDir;
+   LPCWSTR      lpstrTitle;
+   DWORD        Flags;
+   WORD         nFileOffset;
+   WORD         nFileExtension;
+   LPCWSTR      lpstrDefExt;
+   LPARAM       lCustData;
+   LPOFNHOOKPROC lpfnHook;
+   LPCWSTR      lpTemplateName;
+#ifdef _MAC
+   LPEDITMENU   lpEditInfo;
+   LPCSTR       lpstrPrompt;
+#endif
+   void *       pvReserved;
+   DWORD        dwReserved;
+   DWORD        FlagsEx;
+} OPENFILENAME_500EXW, *LPOPENFILENAME_500EXW;
+
+#ifdef UNICODE
+typedef OPENFILENAME_500EXW OPENFILENAME_500EX;
+typedef LPOPENFILENAME_500EXW LPOPENFILENAME_500EX;
+#else
+typedef OPENFILENAME_500EXA OPENFILENAME_500EX;
+typedef LPOPENFILENAME_500EXA LPOPENFILENAME_400EX;
+#endif // UNICODE
+
+// pragma pack ()
+
+struct ImageInfo
+{
+	int BitmapImageResourceId;
+	int BitmapMaskResourceId;
+};
+
+struct ButtonInfo
+{
+	int ImageIndex;
+	TCHAR *ButtonText;
+	int CommandId;
+};
+
+#if !defined(HMONITOR_DECLARED) && (WINVER < 0x0500)
+    #define HMONITOR_DECLARED
+    DECLARE_HANDLE(HMONITOR);
+#endif
+
+#if (WINVER < 0x0500)
+
+//--------------------------------------------------------------------------------------
+// Multimon handling to support OSes with or without multimon API support.  
+// Purposely avoiding the use of multimon.h so DXUT.lib doesn't require 
+// COMPILE_MULTIMON_STUBS and cause complication with MFC or other users of multimon.h
+//--------------------------------------------------------------------------------------
+
+#define MONITORINFOF_PRIMARY        0x00000001
+#define MONITOR_DEFAULTTONULL       0x00000000
+#define MONITOR_DEFAULTTOPRIMARY    0x00000001
+#define MONITOR_DEFAULTTONEAREST    0x00000002
+typedef struct tagMONITORINFO
+{
+    DWORD   cbSize;
+    RECT    rcMonitor;
+    RECT    rcWork;
+    DWORD   dwFlags;
+} MONITORINFO, *LPMONITORINFO;
+typedef struct tagMONITORINFOEXA : public tagMONITORINFO
+{
+    CHAR        szDevice[CCHDEVICENAME];
+} MONITORINFOEXA, *LPMONITORINFOEXA;
+typedef struct tagMONITORINFOEXW : public tagMONITORINFO
+{
+    WCHAR       szDevice[CCHDEVICENAME];
+} MONITORINFOEXW, *LPMONITORINFOEXW;
+
+#ifdef UNICODE
+typedef MONITORINFOEXW MONITORINFOEX;
+typedef LPMONITORINFOEXW LPMONITORINFOEX;
+#else
+typedef MONITORINFOEXA MONITORINFOEX;
+typedef LPMONITORINFOEXA LPMONITORINFOEX;
+#endif // UNICODE
+
+#endif
+
+//--------------------------------------------------------------------------------------
+// Multimon API handling for OSes with or without multimon API support
+//--------------------------------------------------------------------------------------
+#define DXUT_PRIMARY_MONITOR ((HMONITOR)0x12340042)
+typedef HMONITOR     (WINAPI* LPMONITORFROMWINDOW)(HWND, DWORD);
+typedef BOOL         (WINAPI* LPGETMONITORINFO)(HMONITOR, LPMONITORINFO);
+typedef HMONITOR     (WINAPI* LPMONITORFROMRECT)(LPCRECT, DWORD);
+
+typedef HRESULT (WINAPI *LPDWMISCOMPOSITIONENABLED)(__out BOOL *);
+typedef HRESULT (WINAPI *LPDWMENABLECOMPOSITION)(UINT);
+
+#if (WINVER < 0x0600)
+#define DWM_EC_DISABLECOMPOSITION		0
+#define DWM_EC_ENABLECOMPOSITION		1
+#define WM_DWMCOMPOSITIONCHANGED		0x031E
+#endif
+
+class G
+{
+private:
+	G();
+	static bool s_bInitLateBindLibraryCallsDone;
+public:
+	static void InitLateBindLibraryCalls();
+	static bool IsMultiMonitorApiOk();
+	static bool IsDwmApiOk();
+	static LPGETMONITORINFO s_pFnGetMonitorInfo;
+	static LPMONITORFROMRECT s_pFnMonitorFromRect;
+	static LPMONITORFROMWINDOW s_pFnMonitorFromWindow;
+	static LPDWMISCOMPOSITIONENABLED s_pFnDwmIsCompositionEnabled;
+	static LPDWMENABLECOMPOSITION s_pFnDwmEnableComposition;
+
+
+	static BOOL WaitMessageTimeout(DWORD dwTimeout);
+	static HRESULT GetVersion_Res(LPTSTR filename, VS_FIXEDFILEINFO *p_vinfo);
+	static HRESULT AnsiToUc(LPCSTR pszAnsi, LPWSTR pwszUc, int cAnsiCharsToConvert);
+	static HRESULT AnsiToUc(LPCSTR pszAnsi, LPWSTR pwszUc, int cAnsiCharsToConvert, int& chOut);
+	static HRESULT AnsiToUcRequiredBufferLength(LPCSTR pszAnsi, int cAnsiCharsToConvert, int &cOut);
+	static HRESULT UcToAnsi(LPCWSTR pwszUc, LPSTR pszAnsi, int cWideCharsToConvert);
+	static HRESULT UcToAnsiRequiredBufferLength(LPCWSTR pwszUc, int cWideCharsToConvert, int &cOut);
+	static DLGTEMPLATE * WINAPI DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName);
+	static void ShowLastError(HWND);
+	static TCHAR *GetLastWin32ErrorString();
+	static void ArrangeOKCancel(HWND hwndDlg);
+	static LPTSTR GetStringRes (int id);
+	static BOOL CenterWindow (HWND hwndChild, HWND hwndParent);
+	static HRESULT InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError, ...);
+	static bool IsEnhancedWinVer();
+	static bool IsWindows7();
+	static bool IsWindowsVistaOrLater();
+	static bool IsWin98OrLater();
+	static bool IsWinVerSupportInitializeCriticalSectionAndSpinCount();
+	static bool IsMultiCore();
+	static void PaintRect(HDC hdc, RECT *rect, COLORREF colour);
+	static void AutoSetComboBoxHeight(HWND hWnd,  int maxHeight);
+	static void AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int maxHeight);
+	static HRESULT GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
+	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
+
+	static int Rand(int min, int max);
+	static void InitOfn(OPENFILENAME_500EX& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile);
+	static void RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h);
+	static BOOL DrawDefText(HDC hdc, int x, int y, LPCTSTR text, int len, int* nextx, int* nexty);
+	static void GetWorkArea(RECT& rcWorkArea);
+	static BOOL DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP);
+	//Win98 WinNT 4 SP6
+	//static BOOL IsWindowEnabled(HWND hWnd, bool &bResult);
+};
+
+extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);
+extern LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
+/*C+C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C
+  Class:    CVirWindow
+
+  Summary:  Abstract base class for wrapping a window.
+
+            This class allows a window to be cleanly wrapped in a
+            c++ class.  Specifically, it provides a way for a c++ class
+            to use one of its methods as a WindowProc, giving it a "this"
+            pointer and allowing it to have direct access to all of its
+            private members.
+
+  Methods:  Create:
+              Maps to Windows' CreateWindow function.
+            WindowProc:
+              Pure virtual WindowProc for the window.
+            Gethwnd:
+              Get the handle to the window.
+            CVirWindow:
+              Constructor.
+            ~CVirWindow:
+              Destructor.
+C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
+class CVirWindow
+{
+public:
+	// Constructor
+	CVirWindow()
+	{
+	m_hInst = NULL;
+	m_hWnd = NULL;
+	m_hwndMDIClient = NULL;
+	m_AutoDelete = true;
+	};
+
+	// Destructor
+	virtual ~CVirWindow(){};
+
+	// Envelopes the Windows' CreateWindow function call.
+	HWND Create(
+			DWORD dwExStyle,
+			LPCTSTR lpszClassName,   // Address of registered class name
+			LPCTSTR lpszWindowName,  // Address of window name
+			DWORD dwStyle,          // Window style
+			int x,                  // Horizontal position of window
+			int y,                  // Vertical position of window
+			int nWidth,             // Window width
+			int nHeight,            // Window height
+			HWND hWndParent,        // Handle of parent or owner window
+			HMENU hmenu,            // Handle of menu, or child window identifier
+			HINSTANCE hinst);       // Handle of application instance
+
+	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
+	// Get the protected handle of this window.
+	HWND GetHwnd(void)
+	{
+		return(m_hWnd);
+	}
+	HINSTANCE GetHinstance(void)
+	{
+		return(m_hInst);
+	}
+
+	HWND Get_MDIClientWindow()
+	{
+		return m_hwndMDIClient;
+	}
+
+
+	// WindowProc is a pure virtual member function and MUST be over-ridden
+	// in any derived classes.
+	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
+
+protected:
+	// Application instance handle.
+	HINSTANCE m_hInst;
+	// Handle of this window.
+	HWND m_hWnd;
+
+	HWND m_hwndMDIClient;
+
+
+	bool m_AutoDelete;
+
+	// Tell the compiler that the outside WindowProc callback is a friend
+	// of this class and can get at its protected data members.
+	friend LRESULT CALLBACK ::WindowProc(
+								HWND hWnd,
+								UINT uMsg,
+								WPARAM wParam,
+								LPARAM lParam);
+};
+
+
+/*C+C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C
+  Class:    CVirDialog
+
+  Summary:  Abstract base class for wrapping a Windows dialog box window.
+
+            This class allows a dialog box to be cleanly wrapped in
+            a c++ class.  Specifically, it provides a way for a c++ class
+            to use one of its methods as a DialogProc, giving it a "this"
+            pointer and allowing it to have direct access to all of its
+            private members.
+
+  Methods:  ShowDialog:
+              Maps to Windows' DialogBox function.
+            GetHwnd:
+              Get the handle to the dialog window.
+            DialogProc:
+              Pure virtual DialogProc for the dialog box
+            ~CVirDialog:
+              Destructor
+C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
+class CVirDialog
+{
+public:
+	// Destructor
+	virtual ~CVirDialog(){};
+
+	// ShowDialog creates the Dialog (using the DialogBoxParam API).
+	virtual INT_PTR ShowDialog(
+		HINSTANCE hInst,
+		LPTSTR lpszTemplate,
+		HWND hWndOwner);
+
+	virtual HWND ShowModelessDialog(
+		HINSTANCE hInst,
+		LPCTSTR szTemplate,
+		HWND hWndOwner);
+
+	virtual HWND ShowModelessDialogIndirect(
+		HINSTANCE hInst,
+		LPCDLGTEMPLATE lpTemplate,
+		HWND hWndOwner);
+	// DialogProc is a pure virtual member function and MUST be over-ridden
+	// in any derived classes.
+	virtual BOOL DialogProc(
+		HWND hWndDlg,
+		UINT uMsg,
+		WPARAM wParam,
+		LPARAM lParam) = 0;
+
+	HWND GetHwnd();
+
+
+protected:
+  HINSTANCE m_hInst;
+  HWND m_hWnd;
+
+  // Tell the compiler that the outside DialogProc callback is a friend
+  // of this class and can get at its protected data members.
+  friend INT_PTR CALLBACK ::DialogProc(
+                           HWND hWndDlg,
+                           UINT uMsg,
+                           WPARAM wParam,
+                           LPARAM lParam);
+};
+
+
+typedef struct {
+    WORD dlgVer;
+    WORD signature;
+    DWORD helpID;
+    DWORD exStyle;
+    DWORD style;
+    WORD cDlgItems;
+    short x;
+    short y;
+    short cx;
+    short cy;
+	/*
+    sz_Or_Ord menu;
+    sz_Or_Ord windowClass;
+    WCHAR title[titleLen];
+    WORD pointsize;
+    WORD weight;
+    BYTE italic;
+    BYTE charset;
+    WCHAR typeface[stringLen];
+	*/
+} DLGTEMPLATEEX, *LPDLGTEMPLATEEX;
+
+typedef const DLGTEMPLATEEX *LPCDLGTEMPLATEEX;
+/*C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C
+C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
+
+class CTabDialog;
+
+class CTabPageDialog : public CVirDialog
+{
+public:
+	virtual ~CTabPageDialog();
+	CTabPageDialog();
+	HRESULT init(CTabDialog *,int,LPTSTR,int);
+	virtual BOOL DialogProc(HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
+
+	friend class CTabDialog;
+	int m_pageindex;
+protected:
+private:
+	CTabDialog *m_owner;
+	LPCDLGTEMPLATE m_lpTemplate;
+	LPCDLGTEMPLATEEX m_lpTemplateEx;
+	int m_dlgId;
+	LPTSTR m_pagetext;
+	bool m_bIsCreated;
+};
+
+/*C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C
+C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
+
+struct tabpageitem
+{
+	int pageid;
+	LPTSTR lpszText;
+};
+
+class CTabDialog : public CVirDialog
+{
+public:
+	CTabDialog();
+	HRESULT SetPages(int,struct tabpageitem *);
+	void FreePages();
+	void SetTabID(int tabctl_id);
+	CTabPageDialog *GetPage(int i);
+
+	virtual BOOL OnTabbedDialogInit(HWND hwndDlg);
+	virtual BOOL OnChildDialogInit(HWND hwndDlg);
+	virtual BOOL OnSelChanged(HWND);
+	virtual BOOL OnPageEvent(CTabPageDialog *page, HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)=0;
+	virtual ~CTabDialog();
+	virtual INT_PTR ShowDialog(HINSTANCE hInst,	LPTSTR lpszTemplate, HWND hWndOwner);
+	virtual BOOL DialogProc(
+		HWND hWndDlg,
+		UINT uMsg,
+		WPARAM wParam,
+		LPARAM lParam) = 0;
+	friend INT_PTR CALLBACK ::DialogProc(
+		HWND hWndDlg,
+		UINT uMsg,
+		WPARAM wParam,
+		LPARAM lParam);
+	int m_current_page_index;
+protected:
+	CTabPageDialog	*m_pages;
+	int m_pagecount;
+    HWND m_hwndTab;       // tab control 
+    HWND m_hwndDisplay;   // current child dialog box 
+    RECT m_rcDisplay;     // display rectangle for the tab control 
+	int m_tabctl_id;
+	HRESULT CreateAllPages();
+};
+
+/*C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C
+C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
+
+
+
+#endif
