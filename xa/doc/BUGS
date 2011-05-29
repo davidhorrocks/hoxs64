@@ -1,0 +1,8 @@
+
+- embedding relocatable code in absolute doesn't work...
+
+- "lda <test" with an unknown label (pass1) still forces absolute instead of
+  zp addressing
+
+- not the whole o65 fileformat is supported. 
+

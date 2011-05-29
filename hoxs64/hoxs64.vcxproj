@@ -849,34 +849,36 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="siddrv.asm">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">c64def.asm;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">c64def.asm;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">c64def.asm;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">c64def.asm;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">\develop\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
+      <Command Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">$(ProjectDir)..\xa\xa %(FullPath) -R -o $(ProjectDir)%(Filename).o65
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">$(ProjectDir)%(Filename).o65;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">c64def.asm;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">c64def.asm;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
     <None Include="Basic.rom">
       <DeploymentContent>true</DeploymentContent>

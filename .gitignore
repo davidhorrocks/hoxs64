@@ -10,3 +10,7 @@ x64
 *.suo
 *.plg
 *.opt
+*.opensdf
+*.sdf
+*.o65
+*.ncb
