@@ -33,6 +33,7 @@ int i;
 	m_pD3D       = NULL; // Used to create the D3DDevice
 	m_pd3dDevice = NULL; // Our rendering device
 	m_pDiplaymodes = NULL;
+	m_pSysMemSurface = NULL;
 	for (int i=0; i < _countof(m_pSmallSurface); i++)
 		m_pSmallSurface[i] = NULL;
 	m_iIndexSmallSurface = 0;
@@ -103,9 +104,14 @@ void CDX9::CleanupD3D_Surfaces()
 	FreeSmallSurface();
 }
 
-
 void CDX9::FreeSmallSurface()
 {
+	if (m_pSysMemSurface!=NULL)
+	{		
+		if (m_pSysMemSurface)
+			m_pSysMemSurface->Release();
+		m_pSysMemSurface = NULL;
+	}
 	for (int i=0; i < _countof(m_pSmallSurface); i++)
 	{
 		if (m_pSmallSurface[i])
@@ -120,6 +126,10 @@ void CDX9::ClearSurfaces(D3DCOLOR colour)
 	{
 		m_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET, colour, 0.0, 0);
 
+		if (m_pSysMemSurface!=NULL)
+		{
+			m_pd3dDevice->ColorFill(m_pSysMemSurface, NULL, colour);			
+		}
 		for (int i=0; i < _countof(m_pSmallSurface); i++)
 		{
 			if (m_pSmallSurface[i])
@@ -136,14 +146,20 @@ int i;
 	FreeSmallSurface();
 	m_sizeSmallSurface.cx = Width;
 	m_sizeSmallSurface.cy = Height;
-	for (i = 0, hr = E_FAIL; i < _countof(m_pSmallSurface); i++)
+
+	hr = m_pd3dDevice->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_SYSTEMMEM, &m_pSysMemSurface, NULL);
+	if (SUCCEEDED(hr))
 	{
-		hr = m_pd3dDevice->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, &m_pSmallSurface[i], NULL);
-		if (FAILED(hr))
+		for (i = 0; i < _countof(m_pSmallSurface); i++)
 		{
-			FreeSmallSurface();
-			break;
+			hr = m_pd3dDevice->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, &m_pSmallSurface[i], NULL);
+			if (FAILED(hr))
+				break;
 		}
+	}
+	if (FAILED(hr))
+	{
+		FreeSmallSurface();
 	}
 	return hr;
 }
@@ -178,6 +194,11 @@ void CDX9::UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter)
 IDirect3DSurface9 *CDX9::GetSmallSurface()
 {
 	return m_pSmallSurface[m_iIndexSmallSurface];
+}
+
+IDirect3DSurface9 *CDX9::GetSysMemSurface()
+{
+	return m_pSysMemSurface;
 }
 
 void CDX9::CleanupD3D_Devices()
@@ -815,8 +836,6 @@ C64WindowDimensions  dims;
 			if (FAILED(hr))
 				return hr;
 			CheckFilterCap(currentDisplayMode.Width >= (UINT)dims.Width, filter);
-			//m_displayXPos = 0;
-			//m_displayYPos = 0;
 			m_appStatus->m_bUseCPUDoubler = false;
 			
 			CalcStretchToFitClearingRects(currentDisplayMode, dims, bShowFloppyLed, m_rcTargetRect, drcEraseRects, m_drcStatusBar);

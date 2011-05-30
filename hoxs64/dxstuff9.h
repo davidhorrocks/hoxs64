@@ -41,6 +41,7 @@ public:
 	void ClearSurfaces(D3DCOLOR colour);
 	void UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter);
 	IDirect3DSurface9 *GetSmallSurface();
+	IDirect3DSurface9 *GetSysMemSurface();
 
 	HRESULT LoadTextures(D3DFORMAT format);
 	void FreeTextures();
@@ -76,10 +77,11 @@ public:
 	/*Direct3D 9*/
 	IDirect3D9            *m_pD3D; // Used to create the D3DDevice
 	IDirect3DDevice9      *m_pd3dDevice; // Our rendering device
-	IDirect3DSurface9       *m_pSmallSurface[1];//Optional C64 per pixel surface used as the source of Direct X pixel doubler
+	IDirect3DSurface9       *m_pSmallSurface[1];
+	IDirect3DSurface9       *m_pSysMemSurface;
 	SIZE m_sizeSmallSurface;
 	int	m_iIndexSmallSurface;
-	RECT					m_rcTargetRect;//Use the destination rectangle for a blit from m_pSmallSurface to a target.
+	RECT m_rcTargetRect;//Use the destination rectangle for a blit from m_pSmallSurface to a target.
 
 	unsigned int m_displayFirstVicRaster;
 	unsigned int m_displayLastVicRaster;
