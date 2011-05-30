@@ -325,20 +325,6 @@ int dc;
 		sprite.armDelay=0;
 	}
 
-	if (this->CurrentClock - clockReadSpriteSpriteCollision == 0)
-	{
-		//vicCurrSprite_sprite_collision = 0;
-		//vicNextSprite_sprite_collision = 0;
-		//vicSpriteSpriteInt &= 1;
-	}
-	if (this->CurrentClock - clockReadSpriteDataCollision == 0)
-	{
-		//vicCurrSprite_data_collision = 0;
-		//vicNextSprite_data_collision = 0;
-		//vicSpriteDataInt &= 1;
-	}
-
-
 	if (vicSpriteSpriteCollision)
 	{
 		vicSpriteSpriteCollision|=vicCurrSprite_sprite_collision;
@@ -347,7 +333,6 @@ int dc;
 	{
 		vicSpriteSpriteCollision|=vicCurrSprite_sprite_collision;
 		if (vicSpriteSpriteCollision)
-		//if (vicSpriteSpriteInt & 1)
 		{
 			vicINTERRUPT_STATUS|=4;
 		}
@@ -361,7 +346,6 @@ int dc;
 	{
 		vicSpriteDataCollision|=vicCurrSprite_data_collision;
 		if (vicSpriteDataCollision)
-		//if (vicSpriteDataInt & 1)
 		{
 			vicINTERRUPT_STATUS|=2;
 		}
@@ -370,16 +354,12 @@ int dc;
 	if (this->CurrentClock - clockReadSpriteSpriteCollision == 0)
 	{
 		vicSpriteSpriteCollision = 0;
-		//vicCurrSprite_sprite_collision = 0;
 		vicNextSprite_sprite_collision = 0;
-		//vicSpriteSpriteInt &= 1;
 	}
 	if (this->CurrentClock - clockReadSpriteDataCollision == 0)
 	{
 		vicSpriteDataCollision = 0;
-		//vicCurrSprite_data_collision = 0;
 		vicNextSprite_data_collision = 0;
-		//vicSpriteDataInt &= 1;
 	}
 
 	SpriteCollisionUpdateArmedOrActive();
