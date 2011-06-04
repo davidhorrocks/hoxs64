@@ -176,7 +176,6 @@ void CDX9::ClearTargets(D3DCOLOR color)
 	if (m_iEraseCount > 0)
 	{
 		m_pd3dDevice->Clear(m_iEraseCount, &m_drcEraseRects[0], D3DCLEAR_TARGET, color, 0.0, 0);
-		//m_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET, color, 0.0, 0);
 	}
 }
 
@@ -187,8 +186,10 @@ void CDX9::UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter)
 		IDirect3DSurface9 *pSmallSuface = m_pSmallSurface[m_iIndexSmallSurface];
 		if (pSmallSuface != NULL)
 		{
+#ifdef USESYSMEMSURFACE
 			if (m_pSysMemSurface != NULL)
 				m_pd3dDevice->UpdateSurface(m_pSysMemSurface, NULL, pSmallSuface, NULL);
+#endif
 			LPDIRECT3DSURFACE9 pBackBuffer;
 			if (D3D_OK == m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
 			{

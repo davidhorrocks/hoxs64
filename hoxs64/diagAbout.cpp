@@ -48,7 +48,7 @@ TCHAR textTemp[300];
 		textTemp[0] = 0;
 #if defined(_WIN64)
 		_tcsncpy_s(textTotal, _countof(textTotal), TEXT("64 bit version:"), _TRUNCATE);
-#elseif _WIN32_WINNT >= 0x0400
+#elif _WIN32_WINNT >= 0x0400
 		_tcsncpy_s(textTotal, _countof(textTotal), TEXT("32 bit version:"), _TRUNCATE);
 #else
 		_tcsncpy_s(textTotal, _countof(textTotal), TEXT("Win 98 version:"), _TRUNCATE);

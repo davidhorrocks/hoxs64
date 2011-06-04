@@ -2581,7 +2581,12 @@ HRESULT hr;
 
 	if (dx->m_pd3dDevice == NULL)
 		return E_FAIL;
+	
+#ifdef USESYSMEMSURFACE
 	m_pBackBuffer = dx->GetSysMemSurface();
+#else
+	m_pBackBuffer = dx->GetSmallSurface();
+#endif
 	if (m_pBackBuffer == NULL)
 		return E_FAIL;
 	m_pBackBuffer->AddRef();
