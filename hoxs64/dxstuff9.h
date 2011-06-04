@@ -36,6 +36,7 @@ public:
 	void CleanupD3D_Devices();
 	void CleanupD3D();
 	void FreeSmallSurface();
+	void FreeSysMemSurface();
 	HRESULT CreateSmallSurface(int Width, int Height, D3DFORMAT Format);
 	void ClearTargets(D3DCOLOR dwSolidColourFill);
 	void ClearSurfaces(D3DCOLOR colour);

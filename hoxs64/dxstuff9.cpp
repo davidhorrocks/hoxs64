@@ -102,21 +102,26 @@ void CDX9::CleanupD3D_Surfaces()
 	FreeTextures();
 
 	FreeSmallSurface();
+	FreeSysMemSurface();
 }
 
 void CDX9::FreeSmallSurface()
+{
+	for (int i=0; i < _countof(m_pSmallSurface); i++)
+	{
+		if (m_pSmallSurface[i])
+			m_pSmallSurface[i]->Release();
+		m_pSmallSurface[i] = NULL;
+	}
+}
+
+void CDX9::FreeSysMemSurface()
 {
 	if (m_pSysMemSurface!=NULL)
 	{		
 		if (m_pSysMemSurface)
 			m_pSysMemSurface->Release();
 		m_pSysMemSurface = NULL;
-	}
-	for (int i=0; i < _countof(m_pSmallSurface); i++)
-	{
-		if (m_pSmallSurface[i])
-			m_pSmallSurface[i]->Release();
-		m_pSmallSurface[i] = NULL;
 	}
 }
 
@@ -144,6 +149,7 @@ HRESULT CDX9::CreateSmallSurface(int Width, int Height, D3DFORMAT Format)
 HRESULT hr;
 int i;
 	FreeSmallSurface();
+	FreeSysMemSurface();
 	m_sizeSmallSurface.cx = Width;
 	m_sizeSmallSurface.cy = Height;
 
@@ -160,6 +166,7 @@ int i;
 	if (FAILED(hr))
 	{
 		FreeSmallSurface();
+		FreeSysMemSurface();
 	}
 	return hr;
 }
@@ -177,13 +184,15 @@ void CDX9::UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter)
 {
 	if (m_pd3dDevice)
 	{
-		IDirect3DSurface9 *pSurface = m_pSmallSurface[m_iIndexSmallSurface];
-		if (pSurface != NULL)
+		IDirect3DSurface9 *pSmallSuface = m_pSmallSurface[m_iIndexSmallSurface];
+		if (pSmallSuface != NULL)
 		{
+			if (m_pSysMemSurface != NULL)
+				m_pd3dDevice->UpdateSurface(m_pSysMemSurface, NULL, pSmallSuface, NULL);
 			LPDIRECT3DSURFACE9 pBackBuffer;
 			if (D3D_OK == m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
 			{
-				m_pd3dDevice->StretchRect(pSurface, NULL, pBackBuffer, &m_rcTargetRect, filter);
+				m_pd3dDevice->StretchRect(pSmallSuface, NULL, pBackBuffer, &m_rcTargetRect, filter);
 				pBackBuffer->Release();
 				pBackBuffer = NULL;
 			}
@@ -710,6 +719,7 @@ C64WindowDimensions  dims;
 	D3DRECT drcEraseRects[5];//Top,Bottom,Left,Right,optional toolbar
 	ZeroMemory(&drcEraseRects[0], sizeof(D3DRECT) * _countof(drcEraseRects));
 	FreeSmallSurface();
+	FreeSysMemSurface();
 
 	dims.SetBorder(borderSize);
 	m_displayXPos = 0;

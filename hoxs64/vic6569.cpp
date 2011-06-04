@@ -2612,11 +2612,6 @@ void VIC6569::UnLockBackSurface()
 	if (m_pBackBuffer)
 	{
 		m_pBackBuffer->UnlockRect();
-
-		LPDIRECT3DSURFACE9 pSmallSuface = dx->GetSmallSurface();
-		if (pSmallSuface!=NULL)
-			dx->m_pd3dDevice->UpdateSurface(m_pBackBuffer, NULL, pSmallSuface, NULL);
-
 		m_pBackBuffer->Release();
 		m_pBackBuffer = NULL;
 		CurrentRowPixel=0;
