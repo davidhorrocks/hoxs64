@@ -7,7 +7,7 @@
 #define GACCESS_COL1_CYCLE (16)
 #define SPRITE_DISPLAY_CHECK_XPOS (0x164)
 
-#define pixelbuffer_size (65 *8 + 48)
+#define PIXELBUFFER_SIZE (65 *8 + 48)
 class VIC6569;
 
 struct rgb24
@@ -214,10 +214,10 @@ private:
 	bit64 *color_map_hires;
 	bit8 vic_border_part_38;
 	bit8 vic_border_part_40;
-	static bit8 vic_pixelbuffer[pixelbuffer_size];
-	static bit8 vic_borderbuffer[pixelbuffer_size];
-	bit8 pixelMaskBuffer[pixelbuffer_size/8 + 8];
-	bit8 vic_sprite_collision_line[pixelbuffer_size];
+	static bit8 vic_pixelbuffer[PIXELBUFFER_SIZE];
+	static bit8 vic_borderbuffer[PIXELBUFFER_SIZE];
+	bit8 pixelMaskBuffer[(PIXELBUFFER_SIZE + 1) / 8];
+	bit8 vic_sprite_collision_line[PIXELBUFFER_SIZE];
 	bit8 (*line_info)[2][64];
 	bit8 (*vic_address_line_info)[64];
 	bit8 foregroundMask_mcm[256];
@@ -273,7 +273,6 @@ private:
 	void DrawBorder7(bit8 cycle);
 	void check_38_col_right_border();
 	void draw_38_col_right_border1(bit8 cycle);
-	void draw_38_col_right_border2(bit8 cycle);
 	void check_40_col_right_border();
 	void draw_40_col_right_border(bit8 cycle);
 	void draw_38_col_left_border(bit8 cycle);

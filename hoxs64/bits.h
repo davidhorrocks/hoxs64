@@ -37,11 +37,13 @@ typedef union {
 		
 } bit16u;
 
-typedef struct tagbit64
-{	
-	bit32 lo_bit32;
-	bit32 hi_bit32;	
-} bit64;
+//typedef struct tagbit64
+//{	
+//	bit32 lo_bit32;
+//	bit32 hi_bit32;	
+//} bit64;
+
+typedef unsigned __int64 bit64;
 
 # pragma pack ()
 

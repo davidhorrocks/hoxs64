@@ -26,6 +26,8 @@
 #include "ram64.h"
 #include "vic6569.h"
 
+#undef RENDERX86ASM
+
 #define vicRGB_BLACK 0x00000000
 #define sprite0 0
 #define sprite1 1
@@ -74,8 +76,8 @@ bit16 VIC6569::vic_color_array16[256];
 bit32 VIC6569::vic_color_array24[256];
 bit32 VIC6569::vic_color_array32[256];
 
-bit8 VIC6569::vic_pixelbuffer[pixelbuffer_size];
-bit8 VIC6569::vic_borderbuffer[pixelbuffer_size];
+bit8 VIC6569::vic_pixelbuffer[PIXELBUFFER_SIZE];
+bit8 VIC6569::vic_borderbuffer[PIXELBUFFER_SIZE];
 
 bit8 VIC6569::BA_line_info[256][2][64]=
 {
@@ -767,12 +769,13 @@ bit8s byteOffset = (xscroll/8);
 	pixelMaskBuffer[cycle+0 + byteOffset] = (p2 & ~maskw.byte.loByte) | dataw.byte.loByte;
 }
 
+//Valid for 63 >= cycle >= 3
 void VIC6569::WRITE_COLOR_BYTE8(bit8 color, signed char xscroll, bit8 cycle)
 {
 bit8 *pByte;
 
 	pByte=vic_pixelbuffer+(INT_PTR)((cycle*8 - 20) + (int)xscroll+8);
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 	__stosb(pByte, color, 8);	
 #else
 __asm{
@@ -789,6 +792,7 @@ __asm{
 #endif
 }
 
+//Valid for 63 >= cycle >= 3
 void VIC6569::COLOR_FOREGROUND(bit8 backgroundColor[], bit8 cycle)
 {
 bit8 *p;
@@ -797,7 +801,7 @@ bit8 *p;
 	
 	p = vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20));
 
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 
 	for (int i = 7; i >= 0; i--)
 	{
@@ -830,13 +834,14 @@ done:;
 
 }
 
+//Valid for 63 >= cycle >= 3
 void VIC6569::WRITE_STD2_BYTE(bit8 gData, signed char xscroll,const bit8 color2[], bit8 cycle)
 {
 bit8 *pByte;
 
 	pByte = vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
 
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 	for (int i = 7 ; i >= 0; i--)
 	{
 		pByte[i] = color2[gData & 1];
@@ -908,6 +913,7 @@ bit8 *pByte;
 
 /* 
 valid inputs
+cycle 3 - 63
 xstart 0 - 7
 count 0 - 8
 */
@@ -918,7 +924,7 @@ bit8 *pByte;
 		return;
 	pByte = vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
 
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 
 	gData <<= xstart;
 	gData >>= (8-count);
@@ -956,13 +962,14 @@ repeat:
 #endif
 }
 
+//Valid for 63 >= cycle >= 3
 void VIC6569::WRITE_MCM4_BYTE (bit8 gData, signed char xscroll, const bit8 color4[], bit8 cycle)
 {
 bit8 *pByte;
 
 	pByte = vic_pixelbuffer + ((int)cycle*8 - 20) + (int)xscroll + 8;
 
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 	for (int i = 6 ; i >= 0; i-=2)
 	{
 		bit16 w;
@@ -1024,6 +1031,7 @@ __asm{
 
 /* 
 valid inputs
+cycle 3 - 63
 xstart 0 - 7
 count 0 - 8
 */
@@ -1034,7 +1042,7 @@ bit8 *pByte;
 		return;
 	pByte=vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
 
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 
 	bit8 v;
 	gData <<= (xstart & 0xfe);
@@ -1110,58 +1118,76 @@ finish:
 }
 
 
+//Valid for 63 >= cycle >= 3
 #define DRAW_BORDER(cycle) if (vicMainBorder)\
 	{\
 		key32 =  ((bit32)vicBorderColor<<12);\
-		p32 = (bit32 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);\
-		p32[0] = p32[1] = color_map_hires[key32].lo_bit32;\
+		*((bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)])) = color_map_hires[key32];\
+	}\
+	else\
+	{\
+		*((bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)])) = (bit64)-1LL;\
 	}
 
 
-//was using 
+
+//Valid for 63 >= cycle >= 3
 void VIC6569::DrawBorder(bit8 cycle) 
 {
 bit32 key32;
-bit32 *p;
+bit64 *p;
 
+	p = (bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
 	if (vicMainBorder)
 	{ 
 		key32 =  ((bit32)vicBorderColor<<12);
-		p = (bit32 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
-
-		p[0] = p[1] = color_map_hires[key32].lo_bit32;
+		*p = color_map_hires[key32];
+	}
+	else
+	{
+		*p = (bit64)-1LL;
 	}
 }
 
+//Valid for 63 >= cycle >= 3
 void VIC6569::DrawBorder4(bit8 cycle) 
 {
 bit32 key32;
 bit32 *p;
+
+	p = (bit32 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
 	if (vicMainBorder_old)
 	{
 		key32 =  ((bit32)vicBorderColor<<12);
-		p = (bit32 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
-		*p = color_map_hires[key32].lo_bit32;
+		*p = (bit32)(color_map_hires[key32] & 0xffffffff);
+	}
+	else
+	{
+		*p = (bit32)-1L;
 	}
 }
 
 void VIC6569::DrawBorder7(bit8 cycle) 
 {
 bit8 *p;
+bit8 c;
 
+	p=&vic_borderbuffer[((int)cycle*8 - 20)];
 	if (vicMainBorder)
 	{
-		bit8 c = vicBorderColor;
-
-		p=&vic_borderbuffer[((int)cycle*8 - 20)];
-		*p++= c;
-		*p++= c;
-		*p++= c;
-		*p++= c;
-		*p++= c;
-		*p++= c;
-		*p= c;
+		c = vicBorderColor;
 	}
+	else
+	{
+		c = 0xff;
+	}
+	*p++= c;
+	*p++= c;
+	*p++= c;
+	*p++= c;
+	*p++= c;
+	*p++= c;
+	*p= c;
 }
 
 void VIC6569::check_38_col_right_border()
@@ -1175,28 +1201,14 @@ void VIC6569::check_38_col_right_border()
 void VIC6569::draw_38_col_right_border1(bit8 cycle)
 {
 bit8 *p;
+	p=&vic_borderbuffer[((int)cycle*8 - 20) + 7];
 	if (vicMainBorder)
 	{
-		p=&vic_borderbuffer[((int)cycle*8 - 20) + 7];
-		*p++=(bit8) vicBorderColor;
+		*p=(bit8) vicBorderColor;
 	}
-}
-
-void VIC6569::draw_38_col_right_border2(bit8 cycle)
-{
-bit8 *p;
-
-	if (vicCSEL==0)
+	else
 	{
-		p = &vic_borderbuffer[((int)cycle*8 - 20) + 3];
-		bit8 c = vicBorderColor;
-
-		*p++=(bit8) c;
-		*p++=(bit8) c;
-		*p++=(bit8) c;
-		*p++=(bit8) c;
-		*p++=(bit8) c;
-		vicMainBorder=1;
+		*p=(bit8) 0xff;
 	}
 }
 
@@ -1211,12 +1223,17 @@ void VIC6569::check_40_col_right_border()
 void VIC6569::draw_40_col_right_border(bit8 cycle)
 {
 bit32 key32;
-bit32 *p;
+bit64 *p;
+
+	p = (bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
 	if (vicMainBorder)
 	{
-		key32 =  ((bit32)vicBorderColor<<12);
-		p = (bit32 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
-		*p = *(p + 1) = color_map_hires[key32].lo_bit32;
+		key32 =  ((bit32)vicBorderColor << 12);
+		*p = color_map_hires[key32];
+	}
+	else
+	{
+		*p = (bit64)-1LL;
 	}
 }
 
@@ -1224,24 +1241,32 @@ void VIC6569::draw_38_col_left_border(bit8 cycle)
 {
 bit8 *p;
 bit8 c;
+	p = &vic_borderbuffer[((int)cycle*8 - 20)];
 	if (vic_border_part_38 & 1)
 	{
-		p = &vic_borderbuffer[((int)cycle*8 - 20)];
 		c = (bit8) vicBorderColor;
-
-		*p++=c;
-		*p++=c;
-		*p++=c;
-		*p++=c;
-		*p++=c;
-		*p++=c;
-		*p++=c;
 	}
+	else
+	{
+		c = 0xff;
+	}
+	*p++=c;
+	*p++=c;
+	*p++=c;
+	*p++=c;
+	*p++=c;
+	*p++=c;
+	*p++=c;
+
 	if (vic_border_part_38 & 2)
 	{
-		p=&vic_borderbuffer[((int)cycle*8 - 20) + 7];
-		*p++=c;
+		c = (bit8) vicBorderColor;
 	}
+	else
+	{
+		c = 0xff;
+	}
+	*p++=c;
 }
 
 void VIC6569::check_38_col_left_border()
@@ -1260,15 +1285,18 @@ void VIC6569::draw_40_col_left_border1(bit8 cycle)
 bit8 *p;
 bit8 c;
 
+	p = &vic_borderbuffer[((int)cycle*8 - 20) + 4];
 	if (vic_border_part_40 & 1)
 	{
-		p = &vic_borderbuffer[((int)cycle*8 - 20) + 4];
 		c = (bit8) vicBorderColor;
-
 		*p++= c;
 		*p++= c;
 		*p++= c;
 		*p++= c;
+	}
+	else
+	{
+		*((bit32 *)p) = (bit32)-1L;
 	}
 }
 
@@ -1276,15 +1304,19 @@ void VIC6569::draw_40_col_left_border2(bit8 cycle)
 {
 bit8 *p;
 bit8 c;
+	p = &vic_borderbuffer[((int)cycle*8 - 20)];
 	if (vic_border_part_40 & 2)
 	{
-		p = &vic_borderbuffer[((int)cycle*8 - 20)];
 		c = (bit8) vicBorderColor;
 
 		*p++= c;
 		*p++= c;
 		*p++= c;
 		*p++= c;
+	}
+	else
+	{
+		*((bit32 *)p) = (bit32)-1L;
 	}
 }
 
@@ -2204,7 +2236,7 @@ int i;
 	vicSpriteDataInt=0;
 
 
-	for (i=0 ; i < pixelbuffer_size ; i++)
+	for (i=0 ; i < PIXELBUFFER_SIZE ; i++)
 		vic_pixelbuffer[i]=vicBLACK;
 
 	ZeroMemory(pixelMaskBuffer,sizeof(pixelMaskBuffer));
@@ -2743,7 +2775,6 @@ bit8 cycle;
 bit8 cyclePrev;
 ICLK clocks;
 bit32 key32;
-bit32 *p32;
 bool bNextLineCouldMayBeBad;
 bit32 nextLine;
 
@@ -2806,12 +2837,8 @@ bit32 nextLine;
 
 			init_line_start();
 			SetBA(clocks, cycle);
-			if (vic_in_display_y)
-			{
-				FillMemory(vic_borderbuffer+DISPLAY_START,WIDTH_64,0xff);
-			}
+
 			pixelMaskBuffer[16] = pixelMaskBuffer[56]=0;
-			vic_pixelbuffer[0] = 0;
 			ZeroMemory(vic_sprite_collision_line,sizeof(vic_sprite_collision_line));
 
 			vicSpritePointer[sprite3] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite3) * 64;
@@ -4792,7 +4819,7 @@ bit8 modeOld;
 
 void VIC6569::render_8bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)	
+#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos));
 bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos));
@@ -4913,7 +4940,7 @@ dp8w2x_end:
 
 void VIC6569::render_8bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)	
+#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos));
 
@@ -5029,7 +5056,7 @@ dp8w_end:
 
 void VIC6569::render_16bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)	
+#if defined(_WIN64) || !defined(RENDERX86ASM)	
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 2));
 
 int i,j;
@@ -5092,7 +5119,7 @@ dp_fastcopy3:;
 
 void VIC6569::render_16bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)	
+#if defined(_WIN64) || !defined(RENDERX86ASM)	
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 2));
 bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 2));
 
@@ -5176,7 +5203,7 @@ dp_fastcopy4:;
 
 void VIC6569::render_24bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)	
+#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 3));
 
@@ -5232,7 +5259,7 @@ dp_fastcopy2:;
 
 void VIC6569::render_24bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)	
+#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 3));
 bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 3));
@@ -5330,7 +5357,7 @@ dp_fastcopy4:;
 
 void VIC6569::render_32bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 	
 bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
 
@@ -5381,7 +5408,7 @@ dp_fastcopy2:;
 
 void VIC6569::render_32bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64)// || !defined(TESTX)
+#if defined(_WIN64) || !defined(RENDERX86ASM)
 	
 bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
 bit32 *q = (bit32 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 4));
