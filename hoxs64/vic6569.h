@@ -232,6 +232,9 @@ public:
 
 	void PreventClockOverflow();
 
+	bit8 ScreenPixelBuffer[PAL_MAX_LINE+1][PIXELBUFFER_SIZE];
+	bit8 ScreenBorderBuffer[PAL_MAX_LINE+1][PIXELBUFFER_SIZE];
+
 	static bit32 vic_color_array[256];
 	static bit32 vic_color_array32[256];
 	static bit32 vic_color_array24[256];
@@ -253,8 +256,9 @@ private:
 
 	bit8 vic_border_part_38;
 	bit8 vic_border_part_40;
-	bit8 vic_pixelbuffer[PIXELBUFFER_SIZE];
-	bit8 vic_borderbuffer[PIXELBUFFER_SIZE];
+
+	bit8 *vic_pixelbuffer;
+	bit8 *vic_borderbuffer;
 	bit8 pixelMaskBuffer[(PIXELBUFFER_SIZE + 1) / 8];
 	bit8 vic_sprite_collision_line[PIXELBUFFER_SIZE];
 	bit8 (*line_info)[2][64];

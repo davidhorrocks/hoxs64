@@ -1813,6 +1813,8 @@ VIC6569::VIC6569()
 	dx=NULL;
 	cfg=NULL;
 	appStatus=NULL;
+	vic_pixelbuffer=NULL;
+	vic_borderbuffer=NULL;
 	for (int i=0; i < 8; i++)
 	{
 		vicSprite[i].vic = this;
@@ -1821,8 +1823,8 @@ VIC6569::VIC6569()
 
 void VIC6569::Reset(ICLK sysclock)
 {
-int i;
-
+int i,j;
+bit32 initial_raster_line = PAL_MAX_LINE;
 	CurrentClock = sysclock;
 	ClockNextWakeUpClock=sysclock;
 	vicMemoryBankIndex = 0;
@@ -1887,8 +1889,8 @@ int i;
 	//RASTER
 	vicRASTER_compare=0;
 	bVicRasterMatch = false;
-	vic_raster_line=PAL_MAX_LINE;
-	vic_raster_cycle=63;
+	vic_raster_line = initial_raster_line;
+	vic_raster_cycle = 63;
 
 	//INTERRUPT
 	vicINTERRUPT_STATUS=0;
@@ -1957,10 +1959,18 @@ int i;
 	vicSpriteSpriteInt=0;
 	vicSpriteDataInt=0;
 
+	//PIXELBUFFER_SIZE
+	for (i=0 ; i < _countof(ScreenPixelBuffer) ; i++)
+	{
+		for (j=0 ; j < _countof(ScreenPixelBuffer[0])  ; j++)
+		{
+			ScreenPixelBuffer[i][j]=vicBLACK;
+			ScreenBorderBuffer[i][j]=vicBLACK;
+		}
+	}
 
-	for (i=0 ; i < PIXELBUFFER_SIZE ; i++)
-		vic_pixelbuffer[i]=vicBLACK;
-
+	vic_pixelbuffer = ScreenPixelBuffer[initial_raster_line];
+	vic_borderbuffer = ScreenBorderBuffer[initial_raster_line];
 	ZeroMemory(pixelMaskBuffer,sizeof(pixelMaskBuffer));
 	DF_PixelsToSkip = 0;
 }
@@ -2461,10 +2471,14 @@ bit32 nextLine;
 			if(vic_raster_line == PAL_MAX_LINE)
 			{
 				vic_check_irq_in_cycle2=1;
+				vic_pixelbuffer = ScreenPixelBuffer[0];
+				vic_borderbuffer = ScreenBorderBuffer[0];
 			}
 			else
 			{
 				vic_raster_line++;
+				vic_pixelbuffer = ScreenPixelBuffer[vic_raster_line];
+				vic_borderbuffer = ScreenBorderBuffer[vic_raster_line];
 				if (vic_raster_line == vicRASTER_compare)
 				{
 					if (!bVicRasterMatch)
