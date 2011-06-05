@@ -43,8 +43,8 @@ public:
 	bool StepHeadIn();
 	bool StepHeadOut();
 	void StepHeadAuto();
-	void d64_serial_write(bit8 c64_serialbus);
-	void d64_Attention_Change();
+	void D64_serial_write(bit8 c64_serialbus);
+	void D64_Attention_Change();
 	void D64_DiskProtect(BOOL);
 
 	void C64SerialBusChange(ICLK palclock, bit8 c64_serialbus);

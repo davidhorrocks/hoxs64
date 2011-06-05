@@ -77,11 +77,11 @@ void CIA1::ExecuteDevices(ICLK sysclock)
 void CIA1::SetWakeUpClock()
 {
 	CIA::SetWakeUpClock();
-	if ((ICLKS)(nextWakeUpClock - nextKeyboardScanClock) > 0)
-		nextWakeUpClock = nextKeyboardScanClock;
+	if ((ICLKS)(ClockNextWakeUpClock - nextKeyboardScanClock) > 0)
+		ClockNextWakeUpClock = nextKeyboardScanClock;
 
-	if ((ICLKS)(nextWakeUpClock - tape64->nextTapeTickClock) >= 0)
-		nextWakeUpClock = tape64->nextTapeTickClock;
+	if ((ICLKS)(ClockNextWakeUpClock - tape64->nextTapeTickClock) >= 0)
+		ClockNextWakeUpClock = tape64->nextTapeTickClock;
 	
 }
 

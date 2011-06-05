@@ -23,8 +23,8 @@ void CIA::Reset(ICLK sysclock)
 {
 	CurrentClock=sysclock;
 	DevicesClock=sysclock;
-	nextWakeUpClock=sysclock;
-	nextTODWakeUpClock=sysclock;
+	ClockNextWakeUpClock=sysclock;
+	ClockNextTODWakeUpClock=sysclock;
 	serial_int_count=0;
 	idle=0;
 	delay=0 | CountA3 | CountB3;
@@ -100,10 +100,10 @@ void CIA::PreventClockOverflow()
 {
 	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
 	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
-	ICLK clockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
-	if ((ICLKS)(CurrentClock - clockReadICR) >= CLOCKSYNCBAND_FAR)
-		clockReadICR = clockBehindNear;
+	if ((ICLKS)(CurrentClock - ClockReadICR) >= CLOCKSYNCBAND_FAR)
+		ClockReadICR = ClockBehindNear;
 }
 
 //pragma optimize( "ag", off )
@@ -374,8 +374,8 @@ ICLKS todclocks;
 
 	clocks = (ICLKS)(sysclock - CurrentClock);
 
-	fastTODClocks = (ICLKS)(nextTODWakeUpClock - CurrentClock);
-	fastClocks = (ICLKS)(nextWakeUpClock - CurrentClock);
+	fastTODClocks = (ICLKS)(ClockNextTODWakeUpClock - CurrentClock);
+	fastClocks = (ICLKS)(ClockNextWakeUpClock - CurrentClock);
 	if (fastClocks > 0 && fastTODClocks > 0 && clocks > 0)
 	{
 		if (fastClocks > clocks)
@@ -420,7 +420,7 @@ ICLKS todclocks;
 			}
 			continue;
 		}
-		nextWakeUpClock = sysclock;
+		ClockNextWakeUpClock = sysclock;
 
 		//TIMER A *************************************
 		//bit passed through pipe to signal timer 1 to decrement
@@ -597,7 +597,7 @@ ICLKS todclocks;
 			tod_alarm=0;
 		}
 
-		if (bTimerBbug && (new_icr & 2) !=0 && clockReadICR == CurrentClock)
+		if (bTimerBbug && (new_icr & 2) !=0 && ClockReadICR == CurrentClock)
 			icr |= (new_icr & ~2);
 		else
 			icr |= new_icr;
@@ -606,7 +606,7 @@ ICLKS todclocks;
 			if (bEarlyIRQ)
 			{
 				//new CIA
-				if (clockReadICR == CurrentClock)
+				if (ClockReadICR == CurrentClock)
 					//TEST TLR's CIA read DC0D (icr) when Timer counts to zero;
 					delay|=Interrupt0;
 				else
@@ -661,7 +661,7 @@ void CIA::SetWakeUpClock()
 	curClock = CurrentClock;
 	if (idle==0)
 	{
-		nextWakeUpClock = curClock;
+		ClockNextWakeUpClock = curClock;
 	}
 	else
 	{
@@ -683,14 +683,14 @@ void CIA::SetWakeUpClock()
 		}
 		if (tod_write_freeze==0)
 		{
-			testCount = nextTODWakeUpClock - curClock;
+			testCount = ClockNextTODWakeUpClock - curClock;
 			if (((ICLKS)(testCount) > 0) && ((ICLKS)(testCount - currentCount) < 0))
 				currentCount = testCount;
 		}
 		if ((ICLKS)currentCount < 0)
 			currentCount=0;
 
-		nextWakeUpClock = curClock + currentCount;
+		ClockNextWakeUpClock = curClock + currentCount;
 	}
 }
 
@@ -770,7 +770,7 @@ bit8 t;
 	case 0x0C://serial data register
 		return sdr;
 	case 0x0D:		// interrupt control register
-		clockReadICR = sysclock + 1;	
+		ClockReadICR = sysclock + 1;	
 		t=icr;
 		icr=0;
 
@@ -1156,7 +1156,7 @@ void CIA::CheckTODAlarmCompare(ICLK sysclock)
 			tod_alarm=4;
 			idle=0;
 			no_change_count=0;
-			nextTODWakeUpClock = sysclock + 0x1000000;
+			ClockNextTODWakeUpClock = sysclock + 0x1000000;
 		}
 	}
 }
@@ -1168,18 +1168,18 @@ long t;
 	{
 		t = GetTenthsFromTimeToAlarm((const cia_tod &)tod, (const cia_tod &)alarm);
 		if (t<0)
-			nextTODWakeUpClock = CurrentClock + 0x1000000;
+			ClockNextTODWakeUpClock = CurrentClock + 0x1000000;
 		else if (t <= 2)
 		{
-			nextTODWakeUpClock = CurrentClock;
+			ClockNextTODWakeUpClock = CurrentClock;
 		}
 		else
 		{
-			nextTODWakeUpClock = CurrentClock + (__int32)((__int64)(t - 1) * (__int64)tod_clock_reload / (__int64)tod_clock_rate);
+			ClockNextTODWakeUpClock = CurrentClock + (__int32)((__int64)(t - 1) * (__int64)tod_clock_reload / (__int64)tod_clock_rate);
 		}
 	}
 	else
-		nextTODWakeUpClock = CurrentClock + 0xA000000;
+		ClockNextTODWakeUpClock = CurrentClock + 0xA000000;
 }
 
 long CIA::GetTenthsFromTimeToAlarm(const cia_tod &time, const cia_tod &alarm)

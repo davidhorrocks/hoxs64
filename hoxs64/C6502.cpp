@@ -868,19 +868,19 @@ void CPU6502::PreventClockOverflow()
 {
 	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
 	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
-	ICLK clockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - FirstIRQClock) >= CLOCKSYNCBAND_FAR)
-		FirstIRQClock = clockBehindNear;
+		FirstIRQClock = ClockBehindNear;
 	if ((ICLKS)(CurrentClock - FirstNMIClock) >= CLOCKSYNCBAND_FAR)
-		FirstNMIClock = clockBehindNear;
+		FirstNMIClock = ClockBehindNear;
 	if ((ICLKS)(CurrentClock - RisingIRQClock) >= CLOCKSYNCBAND_FAR)
-		RisingIRQClock = clockBehindNear;	
+		RisingIRQClock = ClockBehindNear;	
 	if ((ICLKS)(CurrentClock - FirstBALowClock) >= CLOCKSYNCBAND_FAR)
-		FirstBALowClock = clockBehindNear;	
+		FirstBALowClock = ClockBehindNear;	
 
 	if ((ICLKS)(CurrentClock - SOTriggerClock) >= CLOCKSYNCBAND_FAR)
-		SOTriggerClock = clockBehindNear;
+		SOTriggerClock = ClockBehindNear;
 }
 
 void CPU6502::check_interrupts1()

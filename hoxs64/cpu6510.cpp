@@ -284,11 +284,11 @@ void CPU6510::GetCpuState(CPUState& state)
 void CPU6510::SyncChips()
 {
 	ICLK& curClock = CurrentClock;
-	if ((ICLKS)(pVic->nextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pVic->ClockNextWakeUpClock - curClock) <=0)
 		vic->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia1->nextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <=0)
 		cia1->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia2->nextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
 		cia2->ExecuteCycle(curClock);
 }
 
@@ -301,11 +301,11 @@ void CPU6510::AddClockDelay()
 void CPU6510::check_interrupts1()
 {
 	ICLK& curClock = CurrentClock;
-	if ((ICLKS)(pVic->nextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pVic->ClockNextWakeUpClock - curClock) <=0)
 		vic->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia1->nextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <=0)
 		cia1->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia2->nextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
 		cia2->ExecuteCycle(curClock);
 	CPU6502::check_interrupts1();
 }

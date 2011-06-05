@@ -128,12 +128,12 @@ public:
 	bit8 serial_int_count;
 	bool bEarlyIRQ;
 	bool bTimerBbug;
-	ICLK clockReadICR;
+	ICLK ClockReadICR;
 	unsigned char bPB67TimerMode;
 	unsigned char bPB67TimerOut;
 	unsigned char bPB67Toggle;
-	ICLK nextWakeUpClock;
-	ICLK nextTODWakeUpClock;
+	ICLK ClockNextWakeUpClock;
+	ICLK ClockNextTODWakeUpClock;
 	virtual void SetWakeUpClock();
 	void SetTODWakeUpClock();
 	void CheckTODAlarmCompare(ICLK sysclock);

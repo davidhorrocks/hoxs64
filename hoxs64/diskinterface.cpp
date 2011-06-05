@@ -121,7 +121,6 @@ void DiskInterface::Reset(ICLK sysclock)
 	ThreadSignalCommandResetClock();
 	WaitThreadReady();
 
-
 	m_diskd64clk_xf = -Disk64clk_dy2 / 2;
 
 	m_currentHeadIndex = 0;
@@ -295,7 +294,6 @@ LPInitializeCriticalSectionAndSpinCount pInitializeCriticalSectionAndSpinCount =
 			}
 		}
 
-		//mcrtDisk = InitializeCriticalSectionAndSpinCount(&mcrtDisk, 0x400);
 		if (pInitializeCriticalSectionAndSpinCount!=0)
 		{
 			pInitializeCriticalSectionAndSpinCount(&mcrtDisk, 0x4000);
@@ -421,7 +419,6 @@ bool bCommand;
 	while (!bQuit)
 	{
 		r = WaitForSingleObject(mevtDiskCommand, INFINITE);
-		//r = WaitForSingleObject(mevtDiskCommand, 0);
 		if ( r == WAIT_OBJECT_0)
 		{
 			while (!bQuit)
@@ -524,7 +521,6 @@ bit8 DiskInterface::GetProtectSensorState()
 			return m_d64_protectOff;
 		else
 			return 1;
-
 	}
 	else 
 	{
@@ -537,13 +533,13 @@ bit8 DiskInterface::GetProtectSensorState()
 	}
 }
 
-void DiskInterface::d64_serial_write(bit8 c64_serialbus)
+void DiskInterface::D64_serial_write(bit8 c64_serialbus)
 {
 	m_c64_serialbus_diskview = c64_serialbus;
-	d64_Attention_Change();
+	D64_Attention_Change();
 }
 
-void DiskInterface::d64_Attention_Change()
+void DiskInterface::D64_Attention_Change()
 {
 bit8 t,autoATN,portOut;
 bit8 ATN;
@@ -557,14 +553,8 @@ bit8 ATN;
 	t=~portOut;
 	if (autoATN)//auto attention
 	{
-		//ORIG
 		m_d64_serialbus = ((t << 6) & (~m_c64_serialbus_diskview << 2) ) & 0x80  //DATA OUT
 			|((t & 0x8)<< 3);//CLOCK OUT
-
-		//TEST This does not work with Natural wonders/Oxyron http://noname.c64.org/csdb/release/?id=48037
-		//m_d64_serialbus = ((t << 6)  ) & 0x80  //DATA OUT
-		//	|((t & 0x8)<< 3);//CLOCK OUT
-
 	}
 	else
 	{
@@ -856,7 +846,7 @@ bit8 DiskInterface::GetDisk16(bit8 trackNumber, bit32 headIndex)
 
 void DiskInterface::PutDisk16(bit8 trackNumber, bit32 headIndex, bit8 data)
 {
-		m_rawTrackData[trackNumber][headIndex] = data;
+	m_rawTrackData[trackNumber][headIndex] = data;
 }
 
 void DiskInterface::MotorDisk16(bit8 trackNumber, bit32 *headIndex)
@@ -872,7 +862,7 @@ ICLK palcycles, cycles;
 	palcycles = palclock - CurrentPALClock;
 	if ((ICLKS) palcycles <= 0)
 	{
-		this->d64_serial_write(m_c64_serialbus_diskview_next);
+		this->D64_serial_write(m_c64_serialbus_diskview_next);
 	}
 	else
 	{
@@ -950,8 +940,6 @@ ICLK palcycles,cycles,sysclock;
 	CurrentPALClock = palclock;
 }
 
-
-//TEST
 void DiskInterface::ExecuteCycle(ICLK sysclock)
 {
 ICLKS cycles;
@@ -986,7 +974,7 @@ ICLKS cycles;
 				cycles -= cycles_to_serialbuschange;
 			}
 
-			this->d64_serial_write(m_c64_serialbus_diskview_next);
+			this->D64_serial_write(m_c64_serialbus_diskview_next);
 
 			if (cycles > 0)
 			{
@@ -1003,13 +991,13 @@ void DiskInterface::PreventClockOverflow()
 {
 	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
 	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
-	ICLK clockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - m_changing_c64_serialbus_diskview_diskclock) >= CLOCKSYNCBAND_FAR)
-		m_changing_c64_serialbus_diskview_diskclock = clockBehindNear;
+		m_changing_c64_serialbus_diskview_diskclock = ClockBehindNear;
 
 	if ((ICLKS)(CurrentClock - m_driveWriteChangeClock) >= CLOCKSYNCBAND_FAR)
-		m_driveWriteChangeClock = clockBehindNear;
+		m_driveWriteChangeClock = ClockBehindNear;
 	cpu.PreventClockOverflow();
 }
 

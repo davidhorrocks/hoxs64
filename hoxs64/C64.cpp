@@ -106,9 +106,9 @@ void C64::Reset(ICLK sysclock)
 
 	tape64.nextTapeTickClock = sysclock;
 	cia1.nextKeyboardScanClock = sysclock;
-	cia1.nextWakeUpClock = sysclock;
-	cia2.nextWakeUpClock = sysclock;
-	vic.nextWakeUpClock = sysclock;
+	cia1.ClockNextWakeUpClock = sysclock;
+	cia2.ClockNextWakeUpClock = sysclock;
+	vic.ClockNextWakeUpClock = sysclock;
 
 	tape64.PressStop();
 	ram.Reset();
@@ -158,7 +158,7 @@ void C64::EnterDebugRun(bool bWithSound)
 	if (bWithSound && appStatus->m_bSoundOK && appStatus->m_bFilterOK)
 		sid.LockSoundBuffer();
 
-	vic.set_display_pointers();
+	vic.SetDisplayPointers();
 
 	cpu.StartDebug();
 	diskdrive.cpu.StartDebug();
@@ -554,7 +554,7 @@ ICLK cycles,sysclock;
 	}
 	if (appStatus->m_bSoundOK && appStatus->m_bFilterOK)
 		sid.LockSoundBuffer();
-	vic.set_display_pointers();
+	vic.SetDisplayPointers();
 
 	BOOL bIsDiskEnabled = cfg->m_bD1541_Emulation_Enable;
 	BOOL bIsDiskThreadEnabled = cfg->m_bD1541_Thread_Enable;

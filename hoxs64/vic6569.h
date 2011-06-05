@@ -86,12 +86,9 @@ public:
 	LPDIRECT3DSURFACE9 m_pBackBuffer;
 	D3DLOCKED_RECT m_LockRect;
 
+	void SetDisplayPointers();
 
-	D3DLOCKED_RECT pLockRect;
-
-	void set_display_pointers();
-
-	ICLK nextWakeUpClock;
+	ICLK ClockNextWakeUpClock;
 
 	bit8 cpu_next_op_code;
 	void *CurrentRowPixel;
@@ -192,7 +189,7 @@ public:
 	static bit16 vic_color_array16[256];
 	static bit8 vic_color_array8[256];
 
-	bool mbVicBankChanging;
+	bool m_bVicBankChanging;
 	bit8 vicBankChangeByte;
 
 
@@ -225,7 +222,7 @@ private:
 	bit8 (*vic_address_line_info)[64];
 	bit8 foregroundMask_mcm[256];
 	bit8 vic_allow_c_access;
-	bool mbVicModeChanging;
+	bool m_bVicModeChanging;
 	bit32 VideoMatrix[100];//NUM_SCREEN_COLUMNS
 	static bit8 BA_line_info[256][2][64];
 	static const int vic_ii_sprites_crunch_table[64];

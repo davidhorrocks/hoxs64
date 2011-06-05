@@ -119,9 +119,6 @@ bit8 t;
 		}
 
 		disk->C64SerialBusChange(CurrentClock, c64_serialbus);
-
-		//disk->m_c64_serialbus_diskview = c64_serialbus;
-		//disk->d64_serial_write();
 	}
 	
 	bit8 newbank = (t & 3) ^ 3;
@@ -131,7 +128,7 @@ bit8 t;
 	if ((newbank == 1 && oldbank == 2) || (newbank == 2 && oldbank == 1))
 	{
 		vic->SetMMU(3);
-		vic->mbVicBankChanging = true;
+		vic->m_bVicBankChanging = true;
 		vic->vicBankChangeByte = newbank;
 		m_commandedVicBankIndex = newbank;
 	}

@@ -113,7 +113,7 @@ void VIA1::SetPinsPortA(bit8 newPin)
 
 void VIA1::SetPinsPortB(bit8 newPin)
 {
-	disk->d64_Attention_Change();
+	disk->D64_Attention_Change();
 }
 
 void VIA1::SetSystemInterrupt()

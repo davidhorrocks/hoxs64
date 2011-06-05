@@ -653,7 +653,7 @@ ICLK vicCurrentClock;
 
 void VIC6569::SetSystemInterrupt()
 {
-	nextWakeUpClock = CurrentClock;
+	ClockNextWakeUpClock = CurrentClock;
 	cpu->Set_VIC_IRQ(CurrentClock);
 }
 
@@ -663,7 +663,7 @@ void VIC6569::ClearSystemInterrupt()
 }
 
 
-void VIC6569::set_display_pointers()
+void VIC6569::SetDisplayPointers()
 {
 long y;
 	if (m_pBackBuffer)
@@ -1461,9 +1461,9 @@ bit8 VIC6569::vic_ph1_read_3fff_byte()
 
 bit8 VIC6569::vic_ph2_read_byte(bit16 address)
 {
-	if (mbVicBankChanging)
+	if (m_bVicBankChanging)
 	{
-		mbVicBankChanging = false;
+		m_bVicBankChanging = false;
 		SetMMU(vicBankChangeByte);
 	}
 	return (vic_memory_map_read[(address & 0x3fff)>>12][address & 0x3fff]);
@@ -1472,9 +1472,9 @@ bit8 VIC6569::vic_ph2_read_byte(bit16 address)
 
 bit8 VIC6569::vic_ph2_read_aec_byte(bit16 address)
 {
-	if (mbVicBankChanging)
+	if (m_bVicBankChanging)
 	{
-		mbVicBankChanging = false;
+		m_bVicBankChanging = false;
 		SetMMU(vicBankChangeByte);
 	}
 	if (vicAEC<0)
@@ -1485,9 +1485,9 @@ bit8 VIC6569::vic_ph2_read_aec_byte(bit16 address)
 
 bit8 VIC6569::vic_ph2_read_3fff_aec_byte()
 {
-	if (mbVicBankChanging)
+	if (m_bVicBankChanging)
 	{
-		mbVicBankChanging = false;
+		m_bVicBankChanging = false;
 		SetMMU(vicBankChangeByte);
 	}
 	if (vicAEC<0)
@@ -2070,7 +2070,7 @@ void VIC6569::Reset(ICLK sysclock)
 int i;
 
 	CurrentClock = sysclock;
-	nextWakeUpClock=sysclock;
+	ClockNextWakeUpClock=sysclock;
 	vicMemoryBankIndex = 0;
 	LP_TRIGGER=0;
 	vicLightPen=1;
@@ -2150,8 +2150,8 @@ int i;
 	vicECM_BMM_MCM_prev=0;
 	vicDRAMRefresh = 0xff;
 
-	mbVicBankChanging = false;
-	mbVicModeChanging = false;
+	m_bVicBankChanging = false;
+	m_bVicModeChanging = false;
 
 	//Sprites
 	for (i=0 ; i<8 ; i++)
@@ -2215,31 +2215,31 @@ void VIC6569::PreventClockOverflow()
 {
 	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
 	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
-	ICLK clockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 	
 	if ((ICLKS)(CurrentClock - clockSpriteMultiColorChange) >= CLOCKSYNCBAND_FAR)
 	{
-		clockSpriteMultiColorChange = clockBehindNear;
+		clockSpriteMultiColorChange = ClockBehindNear;
 		vicSpriteMultiColorPrev = vicSpriteMultiColor;
 	}
 	if ((ICLKS)(CurrentClock - clockSpriteXExpandChange) >= CLOCKSYNCBAND_FAR)
 	{
-		clockSpriteXExpandChange = clockBehindNear;
+		clockSpriteXExpandChange = ClockBehindNear;
 		vicSpriteXExpandPrev = vicSpriteXExpand;
 	}
 	if ((ICLKS)(CurrentClock - clockSpriteDataPriorityChange) >= CLOCKSYNCBAND_FAR)
 	{
-		clockSpriteDataPriorityChange = clockBehindNear;
+		clockSpriteDataPriorityChange = ClockBehindNear;
 		vicSpriteDataPriorityPrev = vicSpriteDataPriority;
 	}
 
 	if ((ICLKS)(CurrentClock - clockReadSpriteDataCollision) > CLOCKSYNCBAND_FAR)
-		clockReadSpriteDataCollision = clockBehindNear;
+		clockReadSpriteDataCollision = ClockBehindNear;
 	if ((ICLKS)(CurrentClock - clockReadSpriteSpriteCollision) > CLOCKSYNCBAND_FAR)
-		clockReadSpriteSpriteCollision = clockBehindNear;
+		clockReadSpriteSpriteCollision = ClockBehindNear;
 
 	if ((ICLKS)(CurrentClock - clockFirstForcedBadlineCData) > CLOCKSYNCBAND_FAR)
-		clockFirstForcedBadlineCData = clockBehindNear;
+		clockFirstForcedBadlineCData = ClockBehindNear;
 }
 
 VIC6569::~VIC6569()
@@ -3327,11 +3327,11 @@ bit32 nextLine;
 			}
 			if ((bNextLineCouldMayBeBad == false) && (vicSpriteDMA == 0) && (nextLine != 0 || (vicINTERRUPT_ENABLE & 0x8) == 0) && (nextLine != vicRASTER_compare || (vicINTERRUPT_ENABLE & 0x1) == 0) && (vicSpriteArmedOrActive == 0 || (vicINTERRUPT_ENABLE & 0x6) == 0))
 			{
-				nextWakeUpClock = CurrentClock + 59;
+				ClockNextWakeUpClock = CurrentClock + 59;
 			}
 			else
 			{
-				nextWakeUpClock = CurrentClock;
+				ClockNextWakeUpClock = CurrentClock;
 			}
 			break;
 		case 59:
@@ -3489,14 +3489,14 @@ bit32 nextLine;
 			}
 			break;
 		}
-		if (mbVicModeChanging)
+		if (m_bVicModeChanging)
 		{
-			mbVicModeChanging = false;
+			m_bVicModeChanging = false;
 			vicECM_BMM_MCM_prev = vicECM_BMM_MCM;
 		}
-		if (mbVicBankChanging)
+		if (m_bVicBankChanging)
 		{
-			mbVicBankChanging = false;
+			m_bVicBankChanging = false;
 			SetMMU(vicBankChangeByte);
 		}
 		//TEST
@@ -3614,7 +3614,7 @@ bit8 data;
 		data = (bit8)vicSpriteXExpand;
 		break;
 	case 0x1e:	//sprite-sprite collision
-		nextWakeUpClock = sysclock;
+		ClockNextWakeUpClock = sysclock;
 		t = (bit8)vicSpriteSpriteCollision;
 		vicSpriteSpriteInt = 1;
 		SpriteCollisionUpdateArmedOrActive();
@@ -3622,7 +3622,7 @@ bit8 data;
 		data = t;
 		break;
 	case 0x1f:	//sprite-data collision
-		nextWakeUpClock = sysclock;
+		ClockNextWakeUpClock = sysclock;
 		t = (bit8)vicSpriteDataCollision;
 		vicSpriteDataInt = 1;
 		SpriteCollisionUpdateArmedOrActive();
@@ -3900,9 +3900,9 @@ bit8 modeOld;
 		vicSpriteMSBX = data;
 		break;
 	case 0x11:	//control 1
-		nextWakeUpClock = sysclock;
+		ClockNextWakeUpClock = sysclock;
 		modeOld = vicECM_BMM_MCM;
-		mbVicModeChanging = true;
+		m_bVicModeChanging = true;
 		oldXScroll = vicXSCROLL;
 		oldVicRSEL = (bit8)vicRSEL;
 		oldVicDEN = vicDEN;
@@ -4332,12 +4332,12 @@ bit8 modeOld;
 	case 0x15:	//sprite enable
 		vicSpriteEnable = data;
 		if (data != 0)
-			nextWakeUpClock = sysclock;
+			ClockNextWakeUpClock = sysclock;
 		break;
 	case 0x16:	//control 2
-		nextWakeUpClock = sysclock;
+		ClockNextWakeUpClock = sysclock;
 		modeOld = vicECM_BMM_MCM;
-		mbVicModeChanging = true;
+		m_bVicModeChanging = true;
 		oldXScroll = vicXSCROLL;
 		vicCSEL = (data & 8)>>3;
 		vicMCM = (data & 0x10)>>4;
