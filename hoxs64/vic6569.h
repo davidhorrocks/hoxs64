@@ -76,6 +76,26 @@ public:
 	VIC6569();
 	~VIC6569();
 
+	enum ColorValue
+	{
+		vicBLACK = 0,
+		vicWHITE = 1,
+		vicRED = 2,
+		vicCYAN = 3,
+		vicPINK = 4,
+		vicGREEN = 5,
+		vicBLUE = 6,
+		vicYELLOW = 7,
+		vicORANGE = 8,
+		vicBROWN = 9,
+		vicLIGHT_RED = 10,
+		vicDARK_GRAY = 11,
+		vicMEDIUM_GRAY = 12,
+		vicLIGHT_GREEN = 13,
+		vicLIGHT_BLUE = 14,
+		vicLIGHT_GRAY = 15
+	};
+
 	CDX9 *dx;
 	CAppStatus *appStatus;
 	CConfig *cfg;
@@ -183,20 +203,40 @@ public:
 	bit8 LP_TRIGGER;
 	bit8 vicLightPen;
 
-	static bit32 vic_color_array[256];
-	static bit32 vic_color_array32[256];
-	static bit32 vic_color_array24[256];
-	static bit16 vic_color_array16[256];
-	static bit8 vic_color_array8[256];
-
 	bool m_bVicBankChanging;
 	bit8 vicBankChangeByte;
-
 
 	//IMonitorVic
 	virtual bit16 GetRasterLine();
 	virtual bit8 GetRasterCycle();
 
+
+	HRESULT Init(CConfig *, CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu);
+	void Cleanup();
+	void setup_color_tables(D3DFORMAT format);
+	HRESULT LockBackSurface();
+	void UnLockBackSurface();	
+	void SetMMU(bit8 index);
+	bit8 de00_byte;
+
+	//IResgister
+	virtual void Reset(ICLK sysclock);
+	virtual void ExecuteCycle(ICLK sysclock);
+	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
+	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
+	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+
+	//ILightPen
+	virtual void SetLPLine(bit8 lineState);
+	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState);
+
+	void PreventClockOverflow();
+
+	static bit32 vic_color_array[256];
+	static bit32 vic_color_array32[256];
+	static bit32 vic_color_array24[256];
+	static bit16 vic_color_array16[256];
+	static bit8 vic_color_array8[256];
 private:
 	//Used for edge triggered raster IRQ noticed in Octopus In Red Wine demo.
 	bool bVicRasterMatch;
@@ -211,11 +251,10 @@ private:
 	bit8 vicCharDataOutputDisabled; 
 	bit8 vicMainBorder_old;
 
-	bit64 *color_map_hires;
 	bit8 vic_border_part_38;
 	bit8 vic_border_part_40;
-	static bit8 vic_pixelbuffer[PIXELBUFFER_SIZE];
-	static bit8 vic_borderbuffer[PIXELBUFFER_SIZE];
+	bit8 vic_pixelbuffer[PIXELBUFFER_SIZE];
+	bit8 vic_borderbuffer[PIXELBUFFER_SIZE];
 	bit8 pixelMaskBuffer[(PIXELBUFFER_SIZE + 1) / 8];
 	bit8 vic_sprite_collision_line[PIXELBUFFER_SIZE];
 	bit8 (*line_info)[2][64];
@@ -274,7 +313,6 @@ private:
 	void check_38_col_right_border();
 	void draw_38_col_right_border1(bit8 cycle);
 	void check_40_col_right_border();
-	void draw_40_col_right_border(bit8 cycle);
 	void draw_38_col_left_border(bit8 cycle);
 	void check_38_col_left_border();
 	void draw_40_col_left_border1(bit8 cycle);
@@ -283,69 +321,26 @@ private:
 
 	void setup_multicolor_mask_table();
 	void setup_vic_ba();
-	void setup_color_map_hires();
 	void SpriteArm(int spriteNo);
 	void SpriteIdle(int spriteNo);
 	__forceinline void SetBA(ICLK &cycles, bit8 cycle);
 	__forceinline void init_line_start();
 
-	void render_8bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
-	void render_8bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
-	void render_16bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
-	void render_16bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
-	void render_24bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
-	void render_24bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
-	void render_32bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
-	void render_32bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch);
+	void render_8bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch);
+	void render_8bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
+	void render_16bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
+	void render_16bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
+	void render_24bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
+	void render_24bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
+	void render_32bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
+	void render_32bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
 
 	bit8 vicMemoryBankIndex;
 	bit8 **vic_memory_map_read;
 	bit8 *vic_3fff_ptr;
 
 public:
-	HRESULT Init(CConfig *, CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu);
-	void Cleanup();
-	void setup_color_tables(D3DFORMAT format);
-	HRESULT LockBackSurface();
-	void UnLockBackSurface();	
-	void SetMMU(bit8 index);
-	bit8 de00_byte;
-
-	//IResgister
-	virtual void Reset(ICLK sysclock);
-	virtual void ExecuteCycle(ICLK sysclock);
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
-
-	//ILightPen
-	virtual void SetLPLine(bit8 lineState);
-	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState);
-
-	void PreventClockOverflow();
-
 
 	friend VICSprite;
-
-
-	enum ColorValue
-	{
-		vicBLACK = 0,
-		vicWHITE = 1,
-		vicRED = 2,
-		vicCYAN = 3,
-		vicPINK = 4,
-		vicGREEN = 5,
-		vicBLUE = 6,
-		vicYELLOW = 7,
-		vicORANGE = 8,
-		vicBROWN = 9,
-		vicLIGHT_RED = 10,
-		vicDARK_GRAY = 11,
-		vicMEDIUM_GRAY = 12,
-		vicLIGHT_GREEN = 13,
-		vicLIGHT_BLUE = 14,
-		vicLIGHT_GRAY = 15
-	};
 };
 #endif

@@ -26,8 +26,6 @@
 #include "ram64.h"
 #include "vic6569.h"
 
-#undef RENDERX86ASM
-
 #define vicRGB_BLACK 0x00000000
 #define sprite0 0
 #define sprite1 1
@@ -75,9 +73,6 @@ bit8 VIC6569::vic_color_array8[256];
 bit16 VIC6569::vic_color_array16[256];
 bit32 VIC6569::vic_color_array24[256];
 bit32 VIC6569::vic_color_array32[256];
-
-bit8 VIC6569::vic_pixelbuffer[PIXELBUFFER_SIZE];
-bit8 VIC6569::vic_borderbuffer[PIXELBUFFER_SIZE];
 
 bit8 VIC6569::BA_line_info[256][2][64]=
 {
@@ -775,21 +770,7 @@ void VIC6569::WRITE_COLOR_BYTE8(bit8 color, signed char xscroll, bit8 cycle)
 bit8 *pByte;
 
 	pByte=vic_pixelbuffer+(INT_PTR)((cycle*8 - 20) + (int)xscroll+8);
-#if defined(_WIN64) || !defined(RENDERX86ASM)
 	__stosb(pByte, color, 8);	
-#else
-__asm{
-	mov ecx, pByte
-	mov al, color	
-	mov ah, al
-	mov bx, ax
-	bswap eax
-	mov ax, bx
-	mov DWORD PTR [ecx], eax
-	add ecx,4
-	mov DWORD PTR [ecx], eax
-	}
-#endif
 }
 
 //Valid for 63 >= cycle >= 3
@@ -801,37 +782,12 @@ bit8 *p;
 	
 	p = vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20));
 
-#if defined(_WIN64) || !defined(RENDERX86ASM)
-
 	for (int i = 7; i >= 0; i--)
 	{
 		bit8s t = (bit8s)p[i];
 		if (t < 0)
 			p[i] = backgroundColor[t & 0xf];
 	}
-#else
-	p+=7;
-	__asm
-	{
-		mov ebx, backgroundColor;
-		mov esi, p;
-		mov dl,7
-
-loop8:;
-		xor ecx,ecx;
-		add cl, BYTE PTR [esi];
-		jns SHORT done;
-
-		and cl,15
-		mov al, BYTE PTR [ebx + ecx];
-		mov BYTE PTR [esi], al
-done:;
-		dec esi
-		dec dl;
-		jns SHORT loop8;
-	}
-#endif
-
 }
 
 //Valid for 63 >= cycle >= 3
@@ -841,74 +797,11 @@ bit8 *pByte;
 
 	pByte = vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
 
-#if defined(_WIN64) || !defined(RENDERX86ASM)
 	for (int i = 7 ; i >= 0; i--)
 	{
 		pByte[i] = color2[gData & 1];
 		gData >>= 1;
 	}
-
-#else
-
-	__asm{
-	mov edi, pByte;
-	mov ecx, color2;
-
-	mov al, gData;
-
-	xor ebx, ebx;
-	xor edx, edx;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-}
-#endif
-
 }
 
 /* 
@@ -924,8 +817,6 @@ bit8 *pByte;
 		return;
 	pByte = vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
 
-#if defined(_WIN64) || !defined(RENDERX86ASM)
-
 	gData <<= xstart;
 	gData >>= (8-count);
 	for (int i = count-1 ; i >= 0; i--)
@@ -933,33 +824,6 @@ bit8 *pByte;
 		pByte[i] = color4[gData & 1];
 		gData >>= 1;
 	}
-
-#else
-
-__asm{
-
-	mov al, gData;
-	mov cl, xstart;
-	shl al, cl;
-
-	mov edi, pByte;
-	mov ecx, color4;
-
-	xor ebx, ebx;
-	xor edx, edx;
-
-	mov ah, count;
-repeat:
-	shl	al,1;
-	setc bl;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov BYTE PTR [edi], dl;
-	inc edi;
-
-	dec ah;
-	jne repeat;
-}
-#endif
 }
 
 //Valid for 63 >= cycle >= 3
@@ -969,7 +833,6 @@ bit8 *pByte;
 
 	pByte = vic_pixelbuffer + ((int)cycle*8 - 20) + (int)xscroll + 8;
 
-#if defined(_WIN64) || !defined(RENDERX86ASM)
 	for (int i = 6 ; i >= 0; i-=2)
 	{
 		bit16 w;
@@ -978,55 +841,6 @@ bit8 *pByte;
 		*((bit16 *)(pByte+i)) = w;
 		gData >>= 2;
 	}
-#else
-
-__asm{
-	mov edi, pByte;
-	mov ecx, color4;
-	add edi, 6
-
-	mov  al, gData;
-
-	xor ebx, ebx;
-	xor edx, edx;
-
-	mov bl,al;
-	and bl,3;
-	shr	al,2;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov dh,dl
-	mov WORD PTR [edi], dx;
-	dec edi;
-	dec edi;
-
-	mov bl,al;
-	and bl,3;
-	shr	al,2;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov dh,dl
-	mov WORD PTR [edi], dx;
-	dec edi;
-	dec edi;
-
-	mov bl,al;
-	and bl,3;
-	shr	al,2;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov dh,dl
-	mov WORD PTR [edi], dx;
-	dec edi;
-	dec edi;
-
-	mov bl,al;
-	and bl,3;
-	shr	al,2;
-	mov dl, BYTE PTR [ecx+ebx];
-	mov dh,dl
-	mov WORD PTR [edi], dx;
-	dec edi;
-	dec edi;
-}
-#endif
 }
 
 /* 
@@ -1041,8 +855,6 @@ bit8 *pByte;
 	if ((signed char) count <=0)
 		return;
 	pByte=vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
-
-#if defined(_WIN64) || !defined(RENDERX86ASM)
 
 	bit8 v;
 	gData <<= (xstart & 0xfe);
@@ -1066,63 +878,14 @@ bit8 *pByte;
 		pByte[i++] = v;
 		--count;
 	}
-#else
-__asm{
-
-	mov al, gData;
-	mov cl, xstart;
-	and cl, 0xFE;
-	shl al, cl;
-	
-	
-	mov edi, pByte;
-	mov ecx, color2;
-
-	xor ebx, ebx;
-	xor edx, edx;
-
-	mov ah, count;
-	mov bl, xstart;
-	and bl, 1;
-	je repeat
-
-	rol al,2
-	mov bl,al;
-	and bl,3;
-	mov dl, BYTE PTR [ecx+ebx];
-
-	mov BYTE PTR [edi], dl;
-	inc edi;
-	dec ah;
-	je finish;
-
-repeat:
-	rol al,2
-	mov bl,al;
-	and bl,3;
-	mov dl, BYTE PTR [ecx+ebx];
-
-	mov BYTE PTR [edi], dl;
-	inc edi;
-	dec ah;
-	je finish;
-
-	mov BYTE PTR [edi], dl;
-	inc edi;
-	dec ah;
-	jne repeat;
-
-finish:
-}
-#endif
 }
 
 
 //Valid for 63 >= cycle >= 3
+
 #define DRAW_BORDER(cycle) if (vicMainBorder)\
 	{\
-		key32 =  ((bit32)vicBorderColor<<12);\
-		*((bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)])) = color_map_hires[key32];\
+		__stosb(&vic_borderbuffer[((int)cycle*8 - 20)], vicBorderColor, 8);\
 	}\
 	else\
 	{\
@@ -1130,18 +893,15 @@ finish:
 	}
 
 
-
 //Valid for 63 >= cycle >= 3
 void VIC6569::DrawBorder(bit8 cycle) 
 {
-bit32 key32;
 bit64 *p;
 
 	p = (bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
 	if (vicMainBorder)
 	{ 
-		key32 =  ((bit32)vicBorderColor<<12);
-		*p = color_map_hires[key32];
+		__stosb((bit8 *)p, vicBorderColor, 8);
 	}
 	else
 	{
@@ -1152,14 +912,12 @@ bit64 *p;
 //Valid for 63 >= cycle >= 3
 void VIC6569::DrawBorder4(bit8 cycle) 
 {
-bit32 key32;
 bit32 *p;
 
 	p = (bit32 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
 	if (vicMainBorder_old)
 	{
-		key32 =  ((bit32)vicBorderColor<<12);
-		*p = (bit32)(color_map_hires[key32] & 0xffffffff);
+		__stosb((bit8 *)p, vicBorderColor, 4);
 	}
 	else
 	{
@@ -1181,13 +939,7 @@ bit8 c;
 	{
 		c = 0xff;
 	}
-	*p++= c;
-	*p++= c;
-	*p++= c;
-	*p++= c;
-	*p++= c;
-	*p++= c;
-	*p= c;
+	__stosb(p, c, 7);
 }
 
 void VIC6569::check_38_col_right_border()
@@ -1220,23 +972,6 @@ void VIC6569::check_40_col_right_border()
 	}
 }
 
-void VIC6569::draw_40_col_right_border(bit8 cycle)
-{
-bit32 key32;
-bit64 *p;
-
-	p = (bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
-	if (vicMainBorder)
-	{
-		key32 =  ((bit32)vicBorderColor << 12);
-		*p = color_map_hires[key32];
-	}
-	else
-	{
-		*p = (bit64)-1LL;
-	}
-}
-
 void VIC6569::draw_38_col_left_border(bit8 cycle)
 {
 bit8 *p;
@@ -1250,13 +985,8 @@ bit8 c;
 	{
 		c = 0xff;
 	}
-	*p++=c;
-	*p++=c;
-	*p++=c;
-	*p++=c;
-	*p++=c;
-	*p++=c;
-	*p++=c;
+	__stosb(p, c, 7);
+	p+=7;
 
 	if (vic_border_part_38 & 2)
 	{
@@ -1289,10 +1019,7 @@ bit8 c;
 	if (vic_border_part_40 & 1)
 	{
 		c = (bit8) vicBorderColor;
-		*p++= c;
-		*p++= c;
-		*p++= c;
-		*p++= c;
+		__stosb(p, c, 4);
 	}
 	else
 	{
@@ -1308,11 +1035,7 @@ bit8 c;
 	if (vic_border_part_40 & 2)
 	{
 		c = (bit8) vicBorderColor;
-
-		*p++= c;
-		*p++= c;
-		*p++= c;
-		*p++= c;
+		__stosb(p, c, 4);
 	}
 	else
 	{
@@ -2083,7 +1806,6 @@ bit8 a_color4[4];
 
 VIC6569::VIC6569()
 {
-	color_map_hires=NULL;
 	m_pBackBuffer = NULL;
 	CurrentRowPixel=0;
 	ram=NULL;
@@ -2291,10 +2013,6 @@ HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram,
 	this->cpu = cpu;
 
 	SetMMU(0);
-	color_map_hires=(bit64 *)GlobalAlloc(GMEM_FIXED, 256 * 256 * 8);
-	if  (color_map_hires==NULL)
-		return SetError(E_OUTOFMEMORY, TEXT("Out of memory."));
-	setup_color_map_hires();
 	setup_multicolor_mask_table();
 	setup_vic_ba();
 
@@ -2551,59 +2269,8 @@ int i,j,sprite_dma;
 	}
 }
 
-void VIC6569::setup_color_map_hires()
-{
-int back_color,fore_color,data;
-//int index;
-bit8 *p;
-bit8 data8,p0,p1,p2,p3,p4,p5,p6,p7;
-bit8 a_color2[2];
-
-	p=(bit8 *)color_map_hires;
-	for (back_color=0 ; back_color<16 ; back_color++)
-		for (fore_color=0 ; fore_color<16 ; fore_color++)
-			for (data=0 ; data<256 ; data++)
-			{
-				data8=data;
-				a_color2[0]=(bit8)back_color;
-				a_color2[1]=(bit8)fore_color;
-				p0=data8 & 1;
-				data8>>=1;
-				p1=data8 & 1;
-				data8>>=1;
-				p2=data8 & 1;
-				data8>>=1;
-				p3=data8 & 1;
-				data8>>=1;
-				p4=data8 & 1;
-				data8>>=1;
-				p5=data8 & 1;
-				data8>>=1;
-				p6=data8 & 1;
-				data8>>=1;
-				p7=data8 & 1;
-
-				p[0]= *(a_color2 + p7);
-				p[1]= *(a_color2 + p6);
-				p[2]= *(a_color2 + p5);
-				p[3]= *(a_color2 + p4);
-				p[4]= *(a_color2 + p3);
-				p[5]= *(a_color2 + p2);
-				p[6]= *(a_color2 + p1);
-				p[7]= *(a_color2 + p0);
-				p=p+8;		
-			
-			}
-	
-}
-
 void VIC6569::Cleanup()
 {
-	if (color_map_hires)
-	{
-		GlobalFree(color_map_hires);
-		color_map_hires=NULL;
-	}
 }
 
 
@@ -2774,7 +2441,6 @@ bit8 *psrc1;
 bit8 cycle;
 bit8 cyclePrev;
 ICLK clocks;
-bit32 key32;
 bool bNextLineCouldMayBeBad;
 bit32 nextLine;
 
@@ -3474,19 +3140,19 @@ bit32 nextLine;
 					switch (appStatus->m_ScreenDepth)
 					{
 					case 32:
-						render_32bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_32bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
 						break;
 					case 24:
-						render_24bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_24bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
 						break;
 					case 16:
-						render_16bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_16bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
 						break;
 					case 8:
-						render_8bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_8bit_2x(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
 						break;
 					}
@@ -3496,19 +3162,19 @@ bit32 nextLine;
 					switch (appStatus->m_ScreenDepth)
 					{
 					case 32:
-						render_32bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_32bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
 						break;
 					case 24:
-						render_24bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_24bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
 						break;
 					case 16:
-						render_16bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_16bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
 						break;
 					case 8:
-						render_8bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, dx->m_displayStart, m_LockRect.Pitch);
+						render_8bit(psrc1, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
 						CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
 						break;
 					}
@@ -4817,9 +4483,8 @@ bit8 modeOld;
 	}
 }
 
-void VIC6569::render_8bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_8bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos));
 bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos));
@@ -4829,10 +4494,10 @@ bit8 v;
 bit16 cl;
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		cl = vic_color_array8[v];
 		cl = cl | (cl << 8);
@@ -4840,107 +4505,11 @@ bit16 cl;
 
 		*((bit16 *)(q + (2*i))) = cl;
 	}
-#else
-BYTE rowcount;
-	__asm
-	{
-		lea  esi, vic_color_array8;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		add  eax, xpos
-		add  eax, pRow
-		mov  pRow, eax
-		mov  ebx, eax;
-		mov  al, 1
-		mov  BYTE PTR rowcount, al
-dp8w2x_loop:
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-		mov  edi, ebx
-
-		sub  bl, 4
-		and  bl, 3
-		je   SHORT dp8w2x_fastcopy
-
-dp8w2x_firstcopy1:;
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w2x_firstcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w2x_firstcopy2:;
-		mov  al, BYTE PTR [esi + eax];
-		mov  ah, al;
-		mov	 WORD PTR [edi], ax;
-		inc  edi
-		inc  edi
-		inc	 cl;
-		cmp  cl, bl
-		jne  SHORT dp8w2x_firstcopy1
-		
-dp8w2x_fastcopy:
-		sub  dx, 3
-dp8w2x_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w2x_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w2x_fastcopy2:;
-		mov  bl, BYTE PTR [esi + eax];
-		mov  bh, bl
-		inc	 ecx;
-		bswap  ebx
-
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w2x_fastcopy3;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w2x_fastcopy3:;
-		mov  bh, BYTE PTR [esi + eax];
-		mov  bl, bh
-		inc	 ecx;
-		bswap ebx
-			
-		mov	 DWORD PTR [edi], ebx;
-		add	 edi, 4;
-		cmp  cx, dx
-		jb  SHORT dp8w2x_fastcopy1;
-
-		add  dx, 3
-		cmp  cx, dx
-		ja  SHORT dp8w2x_end
-
-
-dp8w2x_lastcopy:;
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w2x_lastcopy1;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w2x_lastcopy1:;
-		mov  al, BYTE PTR [esi + eax];
-		mov  ah, al
-		mov	 WORD PTR [edi], ax;
-		inc  edi
-		inc  edi
-		inc	 cx;
-		cmp  cx, dx
-		jb  SHORT dp8w2x_lastcopy
-dp8w2x_end:
-		mov  ebx, pRow;
-		add  ebx, videoPitch
-		mov  al, BYTE PTR rowcount
-		dec  al
-		mov  BYTE PTR rowcount, al
-		jns  dp8w2x_loop
-	}
-#endif
 }
 
 
-void VIC6569::render_8bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_8bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos));
 
@@ -4949,114 +4518,18 @@ bit8 v;
 bit8 cl;
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		cl = vic_color_array8[v];
 		*((bit8 *)(p + ((i)))) = cl;
 	}
-#else
-	__asm
-	{
-		lea  esi, vic_color_array8;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		add  eax, xpos
-		add  eax, pRow
-		mov  ebx, eax;
-
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-		mov  edi, ebx
-
-		sub  bl, 4
-		and  bl, 3
-		je   SHORT dp8w_fastcopy
-
-dp8w_firstcopy1:;
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w_firstcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w_firstcopy2:;
-		mov  al, BYTE PTR [esi + eax];
-		mov	 BYTE PTR [edi], al;
-		inc  edi
-		inc	 cl;
-		cmp  cl, bl
-		jne  SHORT dp8w_firstcopy1
-		
-dp8w_fastcopy:
-		sub  dx, 3
-dp8w_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w_fastcopy2:;
-		mov  bl, BYTE PTR [esi + eax];
-		inc	 ecx;
-
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w_fastcopy3;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w_fastcopy3:;
-		mov  bh, BYTE PTR [esi + eax];
-		inc	 ecx;
-		bswap ebx
-			
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w_fastcopy4;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w_fastcopy4:;
-		mov  bh, BYTE PTR [esi + eax];
-		inc	 ecx;
-
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w_fastcopy5;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w_fastcopy5:;
-		mov  bl, BYTE PTR [esi + eax];
-		inc	 ecx;
-		bswap ebx
-
-		mov	 DWORD PTR [edi], ebx;
-		add	 edi, 4;
-		cmp  cx, dx
-		jb  SHORT dp8w_fastcopy1;
-
-		add  dx, 3
-		cmp  cx, dx
-		ja  SHORT dp8w_end
-
-
-dp8w_lastcopy:;
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp8w_lastcopy1;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp8w_lastcopy1:;
-		mov  al, BYTE PTR [esi + eax];
-		mov	 BYTE PTR [edi], al;
-		inc  edi
-		inc	 cx;
-		cmp  cx, dx
-		jb  SHORT dp8w_lastcopy
-dp8w_end:
-	}
-#endif
 }
 
-void VIC6569::render_16bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_16bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)	
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 2));
 
 int i,j;
@@ -5064,62 +4537,18 @@ bit8 v;
 bit16 cl;
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		cl = vic_color_array16[v];
 		*((bit16 *)(p + (UINT_PTR)((2*i)))) = cl;
-
 	}
-#else
-	__asm
-	{
-		lea  esi, vic_color_array16;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		mov ebx, xpos
-		shl ebx, 1
-		add  eax, ebx
-		add  eax, pRow
-		mov  edi, eax
-
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-dp_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy2:;
-		mov  bx, WORD PTR [esi + eax*2];
-		inc	 ecx;
-		bswap ebx
-
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy3;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy3:;
-		mov  bx, WORD PTR [esi + eax*2];
-		xchg bl, bh
-		bswap ebx
-		inc	 ecx;
-
-		mov	 DWORD PTR [edi], ebx;
-		add	 edi, 4;
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy1;
-	}
-#endif
 }
 
-void VIC6569::render_16bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_16bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)	
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 2));
 bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 2));
 
@@ -5128,10 +4557,10 @@ bit8 v;
 bit32 cl;
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		cl = vic_color_array16[v];
 		cl = cl | (cl << 16);
@@ -5139,71 +4568,10 @@ bit32 cl;
 
 		*((bit32 *)(q + (UINT_PTR)((2*i) * 2))) = cl;
 	}
-#else
-	__asm
-	{
-		lea  esi, vic_color_array16;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		mov ebx, xpos
-		shl ebx, 1
-		add  eax, ebx
-		add  eax, pRow
-		mov  pRow, eax
-		mov  edi, eax;
-
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-dp_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy2:;
-		mov  bx, WORD PTR [esi + eax*2];
-		mov  ax, bx
-		shl  ebx, 16
-		mov  bx, ax
-
-		inc	 ecx;
-
-		mov	 DWORD PTR [edi], ebx;
-		add	 edi, 4;
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy1;
-
-		mov  edi, pRow;
-		add  edi, videoPitch
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-dp_fastcopy3:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy4;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy4:;
-		mov  bx, WORD PTR [esi + eax*2];
-		mov  ax, bx
-		shl  ebx, 16
-		mov  bx, ax
-
-		inc	 ecx;
-
-		mov	 DWORD PTR [edi], ebx;
-		add	 edi, 4;
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy3;
-	}
-#endif
 }
 
-void VIC6569::render_24bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_24bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 3));
 
@@ -5212,54 +4580,19 @@ bit8 v;
 bit32 cl;
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		cl = vic_color_array24[v] & 0xffffff;
 		*((bit8 *)(p + (UINT_PTR)(i * 3))) = (bit8)(cl & 0xff);
 		*((bit16 *)(p + (UINT_PTR)((i * 3) +1))) = (bit16)((cl >> 8) & 0xffff);
 	}
-#else
-	__asm
-	{
-		lea  esi, vic_color_array24;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		mov ebx, xpos
-		imul ebx, 3
-		add  eax, ebx
-		add  eax, pRow
-		mov  edi, eax;
-
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-dp_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy2:;
-		mov  eax, DWORD PTR [esi + eax*4];
-		inc	 ecx;
-		mov	 [edi], al;
-		shr  eax, 8
-		inc	 edi
-		mov	 [edi], ax;
-
-		add	 edi, 2;
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy1;
-	}
-#endif
 }
 
-void VIC6569::render_24bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_24bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)	
 //TEST ME
 bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 3));
 bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 3));
@@ -5269,10 +4602,10 @@ bit8 v;
 bit32 cl;
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		cl = vic_color_array24[v] & 0xffffff;
 		cl = cl | ((cl & 0xff) << 24);
@@ -5283,132 +4616,27 @@ bit32 cl;
 		*((bit32 *)(q + (UINT_PTR)((2*i) * 3))) = cl;
 		*((bit16 *)(q + (UINT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
 	}
-#else
-	__asm
-	{
-		lea  esi, vic_color_array24;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		mov ebx, xpos
-		imul ebx, 3
-		add  eax, ebx
-		add  eax, pRow
-		mov  pRow, eax
-		mov  edi, eax;
-
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-dp_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy2:;
-		mov  eax, DWORD PTR [esi + eax*4];
-		inc	 ecx;
-		mov  bl, al
-
-		bswap eax
-		mov al, bl
-		bswap eax
-		
-		mov	 [edi], eax;
-		shr  eax, 8
-		mov  4[edi], ax
-		
-		add  edi, 6
-
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy1;
-
-		mov  edi, pRow;
-		add  edi, videoPitch
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-dp_fastcopy3:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy4;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy4:;
-		mov  eax, DWORD PTR [esi + eax*4];
-		inc	 ecx;
-		mov  bl, al
-
-		bswap eax
-		mov al, bl
-		bswap eax
-		
-		mov	 [edi], eax;
-		shr  eax, 8
-		mov  4[edi], ax
-		
-		add  edi, 6
-
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy3;
-	}
-#endif
 }
 
-void VIC6569::render_32bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_32bit(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)
-	
 bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
 
 int i,j;
 bit8 v;
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		p[i] = vic_color_array32[v];
 	}
-#else
-	__asm
-	{
-		lea  esi, vic_color_array32;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		mov ebx, xpos
-		shl ebx, 2
-		add  eax, ebx
-		add  eax, pRow
-		mov  pRow, eax
-		mov  edi, eax;
-		
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-
-dp_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		jne	 SHORT dp_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy2:;
-		mov  ebx, DWORD PTR [esi + eax*4];
-		inc	 ecx;
-
-		mov	 DWORD PTR [edi], ebx;
-		add	 edi, 4;
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy1;
-	}
-#endif
 }
 
-void VIC6569::render_32bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width,unsigned short startx, unsigned long videoPitch)
+void VIC6569::render_32bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-#if defined(_WIN64) || !defined(RENDERX86ASM)
 	
 bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
 bit32 *q = (bit32 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 4));
@@ -5416,12 +4644,13 @@ bit32 *q = (bit32 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 4));
 int i,j;
 bit8 v;
 bit32 cl;
+
 	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 	{
-		v = vic_borderbuffer[j];
+		v = pBorderBuffer[j];
 		if (v==255)
 		{
-			v = vic_pixelbuffer[j];
+			v = pPixelBuffer[j];
 		}
 		cl = vic_color_array32[v];
 		p[2*i] = cl;
@@ -5429,62 +4658,6 @@ bit32 cl;
 		q[2*i] = cl;
 		q[2*i+1] = cl;
 	}
-#else
-	__asm
-	{
-		lea  esi, vic_color_array32;
-		mov  eax, videoPitch
-		imul  eax, ypos
-		mov ebx, xpos
-		shl ebx, 2
-		add  eax, ebx
-		add  eax, pRow
-		mov  pRow, eax
-		mov  edi, eax;
-
-		movzx  ecx, startx;
-		movzx  edx, width;
-		add  edx, ecx;
-
-dp_fastcopy1:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		//TEST Border on/off
-		jne	 SHORT dp_fastcopy2;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy2:;
-		mov  ebx, DWORD PTR [esi + eax*4];
-		inc	 ecx;
-
-		mov	 DWORD PTR [edi], ebx;
-		mov	 DWORD PTR 4[edi], ebx;
-		add	 edi, 8;
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy1;
-
-
-		mov  edi, pRow;
-		add  edi, videoPitch;
-		movzx  ecx, startx;
-		movzx  edx, width
-		add  edx, ecx
-dp_fastcopy3:
-		movzx  eax, BYTE PTR vic_borderbuffer+DISPLAY_START_A[ecx]
-		cmp	 al, 255;
-		//TEST Border on/off
-		jne	 SHORT dp_fastcopy4;
-		movzx  eax, BYTE PTR vic_pixelbuffer+DISPLAY_START_A[ecx];
-dp_fastcopy4:;
-		mov  ebx, DWORD PTR [esi + eax*4];
-		inc	 ecx;
-
-		mov	 DWORD PTR [edi], ebx;
-		mov	 DWORD PTR 4[edi], ebx;
-		add	 edi, 8;
-		cmp  cx, dx
-		jb  SHORT dp_fastcopy3;
-	}
-#endif
 }
 
 
