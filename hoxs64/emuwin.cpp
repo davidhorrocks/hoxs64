@@ -186,6 +186,7 @@ HRESULT hr;
 		return;
 	if (!dx->m_pd3dDevice)
 		return ;
+	this->c64->vic.UpdateBackBuffer();
 	hr = RenderWindow();
 	if (SUCCEEDED(hr))
 	{

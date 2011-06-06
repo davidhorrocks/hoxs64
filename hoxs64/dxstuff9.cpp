@@ -203,12 +203,22 @@ void CDX9::UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter)
 
 IDirect3DSurface9 *CDX9::GetSmallSurface()
 {
-	return m_pSmallSurface[m_iIndexSmallSurface];
+	IDirect3DSurface9 *surface = m_pSmallSurface[m_iIndexSmallSurface];
+	if (surface)
+	{
+		surface->AddRef();
+	}
+	return surface;
 }
 
 IDirect3DSurface9 *CDX9::GetSysMemSurface()
 {
-	return m_pSysMemSurface;
+	IDirect3DSurface9 *surface = m_pSysMemSurface;
+	if (surface)
+	{
+		surface->AddRef();
+	}
+	return surface;
 }
 
 void CDX9::CleanupD3D_Devices()

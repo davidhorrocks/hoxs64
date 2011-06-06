@@ -231,6 +231,7 @@ public:
 	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState);
 
 	void PreventClockOverflow();
+	void UpdateBackBuffer();
 
 	bit8 ScreenPixelBuffer[PAL_MAX_LINE+1][PIXELBUFFER_SIZE];
 	bit8 ScreenBorderBuffer[PAL_MAX_LINE+1][PIXELBUFFER_SIZE];
