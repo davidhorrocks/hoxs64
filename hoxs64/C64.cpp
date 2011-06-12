@@ -158,7 +158,7 @@ void C64::EnterDebugRun(bool bWithSound)
 	if (bWithSound && appStatus->m_bSoundOK && appStatus->m_bFilterOK)
 		sid.LockSoundBuffer();
 
-	vic.SetDisplayPointers();
+	//vic.SetDisplayPointers();
 
 	cpu.StartDebug();
 	diskdrive.cpu.StartDebug();
@@ -532,7 +532,6 @@ bool bBreakC64, bBreakDisk;
 
 void C64::ExecuteFrame()
 {
-HRESULT hRet;
 ICLK cycles,sysclock;
 
 	if (bPendingReset)
@@ -548,13 +547,14 @@ ICLK cycles,sysclock;
 
 	sysclock = vic.CurrentClock + cycles;
 	
-	hRet=vic.LockBackSurface();
-	if (hRet != D3D_OK) {
-		return;
-	}
+	//HRESULT hRet;
+	//hRet=vic.LockBackSurface();
+	//if (hRet != D3D_OK) {
+	//	return;
+	//}
 	if (appStatus->m_bSoundOK && appStatus->m_bFilterOK)
 		sid.LockSoundBuffer();
-	vic.SetDisplayPointers();
+	//vic.SetDisplayPointers();
 
 	BOOL bIsDiskEnabled = cfg->m_bD1541_Emulation_Enable;
 	BOOL bIsDiskThreadEnabled = cfg->m_bD1541_Thread_Enable;

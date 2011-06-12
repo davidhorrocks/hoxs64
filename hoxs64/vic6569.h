@@ -106,7 +106,7 @@ public:
 	LPDIRECT3DSURFACE9 m_pBackBuffer;
 	D3DLOCKED_RECT m_LockRect;
 
-	void SetDisplayPointers();
+	//void SetDisplayPointers();
 
 	ICLK ClockNextWakeUpClock;
 
@@ -331,14 +331,14 @@ private:
 	__forceinline void SetBA(ICLK &cycles, bit8 cycle);
 	__forceinline void init_line_start();
 
-	void render_8bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch);
-	void render_8bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
-	void render_16bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
-	void render_16bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
-	void render_24bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
-	void render_24bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
-	void render_32bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
-	void render_32bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch);
+	void render_8bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+	void render_8bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+	void render_16bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+	void render_16bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+	void render_24bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+	void render_24bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+	void render_32bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+	void render_32bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
 
 	bit8 vicMemoryBankIndex;
 	bit8 **vic_memory_map_read;

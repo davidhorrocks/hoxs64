@@ -342,6 +342,7 @@ HWND hWndDebuggerMdiClient = 0;
 
 			if (bDrawThisFrame)
 			{
+				c64.vic.UpdateBackBuffer();
 				hRet = appWindow.emuWin.RenderWindow();
 				if(SUCCEEDED(hRet))
 				{

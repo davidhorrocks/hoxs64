@@ -153,7 +153,11 @@ int i;
 	m_sizeSmallSurface.cx = Width;
 	m_sizeSmallSurface.cy = Height;
 
+#ifdef USESYSMEMSURFACE
 	hr = m_pd3dDevice->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_SYSTEMMEM, &m_pSysMemSurface, NULL);
+#else
+	hr = S_OK;
+#endif
 	if (SUCCEEDED(hr))
 	{
 		for (i = 0; i < _countof(m_pSmallSurface); i++)

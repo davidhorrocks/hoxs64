@@ -1,7 +1,7 @@
 #ifndef __CDX9_H__
 #define __CDX9_H__
 
-#define USESYSMEMSURFACE
+#undef USESYSMEMSURFACE
 #define DISPLAYMODELISTSIZE (100)
 
 #define JOYTEMP (0)
