@@ -833,6 +833,8 @@ bit8 *pByte;
 	}
 }
 
+#pragma intrinsic(_rotl8, _rotl16)
+
 /* 
 valid inputs
 cycle 3 - 63
