@@ -153,12 +153,8 @@ void C64::EnterDebugRun(bool bWithSound)
 	if (cfg->m_bD1541_Emulation_Enable==0)
 		diskdrive.CurrentPALClock = vic.CurrentClock;
 
-	vic.LockBackSurface();
-
 	if (bWithSound && appStatus->m_bSoundOK && appStatus->m_bFilterOK)
 		sid.LockSoundBuffer();
-
-	//vic.SetDisplayPointers();
 
 	cpu.StartDebug();
 	diskdrive.cpu.StartDebug();
@@ -168,7 +164,6 @@ void C64::EnterDebugRun(bool bWithSound)
 void C64::FinishDebugRun()
 {
 	sid.UnLockSoundBuffer();
-	vic.UnLockBackSurface();
 	cpu.StopDebug();
 	diskdrive.cpu.StopDebug();
 
@@ -547,14 +542,8 @@ ICLK cycles,sysclock;
 
 	sysclock = vic.CurrentClock + cycles;
 	
-	//HRESULT hRet;
-	//hRet=vic.LockBackSurface();
-	//if (hRet != D3D_OK) {
-	//	return;
-	//}
 	if (appStatus->m_bSoundOK && appStatus->m_bFilterOK)
 		sid.LockSoundBuffer();
-	//vic.SetDisplayPointers();
 
 	BOOL bIsDiskEnabled = cfg->m_bD1541_Emulation_Enable;
 	BOOL bIsDiskThreadEnabled = cfg->m_bD1541_Thread_Enable;
@@ -585,7 +574,7 @@ ICLK cycles,sysclock;
 	}
 
 	sid.UnLockSoundBuffer();
-	vic.UnLockBackSurface();
+	//vic.UnLockBackSurface();
 	CheckDriveLedNofication();
 }
 

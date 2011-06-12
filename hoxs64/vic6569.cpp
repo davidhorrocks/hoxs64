@@ -659,22 +659,6 @@ void VIC6569::ClearSystemInterrupt()
 	cpu->Clear_VIC_IRQ();
 }
 
-
-//void VIC6569::SetDisplayPointers()
-//{
-//long y;
-//	if (m_pBackBuffer)
-//	{
-//		y = vic_raster_line - dx->m_displayFirstVicRaster;
-//		if (y<0) 
-//			y=0;
-//		if (appStatus->m_bUseCPUDoubler)
-//			CurrentRowPixel = (void *) (((INT_PTR) m_LockRect.pBits) + (INT_PTR)(y*2*m_LockRect.Pitch));
-//		else
-//			CurrentRowPixel = (void *) (((INT_PTR) m_LockRect.pBits) + (INT_PTR)(y*m_LockRect.Pitch));
-//	}
-//}
-
 void VIC6569::WRITE_FORE_MASK_STD(bit8 gData, signed char xscroll, bit8 cycle)
 {
 bit16u dataw;
@@ -767,10 +751,16 @@ bit8s byteOffset = (xscroll/8);
 //Valid for 63 >= cycle >= 3
 void VIC6569::WRITE_COLOR_BYTE8(bit8 color, signed char xscroll, bit8 cycle)
 {
-bit8 *pByte;
-
-	pByte=vic_pixelbuffer+(INT_PTR)((cycle*8 - 20) + (int)xscroll+8);
-	__stosb(pByte, color, 8);	
+bit8 *p;
+	p=vic_pixelbuffer+(INT_PTR)((cycle*8 - 20) + (int)xscroll+8);
+	*p++ = color;
+	*p++ = color;
+	*p++ = color;
+	*p++ = color;
+	*p++ = color;
+	*p++ = color;
+	*p++ = color;
+	*p = color;
 }
 
 //Valid for 63 >= cycle >= 3
@@ -882,47 +872,78 @@ bit8 *pByte;
 
 
 //Valid for 63 >= cycle >= 3
+//define DRAW_BORDER(cycle) if (vicMainBorder)\
+//	{\
+//		__stosb(&vic_borderbuffer[((int)cycle*8 - 20)], vicBorderColor, 8);\
+//	}\
+//	else\
+//	{\
+//		*((bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)])) = (bit64)-1LL;\
+//	}
 
-#define DRAW_BORDER(cycle) if (vicMainBorder)\
+#define DRAW_BORDER(cycle) ptr8 = &vic_borderbuffer[((int)cycle*8 - 20)];\
+	if (vicMainBorder)\
 	{\
-		__stosb(&vic_borderbuffer[((int)cycle*8 - 20)], vicBorderColor, 8);\
+		data8 = vicBorderColor;\
 	}\
 	else\
 	{\
-		*((bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)])) = (bit64)-1LL;\
-	}
+		data8 = 0xff;\
+	}\
+	*ptr8++ = data8;\
+	*ptr8++ = data8;\
+	*ptr8++ = data8;\
+	*ptr8++ = data8;\
+	*ptr8++ = data8;\
+	*ptr8++ = data8;\
+	*ptr8++ = data8;\
+	*ptr8 = data8;
 
 
 //Valid for 63 >= cycle >= 3
 void VIC6569::DrawBorder(bit8 cycle) 
 {
-bit64 *p;
-
-	p = (bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
+bit8 c;
+bit8 *p;
+	
+	p = (bit8 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
 	if (vicMainBorder)
 	{ 
-		__stosb((bit8 *)p, vicBorderColor, 8);
+		c = vicBorderColor;
 	}
 	else
 	{
-		*p = (bit64)-1LL;
+		c = 0xff;
 	}
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p = c;
 }
 
 //Valid for 63 >= cycle >= 3
 void VIC6569::DrawBorder4(bit8 cycle) 
 {
-bit32 *p;
+bit8 c;
+bit8 *p;
 
-	p = (bit32 *)(&vic_borderbuffer[((int)cycle*8 - 20)]);
+	p = (&vic_borderbuffer[((int)cycle*8 - 20)]);
 	if (vicMainBorder_old)
 	{
-		__stosb((bit8 *)p, vicBorderColor, 4);
+		c = vicBorderColor;
 	}
 	else
 	{
-		*p = (bit32)-1L;
+		c = 0xff;
 	}
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p = c;
 }
 
 void VIC6569::DrawBorder7(bit8 cycle) 
@@ -939,7 +960,13 @@ bit8 c;
 	{
 		c = 0xff;
 	}
-	__stosb(p, c, 7);
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p = c;
 }
 
 void VIC6569::check_38_col_right_border()
@@ -985,8 +1012,13 @@ bit8 c;
 	{
 		c = 0xff;
 	}
-	__stosb(p, c, 7);
-	p+=7;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
+	*p++ = c;
 
 	if (vic_border_part_38 & 2)
 	{
@@ -1019,7 +1051,10 @@ bit8 c;
 	if (vic_border_part_40 & 1)
 	{
 		c = (bit8) vicBorderColor;
-		__stosb(p, c, 4);
+		*p++ = c;
+		*p++ = c;
+		*p++ = c;
+		*p = c;
 	}
 	else
 	{
@@ -1035,7 +1070,10 @@ bit8 c;
 	if (vic_border_part_40 & 2)
 	{
 		c = (bit8) vicBorderColor;
-		__stosb(p, c, 4);
+		*p++ = c;
+		*p++ = c;
+		*p++ = c;
+		*p = c;
 	}
 	else
 	{
@@ -1807,7 +1845,6 @@ bit8 a_color4[4];
 VIC6569::VIC6569()
 {
 	m_pBackBuffer = NULL;
-	//CurrentRowPixel=0;
 	ram=NULL;
 	cpu=NULL;
 	dx=NULL;
@@ -2009,7 +2046,7 @@ void VIC6569::PreventClockOverflow()
 VIC6569::~VIC6569()
 {
 	Cleanup();
-	UnLockBackSurface();
+	//UnLockBackSurface();
 }
 
 HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu)
@@ -2025,8 +2062,6 @@ HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram,
 	SetMMU(0);
 	setup_multicolor_mask_table();
 	setup_vic_ba();
-
-	//CurrentRowPixel=0;
 
 	Reset(CurrentClock);
 	return S_OK;
@@ -2360,55 +2395,6 @@ D3DLOCKED_RECT lrLockRect;
 	return hr;
 }
 
-HRESULT VIC6569::LockBackSurface()
-{
-HRESULT hr;
-
-	if (dx->m_pd3dDevice == NULL)
-		return E_FAIL;
-#ifdef USESYSMEMSURFACE
-	m_pBackBuffer = dx->GetSysMemSurface();
-#else
-	m_pBackBuffer = dx->GetSmallSurface();
-#endif
-	if (m_pBackBuffer)
-	{
-		if (!appStatus->m_bDebug || appStatus->m_bRunning)
-			hr = m_pBackBuffer->LockRect(&m_LockRect, NULL, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK);
-		else
-			hr = m_pBackBuffer->LockRect(&m_LockRect, NULL, D3DLOCK_NOSYSLOCK);
-		if (SUCCEEDED(hr))
-		{
-			return hr;
-		}
-		else
-		{
-			m_pBackBuffer->Release();
-			m_pBackBuffer = NULL;
-			appStatus->m_bReady = FALSE;
-		}
-		return hr;
-	}
-	else
-	{
-		appStatus->m_bReady = FALSE;
-		return E_FAIL;
-	}
-}
-
-void VIC6569::UnLockBackSurface()
-{
-	if (m_pBackBuffer)
-	{
-		m_pBackBuffer->UnlockRect();
-		m_pBackBuffer->Release();
-		m_pBackBuffer = NULL;
-		//CurrentRowPixel=0;
-
-	}
-}
-
-
 void VIC6569::SpriteArm(int spriteNo)
 {
 	VICSprite& sprite = vicSprite[spriteNo];
@@ -2513,8 +2499,6 @@ void VIC6569::init_line_start()
 	}
 }
 
-
-
 //pragma optimize( "g", off )
 #define LOADSPRITEDATA(spriteNo, column) ((bit8 *)(&vicSpriteData[spriteNo]))[column]
 
@@ -2527,6 +2511,8 @@ bit8 cyclePrev;
 ICLK clocks;
 bool bNextLineCouldMayBeBad;
 bit32 nextLine;
+bit8 *ptr8;
+bit8 data8;
 
 	clocks = sysclock - CurrentClock;
 	while ((ICLKS)clocks-- > 0)
@@ -2625,9 +2611,6 @@ bit32 nextLine;
 				vic_latchDEN=0;
 				vic_in_display_y=0;
 				vicVCBASE=0;
-
-				//Hack to restore CurrentRowPixel to the top of the display because CurrentRowPixel may be out of bounds from the last frame.
-				//CurrentRowPixel = m_LockRect.pBits;
 
 				if (vicRASTER_compare == 0)
 				{
@@ -3219,67 +3202,6 @@ bit32 nextLine;
 				vicVerticalBorder=0;
 				vicCharDataOutputDisabled=0;
 			}
-			//if (vic_in_display_y && appStatus->m_fskip < 0 && m_pBackBuffer!=0)
-			//{
-			//	bit8 *pDestSurfLine;
-			//	int y = (int)vic_raster_line - (int)dx->m_displayFirstVicRaster;
-			//	if (y >=0 || y < (int)dx->m_displayHeight) 
-			//	{
-			//		if (appStatus->m_bUseCPUDoubler)
-			//			pDestSurfLine = (bit8 *) (((INT_PTR) m_LockRect.pBits) + (INT_PTR)(y*2*m_LockRect.Pitch));
-			//		else
-			//			pDestSurfLine = (bit8 *) (((INT_PTR) m_LockRect.pBits) + (INT_PTR)(y*m_LockRect.Pitch));
-
-			//		//pDestSurfLine=(bit8 *)CurrentRowPixel;
-			//	
-			//		if (vic_raster_line < dx->m_displayFirstVicRaster || vic_raster_line > dx->m_displayLastVicRaster) 
-			//			break;
-			//		if (appStatus->m_bUseCPUDoubler)
-			//		{
-			//			switch (appStatus->m_ScreenDepth)
-			//			{
-			//			case 32:
-			//				render_32bit_2x(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
-			//				break;
-			//			case 24:
-			//				render_24bit_2x(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
-			//				break;
-			//			case 16:
-			//				render_16bit_2x(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
-			//				break;
-			//			case 8:
-			//				render_8bit_2x(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel= (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch*(INT_PTR)2);
-			//				break;
-			//			}
-			//		}
-			//		else
-			//		{
-			//			switch (appStatus->m_ScreenDepth)
-			//			{
-			//			case 32:
-			//				render_32bit(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
-			//				break;
-			//			case 24:
-			//				render_24bit(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
-			//				break;
-			//			case 16:
-			//				render_16bit(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
-			//				break;
-			//			case 8:
-			//				render_8bit(pDestSurfLine, dx->m_displayXPos, dx->m_displayYPos, dx->m_displayWidth, vic_borderbuffer, vic_pixelbuffer, dx->m_displayStart, m_LockRect.Pitch);
-			//				//CurrentRowPixel = (void *) ((INT_PTR)CurrentRowPixel + (INT_PTR)m_LockRect.Pitch);
-			//				break;
-			//			}
-			//		}
-			//	}
-			//}
 			break;
 		}
 		if (m_bVicModeChanging)
@@ -4592,18 +4514,27 @@ bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos));
 int i,j;
 bit8 v;
 bit16 cl;
-	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-	{
-		v = pBorderBuffer[j];
-		if (v==255)
-		{
-			v = pPixelBuffer[j];
-		}
-		cl = vic_color_array8[v];
-		cl = cl | (cl << 8);
-		*((bit16 *)(p + (2*i))) = cl;
 
-		*((bit16 *)(q + (2*i))) = cl;
+unsigned short h;
+	for (h = 0; h < height; h++)
+	{
+		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+		{
+			v = pBorderBuffer[j];
+			if (v==255)
+			{
+				v = pPixelBuffer[j];
+			}
+			cl = vic_color_array8[v];
+			cl = cl | (cl << 8);
+			*((bit16 *)(p + (2*i))) = cl;
+
+			*((bit16 *)(q + (2*i))) = cl;
+		}
+		p = (bit8 *)((ULONG_PTR)p + 2*videoPitch);
+		q = (bit8 *)((ULONG_PTR)q + 2*videoPitch);
+		pBorderBuffer += bufferPitch;
+		pPixelBuffer += bufferPitch;
 	}
 }
 
@@ -4616,15 +4547,23 @@ bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos));
 int i,j;
 bit8 v;
 bit8 cl;
-	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+
+unsigned short h;
+	for (h = 0; h < height; h++)
 	{
-		v = pBorderBuffer[j];
-		if (v==255)
+		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 		{
-			v = pPixelBuffer[j];
+			v = pBorderBuffer[j];
+			if (v==255)
+			{
+				v = pPixelBuffer[j];
+			}
+			cl = vic_color_array8[v];
+			*((bit8 *)(p + ((i)))) = cl;
 		}
-		cl = vic_color_array8[v];
-		*((bit8 *)(p + ((i)))) = cl;
+		p = (bit8 *)((ULONG_PTR)p + videoPitch);
+		pBorderBuffer += bufferPitch;
+		pPixelBuffer += bufferPitch;
 	}
 }
 
@@ -4635,15 +4574,23 @@ bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 2));
 int i,j;
 bit8 v;
 bit16 cl;
-	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+
+unsigned short h;
+	for (h = 0; h < height; h++)
 	{
-		v = pBorderBuffer[j];
-		if (v==255)
+		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 		{
-			v = pPixelBuffer[j];
+			v = pBorderBuffer[j];
+			if (v==255)
+			{
+				v = pPixelBuffer[j];
+			}
+			cl = vic_color_array16[v];
+			*((bit16 *)(p + (UINT_PTR)((2*i)))) = cl;
 		}
-		cl = vic_color_array16[v];
-		*((bit16 *)(p + (UINT_PTR)((2*i)))) = cl;
+		p = (bit8 *)((ULONG_PTR)p + videoPitch);
+		pBorderBuffer += bufferPitch;
+		pPixelBuffer += bufferPitch;
 	}
 }
 
@@ -4655,18 +4602,27 @@ bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 2));
 int i,j;
 bit8 v;
 bit32 cl;
-	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-	{
-		v = pBorderBuffer[j];
-		if (v==255)
-		{
-			v = pPixelBuffer[j];
-		}
-		cl = vic_color_array16[v];
-		cl = cl | (cl << 16);
-		*((bit32 *)(p + (UINT_PTR)((2*i) * 2))) = cl;
 
-		*((bit32 *)(q + (UINT_PTR)((2*i) * 2))) = cl;
+unsigned short h;
+	for (h = 0; h < height; h++)
+	{
+		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+		{
+			v = pBorderBuffer[j];
+			if (v==255)
+			{
+				v = pPixelBuffer[j];
+			}
+			cl = vic_color_array16[v];
+			cl = cl | (cl << 16);
+			*((bit32 *)(p + (UINT_PTR)((2*i) * 2))) = cl;
+
+			*((bit32 *)(q + (UINT_PTR)((2*i) * 2))) = cl;
+		}
+		p = (bit8 *)((ULONG_PTR)p + 2*videoPitch);
+		q = (bit8 *)((ULONG_PTR)q + 2*videoPitch);
+		pBorderBuffer += bufferPitch;
+		pPixelBuffer += bufferPitch;
 	}
 }
 
@@ -4678,16 +4634,24 @@ bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 3));
 int i,j;
 bit8 v;
 bit32 cl;
-	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+	
+unsigned short h;
+	for (h = 0; h < height; h++)
 	{
-		v = pBorderBuffer[j];
-		if (v==255)
+		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 		{
-			v = pPixelBuffer[j];
+			v = pBorderBuffer[j];
+			if (v==255)
+			{
+				v = pPixelBuffer[j];
+			}
+			cl = vic_color_array24[v] & 0xffffff;
+			*((bit8 *)(p + (UINT_PTR)(i * 3))) = (bit8)(cl & 0xff);
+			*((bit16 *)(p + (UINT_PTR)((i * 3) +1))) = (bit16)((cl >> 8) & 0xffff);
 		}
-		cl = vic_color_array24[v] & 0xffffff;
-		*((bit8 *)(p + (UINT_PTR)(i * 3))) = (bit8)(cl & 0xff);
-		*((bit16 *)(p + (UINT_PTR)((i * 3) +1))) = (bit16)((cl >> 8) & 0xffff);
+		p = (bit8 *)((ULONG_PTR)p + videoPitch);
+		pBorderBuffer += bufferPitch;
+		pPixelBuffer += bufferPitch;
 	}
 }
 
@@ -4700,21 +4664,30 @@ bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 3));
 int i,j;
 bit8 v;
 bit32 cl;
-	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+
+unsigned short h;
+	for (h = 0; h < height; h++)
 	{
-		v = pBorderBuffer[j];
-		if (v==255)
+		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 		{
-			v = pPixelBuffer[j];
+			v = pBorderBuffer[j];
+			if (v==255)
+			{
+				v = pPixelBuffer[j];
+			}
+			cl = vic_color_array24[v] & 0xffffff;
+			cl = cl | ((cl & 0xff) << 24);
+			*((bit32 *)(p + (UINT_PTR)((2*i) * 3))) = cl;
+			*((bit16 *)(p + (UINT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
+
+
+			*((bit32 *)(q + (UINT_PTR)((2*i) * 3))) = cl;
+			*((bit16 *)(q + (UINT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
 		}
-		cl = vic_color_array24[v] & 0xffffff;
-		cl = cl | ((cl & 0xff) << 24);
-		*((bit32 *)(p + (UINT_PTR)((2*i) * 3))) = cl;
-		*((bit16 *)(p + (UINT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
-
-
-		*((bit32 *)(q + (UINT_PTR)((2*i) * 3))) = cl;
-		*((bit16 *)(q + (UINT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
+		p = (bit8 *)((ULONG_PTR)p + 2*videoPitch);
+		q = (bit8 *)((ULONG_PTR)q + 2*videoPitch);
+		pBorderBuffer += bufferPitch;
+		pPixelBuffer += bufferPitch;
 	}
 }
 
@@ -4724,14 +4697,22 @@ bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
 
 int i,j;
 bit8 v;
-	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+
+unsigned short h;
+	for (h = 0; h < height; h++)
 	{
-		v = pBorderBuffer[j];
-		if (v==255)
+		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
 		{
-			v = pPixelBuffer[j];
+			v = pBorderBuffer[j];
+			if (v==255)
+			{
+				v = pPixelBuffer[j];
+			}
+			p[i] = vic_color_array32[v];
 		}
-		p[i] = vic_color_array32[v];
+		p = (bit32 *)((ULONG_PTR)p + videoPitch);
+		pBorderBuffer += bufferPitch;
+		pPixelBuffer += bufferPitch;
 	}
 }
 

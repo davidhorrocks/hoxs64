@@ -106,12 +106,9 @@ public:
 	LPDIRECT3DSURFACE9 m_pBackBuffer;
 	D3DLOCKED_RECT m_LockRect;
 
-	//void SetDisplayPointers();
-
 	ICLK ClockNextWakeUpClock;
 
 	bit8 cpu_next_op_code;
-	void *CurrentRowPixel;
 
 	// control reg 1
 	bit8 vicECM;
@@ -214,8 +211,6 @@ public:
 	HRESULT Init(CConfig *, CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu);
 	void Cleanup();
 	void setup_color_tables(D3DFORMAT format);
-	HRESULT LockBackSurface();
-	void UnLockBackSurface();	
 	void SetMMU(bit8 index);
 	bit8 de00_byte;
 
