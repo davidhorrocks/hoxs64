@@ -116,6 +116,7 @@ CApp::CApp()
 	m_syncMode = HCFG::FSSM_LINE;
 	m_bAutoload = FALSE;
 	m_bFixWindowSize = FALSE;
+	m_bWindowSizing = FALSE;
 	m_bClosing = false;
 	m_bBusy = false;
 	hCursorBusy = LoadCursor(0L, IDC_WAIT);

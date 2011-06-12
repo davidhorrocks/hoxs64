@@ -17,6 +17,7 @@ public:
 	bool					m_bBreak;
 	bool					m_bPaused;
 	bool					m_bFixWindowSize;
+	bool					m_bWindowSizing;
 	bool					m_bClosing;
 
 	signed int				m_fskip;

@@ -10,12 +10,11 @@ public:
 	HWND Create(HINSTANCE hInstance, HWND parentWindow, const TCHAR title[], int x,int y, int w, int h, HMENU controlID);
 
 	static void GetRequiredWindowSize(HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, BOOL bDoubleSizedWindow, int *w, int *h);
-	void UpdateWindow();
+	HRESULT UpdateWindow();
 	HRESULT RenderWindow();
 	void DrawDriveSprites();
 	void SetColours();
 	void ClearSurfaces();
-	DWORD dwSolidColourFill;
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 private:
@@ -25,6 +24,7 @@ private:
 	C64 *c64;
 	HINSTANCE m_hInstance;
 	const static LPTSTR lpszClassName;
+	DWORD m_dwSolidColourFill;
 };
 
 #endif

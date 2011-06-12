@@ -938,12 +938,12 @@ D3DTEXTUREFILTERTYPE filter;
 
 	if (bWindowed)
 	{
-		GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-		SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
-
 		emuWin.GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 		SetWindowPos(emuWin.GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
 
+		GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+		SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
+		
 		hRet = dx->InitD3D(emuWin.GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, cfg->m_borderSize, cfg->m_bShowFloppyLed, bUseBlitStretch, cfg->m_fullscreenStretch, filter, cfg->m_syncMode, cfg->m_fullscreenAdapterNumber, cfg->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{

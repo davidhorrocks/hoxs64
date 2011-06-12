@@ -1012,7 +1012,7 @@ void G::InitLateBindLibraryCalls()
 
         s_pFnGetMonitorInfo = (LPGETMONITORINFO) (bNT ? GetProcAddress(hUser32, "GetMonitorInfoW") : GetProcAddress(hUser32, "GetMonitorInfoA"));
 		s_pFnMonitorFromRect = (LPMONITORFROMRECT) (GetProcAddress(hUser32, "MonitorFromRect"));
-		s_pFnMonitorFromWindow = (LPMONITORFROMWINDOW) (GetProcAddress(hUser32, "	"));
+		s_pFnMonitorFromWindow = (LPMONITORFROMWINDOW) (GetProcAddress(hUser32, "MonitorFromWindow"));
 
     }
 	if (G::IsWindowsVistaOrLater())

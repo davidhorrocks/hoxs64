@@ -41,7 +41,7 @@ public:
 	HRESULT CreateSmallSurface(int Width, int Height, D3DFORMAT Format);
 	void ClearTargets(D3DCOLOR dwSolidColourFill);
 	void ClearSurfaces(D3DCOLOR colour);
-	void UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter);
+	HRESULT UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter);
 	IDirect3DSurface9 *GetSmallSurface();
 	IDirect3DSurface9 *GetSysMemSurface();
 

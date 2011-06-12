@@ -2285,17 +2285,17 @@ void VIC6569::Cleanup()
 }
 
 
-void VIC6569::UpdateBackBuffer()
+HRESULT VIC6569::UpdateBackBuffer()
 {
-HRESULT hr;
+HRESULT hr = E_FAIL;
 bit8 *pBorderBuffer, *pPixelBuffer;
 unsigned int line;
 D3DLOCKED_RECT lrLockRect; 
 
 	if (dx == NULL)
-		return;
+		return E_FAIL;
 	if (dx->m_pd3dDevice == NULL)
-		return;
+		return E_FAIL;
 	IDirect3DSurface9 *pBackBuffer = dx->GetSysMemSurface();
 	if (pBackBuffer)
 	{
@@ -2355,6 +2355,7 @@ D3DLOCKED_RECT lrLockRect;
 		pBackBuffer->Release();
 		pBackBuffer = NULL;
 	}
+	return hr;
 }
 
 HRESULT VIC6569::LockBackSurface()
@@ -4720,7 +4721,27 @@ bit8 v;
 
 void VIC6569::render_32bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos,unsigned short width, bit8 pBorderBuffer[], bit8 pPixelBuffer[],unsigned short startx, unsigned long videoPitch)
 {
-	
+#ifdef _WIN64	
+bit64 *p = (bit64 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
+bit64 *q = (bit64 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 4));
+
+int i,j;
+bit8 v;
+bit64 cl;
+
+	for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
+	{
+		v = pBorderBuffer[j];
+		if (v==255)
+		{
+			v = pPixelBuffer[j];
+		}
+		cl = vic_color_array32[v];
+		cl = (cl << 32) | cl;
+		p[i] = cl;
+		q[i] = cl;
+	}
+#else
 bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
 bit32 *q = (bit32 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 4));
 
@@ -4741,6 +4762,7 @@ bit32 cl;
 		q[2*i] = cl;
 		q[2*i+1] = cl;
 	}
+#endif
 }
 
 

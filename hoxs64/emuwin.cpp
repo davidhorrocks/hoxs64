@@ -49,7 +49,7 @@ CEmuWindow::CEmuWindow()
 {
 	m_AutoDelete = false;
 	m_hInstance = 0;
-	dwSolidColourFill=0;
+	m_dwSolidColourFill=0;
 }
 
 HRESULT CEmuWindow::Init(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
@@ -94,7 +94,7 @@ HWND CEmuWindow::Create(HINSTANCE hInstance, HWND parentWindow, const TCHAR titl
 void CEmuWindow::ClearSurfaces()
 {
 	if (dx)
-		dx->ClearSurfaces(dwSolidColourFill);
+		dx->ClearSurfaces(m_dwSolidColourFill);
 }
 
 void CEmuWindow::SetColours()
@@ -118,19 +118,19 @@ void CEmuWindow::SetColours()
 			switch(appStatus->m_ScreenDepth)
 			{
 			case 8:
-				dwSolidColourFill = VIC6569::vic_color_array8[0];
+				m_dwSolidColourFill = VIC6569::vic_color_array8[0];
 				break;
 			case 16:
-				dwSolidColourFill = VIC6569::vic_color_array16[0];
+				m_dwSolidColourFill = VIC6569::vic_color_array16[0];
 				break;
 			case 24:
-				dwSolidColourFill = VIC6569::vic_color_array24[0];
+				m_dwSolidColourFill = VIC6569::vic_color_array24[0];
 				break;
 			case 32:
-				dwSolidColourFill = VIC6569::vic_color_array32[0];
+				m_dwSolidColourFill = VIC6569::vic_color_array32[0];
 				break;
 			default:
-				dwSolidColourFill = 0;
+				m_dwSolidColourFill = 0;
 			}
 		}
 
@@ -139,15 +139,28 @@ void CEmuWindow::SetColours()
 
 LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+HRESULT hr;
+//HDC hdc;
+//PAINTSTRUCT ps;
+//RECT rc;
 	switch (uMsg) 
 	{
 		case WM_CREATE:
 			return 0;
 		case WM_PAINT:
-			if (appStatus->m_bReady)
+			hr = E_FAIL;
+			if (appStatus->m_bWindowed)
 			{
-				if (appStatus->m_bWindowed)
-					UpdateWindow();
+				hr = UpdateWindow();
+				//if (GetUpdateRect(hWnd, &rc, FALSE)!=0)
+				//{
+				//	hdc = BeginPaint (hWnd, &ps);
+				//	if (hdc)
+				//	{
+				//		BOOL br = FillRect(hdc, &rc, (HBRUSH) (COLOR_WINDOW+1));
+				//	}
+				//	EndPaint(hWnd, &ps);
+				//}
 			}
 			ValidateRect(hWnd, NULL);
 			return 0;
@@ -167,10 +180,10 @@ HRESULT hr;
 	if (!dx->m_pd3dDevice)
 		return E_FAIL;	
 
-	dx->ClearTargets(dwSolidColourFill);
+	dx->ClearTargets(m_dwSolidColourFill);
 	if(SUCCEEDED(hr = dx->m_pd3dDevice->BeginScene()))
 	{
-		dx->UpdateBackbuffer((D3DTEXTUREFILTERTYPE)appStatus->m_blitFilter);
+		hr = dx->UpdateBackbuffer((D3DTEXTUREFILTERTYPE)appStatus->m_blitFilter);
 		if (cfg->m_bShowFloppyLed)
 			DrawDriveSprites();
 		dx->m_pd3dDevice->EndScene();
@@ -178,26 +191,30 @@ HRESULT hr;
 	return hr;
 }
 
-void CEmuWindow::UpdateWindow()
+HRESULT CEmuWindow::UpdateWindow()
 {
-HRESULT hr;
+HRESULT hr = E_FAIL;
 
-	if (!dx)
-		return;
+	if (!dx || !c64)
+		return E_FAIL;
 	if (!dx->m_pd3dDevice)
-		return ;
-	this->c64->vic.UpdateBackBuffer();
-	hr = RenderWindow();
+		return E_FAIL;
+	hr = this->c64->vic.UpdateBackBuffer();
 	if (SUCCEEDED(hr))
 	{
-		hr = dx->m_pd3dDevice->Present(NULL, NULL, NULL, NULL);
-		if (hr == D3DERR_DEVICELOST)
+		hr = RenderWindow();
+		if (SUCCEEDED(hr))
 		{
-			hr = dx->m_pd3dDevice->TestCooperativeLevel();
+			hr = dx->m_pd3dDevice->Present(NULL, NULL, NULL, NULL);
 			if (hr == D3DERR_DEVICELOST)
-				appStatus->m_bReady = false;
+			{
+				hr = dx->m_pd3dDevice->TestCooperativeLevel();
+				if (hr == D3DERR_DEVICELOST)
+					appStatus->m_bReady = false;
+			}
 		}
 	}
+	return hr;
 }
 
 void CEmuWindow::DrawDriveSprites()

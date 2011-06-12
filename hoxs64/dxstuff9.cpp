@@ -179,8 +179,9 @@ void CDX9::ClearTargets(D3DCOLOR color)
 	}
 }
 
-void CDX9::UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter)
+HRESULT CDX9::UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter)
 {
+HRESULT hr = E_FAIL;
 	if (m_pd3dDevice)
 	{
 		IDirect3DSurface9 *pSmallSuface = m_pSmallSurface[m_iIndexSmallSurface];
@@ -188,17 +189,20 @@ void CDX9::UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter)
 		{
 #ifdef USESYSMEMSURFACE
 			if (m_pSysMemSurface != NULL)
+			{
 				m_pd3dDevice->UpdateSurface(m_pSysMemSurface, NULL, pSmallSuface, NULL);
+			}
 #endif
 			LPDIRECT3DSURFACE9 pBackBuffer;
 			if (D3D_OK == m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
 			{
-				m_pd3dDevice->StretchRect(pSmallSuface, NULL, pBackBuffer, &m_rcTargetRect, filter);
+				hr = m_pd3dDevice->StretchRect(pSmallSuface, NULL, pBackBuffer, &m_rcTargetRect, filter);
 				pBackBuffer->Release();
 				pBackBuffer = NULL;
 			}
 		}
 	}
+	return hr;
 }
 
 IDirect3DSurface9 *CDX9::GetSmallSurface()
