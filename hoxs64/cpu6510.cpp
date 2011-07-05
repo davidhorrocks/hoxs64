@@ -91,7 +91,7 @@ HRESULT hr;
 	pVic = static_cast<VIC6569 *>(vic);
 
 	if (ram->miIO == NULL)
-		SetError(E_FAIL, TEXT("Please call ram->Init() before calling cpu6510->Init()"));
+		return SetError(E_FAIL, TEXT("Please call ram->Init() before calling cpu6510->Init()"));
 
 	ram->ConfigureMMU(0, &m_ppMemory_map_read, &m_ppMemory_map_write);
 
@@ -407,7 +407,7 @@ bit8 f;
 //       7 |        6 |     5 |     4 |     3 |       2 |     1 |      0
 //NOT USED | NOT USED | MOTOR | SENSE | WRITE | CHARGEN | HIRAM | LOWRAM
 void CPU6510::cpu_port(){
-//port reads pin levels for pin that are in input mode
+//port reads pin levels for pins that are in input mode
 //port reads the output register for pins that are in output mode
 //CASSETTE MOTOR pin reads zero
 

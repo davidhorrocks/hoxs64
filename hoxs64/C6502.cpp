@@ -702,7 +702,7 @@ void CPU6502::SetBALow(ICLK sysclock)
 			}
 			else if (m_cpu_sequence == SEI_IMPLIED)
 			{
-				//If the CPU is run ahead mode, we do not know if the CIA is going to want to back date an IRQ.
+				//If the CPU is in run ahead mode, we do not know if the CIA is going to want to back date an IRQ.
 				//If both BA and IRQ transition to low in the second cycle of SEI then no IRQ occurs in the next instruction.
 				mbBALowInClock2OfSEI = true;
 			}
