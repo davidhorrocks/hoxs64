@@ -239,6 +239,12 @@ public:
 
 	HRESULT Append(const T &item)
 	{
+		MListElement<T> *p_element = NULL;
+		return Append(item, &p_element);
+	}
+
+	HRESULT Append(const T &item, MListElement<T> **pp_element)
+	{
 		HRESULT hr;
 		MListElement<T> *e;
 		

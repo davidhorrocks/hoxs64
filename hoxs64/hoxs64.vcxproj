@@ -518,6 +518,7 @@
     </ClCompile>
     <ClCompile Include="C64File.cpp" />
     <ClCompile Include="C6502.cpp" />
+    <ClCompile Include="cevent.cpp" />
     <ClCompile Include="cia1.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -788,6 +789,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bits.h" />
+    <ClInclude Include="cevent.h" />
     <ClInclude Include="cmdarg.h" />
     <ClInclude Include="disassemblyeditchild.h" />
     <ClInclude Include="disassemblyframe.h" />
