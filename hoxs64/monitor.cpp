@@ -3,15 +3,15 @@
 #include <stdarg.h>
 #include <tchar.h>
 #include "bits.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "register.h"
 #include "errormsg.h"
 #include "C6502.h"
 #include "hexconv.h"
+#include "cevent.h"
 #include "monitor.h"
-
-
 
 Monitor::Monitor()
 {

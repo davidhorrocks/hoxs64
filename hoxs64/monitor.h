@@ -1,6 +1,33 @@
 #ifndef __MONITOR_H__
 #define __MONITOR_H__
 
+
+class IMonitorCommand
+{
+public:
+	virtual void Resume()=0;
+	virtual void Trace()=0;
+	virtual void TraceFrame()=0;
+	virtual void ExecuteC64Clock()=0;
+	virtual void ExecuteDiskClock()=0;
+	virtual void ExecuteC64Instruction()=0;
+	virtual void ExecuteDiskInstruction()=0;
+	virtual void UpdateApplication()=0;
+	virtual HWND ShowDevelopment() = 0;
+	virtual bool IsRunning()=0;
+
+
+	EventSource<EventArgs> EsResume;
+	EventSource<EventArgs> EsTrace;
+	EventSource<EventArgs> EsTraceFrame;
+	EventSource<EventArgs> EsExecuteC64Clock;
+	EventSource<EventArgs> EsExecuteDiskClock;
+	EventSource<EventArgs> EsExecuteC64Instruction;
+	EventSource<EventArgs> EsExecuteDiskInstruction;
+	EventSource<EventArgs> EsUpdateApplication;
+	EventSource<EventArgs> EsShowDevelopment;
+};
+
 class Monitor
 {
 public:

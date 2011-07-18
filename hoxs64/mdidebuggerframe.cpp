@@ -14,6 +14,7 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "register.h"
@@ -41,6 +42,7 @@
 #include "t64.h"
 #include "C64.h"
 
+#include "cevent.h"
 #include "monitor.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
@@ -84,7 +86,7 @@ CMDIDebuggerFrame::CMDIDebuggerFrame()
 	cfg = NULL;
 	appStatus = NULL;
 	c64 = NULL;
-	m_monitorEvent = NULL;
+	m_monitorCommand = NULL;
 	m_pParentWindow = NULL;
 }
 
@@ -129,52 +131,19 @@ WNDCLASSEX wc;
 
 };
 
-void CMDIDebuggerFrame::Resume(IMonitorEvent *sender)
-{
-}
-void CMDIDebuggerFrame::Trace(IMonitorEvent *sender)
+void CMDIDebuggerFrame::OnTrace(void *sender, EventArgs& e)
 {
 	SetMenuState();
-}
-void CMDIDebuggerFrame::TraceFrame(IMonitorEvent *sender)
-{
-}
-void CMDIDebuggerFrame::ExecuteC64Clock(IMonitorEvent *sender)
-{
-}
-void CMDIDebuggerFrame::ExecuteDiskClock(IMonitorEvent *sender)
-{
-}
-void CMDIDebuggerFrame::ExecuteC64Instruction(IMonitorEvent *sender)
-{
-}
-void CMDIDebuggerFrame::ExecuteDiskInstruction(IMonitorEvent *sender)
-{
-}
-void CMDIDebuggerFrame::UpdateApplication(IMonitorEvent *sender)
-{
-}
-HWND CMDIDebuggerFrame::ShowDevelopment(IMonitorEvent *sender)
-{
-	SetMenuState();
-	return NULL;
-}
-bool CMDIDebuggerFrame::IsRunning(IMonitorEvent *sender)
-{
-	return false;
-}
-HRESULT CMDIDebuggerFrame::Advise(IMonitorEvent *sink)
-{
-	return E_FAIL;
-}
-void CMDIDebuggerFrame::Unadvise(IMonitorEvent *sink)
-{
 }
 
+void CMDIDebuggerFrame::OnShowDevelopment(void *sender, EventArgs& e)
+{
+	SetMenuState();
+}
 
 void CMDIDebuggerFrame::SetMenuState()
 {
-	if (!m_monitorEvent)
+	if (!m_monitorCommand)
 		return ;
 	if (!m_hWnd)
 		return ;
@@ -183,7 +152,7 @@ void CMDIDebuggerFrame::SetMenuState()
 		return ;
 	UINT state;
 	UINT stateOpp;
-	if (m_monitorEvent->IsRunning(NULL))
+	if (m_monitorCommand->IsRunning())
 	{
 		state = MF_DISABLED | MF_GRAYED;
 		stateOpp = MF_ENABLED;
@@ -462,19 +431,6 @@ bool fail = false;
 
 }
 
-void CMDIDebuggerFrame::Cleanup()
-{
-	if (m_hImageListToolBarNormal != NULL)
-	{
-		ImageList_Destroy(m_hImageListToolBarNormal);
-		m_hImageListToolBarNormal = NULL;
-	}
-	if (m_monitorEvent!=NULL)
-	{
-		m_monitorEvent->Unadvise(this);
-	}
-}
-
 HWND CMDIDebuggerFrame::CreateToolBar(HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight)
 {
 HWND hwndTB = NULL;
@@ -659,23 +615,23 @@ int wmId, wmEvent;
 		ShowDebugCpuDisk(false);
 		return true;
 	case ID_STEP_TRACEFRAME:
-		if (!m_monitorEvent)
+		if (!m_monitorCommand)
 			return false;
-		if (m_monitorEvent->IsRunning(NULL))
+		if (m_monitorCommand->IsRunning())
 			return false;
-		m_monitorEvent->TraceFrame(NULL);
-		m_monitorEvent->UpdateApplication(NULL);
+		m_monitorCommand->TraceFrame();
+		m_monitorCommand->UpdateApplication();
 		return true;
 	case ID_STEP_TRACE:
-		if (!m_monitorEvent)
+		if (!m_monitorCommand)
 			return false;
-		this->m_monitorEvent->Trace(NULL);
+		this->m_monitorCommand->Trace();
 		return true;
 	case ID_FILE_MONITOR:
 	case ID_STEP_STOP:
-		if (!m_monitorEvent)
+		if (!m_monitorCommand)
 			return false;
-		this->m_monitorEvent->ShowDevelopment(NULL);
+		this->m_monitorCommand->ShowDevelopment();
 		return true;
 	default:
 		return false;
@@ -703,8 +659,8 @@ HRESULT hr;
 		OnMove(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_CLOSE:
-		if (m_monitorEvent)
-			m_monitorEvent->Resume(NULL);
+		if (m_monitorCommand)
+			m_monitorCommand->Resume();
 		OnClose(m_hWnd, uMsg, wParam, lParam);
 		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	case WM_DESTROY:
@@ -735,29 +691,83 @@ void CMDIDebuggerFrame::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	m_debugCpuDisk.Show(true);
 }
 
-HRESULT CMDIDebuggerFrame::Init(IMonitorEvent *monitorEvent, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
+HRESULT CMDIDebuggerFrame::Init(IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
 {
 HRESULT hr;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
-	this->m_monitorEvent = monitorEvent;
+	this->m_monitorCommand = monitorCommand;
 
 	IMonitorCpu *monitorMainCpu = &c64->cpu;
 	IMonitorCpu *monitorDiskCpu = &c64->diskdrive.cpu;
 	IMonitorVic *monitorVic = &c64->vic;
 
-	hr = m_debugCpuC64.Init(this, monitorEvent, monitorMainCpu, monitorVic, TEXT("C64 - cpu"));
-	if (FAILED(hr))
-		return hr;
+	do
+	{
+		hr = m_debugCpuC64.Init(this, monitorCommand, monitorMainCpu, monitorVic, TEXT("C64 - cpu"));
+		if (FAILED(hr))
+			break;
 
-	hr = m_debugCpuDisk.Init(this, monitorEvent, monitorDiskCpu, monitorVic, TEXT("Disk - cpu"));
-	if (FAILED(hr))
-		return hr;
+		hr = m_debugCpuDisk.Init(this, monitorCommand, monitorDiskCpu, monitorVic, TEXT("Disk - cpu"));
+		if (FAILED(hr))
+			break;
 
-	hr = m_monitorEvent->Advise(this);
-	if (FAILED(hr))
-		return hr;
+		hr = AdviseEvents();
+		if (FAILED(hr))
+			break;
 
-	return S_OK;
+		hr = S_OK;
+	} while (false);
+	if (FAILED(hr))
+	{
+		Cleanup();
+		return hr;
+	}
+	else
+	{
+		return S_OK;
+	}
 };
+
+void CMDIDebuggerFrame::Cleanup()
+{
+	UnadviseEvents();
+
+	if (m_hImageListToolBarNormal != NULL)
+	{
+		ImageList_Destroy(m_hImageListToolBarNormal);
+		m_hImageListToolBarNormal = NULL;
+	}
+}
+
+HRESULT CMDIDebuggerFrame::AdviseEvents()
+{
+	HRESULT hr;
+	HSink hs;
+	hr = S_OK;
+	do
+	{
+
+		hs = m_monitorCommand->EsShowDevelopment.Advise((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_monitorCommand->EsTrace.Advise((CMDIDebuggerFrame_EventSink_OnTrace *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hr = S_OK;
+	} while (false);
+	return hr;
+}
+
+void CMDIDebuggerFrame::UnadviseEvents()
+{
+	((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this)->UnadviseAll();
+	((CMDIDebuggerFrame_EventSink_OnTrace *)this)->UnadviseAll();
+}

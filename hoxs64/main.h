@@ -1,7 +1,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-class CApp : public CConfig, public CAppStatus, public IC64Event, public IMonitorEvent, public ErrorMsg
+class CApp : public CConfig, public CAppStatus, public IMonitorCommand, public IC64Event, public ErrorMsg
 {
 public:
 	CApp();
@@ -45,19 +45,26 @@ public:
 
 	HWND ShowDevelopment(CVirWindow *parent);
 
-	//IMonitorEvent
-	virtual void IMonitorEvent::Resume(IMonitorEvent *sender);
-	virtual void IMonitorEvent::Trace(IMonitorEvent *sender);
-	virtual void IMonitorEvent::TraceFrame(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteC64Clock(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteDiskClock(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteC64Instruction(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteDiskInstruction(IMonitorEvent *sender);
-	virtual void IMonitorEvent::UpdateApplication(IMonitorEvent *sender);
-	virtual HWND IMonitorEvent::ShowDevelopment(IMonitorEvent *sender);
-	virtual bool IMonitorEvent::IsRunning(IMonitorEvent *sender);
-	virtual HRESULT IMonitorEvent::Advise(IMonitorEvent *sink);
-	virtual void IMonitorEvent::Unadvise(IMonitorEvent *sink);
+	virtual void IMonitorCommand::Resume();
+	virtual void IMonitorCommand::Trace();
+	virtual void IMonitorCommand::TraceFrame();
+	virtual void IMonitorCommand::ExecuteC64Clock();
+	virtual void IMonitorCommand::ExecuteDiskClock();
+	virtual void IMonitorCommand::ExecuteC64Instruction();
+	virtual void IMonitorCommand::ExecuteDiskInstruction();
+	virtual void IMonitorCommand::UpdateApplication();
+	virtual HWND IMonitorCommand::ShowDevelopment();
+	virtual bool IMonitorCommand::IsRunning();
+
+	//EventSource<EventArgs> IMonitorCommand::EsResume;
+	//EventSource<EventArgs> IMonitorCommand::EsTrace;
+	//EventSource<EventArgs> IMonitorCommand::EsTraceFrame;
+	//EventSource<EventArgs> IMonitorCommand::EsExecuteC64Clock;
+	//EventSource<EventArgs> IMonitorCommand::EsExecuteDiskClock;
+	//EventSource<EventArgs> IMonitorCommand::EsExecuteC64Instruction;
+	//EventSource<EventArgs> IMonitorCommand::EsExecuteDiskInstruction;
+	//EventSource<EventArgs> IMonitorCommand::EsUpdateApplication;
+	//EventSource<EventArgs> IMonitorCommand::EsShowDevelopment;
 	
 	CAppWindow appWindow;
 	CMDIDebuggerFrame MDIDebugger;
@@ -97,9 +104,9 @@ public:
 	TCHAR m_szAppFullPath[MAX_PATH+1];
 	TCHAR m_szAppDirectory[MAX_PATH+1];
 	VS_FIXEDFILEINFO m_Vinfo;
-	CArray<IMonitorEvent *> m_event_MonitorEvent;
 
 	CDX9 dx;
 };
+
 
 #endif

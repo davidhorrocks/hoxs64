@@ -1,7 +1,107 @@
 #ifndef __DISSASSEMBLYFRAME_H__
 #define __DISSASSEMBLYFRAME_H__
 
-class CDisassemblyFrame : public CVirWindow, public IMonitorEvent, public ErrorMsg
+class CDisassemblyFrame_EventSink_OnResume : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnResume(sender, e);
+		return 0;
+	}
+	virtual void OnResume(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnTrace : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnTrace(sender, e);
+		return 0;
+	}
+	virtual void OnTrace(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnTraceFrame : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnTraceFrame(sender, e);
+		return 0;
+	}
+	virtual void OnTraceFrame(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnExecuteC64Clock : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnExecuteC64Clock(sender, e);
+		return 0;
+	}
+	virtual void OnExecuteC64Clock(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnExecuteDiskClock : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnExecuteDiskClock(sender, e);
+		return 0;
+	}
+	virtual void OnExecuteDiskClock(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnExecuteC64Instruction : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnExecuteC64Instruction(sender, e);
+		return 0;
+	}
+	virtual void OnExecuteC64Instruction(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnExecuteDiskInstruction : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnExecuteDiskInstruction(sender, e);
+		return 0;
+	}
+	virtual void OnExecuteDiskInstruction(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnShowDevelopment : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnShowDevelopment(sender, e);
+		return 0;
+	}
+	virtual void OnShowDevelopment(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink : 
+	public CDisassemblyFrame_EventSink_OnResume,
+	public CDisassemblyFrame_EventSink_OnTrace,
+	public CDisassemblyFrame_EventSink_OnTraceFrame,
+	public CDisassemblyFrame_EventSink_OnExecuteC64Clock,
+	public CDisassemblyFrame_EventSink_OnExecuteDiskClock,
+	public CDisassemblyFrame_EventSink_OnExecuteC64Instruction,
+	public CDisassemblyFrame_EventSink_OnExecuteDiskInstruction,
+	public CDisassemblyFrame_EventSink_OnShowDevelopment
+{
+};
+
+class CDisassemblyFrame : public CVirWindow, public CDisassemblyFrame_EventSink, public ErrorMsg
 {
 public:
 	CDisassemblyFrame();
@@ -22,7 +122,7 @@ public:
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];	
 
-	HRESULT Init(CVirWindow *parent, IMonitorEvent *monitorEvent, IMonitorCpu *cpu, IMonitorVic *vic, LPCTSTR pszCaption);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, LPCTSTR pszCaption);
 	HRESULT Show();
 	HRESULT Show(bool bSeekPC);
 
@@ -32,7 +132,7 @@ public:
 	void EnsureWindowPosition(int x, int y, int w, int h);
 
 private:
-	IMonitorEvent *m_monitorEvent;
+	IMonitorCommand *m_monitorCommand;
 	IMonitorCpu *m_cpu;
 	IMonitorVic *m_vic;
 	LPCTSTR m_pszCaption;
@@ -43,21 +143,6 @@ private:
 	CVirWindow *m_pParentWindow;
 	CDisassemblyChild m_DisassemblyChild;
 	CDisassemblyReg m_DisassemblyReg;
-
-
-	//IMonitorEvent
-	virtual void IMonitorEvent::Resume(IMonitorEvent *sender);
-	virtual void IMonitorEvent::Trace(IMonitorEvent *sender);
-	virtual void IMonitorEvent::TraceFrame(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteC64Clock(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteDiskClock(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteC64Instruction(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteDiskInstruction(IMonitorEvent *sender);
-	virtual void IMonitorEvent::UpdateApplication(IMonitorEvent *sender);
-	virtual HWND IMonitorEvent::ShowDevelopment(IMonitorEvent *sender);
-	virtual bool IMonitorEvent::IsRunning(IMonitorEvent *sender);
-	virtual HRESULT IMonitorEvent::Advise(IMonitorEvent *sink);
-	virtual void IMonitorEvent::Unadvise(IMonitorEvent *sink);
 
 	HWND CreateRebar(HWND hwndTB);
 	HWND CreateToolBar(HIMAGELIST hImageListToolBarNormal);
@@ -73,6 +158,18 @@ private:
 
 	void SetHome();
 	void UpdateDisplay(bool bSeekPC);
+
+	void OnResume(void *sender, EventArgs& e);
+	void OnTrace(void *sender, EventArgs& e);
+	void OnTraceFrame(void *sender, EventArgs& e);
+	void OnExecuteC64Clock(void *sender, EventArgs& e);
+	void OnExecuteDiskClock(void *sender, EventArgs& e);
+	void OnExecuteC64Instruction(void *sender, EventArgs& e);
+	void OnExecuteDiskInstruction(void *sender, EventArgs& e);
+	void OnShowDevelopment(void *sender, EventArgs& e);
+
+	HRESULT AdviseEvents();
+	void UnadviseEvents();
 
 	HRESULT OnCreate(HWND hWnd);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

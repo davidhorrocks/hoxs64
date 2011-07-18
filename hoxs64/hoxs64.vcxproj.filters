@@ -162,9 +162,6 @@
     <ClCompile Include="disassemblyreg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cevent.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">

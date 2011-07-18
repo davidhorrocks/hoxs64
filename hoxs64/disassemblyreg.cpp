@@ -7,13 +7,14 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "register.h"
 #include "errormsg.h"
 
 #include "assert.h"
-
+#include "cevent.h"
 #include "monitor.h"
 #include "disassemblyreg.h"
 #include "resource.h"
@@ -25,7 +26,7 @@ CDisassemblyReg::CDisassemblyReg()
 	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_hFont = NULL;
-	m_monitorEvent = NULL;
+	m_monitorCommand = NULL;
 	m_MinSizeDone = false;
 	m_vic = NULL;
 	m_cpu = NULL;
@@ -35,13 +36,13 @@ CDisassemblyReg::~CDisassemblyReg()
 {
 }
 
-HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorEvent *monitorEvent, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
+HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
 {
 	HRESULT hr;
 	m_pParent = parent;
 	this->m_cpu = cpu;
 	this->m_hFont = hFont;
-	this->m_monitorEvent = monitorEvent;
+	this->m_monitorCommand = monitorCommand;
 	this->m_vic = vic;
 	hr = this->m_mon.Init(cpu, vic);
 	return hr;
@@ -247,7 +248,7 @@ TEXTMETRIC tm;
 		{
 			int x,y,yTitle,tx;
 			int slen;			
-			if (!m_monitorEvent->IsRunning(NULL))
+			if (!m_monitorCommand->IsRunning())
 			{
 				UpdateBuffer(m_TextBuffer);
 

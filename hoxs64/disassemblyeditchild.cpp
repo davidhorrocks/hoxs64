@@ -9,13 +9,12 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "register.h"
 #include "errormsg.h"
-
-#include "assert.h"
-
+#include "cevent.h"
 #include "monitor.h"
 #include "disassemblyeditchild.h"
 #include "resource.h"
@@ -34,7 +33,7 @@ CDisassemblyEditChild::CDisassemblyEditChild()
 	LINE_HEIGHT = 16;
 	m_pFrontTextBuffer = NULL;
 	m_pBackTextBuffer = NULL;
-	m_monitorEvent = NULL;
+	m_monitorCommand = NULL;
 	m_hBmpBreak = NULL;
 	m_bHasLastDrawText = false;
 	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));	
@@ -56,13 +55,13 @@ void CDisassemblyEditChild::Cleanup()
 
 }
 
-HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorEvent *monitorEvent, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
+HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
 {
 HRESULT hr;
 	this->m_pParent = parent;
 	this->m_hFont = hFont;
 	this->m_cpu = cpu;
-	this->m_monitorEvent = monitorEvent;
+	this->m_monitorCommand = monitorCommand;
 	hr = AllocTextBuffer();
 	m_mon.Init(cpu, vic);
 	m_FirstAddress = GetNearestTopAddress(0);
@@ -296,7 +295,7 @@ void CDisassemblyEditChild::InvalidateRectChanges()
 
 bool CDisassemblyEditChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (m_monitorEvent->IsRunning(NULL))
+	if (m_monitorCommand->IsRunning())
 		return false;
 	int xPos = GET_X_LPARAM(lParam); 
 	int yPos = GET_Y_LPARAM(lParam);
@@ -394,7 +393,7 @@ TEXTMETRIC tm;
 		}
 	}
 
-	bool bUnavailable = m_monitorEvent->IsRunning(NULL);
+	bool bUnavailable = m_monitorCommand->IsRunning();
 
 	br = GetTextMetrics(hdc, &tm);
 	if (br)

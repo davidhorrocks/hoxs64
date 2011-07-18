@@ -1,8 +1,37 @@
 #ifndef __MDIDEGUGGERFRAME_H__
 #define __MDIDEGUGGERFRAME_H__
 
+class CMDIDebuggerFrame_EventSink_OnTrace : public EventSink<EventArgs>
+{
+protected:
 
-class CMDIDebuggerFrame : public CVirWindow, IMonitorEvent// , public ErrorMsg
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnTrace(sender, e);
+		return 0;
+	}
+	virtual void OnTrace(void *sender, EventArgs& e)=0;
+};
+
+class CMDIDebuggerFrame_EventSink_OnShowDevelopment : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnShowDevelopment(sender, e);
+		return 0;
+	}
+	virtual void OnShowDevelopment(void *sender, EventArgs& e)=0;
+};
+
+class CMDIDebuggerFrame_EventSink : 
+	public CMDIDebuggerFrame_EventSink_OnTrace,
+	public CMDIDebuggerFrame_EventSink_OnShowDevelopment
+{
+};
+
+
+class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink// , public ErrorMsg
 {
 public:
 	static const int ID_RERBAR = 2000;
@@ -23,7 +52,7 @@ public:
 
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	HRESULT Init(IMonitorEvent *monitorEvent, CConfig *cfg, CAppStatus *appStatus, C64 *c64);
+	HRESULT Init(IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64);
 	HWND Create(HINSTANCE hInstance, HWND parent, const TCHAR title[], int x,int y, int w, int h);
 	HWND Show(CVirWindow *pParentWindow);
 
@@ -55,21 +84,10 @@ private:
 	C64 *c64;
 	CAppStatus *appStatus;
 	CConfig *cfg;
-	IMonitorEvent *m_monitorEvent;
+	IMonitorCommand *m_monitorCommand;
 
-	//IMonitorEvent
-	virtual void IMonitorEvent::Resume(IMonitorEvent *sender);
-	virtual void IMonitorEvent::Trace(IMonitorEvent *sender);
-	virtual void IMonitorEvent::TraceFrame(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteC64Clock(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteDiskClock(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteC64Instruction(IMonitorEvent *sender);
-	virtual void IMonitorEvent::ExecuteDiskInstruction(IMonitorEvent *sender);
-	virtual void IMonitorEvent::UpdateApplication(IMonitorEvent *sender);
-	virtual HWND IMonitorEvent::ShowDevelopment(IMonitorEvent *sender);
-	virtual bool IMonitorEvent::IsRunning(IMonitorEvent *sender);
-	virtual HRESULT IMonitorEvent::Advise(IMonitorEvent *sink);
-	virtual void IMonitorEvent::Unadvise(IMonitorEvent *sink);
+	virtual void OnTrace(void *sender, EventArgs& e);
+	virtual void OnShowDevelopment(void *sender, EventArgs& e);
 
 	HRESULT CreateMDIToolBars();
 	HWND CreateRebar(HWND hwndTB);
@@ -77,6 +95,8 @@ private:
 	HIMAGELIST CreateImageListNormal(const ImageInfo imageInfo[], int length, int imageWidth, int imageHeight);
 	void OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void Cleanup();
+	HRESULT AdviseEvents();
+	void UnadviseEvents();
 	void SetMenuState();
 };
 

@@ -12,6 +12,7 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "register.h"

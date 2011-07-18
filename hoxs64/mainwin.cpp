@@ -15,6 +15,7 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "errormsg.h"
@@ -51,6 +52,8 @@
 #include "diagabout.h"
 #include "diagfilesaved64.h"
 
+#include "cevent.h"
+#include "monitor.h"
 #include "emuwin.h"
 #include "mainwin.h"
 #include "resource.h"
@@ -68,21 +71,21 @@ CAppWindow::CAppWindow()
 	m_hInstance = 0;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
-	m_monitorEvent = NULL;
+	m_monitorCommand = NULL;
 	dx = NULL;
 	hCursorBusy = LoadCursor(0L, IDC_WAIT);
 	hOldCursor = NULL;
 }
 
-HRESULT CAppWindow::Init(CDX9 *dx, IMonitorEvent *monitorEvent, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
+HRESULT CAppWindow::Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
 {
 HRESULT hr;
 
-	if (dx == NULL || monitorEvent == NULL || cfg == NULL || appStatus == NULL || c64 == NULL)
+	if (dx == NULL || monitorCommand == NULL || cfg == NULL || appStatus == NULL || c64 == NULL)
 		return E_POINTER;
 
 	this->dx = dx;
-	this->m_monitorEvent = monitorEvent;
+	this->m_monitorCommand = monitorCommand;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
@@ -412,7 +415,7 @@ bool bIsWindowMinimised;
 			break;
 		case ID_FILE_MONITOR:
 			if (appStatus->m_bWindowed)
-				m_monitorEvent->ShowDevelopment(NULL);
+				m_monitorCommand->ShowDevelopment();
 			break;
 		case ID_FILE_PAUSE:
 			appStatus->TogglePause();
@@ -718,7 +721,7 @@ void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 {
 	appStatus->SoundHalt();
 	MessageBox(hWnd, TEXT("A C64 CPU execute break point occurred."), TEXT("Monitor Break Point"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_monitorEvent->ShowDevelopment(NULL);
+	HWND hWndMon = m_monitorCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -729,7 +732,7 @@ void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 {
 	appStatus->SoundHalt();
 	MessageBox(hWnd, TEXT("A disk CPU execute break point occurred."), TEXT("Monitor Break Point"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_monitorEvent->ShowDevelopment(NULL);
+	HWND hWndMon = m_monitorCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);

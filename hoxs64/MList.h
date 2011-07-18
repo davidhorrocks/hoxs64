@@ -146,6 +146,10 @@ public:
 	{
 		return prev;
 	}
+	MList<T> *Get_Owner()
+	{
+		return owner;
+	}
 private:
 	MListElement<T> *prev;
 	MListElement<T> *next;
@@ -239,15 +243,8 @@ public:
 
 	HRESULT Append(const T &item)
 	{
-		MListElement<T> *p_element = NULL;
-		return Append(item, &p_element);
-	}
-
-	HRESULT Append(const T &item, MListElement<T> **pp_element)
-	{
 		HRESULT hr;
 		MListElement<T> *e;
-		
 		if (m_tail)
 		{
 			assert(m_count>0);

@@ -21,6 +21,7 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "errormsg.h"
@@ -54,6 +55,10 @@
 #include "C64.h"
 #include "c64file.h"
 
+#include "user_message.h"
+#include "cevent.h"
+#include "monitor.h"
+
 #include "prgbrowse.h"
 #include "diagkeyboard.h"
 #include "diagjoystick.h"
@@ -62,12 +67,10 @@
 #include "diagabout.h"
 #include "diagfilesaved64.h"
 
-#include "user_message.h"
 #include "emuwin.h"
 #include "mainwin.h"
 #include "cmdarg.h"
 
-#include "monitor.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -606,9 +609,6 @@ TCHAR ext[_MAX_EXT];
 		return E_FAIL;
 	}
 
-	//Set the initial number of possible event listeners.
-	m_event_MonitorEvent.Resize(5);
-
 	//Load the users settings.
 	hr = mainCfg.LoadCurrentSetting();
 	if (FAILED(hr))
@@ -706,7 +706,7 @@ TCHAR ext[_MAX_EXT];
 	//Reset the C64
 	c64.Reset(0);
 
-	hr = MDIDebugger.Init(static_cast<IMonitorEvent *>(this), thisCfg, thisAppStatus, &c64);
+	hr = MDIDebugger.Init(static_cast<IMonitorCommand *>(this), thisCfg, thisAppStatus, &c64);
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Unable to initialise the debugger window."), m_szAppName, MB_ICONWARNING);
@@ -1222,9 +1222,10 @@ void CApp::DiskWriteLed(bool bOn)
 	m_bDiskLedWrite = bOn;
 }
 
-void CApp::Resume(IMonitorEvent *sender)
+void CApp::Resume()
 {
 HWND hWnd;
+EventArgs e;
 	hWnd = appWindow.GetHwnd();
 	m_bDebug = FALSE;
 	m_bBreak = FALSE;
@@ -1233,19 +1234,13 @@ HWND hWnd;
 	if (hWnd)
 		SetForegroundWindow(hWnd);
 	SoundResume();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->Resume(sender);
-		}
-	}
+	EsResume.Raise(this, e);
 }
 
-void CApp::Trace(IMonitorEvent *sender)
+void CApp::Trace()
 {
 HWND hWnd;
+EventArgs e;
 	hWnd = appWindow.GetHwnd();
 	m_bDebug = TRUE;
 	m_bBreak = FALSE;
@@ -1255,122 +1250,59 @@ HWND hWnd;
 	if (hWnd)
 		SetForegroundWindow(hWnd);
 	SoundResume();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->Trace(sender);
-		}
-	}
+	EsTrace.Raise(this, e);
 }
 
-void CApp::TraceFrame(IMonitorEvent *sender)
+void CApp::TraceFrame()
 {
+EventArgs e;
 	m_fskip = -1;
 	c64.ExecuteDebugFrame();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->TraceFrame(sender);
-		}
-	}
+	EsTraceFrame.Raise(this, e);
 }
 
-void CApp::ExecuteC64Clock(IMonitorEvent *sender)
+void CApp::ExecuteC64Clock()
 {
+EventArgs e;
 	m_fskip = -1;
 	c64.ExecuteC64Clock();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->ExecuteC64Clock(sender);
-		}
-	}
+	EsExecuteC64Clock.Raise(this, e);
 }
 
-void CApp::ExecuteC64Instruction(IMonitorEvent *sender)
+void CApp::ExecuteC64Instruction()
 {
+EventArgs e;
 	m_fskip = -1;
 	c64.ExecuteC64Instruction();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->ExecuteC64Instruction(sender);
-		}
-	}
+	EsExecuteC64Instruction.Raise(this, e);
 }
 
-void CApp::ExecuteDiskClock(IMonitorEvent *sender)
+void CApp::ExecuteDiskClock()
 {
+EventArgs e;
 	m_fskip = -1;
 	c64.ExecuteDiskClock();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->ExecuteDiskClock(sender);
-		}
-	}
+	EsExecuteDiskClock.Raise(this, e);
 }
 
-void CApp::ExecuteDiskInstruction(IMonitorEvent *sender)
+void CApp::ExecuteDiskInstruction()
 {
+EventArgs e;
 	m_fskip = -1;
 	c64.ExecuteDiskInstruction();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->ExecuteDiskInstruction(sender);
-		}
-	}
+	EsExecuteDiskInstruction.Raise(this, e);
 }
 
-void CApp::UpdateApplication(IMonitorEvent *sender)
+void CApp::UpdateApplication()
 {
+EventArgs e;
 	appWindow.emuWin.UpdateWindow();
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->UpdateApplication(sender);
-		}
-	}
+	EsUpdateApplication.Raise(this, e);
 }
 
-bool CApp::IsRunning(IMonitorEvent *sender)
+bool CApp::IsRunning()
 {
 	return m_bRunning!=FALSE;
-}
-
-HRESULT CApp::Advise(IMonitorEvent *sink)
-{
-HRESULT hr;
-	if (sink==NULL)
-		return E_POINTER;
-	hr = m_event_MonitorEvent.Append(sink);
-	return hr;
-}
-
-void CApp::Unadvise(IMonitorEvent *sink)
-{
-	if (sink==NULL)
-		return;
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		if (m_event_MonitorEvent[i] == sink)
-			m_event_MonitorEvent[i] = NULL;
-	}
 }
 
 void CApp::TogglePause()
@@ -1410,22 +1342,16 @@ HWND CApp::ShowDevelopment(CVirWindow *pParentWindow)
 	}
 	else
 	{
-		this->Resume(NULL);
+		this->Resume();
 	}
 	return hWnd;
 }
 
-HWND CApp::ShowDevelopment(IMonitorEvent *sender)
+HWND CApp::ShowDevelopment()
 {
+EventArgs e;
 	HWND hWnd = ShowDevelopment(&appWindow);
-	for (unsigned int i = 0 ; i < m_event_MonitorEvent.Count() ; i++)
-	{
-		IMonitorEvent *sink = m_event_MonitorEvent[i];
-		if (sink!=NULL)
-		{
-			sink->ShowDevelopment(sender);
-		}
-	}
+	EsShowDevelopment.Raise(this, e);
 	return hWnd;
 }
 

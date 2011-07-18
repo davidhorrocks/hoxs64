@@ -14,6 +14,7 @@
 #include "defines.h"
 #include "resource.h"
 #include "errormsg.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "register.h"

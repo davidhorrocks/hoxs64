@@ -400,6 +400,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\cevent.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\cia1.h"
 				>
 			</File>

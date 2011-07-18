@@ -37,7 +37,7 @@ public:
 
 	static TCHAR ClassName[];
 
-	HRESULT Init(CVirWindow *parent, IMonitorEvent *monitorEvent, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
 
@@ -66,7 +66,7 @@ private:
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	IMonitorEvent *m_monitorEvent;
+	IMonitorCommand *m_monitorCommand;
 	HBITMAP m_hBmpBreak;
 	bool m_bHasLastDrawText;
 	RECT m_rcLastDrawText;

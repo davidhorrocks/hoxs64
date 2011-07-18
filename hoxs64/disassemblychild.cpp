@@ -9,11 +9,12 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "assert.h"
 #include "mlist.h"
 #include "carray.h"
 #include "register.h"
 #include "errormsg.h"
-
+#include "cevent.h"
 #include "monitor.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -39,11 +40,11 @@ void CDisassemblyChild::Cleanup()
 {
 }
 
-HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorEvent *monitorEvent, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
+HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
 {
 HRESULT hr;
 	m_pParent = parent;
-	hr = m_DisassemblyEditChild.Init(parent, monitorEvent, cpu, vic, hFont);
+	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, cpu, vic, hFont);
 	if (FAILED(hr))
 		return hr;
 	return S_OK;

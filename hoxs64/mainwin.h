@@ -13,7 +13,7 @@ class CAppWindow : public CVirWindow , public ErrorMsg
 {
 public:
 	CAppWindow();
-	HRESULT Init(CDX9 *dx, IMonitorEvent *monitorEvent, CConfig *, CAppStatus *, C64 *);
+	HRESULT Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *, CAppStatus *, C64 *);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h);
 	CAppStatus *appStatus;
@@ -55,7 +55,7 @@ private:
 	CDiagAbout mDlgAbout;
 	static struct tabpageitem m_tabPagesKeyboard[4];
 	static struct tabpageitem m_tabPagesSetting[5];
-	IMonitorEvent *m_monitorEvent;
+	IMonitorCommand *m_monitorCommand;
 	CDX9 *dx;
 	C64 *c64;
 	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SYSMENU;

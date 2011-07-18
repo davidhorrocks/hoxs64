@@ -33,7 +33,7 @@ public:
 
 	static TCHAR ClassName[];
 
-	HRESULT Init(CVirWindow *parent, IMonitorEvent *monitorEvent, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
@@ -51,7 +51,7 @@ private:
 	IMonitorCpu *m_cpu;
 	IMonitorVic *m_vic;
 	Monitor m_mon;
-	IMonitorEvent *m_monitorEvent;
+	IMonitorCommand *m_monitorCommand;
 
 	RegLineBuffer m_TextBuffer;
 
