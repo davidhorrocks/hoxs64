@@ -874,15 +874,6 @@ bit8 *pByte;
 
 
 //Valid for 63 >= cycle >= 3
-//define DRAW_BORDER(cycle) if (vicMainBorder)\
-//	{\
-//		__stosb(&vic_borderbuffer[((int)cycle*8 - 20)], vicBorderColor, 8);\
-//	}\
-//	else\
-//	{\
-//		*((bit64 *)(&vic_borderbuffer[((int)cycle*8 - 20)])) = (bit64)-1LL;\
-//	}
-
 #define DRAW_BORDER(cycle) ptr8 = &vic_borderbuffer[((int)cycle*8 - 20)];\
 	if (vicMainBorder)\
 	{\
