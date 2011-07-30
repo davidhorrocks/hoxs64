@@ -161,7 +161,7 @@ void VICSprite::Reset()
 	ff_MC = 0;
 }
 
-bit16 VIC6569::vicXPosFromCycle(bit8 cycle, signed char offset)
+bit16 VIC6569::GetVicXPosFromCycle(bit8 cycle, signed char offset)
 {
 signed short x;
 	if (cycle < 14)
@@ -182,7 +182,7 @@ void VICSprite::SetXPos(bit16 x, bit8 currentColumn)
 bit16 currentColumnXPos;
 signed short xDiff;
 
-	currentColumnXPos = VIC6569::vicXPosFromCycle(currentColumn, +4);
+	currentColumnXPos = VIC6569::GetVicXPosFromCycle(currentColumn, +4);
 	xDiff = (signed short)(currentColumnXPos - xPos);
 	if (xDiff > 0xfa)
 		xDiff =  xDiff - 0x1f8;
@@ -2048,7 +2048,6 @@ void VIC6569::PreventClockOverflow()
 VIC6569::~VIC6569()
 {
 	Cleanup();
-	//UnLockBackSurface();
 }
 
 HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu)
@@ -2080,12 +2079,10 @@ const signed char LIGHTPENOFFSET = 6;
 			vicINTERRUPT_STATUS|=8;
 			if (vicINTERRUPT_STATUS & vicINTERRUPT_ENABLE & 0x8)
 			{
-				//nextWakeUpClock = CurrentClock;
 				SetSystemInterrupt();
 			}
 
-			//vic_lpx = (bit8)(vicXPosFromCycle(vic_raster_cycle, 4) / 2);
-			bit16 xpos = vicXPosFromCycle(vic_raster_cycle, LIGHTPENOFFSET);
+			bit16 xpos = GetVicXPosFromCycle(vic_raster_cycle, LIGHTPENOFFSET);
 			vic_lpx = (bit8)(xpos / 2);
 
 			vic_lpy=(bit8)vic_raster_line;

@@ -61,25 +61,6 @@ public:
 	virtual void PostSoftReset(bool bCancelAutoload)=0;
 };
 
-//class IMonitorEvent
-//{
-//public:
-//	virtual void Resume(IMonitorEvent *sender)=0;
-//	virtual void Trace(IMonitorEvent *sender)=0;
-//	virtual void TraceFrame(IMonitorEvent *sender)=0;
-//	virtual void ExecuteC64Clock(IMonitorEvent *sender)=0;
-//	virtual void ExecuteDiskClock(IMonitorEvent *sender)=0;
-//	virtual void ExecuteC64Instruction(IMonitorEvent *sender)=0;
-//	virtual void ExecuteDiskInstruction(IMonitorEvent *sender)=0;
-//	virtual void UpdateApplication(IMonitorEvent *sender)=0;
-//	virtual HWND ShowDevelopment(IMonitorEvent *sender) = 0;
-//	virtual bool IsRunning(IMonitorEvent *sender)=0;
-//
-//	virtual HRESULT Advise(IMonitorEvent *sink)=0;
-//	virtual void Unadvise(IMonitorEvent *sink)=0;
-//};
-
-
 struct CPUState
 {
 	bit8 A;

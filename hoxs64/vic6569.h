@@ -277,7 +277,7 @@ private:
 	void DrawSprites(bit8 column);
 	bit16 SpriteIndexFromClock(bit16 clock);
 	void SpriteXChange(bit8 spriteNo, bit16 x_new, bit8 cycle);
-	static bit16 vicXPosFromCycle(bit8 cycle, signed char offset);
+	static bit16 GetVicXPosFromCycle(bit8 cycle, signed char offset);
 	void WRITE_FORE_MASK_STD(bit8 gData, signed char xscroll, bit8 cycle);
 	void WRITE_FORE_MASK_STD_EX(bit8 gData, signed char xscroll, bit8 xstart, bit8 count, const bit8 cycle);
 	void WRITE_FORE_MASK_MCM(bit8 gData, signed char xscroll, bit8 cycle);
