@@ -1851,18 +1851,19 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	vicSpriteSpriteInt=0;
 	vicSpriteDataInt=0;
 
-	//PIXELBUFFER_SIZE
-	for (i=0 ; i < _countof(ScreenPixelBuffer) ; i++)
+	for (i=0 ; i < _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX]) ; i++)
 	{
-		for (j=0 ; j < _countof(ScreenPixelBuffer[0])  ; j++)
+		for (j=0 ; j < _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0])  ; j++)
 		{
-			ScreenPixelBuffer[i][j]=vicBLACK;
-			ScreenBorderBuffer[i][j]=vicBLACK;
+			ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][i][j]=vicBLACK;
+			ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][i][j]=vicBLACK;
+			ScreenPixelBuffer[PIXELBUFFER_BACKUP_INDEX][i][j]=vicBLACK;
+			ScreenBorderBuffer[PIXELBUFFER_BACKUP_INDEX][i][j]=vicBLACK;
 		}
 	}
 
-	vic_pixelbuffer = ScreenPixelBuffer[initial_raster_line];
-	vic_borderbuffer = ScreenBorderBuffer[initial_raster_line];
+	vic_pixelbuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][initial_raster_line];
+	vic_borderbuffer = ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][initial_raster_line];
 	ZeroMemory(pixelMaskBuffer,sizeof(pixelMaskBuffer));
 	DF_PixelsToSkip = 0;
 }
@@ -2172,6 +2173,97 @@ void VIC6569::Cleanup()
 }
 
 
+void VIC6569::BackupMainPixelBuffers()
+{
+int i, j;
+	for (i=0 ; i < _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX]) ; i++)
+	{
+		for (j=0 ; j < _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0])  ; j++)
+		{
+			ScreenPixelBuffer[PIXELBUFFER_BACKUP_INDEX][i][j] = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][i][j];
+			ScreenBorderBuffer[PIXELBUFFER_BACKUP_INDEX][i][j] = ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][i][j];
+		}
+	}
+}
+
+HRESULT VIC6569::UpdateBackBufferLine(bit32 line, bit8 cycle)
+{
+HRESULT hr = E_FAIL;
+bit8 *pBorderBuffer, *pPixelBuffer;
+D3DLOCKED_RECT lrLockRect; 
+
+	if (dx == NULL)
+		return E_FAIL;
+	if (dx->m_pd3dDevice == NULL)
+		return E_FAIL;
+#ifdef USESYSMEMSURFACE
+	IDirect3DSurface9 *pBackBuffer = dx->GetSysMemSurface();
+#else
+	IDirect3DSurface9 *pBackBuffer = dx->GetSmallSurface();
+#endif
+	if (pBackBuffer)
+	{
+		hr = pBackBuffer->LockRect(&lrLockRect, NULL, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK);
+		if (SUCCEEDED(hr))
+		{
+			bit8 *pDestSurfLine = (bit8 *) lrLockRect.pBits;
+			//unsigned short height = dx->m_displayHeight;
+			unsigned short height = 1; //Update just one line.
+			unsigned short width = dx->m_displayWidth;
+			unsigned short startx = dx->m_displayStart;
+			unsigned short starty = (unsigned short)line;
+
+			unsigned long ypos = dx->m_displayYPos;
+			unsigned long xpos = dx->m_displayXPos;
+			unsigned long bufferPitch = _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0]);
+			pPixelBuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
+			pBorderBuffer = ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
+
+			if (appStatus->m_bUseCPUDoubler)
+			{
+				ypos = ypos * 2;
+				switch (appStatus->m_ScreenDepth)
+				{
+				case 32:
+					render_32bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				case 24:
+					render_24bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				case 16:
+					render_16bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				case 8:
+					render_8bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				}
+			}
+			else
+			{
+				switch (appStatus->m_ScreenDepth)
+				{
+				case 32:
+					render_32bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				case 24:
+					render_24bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				case 16:
+					render_16bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				case 8:
+					render_8bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+					break;
+				}
+			}
+			pBackBuffer->UnlockRect();
+		}
+		pBackBuffer->Release();
+		pBackBuffer = NULL;
+	}
+	return hr;
+}
+
 HRESULT VIC6569::UpdateBackBuffer()
 {
 HRESULT hr = E_FAIL;
@@ -2195,12 +2287,13 @@ D3DLOCKED_RECT lrLockRect;
 			bit8 *pDestSurfLine = (bit8 *) lrLockRect.pBits;
 			unsigned short height = dx->m_displayHeight;
 			unsigned short width = dx->m_displayWidth;
+			unsigned short startx = dx->m_displayStart;
 
 			unsigned long ypos = dx->m_displayYPos;
 			unsigned long xpos = dx->m_displayXPos;
-			unsigned long bufferPitch = _countof(ScreenPixelBuffer[0]);
-			pPixelBuffer = ScreenPixelBuffer[dx->m_displayFirstVicRaster];
-			pBorderBuffer = ScreenBorderBuffer[dx->m_displayFirstVicRaster];
+			unsigned long bufferPitch = _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0]);
+			pPixelBuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
+			pBorderBuffer = ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
 
 			if (appStatus->m_bUseCPUDoubler)
 			{
@@ -2208,16 +2301,16 @@ D3DLOCKED_RECT lrLockRect;
 				switch (appStatus->m_ScreenDepth)
 				{
 				case 32:
-					render_32bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_32bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				case 24:
-					render_24bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_24bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				case 16:
-					render_16bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_16bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				case 8:
-					render_8bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_8bit_2x(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				}
 			}
@@ -2226,16 +2319,16 @@ D3DLOCKED_RECT lrLockRect;
 				switch (appStatus->m_ScreenDepth)
 				{
 				case 32:
-					render_32bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_32bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				case 24:
-					render_24bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_24bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				case 16:
-					render_16bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_16bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				case 8:
-					render_8bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, dx->m_displayStart, lrLockRect.Pitch, bufferPitch);
+					render_8bit(pDestSurfLine, xpos, ypos, width, height, pBorderBuffer, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
 					break;
 				}
 			}
@@ -2383,14 +2476,14 @@ bit8 data8;
 			if(vic_raster_line == PAL_MAX_LINE)
 			{
 				vic_check_irq_in_cycle2=1;
-				vic_pixelbuffer = ScreenPixelBuffer[0];
-				vic_borderbuffer = ScreenBorderBuffer[0];
+				vic_pixelbuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0];
+				vic_borderbuffer = ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][0];
 			}
 			else
 			{
 				vic_raster_line++;
-				vic_pixelbuffer = ScreenPixelBuffer[vic_raster_line];
-				vic_borderbuffer = ScreenBorderBuffer[vic_raster_line];
+				vic_pixelbuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][vic_raster_line];
+				vic_borderbuffer = ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][vic_raster_line];
 				if (vic_raster_line == vicRASTER_compare)
 				{
 					if (!bVicRasterMatch)
@@ -4357,6 +4450,18 @@ bit8 modeOld;
 	}
 }
 
+/*
+pRow: Pointer to the destination buffer.
+xpos: Destination x co-ordinate to start rendering.
+ypos: Destination y co-ordinate to start rendering.
+width: Source width in pixels.
+height: Source height in pixels.
+pBorderBuffer: Pointer to the source border pixel buffer.
+pPixelBuffer: Pointer to the source foreground pixel buffer.
+startx: Pixel x co-ordinate offset into the source buffers to start reading from.
+videoPitch: Destination buffer Y pitch.
+bufferPitch: Source buffer Y pitch.
+*/
 void VIC6569::render_8bit_2x(unsigned char *pRow,unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
 {
 //TEST ME

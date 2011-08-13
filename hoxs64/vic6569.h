@@ -8,6 +8,10 @@
 #define SPRITE_DISPLAY_CHECK_XPOS (0x164)
 
 #define PIXELBUFFER_SIZE (65 *8 + 48)
+
+#define PIXELBUFFER_MAIN_INDEX 0
+#define PIXELBUFFER_BACKUP_INDEX 1
+
 class VIC6569;
 
 struct rgb24
@@ -227,9 +231,11 @@ public:
 
 	void PreventClockOverflow();
 	HRESULT UpdateBackBuffer();
+	HRESULT UpdateBackBufferLine(bit32 line, bit8 cycle);
 
-	bit8 ScreenPixelBuffer[PAL_MAX_LINE+1][PIXELBUFFER_SIZE];
-	bit8 ScreenBorderBuffer[PAL_MAX_LINE+1][PIXELBUFFER_SIZE];
+	bit8 ScreenPixelBuffer[PIXELBUFFER_BACKUP_INDEX+1][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
+	bit8 ScreenBorderBuffer[PIXELBUFFER_BACKUP_INDEX+1][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
+
 
 	static bit32 vic_color_array[256];
 	static bit32 vic_color_array32[256];
@@ -334,6 +340,8 @@ private:
 	void render_24bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
 	void render_32bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
 	void render_32bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pBorderBuffer[], bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
+
+	void BackupMainPixelBuffers();
 
 	bit8 vicMemoryBankIndex;
 	bit8 **vic_memory_map_read;
