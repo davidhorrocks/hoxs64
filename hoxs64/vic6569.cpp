@@ -214,7 +214,12 @@ signed short xDiff;
 	else
 	{
 		column = (bit8)(((x + 4)/8 + 13) & 0xff);
-		columnX = (((bit16)column - 13)<< 3) - 4;/* columnX can go signed negative*/
+
+		/*
+		Warning: Hacky columnX can go signed negative instead of wrapping to 0x1f7. 
+		This is a hack to accommodate VICSprite::InitDraw whose computation of 'drawCount' uses a simple subtraction which does not wrap around sprite position 0x1f7
+		*/
+		columnX = (((bit16)column - 13)<< 3) - 4;
 		xPixelInit = x + (DISPLAY_START + LEFT_BORDER_WIDTH/2);
 	}
 
@@ -3608,7 +3613,7 @@ bit8 modeOld;
 
 		if (vic_raster_line == vic_top_compare && cycle!=63)
 		{
-			//The game Elven Warrior used required this to display properly?!
+			//The game Elven Warrior used to require this to display properly?!
 			if (bRSELChanging && vicDEN!=0)
 			{
 				vicVerticalBorder=0;
