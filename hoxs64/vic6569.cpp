@@ -2191,7 +2191,7 @@ int i, j;
 	}
 }
 
-HRESULT VIC6569::UpdateBackBufferLine(bit32 line, bit8 cycle)
+HRESULT VIC6569::UpdateBackBufferLine(bit16 line, bit8 cycle)
 {
 HRESULT hr = E_FAIL;
 bit8 *pBorderBuffer, *pPixelBuffer;
@@ -2216,13 +2216,17 @@ D3DLOCKED_RECT lrLockRect;
 			unsigned short height = 1; //Update just one line.
 			unsigned short width = dx->m_displayWidth;
 			unsigned short startx = dx->m_displayStart;
-			unsigned short starty = (unsigned short)line;
+			unsigned short starty = line;
 
 			unsigned long ypos = dx->m_displayYPos;
 			unsigned long xpos = dx->m_displayXPos;
 			unsigned long bufferPitch = _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0]);
 			pPixelBuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
 			pBorderBuffer = ScreenBorderBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
+
+			//Assuming the same pitch for both pixel and border buffers.
+			pPixelBuffer = pPixelBuffer + (starty * bufferPitch);
+			pBorderBuffer = pBorderBuffer + (starty * bufferPitch);
 
 			if (appStatus->m_bUseCPUDoubler)
 			{

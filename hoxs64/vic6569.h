@@ -232,7 +232,7 @@ public:
 
 	void PreventClockOverflow();
 	HRESULT UpdateBackBuffer();
-	HRESULT UpdateBackBufferLine(bit32 line, bit8 cycle);
+	HRESULT UpdateBackBufferLine(bit16 line, bit8 cycle);
 
 	bit8 ScreenPixelBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
 	bit8 ScreenBorderBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
