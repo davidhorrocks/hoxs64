@@ -2227,6 +2227,28 @@ D3DLOCKED_RECT lrLockRect;
 					break;
 				}
 			}
+
+			int start_line = line;
+			int pixelIndex = ((int)cycle*8 - 20);
+			pixelIndex += 8;
+			if (pixelIndex < 0)
+				line--;
+			pixelIndex = (pixelIndex + VIDEOWIDTH) % VIDEOWIDTH;
+
+			//Overwrite any in place pixel pipeline artifacts with data from the last backed up frame.
+			for(int i = 0; i < 32; i++)
+			{
+				ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][start_line][pixelIndex] = ScreenPixelBuffer[PIXELBUFFER_BACKUP_INDEX][start_line][pixelIndex];
+				pixelIndex++;
+				if (pixelIndex >= VIDEOWIDTH)
+				{
+					pixelIndex = 0;
+					line++;
+					if (line > PAL_MAX_LINE)
+						line = 0;
+				}
+			}
+
 			pBackBuffer->UnlockRect();
 		}
 		pBackBuffer->Release();
