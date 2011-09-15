@@ -15,6 +15,8 @@ public:
 	virtual void UpdateApplication()=0;
 	virtual HWND ShowDevelopment() = 0;
 	virtual bool IsRunning()=0;
+	virtual void SoundOff()=0;
+	virtual void SoundOn()=0;
 
 
 	EventSource<EventArgs> EsResume;

@@ -1305,6 +1305,17 @@ bool CApp::IsRunning()
 	return m_bRunning!=FALSE;
 }
 
+
+void CApp::SoundOff()
+{
+	SoundHalt();
+}
+
+void CApp::SoundOn()
+{
+	SoundResume();
+}
+
 void CApp::TogglePause()
 {
 	MessageBeep(MB_ICONASTERISK);

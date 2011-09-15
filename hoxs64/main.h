@@ -55,6 +55,8 @@ public:
 	virtual void IMonitorCommand::UpdateApplication();
 	virtual HWND IMonitorCommand::ShowDevelopment();
 	virtual bool IMonitorCommand::IsRunning();
+	virtual void IMonitorCommand::SoundOff();
+	virtual void IMonitorCommand::SoundOn();
 
 	//EventSource<EventArgs> IMonitorCommand::EsResume;
 	//EventSource<EventArgs> IMonitorCommand::EsTrace;

@@ -675,6 +675,18 @@ HRESULT hr;
 	case WM_MONITOR_BREAK_CPUDISK:
 		OnBreakCpuDisk(m_hWnd, uMsg, wParam, lParam);
 		return 0;
+	case WM_ENTERMENULOOP:
+		m_monitorCommand->SoundOff();
+		return 0;
+	case WM_EXITMENULOOP:
+		m_monitorCommand->SoundOn();
+		return 0;
+	case WM_ENTERSIZEMOVE:
+		m_monitorCommand->SoundOff();
+		return 0;
+	case WM_EXITSIZEMOVE:
+		m_monitorCommand->SoundOn();
+		return 0;
 	default:
 		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	}
