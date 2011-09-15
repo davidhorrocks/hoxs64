@@ -1684,6 +1684,8 @@ VIC6569::VIC6569()
 	{
 		vicSprite[i].vic = this;
 	}
+	FrameNumber = 0;
+	m_iLastBackedUpFrameNumber = -1;
 }
 
 void VIC6569::Reset(ICLK sysclock)
@@ -1692,6 +1694,8 @@ int i,j;
 bit32 initial_raster_line = PAL_MAX_LINE;
 	CurrentClock = sysclock;
 	ClockNextWakeUpClock=sysclock;
+	FrameNumber = 0;
+	m_iLastBackedUpFrameNumber = -1;
 	vicMemoryBankIndex = 0;
 	LP_TRIGGER=0;
 	vicLightPen=1;
@@ -2153,114 +2157,147 @@ int i, j;
 			ScreenPixelBuffer[PIXELBUFFER_BACKUP_INDEX][i][j] = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][i][j];
 		}
 	}
+	m_iLastBackedUpFrameNumber = FrameNumber;
 }
 
-HRESULT VIC6569::UpdateBackBufferLine(bit16 line, bit8 cycle)
+void VIC6569::CheckedBackupMainPixelBuffers()
 {
-HRESULT hr = E_FAIL;
-bit8 *pPixelBuffer;
-D3DLOCKED_RECT lrLockRect; 
+	if (FrameNumber != m_iLastBackedUpFrameNumber)
+	{
+		if (vic_raster_line <= 1)
+			BackupMainPixelBuffers();
+	}
+}
 
+//HRESULT VIC6569::UpdateBackBufferLine(bit16 line, bit8 cycle)
+//{
+//HRESULT hr = E_FAIL;
+//D3DLOCKED_RECT lrLockRect; 
+//
+//	if (dx == NULL)
+//		return E_FAIL;
+//	if (dx->m_pd3dDevice == NULL)
+//		return E_FAIL;
+//	if (line < 0 || line > PAL_MAX_LINE)
+//		return E_FAIL;
+//	if (cycle < 1 || cycle > PAL_CLOCKS_PER_LINE)
+//		return E_FAIL;
+//
+//#ifdef USESYSMEMSURFACE
+//	IDirect3DSurface9 *pBackBuffer = dx->GetSysMemSurface();
+//#else
+//	IDirect3DSurface9 *pBackBuffer = dx->GetSmallSurface();
+//#endif
+//	if (pBackBuffer)
+//	{
+//		hr = pBackBuffer->LockRect(&lrLockRect, NULL, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK);
+//		if (SUCCEEDED(hr))
+//		{
+//			hr = UpdateBackBufferLine((bit8 *) lrLockRect.pBits, lrLockRect.Pitch, line, cycle);
+//			pBackBuffer->UnlockRect();
+//		}
+//		pBackBuffer->Release();
+//		pBackBuffer = NULL;
+//	}
+//	return hr;
+//}
+
+HRESULT VIC6569::UpdateBackBufferLine(bit8 *pDestSurfLine, int videoPitch, bit16 line, bit8 cycle)
+{
 	if (dx == NULL)
 		return E_FAIL;
 	if (dx->m_pd3dDevice == NULL)
 		return E_FAIL;
-#ifdef USESYSMEMSURFACE
-	IDirect3DSurface9 *pBackBuffer = dx->GetSysMemSurface();
-#else
-	IDirect3DSurface9 *pBackBuffer = dx->GetSmallSurface();
-#endif
-	if (pBackBuffer)
+	if (line < 0 || line > PAL_MAX_LINE)
+		return E_FAIL;
+	if (cycle < 1 || cycle > PAL_CLOCKS_PER_LINE)
+		return E_FAIL;
+
+
+	int buffer_line = 0;
+	int current_line = line;
+	int cursor_index = ((int)cycle*8 - 20);
+	cursor_index += 8;
+	if (cursor_index < 0)
 	{
-		hr = pBackBuffer->LockRect(&lrLockRect, NULL, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK);
-		if (SUCCEEDED(hr))
+		current_line--;
+		if (current_line < 0)
+			current_line = PAL_MAX_LINE;
+	}
+	int start_line = current_line;
+
+	cursor_index = (cursor_index + VIDEOWIDTH) % VIDEOWIDTH;
+
+	//Overwrite any in place pixel pipeline artifacts with data from the last backed up frame.
+	const int MINCORRECTIVEPIXELS = 32;
+	int i = 0;
+	int j = 0;
+	bool bIsLeftOfCursor = true;
+	while (buffer_line <= 1)
+	{
+		if (bIsLeftOfCursor && i == cursor_index)
+			bIsLeftOfCursor = false;
+		if (bIsLeftOfCursor)
+			LinePixelBuffer[buffer_line][i] = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][current_line][i];
+		else
 		{
-			bit8 *pDestSurfLine = (bit8 *) lrLockRect.pBits;
-			//unsigned short height = dx->m_displayHeight;
-			unsigned short height = 1; //Update just one line.
-			unsigned short width = dx->m_displayWidth;
-			unsigned short startx = dx->m_displayStart;
-			unsigned short starty = line;
+			LinePixelBuffer[buffer_line][i] = ScreenPixelBuffer[PIXELBUFFER_BACKUP_INDEX][current_line][i];
+			j++;
+		}
+		i++;
+		if (i >= VIDEOWIDTH)
+		{
+			i = 0;
+			buffer_line++;
+			current_line++;
+			if (current_line > PAL_MAX_LINE)
+				current_line = 0;
+			if (j >= MINCORRECTIVEPIXELS)
+				break;
+		}
+	}
 
-			unsigned long ypos = dx->m_displayYPos;
-			unsigned long xpos = dx->m_displayXPos;
-			unsigned long bufferPitch = _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0]);
-			pPixelBuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
+	int height = 1;
+	if (buffer_line > _countof(LinePixelBuffer))
+		height = _countof(LinePixelBuffer);
+	else
+		height = buffer_line;
 
-			//Assuming the same pitch for both pixel and border buffers.
-			pPixelBuffer = pPixelBuffer + (starty * bufferPitch);
+	int width = dx->m_displayWidth;
+	int startx = dx->m_displayStart;
+	int starty = start_line;
 
+	int ypos = 0;
+	int xpos = 0;
+	int bufferPitch = _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0]);
+
+	for (int h = 0; h < height; h++)
+	{
+		if ((unsigned int)starty >= dx->m_displayFirstVicRaster && (unsigned int)starty <= dx->m_displayLastVicRaster)
+		{
+			bit8 *pPixelBuffer = LinePixelBuffer[h];
+
+			ypos = starty - dx->m_displayFirstVicRaster;
 			if (appStatus->m_bUseCPUDoubler)
 			{
 				ypos = ypos * 2;
-				switch (appStatus->m_ScreenDepth)
-				{
-				case 32:
-					render_32bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 24:
-					render_24bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 16:
-					render_16bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 8:
-					render_8bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				}
-			}
-			else
-			{
-				switch (appStatus->m_ScreenDepth)
-				{
-				case 32:
-					render_32bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 24:
-					render_24bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 16:
-					render_16bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 8:
-					render_8bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				}
 			}
 
-			int start_line = line;
-			int pixelIndex = ((int)cycle*8 - 20);
-			pixelIndex += 8;
-			if (pixelIndex < 0)
-				line--;
-			pixelIndex = (pixelIndex + VIDEOWIDTH) % VIDEOWIDTH;
-
-			//Overwrite any in place pixel pipeline artifacts with data from the last backed up frame.
-			for(int i = 0; i < 32; i++)
-			{
-				ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][start_line][pixelIndex] = ScreenPixelBuffer[PIXELBUFFER_BACKUP_INDEX][start_line][pixelIndex];
-				pixelIndex++;
-				if (pixelIndex >= VIDEOWIDTH)
-				{
-					pixelIndex = 0;
-					line++;
-					if (line > PAL_MAX_LINE)
-						line = 0;
-				}
-			}
-
-			pBackBuffer->UnlockRect();
+			render(appStatus->m_ScreenDepth, appStatus->m_bUseCPUDoubler, pDestSurfLine, xpos, ypos, width, 1, pPixelBuffer, startx, videoPitch, bufferPitch);
 		}
-		pBackBuffer->Release();
-		pBackBuffer = NULL;
+		starty++;
+		if (starty >= PAL_MAX_LINE)
+		{
+			starty = 0;
+		}
 	}
-	return hr;
+
+	return S_OK;
 }
 
 HRESULT VIC6569::UpdateBackBuffer()
 {
 HRESULT hr = E_FAIL;
-bit8 *pPixelBuffer;
 D3DLOCKED_RECT lrLockRect; 
 
 	if (dx == NULL)
@@ -2278,52 +2315,21 @@ D3DLOCKED_RECT lrLockRect;
 		if (SUCCEEDED(hr))
 		{
 			bit8 *pDestSurfLine = (bit8 *) lrLockRect.pBits;
-			unsigned short height = dx->m_displayHeight;
-			unsigned short width = dx->m_displayWidth;
-			unsigned short startx = dx->m_displayStart;
+			int height = dx->m_displayHeight;
+			int width = dx->m_displayWidth;
+			int startx = dx->m_displayStart;
 
-			unsigned long ypos = dx->m_displayYPos;
-			unsigned long xpos = dx->m_displayXPos;
-			unsigned long bufferPitch = _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0]);
-			pPixelBuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
+			int bufferPitch = _countof(ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0]);
+			bit8 *pPixelBuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][dx->m_displayFirstVicRaster];
 
-			if (appStatus->m_bUseCPUDoubler)
+			render(appStatus->m_ScreenDepth, appStatus->m_bUseCPUDoubler, pDestSurfLine, 0, 0, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
+
+			if (appStatus->m_bDebug)
 			{
-				ypos = ypos * 2;
-				switch (appStatus->m_ScreenDepth)
-				{
-				case 32:
-					render_32bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 24:
-					render_24bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 16:
-					render_16bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 8:
-					render_8bit_2x(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				}
+				CheckedBackupMainPixelBuffers();
+				hr = UpdateBackBufferLine(pDestSurfLine, lrLockRect.Pitch, (bit16)vic_raster_line, vic_raster_cycle);
 			}
-			else
-			{
-				switch (appStatus->m_ScreenDepth)
-				{
-				case 32:
-					render_32bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 24:
-					render_24bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 16:
-					render_16bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				case 8:
-					render_8bit(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, startx, lrLockRect.Pitch, bufferPitch);
-					break;
-				}
-			}
+
 			pBackBuffer->UnlockRect();
 		}
 		pBackBuffer->Release();
@@ -2469,6 +2475,7 @@ bit8 data8;
 			{
 				vic_check_irq_in_cycle2=1;
 				vic_pixelbuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0];
+				FrameNumber++;
 			}
 			else
 			{
@@ -4453,11 +4460,51 @@ startx: Pixel x co-ordinate offset into the source buffers to start reading from
 videoPitch: Destination buffer Y pitch.
 bufferPitch: Source buffer Y pitch.
 */
-void VIC6569::render_8bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render(long depth, bool bPixelDoubler, unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
+{
+	if (bPixelDoubler)
+	{
+		switch (depth)
+		{
+		case 32:
+			render_32bit_2x(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		case 24:
+			render_24bit_2x(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		case 16:
+			render_16bit_2x(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		case 8:
+			render_8bit_2x(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		}
+	}
+	else
+	{
+		switch (appStatus->m_ScreenDepth)
+		{
+		case 32:
+			render_32bit(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		case 24:
+			render_24bit(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		case 16:
+			render_16bit(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		case 8:
+			render_8bit(pRow, xpos, ypos, width, height, pPixelBuffer, startx, videoPitch, bufferPitch);
+			break;
+		}
+	}
+}
+
+void VIC6569::render_8bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
 //TEST ME
-bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos));
-bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos));
+bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos));
+bit8 *q = (bit8 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos));
 
 int i,j;
 bit8 v;
@@ -4475,17 +4522,17 @@ unsigned short h;
 
 			*((bit16 *)(q + (2*i))) = cl;
 		}
-		p = (bit8 *)((ULONG_PTR)p + 2*videoPitch);
-		q = (bit8 *)((ULONG_PTR)q + 2*videoPitch);
+		p = (bit8 *)((INT_PTR)p + 2*videoPitch);
+		q = (bit8 *)((INT_PTR)q + 2*videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 }
 
 
-void VIC6569::render_8bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render_8bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
 //TEST ME
-bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos));
+bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos));
 
 int i,j;
 bit8 v;
@@ -4500,14 +4547,14 @@ unsigned short h;
 			cl = vic_color_array8[v];
 			*((bit8 *)(p + ((i)))) = cl;
 		}
-		p = (bit8 *)((ULONG_PTR)p + videoPitch);
+		p = (bit8 *)((INT_PTR)p + videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 }
 
-void VIC6569::render_16bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render_16bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
-bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 2));
+bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 2));
 
 int i,j;
 bit8 v;
@@ -4520,17 +4567,17 @@ unsigned short h;
 		{
 			v = pPixelBuffer[j];
 			cl = vic_color_array16[v];
-			*((bit16 *)(p + (UINT_PTR)((2*i)))) = cl;
+			*((bit16 *)(p + (INT_PTR)((2*i)))) = cl;
 		}
-		p = (bit8 *)((ULONG_PTR)p + videoPitch);
+		p = (bit8 *)((INT_PTR)p + videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 }
 
-void VIC6569::render_16bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render_16bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
-bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 2));
-bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 2));
+bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 2));
+bit8 *q = (bit8 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 2));
 
 int i,j;
 bit8 v;
@@ -4544,20 +4591,20 @@ unsigned short h;
 			v = pPixelBuffer[j];
 			cl = vic_color_array16[v];
 			cl = cl | (cl << 16);
-			*((bit32 *)(p + (UINT_PTR)((2*i) * 2))) = cl;
+			*((bit32 *)(p + (INT_PTR)((2*i) * 2))) = cl;
 
-			*((bit32 *)(q + (UINT_PTR)((2*i) * 2))) = cl;
+			*((bit32 *)(q + (INT_PTR)((2*i) * 2))) = cl;
 		}
-		p = (bit8 *)((ULONG_PTR)p + 2*videoPitch);
-		q = (bit8 *)((ULONG_PTR)q + 2*videoPitch);
+		p = (bit8 *)((INT_PTR)p + 2*videoPitch);
+		q = (bit8 *)((INT_PTR)q + 2*videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 }
 
-void VIC6569::render_24bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render_24bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
 //TEST ME
-bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 3));
+bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 3));
 
 int i,j;
 bit8 v;
@@ -4570,19 +4617,19 @@ unsigned short h;
 		{
 			v = pPixelBuffer[j];
 			cl = vic_color_array24[v] & 0xffffff;
-			*((bit8 *)(p + (UINT_PTR)(i * 3))) = (bit8)(cl & 0xff);
-			*((bit16 *)(p + (UINT_PTR)((i * 3) +1))) = (bit16)((cl >> 8) & 0xffff);
+			*((bit8 *)(p + (INT_PTR)(i * 3))) = (bit8)(cl & 0xff);
+			*((bit16 *)(p + (INT_PTR)((i * 3) +1))) = (bit16)((cl >> 8) & 0xffff);
 		}
-		p = (bit8 *)((ULONG_PTR)p + videoPitch);
+		p = (bit8 *)((INT_PTR)p + videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 }
 
-void VIC6569::render_24bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render_24bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
 //TEST ME
-bit8 *p = (bit8 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 3));
-bit8 *q = (bit8 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 3));
+bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 3));
+bit8 *q = (bit8 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 3));
 
 int i,j;
 bit8 v;
@@ -4596,22 +4643,22 @@ unsigned short h;
 			v = pPixelBuffer[j];
 			cl = vic_color_array24[v] & 0xffffff;
 			cl = cl | ((cl & 0xff) << 24);
-			*((bit32 *)(p + (UINT_PTR)((2*i) * 3))) = cl;
-			*((bit16 *)(p + (UINT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
+			*((bit32 *)(p + (INT_PTR)((2*i) * 3))) = cl;
+			*((bit16 *)(p + (INT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
 
 
-			*((bit32 *)(q + (UINT_PTR)((2*i) * 3))) = cl;
-			*((bit16 *)(q + (UINT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
+			*((bit32 *)(q + (INT_PTR)((2*i) * 3))) = cl;
+			*((bit16 *)(q + (INT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
 		}
-		p = (bit8 *)((ULONG_PTR)p + 2*videoPitch);
-		q = (bit8 *)((ULONG_PTR)q + 2*videoPitch);
+		p = (bit8 *)((INT_PTR)p + 2*videoPitch);
+		q = (bit8 *)((INT_PTR)q + 2*videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 }
 
-void VIC6569::render_32bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render_32bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
-bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
+bit32 *p = (bit32 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 4));
 
 int i,j;
 bit8 v;
@@ -4624,16 +4671,16 @@ unsigned short h;
 			v = pPixelBuffer[j];
 			p[i] = vic_color_array32[v];
 		}
-		p = (bit32 *)((ULONG_PTR)p + videoPitch);
+		p = (bit32 *)((INT_PTR)p + videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 }
 
-void VIC6569::render_32bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch)
+void VIC6569::render_32bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch)
 {
 #ifdef _WIN64
-bit64 *p = (bit64 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
-bit64 *q = (bit64 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 4));
+bit64 *p = (bit64 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 4));
+bit64 *q = (bit64 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 4));
 
 int i,j;
 bit8 v;
@@ -4650,13 +4697,13 @@ unsigned short h;
 			p[i] = cl;
 			q[i] = cl;
 		}
-		p = (bit64 *)((ULONG_PTR)p + 2*videoPitch);
-		q = (bit64 *)((ULONG_PTR)q + 2*videoPitch);
+		p = (bit64 *)((INT_PTR)p + 2*videoPitch);
+		q = (bit64 *)((INT_PTR)q + 2*videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 #else
-bit32 *p = (bit32 *)(pRow + (UINT_PTR)(ypos * videoPitch + xpos * 4));
-bit32 *q = (bit32 *)(pRow + (UINT_PTR)((ypos+1) * videoPitch + xpos * 4));
+bit32 *p = (bit32 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 4));
+bit32 *q = (bit32 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 4));
 
 int i,j;
 bit8 v;
@@ -4674,8 +4721,8 @@ unsigned short h;
 			q[2*i] = cl;
 			q[2*i+1] = cl;
 		}
-		p = (bit32 *)((ULONG_PTR)p + 2*videoPitch);
-		q = (bit32 *)((ULONG_PTR)q + 2*videoPitch);
+		p = (bit32 *)((INT_PTR)p + 2*videoPitch);
+		q = (bit32 *)((INT_PTR)q + 2*videoPitch);
 		pPixelBuffer += bufferPitch;
 	}
 #endif

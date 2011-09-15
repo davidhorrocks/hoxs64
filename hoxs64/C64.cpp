@@ -159,7 +159,6 @@ void C64::EnterDebugRun(bool bWithSound)
 
 	cpu.StartDebug();
 	diskdrive.cpu.StartDebug();
-
 }
 
 void C64::FinishDebugRun()

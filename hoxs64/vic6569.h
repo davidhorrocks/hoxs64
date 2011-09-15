@@ -232,10 +232,16 @@ public:
 
 	void PreventClockOverflow();
 	HRESULT UpdateBackBuffer();
-	HRESULT UpdateBackBufferLine(bit16 line, bit8 cycle);
+	//HRESULT UpdateBackBufferLine(bit16 line, bit8 cycle);
+	HRESULT UpdateBackBufferLine(bit8 *pDestSurfLine, int videoPitch, bit16 line, bit8 cycle);
 
 	bit8 ScreenPixelBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
+	bit8 LinePixelBuffer[2][PIXELBUFFER_SIZE+1];
 	//bit8 ScreenBorderBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
+	int FrameNumber;
+
+	void BackupMainPixelBuffers();
+	void CheckedBackupMainPixelBuffers();
 
 
 	static bit32 vic_color_array[256];
@@ -333,20 +339,21 @@ private:
 	__forceinline void SetBA(ICLK &cycles, bit8 cycle);
 	__forceinline void init_line_start();
 
-	void render_8bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-	void render_8bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-	void render_16bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-	void render_16bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-	void render_24bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-	void render_24bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-	void render_32bit(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-	void render_32bit_2x(unsigned char *pRow, unsigned long xpos, unsigned long ypos, unsigned short width, unsigned short height, bit8 pPixelBuffer[], unsigned short startx, unsigned long videoPitch, unsigned long bufferPitch);
-
-	void BackupMainPixelBuffers();
+	void render(long depth, bool bPixelDoubler, unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_8bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_8bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_16bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_16bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_24bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_24bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_32bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render_32bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
 
 	bit8 vicMemoryBankIndex;
 	bit8 **vic_memory_map_read;
 	bit8 *vic_3fff_ptr;
+
+	int m_iLastBackedUpFrameNumber;
 
 public:
 
