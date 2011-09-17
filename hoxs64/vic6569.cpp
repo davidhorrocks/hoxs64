@@ -2374,8 +2374,8 @@ void VIC6569::SetBA(ICLK &cycles, bit8 cycle)
 		cpu->SetBALow(CurrentClock);
 		if (vicAEC>=0)
 			--vicAEC;
-		//If cpu->isWriteCycle == false or cycles != 0 then it means that the cpu has just had read cycle that should have caused a cpu BA delay.
-		//This is because we synchronise the vic with all cpu-write cycles but allow the cpu to run ahead with reads from RAM.
+		//If cpu->m_bIsWriteCycle == false or cycles != 0 then it means that the cpu has recently executed a read cycle which should have caused a cpu BA delay.
+		//We synchronise the vic with all cpu-write cycles but allow the cpu to run ahead with reads from RAM.
 		//'cycles' will always be zero if we call here on a cpu write-cycle
 		if (!cpu->m_bDebug)
 		{

@@ -2831,18 +2831,6 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		}
-
-		//Command the disk thread to catch up if the C64 cpu get far enough ahead.
-		//c++;
-		//if (ID==0 && c>=1110)
-		//{
-		//	c = 0;
-		//	if (cfg->m_bD1541_Thread_Enable && cfg->m_bD1541_Emulation_Enable && !appStatus->m_bSerialTooBusyForSeparateThread)
-		//	{
-		//		//InterlockedExchange((LONG *)&disk->m_DiskThreadCommandedPALClock, CurrentClock);
-		//		disk->ThreadSignalCommandExecuteClock(CurrentClock);
-		//	}
-		//}
 	}
 }
 
