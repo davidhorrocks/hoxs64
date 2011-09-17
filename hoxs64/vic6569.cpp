@@ -2295,6 +2295,11 @@ D3DLOCKED_RECT lrLockRect;
 		return E_FAIL;
 	if (dx->m_pd3dDevice == NULL)
 		return E_FAIL;
+	if (appStatus->m_bDebug)
+	{
+		if (m_iLastBackedUpFrameNumber != FrameNumber)
+			BackupMainPixelBuffers();
+	}
 #ifdef USESYSMEMSURFACE
 	IDirect3DSurface9 *pBackBuffer = dx->GetSysMemSurface();
 #else
