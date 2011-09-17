@@ -90,6 +90,10 @@ const int maxbutton = 31;
 		return S_OK;
 	}
 
+	//Patch soft keys to work after version v1.0.7.2
+	m_KeyMap[C64K_CURSORUP]= DIK_UP;
+	m_KeyMap[C64K_CURSORLEFT]= DIK_LEFT;
+
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Keyboard"),
 		0, KEY_READ,
@@ -158,6 +162,8 @@ const int maxbutton = 31;
 		readregkeyboarditem(C64K_EQUAL);
 		readregkeyboarditem(C64K_CURSORDOWN);
 		readregkeyboarditem(C64K_CURSORRIGHT);
+		readregkeyboarditem(C64K_CURSORUP);
+		readregkeyboarditem(C64K_CURSORLEFT);
 		readregkeyboarditem(C64K_SPACE);
 		readregkeyboarditem(C64K_AT);
 		readregkeyboarditem(C64K_F1);
@@ -180,8 +186,6 @@ const int maxbutton = 31;
 		readregkeyboarditem(C64K_JOY2LEFT);
 		readregkeyboarditem(C64K_JOY2RIGHT);
 
-		readregkeyboarditem(C64K_CURSORUP);
-		readregkeyboarditem(C64K_CURSORRIGHT);
 		RegCloseKey(hKey1);
 	}
 
@@ -867,6 +871,8 @@ BOOL bGuidOK;
 	writeregkeyboarditem(C64K_EQUAL);
 	writeregkeyboarditem(C64K_CURSORDOWN);
 	writeregkeyboarditem(C64K_CURSORRIGHT);
+	writeregkeyboarditem(C64K_CURSORUP);
+	writeregkeyboarditem(C64K_CURSORLEFT);
 	writeregkeyboarditem(C64K_SPACE);
 	writeregkeyboarditem(C64K_AT);
 	writeregkeyboarditem(C64K_F1);
@@ -888,9 +894,6 @@ BOOL bGuidOK;
 	writeregkeyboarditem(C64K_JOY2DOWN);
 	writeregkeyboarditem(C64K_JOY2LEFT);
 	writeregkeyboarditem(C64K_JOY2RIGHT);
-
-	writeregkeyboarditem(C64K_CURSORUP);
-	writeregkeyboarditem(C64K_CURSORRIGHT);
 	
 	
 	RegCloseKey(hKey1);
@@ -1092,6 +1095,8 @@ void CConfig::LoadDefaultSetting()
 	m_KeyMap[C64K_POUND]=	DIK_INSERT;
 	m_KeyMap[C64K_CURSORDOWN]= DIK_DOWN;
 	m_KeyMap[C64K_CURSORRIGHT]= DIK_RIGHT;
+	m_KeyMap[C64K_CURSORUP]= DIK_UP;
+	m_KeyMap[C64K_CURSORLEFT]= DIK_LEFT;
 	m_KeyMap[C64K_CONTROL]= GetKeyScanCode(VK_TAB);
 	m_KeyMap[C64K_LEFTSHIFT]= DIK_LSHIFT;
 	m_KeyMap[C64K_RIGHTSHIFT]= DIK_RSHIFT;
@@ -1112,9 +1117,6 @@ void CConfig::LoadDefaultSetting()
 	m_KeyMap[C64K_JOY2DOWN]= DIK_NUMPAD2;
 	m_KeyMap[C64K_JOY2LEFT]= DIK_NUMPAD4;
 	m_KeyMap[C64K_JOY2RIGHT]= DIK_NUMPAD6;
-
-	m_KeyMap[C64K_CURSORUP]= DIK_UP;
-	m_KeyMap[C64K_CURSORRIGHT]= DIK_RIGHT;
 
 	m_KeyMap[C64K_0]= GetKeyScanCode('0');
 	m_KeyMap[C64K_1]=	GetKeyScanCode('1');

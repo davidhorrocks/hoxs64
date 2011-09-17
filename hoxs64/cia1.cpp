@@ -364,6 +364,8 @@ static LONG xpos1=0;
 static LONG ypos1=0;
 static LONG xpos2=0;
 static LONG ypos2=0;
+static int softcursorleftcount = 0;
+static int softcursorupcount = 0;
 
 LPDIRECTINPUTDEVICE7 joystick7;
 BOOL joy1ok;
@@ -890,6 +892,48 @@ bit8 localjoyport2;
 		if (KEYDOWN(buffer, C64K_CURSORDOWN))
 		{
 			KEYMATRIX_DOWN(0, 7);
+		}
+
+		if (KEYDOWN(buffer, C64K_CURSORUP))
+		{
+			//KEYMATRIX_DOWN(1, 7);
+			KEYMATRIX_DOWN(6, 4);
+			if (softcursorupcount > 0)
+			{
+				KEYMATRIX_DOWN(0, 7);
+			}
+			else 
+				softcursorupcount++;
+		}
+		else
+		{
+			if (softcursorupcount > 0)
+			{
+				softcursorupcount--;
+				//KEYMATRIX_DOWN(1, 7);
+				KEYMATRIX_DOWN(6, 4);
+			}
+		}
+
+		if (KEYDOWN(buffer, C64K_CURSORLEFT))
+		{
+			//KEYMATRIX_DOWN(1, 7);
+			KEYMATRIX_DOWN(6, 4);
+			if (softcursorleftcount > 0)
+			{
+				KEYMATRIX_DOWN(0, 2);
+			}
+			else
+				softcursorleftcount++;
+		}
+		else
+		{
+			if (softcursorleftcount > 0)
+			{
+				softcursorleftcount--;
+				//KEYMATRIX_DOWN(1, 7);
+				KEYMATRIX_DOWN(6, 4);
+			}
 		}
 	}
 

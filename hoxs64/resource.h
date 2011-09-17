@@ -197,6 +197,8 @@
 #define IDC_CHECK1                      1312
 #define IDC_CHK_TIMERBBUG               1312
 #define IDC_DISABLE_DWM_FULLSCREEN      1312
+#define IDC_TXT_CURSORUP                1313
+#define IDC_TXT_CURSORLEFT              1314
 #define IDM_EXIT                        40002
 #define ID_FILE_MONITOR                 40003
 #define ID_HELP_ABOUT                   40004
@@ -254,7 +256,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        175
 #define _APS_NEXT_COMMAND_VALUE         40089
-#define _APS_NEXT_CONTROL_VALUE         1313
+#define _APS_NEXT_CONTROL_VALUE         1315
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

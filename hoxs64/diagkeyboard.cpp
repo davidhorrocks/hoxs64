@@ -370,6 +370,9 @@ TCHAR szBuffer[30];
 	_updatekeypage(F3);
 	_updatekeypage(F5);
 	_updatekeypage(F7);
+
+	_updatekeypage(CURSORUP);
+	_updatekeypage(CURSORLEFT);
 }
 
 void CDiagKeyboard::UpdatePage4(HWND hwndDlg)
@@ -776,6 +779,8 @@ HWND hWnd;
 	_initcapturectrls(F5);
 	_initcapturectrls(F7);
 
+	_initcapturectrls(CURSORUP);
+	_initcapturectrls(CURSORLEFT);
 	return S_OK;
 }
 
