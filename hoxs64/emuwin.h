@@ -10,7 +10,7 @@ public:
 	HWND Create(HINSTANCE hInstance, HWND parentWindow, const TCHAR title[], int x,int y, int w, int h, HMENU controlID);
 
 	static void GetRequiredWindowSize(HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, BOOL bDoubleSizedWindow, int *w, int *h);
-	HRESULT UpdateWindow();
+	HRESULT UpdateC64Window();
 	HRESULT RenderWindow();
 	void DrawDriveSprites();
 	void SetColours();

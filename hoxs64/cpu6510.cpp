@@ -403,7 +403,7 @@ bit8 f;
 	cpu_io_ddr=data;
 	cpu_port();
 }
-//246312
+
 //       7 |        6 |     5 |     4 |     3 |       2 |     1 |      0
 //NOT USED | NOT USED | MOTOR | SENSE | WRITE | CHARGEN | HIRAM | LOWRAM
 void CPU6510::cpu_port(){

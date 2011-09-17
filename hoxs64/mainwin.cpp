@@ -438,14 +438,14 @@ bool bIsWindowMinimised;
 		case ID_SETTING_RESTOREDEFAULT:
 			appStatus->SoundHalt();
 			appStatus->RestoreDefaultSettings();
-			this->emuWin.UpdateWindow();
+			this->emuWin.UpdateC64Window();
 			MessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			break;
 		case ID_SETTING_LOADSETTINGS_RESTOREUSER:
 			appStatus->SoundHalt();
 			appStatus->RestoreUserSettings();
-			this->emuWin.UpdateWindow();
+			this->emuWin.UpdateC64Window();
 			MessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			break;
@@ -881,8 +881,7 @@ LONG_PTR lp;
 		if (cfg->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
 			appStatus->m_fskip = 1;
 
-		//InvalidateRect(m_hWnd, NULL, FALSE);
-		this->emuWin.UpdateWindow();
+		this->emuWin.UpdateC64Window();
 	}
 	appStatus->m_bFixWindowSize = TRUE;
 	appStatus->m_lastAudioVBLCatchUpCounter = 0;

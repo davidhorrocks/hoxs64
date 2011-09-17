@@ -241,8 +241,6 @@ public:
 	int FrameNumber;
 
 	void BackupMainPixelBuffers();
-	void CheckedBackupMainPixelBuffers();
-
 
 	static bit32 vic_color_array[256];
 	static bit32 vic_color_array32[256];

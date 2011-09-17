@@ -324,10 +324,11 @@ CPU6502::CPU6502()
 	FirstNMIClock=0;
 	RisingIRQClock=0;
 	FirstBALowClock=0;
+	LastBAHighClock=0;
 	BA = 1;
 	SOTrigger = false;
 	SOTriggerClock = 0;
-	mbBALowInClock2OfSEI = false;
+	m_bBALowInClock2OfSEI = false;
 	m_bBreakOnInterruptTaken = false;
 }
 
@@ -687,7 +688,6 @@ void CPU6502::GetCpuState(CPUState& state)
 	state.IsInterruptInstruction = IsInterruptInstruction();
 }
 
-//TEST IRQ BA
 void CPU6502::SetBALow(ICLK sysclock)
 {
 	if (BA != 0)
@@ -704,7 +704,7 @@ void CPU6502::SetBALow(ICLK sysclock)
 			{
 				//If the CPU is in run ahead mode, we do not know if the CIA is going to want to back date an IRQ.
 				//If both BA and IRQ transition to low in the second cycle of SEI then no IRQ occurs in the next instruction.
-				mbBALowInClock2OfSEI = true;
+				m_bBALowInClock2OfSEI = true;
 			}
 		}
 		BA = 0;
@@ -713,12 +713,11 @@ void CPU6502::SetBALow(ICLK sysclock)
 		FirstBALowClock = sysclock;
 }
 
-//TEST IRQ BA
 void CPU6502::SetBAHigh(ICLK sysclock)
 {
 	BA = 1;
+	LastBAHighClock = sysclock;
 }
-
 
 void CPU6502::SetIRQ(ICLK sysclock)
 {
@@ -834,7 +833,7 @@ void CPU6502::Reset(ICLK sysclock)
 	FirstIRQClock=0;
 	FirstNMIClock=0;
 	RisingIRQClock = sysclock - 1;
-	mbBALowInClock2OfSEI = false;
+	m_bBALowInClock2OfSEI = false;
 	mPC.word=0;
 	mA=0;
 	mX=0;
@@ -878,7 +877,9 @@ void CPU6502::PreventClockOverflow()
 		RisingIRQClock = ClockBehindNear;	
 	if ((ICLKS)(CurrentClock - FirstBALowClock) >= CLOCKSYNCBAND_FAR)
 		FirstBALowClock = ClockBehindNear;	
-
+	if ((ICLKS)(CurrentClock - LastBAHighClock) >= CLOCKSYNCBAND_FAR)
+		LastBAHighClock = ClockBehindNear;	
+	
 	if ((ICLKS)(CurrentClock - SOTriggerClock) >= CLOCKSYNCBAND_FAR)
 		SOTriggerClock = ClockBehindNear;
 }
@@ -2330,7 +2331,6 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case CLI_IMPLIED:
-			//TEST IRQ BA
 			if (BA_AND_DEBUG)
 			{
 				//If BA transitions to low in the second cycle of CLI then the IRQ check is performed as though the I flag was clear at the start of CLI.
@@ -2347,22 +2347,21 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case SEI_IMPLIED:
-			//TEST IRQ BA
 			if (BA_AND_DEBUG)
 			{
 				//If both BA and IRQ transition to low in the second cycle of SEI then no IRQ occurs in the next instruction.
-				mbBALowInClock2OfSEI = true;
+				m_bBALowInClock2OfSEI = true;
 				++m_CurrentOpcodeClock;
 				break;
 			}
 			ReadByte(mPC.word);
 			SyncChips();
-			if (IRQ != 0 && mbBALowInClock2OfSEI && (((ICLKS)(FirstIRQClock - FirstBALowClock)) >= 0))
+			if (IRQ != 0 && m_bBALowInClock2OfSEI && (((ICLKS)(FirstIRQClock - FirstBALowClock)) >= 0))
 			{
 				fINTERRUPT = 1;
 			}
 			check_interrupts1();
-			mbBALowInClock2OfSEI = false;
+			m_bBALowInClock2OfSEI = false;
 
 			fINTERRUPT=1;
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2793,8 +2792,18 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
 		case AXA_ABSOLUTEY:
-		case AXA_INDIRECTY:
-			WriteByte(addr.word,mA & mX & ((bit8)((addr.word-mY) >> 8)+1));
+		case AXA_INDIRECTY://AHX/SHAAY/SHAIY
+			this->SyncChips();
+			if (this->LastBAHighClock != CurrentClock)
+			{
+				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
+			}
+			else
+			{
+				axa_byte = 0xff;
+			}
+			WriteByte(addr.word, mA & mX & axa_byte);
+
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;

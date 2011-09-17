@@ -552,8 +552,9 @@ protected:
 	ICLK FirstNMIClock;
 	ICLK RisingIRQClock;
 	ICLK FirstBALowClock;
+	ICLK LastBAHighClock;
 	ICLK m_CurrentOpcodeClock;
-	bool mbBALowInClock2OfSEI;
+	bool m_bBALowInClock2OfSEI;
 
 public:
 	bit16 decode_array[256];
@@ -626,6 +627,7 @@ private:
 	unsigned int _s;
 	unsigned int _r;
 	unsigned long _datalong;
+	bit8 axa_byte;
 	void InitDecoder();
 
 public:

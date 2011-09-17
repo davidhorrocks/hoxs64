@@ -2160,15 +2160,6 @@ int i, j;
 	m_iLastBackedUpFrameNumber = FrameNumber;
 }
 
-void VIC6569::CheckedBackupMainPixelBuffers()
-{
-	if (FrameNumber != m_iLastBackedUpFrameNumber)
-	{
-		if (vic_raster_line <= 1)
-			BackupMainPixelBuffers();
-	}
-}
-
 //HRESULT VIC6569::UpdateBackBufferLine(bit16 line, bit8 cycle)
 //{
 //HRESULT hr = E_FAIL;
@@ -2326,7 +2317,6 @@ D3DLOCKED_RECT lrLockRect;
 
 			if (appStatus->m_bDebug)
 			{
-				CheckedBackupMainPixelBuffers();
 				hr = UpdateBackBufferLine(pDestSurfLine, lrLockRect.Pitch, (bit16)vic_raster_line, vic_raster_cycle);
 			}
 
@@ -2476,6 +2466,8 @@ bit8 data8;
 				vic_check_irq_in_cycle2=1;
 				vic_pixelbuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0];
 				FrameNumber++;
+				if (appStatus->m_bDebug)
+					BackupMainPixelBuffers();
 			}
 			else
 			{

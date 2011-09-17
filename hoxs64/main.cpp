@@ -341,25 +341,26 @@ HWND hWndDebuggerMdiClient = 0;
 			else
 				c64.ExecuteDebugFrame();
 
-			bool bDrawThisFrame = (m_fskip < 0);
+			bool bDrawThisFrame = (m_fskip < 0) || m_bDebug;
 
 			if (bDrawThisFrame)
 			{
-				c64.vic.UpdateBackBuffer();
-				hRet = appWindow.emuWin.RenderWindow();
-				if(SUCCEEDED(hRet))
-				{
-					hRet = dx.m_pd3dDevice->Present(NULL, NULL, NULL, NULL);
-					if (FAILED(hRet))
-					{
-						hRet = dx.m_pd3dDevice->TestCooperativeLevel();
-						if (FAILED(hRet))
-						{
-							SoundHalt();
-							m_bReady = false;
-						}
-					}
-				}
+				appWindow.emuWin.UpdateC64Window();
+				//c64.vic.UpdateBackBuffer();
+				//hRet = appWindow.emuWin.RenderWindow();
+				//if(SUCCEEDED(hRet))
+				//{
+				//	hRet = dx.m_pd3dDevice->Present(NULL, NULL, NULL, NULL);
+				//	if (FAILED(hRet))
+				//	{
+				//		hRet = dx.m_pd3dDevice->TestCooperativeLevel();
+				//		if (FAILED(hRet))
+				//		{
+				//			SoundHalt();
+				//			m_bReady = false;
+				//		}
+				//	}
+				//}
 			}				
 			//Handle frame skip
 			if (m_bSkipFrames && bDrawThisFrame)
@@ -1296,7 +1297,7 @@ EventArgs e;
 void CApp::UpdateApplication()
 {
 EventArgs e;
-	appWindow.emuWin.UpdateWindow();
+	appWindow.emuWin.UpdateC64Window();
 	EsUpdateApplication.Raise(this, e);
 }
 
@@ -1349,7 +1350,7 @@ HWND CApp::ShowDevelopment(CVirWindow *pParentWindow)
 			MDIDebugger.ShowDebugCpuDisk(true);
 			MDIDebugger.ShowDebugCpuC64(true);
 		}
-		appWindow.emuWin.UpdateWindow();
+		appWindow.emuWin.UpdateC64Window();
 	}
 	else
 	{

@@ -151,7 +151,7 @@ HRESULT hr;
 			hr = E_FAIL;
 			if (appStatus->m_bWindowed)
 			{
-				hr = UpdateWindow();
+				hr = UpdateC64Window();
 				//if (GetUpdateRect(hWnd, &rc, FALSE)!=0)
 				//{
 				//	hdc = BeginPaint (hWnd, &ps);
@@ -191,7 +191,7 @@ HRESULT hr;
 	return hr;
 }
 
-HRESULT CEmuWindow::UpdateWindow()
+HRESULT CEmuWindow::UpdateC64Window()
 {
 HRESULT hr = E_FAIL;
 
@@ -206,11 +206,14 @@ HRESULT hr = E_FAIL;
 		if (SUCCEEDED(hr))
 		{
 			hr = dx->m_pd3dDevice->Present(NULL, NULL, NULL, NULL);
-			if (hr == D3DERR_DEVICELOST)
+			if (FAILED(hr))// D3DERR_DEVICELOST
 			{
 				hr = dx->m_pd3dDevice->TestCooperativeLevel();
-				if (hr == D3DERR_DEVICELOST)
+				if (FAILED(hr))// D3DERR_DEVICELOST)
+				{
 					appStatus->m_bReady = false;
+					appStatus->SoundHalt();
+				}
 			}
 		}
 	}
