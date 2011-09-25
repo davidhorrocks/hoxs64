@@ -44,6 +44,7 @@
 
 #include "cevent.h"
 #include "monitor.h"
+#include "edln.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"

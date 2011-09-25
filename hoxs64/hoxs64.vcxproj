@@ -639,6 +639,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="dxstuff9.cpp" />
+    <ClCompile Include="edln.cpp" />
     <ClCompile Include="emuwin.cpp" />
     <ClCompile Include="errormsg.cpp" />
     <ClCompile Include="filter.cpp">
@@ -818,6 +819,7 @@
     <ClInclude Include="disassemblychild.h" />
     <ClInclude Include="dx_version.h" />
     <ClInclude Include="dxstuff9.h" />
+    <ClInclude Include="edln.h" />
     <ClInclude Include="emuwin.h" />
     <ClInclude Include="errormsg.h" />
     <ClInclude Include="filter.h" />

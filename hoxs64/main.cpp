@@ -71,6 +71,7 @@
 #include "mainwin.h"
 #include "cmdarg.h"
 
+#include "edln.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"

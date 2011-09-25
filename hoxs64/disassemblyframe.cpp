@@ -14,6 +14,7 @@
 #include "errormsg.h"
 #include "cevent.h"
 #include "monitor.h"
+#include "edln.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -743,7 +744,7 @@ HRESULT hr;
 	if (FAILED(hr))
 		return;
 
-	LONG x,y,w,h;
+	LONG x, y, w, h;
 	G::RectToWH(rc, x, y, w, h);
 	if (w < 0)
 		w = 0;

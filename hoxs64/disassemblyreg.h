@@ -5,6 +5,9 @@ class CDisassemblyReg : public CVirWindow
 {
 public:
 	static const int MARGIN_TOP = 0;
+	static const int MARGIN_RIGHT = 0;
+	static const int MARGIN_BOTTOM = 0;
+	static const int MARGIN_LEFT = 0;
 	static const int PADDING_LEFT = 4;
 	static const int PADDING_RIGHT = 4;
 	static const int PADDING_TOP = 4;
@@ -12,6 +15,8 @@ public:
 
 	struct RegLineBuffer
 	{
+		HRESULT Init(HWND hParentWin, HFONT hFont);
+		EdLn PC;
 		TCHAR PC_Text[Monitor::BUFSIZEWORDTEXT];
 		TCHAR A_Text[Monitor::BUFSIZEBYTETEXT];	
 		TCHAR X_Text[Monitor::BUFSIZEBYTETEXT];
@@ -62,6 +67,9 @@ private:
 
 	void Cleanup();
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+
+	HRESULT GetRect_PC_Frame(HDC hdc, RECT& rc);
 };
 
 #endif

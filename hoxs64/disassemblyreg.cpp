@@ -16,6 +16,7 @@
 #include "assert.h"
 #include "cevent.h"
 #include "monitor.h"
+#include "edln.h"
 #include "disassemblyreg.h"
 #include "resource.h"
 
@@ -45,6 +46,8 @@ HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorCommand *monitorComman
 	this->m_monitorCommand = monitorCommand;
 	this->m_vic = vic;
 	hr = this->m_mon.Init(cpu, vic);
+	if (FAILED(hr))
+		return hr;
 	return hr;
 }
 
@@ -151,6 +154,10 @@ BOOL br;
 
 HRESULT CDisassemblyReg::OnCreate(HWND hWnd)
 {
+HRESULT hr;
+	hr = this->m_TextBuffer.Init(hWnd, this->m_hFont);
+	if (FAILED(hr))
+		return hr;
 	return S_OK;
 }
 
@@ -304,8 +311,10 @@ TEXTMETRIC tm;
 				tTitle = TEXT("PC");
 				slen = (int)_tcslen(tTitle);
 				G::DrawDefText(hdc, xcol_PC, yTitle, tTitle, slen, NULL, NULL);
-				slen = (int)_tcsnlen(m_TextBuffer.PC_Text, _countof(m_TextBuffer.PC_Text));
-				G::DrawDefText(hdc, xcol_PC, y, m_TextBuffer.PC_Text, slen, &x, NULL);
+				this->m_TextBuffer.PC.SetPos(xcol_PC, y);
+				this->m_TextBuffer.PC.Draw(hdc);
+				//slen = (int)_tcsnlen(m_TextBuffer.PC_Text, _countof(m_TextBuffer.PC_Text));
+				//G::DrawDefText(hdc, xcol_PC, y, m_TextBuffer.PC_Text, slen, &x, NULL);
 				x = x + tm.tmAveCharWidth * 1;
 
 				tTitle = TEXT("A");
@@ -425,11 +434,16 @@ void CDisassemblyReg::UpdateBuffer(RegLineBuffer& b)
 	b.ClearBuffer();
 	m_mon.GetCpuRegisters(b.PC_Text, _countof(b.PC_Text), b.A_Text, _countof(b.A_Text), b.X_Text, _countof(b.X_Text), b.Y_Text, _countof(b.Y_Text), b.SR_Text, _countof(b.SR_Text), b.SP_Text, _countof(b.SP_Text), b.Ddr_Text, _countof(b.Ddr_Text), b.Data_Text, _countof(b.Data_Text));
 	m_mon.GetVicRegisters(b.VicLine_Text, _countof(b.VicLine_Text), b.VicCycle_Text, _countof(b.VicCycle_Text));
+
+	b.PC.SetString(b.PC_Text, _countof(b.PC_Text));
+	
 }
 
 void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 {
 	PC_Text[0]=0;
+	PC.SetValue(0);
+
 	A_Text[0]=0;
 	X_Text[0]=0;
 	Y_Text[0]=0;
@@ -442,4 +456,21 @@ void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 	Mmu_Text[0]=0;
 	VicLine_Text[0];
 	VicCycle_Text[0];
+}
+
+HRESULT CDisassemblyReg::RegLineBuffer::Init(HWND hParentWin, HFONT hFont)
+{
+HRESULT hr;
+	hr = PC.Init(hParentWin, hFont, EdLn::HexAddress, true, 4);
+	if (FAILED(hr))
+		return hr;
+
+	return S_OK;
+}
+
+HRESULT CDisassemblyReg::GetRect_PC_Frame(HDC hdc, RECT& rc)
+{
+	rc.top = MARGIN_TOP;
+	rc.left = MARGIN_LEFT;
+	return 0;
 }

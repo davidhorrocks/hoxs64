@@ -53,6 +53,9 @@ public:
 	int DisassembleBytes(unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer);
 	void GetCpuRegisters(TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDdr_Text, int cchDdr_Text, TCHAR *pData_Text, int cchData_Text);
 	void GetVicRegisters(TCHAR *pLine_Text, int cchLine_Text, TCHAR *pCycle_Text, int cchCycle_Text);
+
+	IMonitorCpu *GetCpu();
+	IMonitorVic *GetVic();
 private:
 	IMonitorCpu *m_pMonitorCpu;
 	IMonitorVic *m_pMonitorVic;

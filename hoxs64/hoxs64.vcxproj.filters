@@ -19,6 +19,12 @@
     <Filter Include="casm">
       <UniqueIdentifier>{72f79bd8-46fb-4f18-a384-032a1409b714}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\debugger">
+      <UniqueIdentifier>{937018d2-fdf2-47d3-8614-9ec33eb325d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\debugger">
+      <UniqueIdentifier>{6a4198c2-946b-49d9-8e70-8d5c372d38c9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="appstatus.cpp">
@@ -114,9 +120,6 @@
     <ClCompile Include="mainwin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mdidebuggerframe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="prgbrowse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -147,20 +150,26 @@
     <ClCompile Include="vic6569.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="disassemblychild.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="disassemblyframe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="disassemblyeditchild.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="monitor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="disassemblychild.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="disassemblyeditchild.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="disassemblyframe.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
     <ClCompile Include="disassemblyreg.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="mdidebuggerframe.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="edln.cpp">
+      <Filter>Source Files\debugger</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -266,9 +275,6 @@
     <ClInclude Include="mainwin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mdidebuggerframe.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -323,25 +329,31 @@
     <ClInclude Include="servicerelease.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="disassemblyframe.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="disassemblychild.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="disassemblyeditchild.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="bits.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="monitor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="disassemblyreg.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="cevent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblychild.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblyeditchild.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblyframe.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="disassemblyreg.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="mdidebuggerframe.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="edln.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
