@@ -34,20 +34,21 @@ EdLn::EdLn()
 	m_TextBufferLength = 0;
 	m_TextBuffer = NULL;
 	m_iNumChars = 0;
+	m_pszCaption = 0;
 }
 
 EdLn::~EdLn()
 {
 	FreeTextBuffer();
+	FreeCaption();
 }
 
-HRESULT EdLn::Init(HWND hParentWin, HFONT hFont, EditStyle style, bool isEditable, int numChars)
+HRESULT EdLn::Init(HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isEditable, int numChars)
 {
 HRESULT hr = E_FAIL;
 	this->m_style = style;
 	this->m_bIsEditable = isEditable;
 	this->m_iNumChars = numChars;
-	this->m_hParentWin = hParentWin;
 	this->m_hFont = hFont;
 	this->m_MinSizeDone = false;
 
@@ -76,7 +77,12 @@ HRESULT hr = E_FAIL;
 		return E_FAIL;
 
 	hr = AllocTextBuffer(m);
-	return S_OK;
+	if (FAILED(hr))
+		return hr;
+	hr = SetCaption(pszCaption);
+	if (FAILED(hr))
+		return hr;
+	return hr;
 }
 
 HRESULT EdLn::AllocTextBuffer(int i)
@@ -102,84 +108,128 @@ void EdLn::FreeTextBuffer()
 	}
 }
 
-
-HRESULT EdLn::GetMinWindowSize(int &w, int &h)
+HRESULT EdLn::SetCaption(LPCTSTR pszCaption)
 {
-BOOL br;
-HRESULT hr = E_FAIL;
-	if (m_MinSizeDone)
+	if (pszCaption)
 	{
-		w = m_MinSizeW;
-		h = m_MinSizeH;
-		return S_OK;
+		int i = lstrlen(pszCaption);
+		void *p = malloc((i + 1) * sizeof(TCHAR));
+		if (p == NULL)
+			return E_OUTOFMEMORY;
+		FreeCaption();
+		m_pszCaption = (TCHAR *)p;
+		lstrcpy(m_pszCaption, pszCaption);
 	}
 	else
 	{
-		w = PADDING_LEFT + PADDING_RIGHT + GetSystemMetrics(SM_CXFRAME) * 2;
-		h = MARGIN_TOP + PADDING_TOP + PADDING_BOTTOM;
-		if (m_hParentWin != NULL && m_hFont != NULL)
+		FreeCaption();
+	}
+	return S_OK;
+}
+
+void EdLn::FreeCaption()
+{
+	if (m_pszCaption != NULL)
+	{
+		free(m_pszCaption);
+		m_pszCaption = NULL;
+	}
+}
+
+HRESULT EdLn::GetMinWindowSize(HDC hdc, int &w, int &h)
+{
+BOOL br;
+HRESULT hr = E_FAIL;
+	w = PADDING_LEFT + PADDING_RIGHT;
+	h = MARGIN_TOP + PADDING_TOP + PADDING_BOTTOM;
+	if (hdc != NULL && m_hFont != NULL)
+	{
+		int prevMapMode = SetMapMode(hdc, MM_TEXT);
+		if (prevMapMode)
 		{
-			HDC hdc = GetDC(m_hParentWin);
-			if (hdc)
+			HFONT hFontPrev = (HFONT)SelectObject(hdc, m_hFont);
+			if (hFontPrev)
 			{
-				int prevMapMode = SetMapMode(hdc, MM_TEXT);
-				if (prevMapMode)
+				TEXTMETRIC tm;
+				br = GetTextMetrics(hdc, &tm);
+				if (br)
 				{
-					HFONT hFontPrev = (HFONT)SelectObject(hdc, m_hFont);
-					if (hFontPrev)
+					const TCHAR *psData;
+					int m = 1;
+					switch (m_style)
 					{
-						TEXTMETRIC tm;
-						br = GetTextMetrics(hdc, &tm);
-						if (br)
-						{							
-
-							const TCHAR *s;
-							int m = 1;
-							switch (m_style)
-							{
-							case HexAddress:
-								s = m_szMeasureAddress;
-								break;
-							case HexByte:
-								s = m_szMeasureByte;
-								break;
-							case CpuFlags:
-								s = m_szMeasureCpuFlags;
-								break;
-							case Hex:
-								s = m_szMeasureDigit;
-								m = m_iNumChars;
-								break;
-							case Dec:
-								s = m_szMeasureDigit;
-								m = m_iNumChars;
-								break;
-							default:
-								s = m_szMeasureDigit;
-								m = m_iNumChars;
-								break;
-							}
-							int slen = lstrlen(s);
-							SIZE sizeText;
-							BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
-							if (br)
-							{
-								w += (sizeText.cx) * m;
-								hr = S_OK;
-							}
-
-							h += tm.tmHeight * 1;
-							m_MinSizeW = w;
-							m_MinSizeH = h;
-							m_MinSizeDone = true;
-						}
-
-						SelectObject(hdc, hFontPrev);
+					case HexAddress:
+						psData = m_szMeasureAddress;
+						m = 4;
+						break;
+					case HexByte:
+						psData = m_szMeasureByte;
+						m = 2;
+						break;
+					case CpuFlags:
+						psData = m_szMeasureCpuFlags;
+						m = 8;
+						break;
+					case Hex:
+						psData = m_szMeasureDigit;
+						m = m_iNumChars;
+						break;
+					case Dec:
+						psData = m_szMeasureDigit;
+						m = m_iNumChars;
+						break;
+					default:
+						psData = m_szMeasureDigit;
+						m = m_iNumChars;
+						break;
 					}
-					SetMapMode(hdc, prevMapMode);
+
+					SIZE sizeText;
+					BOOL br;
+					int tx1;
+					int tx2;
+					int slen1;
+					int slen2;
+					if (m_pszCaption!=NULL)
+						slen1 = lstrlen(m_pszCaption);
+					else
+						slen1 = 0;
+					slen2 = lstrlen(psData);
+					tx1 = slen1 * tm.tmAveCharWidth;
+					tx2 = m * tm.tmAveCharWidth;
+					if (slen1>0)
+					{
+						br = GetTextExtentExPoint(hdc, m_pszCaption, slen1, 0, NULL, NULL, &sizeText);
+						if (br)
+						{
+							tx1 = (sizeText.cx);
+						}
+					}
+					br = GetTextExtentExPoint(hdc, psData, slen2, 0, NULL, NULL, &sizeText);
+					if (br)
+					{
+						tx2 = (sizeText.cx);
+					}
+						
+					if (tx2 > tx1)
+						w += tx2;
+					else
+						w += tx1;
+
+					hr = S_OK;
+
+					if (m_pszCaption!=NULL)
+						h += tm.tmHeight * 2;
+					else
+						h += tm.tmHeight * 1;
+					m_MinSizeW = w;
+					m_MinSizeH = h;
+					m_MinSizeDone = true;
 				}
-				ReleaseDC(m_hParentWin, hdc);
+
+				SelectObject(hdc, hFontPrev);
 			}
+			SetMapMode(hdc, prevMapMode);
 		}
 	}
 	return hr;
@@ -192,13 +242,40 @@ HRESULT EdLn::SetPos(int x, int y)
 	return S_OK;
 }
 
+int EdLn::GetXPos()
+{
+	return m_posX;
+}
+
+int EdLn::GetYPos()
+{
+	return m_posY;
+}
+
 void EdLn::Draw(HDC hdc)
 {
 	if (m_TextBuffer==NULL)
 		return;
 	int k = (int)GetString(NULL, 0);
-	
-	G::DrawDefText(hdc, m_posX, m_posY, m_TextBuffer, k, NULL, NULL);
+
+	int iHeight = 10;
+	TEXTMETRIC tm;
+	BOOL br = GetTextMetrics(hdc, &tm);
+	if (br)
+	{
+		iHeight = tm.tmHeight;
+	}
+	if (this->m_pszCaption != NULL)
+	{
+		int lenCaption = lstrlen(m_pszCaption);
+
+		G::DrawDefText(hdc, m_posX, m_posY, m_pszCaption, lenCaption, NULL, NULL);
+		G::DrawDefText(hdc, m_posX, m_posY + iHeight, m_TextBuffer, k, NULL, NULL);
+	}
+	else
+	{
+		G::DrawDefText(hdc, m_posX, m_posY, m_TextBuffer, k, NULL, NULL);
+	}
 }
 
 

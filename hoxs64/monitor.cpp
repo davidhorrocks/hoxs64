@@ -113,6 +113,16 @@ CPUState cpu;
 	}
 }
 
+IMonitorCpu *Monitor::GetCpu()
+{
+	return this->m_pMonitorCpu;
+}
+
+IMonitorVic *Monitor::GetVic()
+{
+	return this->m_pMonitorVic;
+}
+
 int Monitor::DisassembleOneInstruction(bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc)
 {
 TCHAR szAddress[BUFSIZEADDRESSTEXT];

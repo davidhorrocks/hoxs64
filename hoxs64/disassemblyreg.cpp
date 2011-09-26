@@ -31,6 +31,7 @@ CDisassemblyReg::CDisassemblyReg()
 	m_MinSizeDone = false;
 	m_vic = NULL;
 	m_cpu = NULL;
+	m_hdc = NULL;
 }
 
 CDisassemblyReg::~CDisassemblyReg()
@@ -155,7 +156,10 @@ BOOL br;
 HRESULT CDisassemblyReg::OnCreate(HWND hWnd)
 {
 HRESULT hr;
-	hr = this->m_TextBuffer.Init(hWnd, this->m_hFont);
+	m_hdc = GetDC(hWnd);
+	if (m_hdc == 0)
+		return E_FAIL;
+	hr = this->m_TextBuffer.Init(m_hdc, this->m_hFont);
 	if (FAILED(hr))
 		return hr;
 	return S_OK;
@@ -237,6 +241,8 @@ void CDisassemblyReg::DrawDisplay2(HWND hWnd, HDC hdc)
 RECT rc;
 BOOL br;
 TEXTMETRIC tm;
+int x,y;
+int slen;
 
 	SetBkMode(hdc, OPAQUE);
 	SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
@@ -253,140 +259,66 @@ TEXTMETRIC tm;
 	{
 		if (tm.tmHeight > 0 && rc.bottom > rc.top)
 		{
-			int x,y,yTitle,tx;
-			int slen;			
 			if (!m_monitorCommand->IsRunning())
 			{
 				UpdateBuffer(m_TextBuffer);
 
-				yTitle = MARGIN_TOP + PADDING_TOP;
-				y = yTitle + tm.tmHeight;
+				y = MARGIN_TOP + PADDING_TOP;
+
+				int w=0;
+				int h=0;
 				x = PADDING_LEFT;
-
-
-				SIZE sz;
-				const int defwidth = 10;
-				LPCTSTR szSampleWord = TEXT("$ABCDX");
-				LPCTSTR szSampleByte = TEXT("ABX");
-				LPCTSTR szSample3Bytes = TEXT("ABCX");
-				LPCTSTR szSampleFlags = TEXT("NV-BDIZCX");
-				LPCTSTR szSampleLine = TEXT("LINEX");
-				int sp_word = (lstrlen(szSampleWord)) * tm.tmAveCharWidth;
-				int sp_byte = (lstrlen(szSampleByte)) * tm.tmAveCharWidth;
-				int sp_3bytes = (lstrlen(szSample3Bytes)) * tm.tmAveCharWidth;
-				int sp_flags = (lstrlen(szSampleFlags)) * tm.tmAveCharWidth;
-				int sp_line = (lstrlen(szSampleLine)) * tm.tmAveCharWidth;
-				if (::GetTextExtentExPoint(hdc, szSampleWord, lstrlen(szSampleWord),0,NULL,NULL,&sz))
-				{							
-					sp_word = sz.cx;
-				}
-				if (::GetTextExtentExPoint(hdc, szSampleByte, lstrlen(szSampleByte),0,NULL,NULL,&sz))
-				{							
-					sp_byte = sz.cx;
-				}
-				if (::GetTextExtentExPoint(hdc, szSample3Bytes, lstrlen(szSample3Bytes),0,NULL,NULL,&sz))
-				{							
-					sp_3bytes = sz.cx;
-				}
-				if (::GetTextExtentExPoint(hdc, szSampleFlags, lstrlen(szSampleFlags),0,NULL,NULL,&sz))
-				{							
-					sp_flags = sz.cx;
-				}
-				if (::GetTextExtentExPoint(hdc, szSampleLine, lstrlen(szSampleLine),0,NULL,NULL,&sz))
-				{							
-					sp_line = sz.cx;
-				}
-				int xcol_PC = PADDING_LEFT;
-				int xcol_A = xcol_PC+sp_word;
-				int xcol_X = xcol_A+sp_byte;
-				int xcol_Y = xcol_X+sp_byte;
-				int xcol_Flags = xcol_Y+sp_byte;
-				int xcol_SP = xcol_Flags+sp_flags;
-				int xcol_00 = xcol_SP+sp_byte;
-				int xcol_01 = xcol_00+sp_byte;
-				int xcol_Line = xcol_01+sp_byte;
-				int xcol_Cyc = xcol_Line+sp_line;
-
-				TCHAR *tTitle;
-				tTitle = TEXT("PC");
-				slen = (int)_tcslen(tTitle);
-				G::DrawDefText(hdc, xcol_PC, yTitle, tTitle, slen, NULL, NULL);
-				this->m_TextBuffer.PC.SetPos(xcol_PC, y);
+				
+				this->m_TextBuffer.PC.SetPos(x, y);
 				this->m_TextBuffer.PC.Draw(hdc);
-				//slen = (int)_tcsnlen(m_TextBuffer.PC_Text, _countof(m_TextBuffer.PC_Text));
-				//G::DrawDefText(hdc, xcol_PC, y, m_TextBuffer.PC_Text, slen, &x, NULL);
-				x = x + tm.tmAveCharWidth * 1;
+				this->m_TextBuffer.PC.GetMinWindowSize(hdc, w, h);
+				
+				x += w + 2*tm.tmAveCharWidth;
+				this->m_TextBuffer.A.SetPos(x, y);
+				this->m_TextBuffer.A.Draw(hdc);
+				this->m_TextBuffer.A.GetMinWindowSize(hdc, w, h);
 
-				tTitle = TEXT("A");
-				slen = (int)_tcslen(tTitle);
-				G::DrawDefText(hdc, xcol_A, yTitle, tTitle, slen, NULL, NULL);
-				slen = (int)_tcsnlen(m_TextBuffer.A_Text, _countof(m_TextBuffer.A_Text));
-				G::DrawDefText(hdc, xcol_A, y, m_TextBuffer.A_Text, slen, &x, NULL);
-				x = x + tm.tmAveCharWidth * 1;
+				x += w + tm.tmAveCharWidth;
+				this->m_TextBuffer.X.SetPos(x, y);
+				this->m_TextBuffer.X.Draw(hdc);
+				this->m_TextBuffer.X.GetMinWindowSize(hdc, w, h);
 
-				tTitle = TEXT("X");
-				slen = (int)_tcslen(tTitle);
-				G::DrawDefText(hdc, xcol_X, yTitle, tTitle, slen, NULL, NULL);
-				slen = (int)_tcsnlen(m_TextBuffer.X_Text, _countof(m_TextBuffer.X_Text));
-				G::DrawDefText(hdc, xcol_X, y, m_TextBuffer.X_Text, slen, &x, NULL);
-				x = x + tm.tmAveCharWidth * 1;
+				x += w + tm.tmAveCharWidth;
+				this->m_TextBuffer.Y.SetPos(x, y);
+				this->m_TextBuffer.Y.Draw(hdc);
+				this->m_TextBuffer.Y.GetMinWindowSize(hdc, w, h);
 
-				tTitle = TEXT("Y");
-				slen = (int)_tcslen(tTitle);
-				G::DrawDefText(hdc, xcol_Y, yTitle, tTitle, slen, NULL, NULL);
-				slen = (int)_tcsnlen(m_TextBuffer.Y_Text, _countof(m_TextBuffer.Y_Text));
-				G::DrawDefText(hdc, xcol_Y, y, m_TextBuffer.Y_Text, slen, &x, NULL);
-				x = x + tm.tmAveCharWidth * 1;
+				x += w + tm.tmAveCharWidth;
+				this->m_TextBuffer.SR.SetPos(x, y);
+				this->m_TextBuffer.SR.Draw(hdc);
+				this->m_TextBuffer.SR.GetMinWindowSize(hdc, w, h);
 
-				tTitle = TEXT("NV-BDIZC");
-				slen = (int)_tcslen(tTitle);
-				G::DrawDefText(hdc, xcol_Flags, yTitle, tTitle, slen, NULL, NULL);
-				slen = (int)_tcsnlen(m_TextBuffer.SR_Text, _countof(m_TextBuffer.SR_Text));
-				G::DrawDefText(hdc, xcol_Flags, y, m_TextBuffer.SR_Text, slen, &x, NULL);
-				x = x + tm.tmAveCharWidth * 1;
-
-				tTitle = TEXT("SP");
-				slen = (int)_tcslen(tTitle);
-				G::DrawDefText(hdc, xcol_SP, yTitle, tTitle, slen, NULL, NULL);
-				slen = (int)_tcsnlen(m_TextBuffer.SP_Text, _countof(m_TextBuffer.SP_Text));
-				G::DrawDefText(hdc, xcol_SP, y, m_TextBuffer.SP_Text, slen, &x, NULL);
-				x = x + tm.tmAveCharWidth * 1;
+				x += w + tm.tmAveCharWidth;
+				this->m_TextBuffer.SP.SetPos(x, y);
+				this->m_TextBuffer.SP.Draw(hdc);
+				this->m_TextBuffer.SP.GetMinWindowSize(hdc, w, h);
 
 				if (m_cpu->GetCpuId()==0)
 				{
-					tTitle = TEXT("00");
-					slen = (int)_tcslen(tTitle);
-					G::DrawDefText(hdc, xcol_00, yTitle, tTitle, slen, NULL, NULL);
-					slen = (int)_tcsnlen(m_TextBuffer.Ddr_Text, _countof(m_TextBuffer.Ddr_Text));
-					G::DrawDefText(hdc, xcol_00, y, m_TextBuffer.Ddr_Text, slen, &x, NULL);
-					x = x + tm.tmAveCharWidth * 1;
+					x += w + tm.tmAveCharWidth;
+					this->m_TextBuffer.Ddr.SetPos(x, y);
+					this->m_TextBuffer.Ddr.Draw(hdc);
+					this->m_TextBuffer.Ddr.GetMinWindowSize(hdc, w, h);
 
-					tTitle = TEXT("01");
-					slen = (int)_tcslen(tTitle);
-					G::DrawDefText(hdc, xcol_01, yTitle, tTitle, slen, NULL, NULL);
-					slen = (int)_tcsnlen(m_TextBuffer.Data_Text, _countof(m_TextBuffer.Data_Text));
-					G::DrawDefText(hdc, xcol_01, y, m_TextBuffer.Data_Text, slen, &x, NULL);
-					x = x + tm.tmAveCharWidth * 1;
+					x += w + tm.tmAveCharWidth;
+					this->m_TextBuffer.Data.SetPos(x, y);
+					this->m_TextBuffer.Data.Draw(hdc);
+					this->m_TextBuffer.Data.GetMinWindowSize(hdc, w, h);
 
-					RECT rcText;
+					x += w + tm.tmAveCharWidth;
+					this->m_TextBuffer.VicLine.SetPos(x, y);
+					this->m_TextBuffer.VicLine.Draw(hdc);
+					this->m_TextBuffer.VicLine.GetMinWindowSize(hdc, w, h);
 
-					tTitle = TEXT("LINE");
-					slen = (int)_tcslen(tTitle);
-					G::DrawDefText(hdc, xcol_Line, yTitle, tTitle, slen, &tx, NULL);
-
-					SetRect(&rcText, xcol_Line, y, tx, y+tm.tmHeight+1);
-
-					slen = (int)_tcsnlen(m_TextBuffer.VicLine_Text, _countof(m_TextBuffer.VicLine_Text));
-					::DrawText(hdc, m_TextBuffer.VicLine_Text, slen, &rcText, DT_TOP | DT_RIGHT | DT_SINGLELINE);
-					//G::DrawDefText(hdc, xcol_Line+tm.tmAveCharWidth, y, m_TextBuffer.VicLine_Text, slen, &tx, NULL);
-
-					tTitle = TEXT("CYC");
-					slen = (int)_tcslen(tTitle);
-					G::DrawDefText(hdc, xcol_Cyc, yTitle, tTitle, slen, &tx, NULL);
-					SetRect(&rcText, xcol_Cyc, y, tx, y+tm.tmHeight+1);
-					slen = (int)_tcsnlen(m_TextBuffer.VicCycle_Text, _countof(m_TextBuffer.VicCycle_Text));
-					::DrawText(hdc, m_TextBuffer.VicCycle_Text, slen, &rcText, DT_TOP | DT_RIGHT | DT_SINGLELINE);
-					//G::DrawDefText(hdc, xcol_Cyc+tm.tmAveCharWidth, y, m_TextBuffer.VicCycle_Text, slen, &tx, NULL);
+					x += w + tm.tmAveCharWidth;
+					this->m_TextBuffer.VicCycle.SetPos(x, y);
+					this->m_TextBuffer.VicCycle.Draw(hdc);
+					this->m_TextBuffer.VicCycle.GetMinWindowSize(hdc, w, h);
 				}
 			}
 			else
@@ -432,36 +364,77 @@ void CDisassemblyReg::UpdateDisplay()
 void CDisassemblyReg::UpdateBuffer(RegLineBuffer& b)
 {
 	b.ClearBuffer();
-	m_mon.GetCpuRegisters(b.PC_Text, _countof(b.PC_Text), b.A_Text, _countof(b.A_Text), b.X_Text, _countof(b.X_Text), b.Y_Text, _countof(b.Y_Text), b.SR_Text, _countof(b.SR_Text), b.SP_Text, _countof(b.SP_Text), b.Ddr_Text, _countof(b.Ddr_Text), b.Data_Text, _countof(b.Data_Text));
-	m_mon.GetVicRegisters(b.VicLine_Text, _countof(b.VicLine_Text), b.VicCycle_Text, _countof(b.VicCycle_Text));
+	//m_mon.GetCpuRegisters(b.PC_Text, _countof(b.PC_Text), b.A_Text, _countof(b.A_Text), b.X_Text, _countof(b.X_Text), b.Y_Text, _countof(b.Y_Text), b.SR_Text, _countof(b.SR_Text), b.SP_Text, _countof(b.SP_Text), b.Ddr_Text, _countof(b.Ddr_Text), b.Data_Text, _countof(b.Data_Text));
+	//m_mon.GetVicRegisters(b.VicLine_Text, _countof(b.VicLine_Text), b.VicCycle_Text, _countof(b.VicCycle_Text));
 
-	b.PC.SetString(b.PC_Text, _countof(b.PC_Text));
-	
+	CPUState state;
+	m_mon.GetCpu()->GetCpuState(state);
+
+	b.PC.SetValue(state.PC_CurrentOpcode);
+	b.A.SetValue(state.A);
+	b.X.SetValue(state.X);
+	b.Y.SetValue(state.Y);
+	b.SR.SetValue(state.Flags);
+	b.SP.SetValue(state.SP);
+	if (m_mon.GetCpu()->GetCpuId() == 0)
+	{
+		b.Ddr.SetValue(state.PortDdr);
+		b.Data.SetValue(state.PortDataStored);
+
+		bit16 line = m_mon.GetVic()->GetRasterLine();
+		bit8 cycle = m_mon.GetVic()->GetRasterCycle();
+		
+		b.VicLine.SetValue(line);
+		b.VicCycle.SetValue(cycle);
+	}
 }
 
 void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 {
-	PC_Text[0]=0;
 	PC.SetValue(0);
-
-	A_Text[0]=0;
-	X_Text[0]=0;
-	Y_Text[0]=0;
-	SR_Text[0]=0;
-	SP_Text[0]=0;
-	Ddr_Text[0]=0;
-	Data_Text[0]=0;
-	Output_Text[0]=0;
-	Input_Text[0]=0;
-	Mmu_Text[0]=0;
-	VicLine_Text[0];
-	VicCycle_Text[0];
+	A.SetValue(0);
+	X.SetValue(0);
+	Y.SetValue(0);
+	SR.SetValue(0);
+	SP.SetValue(0);
+	Ddr.SetValue(0);
+	Data.SetValue(0);
+	VicLine.SetValue(0);
+	VicCycle.SetValue(0);
 }
 
-HRESULT CDisassemblyReg::RegLineBuffer::Init(HWND hParentWin, HFONT hFont)
+HRESULT CDisassemblyReg::RegLineBuffer::Init(HDC hdc, HFONT hFont)
 {
 HRESULT hr;
-	hr = PC.Init(hParentWin, hFont, EdLn::HexAddress, true, 4);
+
+	hr = PC.Init(hFont, TEXT("PC"), EdLn::HexAddress, true, 4);
+	if (FAILED(hr))
+		return hr;
+	hr = A.Init(hFont, TEXT("A"), EdLn::HexByte, true, 2);
+	if (FAILED(hr))
+		return hr;
+	hr = X.Init(hFont, TEXT("X"), EdLn::HexByte, true, 2);
+	if (FAILED(hr))
+		return hr;
+	hr = Y.Init(hFont, TEXT("Y"), EdLn::HexByte, true, 2);
+	if (FAILED(hr))
+		return hr;
+	hr = SR.Init(hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, 8);
+	if (FAILED(hr))
+		return hr;
+	hr = SP.Init(hFont, TEXT("SP"), EdLn::HexByte, true, 2);
+	if (FAILED(hr))
+		return hr;
+	hr = Ddr.Init(hFont, TEXT("00"), EdLn::HexByte, true, 2);
+	if (FAILED(hr))
+		return hr;
+	hr = Data.Init(hFont, TEXT("01"), EdLn::HexByte, true, 2);
+	if (FAILED(hr))
+		return hr;
+	hr = VicLine.Init(hFont, TEXT("LINE"), EdLn::Hex, false, 3);
+	if (FAILED(hr))
+		return hr;
+	hr = VicCycle.Init(hFont, TEXT("CYC"), EdLn::Dec, false, 2);
 	if (FAILED(hr))
 		return hr;
 

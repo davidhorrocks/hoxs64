@@ -15,21 +15,17 @@ public:
 
 	struct RegLineBuffer
 	{
-		HRESULT Init(HWND hParentWin, HFONT hFont);
+		HRESULT Init(HDC hdc, HFONT hFont);
 		EdLn PC;
-		TCHAR PC_Text[Monitor::BUFSIZEWORDTEXT];
-		TCHAR A_Text[Monitor::BUFSIZEBYTETEXT];	
-		TCHAR X_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR Y_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR SR_Text[Monitor::BUFSIZEBITBYTETEXT];
-		TCHAR SP_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR Ddr_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR Data_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR Output_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR Input_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR VicLine_Text[Monitor::BUFSIZEWORDTEXT];
-		TCHAR VicCycle_Text[Monitor::BUFSIZEBYTETEXT];
-		TCHAR Mmu_Text[Monitor::BUFSIZEMMUTEXT];
+		EdLn A;
+		EdLn X;
+		EdLn Y;
+		EdLn SR;
+		EdLn SP;
+		EdLn Ddr;
+		EdLn Data;
+		EdLn VicLine;
+		EdLn VicCycle;
 
 		void ClearBuffer();
 	};
@@ -49,6 +45,7 @@ public:
 private:
 	CVirWindow *m_pParent;
 	HFONT m_hFont;
+	HDC m_hdc;
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;

@@ -15,10 +15,13 @@ public:
 	EdLn();
 	virtual ~EdLn();	
 
-	HRESULT Init(HWND hParentWin, HFONT hFont, EditStyle style, bool isEditable, int numChars);
+	HRESULT Init(HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isEditable, int numChars);
 
-	HRESULT GetMinWindowSize(int &w, int &h);
+	HRESULT GetMinWindowSize(HDC hdc, int &w, int &h);
 	HRESULT SetPos(int x, int y);
+
+	int GetXPos();
+	int GetYPos();
 
 	void SetValue(int v);
 	HRESULT GetValue(int& v);
@@ -38,7 +41,6 @@ private:
 	
 	bool m_bIsEditable;
 	EditStyle m_style;
-	HWND m_hParentWin;
 	HFONT m_hFont;
 
 	int m_posX;
@@ -55,11 +57,15 @@ private:
 	int m_iValue;
 
 	TCHAR *m_TextBuffer;
+	TCHAR *m_pszCaption;
 	int m_TextBufferLength;
 	int m_iNumChars;
 
 	HRESULT AllocTextBuffer(int i);
 	void FreeTextBuffer();
+
+	HRESULT SetCaption(LPCTSTR pszCaption);
+	void FreeCaption();
 
 	void SetHexAddress(int v);
 	void SetHexByte(int v);
