@@ -15,7 +15,7 @@ public:
 
 	struct RegLineBuffer
 	{
-		HRESULT Init(HDC hdc, HFONT hFont);
+		HRESULT Init(HDC hdc, HFONT hFont, int x, int y, int cpuid);
 		EdLn PC;
 		EdLn A;
 		EdLn X;
@@ -27,7 +27,18 @@ public:
 		EdLn VicLine;
 		EdLn VicCycle;
 
+		int CurrentControlIndex;
+		CArray<EdLn*> Controls;
+
+		HRESULT ArrangeControls(HDC hdc, int x, int y, int cpuid);
 		void ClearBuffer();
+
+		void SelectControl(int i);
+		void DeSelectControl(int i);
+
+		void ShowCaret(HWND hWnd);
+
+		TEXTMETRIC TextMetric;
 	};
 	CDisassemblyReg();
 	virtual ~CDisassemblyReg();
@@ -55,7 +66,7 @@ private:
 	Monitor m_mon;
 	IMonitorCommand *m_monitorCommand;
 
-	RegLineBuffer m_TextBuffer;
+	RegLineBuffer m_RegBuffer;
 
 	void UpdateBuffer(RegLineBuffer& b);
 	HRESULT OnCreate(HWND hWnd);
@@ -65,6 +76,7 @@ private:
 	void Cleanup();
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	HRESULT GetRect_PC_Frame(HDC hdc, RECT& rc);
 };

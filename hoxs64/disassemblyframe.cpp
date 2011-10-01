@@ -56,6 +56,7 @@ CDisassemblyFrame::CDisassemblyFrame()
 	m_pszCaption = TEXT("Cpu");
 	m_vic = NULL;
 	m_cpu = NULL;
+	m_iCurrentControlIndex = 0;
 }
 
 CDisassemblyFrame::~CDisassemblyFrame()
@@ -795,20 +796,18 @@ HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 
 void CDisassemblyFrame::SetHome()
 {
-	CPUState cpustate;
-	this->m_cpu->GetCpuState(cpustate);
-	this->m_DisassemblyChild.SetTopAddress(cpustate.PC_CurrentOpcode);
+	this->m_DisassemblyChild.SetHome();;
 }
 
 HWND CDisassemblyFrame::CreateDisassemblyReg(int x, int y, int w, int h)
 {	
-	HWND hWnd = m_DisassemblyReg.Create(m_hInst, m_hWnd, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISSASSEMBLEYREG);
+	HWND hWnd = m_DisassemblyReg.Create(m_hInst, m_hWnd, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEYREG);
 	return hWnd;
 }
 
 HWND CDisassemblyFrame::CreateDisassemblyChild(int x, int y, int w, int h)
 {	
-	HWND hWnd = m_DisassemblyChild.Create(m_hInst, m_hWnd, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISSASSEMBLEY);
+	HWND hWnd = m_DisassemblyChild.Create(m_hInst, m_hWnd, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEY);
 	return hWnd;
 }
 
@@ -1113,9 +1112,13 @@ HRESULT hr;
 	case WM_KEYDOWN:
 		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
 			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
 	case WM_LBUTTONDOWN:
 		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
 			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
 			return 0;
@@ -1141,6 +1144,14 @@ HRESULT hr;
 	case WM_EXITSIZEMOVE:
 		m_monitorCommand->SoundOn();
 		return 0;
+	//case WM_SETFOCUS:
+	//	CreateCaret(hWnd, NULL, 10, 10);
+	//	SetCaretPos(20, 50);
+	//	ShowCaret(hWnd);
+	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	//case WM_KILLFOCUS:
+	//	DestroyCaret();
+	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:
 		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	}

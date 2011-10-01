@@ -196,13 +196,22 @@ BOOL br;
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		UpdateDisplay(false);
 		return 0;
+	case WM_KEYDOWN:
+		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
+			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
 	case WM_LBUTTONDOWN:
 		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
 			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
+	case WM_SETFOCUS:
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 	return 0;
 }
@@ -318,12 +327,35 @@ bool CDisassemblyEditChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, L
 			else
 				m_cpu->SetExecute(address, 1);
 
-			//txtMon.OnClick(xPos, yPos);
 			InvalidateRect(m_hWnd, NULL, FALSE);
 			UpdateWindow(m_hWnd);
 		}
 	}
-	return false;
+	if (hWnd)
+	{
+		HWND hWndParent = GetParent(hWnd);
+		if (hWndParent)
+			::SetFocus(hWndParent);
+	}
+	return true;
+}
+
+bool CDisassemblyEditChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	//SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
+	return true;
+}
+
+bool CDisassemblyEditChild::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return 0;
+}
+
+void CDisassemblyEditChild::SetHome()
+{
+	CPUState cpustate;
+	this->m_cpu->GetCpuState(cpustate);
+	this->SetTopAddress(cpustate.PC_CurrentOpcode);
 }
 
 int CDisassemblyEditChild::GetLineFromYPos(int y)

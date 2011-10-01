@@ -12,12 +12,17 @@ public:
 		Hex,
 		Dec,
 	};
+	bool IsFocused;
 	EdLn();
 	virtual ~EdLn();	
 
 	HRESULT Init(HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isEditable, int numChars);
+	void Cleanup();
 
-	HRESULT GetMinWindowSize(HDC hdc, int &w, int &h);
+	HRESULT CreateDefaultHitRegion(HDC hdc);
+
+	//HRESULT GetMinWindowSize(HDC hdc, int &w, int &h);
+	HRESULT GetRects(HDC hdc, RECT *prcCaption, RECT *prcEdit, RECT *prcAll);
 	HRESULT SetPos(int x, int y);
 
 	int GetXPos();
@@ -30,19 +35,24 @@ public:
 	void SetString(const TCHAR *data, int count);
 
 	void Draw(HDC hdc);
+	bool IsHitAll(int x, int y);
+	bool IsHitEdit(int x, int y);
+	int GetCharIndex(HDC hdc, int x, int y, POINT *pPos);
 protected:
 
 private:
-	static const int PADDING_LEFT  = 0;
-	static const int PADDING_RIGHT  = 0;
-	static const int PADDING_TOP  = 0;
-	static const int PADDING_BOTTOM  = 0;
-	static const int MARGIN_TOP  = 0;
+	//static const int PADDING_LEFT  = 0;
+	//static const int PADDING_RIGHT  = 0;
+	//static const int PADDING_TOP  = 0;
+	//static const int PADDING_BOTTOM  = 0;
+	//static const int MARGIN_TOP  = 0;
 	
 	bool m_bIsEditable;
 	EditStyle m_style;
 	HFONT m_hFont;
 
+	HRGN m_hRegionHitAll;
+	HRGN m_hRegionHitEdit;
 	int m_posX;
 	int m_posY;
 	int m_MinSizeW;
@@ -57,26 +67,24 @@ private:
 	int m_iValue;
 
 	TCHAR *m_TextBuffer;
+	int * m_pTextExtents;
+	int m_iTextExtents;
 	TCHAR *m_pszCaption;
-	int m_TextBufferLength;
+	int m_iTextBufferLength;
 	int m_iNumChars;
 
 	HRESULT AllocTextBuffer(int i);
 	void FreeTextBuffer();
-
 	HRESULT SetCaption(LPCTSTR pszCaption);
 	void FreeCaption();
-
 	void SetHexAddress(int v);
 	void SetHexByte(int v);
 	void SetFlags(int v);
 	void SetHex(int v);
 	void SetDec(int v);
-
 	HRESULT GetFlags(int& v);
 	HRESULT GetHex(int& v);
 	HRESULT GetDec(int& v);
-
 };
 
 #endif

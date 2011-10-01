@@ -75,15 +75,15 @@ public:
 	{
 		if (newsize <= 0)
 			return E_FAIL;
-		T* def = new T();
-		if (def==NULL)
-			return E_OUTOFMEMORY;
+		//T* def = new T();
+		//if (def==NULL)
+		//	return E_OUTOFMEMORY;
 		unsigned __int3264  i,j;
 		CArrayElement<T> *newmem;
 		newmem = new CArrayElement<T>[newsize];
 		if (newmem == NULL)
 		{
-			delete def;
+			//delete def;
 			return E_OUTOFMEMORY;
 		}
 		j=m_count;
@@ -92,11 +92,11 @@ public:
 		for (i=0 ; i<j ; i++)
 		{
 			newmem[i] = m_mem[i];
-			m_mem[i].m_data = *def;
+			//m_mem[i].m_data = *def;
 		}
 		m_count = j;
 		m_array_size = newsize;
-		delete def;
+		//delete def;
 		delete[] m_mem;
 		m_mem = newmem;
 		return S_OK;

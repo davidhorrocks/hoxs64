@@ -108,8 +108,8 @@ public:
 	virtual ~CDisassemblyFrame();
 	static const int ID_RERBAR = 2000;
 	static const int ID_TOOLBAR = 2001;
-	static const int ID_DISSASSEMBLEY = 2002;
-	static const int ID_DISSASSEMBLEYREG = 2003;
+	static const int ID_DISASSEMBLEY = 2002;
+	static const int ID_DISASSEMBLEYREG = 2003;
 
 	static const int TOOLBUTTON_WIDTH = 16;
 	static const int TOOLBUTTON_HEIGHT = 16;
@@ -132,6 +132,7 @@ public:
 	void EnsureWindowPosition(int x, int y, int w, int h);
 
 private:
+	int m_iCurrentControlIndex;
 	IMonitorCommand *m_monitorCommand;
 	IMonitorCpu *m_cpu;
 	IMonitorVic *m_vic;

@@ -17,10 +17,12 @@ public:
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
 	void GetMinWindowSize(int &w, int &h);
 	void SetTopAddress(bit16 address);
+	void SetHome();
 	void UpdateDisplay(bool bEnsurePC);
 	void InvalidateBuffer();
 private:
 	HWND m_hWndScroll;
+	IMonitorCpu *m_cpu;
 
 	CVirWindow *m_pParent;
 	CDisassemblyEditChild m_DisassemblyEditChild;
@@ -37,7 +39,8 @@ private:
 	void OnSizeScrollBar(HWND hWnd, int widthParent, int heightParent);
 	void OnScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
+	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void SetAddressScrollPos(int pos);	
 
 	void Cleanup();

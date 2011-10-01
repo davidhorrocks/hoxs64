@@ -53,6 +53,7 @@ public:
 	bit16 GetNextAddress();
 	bit16 GetPrevAddress();
 	void GetMinWindowSize(int &w, int &h);
+	void SetHome();
 	static const int BUFFER_WIDTH = 50;
 	static const int MAX_BUFFER_HEIGHT = 200;
 private:
@@ -85,6 +86,8 @@ private:
 	HRESULT OnCreate(HWND hWnd);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void DrawDisplay(HWND hWnd, HDC hdc);
 	void DrawDisplay2(HWND hWnd, HDC hdc);
 	int GetNumberOfLines(RECT& rc, int lineHeight);

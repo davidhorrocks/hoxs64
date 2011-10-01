@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <windowsx.h>
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -159,10 +160,32 @@ HRESULT hr;
 	m_hdc = GetDC(hWnd);
 	if (m_hdc == 0)
 		return E_FAIL;
-	hr = this->m_TextBuffer.Init(m_hdc, this->m_hFont);
+	int x = PADDING_LEFT;
+	int y = MARGIN_TOP + PADDING_TOP;
+
+	hr = m_RegBuffer.Init(m_hdc, m_hFont, x, y, m_cpu->GetCpuId());
 	if (FAILED(hr))
 		return hr;
 	return S_OK;
+}
+
+bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+int x;
+int y;
+	x = GET_X_LPARAM(lParam);
+	y = GET_Y_LPARAM(lParam);
+	int c = (int)m_RegBuffer.Controls.Count();
+	for(int i = 0; i<c ; i++)
+	{
+		EdLn *p = m_RegBuffer.Controls[i];
+		if (p->IsHitAll(x, y))
+		{
+			m_RegBuffer.SelectControl(i);
+		}
+	}
+	::SetFocus(hWnd);
+	return true;
 }
 
 LRESULT CDisassemblyReg::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -190,16 +213,30 @@ BOOL br;
 		EndPaint (hWnd, &ps);
 		break;
 	case WM_SIZE:
-		if (wParam==SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
+		if (wParam == SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		if (wParam==SIZE_MINIMIZED)
+		if (wParam == SIZE_MINIMIZED)
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		UpdateDisplay();
 		return 0;
+	case WM_LBUTTONDOWN:
+		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
+			return 0;
+		else
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_SETFOCUS:
+		//CreateCaret(hWnd, NULL, this->m_RegBuffer.TextMetric.tmAveCharWidth, this->m_RegBuffer.TextMetric.tmHeight);
+		//m_RegBuffer.ShowCaret(hWnd);
+		//SetCaretPos(0, 0);
+		//ShowCaret(hWnd);
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_KILLFOCUS:
+		//DestroyCaret();
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 	return 0;
 }
@@ -261,64 +298,64 @@ int slen;
 		{
 			if (!m_monitorCommand->IsRunning())
 			{
-				UpdateBuffer(m_TextBuffer);
+				UpdateBuffer(m_RegBuffer);
 
-				y = MARGIN_TOP + PADDING_TOP;
 
 				int w=0;
 				int h=0;
 				x = PADDING_LEFT;
+				y = MARGIN_TOP + PADDING_TOP;
 				
-				this->m_TextBuffer.PC.SetPos(x, y);
-				this->m_TextBuffer.PC.Draw(hdc);
-				this->m_TextBuffer.PC.GetMinWindowSize(hdc, w, h);
+				//this->m_RegBuffer.PC.SetPos(x, y);
+				this->m_RegBuffer.PC.Draw(hdc);
+				//this->m_RegBuffer.PC.GetMinWindowSize(hdc, w, h);
 				
-				x += w + 2*tm.tmAveCharWidth;
-				this->m_TextBuffer.A.SetPos(x, y);
-				this->m_TextBuffer.A.Draw(hdc);
-				this->m_TextBuffer.A.GetMinWindowSize(hdc, w, h);
+				//x += w + 2*tm.tmAveCharWidth;
+				//this->m_RegBuffer.A.SetPos(x, y);
+				this->m_RegBuffer.A.Draw(hdc);
+				//this->m_RegBuffer.A.GetMinWindowSize(hdc, w, h);
 
-				x += w + tm.tmAveCharWidth;
-				this->m_TextBuffer.X.SetPos(x, y);
-				this->m_TextBuffer.X.Draw(hdc);
-				this->m_TextBuffer.X.GetMinWindowSize(hdc, w, h);
+				//x += w + tm.tmAveCharWidth;
+				//this->m_RegBuffer.X.SetPos(x, y);
+				this->m_RegBuffer.X.Draw(hdc);
+				//this->m_RegBuffer.X.GetMinWindowSize(hdc, w, h);
 
-				x += w + tm.tmAveCharWidth;
-				this->m_TextBuffer.Y.SetPos(x, y);
-				this->m_TextBuffer.Y.Draw(hdc);
-				this->m_TextBuffer.Y.GetMinWindowSize(hdc, w, h);
+				//x += w + tm.tmAveCharWidth;
+				//this->m_RegBuffer.Y.SetPos(x, y);
+				this->m_RegBuffer.Y.Draw(hdc);
+				//this->m_RegBuffer.Y.GetMinWindowSize(hdc, w, h);
 
-				x += w + tm.tmAveCharWidth;
-				this->m_TextBuffer.SR.SetPos(x, y);
-				this->m_TextBuffer.SR.Draw(hdc);
-				this->m_TextBuffer.SR.GetMinWindowSize(hdc, w, h);
+				//x += w + tm.tmAveCharWidth;
+				//this->m_RegBuffer.SR.SetPos(x, y);
+				this->m_RegBuffer.SR.Draw(hdc);
+				//this->m_RegBuffer.SR.GetMinWindowSize(hdc, w, h);
 
-				x += w + tm.tmAveCharWidth;
-				this->m_TextBuffer.SP.SetPos(x, y);
-				this->m_TextBuffer.SP.Draw(hdc);
-				this->m_TextBuffer.SP.GetMinWindowSize(hdc, w, h);
+				//x += w + tm.tmAveCharWidth;
+				//this->m_RegBuffer.SP.SetPos(x, y);
+				this->m_RegBuffer.SP.Draw(hdc);
+				//this->m_RegBuffer.SP.GetMinWindowSize(hdc, w, h);
 
 				if (m_cpu->GetCpuId()==0)
 				{
-					x += w + tm.tmAveCharWidth;
-					this->m_TextBuffer.Ddr.SetPos(x, y);
-					this->m_TextBuffer.Ddr.Draw(hdc);
-					this->m_TextBuffer.Ddr.GetMinWindowSize(hdc, w, h);
+					//x += w + tm.tmAveCharWidth;
+					//this->m_RegBuffer.Ddr.SetPos(x, y);
+					this->m_RegBuffer.Ddr.Draw(hdc);
+					//this->m_RegBuffer.Ddr.GetMinWindowSize(hdc, w, h);
 
-					x += w + tm.tmAveCharWidth;
-					this->m_TextBuffer.Data.SetPos(x, y);
-					this->m_TextBuffer.Data.Draw(hdc);
-					this->m_TextBuffer.Data.GetMinWindowSize(hdc, w, h);
+					//x += w + tm.tmAveCharWidth;
+					//this->m_RegBuffer.Data.SetPos(x, y);
+					this->m_RegBuffer.Data.Draw(hdc);
+					//this->m_RegBuffer.Data.GetMinWindowSize(hdc, w, h);
 
-					x += w + tm.tmAveCharWidth;
-					this->m_TextBuffer.VicLine.SetPos(x, y);
-					this->m_TextBuffer.VicLine.Draw(hdc);
-					this->m_TextBuffer.VicLine.GetMinWindowSize(hdc, w, h);
+					//x += w + tm.tmAveCharWidth;
+					//this->m_RegBuffer.VicLine.SetPos(x, y);
+					this->m_RegBuffer.VicLine.Draw(hdc);
+					//this->m_RegBuffer.VicLine.GetMinWindowSize(hdc, w, h);
 
-					x += w + tm.tmAveCharWidth;
-					this->m_TextBuffer.VicCycle.SetPos(x, y);
-					this->m_TextBuffer.VicCycle.Draw(hdc);
-					this->m_TextBuffer.VicCycle.GetMinWindowSize(hdc, w, h);
+					//x += w + tm.tmAveCharWidth;
+					//this->m_RegBuffer.VicCycle.SetPos(x, y);
+					this->m_RegBuffer.VicCycle.Draw(hdc);
+					//this->m_RegBuffer.VicCycle.GetMinWindowSize(hdc, w, h);
 				}
 			}
 			else
@@ -348,14 +385,14 @@ int slen;
 
 void CDisassemblyReg::InvalidateBuffer()
 {
-	m_TextBuffer.ClearBuffer();
+	m_RegBuffer.ClearBuffer();
 	if (!m_hWnd)
 		InvalidateRect(m_hWnd, NULL, TRUE);
 }
 
 void CDisassemblyReg::UpdateDisplay()
 {
-	UpdateBuffer(m_TextBuffer);
+	UpdateBuffer(m_RegBuffer);
 	InvalidateRect(m_hWnd, NULL, TRUE);
 	UpdateWindow(m_hWnd);
 
@@ -403,10 +440,61 @@ void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 	VicCycle.SetValue(0);
 }
 
-HRESULT CDisassemblyReg::RegLineBuffer::Init(HDC hdc, HFONT hFont)
+void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
+{
+	DeSelectControl(CurrentControlIndex);
+	if (i>=0 && i<this->Controls.Count())
+	{
+		this->Controls[i]->IsFocused = true;
+		this->CurrentControlIndex = i;
+	}
+}
+
+void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
+{
+	if (CurrentControlIndex>=0 && CurrentControlIndex<this->Controls.Count())
+		this->Controls[CurrentControlIndex]->IsFocused = false;
+}
+
+void CDisassemblyReg::RegLineBuffer::ShowCaret(HWND hWnd)
+{
+bool bFound = false;
+	for (int i=0; i<this->Controls.Count(); i++)
+	{
+		EdLn *t = this->Controls[i];
+		if (t->IsFocused)
+		{
+			bFound = true;
+			::SetCaretPos(t->GetXPos(), t->GetYPos());
+		}
+	}
+	if (bFound)
+	{
+		::ShowCaret(hWnd);
+	}
+}
+
+HRESULT CDisassemblyReg::RegLineBuffer::Init(HDC hdc, HFONT hFont, int x, int y, int cpuid)
 {
 HRESULT hr;
+int prevMapMode = 0;
+HFONT prevFont = NULL;
 
+	ZeroMemory(&TextMetric, sizeof(TextMetric));
+
+	prevMapMode = SetMapMode(hdc, MM_TEXT);
+	if (prevMapMode)
+	{
+		prevFont = (HFONT)SelectObject(hdc, hFont);		
+		if (prevFont)
+		{				
+			::GetTextMetrics(hdc, &TextMetric);
+		}
+	}
+	if (prevFont)
+		SelectObject(hdc, prevFont);
+	if (prevMapMode)
+		SetMapMode(hdc, prevMapMode);
 	hr = PC.Init(hFont, TEXT("PC"), EdLn::HexAddress, true, 4);
 	if (FAILED(hr))
 		return hr;
@@ -438,6 +526,82 @@ HRESULT hr;
 	if (FAILED(hr))
 		return hr;
 
+	CurrentControlIndex = 0;
+
+	hr = ArrangeControls(hdc, x, y, cpuid);
+	if (FAILED(hr))
+		return hr;
+
+	EdLn* ctrls[10] = {&PC, &A, &X, &Y, &SR, &SP, &Ddr, &Data, &VicLine, &VicCycle};
+	Controls.Clear();
+	hr = Controls.Resize(_countof(ctrls));
+	if (FAILED(hr))
+		return hr;
+
+	for(int i = 0; i < _countof(ctrls); i++)
+	{
+		EdLn* p = ctrls[i];
+		hr = p->CreateDefaultHitRegion(hdc);
+		if (FAILED(hr))
+			return hr;
+
+		Controls.Append(p);
+	}
+	return S_OK;
+}
+
+HRESULT CDisassemblyReg::RegLineBuffer::ArrangeControls(HDC hdc, int x, int y, int cpuid)
+{
+
+int w=0;
+int h=0;
+TEXTMETRIC tm;	
+RECT rcAll;
+	SetRectEmpty(&rcAll);
+
+	BOOL br = GetTextMetrics(hdc, &tm);
+	if (!br)
+		return E_FAIL;
+	this->PC.SetPos(x, y);
+	this->PC.GetRects(hdc, NULL, NULL, &rcAll);				
+	x = rcAll.right + 2*tm.tmAveCharWidth;
+	this->A.SetPos(x, y);
+	this->A.GetRects(hdc, NULL, NULL, &rcAll);
+
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->X.SetPos(x, y);
+	this->X.GetRects(hdc, NULL, NULL, &rcAll);
+
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->Y.SetPos(x, y);
+	this->Y.GetRects(hdc, NULL, NULL, &rcAll);
+
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->SR.SetPos(x, y);
+	this->SR.GetRects(hdc, NULL, NULL, &rcAll);
+
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->SP.SetPos(x, y);
+	this->SP.GetRects(hdc, NULL, NULL, &rcAll);
+
+	if (cpuid==0)
+	{
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->Ddr.SetPos(x, y);
+		this->Ddr.GetRects(hdc, NULL, NULL, &rcAll);
+
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->Data.SetPos(x, y);
+		this->Data.GetRects(hdc, NULL, NULL, &rcAll);
+
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->VicLine.SetPos(x, y);
+		this->VicLine.GetRects(hdc, NULL, NULL, &rcAll);
+
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->VicCycle.SetPos(x, y);
+		this->VicCycle.GetRects(hdc, NULL, NULL, &rcAll);
+	}
 	return S_OK;
 }
 

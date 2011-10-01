@@ -20,8 +20,6 @@
 #include "disassemblychild.h"
 #include "resource.h"
 
-#define BIGGESTINSTRUCTION (3)
-
 TCHAR CDisassemblyChild::ClassName[] = TEXT("Hoxs64DisassemblyChild");
 
 CDisassemblyChild::CDisassemblyChild()
@@ -29,6 +27,7 @@ CDisassemblyChild::CDisassemblyChild()
 	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_hWndScroll = NULL;
+	m_cpu = NULL;
 }
 
 CDisassemblyChild::~CDisassemblyChild()
@@ -44,6 +43,7 @@ HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorComm
 {
 HRESULT hr;
 	m_pParent = parent;
+	m_cpu = cpu;
 	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, cpu, vic, hFont);
 	if (FAILED(hr))
 		return hr;
@@ -210,7 +210,6 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 	bit16 topAddress = m_DisassemblyEditChild.GetTopAddress();
 	bit16 bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
 	int page = abs((int)(bit16s)(bottomAddress - topAddress));
-	//page-=BIGGESTINSTRUCTION;
 	if (page <=0)
 		page = 1;
 
@@ -228,6 +227,13 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 		scrollinfo.nPos=(pos) & 0xffff;
 	SetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo, FALSE);
 
+}
+
+void CDisassemblyChild::SetHome()
+{
+	CPUState cpustate;
+	this->m_cpu->GetCpuState(cpustate);
+	this->SetTopAddress(cpustate.PC_CurrentOpcode);
 }
 
 void CDisassemblyChild::SetTopAddress(bit16 address)
@@ -318,7 +324,6 @@ int pos;
 		m_DisassemblyEditChild.SetTopAddress(nearestAdress);
 		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
 		page = abs((int)(bit16s)(bottomAddress - nearestAdress));
-		//page-=BIGGESTINSTRUCTION;
 		if (page <=0)
 			page = 1;
 		ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
@@ -343,7 +348,6 @@ int pos;
 		m_DisassemblyEditChild.SetTopAddress(nearestAdress);
 		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
 		page = abs((int)(bit16s)(bottomAddress - nearestAdress));
-		//page-=BIGGESTINSTRUCTION;
 		if (page <=0)
 			page = 1;
 
@@ -362,8 +366,41 @@ int pos;
 
 bool CDisassemblyChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	//::SetFocus(hWnd);
 	return false;
 }
+
+bool CDisassemblyChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (wParam)
+	{
+	case VK_UP: 
+		SendMessage(hWnd, WM_VSCROLL, SB_LINEUP, 0L);
+		break; 
+	case VK_DOWN: 
+		SendMessage(hWnd, WM_VSCROLL, SB_LINEDOWN, 0L);
+		break; 
+	case VK_NEXT: 
+		SendMessage(hWnd, WM_VSCROLL, SB_PAGEDOWN, 0L);
+		break; 
+	case VK_PRIOR: 
+		SendMessage(hWnd, WM_VSCROLL, SB_PAGEUP, 0L);
+		break; 
+	case VK_HOME:
+		SetHome();
+		UpdateDisplay(true);
+		break; 
+	default:
+		return false;
+	}
+	return true;
+}
+
+bool CDisassemblyChild::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return 0;
+}
+
 
 LRESULT CDisassemblyChild::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -383,10 +420,22 @@ HRESULT hr;
 	case WM_VSCROLL:
 		OnScroll(hWnd, uMsg, wParam, lParam);
 		return 0;
+	case WM_KEYDOWN:
+		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
+	case WM_LBUTTONDOWN:
+		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
+	case WM_NOTIFY:
+		return OnNotify(hWnd, uMsg, wParam, lParam);
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 	return 0;
 }
