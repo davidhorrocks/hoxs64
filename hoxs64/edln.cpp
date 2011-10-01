@@ -30,6 +30,11 @@ const TCHAR EdLn::m_szMeasureDigit[] = TEXT("0");
 
 EdLn::EdLn()
 {
+	InitVars();
+}
+
+void EdLn::InitVars()
+{
 	m_iValue = 0;
 	m_iTextBufferLength = 0;
 	m_TextBuffer = NULL;
@@ -40,6 +45,8 @@ EdLn::EdLn()
 	IsFocused = false;
 	m_hRegionHitAll = NULL;
 	m_hRegionHitEdit = NULL;
+	m_iInsertionPoint = 0;
+	m_iShowCaretCount = 0;
 }
 
 EdLn::~EdLn()
@@ -68,12 +75,11 @@ HRESULT EdLn::Init(HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isEdit
 {
 HRESULT hr = E_FAIL;
 	Cleanup();
+	InitVars();
 	this->m_style = style;
 	this->m_bIsEditable = isEditable;
 	this->m_iNumChars = numChars;
 	this->m_hFont = hFont;
-	this->m_MinSizeDone = false;
-	IsFocused = false;
 
 	int m = 1;
 	switch (m_style)
@@ -237,46 +243,87 @@ bool EdLn::IsHitEdit(int x, int y)
 	return 0 != ::PtInRegion(m_hRegionHitEdit, x, y);
 }
 
-int EdLn::GetCharIndex(HDC hdc, int x, int y, POINT *pPos)
+HRESULT EdLn::GetCharIndex(HDC hdc, int x, int y, int *pOutCellIndex, POINT *pPos)
 {
 RECT rcEdit;
 HRESULT hr;
 	
-	if (m_pTextExtents == NULL || m_iNumChars <=0)
-		return -1;
-
-	if (!IsHitEdit(x, y))
-		return -1;
-
-	hr = GetRects(hdc, NULL, &rcEdit, NULL);
-	if (FAILED(hr))
-		return -1;
-
 	if (pPos)
 	{
 		pPos->x = m_posX;
 		pPos->y = m_posY;
 	}
+	if (pOutCellIndex)
+	{
+		*pOutCellIndex = 0;
+	}
+
+	if (m_pTextExtents == NULL || m_iNumChars <=0)
+		return E_FAIL;
+
+	if (!IsHitEdit(x, y))
+		return E_FAIL;
+
+	hr = GetRects(hdc, NULL, &rcEdit, NULL);
+	if (FAILED(hr))
+		return hr;
 
 	if (x <= m_posX)
-		return 0;
+	{
+		if (pPos)
+		{
+			pPos->x = m_posX;
+			pPos->y = m_posY;
+		}
+		if (pOutCellIndex)
+		{
+			*pOutCellIndex = 0;
+		}
+		return S_OK;
+	}
 
 	BOOL br;
 	int k = lstrlen(m_TextBuffer);
 	if (k > m_iTextExtents)
 		k = m_iTextExtents;
 
-	INT numFit = 0;
+	INT iNumFit = 0;
 	SIZE sizeText;
-	br = GetTextExtentExPoint(hdc, m_TextBuffer, k, 0, &numFit, m_pTextExtents, &sizeText);
+	int iWidth = abs(rcEdit.right - rcEdit.left);
+	br = GetTextExtentExPoint(hdc, m_TextBuffer, k, iWidth, &iNumFit, m_pTextExtents, &sizeText);
 	if (!br)
-		return -1;
+		return E_FAIL;
 
-	if (numFit <= 1)
-		return 0;
+	if (iNumFit <= 0)
+	{
+		if (pPos)
+		{
+			pPos->x = m_posX;
+			pPos->y = m_posY;
+		}
+		if (pOutCellIndex)
+		{
+			*pOutCellIndex = 0;
+		}
+		return S_OK;
+	}
+
+	if (x >= m_posX + sizeText.cx)
+	{
+		if (pPos)
+		{
+			pPos->x = sizeText.cx;
+			pPos->y = m_posY;
+		}
+		if (pOutCellIndex)
+		{
+			*pOutCellIndex = iNumFit - 1;
+		}
+		return S_OK;
+	}
 
 	int w = abs(rcEdit.right - rcEdit.left);
-	for (int i =numFit - 1; i >=0 ;i--)
+	for (int i =iNumFit - 1; i >=0 ;i--)
 	{
 		if (x >= m_posX + m_pTextExtents[i])
 		{
@@ -285,10 +332,85 @@ HRESULT hr;
 				pPos->x = m_posX + m_pTextExtents[i];
 				pPos->y = m_posY;
 			}
-			return i;
+			if (pOutCellIndex)
+			{
+				*pOutCellIndex = i;
+			}
+			return S_OK;
 		}
 	}
-	return 0;
+	return S_OK;
+}
+
+HRESULT EdLn::GetCharPoint(HDC hdc, int cellIndex, int *pOutCellIndex, POINT *pPos)
+{
+RECT rcEdit;
+HRESULT hr;
+	
+	if (pPos)
+	{
+		pPos->x = m_posX;
+		pPos->y = m_posY;
+	}
+	if (pOutCellIndex)
+	{
+		*pOutCellIndex = 0;
+	}
+
+	if (m_pTextExtents == NULL || m_iNumChars <=0)
+		return E_FAIL;
+
+	if (cellIndex <= 0)
+	{
+		return S_OK;
+	}
+
+	hr = GetRects(hdc, NULL, &rcEdit, NULL);
+	if (FAILED(hr))
+		return hr;
+
+	BOOL br;
+	int k = lstrlen(m_TextBuffer);
+	if (k > m_iTextExtents)
+		k = m_iTextExtents;
+
+	INT numFit = 0;
+	SIZE sizeText;
+	int iWidth = abs(rcEdit.right - rcEdit.left);
+	br = GetTextExtentExPoint(hdc, m_TextBuffer, k, iWidth, &numFit, m_pTextExtents, &sizeText);
+	if (!br)
+		return E_FAIL;
+
+	int i;
+	POINT p;
+	if (numFit <= 0)
+	{
+		i = 0;
+		p.x = m_posX;
+		p.y = m_posY;
+	}
+	else if (cellIndex < numFit)
+	{
+		i = cellIndex;
+		p.x = m_posX + m_pTextExtents[i];
+		p.y = m_posY;
+	}
+	else
+	{
+		i = numFit - 1;
+		p.x = m_posX + m_pTextExtents[i];
+		p.y = m_posY;
+	}
+	if (pOutCellIndex)
+	{
+		*pOutCellIndex = i;
+	}
+	if (pPos)
+	{
+		*pPos = p;
+	}
+
+	return S_OK;
 }
 
 //HRESULT EdLn::GetMinWindowSize(HDC hdc, int &w, int &h)
@@ -696,4 +818,14 @@ void EdLn::SetString(const TCHAR *data, int count)
 			_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, data, m_iTextBufferLength - 1);
 		}
 	}
+}
+
+void EdLn::SetInsertionPoint(int v)
+{
+	m_iInsertionPoint = v;
+}
+
+int EdLn::GetInsertionPoint()
+{
+	return m_iInsertionPoint;
 }

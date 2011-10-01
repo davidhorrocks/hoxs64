@@ -176,15 +176,25 @@ int y;
 	x = GET_X_LPARAM(lParam);
 	y = GET_Y_LPARAM(lParam);
 	int c = (int)m_RegBuffer.Controls.Count();
+	bool bFound = false;
 	for(int i = 0; i<c ; i++)
 	{
 		EdLn *p = m_RegBuffer.Controls[i];
 		if (p->IsHitAll(x, y))
 		{
+			bFound = true;
 			m_RegBuffer.SelectControl(i);
+			m_RegBuffer.UpdateCaret(hWnd);
 		}
 	}
-	::SetFocus(hWnd);
+	if (hWnd != ::GetFocus())
+	{
+		::SetFocus(hWnd);
+	}
+	else
+	{
+
+	}
 	return true;
 }
 
@@ -225,13 +235,14 @@ BOOL br;
 		else
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_SETFOCUS:
-		//CreateCaret(hWnd, NULL, this->m_RegBuffer.TextMetric.tmAveCharWidth, this->m_RegBuffer.TextMetric.tmHeight);
-		//m_RegBuffer.ShowCaret(hWnd);
+		CreateCaret(hWnd, NULL, this->m_RegBuffer.TextMetric.tmAveCharWidth, this->m_RegBuffer.TextMetric.tmHeight);
+		m_RegBuffer.UpdateCaret(hWnd);
 		//SetCaretPos(0, 0);
 		//ShowCaret(hWnd);
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_KILLFOCUS:
-		//DestroyCaret();
+		m_RegBuffer.ClearCaret(hWnd);
+		DestroyCaret();
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -296,6 +307,7 @@ int slen;
 	{
 		if (tm.tmHeight > 0 && rc.bottom > rc.top)
 		{
+			::HideCaret(hWnd);
 			if (!m_monitorCommand->IsRunning())
 			{
 				UpdateBuffer(m_RegBuffer);
@@ -378,6 +390,7 @@ int slen;
 					}
 				}
 			}
+			::ShowCaret(hWnd);
 		}
 	}
 
@@ -452,13 +465,15 @@ void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
 
 void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
 {
-	if (CurrentControlIndex>=0 && CurrentControlIndex<this->Controls.Count())
+	if (CurrentControlIndex >= 0 && CurrentControlIndex < this->Controls.Count())
 		this->Controls[CurrentControlIndex]->IsFocused = false;
 }
 
-void CDisassemblyReg::RegLineBuffer::ShowCaret(HWND hWnd)
+void CDisassemblyReg::RegLineBuffer::UpdateCaret(HWND hWnd)
 {
 bool bFound = false;
+	if (hWnd != GetFocus())
+		return;
 	for (int i=0; i<this->Controls.Count(); i++)
 	{
 		EdLn *t = this->Controls[i];
@@ -470,8 +485,25 @@ bool bFound = false;
 	}
 	if (bFound)
 	{
-		::ShowCaret(hWnd);
+		if (m_iShowCaretCount <= 0)
+		{
+			m_iShowCaretCount++;
+			::ShowCaret(hWnd);
+		}
 	}
+	else
+	{
+		if (m_iShowCaretCount > 0)
+		{
+			m_iShowCaretCount--;
+			::HideCaret(hWnd);
+		}
+	}
+}
+
+void CDisassemblyReg::RegLineBuffer::ClearCaret(HWND hWnd)
+{
+	m_iShowCaretCount = 0;
 }
 
 HRESULT CDisassemblyReg::RegLineBuffer::Init(HDC hdc, HFONT hFont, int x, int y, int cpuid)
@@ -603,11 +635,4 @@ RECT rcAll;
 		this->VicCycle.GetRects(hdc, NULL, NULL, &rcAll);
 	}
 	return S_OK;
-}
-
-HRESULT CDisassemblyReg::GetRect_PC_Frame(HDC hdc, RECT& rc)
-{
-	rc.top = MARGIN_TOP;
-	rc.left = MARGIN_LEFT;
-	return 0;
 }

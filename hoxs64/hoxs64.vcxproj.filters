@@ -354,7 +354,7 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="edln.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

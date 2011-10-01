@@ -36,9 +36,13 @@ public:
 		void SelectControl(int i);
 		void DeSelectControl(int i);
 
-		void ShowCaret(HWND hWnd);
+		void UpdateCaret(HWND hWnd);
+		void ClearCaret(HWND hWnd);
 
 		TEXTMETRIC TextMetric;
+
+		int m_iShowCaretCount;
+
 	};
 	CDisassemblyReg();
 	virtual ~CDisassemblyReg();
@@ -77,8 +81,6 @@ private:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-	HRESULT GetRect_PC_Frame(HDC hdc, RECT& rc);
 };
 
 #endif

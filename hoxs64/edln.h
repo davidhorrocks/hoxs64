@@ -30,6 +30,8 @@ public:
 
 	void SetValue(int v);
 	HRESULT GetValue(int& v);
+	void SetInsertionPoint(int v);
+	int GetInsertionPoint();
 
 	size_t GetString(TCHAR buffer[], int bufferSize);
 	void SetString(const TCHAR *data, int count);
@@ -37,7 +39,8 @@ public:
 	void Draw(HDC hdc);
 	bool IsHitAll(int x, int y);
 	bool IsHitEdit(int x, int y);
-	int GetCharIndex(HDC hdc, int x, int y, POINT *pPos);
+	HRESULT GetCharIndex(HDC hdc, int x, int y, int *pOutCellIndex, POINT *pPos);
+	HRESULT GetCharPoint(HDC hdc, int cellIndex, int *pOutCellIndex, POINT *pPos);
 protected:
 
 private:
@@ -58,6 +61,8 @@ private:
 	int m_MinSizeW;
 	int m_MinSizeH;
 	bool m_MinSizeDone;
+	int m_iInsertionPoint;
+	int m_iShowCaretCount;
 
 	static const TCHAR m_szMeasureAddress[];
 	static const TCHAR m_szMeasureByte[];
@@ -85,6 +90,7 @@ private:
 	HRESULT GetFlags(int& v);
 	HRESULT GetHex(int& v);
 	HRESULT GetDec(int& v);
+	void InitVars();
 };
 
 #endif
