@@ -173,10 +173,12 @@ bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 {
 int x;
 int y;
+HRESULT hr;
 	x = GET_X_LPARAM(lParam);
 	y = GET_Y_LPARAM(lParam);
 	int c = (int)m_RegBuffer.Controls.Count();
 	bool bFound = false;
+	int iCellIndex = 0;
 	for(int i = 0; i<c ; i++)
 	{
 		EdLn *p = m_RegBuffer.Controls[i];
@@ -184,7 +186,11 @@ int y;
 		{
 			bFound = true;
 			m_RegBuffer.SelectControl(i);
-			m_RegBuffer.UpdateCaret(hWnd);
+			hr = p->GetCharIndex(m_hdc, x, y, &iCellIndex, NULL);
+			if (FAILED(hr))
+				break;
+			p->SetInsertionPoint(iCellIndex);
+			m_RegBuffer.UpdateCaret(hWnd, m_hdc);
 		}
 	}
 	if (hWnd != ::GetFocus())
@@ -236,9 +242,7 @@ BOOL br;
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_SETFOCUS:
 		CreateCaret(hWnd, NULL, this->m_RegBuffer.TextMetric.tmAveCharWidth, this->m_RegBuffer.TextMetric.tmHeight);
-		m_RegBuffer.UpdateCaret(hWnd);
-		//SetCaretPos(0, 0);
-		//ShowCaret(hWnd);
+		m_RegBuffer.UpdateCaret(hWnd, m_hdc);
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_KILLFOCUS:
 		m_RegBuffer.ClearCaret(hWnd);
@@ -312,62 +316,24 @@ int slen;
 			{
 				UpdateBuffer(m_RegBuffer);
 
-
 				int w=0;
 				int h=0;
 				x = PADDING_LEFT;
 				y = MARGIN_TOP + PADDING_TOP;
 				
-				//this->m_RegBuffer.PC.SetPos(x, y);
-				this->m_RegBuffer.PC.Draw(hdc);
-				//this->m_RegBuffer.PC.GetMinWindowSize(hdc, w, h);
-				
-				//x += w + 2*tm.tmAveCharWidth;
-				//this->m_RegBuffer.A.SetPos(x, y);
+				this->m_RegBuffer.PC.Draw(hdc);				
 				this->m_RegBuffer.A.Draw(hdc);
-				//this->m_RegBuffer.A.GetMinWindowSize(hdc, w, h);
-
-				//x += w + tm.tmAveCharWidth;
-				//this->m_RegBuffer.X.SetPos(x, y);
 				this->m_RegBuffer.X.Draw(hdc);
-				//this->m_RegBuffer.X.GetMinWindowSize(hdc, w, h);
-
-				//x += w + tm.tmAveCharWidth;
-				//this->m_RegBuffer.Y.SetPos(x, y);
 				this->m_RegBuffer.Y.Draw(hdc);
-				//this->m_RegBuffer.Y.GetMinWindowSize(hdc, w, h);
-
-				//x += w + tm.tmAveCharWidth;
-				//this->m_RegBuffer.SR.SetPos(x, y);
 				this->m_RegBuffer.SR.Draw(hdc);
-				//this->m_RegBuffer.SR.GetMinWindowSize(hdc, w, h);
-
-				//x += w + tm.tmAveCharWidth;
-				//this->m_RegBuffer.SP.SetPos(x, y);
 				this->m_RegBuffer.SP.Draw(hdc);
-				//this->m_RegBuffer.SP.GetMinWindowSize(hdc, w, h);
 
 				if (m_cpu->GetCpuId()==0)
 				{
-					//x += w + tm.tmAveCharWidth;
-					//this->m_RegBuffer.Ddr.SetPos(x, y);
 					this->m_RegBuffer.Ddr.Draw(hdc);
-					//this->m_RegBuffer.Ddr.GetMinWindowSize(hdc, w, h);
-
-					//x += w + tm.tmAveCharWidth;
-					//this->m_RegBuffer.Data.SetPos(x, y);
 					this->m_RegBuffer.Data.Draw(hdc);
-					//this->m_RegBuffer.Data.GetMinWindowSize(hdc, w, h);
-
-					//x += w + tm.tmAveCharWidth;
-					//this->m_RegBuffer.VicLine.SetPos(x, y);
 					this->m_RegBuffer.VicLine.Draw(hdc);
-					//this->m_RegBuffer.VicLine.GetMinWindowSize(hdc, w, h);
-
-					//x += w + tm.tmAveCharWidth;
-					//this->m_RegBuffer.VicCycle.SetPos(x, y);
 					this->m_RegBuffer.VicCycle.Draw(hdc);
-					//this->m_RegBuffer.VicCycle.GetMinWindowSize(hdc, w, h);
 				}
 			}
 			else
@@ -456,7 +422,7 @@ void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
 {
 	DeSelectControl(CurrentControlIndex);
-	if (i>=0 && i<this->Controls.Count())
+	if (i >=0 && i < this->Controls.Count())
 	{
 		this->Controls[i]->IsFocused = true;
 		this->CurrentControlIndex = i;
@@ -469,18 +435,29 @@ void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
 		this->Controls[CurrentControlIndex]->IsFocused = false;
 }
 
-void CDisassemblyReg::RegLineBuffer::UpdateCaret(HWND hWnd)
+void CDisassemblyReg::RegLineBuffer::UpdateCaret(HWND hWnd, HDC hdc)
 {
 bool bFound = false;
+HRESULT hr;
 	if (hWnd != GetFocus())
 		return;
-	for (int i=0; i<this->Controls.Count(); i++)
+	if (hdc == NULL)
+		return;
+
+	for (int i=0; i < this->Controls.Count(); i++)
 	{
 		EdLn *t = this->Controls[i];
 		if (t->IsFocused)
 		{
 			bFound = true;
-			::SetCaretPos(t->GetXPos(), t->GetYPos());
+			int iCellIndex = t->GetInsertionPoint();
+			POINT pt;
+			hr = t->GetCharPoint(hdc, iCellIndex, NULL, &pt);
+			if (SUCCEEDED(hr))
+			{
+				::SetCaretPos(pt.x, pt.y);
+			}
+			break;
 		}
 	}
 	if (bFound)

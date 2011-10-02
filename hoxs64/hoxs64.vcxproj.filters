@@ -171,6 +171,9 @@
     <ClCompile Include="edln.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="dchelper.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -354,6 +357,9 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="edln.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="dchelper.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>

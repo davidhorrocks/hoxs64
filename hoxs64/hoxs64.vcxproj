@@ -589,6 +589,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="dchelper.cpp" />
     <ClCompile Include="diagAbout.cpp" />
     <ClCompile Include="diagEmulationSettingsTab.cpp" />
     <ClCompile Include="diagfileSaveD64.cpp" />
@@ -791,6 +792,7 @@
     <ClInclude Include="bits.h" />
     <ClInclude Include="cevent.h" />
     <ClInclude Include="cmdarg.h" />
+    <ClInclude Include="dchelper.h" />
     <ClInclude Include="disassemblyeditchild.h" />
     <ClInclude Include="disassemblyframe.h" />
     <ClInclude Include="appstatus.h" />

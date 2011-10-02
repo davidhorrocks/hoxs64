@@ -72,7 +72,7 @@ private:
 	int m_iValue;
 
 	TCHAR *m_TextBuffer;
-	int * m_pTextExtents;
+	INT * m_pTextExtents;
 	int m_iTextExtents;
 	TCHAR *m_pszCaption;
 	int m_iTextBufferLength;

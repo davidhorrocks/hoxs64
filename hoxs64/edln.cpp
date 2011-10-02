@@ -18,14 +18,15 @@
 #include "assert.h"
 #include "hexconv.h"
 #include "cevent.h"
-//include "monitor.h"
+#include "dchelper.h"
 #include "edln.h"
 #include "resource.h"
 
 
 const TCHAR EdLn::m_szMeasureAddress[] = TEXT("0000");
 const TCHAR EdLn::m_szMeasureByte[] = TEXT("00");
-const TCHAR EdLn::m_szMeasureCpuFlags[] = TEXT("NV-BDIZC");
+//const TCHAR EdLn::m_szMeasureCpuFlags[]  = TEXT("NV-BDIZC");
+const TCHAR EdLn::m_szMeasureCpuFlags[] = TEXT("00100010");
 const TCHAR EdLn::m_szMeasureDigit[] = TEXT("0");
 
 EdLn::EdLn()
@@ -129,7 +130,7 @@ HRESULT hr = E_FAIL;
 			hr = E_OUTOFMEMORY;
 			break;
 		}
-		m_pTextExtents = (int *)malloc(n * sizeof(TCHAR));
+		m_pTextExtents = (int *)malloc(n * sizeof(INT));
 		if (m_pTextExtents==NULL)
 		{
 			hr = E_OUTOFMEMORY;
@@ -197,7 +198,6 @@ void EdLn::FreeCaption()
 
 HRESULT EdLn::CreateDefaultHitRegion(HDC hdc)
 {
-//int w,h;
 HRESULT hr;
 
 	RECT rcAll;
@@ -247,19 +247,13 @@ HRESULT EdLn::GetCharIndex(HDC hdc, int x, int y, int *pOutCellIndex, POINT *pPo
 {
 RECT rcEdit;
 HRESULT hr;
-	
-	if (pPos)
-	{
-		pPos->x = m_posX;
-		pPos->y = m_posY;
-	}
-	if (pOutCellIndex)
-	{
-		*pOutCellIndex = 0;
-	}
 
 	if (m_pTextExtents == NULL || m_iNumChars <=0)
 		return E_FAIL;
+
+	DcHelper dch(hdc);
+	dch.UseMapMode(MM_TEXT);
+	dch.UseFont(m_hFont);
 
 	if (!IsHitEdit(x, y))
 		return E_FAIL;
@@ -268,12 +262,22 @@ HRESULT hr;
 	if (FAILED(hr))
 		return hr;
 
-	if (x <= m_posX)
+	if (pPos)
+	{
+		pPos->x = rcEdit.left;
+		pPos->y = rcEdit.top;
+	}
+	if (pOutCellIndex)
+	{
+		*pOutCellIndex = 0;
+	}
+
+	if (x <= rcEdit.left)
 	{
 		if (pPos)
 		{
-			pPos->x = m_posX;
-			pPos->y = m_posY;
+			pPos->x = rcEdit.left;
+			pPos->y = rcEdit.top;
 		}
 		if (pOutCellIndex)
 		{
@@ -298,8 +302,8 @@ HRESULT hr;
 	{
 		if (pPos)
 		{
-			pPos->x = m_posX;
-			pPos->y = m_posY;
+			pPos->x = rcEdit.left;
+			pPos->y = rcEdit.top;
 		}
 		if (pOutCellIndex)
 		{
@@ -308,29 +312,19 @@ HRESULT hr;
 		return S_OK;
 	}
 
-	if (x >= m_posX + sizeText.cx)
-	{
-		if (pPos)
-		{
-			pPos->x = sizeText.cx;
-			pPos->y = m_posY;
-		}
-		if (pOutCellIndex)
-		{
-			*pOutCellIndex = iNumFit - 1;
-		}
-		return S_OK;
-	}
-
+	int cx;
+	int nextcx;
 	int w = abs(rcEdit.right - rcEdit.left);
-	for (int i =iNumFit - 1; i >=0 ;i--)
+	cx = rcEdit.left;
+	for (int i = 0; i < iNumFit; i++, cx = nextcx)
 	{
-		if (x >= m_posX + m_pTextExtents[i])
+		nextcx = rcEdit.left + m_pTextExtents[i];
+		if (x < nextcx)
 		{
 			if (pPos)
 			{
-				pPos->x = m_posX + m_pTextExtents[i];
-				pPos->y = m_posY;
+				pPos->x = cx;
+				pPos->y = rcEdit.top;
 			}
 			if (pOutCellIndex)
 			{
@@ -339,6 +333,22 @@ HRESULT hr;
 			return S_OK;
 		}
 	}
+
+	cx = rcEdit.left + m_pTextExtents[iNumFit - 1];
+	if (x >= cx)
+	{
+		if (pPos)
+		{
+			pPos->x = cx;
+			pPos->y = rcEdit.top;
+		}
+		if (pOutCellIndex)
+		{
+			*pOutCellIndex = iNumFit - 1;
+		}
+		return S_OK;
+	}
+
 	return S_OK;
 }
 
@@ -346,28 +356,31 @@ HRESULT EdLn::GetCharPoint(HDC hdc, int cellIndex, int *pOutCellIndex, POINT *pP
 {
 RECT rcEdit;
 HRESULT hr;
-	
+
+	if (m_pTextExtents == NULL || m_iNumChars <=0)
+		return E_FAIL;
+
+	DcHelper dch(hdc);
+	dch.UseMapMode(MM_TEXT);
+	dch.UseFont(m_hFont);
+
+	hr = GetRects(hdc, NULL, &rcEdit, NULL);
+	if (FAILED(hr))
+		return hr;
+
 	if (pPos)
 	{
-		pPos->x = m_posX;
-		pPos->y = m_posY;
+		pPos->x = rcEdit.left;
+		pPos->y = rcEdit.top;
 	}
 	if (pOutCellIndex)
 	{
 		*pOutCellIndex = 0;
 	}
-
-	if (m_pTextExtents == NULL || m_iNumChars <=0)
-		return E_FAIL;
-
 	if (cellIndex <= 0)
 	{
 		return S_OK;
 	}
-
-	hr = GetRects(hdc, NULL, &rcEdit, NULL);
-	if (FAILED(hr))
-		return hr;
 
 	BOOL br;
 	int k = lstrlen(m_TextBuffer);
@@ -383,23 +396,23 @@ HRESULT hr;
 
 	int i;
 	POINT p;
-	if (numFit <= 0)
+	if (numFit <= 0 || cellIndex <= 0)
 	{
 		i = 0;
-		p.x = m_posX;
-		p.y = m_posY;
+		p.x = rcEdit.left;
+		p.y = rcEdit.top;
 	}
 	else if (cellIndex < numFit)
 	{
 		i = cellIndex;
-		p.x = m_posX + m_pTextExtents[i];
-		p.y = m_posY;
+		p.x = rcEdit.left + m_pTextExtents[i - 1] + 1;
+		p.y = rcEdit.top;
 	}
 	else
 	{
 		i = numFit - 1;
-		p.x = m_posX + m_pTextExtents[i];
-		p.y = m_posY;
+		p.x = rcEdit.left + m_pTextExtents[i] + 1;
+		p.y = rcEdit.top;
 	}
 	if (pOutCellIndex)
 	{
@@ -413,13 +426,10 @@ HRESULT hr;
 	return S_OK;
 }
 
-//HRESULT EdLn::GetMinWindowSize(HDC hdc, int &w, int &h)
 HRESULT EdLn::GetRects(HDC hdc, RECT *prcCaption, RECT *prcEdit, RECT *prcAll)
 {
 BOOL br;
 HRESULT hr = E_FAIL;
-	//w = PADDING_LEFT + PADDING_RIGHT;
-	//h = MARGIN_TOP + PADDING_TOP + PADDING_BOTTOM;
 	RECT rcCaption;
 	RECT rcEdit;
 	RECT rcAll;
@@ -521,20 +531,7 @@ HRESULT hr = E_FAIL;
 					if (prcAll)
 						CopyRect(prcAll, &rcAll);
 
-					//if (tx2 > tx1)
-					//	w += tx2;
-					//else
-					//	w += tx1;
-
 					hr = S_OK;
-
-					//if (m_pszCaption!=NULL)
-					//	h += tm.tmHeight * 2;
-					//else
-					//	h += tm.tmHeight * 1;
-					//m_MinSizeW = w;
-					//m_MinSizeH = h;
-					//m_MinSizeDone = true;
 				}
 
 				SelectObject(hdc, hFontPrev);
@@ -576,7 +573,6 @@ void EdLn::Draw(HDC hdc)
 	{
 		iHeight = tm.tmHeight;
 	}
-	//SIZE sizeText;
 	int x = m_posX;
 	int y = m_posY;
 	if (this->m_pszCaption != NULL)
@@ -585,8 +581,6 @@ void EdLn::Draw(HDC hdc)
 		G::DrawDefText(hdc, x, y, m_pszCaption, lenCaption, NULL, NULL);
 		y += iHeight;
 	}
-
-	//BOOL brTextExtent = GetTextExtentExPoint(hdc, m_TextBuffer, k, 0, NULL, m_pTextExtents, &sizeText);
 	ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, m_TextBuffer, k, NULL);
 }
 

@@ -36,7 +36,7 @@ public:
 		void SelectControl(int i);
 		void DeSelectControl(int i);
 
-		void UpdateCaret(HWND hWnd);
+		void UpdateCaret(HWND hWnd, HDC hdc);
 		void ClearCaret(HWND hWnd);
 
 		TEXTMETRIC TextMetric;
