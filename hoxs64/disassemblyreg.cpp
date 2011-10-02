@@ -163,7 +163,7 @@ HRESULT hr;
 	int x = PADDING_LEFT;
 	int y = MARGIN_TOP + PADDING_TOP;
 
-	hr = m_RegBuffer.Init(m_hdc, m_hFont, x, y, m_cpu->GetCpuId());
+	hr = m_RegBuffer.Init(hWnd, m_hdc, m_hFont, x, y, m_cpu->GetCpuId());
 	if (FAILED(hr))
 		return hr;
 	return S_OK;
@@ -182,7 +182,7 @@ HRESULT hr;
 	for(int i = 0; i<c ; i++)
 	{
 		EdLn *p = m_RegBuffer.Controls[i];
-		if (p->IsHitAll(x, y))
+		if (p->IsHitAll(x, y) && p->GetIsEditable())
 		{
 			bFound = true;
 			m_RegBuffer.SelectControl(i);
@@ -201,6 +201,13 @@ HRESULT hr;
 	{
 
 	}
+	return true;
+}
+
+bool CDisassemblyReg::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	m_RegBuffer.ProcessChar(wParam, lParam);
+
 	return true;
 }
 
@@ -236,7 +243,12 @@ BOOL br;
 		UpdateDisplay();
 		return 0;
 	case WM_LBUTTONDOWN:
-		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
+		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
+			return 0;
+		else
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_CHAR:
+		if (!OnChar(hWnd, uMsg, wParam, lParam))
 			return 0;
 		else
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -438,7 +450,7 @@ void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
 void CDisassemblyReg::RegLineBuffer::UpdateCaret(HWND hWnd, HDC hdc)
 {
 bool bFound = false;
-HRESULT hr;
+
 	if (hWnd != GetFocus())
 		return;
 	if (hdc == NULL)
@@ -449,14 +461,8 @@ HRESULT hr;
 		EdLn *t = this->Controls[i];
 		if (t->IsFocused)
 		{
+			t->UpdateCaret(hdc);
 			bFound = true;
-			int iCellIndex = t->GetInsertionPoint();
-			POINT pt;
-			hr = t->GetCharPoint(hdc, iCellIndex, NULL, &pt);
-			if (SUCCEEDED(hr))
-			{
-				::SetCaretPos(pt.x, pt.y);
-			}
 			break;
 		}
 	}
@@ -483,7 +489,22 @@ void CDisassemblyReg::RegLineBuffer::ClearCaret(HWND hWnd)
 	m_iShowCaretCount = 0;
 }
 
-HRESULT CDisassemblyReg::RegLineBuffer::Init(HDC hdc, HFONT hFont, int x, int y, int cpuid)
+void CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
+{
+	if (CurrentControlIndex < 0 || CurrentControlIndex > Controls.Count() - 1)
+		return;
+	EdLn *t = Controls[CurrentControlIndex];
+	
+	if (t->GetIsEditable())
+	{
+		if (wParam >= '0' && wParam <= '9')
+		{
+			t->CharEdit((TCHAR)wParam);
+		}
+	}
+}
+
+HRESULT CDisassemblyReg::RegLineBuffer::Init(HWND hWnd, HDC hdc, HFONT hFont, int x, int y, int cpuid)
 {
 HRESULT hr;
 int prevMapMode = 0;
@@ -504,34 +525,34 @@ HFONT prevFont = NULL;
 		SelectObject(hdc, prevFont);
 	if (prevMapMode)
 		SetMapMode(hdc, prevMapMode);
-	hr = PC.Init(hFont, TEXT("PC"), EdLn::HexAddress, true, 4);
+	hr = PC.Init(hWnd, hFont, TEXT("PC"), EdLn::HexAddress, true, 4);
 	if (FAILED(hr))
 		return hr;
-	hr = A.Init(hFont, TEXT("A"), EdLn::HexByte, true, 2);
+	hr = A.Init(hWnd, hFont, TEXT("A"), EdLn::HexByte, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = X.Init(hFont, TEXT("X"), EdLn::HexByte, true, 2);
+	hr = X.Init(hWnd, hFont, TEXT("X"), EdLn::HexByte, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Y.Init(hFont, TEXT("Y"), EdLn::HexByte, true, 2);
+	hr = Y.Init(hWnd, hFont, TEXT("Y"), EdLn::HexByte, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = SR.Init(hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, 8);
+	hr = SR.Init(hWnd, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, 8);
 	if (FAILED(hr))
 		return hr;
-	hr = SP.Init(hFont, TEXT("SP"), EdLn::HexByte, true, 2);
+	hr = SP.Init(hWnd, hFont, TEXT("SP"), EdLn::HexByte, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Ddr.Init(hFont, TEXT("00"), EdLn::HexByte, true, 2);
+	hr = Ddr.Init(hWnd, hFont, TEXT("00"), EdLn::HexByte, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Data.Init(hFont, TEXT("01"), EdLn::HexByte, true, 2);
+	hr = Data.Init(hWnd, hFont, TEXT("01"), EdLn::HexByte, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = VicLine.Init(hFont, TEXT("LINE"), EdLn::Hex, false, 3);
+	hr = VicLine.Init(hWnd, hFont, TEXT("LINE"), EdLn::Hex, false, 3);
 	if (FAILED(hr))
 		return hr;
-	hr = VicCycle.Init(hFont, TEXT("CYC"), EdLn::Dec, false, 2);
+	hr = VicCycle.Init(hWnd, hFont, TEXT("CYC"), EdLn::Dec, false, 2);
 	if (FAILED(hr))
 		return hr;
 
@@ -561,7 +582,6 @@ HFONT prevFont = NULL;
 
 HRESULT CDisassemblyReg::RegLineBuffer::ArrangeControls(HDC hdc, int x, int y, int cpuid)
 {
-
 int w=0;
 int h=0;
 TEXTMETRIC tm;	

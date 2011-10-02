@@ -15,7 +15,7 @@ public:
 
 	struct RegLineBuffer
 	{
-		HRESULT Init(HDC hdc, HFONT hFont, int x, int y, int cpuid);
+		HRESULT Init(HWND hWndParent, HDC hdc, HFONT hFont, int x, int y, int cpuid);
 		EdLn PC;
 		EdLn A;
 		EdLn X;
@@ -38,11 +38,12 @@ public:
 
 		void UpdateCaret(HWND hWnd, HDC hdc);
 		void ClearCaret(HWND hWnd);
+		void ProcessChar(WPARAM wParam, LPARAM lParam);
 
 		TEXTMETRIC TextMetric;
 
 		int m_iShowCaretCount;
-
+		HWND hWndParent;
 	};
 	CDisassemblyReg();
 	virtual ~CDisassemblyReg();
@@ -81,6 +82,7 @@ private:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 #endif

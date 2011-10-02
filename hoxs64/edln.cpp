@@ -72,7 +72,7 @@ void EdLn::Cleanup()
 	}
 }
 
-HRESULT EdLn::Init(HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isEditable, int numChars)
+HRESULT EdLn::Init(HWND hWnd, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isEditable, int numChars)
 {
 HRESULT hr = E_FAIL;
 	Cleanup();
@@ -81,6 +81,7 @@ HRESULT hr = E_FAIL;
 	this->m_bIsEditable = isEditable;
 	this->m_iNumChars = numChars;
 	this->m_hFont = hFont;
+	this->m_hWnd = hWnd;
 
 	int m = 1;
 	switch (m_style)
@@ -123,7 +124,6 @@ HRESULT hr = E_FAIL;
 	int n = i + 1;
 	do
 	{
-
 		m_TextBuffer = (TCHAR *)malloc(n * sizeof(TCHAR));
 		if (m_TextBuffer==NULL)
 		{
@@ -196,6 +196,18 @@ void EdLn::FreeCaption()
 	}
 }
 
+void EdLn::UpdateCaret(HDC hdc)
+{
+HRESULT hr;
+	int iCellIndex = this->GetInsertionPoint();
+	POINT pt;
+	hr = this->GetCharPoint(hdc, iCellIndex, NULL, &pt);
+	if (SUCCEEDED(hr))
+	{
+		::SetCaretPos(pt.x, pt.y);
+	}
+}
+
 HRESULT EdLn::CreateDefaultHitRegion(HDC hdc)
 {
 HRESULT hr;
@@ -241,6 +253,53 @@ bool EdLn::IsHitEdit(int x, int y)
 	if (m_hRegionHitEdit==NULL)
 		return false;
 	return 0 != ::PtInRegion(m_hRegionHitEdit, x, y);
+}
+
+bool EdLn::GetIsEditable()
+{
+	return m_bIsEditable;
+}
+
+void EdLn::CharEdit(TCHAR c)
+{
+size_t slen;
+DcHelper dch;
+HDC hdc = NULL;
+	switch(this->m_style)
+	{
+	case HexAddress:
+	case HexByte:
+		slen = _tcsnlen(this->m_TextBuffer, this->m_iTextBufferLength);
+		if (m_iInsertionPoint < m_iNumChars - 1)
+		{
+			if (m_iInsertionPoint < slen)
+			{
+				m_TextBuffer[m_iInsertionPoint] = c;
+				m_iInsertionPoint++;
+			}
+		}
+		else
+		{
+			m_iInsertionPoint = m_iNumChars - 1;
+			m_TextBuffer[m_iInsertionPoint] = c;
+		}
+		hdc = GetDC(m_hWnd);
+		if (hdc)
+		{
+			dch.m_hdc = hdc;
+			dch.UseMapMode(MM_TEXT);
+			dch.UseFont(m_hFont);
+			HideCaret(m_hWnd);
+			UpdateCaret(hdc);
+			this->Draw(hdc);
+			ShowCaret(m_hWnd);
+			ReleaseDC(m_hWnd, hdc);
+		}
+
+		break;
+	case CpuFlags:
+		break;
+	}
 }
 
 HRESULT EdLn::GetCharIndex(HDC hdc, int x, int y, int *pOutCellIndex, POINT *pPos)
@@ -405,13 +464,13 @@ HRESULT hr;
 	else if (cellIndex < numFit)
 	{
 		i = cellIndex;
-		p.x = rcEdit.left + m_pTextExtents[i - 1] + 1;
+		p.x = rcEdit.left + m_pTextExtents[i - 1];
 		p.y = rcEdit.top;
 	}
 	else
 	{
 		i = numFit - 1;
-		p.x = rcEdit.left + m_pTextExtents[i] + 1;
+		p.x = rcEdit.left + m_pTextExtents[i];
 		p.y = rcEdit.top;
 	}
 	if (pOutCellIndex)
