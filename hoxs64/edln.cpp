@@ -48,6 +48,7 @@ void EdLn::InitVars()
 	m_hRegionHitEdit = NULL;
 	m_iInsertionPoint = 0;
 	m_iShowCaretCount = 0;
+	m_bIsVisible = true;
 }
 
 EdLn::~EdLn()
@@ -72,13 +73,14 @@ void EdLn::Cleanup()
 	}
 }
 
-HRESULT EdLn::Init(HWND hWnd, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isEditable, int numChars)
+HRESULT EdLn::Init(HWND hWnd, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars)
 {
 HRESULT hr = E_FAIL;
 	Cleanup();
 	InitVars();
 	this->m_style = style;
 	this->m_bIsEditable = isEditable;
+	this->m_bIsVisible = isVisible;
 	this->m_iNumChars = numChars;
 	this->m_hFont = hFont;
 	this->m_hWnd = hWnd;
@@ -196,7 +198,7 @@ void EdLn::FreeCaption()
 	}
 }
 
-void EdLn::UpdateCaret(HDC hdc)
+void EdLn::UpdateCaretPosition(HDC hdc)
 {
 HRESULT hr;
 	int iCellIndex = this->GetInsertionPoint();
@@ -260,11 +262,17 @@ bool EdLn::GetIsEditable()
 	return m_bIsEditable;
 }
 
+bool EdLn::GetIsVisible()
+{
+	return m_bIsVisible;
+}
+
 void EdLn::CharEdit(TCHAR c)
 {
 size_t slen;
 DcHelper dch;
 HDC hdc = NULL;
+	
 	switch(this->m_style)
 	{
 	case HexAddress:
@@ -289,10 +297,12 @@ HDC hdc = NULL;
 			dch.m_hdc = hdc;
 			dch.UseMapMode(MM_TEXT);
 			dch.UseFont(m_hFont);
+
 			HideCaret(m_hWnd);
-			UpdateCaret(hdc);
-			this->Draw(hdc);
+			UpdateCaretPosition(hdc);
+			Draw(hdc);
 			ShowCaret(m_hWnd);
+
 			ReleaseDC(m_hWnd, hdc);
 		}
 
@@ -620,6 +630,8 @@ int EdLn::GetYPos()
 
 void EdLn::Draw(HDC hdc)
 {
+	if (!m_bIsVisible)
+		return;
 	if (m_TextBuffer==NULL)
 		return;
 	int k = (int)GetString(NULL, 0);

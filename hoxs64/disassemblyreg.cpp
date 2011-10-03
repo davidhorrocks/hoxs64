@@ -182,7 +182,7 @@ HRESULT hr;
 	for(int i = 0; i<c ; i++)
 	{
 		EdLn *p = m_RegBuffer.Controls[i];
-		if (p->IsHitAll(x, y) && p->GetIsEditable())
+		if (p->IsHitAll(x, y) && p->GetIsEditable() && p->GetIsVisible())
 		{
 			bFound = true;
 			m_RegBuffer.SelectControl(i);
@@ -461,7 +461,7 @@ bool bFound = false;
 		EdLn *t = this->Controls[i];
 		if (t->IsFocused)
 		{
-			t->UpdateCaret(hdc);
+			t->UpdateCaretPosition(hdc);
 			bFound = true;
 			break;
 		}
@@ -511,7 +511,6 @@ int prevMapMode = 0;
 HFONT prevFont = NULL;
 
 	ZeroMemory(&TextMetric, sizeof(TextMetric));
-
 	prevMapMode = SetMapMode(hdc, MM_TEXT);
 	if (prevMapMode)
 	{
@@ -525,34 +524,35 @@ HFONT prevFont = NULL;
 		SelectObject(hdc, prevFont);
 	if (prevMapMode)
 		SetMapMode(hdc, prevMapMode);
-	hr = PC.Init(hWnd, hFont, TEXT("PC"), EdLn::HexAddress, true, 4);
+
+	hr = PC.Init(hWnd, hFont, TEXT("PC"), EdLn::HexAddress, true, true, 4);
 	if (FAILED(hr))
 		return hr;
-	hr = A.Init(hWnd, hFont, TEXT("A"), EdLn::HexByte, true, 2);
+	hr = A.Init(hWnd, hFont, TEXT("A"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = X.Init(hWnd, hFont, TEXT("X"), EdLn::HexByte, true, 2);
+	hr = X.Init(hWnd, hFont, TEXT("X"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Y.Init(hWnd, hFont, TEXT("Y"), EdLn::HexByte, true, 2);
+	hr = Y.Init(hWnd, hFont, TEXT("Y"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = SR.Init(hWnd, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, 8);
+	hr = SR.Init(hWnd, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, true, 8);
 	if (FAILED(hr))
 		return hr;
-	hr = SP.Init(hWnd, hFont, TEXT("SP"), EdLn::HexByte, true, 2);
+	hr = SP.Init(hWnd, hFont, TEXT("SP"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Ddr.Init(hWnd, hFont, TEXT("00"), EdLn::HexByte, true, 2);
+	hr = Ddr.Init(hWnd, hFont, TEXT("00"), EdLn::HexByte, cpuid == 0, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Data.Init(hWnd, hFont, TEXT("01"), EdLn::HexByte, true, 2);
+	hr = Data.Init(hWnd, hFont, TEXT("01"), EdLn::HexByte, cpuid == 0, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = VicLine.Init(hWnd, hFont, TEXT("LINE"), EdLn::Hex, false, 3);
+	hr = VicLine.Init(hWnd, hFont, TEXT("LINE"), EdLn::Hex, cpuid == 0, false, 3);
 	if (FAILED(hr))
 		return hr;
-	hr = VicCycle.Init(hWnd, hFont, TEXT("CYC"), EdLn::Dec, false, 2);
+	hr = VicCycle.Init(hWnd, hFont, TEXT("CYC"), EdLn::Dec, cpuid == 0, false, 2);
 	if (FAILED(hr))
 		return hr;
 
@@ -574,7 +574,6 @@ HFONT prevFont = NULL;
 		hr = p->CreateDefaultHitRegion(hdc);
 		if (FAILED(hr))
 			return hr;
-
 		Controls.Append(p);
 	}
 	return S_OK;
