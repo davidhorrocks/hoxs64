@@ -497,7 +497,7 @@ void CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
 	
 	if (t->GetIsEditable())
 	{
-		if (wParam >= '0' && wParam <= '9')
+		//if (wParam >= '0' && wParam <= '9')
 		{
 			t->CharEdit((TCHAR)wParam);
 		}

@@ -20,8 +20,8 @@ public:
 	void Cleanup();
 
 	HRESULT CreateDefaultHitRegion(HDC hdc);
-
-	//HRESULT GetMinWindowSize(HDC hdc, int &w, int &h);
+	
+	void Refresh();
 	HRESULT GetRects(HDC hdc, RECT *prcCaption, RECT *prcEdit, RECT *prcAll);
 	HRESULT SetPos(int x, int y);
 

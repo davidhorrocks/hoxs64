@@ -270,45 +270,79 @@ bool EdLn::GetIsVisible()
 void EdLn::CharEdit(TCHAR c)
 {
 size_t slen;
-DcHelper dch;
-HDC hdc = NULL;
 	
 	switch(this->m_style)
 	{
 	case HexAddress:
 	case HexByte:
-		slen = _tcsnlen(this->m_TextBuffer, this->m_iTextBufferLength);
-		if (m_iInsertionPoint < m_iNumChars - 1)
+		if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
 		{
-			if (m_iInsertionPoint < slen)
+			if (c >= 'a' && c <= 'f')
 			{
-				m_TextBuffer[m_iInsertionPoint] = c;
-				m_iInsertionPoint++;
+				c = toupper(c);
 			}
+			slen = _tcsnlen(this->m_TextBuffer, this->m_iTextBufferLength);
+			if (m_iInsertionPoint < m_iNumChars - 1)
+			{
+				if (m_iInsertionPoint < slen)
+				{
+					m_TextBuffer[m_iInsertionPoint] = c;
+					m_iInsertionPoint++;
+				}
+			}
+			else
+			{
+				m_iInsertionPoint = m_iNumChars - 1;
+				m_TextBuffer[m_iInsertionPoint] = c;
+			}
+			Refresh();
 		}
-		else
-		{
-			m_iInsertionPoint = m_iNumChars - 1;
-			m_TextBuffer[m_iInsertionPoint] = c;
-		}
-		hdc = GetDC(m_hWnd);
-		if (hdc)
-		{
-			dch.m_hdc = hdc;
-			dch.UseMapMode(MM_TEXT);
-			dch.UseFont(m_hFont);
-
-			HideCaret(m_hWnd);
-			UpdateCaretPosition(hdc);
-			Draw(hdc);
-			ShowCaret(m_hWnd);
-
-			ReleaseDC(m_hWnd, hdc);
-		}
-
 		break;
 	case CpuFlags:
+		if ((c == '0' || c == '1'))
+		{
+			if (m_iInsertionPoint == 2)
+				c = '1';
+			slen = _tcsnlen(this->m_TextBuffer, this->m_iTextBufferLength);
+			if (m_iInsertionPoint < m_iNumChars - 1)
+			{
+				if (m_iInsertionPoint < slen)
+				{
+					m_TextBuffer[m_iInsertionPoint] = c;
+					m_iInsertionPoint++;
+				}
+			}
+			else
+			{
+				m_iInsertionPoint = m_iNumChars - 1;
+				m_TextBuffer[m_iInsertionPoint] = c;
+			}
+			if (m_iInsertionPoint == 2)
+				m_iInsertionPoint++;
+			Refresh();
+		}
 		break;
+	}
+}
+
+void EdLn::Refresh()
+{
+	HDC hdc = GetDC(m_hWnd);
+	if (hdc)
+	{
+		DcHelper dch(hdc);
+		dch.UseMapMode(MM_TEXT);
+		dch.UseFont(m_hFont);
+
+		if (IsFocused)
+		{
+			HideCaret(m_hWnd);
+			UpdateCaretPosition(hdc);
+		}
+		Draw(hdc);
+		ShowCaret(m_hWnd);
+
+		ReleaseDC(m_hWnd, hdc);
 	}
 }
 
