@@ -525,37 +525,37 @@ HFONT prevFont = NULL;
 	if (prevMapMode)
 		SetMapMode(hdc, prevMapMode);
 
-	hr = PC.Init(hWnd, hFont, TEXT("PC"), EdLn::HexAddress, true, true, 4);
+	hr = PC.Init(hWnd, CTRLID_PC, hFont, TEXT("PC"), EdLn::HexAddress, true, true, 4);
 	if (FAILED(hr))
 		return hr;
-	hr = A.Init(hWnd, hFont, TEXT("A"), EdLn::HexByte, true, true, 2);
+	hr = A.Init(hWnd, CTRLID_A, hFont, TEXT("A"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = X.Init(hWnd, hFont, TEXT("X"), EdLn::HexByte, true, true, 2);
+	hr = X.Init(hWnd, CTRLID_X, hFont, TEXT("X"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Y.Init(hWnd, hFont, TEXT("Y"), EdLn::HexByte, true, true, 2);
+	hr = Y.Init(hWnd, CTRLID_Y, hFont, TEXT("Y"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = SR.Init(hWnd, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, true, 8);
+	hr = SR.Init(hWnd, CTRLID_SR, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, true, 8);
 	if (FAILED(hr))
 		return hr;
-	hr = SP.Init(hWnd, hFont, TEXT("SP"), EdLn::HexByte, true, true, 2);
+	hr = SP.Init(hWnd, CTRLID_SP, hFont, TEXT("SP"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Ddr.Init(hWnd, hFont, TEXT("00"), EdLn::HexByte, cpuid == 0, true, 2);
+	hr = Ddr.Init(hWnd, CTRLID_DDR, hFont, TEXT("00"), EdLn::HexByte, cpuid == 0, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Data.Init(hWnd, hFont, TEXT("01"), EdLn::HexByte, cpuid == 0, true, 2);
+	hr = Data.Init(hWnd, CTRLID_DATA, hFont, TEXT("01"), EdLn::HexByte, cpuid == 0, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = VicLine.Init(hWnd, hFont, TEXT("LINE"), EdLn::Hex, cpuid == 0, false, 3);
+	hr = VicLine.Init(hWnd, CTRLID_VICLINE, hFont, TEXT("LINE"), EdLn::Hex, cpuid == 0, false, 3);
 	if (FAILED(hr))
 		return hr;
-	hr = VicCycle.Init(hWnd, hFont, TEXT("CYC"), EdLn::Dec, cpuid == 0, false, 2);
+	hr = VicCycle.Init(hWnd, CTRLID_VICCYCLE, hFont, TEXT("CYC"), EdLn::Dec, cpuid == 0, false, 2);
 	if (FAILED(hr))
 		return hr;
-
+	
 	CurrentControlIndex = 0;
 
 	hr = ArrangeControls(hdc, x, y, cpuid);

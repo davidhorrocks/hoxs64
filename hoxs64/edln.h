@@ -16,7 +16,7 @@ public:
 	EdLn();
 	virtual ~EdLn();	
 
-	HRESULT Init(HWND hWnd, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars);
+	HRESULT Init(HWND hWnd, int iControlID, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars);
 	void Cleanup();
 
 	HRESULT CreateDefaultHitRegion(HDC hdc);
@@ -34,6 +34,7 @@ public:
 	int GetInsertionPoint();
 	bool GetIsEditable();
 	bool GetIsVisible();
+	int GetControlID();
 	size_t GetString(TCHAR buffer[], int bufferSize);
 	void SetString(const TCHAR *data, int count);
 	void CharEdit(TCHAR c);
@@ -56,7 +57,7 @@ private:
 	bool m_bIsVisible;
 	EditStyle m_style;
 	HFONT m_hFont;
-
+	int m_iControlID;
 	HRGN m_hRegionHitAll;
 	HRGN m_hRegionHitEdit;
 	int m_posX;
@@ -74,7 +75,7 @@ private:
 
 	int m_iValue;
 
-	TCHAR *m_TextBuffer;
+	TCHAR *m_szTextBuffer;
 	INT * m_pTextExtents;
 	int m_iTextExtents;
 	TCHAR *m_pszCaption;

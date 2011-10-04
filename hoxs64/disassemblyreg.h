@@ -1,6 +1,8 @@
 #ifndef __DISSASSEMBLYREG_H__
 #define __DISSASSEMBLYREG_H__
 
+
+
 class CDisassemblyReg : public CVirWindow
 {
 public:
@@ -15,6 +17,20 @@ public:
 
 	struct RegLineBuffer
 	{
+		enum tagControlID
+		{
+			CTRLID_PC=1,
+			CTRLID_A=2,
+			CTRLID_X=3,
+			CTRLID_Y=4,
+			CTRLID_SR=5,
+			CTRLID_SP=6,
+			CTRLID_DDR=7,
+			CTRLID_DATA=8,
+			CTRLID_VICLINE=9,
+			CTRLID_VICCYCLE=10,
+		};
+
 		HRESULT Init(HWND hWndParent, HDC hdc, HFONT hFont, int x, int y, int cpuid);
 		EdLn PC;
 		EdLn A;

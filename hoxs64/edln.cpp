@@ -38,7 +38,7 @@ void EdLn::InitVars()
 {
 	m_iValue = 0;
 	m_iTextBufferLength = 0;
-	m_TextBuffer = NULL;
+	m_szTextBuffer = NULL;
 	m_pTextExtents = NULL;
 	m_iTextExtents = 0;
 	m_iNumChars = 0;
@@ -73,7 +73,7 @@ void EdLn::Cleanup()
 	}
 }
 
-HRESULT EdLn::Init(HWND hWnd, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars)
+HRESULT EdLn::Init(HWND hWnd, int iControlID, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars)
 {
 HRESULT hr = E_FAIL;
 	Cleanup();
@@ -84,6 +84,7 @@ HRESULT hr = E_FAIL;
 	this->m_iNumChars = numChars;
 	this->m_hFont = hFont;
 	this->m_hWnd = hWnd;
+	this->m_iControlID = iControlID;
 
 	int m = 1;
 	switch (m_style)
@@ -126,8 +127,8 @@ HRESULT hr = E_FAIL;
 	int n = i + 1;
 	do
 	{
-		m_TextBuffer = (TCHAR *)malloc(n * sizeof(TCHAR));
-		if (m_TextBuffer==NULL)
+		m_szTextBuffer = (TCHAR *)malloc(n * sizeof(TCHAR));
+		if (m_szTextBuffer==NULL)
 		{
 			hr = E_OUTOFMEMORY;
 			break;
@@ -155,10 +156,10 @@ HRESULT hr = E_FAIL;
 
 void EdLn::FreeTextBuffer()
 {
-	if (m_TextBuffer != NULL)
+	if (m_szTextBuffer != NULL)
 	{
-		free(m_TextBuffer);
-		m_TextBuffer = NULL;
+		free(m_szTextBuffer);
+		m_szTextBuffer = NULL;
 	}
 	if (m_pTextExtents != NULL)
 	{
@@ -267,10 +268,15 @@ bool EdLn::GetIsVisible()
 	return m_bIsVisible;
 }
 
+int EdLn::GetControlID()
+{
+	return m_iControlID;
+}
+
 void EdLn::CharEdit(TCHAR c)
 {
 size_t slen;
-	
+bool bChanged = false;
 	switch(this->m_style)
 	{
 	case HexAddress:
@@ -281,19 +287,27 @@ size_t slen;
 			{
 				c = toupper(c);
 			}
-			slen = _tcsnlen(this->m_TextBuffer, this->m_iTextBufferLength);
+			slen = _tcsnlen(this->m_szTextBuffer, this->m_iTextBufferLength);
 			if (m_iInsertionPoint < m_iNumChars - 1)
 			{
 				if (m_iInsertionPoint < slen)
 				{
-					m_TextBuffer[m_iInsertionPoint] = c;
+					if (c != m_szTextBuffer[m_iInsertionPoint])
+					{
+						m_szTextBuffer[m_iInsertionPoint] = c;
+						bChanged = true;
+					}
 					m_iInsertionPoint++;
 				}
 			}
 			else
 			{
 				m_iInsertionPoint = m_iNumChars - 1;
-				m_TextBuffer[m_iInsertionPoint] = c;
+				if (c != m_szTextBuffer[m_iInsertionPoint])
+				{
+					m_szTextBuffer[m_iInsertionPoint] = c;
+					bChanged = true;
+				}
 			}
 			Refresh();
 		}
@@ -303,25 +317,38 @@ size_t slen;
 		{
 			if (m_iInsertionPoint == 2)
 				c = '1';
-			slen = _tcsnlen(this->m_TextBuffer, this->m_iTextBufferLength);
+			slen = _tcsnlen(this->m_szTextBuffer, this->m_iTextBufferLength);
 			if (m_iInsertionPoint < m_iNumChars - 1)
 			{
 				if (m_iInsertionPoint < slen)
 				{
-					m_TextBuffer[m_iInsertionPoint] = c;
+					if (c != m_szTextBuffer[m_iInsertionPoint])
+					{
+						m_szTextBuffer[m_iInsertionPoint] = c;
+						bChanged = true;
+					}
 					m_iInsertionPoint++;
 				}
 			}
 			else
 			{
 				m_iInsertionPoint = m_iNumChars - 1;
-				m_TextBuffer[m_iInsertionPoint] = c;
+				if (c != m_szTextBuffer[m_iInsertionPoint])
+				{
+					m_szTextBuffer[m_iInsertionPoint] = c;
+					bChanged = true;
+				}
 			}
 			if (m_iInsertionPoint == 2)
 				m_iInsertionPoint++;
 			Refresh();
 		}
 		break;
+	}
+
+	if (bChanged)
+	{
+		
 	}
 }
 
@@ -390,14 +417,14 @@ HRESULT hr;
 	}
 
 	BOOL br;
-	int k = lstrlen(m_TextBuffer);
+	int k = lstrlen(m_szTextBuffer);
 	if (k > m_iTextExtents)
 		k = m_iTextExtents;
 
 	INT iNumFit = 0;
 	SIZE sizeText;
 	int iWidth = abs(rcEdit.right - rcEdit.left);
-	br = GetTextExtentExPoint(hdc, m_TextBuffer, k, iWidth, &iNumFit, m_pTextExtents, &sizeText);
+	br = GetTextExtentExPoint(hdc, m_szTextBuffer, k, iWidth, &iNumFit, m_pTextExtents, &sizeText);
 	if (!br)
 		return E_FAIL;
 
@@ -486,14 +513,14 @@ HRESULT hr;
 	}
 
 	BOOL br;
-	int k = lstrlen(m_TextBuffer);
+	int k = lstrlen(m_szTextBuffer);
 	if (k > m_iTextExtents)
 		k = m_iTextExtents;
 
 	INT numFit = 0;
 	SIZE sizeText;
 	int iWidth = abs(rcEdit.right - rcEdit.left);
-	br = GetTextExtentExPoint(hdc, m_TextBuffer, k, iWidth, &numFit, m_pTextExtents, &sizeText);
+	br = GetTextExtentExPoint(hdc, m_szTextBuffer, k, iWidth, &numFit, m_pTextExtents, &sizeText);
 	if (!br)
 		return E_FAIL;
 
@@ -666,7 +693,7 @@ void EdLn::Draw(HDC hdc)
 {
 	if (!m_bIsVisible)
 		return;
-	if (m_TextBuffer==NULL)
+	if (m_szTextBuffer==NULL)
 		return;
 	int k = (int)GetString(NULL, 0);
 	if (k > m_iNumChars)
@@ -686,14 +713,14 @@ void EdLn::Draw(HDC hdc)
 		G::DrawDefText(hdc, x, y, m_pszCaption, lenCaption, NULL, NULL);
 		y += iHeight;
 	}
-	ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, m_TextBuffer, k, NULL);
+	ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, m_szTextBuffer, k, NULL);
 }
 
 
 HRESULT EdLn::GetValue(int& v)
 {
 HRESULT hr=E_FAIL;
-	if (m_TextBuffer == NULL)
+	if (m_szTextBuffer == NULL)
 		return E_FAIL;
 
 	switch (m_style)
@@ -743,14 +770,14 @@ void EdLn::SetValue(int v)
 HRESULT EdLn::GetFlags(int& v)
 {
 const int NUMDIGITS = 8;
-	if (m_TextBuffer == NULL)
+	if (m_szTextBuffer == NULL)
 		return E_FAIL;
 	int i;
 	int k;
 	v = 0;
 	for (i=0, k=0x80 ; i < m_iNumChars ; i++, k>>=1)
 	{
-		TCHAR c = m_TextBuffer[i];
+		TCHAR c = m_szTextBuffer[i];
 		if (c == 0)
 			break;
 		if (c != ' ' && c != '0')
@@ -766,27 +793,27 @@ void EdLn::SetFlags(int v)
 TCHAR szBitByte[9];
 const int NUMDIGITS = 8;
 
-	if (m_TextBuffer == NULL || m_iNumChars < NUMDIGITS)
+	if (m_szTextBuffer == NULL || m_iNumChars < NUMDIGITS)
 		return ;
 	int i = 0;
-	m_TextBuffer[0] = 0;
+	m_szTextBuffer[0] = 0;
 	ZeroMemory(szBitByte, _countof(szBitByte) * sizeof(TCHAR));
 	for (i=0; i < _countof(szBitByte) && i < NUMDIGITS; i++)
 	{
 		int k = (((unsigned int)v & (1UL << (7-i))) != 0);
 		szBitByte[i] = TEXT('0') + k;
 	}
-	_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, szBitByte, _TRUNCATE);
+	_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, szBitByte, _TRUNCATE);
 }
 
 HRESULT EdLn::GetHex(int& v)
 {
 HRESULT hr = E_FAIL;
 
-	if (m_TextBuffer == NULL || m_iNumChars <= 0)
+	if (m_szTextBuffer == NULL || m_iNumChars <= 0)
 		return E_FAIL;
 
-	int r = _stscanf_s(m_TextBuffer, TEXT(" %x"), &v);
+	int r = _stscanf_s(m_szTextBuffer, TEXT(" %x"), &v);
 	if (r < 1)
 	{
 		v = 0;
@@ -799,30 +826,30 @@ void EdLn::SetHex(int v)
 {
 TCHAR szTemp[9];
 const int NUMDIGITS = 8;
-	if (m_TextBuffer == NULL)
+	if (m_szTextBuffer == NULL)
 		return ;
 	HexConv::long_to_hex((bit32)v, szTemp, m_iNumChars);
-	_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
+	_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
 }
 
 void EdLn::SetHexAddress(int v)
 {
 TCHAR szTemp[5];
 const int NUMDIGITS = 4;
-	if (m_TextBuffer == NULL || m_iNumChars < NUMDIGITS)
+	if (m_szTextBuffer == NULL || m_iNumChars < NUMDIGITS)
 		return ;
 	HexConv::long_to_hex(v & 0xffff, szTemp, NUMDIGITS);
-	_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
+	_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
 }
 
 void EdLn::SetHexByte(int v)
 {
 TCHAR szTemp[3];
 const int NUMDIGITS = 2;
-	if (m_TextBuffer == NULL)
+	if (m_szTextBuffer == NULL)
 		return ;
 	HexConv::long_to_hex(v & 0xff, szTemp, NUMDIGITS);
-	_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
+	_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
 }
 
 
@@ -830,10 +857,10 @@ HRESULT EdLn::GetDec(int& v)
 {
 HRESULT hr = E_FAIL;
 
-	if (m_TextBuffer == NULL || m_iNumChars <= 0)
+	if (m_szTextBuffer == NULL || m_iNumChars <= 0)
 		return E_FAIL;
 
-	int r = _stscanf_s(m_TextBuffer, TEXT(" %d"), &v);
+	int r = _stscanf_s(m_szTextBuffer, TEXT(" %d"), &v);
 	if (r < 1)
 	{
 		v = 0;
@@ -844,41 +871,41 @@ HRESULT hr = E_FAIL;
 
 void EdLn::SetDec(int v)
 {
-	_sntprintf_s(m_TextBuffer, m_iTextBufferLength, _TRUNCATE, TEXT("%d"), v);
+	_sntprintf_s(m_szTextBuffer, m_iTextBufferLength, _TRUNCATE, TEXT("%d"), v);
 }
 
 size_t EdLn::GetString(TCHAR buffer[], int bufferSize)
 {
-	if (m_TextBuffer == NULL)
+	if (m_szTextBuffer == NULL)
 		return E_FAIL;
 	size_t k;
 	if (buffer == NULL || bufferSize == 0)
 	{
-		k = _tcsnlen(m_TextBuffer, m_iTextBufferLength);
+		k = _tcsnlen(m_szTextBuffer, m_iTextBufferLength);
 		return k;
 	}
 	else
 	{
-		k = _tcsnlen(m_TextBuffer, m_iTextBufferLength);
+		k = _tcsnlen(m_szTextBuffer, m_iTextBufferLength);
 		if (k == 0)
 		{
 			buffer[0];
 		}
 		else if (k < m_iTextBufferLength)
 		{
-			//NULL terminated m_TextBuffer
-			_tcsncpy_s(buffer, bufferSize, m_TextBuffer, _TRUNCATE);
+			//NULL terminated m_szTextBuffer
+			_tcsncpy_s(buffer, bufferSize, m_szTextBuffer, _TRUNCATE);
 		}
 		else 
 		{
-			//m_TextBuffer is not NULL terminated.
+			//m_szTextBuffer is not NULL terminated.
 			if (k < bufferSize)
 			{
-				_tcsncpy_s(buffer, bufferSize, m_TextBuffer, k);
+				_tcsncpy_s(buffer, bufferSize, m_szTextBuffer, k);
 			}
 			else
 			{
-				_tcsncpy_s(buffer, bufferSize, m_TextBuffer, bufferSize - 1);
+				_tcsncpy_s(buffer, bufferSize, m_szTextBuffer, bufferSize - 1);
 			}
 		}
 		return k;
@@ -887,34 +914,34 @@ size_t EdLn::GetString(TCHAR buffer[], int bufferSize)
 
 void EdLn::SetString(const TCHAR *data, int count)
 {
-	if (m_TextBuffer == NULL || m_iTextBufferLength <= 0)
+	if (m_szTextBuffer == NULL || m_iTextBufferLength <= 0)
 		return;
 	if (data == NULL || count == 0)
 	{
-		m_TextBuffer[0] = 0;
+		m_szTextBuffer[0] = 0;
 		return;
 	}
 
 	size_t k = _tcsnlen(data, count);
 	if (k == 0)
 	{
-		m_TextBuffer[0] = 0;
+		m_szTextBuffer[0] = 0;
 	}
 	else if (k < count)
 	{
 		//NULL terminated data
-		_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, data, _TRUNCATE);
+		_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, data, _TRUNCATE);
 	}
 	else 
 	{
 		//data is not NULL terminated.
 		if (k < m_iTextBufferLength)
 		{
-			_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, data, k);
+			_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, data, k);
 		}
 		else
 		{
-			_tcsncpy_s(m_TextBuffer, m_iTextBufferLength, data, m_iTextBufferLength - 1);
+			_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, data, m_iTextBufferLength - 1);
 		}
 	}
 }
