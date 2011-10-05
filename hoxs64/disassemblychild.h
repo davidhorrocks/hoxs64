@@ -1,7 +1,23 @@
 #ifndef __DISSASSEMBLYCHILD_H__
 #define __DISSASSEMBLYCHILD_H__
 
-class CDisassemblyChild : public CVirWindow
+class CDisassemblyChild_EventSink_OnCpuRegPCChanged : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnCpuRegPCChanged(sender, e);
+		return 0;
+	}
+	virtual void OnCpuRegPCChanged(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyChild_EventSink : 
+	public CDisassemblyChild_EventSink_OnCpuRegPCChanged
+{
+};
+
+class CDisassemblyChild : public CVirWindow, public CDisassemblyChild_EventSink
 {
 public:
 	CDisassemblyChild();
@@ -22,10 +38,16 @@ public:
 	void InvalidateBuffer();
 private:
 	HWND m_hWndScroll;
+	IMonitorCommand *m_monitorCommand;
 	IMonitorCpu *m_cpu;
 
 	CVirWindow *m_pParent;
 	CDisassemblyEditChild m_DisassemblyEditChild;
+
+	virtual void OnCpuRegPCChanged(void *sender, EventArgs& e);
+
+	HRESULT AdviseEvents();
+	void UnadviseEvents();
 
 	HWND CreateScrollBar();
 	HWND CreateEditWindow(int x, int y, int w, int h);

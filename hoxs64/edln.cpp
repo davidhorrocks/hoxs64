@@ -29,6 +29,12 @@ const TCHAR EdLn::m_szMeasureByte[] = TEXT("00");
 const TCHAR EdLn::m_szMeasureCpuFlags[] = TEXT("00100010");
 const TCHAR EdLn::m_szMeasureDigit[] = TEXT("0");
 
+EdLnTextChangedEventArgs::EdLnTextChangedEventArgs(EdLn* pEdLnControl)
+{
+	this->pEdLnControl = pEdLnControl;
+}
+
+
 EdLn::EdLn()
 {
 	InitVars();
@@ -348,7 +354,8 @@ bool bChanged = false;
 
 	if (bChanged)
 	{
-		
+		EdLnTextChangedEventArgs eTextChanged(this);
+		EsOnTextChanged.Raise(this, eTextChanged);
 	}
 }
 

@@ -28,6 +28,9 @@ public:
 	EventSource<EventArgs> EsExecuteDiskInstruction;
 	EventSource<EventArgs> EsUpdateApplication;
 	EventSource<EventArgs> EsShowDevelopment;
+
+	EventSource<EventArgs> EsCpuC64RegPCChanged;
+	EventSource<EventArgs> EsCpuDiskRegPCChanged;
 };
 
 class Monitor

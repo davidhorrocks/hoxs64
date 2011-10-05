@@ -58,6 +58,7 @@ public:
 	static const int MAX_BUFFER_HEIGHT = 200;
 private:
 	CVirWindow *m_pParent;
+	IMonitorCommand *m_monitorCommand;
 	IMonitorCpu *m_cpu;
 	IMonitorVic *vic;
 	HFONT m_hFont;
@@ -67,7 +68,6 @@ private:
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	IMonitorCommand *m_monitorCommand;
 	HBITMAP m_hBmpBreak;
 	bool m_bHasLastDrawText;
 	RECT m_rcLastDrawText;

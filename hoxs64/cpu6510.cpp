@@ -334,10 +334,13 @@ bit8 CPU6510::ReadRegister(bit16 address, ICLK sysclock)
 void CPU6510::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 	if (address==0)
+	{
 		write_cpu_io_ddr(data, sysclock);
+	}
 	else
-		cpu_io_data=data;
-	cpu_port();
+	{
+		write_cpu_io_data(data);
+	}
 	static_cast<CIA1 *>(cia1)->SetWakeUpClock();
 }
 
@@ -481,3 +484,14 @@ void CPU6510::Clear_CIA_NMI()
 {
 	ClearNMI();
 }
+
+void CPU6510::SetDdr(bit8 v)
+{
+	write_cpu_io_ddr(v, CurrentClock);
+}
+
+void CPU6510::SetData(bit8 v)
+{
+	write_cpu_io_data(v);
+}
+

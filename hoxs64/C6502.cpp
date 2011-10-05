@@ -3296,3 +3296,50 @@ bool CPU6502::IsWriteCycle()
 			return false;
 	}
 }
+
+void CPU6502::SetPC(bit16 address)
+{
+	m_cpu_sequence=C_FETCH_OPCODE;
+	mPC.word = address;
+	m_CurrentOpcodeAddress.word = address;
+	m_CurrentOpcodeClock = CurrentClock;	
+}
+
+void CPU6502::SetA(bit8 v)
+{
+	this->mA = v;
+}
+
+void CPU6502::SetX(bit8 v)
+{
+	this->mX = v;
+}
+
+void CPU6502::SetY(bit8 v)
+{
+	this->mY = v;
+}
+
+void CPU6502::SetSR(bit8 v)
+{
+	fCARRY = v & 1;
+	fZERO = (v & 2)!=0;
+	fINTERRUPT = (v & 4)!=0;
+	fDECIMAL = (v & 8)!=0;
+	fBREAK = (v & 16)!=0;
+	fOVERFLOW = (v & 64)!=0;
+	fNEGATIVE = (v & 128)!=0;
+}
+
+void CPU6502::SetSP(bit8 v)
+{
+	this->mSP = v;
+}
+
+void CPU6502::SetDdr(bit8 v)
+{
+}
+
+void CPU6502::SetData(bit8 v)
+{
+}

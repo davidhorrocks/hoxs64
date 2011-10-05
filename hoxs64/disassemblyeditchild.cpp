@@ -652,7 +652,7 @@ CPUState cpustate;
 			}
 			else
 			{
-				bit16s pcdiff_current = (bit16s)((cpustate.PC_CurrentOpcode - address) & 0xffff);	
+				bit16s pcdiff_current = (bit16s)((cpustate.PC_CurrentOpcode - currentAddress) & 0xffff);	
 				if (pcdiff_start > 0 && pcdiff_current < 0)
 				{
 					currentAddress = cpustate.PC_CurrentOpcode;
@@ -917,4 +917,3 @@ void CDisassemblyEditChild::AssemblyLineBuffer::WriteDisassemblyString(TCHAR *ps
 //		return;
 //	int lenSpace = 
 }
-

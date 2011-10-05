@@ -98,6 +98,14 @@ public:
 	virtual bool SetExecute(bit16 address, unsigned long count)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
+	virtual void SetPC(bit16 address) = 0;
+	virtual void SetA(bit8 v) = 0;
+	virtual void SetX(bit8 v) = 0;
+	virtual void SetY(bit8 v) = 0;
+	virtual void SetSR(bit8 v) = 0;
+	virtual void SetSP(bit8 v) = 0;
+	virtual void SetDdr(bit8 v) = 0;
+	virtual void SetData(bit8 v) = 0;
 };
 
 

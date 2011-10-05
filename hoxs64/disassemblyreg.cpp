@@ -50,11 +50,17 @@ HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorCommand *monitorComman
 	hr = this->m_mon.Init(cpu, vic);
 	if (FAILED(hr))
 		return hr;
+
+	hr = AdviseEvents();
+	if (FAILED(hr))
+		return hr;
+
 	return hr;
 }
 
 void CDisassemblyReg::Cleanup()
 {
+	UnadviseEvents();
 }
 
 HRESULT CDisassemblyReg::RegisterClass(HINSTANCE hInstance)
@@ -631,4 +637,183 @@ RECT rcAll;
 		this->VicCycle.GetRects(hdc, NULL, NULL, &rcAll);
 	}
 	return S_OK;
+}
+
+HRESULT CDisassemblyReg::AdviseEvents()
+{
+	HRESULT hr;
+	HSink hs;
+	hr = S_OK;
+	do
+	{
+		hs = m_RegBuffer.PC.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_RegBuffer.A.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_RegBuffer.X.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_RegBuffer.Y.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_RegBuffer.SR.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_RegBuffer.SP.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_RegBuffer.Ddr.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hs = m_RegBuffer.Data.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hr = S_OK;
+	} while (false);
+	return hr;
+}
+
+void CDisassemblyReg::UnadviseEvents()
+{
+	((CDisassemblyReg_EventSink_OnTextChanged *)this)->UnadviseAll();
+}
+
+void CDisassemblyReg::OnTextChanged(void *sender, EdLnTextChangedEventArgs& e)
+{
+int v = 0;
+HRESULT hr;
+EdLn *ped = e.pEdLnControl;
+bit16 address;
+bit8 dataByte;
+
+	if (ped == NULL)
+		return ;
+
+	int id = ped->GetControlID();
+	if (id == m_RegBuffer.CTRLID_PC)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			EventArgs regPCChangedEventArgs;
+			address = (bit16)v;
+			this->m_cpu->SetPC(address);
+			if (this->m_cpu->GetCpuId() == 0)
+			{
+				this->m_monitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
+			}
+			else
+			{
+				this->m_monitorCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
+			}
+		}
+	}
+	else if (id == m_RegBuffer.CTRLID_A)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->m_cpu->SetA(dataByte);
+		}
+	}
+	else if (id == m_RegBuffer.CTRLID_X)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->m_cpu->SetX(dataByte);
+		}
+	}
+	else if (id == m_RegBuffer.CTRLID_Y)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->m_cpu->SetY(dataByte);
+		}
+	}
+	else if (id == m_RegBuffer.CTRLID_SR)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->m_cpu->SetSR(dataByte);
+		}
+	}
+	else if (id == m_RegBuffer.CTRLID_SP)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->m_cpu->SetSP(dataByte);
+		}
+	}
+	else if (id == m_RegBuffer.CTRLID_DDR)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->m_cpu->SetDdr(dataByte);
+			EventArgs regPCChangedEventArgs;
+			if (this->m_cpu->GetCpuId() == 0)
+			{
+				this->m_monitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
+			}
+			else
+			{
+				this->m_monitorCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
+			}
+		}
+	}
+	else if (id == m_RegBuffer.CTRLID_DATA)
+	{
+		hr = ped->GetValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->m_cpu->SetData(dataByte);
+			EventArgs regPCChangedEventArgs;
+			if (this->m_cpu->GetCpuId() == 0)
+			{
+				this->m_monitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
+			}
+			else
+			{
+				this->m_monitorCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
+			}
+		}
+	}
+
 }

@@ -1,9 +1,24 @@
 #ifndef __DISSASSEMBLYREG_H__
 #define __DISSASSEMBLYREG_H__
 
+class CDisassemblyReg_EventSink_OnTextChanged : public EventSink<EdLnTextChangedEventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EdLnTextChangedEventArgs& e)
+	{
+		OnTextChanged(sender, e);
+		return 0;
+	}
+	virtual void OnTextChanged(void *sender, EdLnTextChangedEventArgs& e) =0;
+};
+
+class CDisassemblyReg_EventSink : 
+	public CDisassemblyReg_EventSink_OnTextChanged
+{
+};
 
 
-class CDisassemblyReg : public CVirWindow
+class CDisassemblyReg : public CVirWindow, public CDisassemblyReg_EventSink
 {
 public:
 	static const int MARGIN_TOP = 0;
@@ -99,6 +114,11 @@ private:
 
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	void OnTextChanged(void *sender, EdLnTextChangedEventArgs& e);
+
+	HRESULT AdviseEvents();
+	void UnadviseEvents();
 };
 
 #endif

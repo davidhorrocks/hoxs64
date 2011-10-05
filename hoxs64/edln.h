@@ -1,6 +1,16 @@
 #ifndef __EDLN_H__
 #define __EDLN_H__
 
+
+class EdLn;
+class EdLnTextChangedEventArgs : public EventArgs
+{
+public:
+	EdLnTextChangedEventArgs(EdLn* pEdLnControl);
+
+	EdLn* pEdLnControl;
+};
+
 class EdLn
 {
 public:
@@ -12,6 +22,8 @@ public:
 		Hex,
 		Dec,
 	};
+	EventSource<EdLnTextChangedEventArgs> EsOnTextChanged;
+
 	bool IsFocused;
 	EdLn();
 	virtual ~EdLn();	

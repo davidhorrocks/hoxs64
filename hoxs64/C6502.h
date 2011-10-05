@@ -527,6 +527,14 @@ public:
 	virtual bool SetExecute(bit16 address, unsigned long count);
 	virtual void SetBreakOnInterruptTaken();
 	virtual void ClearBreakOnInterruptTaken();
+	virtual void SetPC(bit16 address);
+	virtual void SetA(bit8 v);
+	virtual void SetX(bit8 v);
+	virtual void SetY(bit8 v);
+	virtual void SetSR(bit8 v);
+	virtual void SetSP(bit8 v);
+	virtual void SetDdr(bit8 v);
+	virtual void SetData(bit8 v);
 
 	//IRegister
 	virtual void Reset(ICLK sysclock);

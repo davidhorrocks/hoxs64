@@ -37,6 +37,7 @@ CDisassemblyChild::~CDisassemblyChild()
 
 void CDisassemblyChild::Cleanup()
 {
+	UnadviseEvents();
 }
 
 HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
@@ -44,7 +45,12 @@ HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorComm
 HRESULT hr;
 	m_pParent = parent;
 	m_cpu = cpu;
+	m_monitorCommand = monitorCommand;
 	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, cpu, vic, hFont);
+	if (FAILED(hr))
+		return hr;
+
+	hr = AdviseEvents();
 	if (FAILED(hr))
 		return hr;
 	return S_OK;
@@ -451,4 +457,35 @@ void CDisassemblyChild::GetMinWindowSize(int &w, int &h)
 
 	w += w2;
 	h += h2;
+}
+
+void CDisassemblyChild::OnCpuRegPCChanged(void *sender, EventArgs& e)
+{
+	UpdateDisplay(false);
+}
+
+HRESULT CDisassemblyChild::AdviseEvents()
+{
+	HRESULT hr;
+	HSink hs;
+	hr = S_OK;
+	do
+	{
+		if (this->m_cpu->GetCpuId() == 0)
+			hs = this->m_monitorCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
+		else
+			hs = this->m_monitorCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+		hr = S_OK;
+	} while (false);
+	return hr;
+}
+
+void CDisassemblyChild::UnadviseEvents()
+{
+	((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this)->UnadviseAll();
 }

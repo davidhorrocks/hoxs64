@@ -42,6 +42,8 @@ public:
 	virtual bit8 MonReadByte(bit16 address, int memorymap);
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap);
 	virtual void GetCpuState(CPUState& state);
+	virtual void SetDdr(bit8 v);
+	virtual void SetData(bit8 v);
 
 	void AddClockDelay();
 private:
