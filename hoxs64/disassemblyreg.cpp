@@ -212,9 +212,12 @@ HRESULT hr;
 
 bool CDisassemblyReg::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	m_RegBuffer.ProcessChar(wParam, lParam);
+	return m_RegBuffer.ProcessChar(wParam, lParam);
+}
 
-	return true;
+bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return m_RegBuffer.ProcessKeyDown(wParam, lParam);
 }
 
 LRESULT CDisassemblyReg::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -255,6 +258,11 @@ BOOL br;
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_CHAR:
 		if (!OnChar(hWnd, uMsg, wParam, lParam))
+			return 0;
+		else
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_KEYDOWN:
+		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
 			return 0;
 		else
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -495,19 +503,30 @@ void CDisassemblyReg::RegLineBuffer::ClearCaret(HWND hWnd)
 	m_iShowCaretCount = 0;
 }
 
-void CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
+bool CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
 {
 	if (CurrentControlIndex < 0 || CurrentControlIndex > Controls.Count() - 1)
-		return;
+		return false;
 	EdLn *t = Controls[CurrentControlIndex];
 	
 	if (t->GetIsEditable())
 	{
-		//if (wParam >= '0' && wParam <= '9')
-		{
-			t->CharEdit((TCHAR)wParam);
-		}
+		t->CharEdit((TCHAR)wParam);
 	}
+	return true;
+}
+
+bool CDisassemblyReg::RegLineBuffer::ProcessKeyDown(WPARAM wParam, LPARAM lParam)
+{
+	if (CurrentControlIndex < 0 || CurrentControlIndex > Controls.Count() - 1)
+		return false;
+	EdLn *t = Controls[CurrentControlIndex];
+	
+	if (t->GetIsEditable())
+	{
+		t->KeyDown((int)wParam);
+	}
+	return true;
 }
 
 HRESULT CDisassemblyReg::RegLineBuffer::Init(HWND hWnd, HDC hdc, HFONT hFont, int x, int y, int cpuid)

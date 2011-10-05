@@ -359,6 +359,33 @@ bool bChanged = false;
 	}
 }
 
+void EdLn::KeyDown(int keycode)
+{
+	if (keycode == VK_LEFT)
+	{
+		if (m_iInsertionPoint > 0)
+		{
+			m_iInsertionPoint--;
+		}
+	}
+	else if (keycode == VK_RIGHT)
+	{
+		if (m_iInsertionPoint < m_iNumChars - 1)
+		{
+			m_iInsertionPoint++;
+		}
+	}
+	else if (keycode == VK_HOME)
+	{
+		m_iInsertionPoint = 0;
+	}
+	else if (keycode == VK_END)
+	{
+		m_iInsertionPoint = m_iNumChars - 1;
+	}
+	Refresh();
+}
+
 void EdLn::Refresh()
 {
 	HDC hdc = GetDC(m_hWnd);

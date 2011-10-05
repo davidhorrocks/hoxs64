@@ -50,6 +50,7 @@ public:
 	size_t GetString(TCHAR buffer[], int bufferSize);
 	void SetString(const TCHAR *data, int count);
 	void CharEdit(TCHAR c);
+	void KeyDown(int keycode);
 	void UpdateCaretPosition(HDC hdc);
 	void Draw(HDC hdc);
 	bool IsHitAll(int x, int y);

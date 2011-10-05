@@ -69,7 +69,8 @@ public:
 
 		void UpdateCaret(HWND hWnd, HDC hdc);
 		void ClearCaret(HWND hWnd);
-		void ProcessChar(WPARAM wParam, LPARAM lParam);
+		bool ProcessChar(WPARAM wParam, LPARAM lParam);
+		bool ProcessKeyDown(WPARAM wParam, LPARAM lParam);
 
 		TEXTMETRIC TextMetric;
 
@@ -114,6 +115,7 @@ private:
 
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	void OnTextChanged(void *sender, EdLnTextChangedEventArgs& e);
 
