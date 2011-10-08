@@ -37,10 +37,12 @@ CDisassemblyReg::CDisassemblyReg()
 
 CDisassemblyReg::~CDisassemblyReg()
 {
+	Cleanup();
 }
 
 HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
 {
+	Cleanup();
 	HRESULT hr;
 	m_pParent = parent;
 	this->m_cpu = cpu;
@@ -48,10 +50,6 @@ HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorCommand *monitorComman
 	this->m_monitorCommand = monitorCommand;
 	this->m_vic = vic;
 	hr = this->m_mon.Init(cpu, vic);
-	if (FAILED(hr))
-		return hr;
-
-	hr = AdviseEvents();
 	if (FAILED(hr))
 		return hr;
 
@@ -172,40 +170,20 @@ HRESULT hr;
 	hr = m_RegBuffer.Init(hWnd, m_hdc, m_hFont, x, y, m_cpu->GetCpuId());
 	if (FAILED(hr))
 		return hr;
+
+	hr = AdviseEvents();
+	if (FAILED(hr))
+		return hr;
+
 	return S_OK;
 }
 
 bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-int x;
-int y;
-HRESULT hr;
-	x = GET_X_LPARAM(lParam);
-	y = GET_Y_LPARAM(lParam);
-	int c = (int)m_RegBuffer.Controls.Count();
-	bool bFound = false;
-	int iCellIndex = 0;
-	for(int i = 0; i<c ; i++)
-	{
-		EdLn *p = m_RegBuffer.Controls[i];
-		if (p->IsHitAll(x, y) && p->GetIsEditable() && p->GetIsVisible())
-		{
-			bFound = true;
-			m_RegBuffer.SelectControl(i);
-			hr = p->GetCharIndex(m_hdc, x, y, &iCellIndex, NULL);
-			if (FAILED(hr))
-				break;
-			p->SetInsertionPoint(iCellIndex);
-			m_RegBuffer.UpdateCaret(hWnd, m_hdc);
-		}
-	}
+	m_RegBuffer.ProcessLButtonDown(wParam, lParam);
 	if (hWnd != ::GetFocus())
 	{
 		::SetFocus(hWnd);
-	}
-	else
-	{
-
 	}
 	return true;
 }
@@ -448,17 +426,86 @@ void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
 {
 	DeSelectControl(CurrentControlIndex);
-	if (i >=0 && i < this->Controls.Count())
+	if (i >= 0 && i < this->Controls.Count())
 	{
-		this->Controls[i]->IsFocused = true;
+		EdLn *p = this->Controls[i];
+		p->IsFocused = true;
 		this->CurrentControlIndex = i;
 	}
 }
 
 void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
 {
-	if (CurrentControlIndex >= 0 && CurrentControlIndex < this->Controls.Count())
-		this->Controls[CurrentControlIndex]->IsFocused = false;
+	if (i >= 0 && i < this->Controls.Count())
+		this->Controls[i]->IsFocused = false;
+}
+
+int CDisassemblyReg::RegLineBuffer::GetTabFirstControlIndex()
+{
+int i;
+	if (Controls.Count()<=0)
+	{
+		return -1;
+	}
+	bool bFound1st = false;
+	int tabNextIndex;
+	int controlIndex = -1;
+	for (i = 0; i < Controls.Count() ; i++)
+	{
+		EdLn *p = this->Controls[i];
+		if (p->GetIsEditable() && p->GetIsVisible())
+		{
+			if (!bFound1st)
+			{
+				bFound1st = true;
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+			else if (p->m_iTabIndex < tabNextIndex)
+			{
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+		}
+	}
+	return controlIndex;
+}
+
+int CDisassemblyReg::RegLineBuffer::GetTabNextControlIndex()
+{
+int i;
+	if (Controls.Count()<=0)
+	{
+		return -1;
+	}
+	if (CurrentControlIndex < 0 || CurrentControlIndex >= Controls.Count())
+		return GetTabFirstControlIndex();
+
+	i = CurrentControlIndex;
+	EdLn *p = this->Controls[i];
+	int tabCurrentIndex = p->m_iTabIndex;
+	int tabNextIndex = tabCurrentIndex;
+	int controlIndex = -1;
+	bool bFound1st = false;
+	for (i = 0; i < Controls.Count() ; i++)
+	{
+		p = this->Controls[i];
+		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex > tabCurrentIndex)
+		{
+			if (!bFound1st)
+			{
+				bFound1st = true;
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+			else if (p->m_iTabIndex < tabNextIndex)
+			{
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+		}
+	}
+	return controlIndex;
 }
 
 void CDisassemblyReg::RegLineBuffer::UpdateCaret(HWND hWnd, HDC hdc)
@@ -529,12 +576,43 @@ bool CDisassemblyReg::RegLineBuffer::ProcessKeyDown(WPARAM wParam, LPARAM lParam
 	return true;
 }
 
+bool CDisassemblyReg::RegLineBuffer::ProcessLButtonDown(WPARAM wParam, LPARAM lParam)
+{
+int x;
+int y;
+HRESULT hr;
+	x = GET_X_LPARAM(lParam);
+	y = GET_Y_LPARAM(lParam);
+	int c = (int)this->Controls.Count();
+	bool bFound = false;
+	int iCellIndex = 0;
+	HWND hWnd = m_hWndParent;
+	for(int i = 0; i<c ; i++)
+	{
+		EdLn *p = this->Controls[i];
+		if (p->IsHitAll(x, y) && p->GetIsEditable() && p->GetIsVisible())
+		{
+			bFound = true;
+			HDC hdc = GetDC(hWnd);
+			this->SelectControl(i);
+			hr = p->GetCharIndex(hdc, x, y, &iCellIndex, NULL);
+			if (FAILED(hr))
+				break;
+			p->SetInsertionPoint(iCellIndex);
+			this->UpdateCaret(hWnd, hdc);
+		}
+	}
+	return true;
+}
+
+
 HRESULT CDisassemblyReg::RegLineBuffer::Init(HWND hWnd, HDC hdc, HFONT hFont, int x, int y, int cpuid)
 {
 HRESULT hr;
 int prevMapMode = 0;
 HFONT prevFont = NULL;
 
+	this->m_hWndParent = hWnd;
 	ZeroMemory(&TextMetric, sizeof(TextMetric));
 	prevMapMode = SetMapMode(hdc, MM_TEXT);
 	if (prevMapMode)
@@ -550,34 +628,34 @@ HFONT prevFont = NULL;
 	if (prevMapMode)
 		SetMapMode(hdc, prevMapMode);
 
-	hr = PC.Init(hWnd, CTRLID_PC, hFont, TEXT("PC"), EdLn::HexAddress, true, true, 4);
+	hr = PC.Init(hWnd, CTRLID_PC, 1, hFont, TEXT("PC"), EdLn::HexAddress, true, true, 4);
 	if (FAILED(hr))
 		return hr;
-	hr = A.Init(hWnd, CTRLID_A, hFont, TEXT("A"), EdLn::HexByte, true, true, 2);
+	hr = A.Init(hWnd, CTRLID_A, 2, hFont, TEXT("A"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = X.Init(hWnd, CTRLID_X, hFont, TEXT("X"), EdLn::HexByte, true, true, 2);
+	hr = X.Init(hWnd, CTRLID_X, 3, hFont, TEXT("X"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Y.Init(hWnd, CTRLID_Y, hFont, TEXT("Y"), EdLn::HexByte, true, true, 2);
+	hr = Y.Init(hWnd, CTRLID_Y, 4, hFont, TEXT("Y"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = SR.Init(hWnd, CTRLID_SR, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, true, 8);
+	hr = SR.Init(hWnd, CTRLID_SR, 5, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, true, 8);
 	if (FAILED(hr))
 		return hr;
-	hr = SP.Init(hWnd, CTRLID_SP, hFont, TEXT("SP"), EdLn::HexByte, true, true, 2);
+	hr = SP.Init(hWnd, CTRLID_SP, 6, hFont, TEXT("SP"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Ddr.Init(hWnd, CTRLID_DDR, hFont, TEXT("00"), EdLn::HexByte, cpuid == 0, true, 2);
+	hr = Ddr.Init(hWnd, CTRLID_DDR, 7, hFont, TEXT("00"), EdLn::HexByte, cpuid == 0, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Data.Init(hWnd, CTRLID_DATA, hFont, TEXT("01"), EdLn::HexByte, cpuid == 0, true, 2);
+	hr = Data.Init(hWnd, CTRLID_DATA, 8, hFont, TEXT("01"), EdLn::HexByte, cpuid == 0, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = VicLine.Init(hWnd, CTRLID_VICLINE, hFont, TEXT("LINE"), EdLn::Hex, cpuid == 0, false, 3);
+	hr = VicLine.Init(hWnd, CTRLID_VICLINE, 9, hFont, TEXT("LINE"), EdLn::Hex, cpuid == 0, false, 3);
 	if (FAILED(hr))
 		return hr;
-	hr = VicCycle.Init(hWnd, CTRLID_VICCYCLE, hFont, TEXT("CYC"), EdLn::Dec, cpuid == 0, false, 2);
+	hr = VicCycle.Init(hWnd, CTRLID_VICCYCLE, 10, hFont, TEXT("CYC"), EdLn::Dec, cpuid == 0, false, 2);
 	if (FAILED(hr))
 		return hr;
 	
@@ -660,67 +738,82 @@ RECT rcAll;
 
 HRESULT CDisassemblyReg::AdviseEvents()
 {
-	HRESULT hr;
+	//HRESULT hr = S_OK;
 	HSink hs;
-	hr = S_OK;
-	do
+	for (int i=0; i<m_RegBuffer.Controls.Count(); i++)
 	{
-		hs = m_RegBuffer.PC.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		EdLn *p = m_RegBuffer.Controls[i];
+		hs = p->EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
 		if (hs == NULL)
 		{
-			hr = E_FAIL;
-			break;
+			return E_FAIL;
 		}
-		hs = m_RegBuffer.A.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+		hs = p->EsOnTabControl.Advise((CDisassemblyReg_EventSink_OnTabControl *)this);
 		if (hs == NULL)
 		{
-			hr = E_FAIL;
-			break;
+			return E_FAIL;
 		}
-		hs = m_RegBuffer.X.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-		if (hs == NULL)
-		{
-			hr = E_FAIL;
-			break;
-		}
-		hs = m_RegBuffer.Y.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-		if (hs == NULL)
-		{
-			hr = E_FAIL;
-			break;
-		}
-		hs = m_RegBuffer.SR.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-		if (hs == NULL)
-		{
-			hr = E_FAIL;
-			break;
-		}
-		hs = m_RegBuffer.SP.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-		if (hs == NULL)
-		{
-			hr = E_FAIL;
-			break;
-		}
-		hs = m_RegBuffer.Ddr.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-		if (hs == NULL)
-		{
-			hr = E_FAIL;
-			break;
-		}
-		hs = m_RegBuffer.Data.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-		if (hs == NULL)
-		{
-			hr = E_FAIL;
-			break;
-		}
-		hr = S_OK;
-	} while (false);
-	return hr;
+	}
+	return S_OK;
+	//do
+	//{
+	//	hs = m_RegBuffer.PC.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hs = m_RegBuffer.A.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hs = m_RegBuffer.X.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hs = m_RegBuffer.Y.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hs = m_RegBuffer.SR.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hs = m_RegBuffer.SP.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hs = m_RegBuffer.Ddr.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hs = m_RegBuffer.Data.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
+	//	if (hs == NULL)
+	//	{
+	//		hr = E_FAIL;
+	//		break;
+	//	}
+	//	hr = S_OK;
+	//} while (false);
+	//return hr;
 }
 
 void CDisassemblyReg::UnadviseEvents()
 {
 	((CDisassemblyReg_EventSink_OnTextChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnTabControl *)this)->UnadviseAll();
 }
 
 void CDisassemblyReg::OnTextChanged(void *sender, EdLnTextChangedEventArgs& e)
@@ -834,5 +927,33 @@ bit8 dataByte;
 			}
 		}
 	}
-
 }
+
+void CDisassemblyReg::OnTabControl(void *sender, EdLnTabControlEventArgs& e)
+{
+int i;
+	i = this->m_RegBuffer.GetTabNextControlIndex();
+	if (i >= 0)
+	{
+		HDC hdc = GetDC(m_hWnd);
+		if (hdc != NULL)
+		{
+			this->m_RegBuffer.SelectControl(i);
+			this->m_RegBuffer.UpdateCaret(m_hWnd, hdc);
+		}
+	}
+	else
+	{
+		i = this->m_RegBuffer.GetTabFirstControlIndex();
+		if (i >= 0)
+		{
+			HDC hdc = GetDC(m_hWnd);
+			if (hdc != NULL)
+			{
+				this->m_RegBuffer.SelectControl(i);
+				this->m_RegBuffer.UpdateCaret(m_hWnd, hdc);
+			}
+		}
+	}
+}
+

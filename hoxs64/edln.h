@@ -11,6 +11,15 @@ public:
 	EdLn* pEdLnControl;
 };
 
+class EdLnTabControlEventArgs : public EventArgs
+{
+public:
+	EdLnTabControlEventArgs(EdLn* pEdLnControl, bool isNext);
+
+	EdLn* pEdLnControl;
+	bool IsNext;
+};
+
 class EdLn
 {
 public:
@@ -23,12 +32,13 @@ public:
 		Dec,
 	};
 	EventSource<EdLnTextChangedEventArgs> EsOnTextChanged;
+	EventSource<EdLnTabControlEventArgs> EsOnTabControl;
 
 	bool IsFocused;
 	EdLn();
 	virtual ~EdLn();	
 
-	HRESULT Init(HWND hWnd, int iControlID, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars);
+	HRESULT Init(HWND hWnd, int iControlID, int iTabIndex, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars);
 	void Cleanup();
 
 	HRESULT CreateDefaultHitRegion(HDC hdc);
@@ -57,6 +67,8 @@ public:
 	bool IsHitEdit(int x, int y);
 	HRESULT GetCharIndex(HDC hdc, int x, int y, int *pOutCellIndex, POINT *pPos);
 	HRESULT GetCharPoint(HDC hdc, int cellIndex, int *pOutCellIndex, POINT *pPos);
+
+	int m_iTabIndex;
 protected:
 
 private:

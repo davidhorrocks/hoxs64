@@ -12,8 +12,20 @@ protected:
 	virtual void OnTextChanged(void *sender, EdLnTextChangedEventArgs& e) =0;
 };
 
+class CDisassemblyReg_EventSink_OnTabControl : public EventSink<EdLnTabControlEventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EdLnTabControlEventArgs& e)
+	{
+		OnTabControl(sender, e);
+		return 0;
+	}
+	virtual void OnTabControl(void *sender, EdLnTabControlEventArgs& e) =0;
+};
+
 class CDisassemblyReg_EventSink : 
-	public CDisassemblyReg_EventSink_OnTextChanged
+	public CDisassemblyReg_EventSink_OnTextChanged,
+	public CDisassemblyReg_EventSink_OnTabControl
 {
 };
 
@@ -30,8 +42,9 @@ public:
 	static const int PADDING_TOP = 4;
 	static const int PADDING_BOTTOM = 4;
 
-	struct RegLineBuffer
+	class RegLineBuffer
 	{
+	public:
 		enum tagControlID
 		{
 			CTRLID_PC=1,
@@ -71,11 +84,15 @@ public:
 		void ClearCaret(HWND hWnd);
 		bool ProcessChar(WPARAM wParam, LPARAM lParam);
 		bool ProcessKeyDown(WPARAM wParam, LPARAM lParam);
+		bool ProcessLButtonDown(WPARAM wParam, LPARAM lParam);
+
+		int GetTabNextControlIndex();
+		int GetTabFirstControlIndex();
 
 		TEXTMETRIC TextMetric;
 
 		int m_iShowCaretCount;
-		HWND hWndParent;
+		HWND m_hWndParent;
 	};
 	CDisassemblyReg();
 	virtual ~CDisassemblyReg();
@@ -116,8 +133,8 @@ private:
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 	void OnTextChanged(void *sender, EdLnTextChangedEventArgs& e);
+	void OnTabControl(void *sender, EdLnTabControlEventArgs& e);
 
 	HRESULT AdviseEvents();
 	void UnadviseEvents();

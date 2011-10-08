@@ -34,6 +34,12 @@ EdLnTextChangedEventArgs::EdLnTextChangedEventArgs(EdLn* pEdLnControl)
 	this->pEdLnControl = pEdLnControl;
 }
 
+EdLnTabControlEventArgs::EdLnTabControlEventArgs(EdLn* pEdLnControl, bool isNext)
+{
+	this->pEdLnControl = pEdLnControl;
+	this->IsNext = isNext;
+}
+
 
 EdLn::EdLn()
 {
@@ -79,7 +85,7 @@ void EdLn::Cleanup()
 	}
 }
 
-HRESULT EdLn::Init(HWND hWnd, int iControlID, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars)
+HRESULT EdLn::Init(HWND hWnd, int iControlID, int iTabIndex, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars)
 {
 HRESULT hr = E_FAIL;
 	Cleanup();
@@ -91,6 +97,7 @@ HRESULT hr = E_FAIL;
 	this->m_hFont = hFont;
 	this->m_hWnd = hWnd;
 	this->m_iControlID = iControlID;
+	this->m_iTabIndex = iTabIndex;
 
 	int m = 1;
 	switch (m_style)
@@ -361,6 +368,12 @@ bool bChanged = false;
 
 void EdLn::KeyDown(int keycode)
 {
+	if (keycode == VK_TAB)
+	{
+		EdLnTabControlEventArgs eTabControl(this, true);
+		EsOnTabControl.Raise(this, eTabControl);
+	}
+	else
 	if (keycode == VK_LEFT)
 	{
 		if (m_iInsertionPoint > 0)
