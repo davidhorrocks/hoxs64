@@ -23,12 +23,23 @@ protected:
 	virtual void OnTabControl(void *sender, EdLnTabControlEventArgs& e) =0;
 };
 
-class CDisassemblyReg_EventSink : 
-	public CDisassemblyReg_EventSink_OnTextChanged,
-	public CDisassemblyReg_EventSink_OnTabControl
+class CDisassemblyReg_EventSink_OnEscControl : public EventSink<EventArgs>
 {
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnEscControl(sender, e);
+		return 0;
+	}
+	virtual void OnEscControl(void *sender, EventArgs& e) =0;
 };
 
+class CDisassemblyReg_EventSink : 
+	public CDisassemblyReg_EventSink_OnTextChanged,
+	public CDisassemblyReg_EventSink_OnTabControl,
+	public CDisassemblyReg_EventSink_OnEscControl
+{
+};
 
 class CDisassemblyReg : public CVirWindow, public CDisassemblyReg_EventSink
 {
@@ -137,6 +148,7 @@ private:
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnTextChanged(void *sender, EdLnTextChangedEventArgs& e);
 	void OnTabControl(void *sender, EdLnTabControlEventArgs& e);
+	void OnEscControl(void *sender, EventArgs& e);
 
 	HRESULT AdviseEvents();
 	void UnadviseEvents();

@@ -33,6 +33,7 @@ public:
 	};
 	EventSource<EdLnTextChangedEventArgs> EsOnTextChanged;
 	EventSource<EdLnTabControlEventArgs> EsOnTabControl;
+	EventSource<EventArgs> EsOnEscControl;
 
 	bool IsFocused;
 	EdLn();

@@ -398,6 +398,12 @@ SHORT nVirtKey;
 	{
 		End();
 	}
+	else if (keycode == VK_ESCAPE)
+	{
+		IsFocused = false;
+		EventArgs evt;
+		EsOnEscControl.Raise(this, evt); 
+	}
 	Refresh();
 }
 
@@ -447,7 +453,7 @@ HRESULT hr;
 	dch.UseMapMode(MM_TEXT);
 	dch.UseFont(m_hFont);
 
-	if (!IsHitEdit(x, y))
+	if (!IsHitAll(x, y))
 		return E_FAIL;
 
 	hr = GetRects(hdc, NULL, &rcEdit, NULL);

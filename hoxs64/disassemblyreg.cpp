@@ -665,10 +665,10 @@ HRESULT hr;
 		if (p->IsHitAll(x, y) && p->GetIsEditable() && p->GetIsVisible())
 		{
 			bFound = true;
-			this->SelectControl(i);
 			hr = p->GetCharIndex(hdc, x, y, &iCellIndex, NULL);
 			if (FAILED(hr))
 				break;
+			this->SelectControl(i);
 			p->SetInsertionPoint(iCellIndex);
 			this->UpdateCaret(hWnd, hdc);
 			break;
@@ -826,6 +826,11 @@ HRESULT CDisassemblyReg::AdviseEvents()
 			return E_FAIL;
 		}
 		hs = p->EsOnTabControl.Advise((CDisassemblyReg_EventSink_OnTabControl *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+		hs = p->EsOnEscControl.Advise((CDisassemblyReg_EventSink_OnEscControl *)this);
 		if (hs == NULL)
 		{
 			return E_FAIL;
@@ -1042,3 +1047,9 @@ int i;
 	}
 }
 
+void CDisassemblyReg::OnEscControl(void *sender, EventArgs& e)
+{
+	EdLn *p = (EdLn*)sender;
+	p->IsFocused  = false;
+	m_RegBuffer.UpdateCaret(m_hWnd, m_hdc);
+}
