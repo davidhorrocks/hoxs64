@@ -1040,6 +1040,8 @@ int i;
 			HDC hdc = GetDC(m_hWnd);
 			if (hdc != NULL)
 			{
+				EdLn *p = this->m_RegBuffer.Controls[i];
+				p->Home();
 				this->m_RegBuffer.SelectControl(i);
 				this->m_RegBuffer.UpdateCaret(m_hWnd, hdc);
 			}
