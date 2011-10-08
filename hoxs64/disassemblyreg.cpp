@@ -195,7 +195,22 @@ bool CDisassemblyReg::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	return m_RegBuffer.ProcessKeyDown(wParam, lParam);
+	EdLn *p = m_RegBuffer.GetFocusedControl();
+	if (p != NULL)
+		return m_RegBuffer.ProcessKeyDown(wParam, lParam);
+	if (wParam == VK_TAB)
+	{
+		int i = m_RegBuffer.GetTabFirstControlIndex();
+		if (i >= 0)
+		{
+			EdLn *p = this->m_RegBuffer.Controls[i];
+			p->Home();
+			this->m_RegBuffer.SelectControl(i);
+			this->m_RegBuffer.UpdateCaret(m_hWnd, m_hdc);
+		}
+		return true;
+	}
+	return false;
 }
 
 LRESULT CDisassemblyReg::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -438,6 +453,16 @@ void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
 {
 	if (i >= 0 && i < this->Controls.Count())
 		this->Controls[i]->IsFocused = false;
+}
+
+EdLn *CDisassemblyReg::RegLineBuffer::GetFocusedControl()
+{
+	if (CurrentControlIndex < 0 || CurrentControlIndex >= Controls.Count())
+		return NULL;
+	EdLn *p = Controls[CurrentControlIndex];
+	if (!p->IsFocused)
+		return NULL;
+	return p;
 }
 
 int CDisassemblyReg::RegLineBuffer::GetTabFirstControlIndex()

@@ -97,6 +97,7 @@ public:
 		bool ProcessKeyDown(WPARAM wParam, LPARAM lParam);
 		bool ProcessLButtonDown(WPARAM wParam, LPARAM lParam);
 
+		EdLn *GetFocusedControl();
 		int GetTabFirstControlIndex();
 		int GetTabNextControlIndex();
 		int GetTabPreviousControlIndex();
