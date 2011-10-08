@@ -392,13 +392,23 @@ SHORT nVirtKey;
 	}
 	else if (keycode == VK_HOME)
 	{
-		m_iInsertionPoint = 0;
+		Home();
 	}
 	else if (keycode == VK_END)
 	{
-		m_iInsertionPoint = m_iNumChars - 1;
+		End();
 	}
 	Refresh();
+}
+
+void EdLn::Home()
+{
+	m_iInsertionPoint = 0;
+}
+
+void EdLn::End()
+{
+	m_iInsertionPoint = m_iNumChars - 1;
 }
 
 void EdLn::Refresh()
@@ -416,7 +426,10 @@ void EdLn::Refresh()
 			UpdateCaretPosition(hdc);
 		}
 		Draw(hdc);
-		ShowCaret(m_hWnd);
+		if (IsFocused)
+		{
+			ShowCaret(m_hWnd);
+		}
 
 		ReleaseDC(m_hWnd, hdc);
 	}

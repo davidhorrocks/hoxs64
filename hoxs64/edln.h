@@ -43,6 +43,8 @@ public:
 
 	HRESULT CreateDefaultHitRegion(HDC hdc);
 	
+	void Home();
+	void End();
 	void Refresh();
 	HRESULT GetRects(HDC hdc, RECT *prcCaption, RECT *prcEdit, RECT *prcAll);
 	HRESULT SetPos(int x, int y);

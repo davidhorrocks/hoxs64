@@ -624,7 +624,7 @@ bool CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
 		return false;
 	EdLn *t = Controls[CurrentControlIndex];
 	
-	if (t->GetIsEditable())
+	if (t->IsFocused && t->GetIsEditable())
 	{
 		t->CharEdit((TCHAR)wParam);
 	}
@@ -637,10 +637,11 @@ bool CDisassemblyReg::RegLineBuffer::ProcessKeyDown(WPARAM wParam, LPARAM lParam
 		return false;
 	EdLn *t = Controls[CurrentControlIndex];
 	
-	if (t->GetIsEditable())
+	if (t->IsFocused && t->GetIsEditable())
 	{
 		t->KeyDown((int)wParam);
 	}
+	
 	return true;
 }
 
@@ -655,20 +656,28 @@ HRESULT hr;
 	bool bFound = false;
 	int iCellIndex = 0;
 	HWND hWnd = m_hWndParent;
+	HDC hdc = GetDC(hWnd);
+	if (hdc==NULL)
+		return false;
 	for(int i = 0; i<c ; i++)
 	{
 		EdLn *p = this->Controls[i];
 		if (p->IsHitAll(x, y) && p->GetIsEditable() && p->GetIsVisible())
 		{
 			bFound = true;
-			HDC hdc = GetDC(hWnd);
 			this->SelectControl(i);
 			hr = p->GetCharIndex(hdc, x, y, &iCellIndex, NULL);
 			if (FAILED(hr))
 				break;
 			p->SetInsertionPoint(iCellIndex);
 			this->UpdateCaret(hWnd, hdc);
+			break;
 		}
+	}
+	if (!bFound)
+	{
+		this->DeSelectControl(this->CurrentControlIndex);
+			this->UpdateCaret(hWnd, hdc);
 	}
 	return true;
 }
@@ -1009,6 +1018,8 @@ int i;
 		HDC hdc = GetDC(m_hWnd);
 		if (hdc != NULL)
 		{
+			EdLn *p = this->m_RegBuffer.Controls[i];
+			p->Home();
 			this->m_RegBuffer.SelectControl(i);
 			this->m_RegBuffer.UpdateCaret(m_hWnd, hdc);
 		}
