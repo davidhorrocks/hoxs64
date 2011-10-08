@@ -687,7 +687,7 @@ HRESULT hr;
 	for(int i = 0; i<c ; i++)
 	{
 		EdLn *p = this->Controls[i];
-		if (p->IsHitAll(x, y) && p->GetIsEditable() && p->GetIsVisible())
+		if (p->IsHitEdit(x, y) && p->GetIsEditable() && p->GetIsVisible())
 		{
 			bFound = true;
 			hr = p->GetCharIndex(hdc, x, y, &iCellIndex, NULL);
