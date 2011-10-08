@@ -471,6 +471,37 @@ int i;
 	return controlIndex;
 }
 
+int CDisassemblyReg::RegLineBuffer::GetTabLastControlIndex()
+{
+int i;
+	if (Controls.Count()<=0)
+	{
+		return -1;
+	}
+	bool bFound1st = false;
+	int tabNextIndex;
+	int controlIndex = -1;
+	for (i = 0; i < Controls.Count() ; i++)
+	{
+		EdLn *p = this->Controls[i];
+		if (p->GetIsEditable() && p->GetIsVisible())
+		{
+			if (!bFound1st)
+			{
+				bFound1st = true;
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+			else if (p->m_iTabIndex > tabNextIndex)
+			{
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+		}
+	}
+	return controlIndex;
+}
+
 int CDisassemblyReg::RegLineBuffer::GetTabNextControlIndex()
 {
 int i;
@@ -499,6 +530,43 @@ int i;
 				controlIndex = i;
 			}
 			else if (p->m_iTabIndex < tabNextIndex)
+			{
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+		}
+	}
+	return controlIndex;
+}
+
+int CDisassemblyReg::RegLineBuffer::GetTabPreviousControlIndex()
+{
+int i;
+	if (Controls.Count()<=0)
+	{
+		return -1;
+	}
+	if (CurrentControlIndex < 0 || CurrentControlIndex >= Controls.Count())
+		return GetTabLastControlIndex();
+
+	i = CurrentControlIndex;
+	EdLn *p = this->Controls[i];
+	int tabCurrentIndex = p->m_iTabIndex;
+	int tabNextIndex = tabCurrentIndex;
+	int controlIndex = -1;
+	bool bFound1st = false;
+	for (i = 0; i < Controls.Count() ; i++)
+	{
+		p = this->Controls[i];
+		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex < tabCurrentIndex)
+		{
+			if (!bFound1st)
+			{
+				bFound1st = true;
+				tabNextIndex = p->m_iTabIndex;
+				controlIndex = i;
+			}
+			else if (p->m_iTabIndex > tabNextIndex)
 			{
 				tabNextIndex = p->m_iTabIndex;
 				controlIndex = i;
@@ -932,7 +1000,10 @@ bit8 dataByte;
 void CDisassemblyReg::OnTabControl(void *sender, EdLnTabControlEventArgs& e)
 {
 int i;
-	i = this->m_RegBuffer.GetTabNextControlIndex();
+	if (e.IsNext)
+		i = this->m_RegBuffer.GetTabNextControlIndex();
+	else
+		i = this->m_RegBuffer.GetTabPreviousControlIndex();
 	if (i >= 0)
 	{
 		HDC hdc = GetDC(m_hWnd);
@@ -944,7 +1015,10 @@ int i;
 	}
 	else
 	{
-		i = this->m_RegBuffer.GetTabFirstControlIndex();
+		if (e.IsNext)
+			i = this->m_RegBuffer.GetTabFirstControlIndex();
+		else
+			i = this->m_RegBuffer.GetTabLastControlIndex();
 		if (i >= 0)
 		{
 			HDC hdc = GetDC(m_hWnd);

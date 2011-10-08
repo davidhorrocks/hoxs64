@@ -368,13 +368,15 @@ bool bChanged = false;
 
 void EdLn::KeyDown(int keycode)
 {
+SHORT nVirtKey;
+#define SHIFTED (0x8000)
 	if (keycode == VK_TAB)
 	{
-		EdLnTabControlEventArgs eTabControl(this, true);
+        nVirtKey = GetKeyState(VK_SHIFT); 
+		EdLnTabControlEventArgs eTabControl(this, (nVirtKey & SHIFTED) == 0);
 		EsOnTabControl.Raise(this, eTabControl);
 	}
-	else
-	if (keycode == VK_LEFT)
+	else if (keycode == VK_LEFT)
 	{
 		if (m_iInsertionPoint > 0)
 		{

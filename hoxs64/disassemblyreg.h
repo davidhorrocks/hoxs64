@@ -86,8 +86,10 @@ public:
 		bool ProcessKeyDown(WPARAM wParam, LPARAM lParam);
 		bool ProcessLButtonDown(WPARAM wParam, LPARAM lParam);
 
-		int GetTabNextControlIndex();
 		int GetTabFirstControlIndex();
+		int GetTabNextControlIndex();
+		int GetTabPreviousControlIndex();
+		int GetTabLastControlIndex();
 
 		TEXTMETRIC TextMetric;
 
