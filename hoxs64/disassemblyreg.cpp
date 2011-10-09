@@ -213,6 +213,26 @@ bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	return false;
 }
 
+bool CDisassemblyReg::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+int wmId, wmEvent;
+HWND hWndActive;
+	wmId    = LOWORD(wParam);
+	wmEvent = HIWORD(wParam);
+	switch (wmId) 
+	{
+	case ID_STEP_ONECLOCK:
+	case ID_STEP_ONEINSTRUCTION:
+	case ID_STEP_TRACE:
+	case ID_STEP_TRACEFRAME:
+	case ID_STEP_STOP:
+		//return SendMessage(GetParent(hWnd), uMsg, wParam, lParam);
+		//GetActiveWindow(
+		break;
+	}
+	return false;
+}
+
 LRESULT CDisassemblyReg::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr;
@@ -267,6 +287,11 @@ BOOL br;
 		m_RegBuffer.ClearCaret(hWnd);
 		DestroyCaret();
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_COMMAND:
+		if (OnCommand(hWnd, uMsg, wParam, lParam))
+			return 0;
+		else
+			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:
