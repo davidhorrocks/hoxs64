@@ -398,7 +398,7 @@ SHORT nVirtKey;
 	{
 		End();
 	}
-	else if (keycode == VK_ESCAPE)
+	else if (keycode == VK_ESCAPE || keycode == VK_RETURN)
 	{
 		IsFocused = false;
 		EventArgs evt;
