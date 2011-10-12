@@ -180,6 +180,8 @@ HRESULT hr;
 
 bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (m_monitorCommand->IsRunning())
+		return true;
 	m_RegBuffer.ProcessLButtonDown(wParam, lParam);
 	if (hWnd != ::GetFocus())
 	{
@@ -190,11 +192,15 @@ bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 bool CDisassemblyReg::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (m_monitorCommand->IsRunning())
+		return true;
 	return m_RegBuffer.ProcessChar(wParam, lParam);
 }
 
 bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (m_monitorCommand->IsRunning())
+		return true;
 	EdLn *p = m_RegBuffer.GetFocusedControl();
 	if (p != NULL)
 		return m_RegBuffer.ProcessKeyDown(wParam, lParam);
@@ -349,9 +355,9 @@ int slen;
 	{
 		if (tm.tmHeight > 0 && rc.bottom > rc.top)
 		{
-			::HideCaret(hWnd);
 			if (!m_monitorCommand->IsRunning())
 			{
+				::HideCaret(hWnd);
 				UpdateBuffer(m_RegBuffer);
 
 				int w=0;
@@ -373,6 +379,7 @@ int slen;
 					this->m_RegBuffer.VicLine.Draw(hdc);
 					this->m_RegBuffer.VicCycle.Draw(hdc);
 				}
+				::ShowCaret(hWnd);
 			}
 			else
 			{
@@ -394,7 +401,6 @@ int slen;
 					}
 				}
 			}
-			::ShowCaret(hWnd);
 		}
 	}
 

@@ -1023,9 +1023,9 @@ int wmId, wmEvent;
 	{
 	case ID_STEP_ONECLOCK:
 		if (!m_monitorCommand)
-			return false;
+			return true;
 		if (m_monitorCommand->IsRunning())
-			return false;
+			return true;
 		if (m_cpu->GetCpuId() == 0)
 			m_monitorCommand->ExecuteC64Clock();
 		else
@@ -1034,9 +1034,9 @@ int wmId, wmEvent;
 		return true;
 	case ID_STEP_ONEINSTRUCTION:
 		if (!m_monitorCommand)
-			return false;
+			return true;
 		if (m_monitorCommand->IsRunning())
-			return false;
+			return true;
 		if (m_cpu->GetCpuId() == 0)
 			m_monitorCommand->ExecuteC64Instruction();
 		else
@@ -1045,36 +1045,36 @@ int wmId, wmEvent;
 		return true;
 	case ID_STEP_TRACEFRAME:
 		if (!m_monitorCommand)
-			return false;
+			return true;
 		if (m_monitorCommand->IsRunning())
-			return false;
+			return true;
 		m_monitorCommand->TraceFrame();
 		m_monitorCommand->UpdateApplication();
 		return true;
 	case ID_STEP_TRACE:
 		if (!m_monitorCommand)
-			return false;
+			return true;
 		if (m_monitorCommand->IsRunning())
-			return false;
+			return true;
 		m_monitorCommand->Trace();
 		return true;
 	case ID_STEP_TRACEINTERRUPTTAKEN:
 		if (!m_monitorCommand)
-			return false;
+			return true;
 		if (m_monitorCommand->IsRunning())
-			return false;
+			return true;
 		m_cpu->SetBreakOnInterruptTaken();
 		m_monitorCommand->Trace();
 		return true;
 	case ID_FILE_MONITOR:
 	case ID_STEP_STOP:
 		if (!m_monitorCommand)
-			return false;
+			return true;
 		m_monitorCommand->ShowDevelopment();
 		::SetForegroundWindow(m_hWnd);
-		return false;
+		return true;
 	default:
-		return false;
+		return true;
 	}
 }
 
