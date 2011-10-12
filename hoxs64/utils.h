@@ -1,6 +1,8 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+//struct NM_COMMAND
+
 // pragma pack (1)
 typedef struct tagOFN_500EXA {
    DWORD        lStructSize;

@@ -215,20 +215,14 @@ bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 bool CDisassemblyReg::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-int wmId, wmEvent;
-HWND hWndActive;
-	wmId    = LOWORD(wParam);
-	wmEvent = HIWORD(wParam);
-	switch (wmId) 
+//int wmId, wmEvent;
+	//wmId    = LOWORD(wParam);
+	//wmEvent = HIWORD(wParam);
+
+	if (hWnd == m_hWnd)
 	{
-	case ID_STEP_ONECLOCK:
-	case ID_STEP_ONEINSTRUCTION:
-	case ID_STEP_TRACE:
-	case ID_STEP_TRACEFRAME:
-	case ID_STEP_STOP:
-		//return SendMessage(GetParent(hWnd), uMsg, wParam, lParam);
-		//GetActiveWindow(
-		break;
+		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
+		return true;
 	}
 	return false;
 }

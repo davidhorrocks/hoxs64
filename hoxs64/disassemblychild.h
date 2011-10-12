@@ -63,6 +63,7 @@ private:
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void SetAddressScrollPos(int pos);	
 
 	void Cleanup();

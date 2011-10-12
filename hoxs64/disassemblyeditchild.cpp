@@ -165,6 +165,16 @@ HRESULT CDisassemblyEditChild::OnCreate(HWND hWnd)
 	return S_OK;
 }
 
+bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (hWnd == m_hWnd)
+	{
+		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
+		return true;
+	}
+	return false;
+}
+
 LRESULT CDisassemblyEditChild::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr;
@@ -204,6 +214,11 @@ BOOL br;
 	case WM_LBUTTONDOWN:
 		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
 			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
+	case WM_COMMAND:
+		if (!OnCommand(hWnd, uMsg, wParam, lParam))
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		else
 			return 0;
 	case WM_SETFOCUS:

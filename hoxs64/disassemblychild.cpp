@@ -407,6 +407,15 @@ bool CDisassemblyChild::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 	return 0;
 }
 
+bool CDisassemblyChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (hWnd == m_hWnd)
+	{
+		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
+		return true;
+	}
+	return false;
+}
 
 LRESULT CDisassemblyChild::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -433,6 +442,11 @@ HRESULT hr;
 			return 0;
 	case WM_LBUTTONDOWN:
 		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
+	case WM_COMMAND:
+		if (!OnCommand(hWnd, uMsg, wParam, lParam))
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		else
 			return 0;
