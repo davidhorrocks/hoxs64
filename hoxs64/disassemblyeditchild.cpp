@@ -356,27 +356,33 @@ bool CDisassemblyEditChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, L
 	rcBar.right = rcBar.left + WIDTH_LEFTBAR;
 
 	POINT pt = {xPos,yPos};
+	AssemblyLineBuffer *pAlb;
 	if (PtInRect(&rcBar, pt))
 	{
 		int iline = GetLineFromYPos(yPos);
 		if (iline>=0 && iline < this->m_NumLines)
 		{
-			bit16 address = this->m_pFrontTextBuffer[iline].Address;
+			pAlb = &this->m_pFrontTextBuffer[iline];
+			bit16 address = pAlb->Address;
 			if (m_cpu->IsBreakPoint(address))
+			{
 				m_cpu->ClearBreakPoint(address);
+				pAlb->IsBreak = false;
+			}
 			else
+			{
 				m_cpu->SetExecute(address, 1);
+				pAlb->IsBreak = true;
+			}
 
-			InvalidateRect(m_hWnd, NULL, FALSE);
+			InvalidateRectChanges();
+			//InvalidateRect(m_hWnd, NULL, FALSE);
 			UpdateWindow(m_hWnd);
 		}
 	}
 	if (hWnd)
 	{
 		::SetFocus(hWnd);
-		//HWND hWndParent = GetParent(hWnd);
-		//if (hWndParent)
-		//	::SetFocus(hWndParent);
 	}
 	return true;
 }
@@ -720,6 +726,11 @@ CPUState cpustate;
 			lineOfPC = currentLine;
 		}
 
+		if (m_cpu->IsBreakPoint(currentAddress))
+			buffer.IsBreak = true;
+		else
+			buffer.IsBreak = false;
+
 		int r = m_mon.DisassembleOneInstruction(currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
 		buffer.Address = currentAddress;
 		buffer.IsValid = true;
@@ -912,6 +923,7 @@ void CDisassemblyEditChild::AssemblyLineBuffer::Clear()
 	MnemonicText[0] = 0;
 	IsUnDoc = false;
 	IsPC = false;
+	IsBreak = false;
 	InstructionCycle = 0;
 	IsValid = false;
 	SetRectEmpty(&MnemonicRect);
@@ -926,6 +938,8 @@ bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& othe
 	if (IsUnDoc != other.IsUnDoc)
 		return false;
 	if (IsPC != other.IsPC)
+		return false;
+	if (IsBreak != other.IsBreak)
 		return false;
 	if (InstructionCycle != other.InstructionCycle)
 		return false;

@@ -227,10 +227,6 @@ bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 bool CDisassemblyReg::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-//int wmId, wmEvent;
-	//wmId    = LOWORD(wParam);
-	//wmEvent = HIWORD(wParam);
-
 	if (hWnd == m_hWnd)
 	{
 		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);

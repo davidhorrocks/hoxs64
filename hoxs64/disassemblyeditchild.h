@@ -28,6 +28,7 @@ public:
 		AssemblyLineBuffer();
 		bool IsUnDoc;
 		bool IsPC;
+		bool IsBreak;
 		int InstructionCycle;
 		bool IsValid;
 		void Clear();
