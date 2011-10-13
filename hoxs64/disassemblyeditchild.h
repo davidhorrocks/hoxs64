@@ -16,20 +16,24 @@ public:
 	static const int TAB_BYTES = 6;
 	static const int TAB_MNEMONIC = 6+10;
 
+	static const int ID_EDITDISASSEMBLY = 2000;
+
 	struct AssemblyLineBuffer
 	{
 		bit16 Address;
 		TCHAR AddressText[Monitor::BUFSIZEADDRESSTEXT];
 		TCHAR BytesText[Monitor::BUFSIZEINSTRUCTIONBYTESTEXT];
 		TCHAR MnemonicText[Monitor::BUFSIZEMNEMONICTEXT];
+
+		AssemblyLineBuffer();
 		bool IsUnDoc;
 		bool IsPC;
 		int InstructionCycle;
 		bool IsValid;
-		AssemblyLineBuffer();
 		void Clear();
 		void WriteDisassemblyString(TCHAR *pszBuffer, int cchBuffer);
 		bool IsEqual(AssemblyLineBuffer& other);
+		RECT MnemonicRect;
 	};
 
 	CDisassemblyEditChild();
@@ -74,6 +78,9 @@ private:
 	
 	AssemblyLineBuffer *m_pFrontTextBuffer;
 	AssemblyLineBuffer *m_pBackTextBuffer;
+
+	HWND CreateAsmEdit();
+
 	HRESULT AllocTextBuffer();
 	void FreeTextBuffer();
 	void ClearBuffer();
@@ -89,6 +96,7 @@ private:
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void DrawDisplay(HWND hWnd, HDC hdc);
 	void DrawDisplay2(HWND hWnd, HDC hdc);
 	int GetNumberOfLines(RECT& rc, int lineHeight);

@@ -160,19 +160,38 @@ HWND CDisassemblyEditChild::Create(HINSTANCE hInstance, HWND parent, int x,int y
 	return CVirWindow::Create(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
 }
 
+HWND CDisassemblyEditChild::CreateAsmEdit()
+{
+RECT rect;
+	GetClientRect(m_hWnd, &rect);
+	SetRect(&rect, 0, 0, 10, 10);
+
+	HWND hWnd = CreateWindowEx(0L,
+		TEXT("EDIT"),//class name
+		NULL,//Title
+		WS_CHILD | ES_LEFT | ES_AUTOHSCROLL,//stype
+		rect.left,//x
+		rect.top,//y
+		rect.right - rect.left,//width
+		rect.bottom - rect.top,//height
+		m_hWnd,//Parent
+		(HMENU) LongToPtr(ID_EDITDISASSEMBLY),//Menu
+		m_hInst,//application instance
+		NULL);
+	return hWnd;
+}
+
 HRESULT CDisassemblyEditChild::OnCreate(HWND hWnd)
 {
 	return S_OK;
 }
 
-bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+void CDisassemblyEditChild::OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (hWnd == m_hWnd)
 	{
 		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
-		return true;
 	}
-	return false;
 }
 
 LRESULT CDisassemblyEditChild::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -221,6 +240,12 @@ BOOL br;
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		else
 			return 0;
+	case WM_HSCROLL:
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_VSCROLL:
+		//OnVScroll(hWnd, uMsg, wParam, lParam);
+		//return 0;
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_SETFOCUS:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_CLOSE:
@@ -348,17 +373,28 @@ bool CDisassemblyEditChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, L
 	}
 	if (hWnd)
 	{
-		HWND hWndParent = GetParent(hWnd);
-		if (hWndParent)
-			::SetFocus(hWndParent);
+		::SetFocus(hWnd);
+		//HWND hWndParent = GetParent(hWnd);
+		//if (hWndParent)
+		//	::SetFocus(hWndParent);
 	}
 	return true;
 }
 
 bool CDisassemblyEditChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
+	SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
 	return true;
+}
+
+bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (hWnd == m_hWnd)
+	{
+		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
+		return true;
+	}
+	return false;
 }
 
 bool CDisassemblyEditChild::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -383,16 +419,14 @@ int CDisassemblyEditChild::GetLineFromYPos(int y)
 
 void CDisassemblyEditChild::DrawDisplay2(HWND hWnd, HDC hdc)
 {
-RECT rc;
+//RECT rc;
+RECT rcClient;
 RECT rcBarBreak;
 RECT rcBarStatus;
 BOOL br;
 HBRUSH bshBarBreak;
 HBRUSH bshBarStatus;
 TEXTMETRIC tm;
-
-	//if (m_NumLines != GetNumberOfLines(rc, LINE_HEIGHT))
-	//	UpdateBuffer(false);
 
 	CPUState cpustate;
 	m_cpu->GetCpuState(cpustate);
@@ -403,14 +437,14 @@ TEXTMETRIC tm;
 
 	SetTextAlign(hdc, TA_LEFT | TA_TOP | TA_NOUPDATECP);
 
-	br = GetClientRect(hWnd, &rc);
+	br = GetClientRect(hWnd, &rcClient);
 	if (!br)
 		return;
 
-	CopyRect(&rcBarBreak, &rc);		
+	CopyRect(&rcBarBreak, &rcClient);		
 	rcBarBreak.right = rcBarBreak.left + WIDTH_LEFTBAR;
 
-	CopyRect(&rcBarStatus, &rc);
+	CopyRect(&rcBarStatus, &rcClient);
 	rcBarStatus.left += WIDTH_LEFTBAR;
 	rcBarStatus.right = rcBarStatus.left + WIDTH_LEFTBAR2;
 
@@ -445,7 +479,7 @@ TEXTMETRIC tm;
 	br = GetTextMetrics(hdc, &tm);
 	if (br)
 	{
-		if (tm.tmHeight > 0 && rc.bottom > rc.top && m_pFrontTextBuffer != NULL && m_pBackTextBuffer != NULL)
+		if (tm.tmHeight > 0 && rcClient.bottom > rcClient.top && m_pFrontTextBuffer != NULL && m_pBackTextBuffer != NULL)
 		{
 			int x_status = WIDTH_LEFTBAR;
 			int x,y;
@@ -515,13 +549,13 @@ TEXTMETRIC tm;
 									{
 										SetTextColor(hdc, RGB(0xff,02,70));
 										ExtTextOut(hdc, x_status, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szIntText, lstrlen(szIntText), NULL);
-									}
-									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+									}									
 									TCHAR szArrowText[3] = TEXT(">0");
 									if (cpustate.cycle >= 0 && cpustate.cycle <= 9)
 										szArrowText[1] = TEXT('0') + ((abs(cpustate.cycle) % 10));
 									else
 										szArrowText[1] = TEXT('#');
+									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 									ExtTextOut(hdc, x_status + width_intflag, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szArrowText, lstrlen(szArrowText), NULL);
 								}
 
@@ -531,6 +565,7 @@ TEXTMETRIC tm;
 								if (slen > 0)
 								{
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.AddressText, slen, 0, NULL, NULL, &sizeText);
+									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.AddressText, slen, NULL);
 									if (brTextExtent)
 										x = x + sizeText.cx + 1 * tm.tmAveCharWidth;
@@ -548,6 +583,7 @@ TEXTMETRIC tm;
 								if (slen > 0)
 								{
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.BytesText, slen, 0, NULL, NULL, &sizeText);
+									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.BytesText, slen, NULL);
 									if (brTextExtent)
 										x = x + sizeText.cx + 1 * tm.tmAveCharWidth;
@@ -564,13 +600,13 @@ TEXTMETRIC tm;
 
 								//Draw the mnemonic text
 								x = xcol_Mnemonic;
-								if (albFront.IsUnDoc)
-								{
-									SetTextColor(hdc, RGB(2, 134, 172));
-								}
 								slen = (int)_tcsnlen(albFront.MnemonicText, _countof(albFront.MnemonicText));
 								if (slen > 0)
 								{
+									if (albFront.IsUnDoc)
+										SetTextColor(hdc, RGB(2, 134, 172));
+									else
+										SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.MnemonicText, slen, 0, NULL, NULL, &sizeText);
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
 									if (brTextExtent)
@@ -582,6 +618,7 @@ TEXTMETRIC tm;
 								{
 									x = x + (Monitor::BUFSIZEINSTRUCTIONBYTESTEXT) * tm.tmAveCharWidth;
 								}
+								SetRect(&albFront.MnemonicRect, x, y, rcClient.right, y + lineHeight);
 
 								m_pBackTextBuffer[i] = albFront;
 				
@@ -596,8 +633,8 @@ TEXTMETRIC tm;
 			{
 				TCHAR *tTitle;
 				RECT rcText;
-				::SetRect(&rcText, WIDTH_LEFTBAR + WIDTH_LEFTBAR2 + PADDING_LEFT, MARGIN_TOP + PADDING_TOP, rc.right - PADDING_RIGHT, rc.bottom);
-				if (rc.right > rc.left && rc.bottom > rc.top)
+				::SetRect(&rcText, WIDTH_LEFTBAR + WIDTH_LEFTBAR2 + PADDING_LEFT, MARGIN_TOP + PADDING_TOP, rcClient.right - PADDING_RIGHT, rcClient.bottom);
+				if (rcClient.right > rcClient.left && rcClient.bottom > rcClient.top)
 				{
 					tTitle = TEXT("CPU disassembly window unavailable during trace.");
 					slen = (int)_tcslen(tTitle);
@@ -877,6 +914,7 @@ void CDisassemblyEditChild::AssemblyLineBuffer::Clear()
 	IsPC = false;
 	InstructionCycle = 0;
 	IsValid = false;
+	SetRectEmpty(&MnemonicRect);
 }
 
 bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& other)

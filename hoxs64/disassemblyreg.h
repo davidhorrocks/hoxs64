@@ -151,7 +151,7 @@ private:
 	void OnTabControl(void *sender, EdLnTabControlEventArgs& e);
 	void OnEscControl(void *sender, EventArgs& e);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
+	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	HRESULT AdviseEvents();
 	void UnadviseEvents();
 };

@@ -59,7 +59,7 @@ private:
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnSizeDisassembly(HWND hWnd, int widthParent, int heightParent);
 	void OnSizeScrollBar(HWND hWnd, int widthParent, int heightParent);
-	void OnScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

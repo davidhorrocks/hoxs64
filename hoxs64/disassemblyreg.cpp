@@ -203,8 +203,10 @@ bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		return true;
 	EdLn *p = m_RegBuffer.GetFocusedControl();
 	if (p != NULL)
+	{
 		return m_RegBuffer.ProcessKeyDown(wParam, lParam);
-	if (wParam == VK_TAB)
+	}
+	else if (wParam == VK_TAB)
 	{
 		int i = m_RegBuffer.GetTabFirstControlIndex();
 		if (i >= 0)
@@ -216,7 +218,11 @@ bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		}
 		return true;
 	}
-	return false;
+	else
+	{
+		SendMessage(GetParent(m_hWnd), uMsg, wParam, lParam);
+		return true;
+	}
 }
 
 bool CDisassemblyReg::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -231,6 +237,14 @@ bool CDisassemblyReg::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		return true;
 	}
 	return false;
+}
+
+void CDisassemblyReg::OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (hWnd == m_hWnd)
+	{
+		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
+	}
 }
 
 LRESULT CDisassemblyReg::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -292,6 +306,11 @@ BOOL br;
 			return 0;
 		else
 			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	case WM_HSCROLL:
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_VSCROLL:
+		OnVScroll(hWnd, uMsg, wParam, lParam);
+		return 0;
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:

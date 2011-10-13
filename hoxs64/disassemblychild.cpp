@@ -260,7 +260,7 @@ void CDisassemblyChild::InvalidateBuffer()
 	m_DisassemblyEditChild.InvalidateBuffer();
 }
 
-void CDisassemblyChild::OnScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+void CDisassemblyChild::OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 SCROLLINFO scrollinfo;
 BOOL br;
@@ -433,7 +433,7 @@ HRESULT hr;
 	case WM_HSCROLL:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_VSCROLL:
-		OnScroll(hWnd, uMsg, wParam, lParam);
+		OnVScroll(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_KEYDOWN:
 		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
