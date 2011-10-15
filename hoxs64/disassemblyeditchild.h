@@ -29,6 +29,8 @@ public:
 		bool IsUnDoc;
 		bool IsPC;
 		bool IsBreak;
+		bool IsFocused;
+		bool WantUpdate;
 		int InstructionCycle;
 		bool IsValid;
 		void Clear();
@@ -76,12 +78,15 @@ private:
 	HBITMAP m_hBmpBreak;
 	bool m_bHasLastDrawText;
 	RECT m_rcLastDrawText;
+	bit16 m_iFocusedAddress;
+	bool m_bIsFocusedAddress;
+	HWND m_hWndEditText;
 	
 	AssemblyLineBuffer *m_pFrontTextBuffer;
 	AssemblyLineBuffer *m_pBackTextBuffer;
 
-	HWND CreateAsmEdit();
-
+	void Cleanup();
+	HWND CreateAsmEdit(HWND hWndParent);
 	HRESULT AllocTextBuffer();
 	void FreeTextBuffer();
 	void ClearBuffer();
@@ -90,18 +95,25 @@ private:
 	void UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, bit16 address, int startLine, int numLines, int& lineOfPC);
 	void InvalidateRectChanges();
 	int GetLineFromYPos(int y);
+	void DrawDisplay(HWND hWnd, HDC hdc);
+	void DrawDisplay2(HWND hWnd, HDC hdc);
+	int GetNumberOfLines(RECT& rc, int lineHeight);
+	void SetFocusedAddress(bit16 address);
+	void ClearFocusedAddress();	
+	void GetRect_Bar(const RECT& rcClient, LPRECT rc);
+	void GetRect_Status(const RECT& rcClient, LPRECT rc);
+	void GetRect_Edit(const RECT& rcClient, LPRECT rc);
+	void ShowEditMnemonic(AssemblyLineBuffer *pAlb);
+	void HideEditMnemonic();
 
 	HRESULT OnCreate(HWND hWnd);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	void DrawDisplay(HWND hWnd, HDC hdc);
-	void DrawDisplay2(HWND hWnd, HDC hdc);
-	int GetNumberOfLines(RECT& rc, int lineHeight);
-	void Cleanup();
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 

@@ -23,19 +23,23 @@ TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
 CDisassemblyEditChild::CDisassemblyEditChild()
 {
+	WIDTH_LEFTBAR2 = WIDTH_LEFTBAR;
+	LINE_HEIGHT = 16;
+
 	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_FirstAddress = 0;
 	m_NumLines = 0;
 	m_hFont = NULL;
 	m_MinSizeDone = false;
-	WIDTH_LEFTBAR2 = WIDTH_LEFTBAR;
-	LINE_HEIGHT = 16;
 	m_pFrontTextBuffer = NULL;
 	m_pBackTextBuffer = NULL;
 	m_monitorCommand = NULL;
 	m_hBmpBreak = NULL;
 	m_bHasLastDrawText = false;
+	m_bIsFocusedAddress = false;
+	m_iFocusedAddress = 0;
+	m_hWndEditText = NULL;
 	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));	
 }
 
@@ -46,6 +50,8 @@ CDisassemblyEditChild::~CDisassemblyEditChild()
 
 void CDisassemblyEditChild::Cleanup()
 {
+	m_hWndEditText = NULL;
+
 	FreeTextBuffer();
 	if (m_hBmpBreak)
 	{
@@ -58,10 +64,14 @@ void CDisassemblyEditChild::Cleanup()
 HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
 {
 HRESULT hr;
+	Cleanup();
+
 	this->m_pParent = parent;
 	this->m_hFont = hFont;
 	this->m_cpu = cpu;
 	this->m_monitorCommand = monitorCommand;
+
+
 	hr = AllocTextBuffer();
 	m_mon.Init(cpu, vic);
 	m_FirstAddress = GetNearestTopAddress(0);
@@ -132,7 +142,7 @@ WNDCLASSEX  wc;
 
 	ZeroMemory(&wc, sizeof(wc));
 	wc.cbSize        = sizeof(WNDCLASSEX);
-	wc.style         = CS_OWNDC;// CS_HREDRAW | CS_VREDRAW;
+	wc.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc   = (WNDPROC)::WindowProc;
 	wc.cbClsExtra    = 0;
 	wc.cbWndExtra    = sizeof(CDisassemblyEditChild *);
@@ -160,10 +170,10 @@ HWND CDisassemblyEditChild::Create(HINSTANCE hInstance, HWND parent, int x,int y
 	return CVirWindow::Create(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
 }
 
-HWND CDisassemblyEditChild::CreateAsmEdit()
+HWND CDisassemblyEditChild::CreateAsmEdit(HWND hWndParent)
 {
 RECT rect;
-	GetClientRect(m_hWnd, &rect);
+	GetClientRect(hWndParent, &rect);
 	SetRect(&rect, 0, 0, 10, 10);
 
 	HWND hWnd = CreateWindowEx(0L,
@@ -174,7 +184,7 @@ RECT rect;
 		rect.top,//y
 		rect.right - rect.left,//width
 		rect.bottom - rect.top,//height
-		m_hWnd,//Parent
+		hWndParent,//Parent
 		(HMENU) LongToPtr(ID_EDITDISASSEMBLY),//Menu
 		m_hInst,//application instance
 		NULL);
@@ -183,6 +193,7 @@ RECT rect;
 
 HRESULT CDisassemblyEditChild::OnCreate(HWND hWnd)
 {
+	m_hWndEditText = CreateAsmEdit(hWnd);
 	return S_OK;
 }
 
@@ -232,6 +243,11 @@ BOOL br;
 			return 0;
 	case WM_LBUTTONDOWN:
 		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
+			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
+	case WM_LBUTTONUP:
+		if (!OnLButtonUp(hWnd, uMsg, wParam, lParam))
 			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		else
 			return 0;
@@ -309,6 +325,25 @@ void CDisassemblyEditChild::UpdateDisplay(bool bSeekPC)
 	UpdateWindow(m_hWnd);
 }
 
+void CDisassemblyEditChild::GetRect_Bar(const RECT& rcClient, LPRECT prc)
+{
+	CopyRect(prc, &rcClient);		
+	prc->right = prc->left + WIDTH_LEFTBAR;
+}
+
+void CDisassemblyEditChild::GetRect_Status(const RECT& rcClient, LPRECT prc)
+{
+	CopyRect(prc, &rcClient);
+	prc->left += WIDTH_LEFTBAR;
+	prc->right = prc->left + WIDTH_LEFTBAR2;
+}
+
+void CDisassemblyEditChild::GetRect_Edit(const RECT& rcClient, LPRECT prc)
+{
+	CopyRect(prc, &rcClient);
+	prc->left = WIDTH_LEFTBAR + WIDTH_LEFTBAR2;
+}
+
 void CDisassemblyEditChild::InvalidateRectChanges()
 {
 	RECT rcLine;
@@ -349,21 +384,24 @@ bool CDisassemblyEditChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, L
 	int xPos = GET_X_LPARAM(lParam); 
 	int yPos = GET_Y_LPARAM(lParam);
 	RECT rcClient;
-	RECT rcBar;
+	RECT rcBarBreak;
+	RECT rcEdit;
 
 	GetClientRect(hWnd, &rcClient);
-	CopyRect(&rcBar, &rcClient);
-	rcBar.right = rcBar.left + WIDTH_LEFTBAR;
+
+	GetRect_Bar(rcClient, &rcBarBreak);
+	GetRect_Edit(rcClient, &rcEdit);
 
 	POINT pt = {xPos,yPos};
 	AssemblyLineBuffer *pAlb;
-	if (PtInRect(&rcBar, pt))
+	bit16 address;
+	if (PtInRect(&rcBarBreak, pt))
 	{
 		int iline = GetLineFromYPos(yPos);
-		if (iline>=0 && iline < this->m_NumLines)
+		if (iline >= 0 && iline < this->m_NumLines - 1)
 		{
 			pAlb = &this->m_pFrontTextBuffer[iline];
-			bit16 address = pAlb->Address;
+			address = pAlb->Address;
 			if (m_cpu->IsBreakPoint(address))
 			{
 				m_cpu->ClearBreakPoint(address);
@@ -376,15 +414,119 @@ bool CDisassemblyEditChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, L
 			}
 
 			InvalidateRectChanges();
-			//InvalidateRect(m_hWnd, NULL, FALSE);
 			UpdateWindow(m_hWnd);
 		}
 	}
+	else if (PtInRect(&rcEdit, pt))
+	{
+		int iline = GetLineFromYPos(yPos);
+		if (iline >= 0 && iline < this->m_NumLines - 1)
+		{
+			pAlb = &this->m_pFrontTextBuffer[iline];
+			address = pAlb->Address;
+			SetFocusedAddress(address);
+		}
+		else
+		{
+			ClearFocusedAddress();
+		}
+		InvalidateRectChanges();
+		UpdateWindow(m_hWnd);
+	}
+	else
+	{
+		ClearFocusedAddress();
+		InvalidateRectChanges();
+		UpdateWindow(m_hWnd);
+	}
+
 	if (hWnd)
 	{
 		::SetFocus(hWnd);
 	}
 	return true;
+}
+
+bool CDisassemblyEditChild::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	AssemblyLineBuffer *pAlb;
+	RECT rcClient;
+	RECT rcEdit;
+
+	if (m_monitorCommand->IsRunning())
+		return false;
+	if (::GetFocus() != hWnd)
+		return true;
+
+	int xPos = GET_X_LPARAM(lParam); 
+	int yPos = GET_Y_LPARAM(lParam);
+	POINT pt = {xPos,yPos};
+
+	GetClientRect(hWnd, &rcClient);
+	GetRect_Edit(rcClient, &rcEdit);
+
+	if (PtInRect(&rcEdit, pt))
+	{
+		int iline = GetLineFromYPos(yPos);
+		if (iline >= 0 && iline < this->m_NumLines - 1)
+		{
+			pAlb = &this->m_pFrontTextBuffer[iline];
+			if (pAlb->IsFocused)
+			{
+				ShowEditMnemonic(pAlb);
+			}
+		}
+	}
+	return true;
+}
+
+void CDisassemblyEditChild::ShowEditMnemonic(AssemblyLineBuffer *pAlb)
+{
+	if (m_hWndEditText==NULL)
+		return;
+	//MoveWindow(m_hWndEditText, 
+}
+
+void CDisassemblyEditChild::HideEditMnemonic()
+{
+}
+
+void CDisassemblyEditChild::SetFocusedAddress(bit16 address)
+{
+AssemblyLineBuffer *pAlb;
+bool bFound = false;
+
+	for (int i = 0; i < m_NumLines; i++)
+	{
+		pAlb = &this->m_pFrontTextBuffer[i];
+		if (pAlb->Address == address && !bFound)
+		{
+			pAlb->IsFocused = true;
+			bFound = true;
+		}
+		else
+		{
+			pAlb->IsFocused = false;
+		}
+	}
+	if (bFound)
+	{
+		this->m_bIsFocusedAddress = true;
+		this->m_iFocusedAddress = address;
+	}
+	else
+	{
+		this->m_bIsFocusedAddress = false;
+	}
+}
+
+void CDisassemblyEditChild::ClearFocusedAddress()
+{
+	this->m_bIsFocusedAddress = false;
+	for (int i = 0; i < m_NumLines; i++)
+	{
+		this->m_pFrontTextBuffer[i].IsFocused = false;
+	}
 }
 
 bool CDisassemblyEditChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -425,13 +567,14 @@ int CDisassemblyEditChild::GetLineFromYPos(int y)
 
 void CDisassemblyEditChild::DrawDisplay2(HWND hWnd, HDC hdc)
 {
-//RECT rc;
 RECT rcClient;
 RECT rcBarBreak;
 RECT rcBarStatus;
+RECT rcEdit;
 BOOL br;
 HBRUSH bshBarBreak;
 HBRUSH bshBarStatus;
+HBRUSH bshEdit;
 TEXTMETRIC tm;
 
 	CPUState cpustate;
@@ -447,12 +590,9 @@ TEXTMETRIC tm;
 	if (!br)
 		return;
 
-	CopyRect(&rcBarBreak, &rcClient);		
-	rcBarBreak.right = rcBarBreak.left + WIDTH_LEFTBAR;
-
-	CopyRect(&rcBarStatus, &rcClient);
-	rcBarStatus.left += WIDTH_LEFTBAR;
-	rcBarStatus.right = rcBarStatus.left + WIDTH_LEFTBAR2;
+	GetRect_Bar(rcClient, &rcBarBreak);
+	GetRect_Status(rcClient, &rcBarStatus);
+	GetRect_Edit(rcClient, &rcEdit);
 
 	bshBarBreak = GetSysColorBrush(COLOR_3DFACE);
 	if (bshBarBreak != NULL)
@@ -461,11 +601,16 @@ TEXTMETRIC tm;
 		FillRect(hdc, &rcBarBreak, bshBarBreak);
 	}
 	bshBarStatus = GetSysColorBrush (COLOR_WINDOW);
+	bshEdit = GetSysColorBrush (COLOR_WINDOW);
+
+	FillRect(hdc, &rcEdit, bshEdit);
+
 	HPEN oldpen = NULL;
 	if (bshBarStatus != NULL)
 	{
 		SelectObject(hdc, bshBarStatus);
 		FillRect(hdc, &rcBarStatus, bshBarStatus);
+		
 		HPEN pen = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNFACE));
 		if (pen)
 		{
@@ -606,6 +751,7 @@ TEXTMETRIC tm;
 
 								//Draw the mnemonic text
 								x = xcol_Mnemonic;
+								SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, rcClient.right, y + lineHeight);
 								slen = (int)_tcsnlen(albFront.MnemonicText, _countof(albFront.MnemonicText));
 								if (slen > 0)
 								{
@@ -624,8 +770,11 @@ TEXTMETRIC tm;
 								{
 									x = x + (Monitor::BUFSIZEINSTRUCTIONBYTESTEXT) * tm.tmAveCharWidth;
 								}
-								SetRect(&albFront.MnemonicRect, x, y, rcClient.right, y + lineHeight);
-
+								if (albFront.IsFocused)
+								{
+									::DrawFocusRect(hdc, &albFront.MnemonicRect);
+								}
+								albFront.WantUpdate = false;
 								m_pBackTextBuffer[i] = albFront;
 				
 							}
@@ -647,7 +796,6 @@ TEXTMETRIC tm;
 					
 					if (DrawText(hdc, tTitle, slen, &rcText, DT_TOP | DT_WORDBREAK | DT_CALCRECT))
 					{
-						//::FillRect(hdc, &rcText, (HBRUSH) (COLOR_WINDOW+1));
 						m_bHasLastDrawText = true;
 						::CopyRect(&m_rcLastDrawText, &rcText);
 						DrawText(hdc, tTitle, slen, &rcText, DT_TOP | DT_WORDBREAK);
@@ -724,6 +872,14 @@ CPUState cpustate;
 			buffer.IsPC = true;
 			buffer.InstructionCycle = cpustate.cycle;
 			lineOfPC = currentLine;
+		}
+
+		if (currentAddress == this->m_iFocusedAddress)
+		{
+			if (this->m_bIsFocusedAddress)
+			{
+				buffer.IsFocused = true;
+			}
 		}
 
 		if (m_cpu->IsBreakPoint(currentAddress))
@@ -926,6 +1082,8 @@ void CDisassemblyEditChild::AssemblyLineBuffer::Clear()
 	IsBreak = false;
 	InstructionCycle = 0;
 	IsValid = false;
+	IsFocused = false;
+	WantUpdate = false;
 	SetRectEmpty(&MnemonicRect);
 }
 
@@ -940,6 +1098,10 @@ bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& othe
 	if (IsPC != other.IsPC)
 		return false;
 	if (IsBreak != other.IsBreak)
+		return false;
+	if (IsFocused != other.IsFocused)
+		return false;
+	if (WantUpdate != other.WantUpdate)
 		return false;
 	if (InstructionCycle != other.InstructionCycle)
 		return false;
