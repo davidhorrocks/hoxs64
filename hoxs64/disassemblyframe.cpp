@@ -110,7 +110,7 @@ HRESULT CDisassemblyFrame::AdviseEvents()
 	hr = S_OK;
 	do
 	{
-		hs = m_monitorCommand->EsShowDevelopment.Advise((CDisassemblyFrame_EventSink_OnResume *)this);
+		hs = m_monitorCommand->EsResume.Advise((CDisassemblyFrame_EventSink_OnResume *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
@@ -846,8 +846,15 @@ void CDisassemblyFrame::UpdateDisplay(bool bSeekPC)
 	}
 }
 
+void CDisassemblyFrame::CancelEditing()
+{
+	m_DisassemblyChild.CancelEditing();
+	m_DisassemblyReg.CancelEditing();
+}
+
 void CDisassemblyFrame::OnResume(void *sender, EventArgs& e)
 {
+	CancelEditing();
 	m_cpu->ClearBreakOnInterruptTaken();
 }
 
@@ -855,6 +862,7 @@ void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
 {
 	if (IsWindow(this->m_hWnd))
 	{
+		CancelEditing();
 		m_DisassemblyReg.InvalidateBuffer();
 		m_DisassemblyChild.InvalidateBuffer();
 		this->UpdateDisplay(false);
@@ -866,6 +874,7 @@ void CDisassemblyFrame::OnTraceFrame(void *sender, EventArgs& e)
 {
 	if (IsWindow(this->m_hWnd))
 	{
+		CancelEditing();
 		this->SetHome();
 		this->UpdateDisplay(true);
 	}
@@ -873,21 +882,25 @@ void CDisassemblyFrame::OnTraceFrame(void *sender, EventArgs& e)
 
 void CDisassemblyFrame::OnExecuteC64Clock(void *sender, EventArgs& e)
 {
+	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
 void CDisassemblyFrame::OnExecuteDiskClock(void *sender, EventArgs& e)
 {
+	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
 void CDisassemblyFrame::OnExecuteC64Instruction(void *sender, EventArgs& e)
 {
+	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
 void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 {
+	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
@@ -896,6 +909,7 @@ void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 	m_cpu->ClearBreakOnInterruptTaken();
 	if (IsWindow(this->m_hWnd))
 	{
+		CancelEditing();
 		SetHome();
 		UpdateDisplay(true);
 		SetMenuState();

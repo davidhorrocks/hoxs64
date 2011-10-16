@@ -231,7 +231,7 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 		scrollinfo.nPos=0;
 	else
 		scrollinfo.nPos=(pos) & 0xffff;
-	SetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo, FALSE);
+	SetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo, TRUE);
 
 }
 
@@ -260,6 +260,11 @@ void CDisassemblyChild::InvalidateBuffer()
 	m_DisassemblyEditChild.InvalidateBuffer();
 }
 
+void CDisassemblyChild::CancelEditing()
+{
+	m_DisassemblyEditChild.CancelAsmEditing();
+}
+
 void CDisassemblyChild::OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 SCROLLINFO scrollinfo;
@@ -274,15 +279,15 @@ int pos;
 	case SB_TOP:
 		address = 0;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		m_DisassemblyEditChild.SetTopAddress(nearestAdress);
-		SetAddressScrollPos(address);
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		SetTopAddress(nearestAdress);
+		CancelEditing();
+		m_DisassemblyEditChild.UpdateDisplay(false);		
 		break;
 	case SB_BOTTOM:
 		address=0xffc0;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		m_DisassemblyEditChild.SetTopAddress(nearestAdress);
-		SetAddressScrollPos(address);
+		SetTopAddress(nearestAdress);
+		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_PAGEUP:
@@ -294,26 +299,26 @@ int pos;
 
 		address-=page;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		m_DisassemblyEditChild.SetTopAddress(nearestAdress);
-		SetAddressScrollPos(address);
+		SetTopAddress(nearestAdress);
+		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_PAGEDOWN:
 		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
-		m_DisassemblyEditChild.SetTopAddress(bottomAddress);		
-		SetAddressScrollPos(bottomAddress);
+		SetTopAddress(bottomAddress);		
+		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_LINEUP:
 		address = m_DisassemblyEditChild.GetPrevAddress();
-		m_DisassemblyEditChild.SetTopAddress(address);
-		SetAddressScrollPos(address);
+		SetTopAddress(address);
+		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_LINEDOWN:
 		address = m_DisassemblyEditChild.GetNextAddress();
-		m_DisassemblyEditChild.SetTopAddress(address);
-		SetAddressScrollPos(address);
+		SetTopAddress(address);
+		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_THUMBPOSITION:
@@ -325,20 +330,9 @@ int pos;
 			return;
 		pos = scrollinfo.nTrackPos;
 		address = (bit16)((unsigned int)pos & 0xffff);
-
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		m_DisassemblyEditChild.SetTopAddress(nearestAdress);
-		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
-		page = abs((int)(bit16s)(bottomAddress - nearestAdress));
-		if (page <=0)
-			page = 1;
-		ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
-		scrollinfo.cbSize=sizeof(SCROLLINFO);
-		scrollinfo.fMask  = SIF_PAGE | SIF_POS;
-		scrollinfo.nPage = page;
-		scrollinfo.nPos = pos;
-		SetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo, TRUE);
-		
+		SetTopAddress(nearestAdress);
+		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_THUMBTRACK:
@@ -351,18 +345,8 @@ int pos;
 		pos = scrollinfo.nTrackPos;
 		address = (bit16)((unsigned int)pos & 0xffff);
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		m_DisassemblyEditChild.SetTopAddress(nearestAdress);
-		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
-		page = abs((int)(bit16s)(bottomAddress - nearestAdress));
-		if (page <=0)
-			page = 1;
-
-		ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
-		scrollinfo.cbSize=sizeof(SCROLLINFO);
-		scrollinfo.fMask  = SIF_PAGE;
-		scrollinfo.nPage = page;
-		SetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo, FALSE);
-
+		SetTopAddress(nearestAdress);
+		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	default:
@@ -451,7 +435,8 @@ HRESULT hr;
 		else
 			return 0;
 	case WM_NOTIFY:
-		return OnNotify(hWnd, uMsg, wParam, lParam);
+		OnNotify(hWnd, uMsg, wParam, lParam);
+		return 0;
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:

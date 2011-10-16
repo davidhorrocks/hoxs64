@@ -36,6 +36,7 @@ public:
 	void SetHome();
 	void UpdateDisplay(bool bEnsurePC);
 	void InvalidateBuffer();
+	void CancelEditing();
 private:
 	HWND m_hWndScroll;
 	IMonitorCommand *m_monitorCommand;

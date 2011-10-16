@@ -159,6 +159,7 @@ private:
 
 	void SetHome();
 	void UpdateDisplay(bool bSeekPC);
+	void CancelEditing();
 
 	void OnResume(void *sender, EventArgs& e);
 	void OnTrace(void *sender, EventArgs& e);

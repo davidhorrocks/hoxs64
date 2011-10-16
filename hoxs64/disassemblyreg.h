@@ -90,7 +90,7 @@ public:
 
 		void SelectControl(int i);
 		void DeSelectControl(int i);
-
+		void CancelEditing();
 		void UpdateCaret(HWND hWnd, HDC hdc);
 		void ClearCaret(HWND hWnd);
 		bool ProcessChar(WPARAM wParam, LPARAM lParam);
@@ -120,7 +120,7 @@ public:
 	void GetMinWindowSize(int &w, int &h);
 	void UpdateDisplay();
 	void InvalidateBuffer();
-
+	void CancelEditing();
 private:
 	CVirWindow *m_pParent;
 	HFONT m_hFont;

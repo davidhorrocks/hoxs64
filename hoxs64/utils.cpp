@@ -86,6 +86,21 @@ LRESULT CALLBACK WindowProc(
 		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
+LRESULT CALLBACK GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+CVirWindow* pWin = NULL;
+	if (hWnd != NULL)
+	{
+		HWND hWndParent = GetParent(hWnd);
+		if (hWndParent)
+		{
+			pWin = (CVirWindow*) (LONG_PTR)GetWindowLongPtr(hWndParent, GWLP_USERDATA);
+			if (NULL != pWin)
+				return (pWin->SubclassWindowProc(hWnd, uMsg, wParam, lParam));
+		}
+	}
+	return 0;
+}
 
 /*M+M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M
   Method:   CVirWindow::Create
@@ -168,6 +183,17 @@ CLIENTCREATESTRUCT ccs;
 		WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL, 
 		0, 0, 0, 0, m_hWnd, (HMENU) LongToPtr(clientId), m_hInst, (LPSTR) &ccs); 
 	return m_hwndMDIClient;
+}
+
+WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd)
+{
+	WNDPROC pOldProc = (WNDPROC) SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) ::GlobalSubClassWindowProc);
+	return pOldProc;
+}
+
+LRESULT CVirWindow::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return 0;
 }
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F

@@ -61,6 +61,9 @@ public:
 	bit16 GetPrevAddress();
 	void GetMinWindowSize(int &w, int &h);
 	void SetHome();
+	void CancelAsmEditing();
+	HRESULT SaveAsmEditing();
+
 	static const int BUFFER_WIDTH = 50;
 	static const int MAX_BUFFER_HEIGHT = 200;
 private:
@@ -80,7 +83,9 @@ private:
 	RECT m_rcLastDrawText;
 	bit16 m_iFocusedAddress;
 	bool m_bIsFocusedAddress;
+	bool m_bMouseDownOnFocusedAddress;
 	HWND m_hWndEditText;
+	WNDPROC m_wpOrigEditProc;
 	
 	AssemblyLineBuffer *m_pFrontTextBuffer;
 	AssemblyLineBuffer *m_pBackTextBuffer;
@@ -98,6 +103,7 @@ private:
 	void DrawDisplay(HWND hWnd, HDC hdc);
 	void DrawDisplay2(HWND hWnd, HDC hdc);
 	int GetNumberOfLines(RECT& rc, int lineHeight);
+	bool GetFocusedAddress(bit16 *address);
 	void SetFocusedAddress(bit16 address);
 	void ClearFocusedAddress();	
 	void GetRect_Bar(const RECT& rcClient, LPRECT rc);
@@ -114,6 +120,8 @@ private:
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 

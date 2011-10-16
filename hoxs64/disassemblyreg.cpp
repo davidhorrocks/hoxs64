@@ -724,7 +724,7 @@ HRESULT hr;
 	HDC hdc = GetDC(hWnd);
 	if (hdc==NULL)
 		return false;
-	for(int i = 0; i<c ; i++)
+	for(int i = 0; i < c; i++)
 	{
 		EdLn *p = this->Controls[i];
 		if (p->IsHitEdit(x, y) && p->GetIsEditable() && p->GetIsVisible())
@@ -741,12 +741,20 @@ HRESULT hr;
 	}
 	if (!bFound)
 	{
-		this->DeSelectControl(this->CurrentControlIndex);
-			this->UpdateCaret(hWnd, hdc);
+		CancelEditing();
 	}
 	return true;
 }
 
+void CDisassemblyReg::RegLineBuffer::CancelEditing()
+{
+	HWND hWnd = m_hWndParent;
+	HDC hdc = GetDC(hWnd);
+	this->DeSelectControl(this->CurrentControlIndex);
+	if (hdc==NULL)
+		return;
+	this->UpdateCaret(hWnd, hdc);
+}
 
 HRESULT CDisassemblyReg::RegLineBuffer::Init(HWND hWnd, HDC hdc, HFONT hFont, int x, int y, int cpuid)
 {
@@ -880,7 +888,6 @@ RECT rcAll;
 
 HRESULT CDisassemblyReg::AdviseEvents()
 {
-	//HRESULT hr = S_OK;
 	HSink hs;
 	for (int i=0; i<m_RegBuffer.Controls.Count(); i++)
 	{
@@ -902,65 +909,17 @@ HRESULT CDisassemblyReg::AdviseEvents()
 		}
 	}
 	return S_OK;
-	//do
-	//{
-	//	hs = m_RegBuffer.PC.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hs = m_RegBuffer.A.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hs = m_RegBuffer.X.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hs = m_RegBuffer.Y.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hs = m_RegBuffer.SR.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hs = m_RegBuffer.SP.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hs = m_RegBuffer.Ddr.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hs = m_RegBuffer.Data.EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
-	//	if (hs == NULL)
-	//	{
-	//		hr = E_FAIL;
-	//		break;
-	//	}
-	//	hr = S_OK;
-	//} while (false);
-	//return hr;
 }
 
 void CDisassemblyReg::UnadviseEvents()
 {
 	((CDisassemblyReg_EventSink_OnTextChanged *)this)->UnadviseAll();
 	((CDisassemblyReg_EventSink_OnTabControl *)this)->UnadviseAll();
+}
+
+void CDisassemblyReg::CancelEditing()
+{
+	this->m_RegBuffer.CancelEditing();
 }
 
 void CDisassemblyReg::OnTextChanged(void *sender, EdLnTextChangedEventArgs& e)

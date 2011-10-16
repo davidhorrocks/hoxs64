@@ -201,6 +201,8 @@ public:
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);
 extern LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
+extern LRESULT CALLBACK GlobalSubClassWindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
+
 /*C+C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C
   Class:    CVirWindow
 
@@ -268,6 +270,7 @@ public:
 		return m_hwndMDIClient;
 	}
 
+	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	// WindowProc is a pure virtual member function and MUST be over-ridden
 	// in any derived classes.
@@ -278,19 +281,17 @@ protected:
 	HINSTANCE m_hInst;
 	// Handle of this window.
 	HWND m_hWnd;
-
 	HWND m_hwndMDIClient;
-
-
 	bool m_AutoDelete;
 
+	WNDPROC SubclassChildWindow(HWND hWnd);
+	
+
+private:
 	// Tell the compiler that the outside WindowProc callback is a friend
 	// of this class and can get at its protected data members.
-	friend LRESULT CALLBACK ::WindowProc(
-								HWND hWnd,
-								UINT uMsg,
-								WPARAM wParam,
-								LPARAM lParam);
+	friend LRESULT CALLBACK ::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	friend LRESULT CALLBACK ::GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 
