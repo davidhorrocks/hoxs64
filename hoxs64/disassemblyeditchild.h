@@ -86,6 +86,11 @@ private:
 	bool m_bMouseDownOnFocusedAddress;
 	HWND m_hWndEditText;
 	WNDPROC m_wpOrigEditProc;
+
+	int xcol_Address;
+	int xcol_Bytes;
+	int xcol_Mnemonic;
+
 	
 	AssemblyLineBuffer *m_pFrontTextBuffer;
 	AssemblyLineBuffer *m_pBackTextBuffer;
@@ -112,7 +117,7 @@ private:
 	void ShowEditMnemonic(AssemblyLineBuffer *pAlb);
 	void HideEditMnemonic();
 	bool IsEditing();
-
+	HRESULT UpdateMetrics();
 	HRESULT OnCreate(HWND hWnd);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

@@ -16,6 +16,7 @@
 #include "errormsg.h"
 #include "cevent.h"
 #include "monitor.h"
+#include "dchelper.h"
 #include "disassemblyeditchild.h"
 #include "resource.h"
 
@@ -225,10 +226,69 @@ HRESULT CDisassemblyEditChild::SaveAsmEditing()
 	return S_OK;
 }
 
+HRESULT CDisassemblyEditChild::UpdateMetrics()
+{
+TEXTMETRIC tm;
+SIZE sz;
+	HDC hdc = GetDC(m_hWnd);
+	if (!hdc)
+		return E_FAIL;
+	if (!GetTextMetrics(hdc, &tm))
+		return E_FAIL;
+	LPCTSTR szSampleProgramCounterPointer = TEXT("I>0");
+	if (!::GetTextExtentExPoint(hdc, szSampleProgramCounterPointer, lstrlen(szSampleProgramCounterPointer), 0, NULL, NULL, &sz))
+	{
+		return E_FAIL;
+	}
+	WIDTH_LEFTBAR2 = sz.cx + 1;
+	LINE_HEIGHT =  tm.tmHeight;
+
+	int min_w = WIDTH_LEFTBAR;
+	int min_h = GetSystemMetrics(SM_CYVTHUMB) * 2 + GetSystemMetrics(SM_CYVTHUMB);
+
+	min_w += WIDTH_LEFTBAR2 + PADDING_LEFT + PADDING_RIGHT;			
+
+	TCHAR s[]= TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
+	int slen = lstrlen(s);
+	SIZE sizeText;
+	BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
+	if (!br)
+		return E_FAIL;
+	min_w += sizeText.cx;
+	min_h += sizeText.cy * 5;
+	m_MinSizeW = min_w;
+	m_MinSizeH = min_h;							
+	m_MinSizeDone = true;
+
+
+	LPCTSTR szSampleAddress = TEXT("$ABCDxx");
+	LPCTSTR szSampleBytes = TEXT("ABxABxABxx");
+	xcol_Address = WIDTH_LEFTBAR + WIDTH_LEFTBAR2 + PADDING_LEFT;
+	if (!::GetTextExtentExPoint(hdc, szSampleAddress,lstrlen(szSampleAddress),0,NULL,NULL,&sz))
+		return E_FAIL;
+	xcol_Bytes = xcol_Address + sz.cx;
+	if (!::GetTextExtentExPoint(hdc, szSampleBytes,lstrlen(szSampleBytes),0,NULL,NULL,&sz))
+		return E_FAIL;
+	xcol_Mnemonic = xcol_Bytes + sz.cx;
+
+	return S_OK;
+}
 
 HRESULT CDisassemblyEditChild::OnCreate(HWND hWnd)
 {
+HDC hdc = GetDC(m_hWnd);
+DcHelper dch(hdc);
+HRESULT hr;
+	dch.UseMapMode(MM_TEXT);
+	dch.UseFont(m_hFont);
+	//prevent dc restore
+	dch.m_hdc = NULL;
+	hr = UpdateMetrics();
+	if (FAILED(hr))
+		return hr;
 	m_hWndEditText = CreateAsmEdit(hWnd);
+	if (m_hWndEditText == NULL)
+		return E_FAIL;
 	return S_OK;
 }
 
@@ -582,6 +642,7 @@ RECT rcEdit;
 	//SM_CXEDGE,SM_CXBORDER
 	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
 	rcEdit.right-= 2 *::GetSystemMetrics(SM_CXBORDER);
+	SetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), pAlb->MnemonicText);
 	SetWindowPos(m_hWndEditText, HWND_TOP, rcEdit.left, rcEdit.top, rcEdit.right - rcEdit.left, rcEdit.bottom - rcEdit.top, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
 	SetFocus(m_hWndEditText);
 }
@@ -773,7 +834,6 @@ TEXTMETRIC tm;
 			y = MARGIN_TOP + PADDING_TOP;
 			SIZE sizeText;
 			BOOL brTextExtent;
-			int lineHeight = tm.tmHeight;
 
 			LONG width_intflag = 0;
 			TCHAR szIntText[] = TEXT("I");
@@ -788,22 +848,6 @@ TEXTMETRIC tm;
 				LONG width_intflag = tm.tmAveCharWidth * slen;
 			}
 
-			SIZE sz;
-			const int defwidth = 10;
-			LPCTSTR szSampleAddress = TEXT("$ABCDxx");
-			LPCTSTR szSampleBytes = TEXT("ABxABxABxx");
-			int xcol_Address = WIDTH_LEFTBAR + WIDTH_LEFTBAR2 + PADDING_LEFT;
-			int xcol_Bytes = xcol_Address+defwidth*lstrlen(szSampleAddress);
-			int xcol_Mnemonic = xcol_Bytes+defwidth*lstrlen(szSampleBytes);
-			if (::GetTextExtentExPoint(hdc, szSampleAddress,lstrlen(szSampleAddress),0,NULL,NULL,&sz))
-			{							
-				xcol_Bytes = xcol_Address + sz.cx;
-			}
-			if (::GetTextExtentExPoint(hdc, szSampleBytes,lstrlen(szSampleBytes),0,NULL,NULL,&sz))
-			{							
-				xcol_Mnemonic = xcol_Bytes + sz.cx;
-			}
-
 			if (!bUnavailable)
 			{
 				BITMAP bmpBreak;
@@ -816,7 +860,7 @@ TEXTMETRIC tm;
 						hbmpPrev = (HBITMAP)SelectObject(hMemDC, m_hBmpBreak);
 						if (hbmpPrev)
 						{
-							for (int i = 0; i < m_NumLines; i++, y += lineHeight)
+							for (int i = 0; i < m_NumLines; i++, y += LINE_HEIGHT)
 							{
 								AssemblyLineBuffer albFront = m_pFrontTextBuffer[i];
 								SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
@@ -853,14 +897,6 @@ TEXTMETRIC tm;
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.AddressText, slen, 0, NULL, NULL, &sizeText);
 									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.AddressText, slen, NULL);
-									if (brTextExtent)
-										x = x + sizeText.cx + 1 * tm.tmAveCharWidth;
-									else
-										x = x + (slen + 1) * tm.tmAveCharWidth;
-								}
-								else
-								{
-									x = x + (Monitor::BUFSIZEADDRESSTEXT) * tm.tmAveCharWidth;
 								}
 
 								//Draw the data bytes text
@@ -871,22 +907,12 @@ TEXTMETRIC tm;
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.BytesText, slen, 0, NULL, NULL, &sizeText);
 									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.BytesText, slen, NULL);
-									if (brTextExtent)
-										x = x + sizeText.cx + 1 * tm.tmAveCharWidth;
-									else
-										x = x + (slen + 1) * tm.tmAveCharWidth;
 								}
-								else
-								{
-									x = x + (Monitor::BUFSIZEINSTRUCTIONBYTESTEXT) * tm.tmAveCharWidth;
-								}
-
-								if (slen < Monitor::BUFSIZEINSTRUCTIONBYTESTEXT - 1)
-									x = x + (Monitor::BUFSIZEINSTRUCTIONBYTESTEXT - slen - 1) * tm.tmMaxCharWidth;
 
 								//Draw the mnemonic text
 								x = xcol_Mnemonic;
-								SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, rcClient.right, y + lineHeight);
+								//SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, rcClient.right, y + LINE_HEIGHT);
+								SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, this->m_MinSizeW, y + LINE_HEIGHT);
 								slen = (int)_tcsnlen(albFront.MnemonicText, _countof(albFront.MnemonicText));
 								if (slen > 0)
 								{
@@ -896,14 +922,6 @@ TEXTMETRIC tm;
 										SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.MnemonicText, slen, 0, NULL, NULL, &sizeText);
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
-									if (brTextExtent)
-										x = x + sizeText.cx + 1 * tm.tmAveCharWidth;
-									else
-										x = x + (slen + 1) * tm.tmAveCharWidth;
-								}
-								else
-								{
-									x = x + (Monitor::BUFSIZEINSTRUCTIONBYTESTEXT) * tm.tmAveCharWidth;
 								}
 								if (albFront.IsFocused)
 								{
@@ -1146,62 +1164,8 @@ bit16 nextAddress;
 
 void CDisassemblyEditChild::GetMinWindowSize(int &w, int &h)
 {
-	if (m_MinSizeDone)
-	{
-		w = m_MinSizeW;
-		h = m_MinSizeH;
-		return;
-	}
-	else
-	{
-		w = WIDTH_LEFTBAR;
-		h = GetSystemMetrics(SM_CYVTHUMB) * 2 + GetSystemMetrics(SM_CYVTHUMB);
-
-		if (m_hWnd != NULL && m_hFont != NULL)
-		{
-			HDC hdc = GetDC(m_hWnd);
-			if (hdc)
-			{
-				int prevMapMode = SetMapMode(hdc, MM_TEXT);
-				if (prevMapMode)
-				{
-					HFONT hFontPrev = (HFONT)SelectObject(hdc, m_hFont);
-					if (hFontPrev)
-					{
-						TEXTMETRIC tm;
-						SIZE sz;
-						LPCTSTR szSampleProgramCounterPointer = TEXT("I>0");
-						if (GetTextMetrics(hdc, &tm))
-						{
-							LPCTSTR szSampleProgramCounterPointer = TEXT("I>0");
-							if (::GetTextExtentExPoint(hdc, szSampleProgramCounterPointer, lstrlen(szSampleProgramCounterPointer), 0, NULL, NULL, &sz))
-							{							
-								WIDTH_LEFTBAR2 = sz.cx + 1;
-							}
-							LINE_HEIGHT = tm.tmHeight;
-						}
-						w += WIDTH_LEFTBAR2 + PADDING_LEFT + PADDING_RIGHT;						
-						TCHAR s[]= TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
-						int slen = lstrlen(s);
-						SIZE sizeText;
-						BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
-						if (br)
-						{
-							w += sizeText.cx;
-							h += sizeText.cy * 5;
-							m_MinSizeW = w;
-							m_MinSizeH = h;							
-							m_MinSizeDone = true;
-						}
-
-						SelectObject(hdc, hFontPrev);
-					}
-					SetMapMode(hdc, prevMapMode);
-				}
-				ReleaseDC(m_hWnd, hdc);
-			}
-		}
-	}
+	w = m_MinSizeW;
+	h = m_MinSizeH;
 }
 
 CDisassemblyEditChild::AssemblyLineBuffer::AssemblyLineBuffer()
