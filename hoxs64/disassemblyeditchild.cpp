@@ -500,10 +500,6 @@ bool bHasPrevAddress;
 	}
 	else if (PtInRect(&rcEdit, pt))
 	{
-		if (GetFocus() == this->m_hWndEditText)
-		{
-			int xx=0;
-		}
 		//Mouse down in edit text
 		int iline = GetLineFromYPos(yPos);
 		if (iline >= 0 && iline < this->m_NumLines - 1)
