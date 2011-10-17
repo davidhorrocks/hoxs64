@@ -182,7 +182,7 @@ RECT rect;
 	HWND hWnd = CreateWindowEx(0L,
 		TEXT("EDIT"),//class name
 		NULL,//Title
-		WS_CHILD | ES_LEFT | ES_AUTOHSCROLL,//stype
+		WS_CHILD | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,//stype
 		rect.left,//x
 		rect.top,//y
 		rect.right - rect.left,//width
@@ -193,6 +193,7 @@ RECT rect;
 		NULL);
 	if (hWnd)
 	{
+		SendMessage(hWnd, WM_SETFONT, (WPARAM)m_hFont, FALSE);
 		m_wpOrigEditProc = SubclassChildWindow(hWnd);
 	}
 	return hWnd;
@@ -582,6 +583,9 @@ RECT rcEdit;
 	if (m_hWndEditText==NULL)
 		return;
 	CopyRect(&rcEdit, &pAlb->MnemonicRect);
+	//SM_CXEDGE,SM_CXBORDER
+	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
+	rcEdit.right-= 2 *::GetSystemMetrics(SM_CXBORDER);
 	SetWindowPos(m_hWndEditText, HWND_TOP, rcEdit.left, rcEdit.top, rcEdit.right - rcEdit.left, rcEdit.bottom - rcEdit.top, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
 	SetFocus(m_hWndEditText);
 }
