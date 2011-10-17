@@ -1357,46 +1357,50 @@ void G::AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int ma
 
 void G::AutoSetComboBoxHeight(HWND hWnd,  int maxHeight)
 {
-__int3264 itemHeight, count, height, limitHeight, editHeight;
+int itemHeight, count, height, limitHeight, editHeight;
 RECT rc, rWorkArea;
 BOOL bResult;
+LRESULT lr;
 
-   bResult = SystemParametersInfo(SPI_GETWORKAREA, sizeof(RECT), &rWorkArea, 0);
-   if (!bResult) 
-   {
+	bResult = SystemParametersInfo(SPI_GETWORKAREA, sizeof(RECT), &rWorkArea, 0);
+	if (!bResult) 
+	{
 		rWorkArea.left = rWorkArea.top = 0;
 		rWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
 		rWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
-   }
-
+	}
 
 	if (hWnd == 0)
 		return;
-	itemHeight = (__int3264)SendMessage(hWnd, CB_GETITEMHEIGHT, 0, 0);
-	if (itemHeight == CB_ERR || itemHeight < 0 || itemHeight > MAXLONG)
+	lr = SendMessage(hWnd, CB_GETITEMHEIGHT, 0, 0);
+	if (lr == CB_ERR || lr < 0 || lr > MAXLONG)
 		return;
-	
-	editHeight = (__int3264)SendMessage(hWnd, CB_GETITEMHEIGHT, -1, 0);
-	if (editHeight == CB_ERR || editHeight < 0 || editHeight > MAXLONG)
-		return;
+	itemHeight = (int)lr;
 
-	count = (__int3264)SendMessage(hWnd, CB_GETCOUNT, 0, 0);
-	if (count == CB_ERR || count < 0 || count > MAXLONG)
+	lr = SendMessage(hWnd, CB_GETITEMHEIGHT, -1, 0);
+	if (lr == CB_ERR || lr < 0 || lr > MAXLONG)
 		return;
+	editHeight = (int)lr;
+
+	lr = SendMessage(hWnd, CB_GETCOUNT, 0, 0);
+	if (lr == CB_ERR || lr < 0 || lr > MAXLONG)
+		return;
+	count = (int)lr;
+
 	height = itemHeight * count + editHeight*2;
 
 	if (maxHeight > 0)
 	{
-		if (height > (__int3264)maxHeight)
-			height = (__int3264)maxHeight;
+		if (height > maxHeight)
+			height = maxHeight;
 	}
 
 	if(!GetWindowRect(hWnd, &rc))
 		return ;
 	
 	limitHeight = abs(rWorkArea.bottom - rWorkArea.top) / 3;
-	if (height > (__int3264)limitHeight)
-		height = (__int3264)limitHeight;
+	if (height > limitHeight)
+		height = limitHeight;
 	SetWindowPos(hWnd, (HWND)HWND_NOTOPMOST,0,0, rc.right - rc.left, (int)height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
