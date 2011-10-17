@@ -288,7 +288,7 @@ int EdLn::GetControlID()
 
 void EdLn::CharEdit(TCHAR c)
 {
-size_t slen;
+int slen;
 bool bChanged = false;
 	switch(this->m_style)
 	{
@@ -300,7 +300,7 @@ bool bChanged = false;
 			{
 				c = toupper(c);
 			}
-			slen = _tcsnlen(this->m_szTextBuffer, this->m_iTextBufferLength);
+			slen = (int)_tcsnlen(this->m_szTextBuffer, this->m_iTextBufferLength);
 			if (m_iInsertionPoint < m_iNumChars - 1)
 			{
 				if (m_iInsertionPoint < slen)
@@ -330,7 +330,7 @@ bool bChanged = false;
 		{
 			if (m_iInsertionPoint == 2)
 				c = '1';
-			slen = _tcsnlen(this->m_szTextBuffer, this->m_iTextBufferLength);
+			slen = (int)_tcsnlen(this->m_szTextBuffer, this->m_iTextBufferLength);
 			if (m_iInsertionPoint < m_iNumChars - 1)
 			{
 				if (m_iInsertionPoint < slen)
@@ -959,7 +959,7 @@ size_t EdLn::GetString(TCHAR buffer[], int bufferSize)
 		{
 			buffer[0];
 		}
-		else if (k < m_iTextBufferLength)
+		else if (k < (size_t)m_iTextBufferLength)
 		{
 			//NULL terminated m_szTextBuffer
 			_tcsncpy_s(buffer, bufferSize, m_szTextBuffer, _TRUNCATE);
@@ -967,7 +967,7 @@ size_t EdLn::GetString(TCHAR buffer[], int bufferSize)
 		else 
 		{
 			//m_szTextBuffer is not NULL terminated.
-			if (k < bufferSize)
+			if (k < (size_t)bufferSize)
 			{
 				_tcsncpy_s(buffer, bufferSize, m_szTextBuffer, k);
 			}
@@ -995,7 +995,7 @@ void EdLn::SetString(const TCHAR *data, int count)
 	{
 		m_szTextBuffer[0] = 0;
 	}
-	else if (k < count)
+	else if (k < (size_t)count)
 	{
 		//NULL terminated data
 		_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, data, _TRUNCATE);
@@ -1003,7 +1003,7 @@ void EdLn::SetString(const TCHAR *data, int count)
 	else 
 	{
 		//data is not NULL terminated.
-		if (k < m_iTextBufferLength)
+		if (k < (size_t)m_iTextBufferLength)
 		{
 			_tcsncpy_s(m_szTextBuffer, m_iTextBufferLength, data, k);
 		}

@@ -481,7 +481,7 @@ void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
 {
 	DeSelectControl(CurrentControlIndex);
-	if (i >= 0 && i < this->Controls.Count())
+	if (i >= 0 && i < (int)this->Controls.Count())
 	{
 		EdLn *p = this->Controls[i];
 		p->IsFocused = true;
@@ -491,13 +491,13 @@ void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
 
 void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
 {
-	if (i >= 0 && i < this->Controls.Count())
+	if (i >= 0 && i < (int)this->Controls.Count())
 		this->Controls[i]->IsFocused = false;
 }
 
 EdLn *CDisassemblyReg::RegLineBuffer::GetFocusedControl()
 {
-	if (CurrentControlIndex < 0 || CurrentControlIndex >= Controls.Count())
+	if (CurrentControlIndex < 0 || (unsigned int)CurrentControlIndex >= Controls.Count())
 		return NULL;
 	EdLn *p = Controls[CurrentControlIndex];
 	if (!p->IsFocused)
@@ -515,7 +515,7 @@ int i;
 	bool bFound1st = false;
 	int tabNextIndex;
 	int controlIndex = -1;
-	for (i = 0; i < Controls.Count() ; i++)
+	for (i = 0; i < (int)Controls.Count() ; i++)
 	{
 		EdLn *p = this->Controls[i];
 		if (p->GetIsEditable() && p->GetIsVisible())
@@ -546,7 +546,7 @@ int i;
 	bool bFound1st = false;
 	int tabNextIndex;
 	int controlIndex = -1;
-	for (i = 0; i < Controls.Count() ; i++)
+	for (i = 0; i < (int)Controls.Count() ; i++)
 	{
 		EdLn *p = this->Controls[i];
 		if (p->GetIsEditable() && p->GetIsVisible())
@@ -574,7 +574,7 @@ int i;
 	{
 		return -1;
 	}
-	if (CurrentControlIndex < 0 || CurrentControlIndex >= Controls.Count())
+	if (CurrentControlIndex < 0 || (unsigned int)CurrentControlIndex >= Controls.Count())
 		return GetTabFirstControlIndex();
 
 	i = CurrentControlIndex;
@@ -583,7 +583,7 @@ int i;
 	int tabNextIndex = tabCurrentIndex;
 	int controlIndex = -1;
 	bool bFound1st = false;
-	for (i = 0; i < Controls.Count() ; i++)
+	for (i = 0; i < (int)Controls.Count() ; i++)
 	{
 		p = this->Controls[i];
 		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex > tabCurrentIndex)
@@ -611,7 +611,7 @@ int i;
 	{
 		return -1;
 	}
-	if (CurrentControlIndex < 0 || CurrentControlIndex >= Controls.Count())
+	if (CurrentControlIndex < 0 || CurrentControlIndex >= (int)Controls.Count())
 		return GetTabLastControlIndex();
 
 	i = CurrentControlIndex;
@@ -620,7 +620,7 @@ int i;
 	int tabNextIndex = tabCurrentIndex;
 	int controlIndex = -1;
 	bool bFound1st = false;
-	for (i = 0; i < Controls.Count() ; i++)
+	for (i = 0; i < (int)Controls.Count() ; i++)
 	{
 		p = this->Controls[i];
 		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex < tabCurrentIndex)
@@ -650,7 +650,7 @@ bool bFound = false;
 	if (hdc == NULL)
 		return;
 
-	for (int i=0; i < this->Controls.Count(); i++)
+	for (int i=0; i < (int)this->Controls.Count(); i++)
 	{
 		EdLn *t = this->Controls[i];
 		if (t->IsFocused)
@@ -685,7 +685,7 @@ void CDisassemblyReg::RegLineBuffer::ClearCaret(HWND hWnd)
 
 bool CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
 {
-	if (CurrentControlIndex < 0 || CurrentControlIndex > Controls.Count() - 1)
+	if (CurrentControlIndex < 0 || CurrentControlIndex > (int)Controls.Count() - 1)
 		return false;
 	EdLn *t = Controls[CurrentControlIndex];
 	
@@ -698,7 +698,7 @@ bool CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
 
 bool CDisassemblyReg::RegLineBuffer::ProcessKeyDown(WPARAM wParam, LPARAM lParam)
 {
-	if (CurrentControlIndex < 0 || CurrentControlIndex > Controls.Count() - 1)
+	if (CurrentControlIndex < 0 || CurrentControlIndex > (int)Controls.Count() - 1)
 		return false;
 	EdLn *t = Controls[CurrentControlIndex];
 	
@@ -889,7 +889,7 @@ RECT rcAll;
 HRESULT CDisassemblyReg::AdviseEvents()
 {
 	HSink hs;
-	for (int i=0; i<m_RegBuffer.Controls.Count(); i++)
+	for (int i=0; i<(int)m_RegBuffer.Controls.Count(); i++)
 	{
 		EdLn *p = m_RegBuffer.Controls[i];
 		hs = p->EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
