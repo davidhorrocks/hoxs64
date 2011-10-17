@@ -198,9 +198,24 @@ RECT rect;
 	return hWnd;
 }
 
+bool CDisassemblyEditChild::IsEditing()
+{
+	if (this->m_hWndEditText!=NULL)
+	{
+		if (GetFocus() == m_hWndEditText)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void CDisassemblyEditChild::CancelAsmEditing()
 {
+	bool bHadFocus = IsEditing();
 	this->HideEditMnemonic();
+	if (bHadFocus && m_hWnd != NULL)
+		SetFocus(m_hWnd);
 }
 
 HRESULT CDisassemblyEditChild::SaveAsmEditing()
@@ -314,13 +329,11 @@ LRESULT CDisassemblyEditChild::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM w
 			if (wParam == VK_ESCAPE)
 			{
 				CancelAsmEditing();
-				SetFocus(this->m_hWnd);
 				return 0;
 			}
 			else if (wParam == VK_RETURN)
 			{
 				SaveAsmEditing();
-				SetFocus(this->m_hWnd);
 				return 0;
 			}
 			break;
@@ -486,18 +499,25 @@ bool bHasPrevAddress;
 	}
 	else if (PtInRect(&rcEdit, pt))
 	{
+		if (GetFocus() == this->m_hWndEditText)
+		{
+			int xx=0;
+		}
 		//Mouse down in edit text
 		int iline = GetLineFromYPos(yPos);
 		if (iline >= 0 && iline < this->m_NumLines - 1)
 		{
 			pAlb = &this->m_pFrontTextBuffer[iline];
 			address = pAlb->Address;
-			bHasPrevAddress = this->GetFocusedAddress(&prevAddress);
-			if (bHasPrevAddress)
+			if (!IsEditing())
 			{
-				if (prevAddress == address)
+				bHasPrevAddress = this->GetFocusedAddress(&prevAddress);
+				if (bHasPrevAddress)
 				{
-					m_bMouseDownOnFocusedAddress = true;
+					if (prevAddress == address)
+					{
+						m_bMouseDownOnFocusedAddress = true;
+					}
 				}
 			}
 			SetFocusedAddress(address);
@@ -561,11 +581,9 @@ void CDisassemblyEditChild::ShowEditMnemonic(AssemblyLineBuffer *pAlb)
 RECT rcEdit;
 	if (m_hWndEditText==NULL)
 		return;
-	//SetRect(&rcEdit,  pAlb->MnemonicRect.left, pAlb->MnemonicRect.top, pAlb->MnemonicRect.right - pAlb->MnemonicRect.left, pAlb->MnemonicRect.top - pAlb->MnemonicRect.bottom);
 	CopyRect(&rcEdit, &pAlb->MnemonicRect);
 	SetWindowPos(m_hWndEditText, HWND_TOP, rcEdit.left, rcEdit.top, rcEdit.right - rcEdit.left, rcEdit.bottom - rcEdit.top, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
 	SetFocus(m_hWndEditText);
-	//UpdateWindow(m_hWndEditText);
 }
 
 void CDisassemblyEditChild::HideEditMnemonic()
@@ -640,7 +658,7 @@ bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		switch (HIWORD(wParam))
 		{
 		case EN_KILLFOCUS:
-			this->CancelAsmEditing();
+			this->HideEditMnemonic();
 			break;
 		}
 	}
@@ -967,6 +985,8 @@ CPUState cpustate;
 	for (currentLine = startLine; currentLine < startLine + numLines && currentLine < MAX_BUFFER_HEIGHT; currentLine++)
 	{
 		AssemblyLineBuffer buffer = AssemblyLineBuffer();
+
+		CopyRect(&buffer.MnemonicRect, &m_pFrontTextBuffer[currentLine].MnemonicRect);
 
 		if (!pcfound)
 		{

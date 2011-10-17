@@ -111,6 +111,7 @@ private:
 	void GetRect_Edit(const RECT& rcClient, LPRECT rc);
 	void ShowEditMnemonic(AssemblyLineBuffer *pAlb);
 	void HideEditMnemonic();
+	bool IsEditing();
 
 	HRESULT OnCreate(HWND hWnd);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

@@ -854,7 +854,6 @@ void CDisassemblyFrame::CancelEditing()
 
 void CDisassemblyFrame::OnResume(void *sender, EventArgs& e)
 {
-	CancelEditing();
 	m_cpu->ClearBreakOnInterruptTaken();
 }
 
@@ -862,7 +861,6 @@ void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
 {
 	if (IsWindow(this->m_hWnd))
 	{
-		CancelEditing();
 		m_DisassemblyReg.InvalidateBuffer();
 		m_DisassemblyChild.InvalidateBuffer();
 		this->UpdateDisplay(false);
@@ -874,7 +872,6 @@ void CDisassemblyFrame::OnTraceFrame(void *sender, EventArgs& e)
 {
 	if (IsWindow(this->m_hWnd))
 	{
-		CancelEditing();
 		this->SetHome();
 		this->UpdateDisplay(true);
 	}
@@ -882,25 +879,21 @@ void CDisassemblyFrame::OnTraceFrame(void *sender, EventArgs& e)
 
 void CDisassemblyFrame::OnExecuteC64Clock(void *sender, EventArgs& e)
 {
-	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
 void CDisassemblyFrame::OnExecuteDiskClock(void *sender, EventArgs& e)
 {
-	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
 void CDisassemblyFrame::OnExecuteC64Instruction(void *sender, EventArgs& e)
 {
-	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
 void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 {
-	CancelEditing();
 	this->UpdateDisplay(true);
 }
 
@@ -909,7 +902,6 @@ void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 	m_cpu->ClearBreakOnInterruptTaken();
 	if (IsWindow(this->m_hWnd))
 	{
-		CancelEditing();
 		SetHome();
 		UpdateDisplay(true);
 		SetMenuState();
@@ -1040,6 +1032,7 @@ int wmId, wmEvent;
 			return true;
 		if (m_monitorCommand->IsRunning())
 			return true;
+		CancelEditing();
 		if (m_cpu->GetCpuId() == 0)
 			m_monitorCommand->ExecuteC64Clock();
 		else
@@ -1051,6 +1044,7 @@ int wmId, wmEvent;
 			return true;
 		if (m_monitorCommand->IsRunning())
 			return true;
+		CancelEditing();
 		if (m_cpu->GetCpuId() == 0)
 			m_monitorCommand->ExecuteC64Instruction();
 		else
@@ -1062,6 +1056,7 @@ int wmId, wmEvent;
 			return true;
 		if (m_monitorCommand->IsRunning())
 			return true;
+		CancelEditing();
 		m_monitorCommand->TraceFrame();
 		m_monitorCommand->UpdateApplication();
 		return true;
@@ -1070,6 +1065,7 @@ int wmId, wmEvent;
 			return true;
 		if (m_monitorCommand->IsRunning())
 			return true;
+		CancelEditing();
 		m_monitorCommand->Trace();
 		return true;
 	case ID_STEP_TRACEINTERRUPTTAKEN:
@@ -1084,6 +1080,7 @@ int wmId, wmEvent;
 	case ID_STEP_STOP:
 		if (!m_monitorCommand)
 			return true;
+		CancelEditing();
 		m_monitorCommand->ShowDevelopment();
 		::SetForegroundWindow(m_hWnd);
 		return true;

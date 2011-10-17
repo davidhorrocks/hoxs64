@@ -293,6 +293,7 @@ int pos;
 	case SB_PAGEUP:
 		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
 		address = m_DisassemblyEditChild.GetTopAddress();
+		//FIXME could do with an improved accuracy for paging up.
 		page = abs((int)(bit16s)(bottomAddress - address));
 		if (page <=0)
 			page = 1;
