@@ -58,7 +58,6 @@ private:
 	TCHAR m_bufIdentifierString[MAX_IDENTIFIER_SIZE];
 	int m_ibufPos;
 	int m_bufNumber;
-	bool m_bTokenSuppressGetChar;
 
 	void GetNextToken();
 	HRESULT GetNextChar();

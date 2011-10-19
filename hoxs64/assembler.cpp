@@ -39,10 +39,6 @@ bool Assembler::AppendToIdentifierString(TCHAR ch)
 	return true;
 }
 
-//Assembler::Assembler()
-//{
-//}
-
 HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten)
 {
 	m_pos = 0;
@@ -55,6 +51,8 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 	if (m_iLenText == 0)
 		return E_FAIL;
 	m_pszText = pszText;
+	GetNextChar();
+	GetNextChar();
 
 	AssemblyToken tk;
 	GetNextToken();
@@ -265,11 +263,9 @@ TCHAR ch;
 	m_bufIdentifierString[0] = 0;
 	m_bufNumber = 0;
 	m_CurrentToken = m_NextToken;
-	m_bTokenSuppressGetChar = false;
 
 	while (true)
 	{
-		GetNextChar();
 		//Look at current char but set next token
 		ch = m_CurrentCh;
 		switch (m_LexState)
@@ -283,8 +279,8 @@ TCHAR ch;
 			else if (IsWhiteSpace(m_CurrentCh))
 			{
 				m_LexState = LexState::Start;
-				AssemblyToken::SetError(&m_NextToken);
-				return;
+				GetNextChar();
+				break;
 			}
 			else if (IsLetter(ch))
 			{
@@ -295,12 +291,14 @@ TCHAR ch;
 					return;
 				}
 				m_LexState = LexState::IdentifierString;
+				GetNextChar();
 				break;
 			}
 			else if (ch == _T('$'))
 			{
-				m_LexState = LexState::HexString;
 				iHexDigitCount = 0;
+				m_LexState = LexState::HexString;
+				GetNextChar();
 				break;
 			}
 			else if (ch == _T('#') || ch == _T('(') || ch == _T(')'))
@@ -308,12 +306,14 @@ TCHAR ch;
 				m_NextToken = AssemblyToken();
 				m_NextToken.TokenType = AssemblyToken::Symbol;
 				m_NextToken.SymbolChar = ch;
+				GetNextChar();
 				return;
 			}
 			else
 			{
 				//Invalid character
 				AssemblyToken::SetError(&m_NextToken);
+				GetNextChar();
 				return;
 			}
 			break;
@@ -327,11 +327,11 @@ TCHAR ch;
 					return;
 				}
 				m_LexState = LexState::IdentifierString;
+				GetNextChar();
 				break;
 			}
 			else
 			{
-				m_bTokenSuppressGetChar = true;
 				m_NextToken = AssemblyToken();
 				m_NextToken.TokenType = AssemblyToken::IdentifierString;
 				_tcsncpy_s(m_NextToken.IdentifierText, _countof(m_NextToken.IdentifierText), m_bufIdentifierString, _countof(m_bufIdentifierString));
@@ -350,11 +350,11 @@ TCHAR ch;
 					return;
 				}
 				m_LexState = LexState::Number;
+				GetNextChar();
 				break;
 			}
 			else
 			{
-				m_bTokenSuppressGetChar = true;
 				m_NextToken = AssemblyToken();
 				if (m_bufNumber > 0xff)
 				{
@@ -386,11 +386,11 @@ TCHAR ch;
 					return;
 				}
 				m_LexState = LexState::HexString;
+				GetNextChar();
 				break;
 			}
 			else
 			{
-				m_bTokenSuppressGetChar = true;
 				m_NextToken = AssemblyToken();
 				if (m_bufNumber > 0xff || iHexDigitCount > 2)
 				{
@@ -417,50 +417,19 @@ TCHAR ch;
 
 HRESULT Assembler::GetNextChar()
 {
-	if (m_bIsStartChar)
-	{
-		m_bIsStartChar = false;
-		m_bNextEOF = false;
-		if (m_pos < m_iLenText)
-		{
-			m_bCurrentEOF = false;
-			m_CurrentCh = m_pszText[m_pos];
-			m_pos++;
+	m_CurrentCh = m_NextCh;
+	m_bCurrentEOF = m_bNextEOF;
 
-			if (m_pos < m_iLenText)
-			{
-				m_NextCh = m_pszText[m_pos];
-				m_pos++;
-			}
-			else
-			{
-				m_bNextEOF = true;
-				m_NextCh = 0;
-			}
-		}
-		else
-		{
-			m_bCurrentEOF = true;
-			m_bNextEOF = true;
-			m_NextCh = 0;
-			m_CurrentCh = 0;
-		}
+	if (m_pos < m_iLenText)
+	{
+		m_NextCh = m_pszText[m_pos];
+		m_bNextEOF = false;
+		m_pos++;
 	}
 	else
 	{
-		m_CurrentCh = m_NextCh;
-		m_bCurrentEOF = m_bNextEOF;
-
-		if (m_pos < m_iLenText)
-		{
-			m_NextCh = m_pszText[m_pos];
-			m_pos++;
-		}
-		else
-		{
-			m_bNextEOF = true;
-			m_NextCh = 0;
-		}
+		m_NextCh = 0;
+		m_bNextEOF = true;
 	}
 	return S_OK;
 }
