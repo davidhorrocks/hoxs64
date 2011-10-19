@@ -57,26 +57,60 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 	AssemblyToken tk;
 	GetNextToken();
 	GetNextToken();
-	if (m_CurrentToken.Symbol == AssemblyToken::EndOfInput)
+	if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 	{
 		return E_FAIL;
 	}
-	else if (m_CurrentToken.Symbol == AssemblyToken::IdentifierString)
+	else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 	{
 		GetNextToken();
-		if (m_CurrentToken.Symbol == AssemblyToken::EndOfInput)
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
 			//Implied adderssing.
 			return S_OK;
 		}
-		else if (m_CurrentToken.Symbol == AssemblyToken::Number8)
+		else if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 		{
 			GetNextToken();
-			if (m_CurrentToken.Symbol == AssemblyToken::EndOfInput)
+			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 			{
 				return S_OK;
 			}
-			else if (m_CurrentToken.Symbol == AssemblyToken::Symbol)
+			else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
+			{
+				if (m_CurrentToken.SymbolChar == _T(','))
+				{
+					GetNextToken();
+					if (m_CurrentToken.SymbolChar == _T('X'))
+					{
+
+					}
+					else if (m_CurrentToken.SymbolChar == _T('Y'))
+					{
+					}
+					else
+					{
+						return E_FAIL;
+					}
+				}
+				else
+				{
+					return E_FAIL;
+				}
+			}
+			else
+			{
+				return E_FAIL;
+			}
+		}
+		else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
+		{
+			GetNextToken();
+			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+			{
+				return S_OK;
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 			{
 				if (m_CurrentToken.SymbolChar == _T(','))
 				{
@@ -102,46 +136,13 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 				return E_FAIL;
 			}
 		}
-		else if (m_CurrentToken.Symbol == AssemblyToken::Number16)
-		{
-			GetNextToken();
-			if (m_CurrentToken.Symbol == AssemblyToken::EndOfInput)
-			{
-				return S_OK;
-			}
-			else if (m_CurrentToken.Symbol == AssemblyToken::Symbol)
-			{
-				if (m_CurrentToken.SymbolChar == _T(','))
-				{
-					GetNextToken();
-					if (m_CurrentToken.SymbolChar == _T('X'))
-					{
-					}
-					else if (m_CurrentToken.SymbolChar == _T('Y'))
-					{
-					}
-					else
-					{
-						return E_FAIL;
-					}
-				}
-				else
-				{
-					return E_FAIL;
-				}
-			}
-			else
-			{
-				return E_FAIL;
-			}
-		}
-		else if (m_CurrentToken.Symbol == AssemblyToken::Symbol)
+		else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 		{
 			if (m_CurrentToken.SymbolChar == _T('#'))
 			{
 				//Immediate adderssing.
 				GetNextToken();
-				if (m_CurrentToken.Symbol == AssemblyToken::Number8)
+				if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 				{
 				}
 				else
@@ -152,10 +153,10 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 			else if (m_CurrentToken.SymbolChar == _T('('))
 			{
 				GetNextToken();
-				if (m_CurrentToken.Symbol == AssemblyToken::Number8)
+				if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 				{
 					GetNextToken();
-					if (m_CurrentToken.Symbol == AssemblyToken::Symbol)
+					if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 					{
 						if (m_CurrentToken.SymbolChar == _T(','))
 						{
@@ -184,10 +185,10 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 						return E_FAIL;
 					}
 				}
-				else if (m_CurrentToken.Symbol == AssemblyToken::Number16)
+				else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
 				{
 					GetNextToken();
-					if (m_CurrentToken.Symbol == AssemblyToken::Symbol)
+					if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 					{
 						if (m_CurrentToken.SymbolChar == _T(','))
 						{
@@ -433,20 +434,3 @@ HRESULT Assembler::GetNextChar()
 	}
 	return S_OK;
 }
-
-/*
-	GetNextToken();
-	if (current_token.TType == TOKEN_EOF)
-		return E_FAIL;
-	if (current_token.TType != TOKEN_MNEMONIC)
-		return E_FAIL;
-	GetNextToken();
-	if (current_token.TType == TOKEN_EOF)
-		return E_FAIL;
-
-	if (current_token.TType == TOKEN_NUMBER)
-	{
-		GetNextToken();
-		if (current_token.TType != TOKEN_MNEMONIC)
-	}
-*/
