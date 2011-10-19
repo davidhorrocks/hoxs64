@@ -305,3 +305,8 @@ const unsigned int DIGITS = 2;
 	*s=0;
 	return elementsFormatted;
 }
+
+HRESULT Monitor::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+{
+	return E_FAIL;
+}

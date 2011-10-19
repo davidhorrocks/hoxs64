@@ -17,6 +17,7 @@
 #include "cevent.h"
 #include "monitor.h"
 #include "dchelper.h"
+#include "assembler.h"
 #include "disassemblyeditchild.h"
 #include "resource.h"
 
@@ -222,6 +223,14 @@ void CDisassemblyEditChild::CancelAsmEditing()
 
 HRESULT CDisassemblyEditChild::SaveAsmEditing()
 {
+Assembler as;
+TCHAR szText[30];
+	if (!IsEditing())
+		return S_OK;
+	if (!GetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), szText, _countof(szText)))
+		return S_OK;
+int i;
+	as.AssembleText(szText, NULL, 0, &i);
 	this->HideEditMnemonic();
 	return S_OK;
 }
