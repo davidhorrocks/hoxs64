@@ -74,6 +74,7 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 			GetNextToken();
 			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 			{
+				//$00
 				return S_OK;
 			}
 			else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
@@ -83,10 +84,15 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 					GetNextToken();
 					if (m_CurrentToken.SymbolChar == _T('X'))
 					{
-
+						GetNextToken();
+						//$00,X
+						return S_OK;
 					}
 					else if (m_CurrentToken.SymbolChar == _T('Y'))
 					{
+						GetNextToken();
+						//$00,Y
+						return S_OK;
 					}
 					else
 					{
@@ -108,6 +114,7 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 			GetNextToken();
 			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 			{
+				//$0000
 				return S_OK;
 			}
 			else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
@@ -117,9 +124,13 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 					GetNextToken();
 					if (m_CurrentToken.SymbolChar == _T('X'))
 					{
+						GetNextToken();
+						//$0000,X
 					}
 					else if (m_CurrentToken.SymbolChar == _T('Y'))
 					{
+						GetNextToken();
+						//$0000,Y
 					}
 					else
 					{
@@ -144,6 +155,9 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 				GetNextToken();
 				if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 				{
+					GetNextToken();
+					//#$00
+					return S_OK;
 				}
 				else
 				{
@@ -163,9 +177,23 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 							GetNextToken();
 							if (m_CurrentToken.SymbolChar == _T('X'))
 							{
+								GetNextToken();
+								if (m_CurrentToken.SymbolChar == _T(')'))
+								{
+									GetNextToken();
+									//($00,X)
+									return S_OK;
+								}
 							}
 							else if (m_CurrentToken.SymbolChar == _T('Y'))
 							{
+								GetNextToken();
+								if (m_CurrentToken.SymbolChar == _T(')'))
+								{
+									GetNextToken();
+									//($00,Y)
+									return S_OK;
+								}
 							}
 							else
 							{
@@ -174,6 +202,9 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 						}
 						else if (m_CurrentToken.SymbolChar == _T(')'))
 						{
+							GetNextToken();
+							//($00)
+							return S_OK;
 						}
 						else
 						{
@@ -195,9 +226,23 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 							GetNextToken();
 							if (m_CurrentToken.SymbolChar == _T('X'))
 							{
+								GetNextToken();
+								if (m_CurrentToken.SymbolChar == _T(')'))
+								{
+									GetNextToken();
+									//($0000,X)
+									return S_OK;
+								}
 							}
 							else if (m_CurrentToken.SymbolChar == _T('Y'))
 							{
+								GetNextToken();
+								if (m_CurrentToken.SymbolChar == _T(')'))
+								{
+									GetNextToken();
+									//($0000,Y)
+									return S_OK;
+								}
 							}
 							else
 							{
@@ -206,6 +251,9 @@ HRESULT Assembler::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, i
 						}
 						else if (m_CurrentToken.SymbolChar == _T(')'))
 						{
+							GetNextToken();
+							//($0000)
+							return S_OK;
 						}
 						else
 						{
