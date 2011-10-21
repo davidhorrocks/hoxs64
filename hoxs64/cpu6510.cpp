@@ -272,6 +272,58 @@ bit8 *t;
 
 void CPU6510::MonWriteByte(bit16 address, bit8 data, int memorymap)
 {
+bit8 *t;
+
+	//m_bIsWriteCycle = true;
+	//vic->ExecuteCycle(CurrentClock);
+	//m_bIsWriteCycle = false;
+	if (address>1)
+	{
+		if (memorymap < 0)//Use the MMU
+			t=m_ppMemory_map_write[address >> 12];
+		else
+			t= ram->MMU_write[memorymap & 0x1f][address >> 12];
+
+		if (t)
+			t[address]=data;
+		else
+		{
+			switch (address >> 8)
+			{
+			case 0xD0:
+			case 0xD1:
+			case 0xD2:
+			case 0xD3:
+				m_bIsWriteCycle = true;
+				vic->WriteRegister(address, CurrentClock, data);
+				m_bIsWriteCycle = false;
+				break;
+			case 0xD4:
+			case 0xD5:
+			case 0xD6:
+			case 0xD7:
+				sid->WriteRegister(address, CurrentClock, data);
+				break;
+			case 0xD8:
+			case 0xD9:
+			case 0xDA:
+			case 0xDB:
+				m_piColourRAM[address] = (data & 0x0f);
+				break;
+			case 0xDC:
+				cia1->WriteRegister(address, CurrentClock, data);
+				break;
+			case 0xDD:
+				cia2->WriteRegister(address, CurrentClock, data);
+				break;
+			}
+		}
+	}
+	else
+	{
+		WriteRegister(address, CurrentClock, data);
+		//ram->miMemory[address & 1] = pVic->de00_byte;
+	}
 }
 
 void CPU6510::GetCpuState(CPUState& state)

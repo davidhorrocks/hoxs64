@@ -27,8 +27,7 @@ struct AssemblyToken
 class Assembler
 {
 public:
-	//Assembler();
-	HRESULT AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+	HRESULT AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 private:
 	struct LexState
 	{
@@ -42,7 +41,6 @@ private:
 			Error
 		} ELexState;
 	};
-
 	TCHAR m_CurrentCh;
 	TCHAR m_NextCh;
 	bool m_bCurrentEOF;
@@ -67,6 +65,32 @@ private:
 	bool IsHexDigit(TCHAR ch);
 
 	bool AppendToIdentifierString(TCHAR ch);
+	int instcopy(bit8 *pDest, int iSizeDest, bit8 *pSrc, int iSizeSrc);
+	HRESULT AssembleOneInstruction(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleImplied(LPCTSTR pszMnemonic, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleImmediate(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleZeroPage(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleZeroPageX(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleZeroPageY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleAbsolute(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleAbsoluteX(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleAbsoluteY(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleIndirect(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleIndirectX(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleIndirectY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT AssembleRelative(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 };
 
 #endif

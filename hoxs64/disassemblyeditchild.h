@@ -20,6 +20,7 @@ public:
 
 	struct AssemblyLineBuffer
 	{
+		int index;
 		bit16 Address;
 		TCHAR AddressText[Monitor::BUFSIZEADDRESSTEXT];
 		TCHAR BytesText[Monitor::BUFSIZEINSTRUCTIONBYTESTEXT];
@@ -86,6 +87,7 @@ private:
 	bool m_bMouseDownOnFocusedAddress;
 	HWND m_hWndEditText;
 	WNDPROC m_wpOrigEditProc;
+	AssemblyLineBuffer *m_CurrentEditLineBuffer;
 
 	int xcol_Address;
 	int xcol_Bytes;

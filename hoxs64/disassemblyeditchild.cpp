@@ -44,6 +44,7 @@ CDisassemblyEditChild::CDisassemblyEditChild()
 	m_bMouseDownOnFocusedAddress = false;
 	m_hWndEditText = NULL;
 	m_wpOrigEditProc = NULL;
+	m_CurrentEditLineBuffer = NULL;
 	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));	
 }
 
@@ -81,6 +82,7 @@ HRESULT hr;
 	m_mon.Init(cpu, vic);
 	m_FirstAddress = GetNearestTopAddress(0);
 	m_NumLines = 0;
+	m_CurrentEditLineBuffer = NULL;
 	return S_OK;
 }
 
@@ -225,14 +227,33 @@ HRESULT CDisassemblyEditChild::SaveAsmEditing()
 {
 Assembler as;
 TCHAR szText[30];
+int i;
+HRESULT hr;
+bit8 acode[256];
+bit16 address;
+
 	if (!IsEditing())
 		return S_OK;
-	if (!GetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), szText, _countof(szText)))
-		return S_OK;
-int i;
-	as.AssembleText(szText, NULL, 0, &i);
-	this->HideEditMnemonic();
-	return S_OK;
+	if (GetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), szText, _countof(szText)) != 0)
+	{
+		if (m_CurrentEditLineBuffer != NULL)
+		{
+			address = m_CurrentEditLineBuffer->Address;
+			hr = as.AssembleText(address, szText, acode, _countof(acode), &i);
+			if (SUCCEEDED(hr))
+			{
+				for (int j = 0; j<i; j++)
+				{
+					this->m_cpu->MonWriteByte(address+j, acode[j], -1);
+				}
+				this->UpdateBuffer(false);
+				this->InvalidateRectChanges();
+				::UpdateWindow(m_hWnd);
+				return S_OK;
+			}
+		}
+	}	
+	return E_FAIL;
 }
 
 HRESULT CDisassemblyEditChild::UpdateMetrics()
@@ -379,6 +400,7 @@ BOOL br;
 
 LRESULT CDisassemblyEditChild::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+HRESULT hr;
 	if (hWnd == NULL)
 		return 0;
 	if (hWnd == this->m_hWndEditText)
@@ -403,8 +425,14 @@ LRESULT CDisassemblyEditChild::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM w
 			}
 			else if (wParam == VK_RETURN)
 			{
-				SaveAsmEditing();
-				return 0;
+				hr = SaveAsmEditing();
+				if (SUCCEEDED(hr))
+				{
+					this->HideEditMnemonic();
+					if (m_hWnd != NULL)
+						SetFocus(m_hWnd);
+					return 0;
+				}
 			}
 			break;
 		}
@@ -648,7 +676,7 @@ RECT rcEdit;
 	if (m_hWndEditText==NULL)
 		return;
 	CopyRect(&rcEdit, &pAlb->MnemonicRect);
-	//SM_CXEDGE,SM_CXBORDER
+	m_CurrentEditLineBuffer = pAlb;
 	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
 	rcEdit.right-= 2 *::GetSystemMetrics(SM_CXBORDER);
 	SetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), pAlb->MnemonicText);
@@ -658,6 +686,7 @@ RECT rcEdit;
 
 void CDisassemblyEditChild::HideEditMnemonic()
 {
+	m_CurrentEditLineBuffer = NULL;
 	if (m_hWndEditText==NULL)
 		return;
 	SetWindowPos(m_hWndEditText, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE);
