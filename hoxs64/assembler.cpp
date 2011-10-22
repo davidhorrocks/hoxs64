@@ -84,7 +84,7 @@ HRESULT hr;
 AssemblyToken tk;
 bit8 num8;
 bit16 num16;
-
+unsigned int iValue = 0;
 	if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 	{
 		return E_FAIL;
@@ -109,7 +109,7 @@ bit16 num16;
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
-			//Implied adderssing.
+			//Implied addressing.
 			hr = AssembleImplied(tk.IdentifierText, pCode, iBuffersize,  piBytesWritten);
 			return hr;
 		}
@@ -123,7 +123,7 @@ bit16 num16;
 				hr = AssembleZeroPage(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
 				if (SUCCEEDED(hr))
 					return S_OK;
-				hr = AssembleRelative(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
+				hr = AssembleAbsolute(tk.IdentifierText, (bit16) num8, pCode, iBuffersize, piBytesWritten);
 				return hr;
 			}
 			else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
@@ -138,6 +138,9 @@ bit16 num16;
 							GetNextToken();
 							//$00,X
 							hr = AssembleZeroPageX(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
+							if (SUCCEEDED(hr))
+								return S_OK;
+							hr = AssembleAbsoluteX(tk.IdentifierText, (bit16) num8, pCode, iBuffersize, piBytesWritten);
 							return hr;
 						}
 						else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("Y")) == 0)
@@ -145,6 +148,9 @@ bit16 num16;
 							GetNextToken();
 							//$00,Y
 							hr = AssembleZeroPageY(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
+							if (SUCCEEDED(hr))
+								return S_OK;
+							hr = AssembleAbsoluteY(tk.IdentifierText, (bit16) num8, pCode, iBuffersize, piBytesWritten);
 							return hr;
 						}
 					}
@@ -161,14 +167,19 @@ bit16 num16;
 				hr = AssembleAbsolute(tk.IdentifierText, num16, pCode, iBuffersize, piBytesWritten);
 				if (SUCCEEDED(hr))
 					return hr;
-				int diff = ((int)num16) - ((int)address+2);
-				hr = AssembleRelative(tk.IdentifierText, (bit8)(diff & 0xff), pCode, iBuffersize, piBytesWritten);
-				if (SUCCEEDED(hr))
+				if (num16 <= 0xff)
 				{
-					if (diff > 0x7f || diff < -0x80)
-						return E_FAIL;
+					hr = AssembleZeroPage(tk.IdentifierText, (bit8)(num16 & 0xff), pCode, iBuffersize, piBytesWritten);
+					if (SUCCEEDED(hr))
+						return hr;
 				}
-				return hr;
+				int diff = ((int)num16) - ((int)address+2);
+				if (diff <= 0x7f && diff >= -0x80)
+				{
+					hr = AssembleRelative(tk.IdentifierText, (bit8)(diff & 0xff), pCode, iBuffersize, piBytesWritten);
+					if (SUCCEEDED(hr))
+						return hr;
+				}
 			}
 			else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 			{
@@ -199,23 +210,36 @@ bit16 num16;
 		{
 			if (m_CurrentToken.SymbolChar == _T('#'))
 			{
-				//Immediate adderssing.
+				//Immediate addressing.
 				GetNextToken();
-				if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+				if (m_CurrentToken.TokenType == AssemblyToken::Number8 || m_CurrentToken.TokenType == AssemblyToken::Number16)
 				{
-					num8 = m_CurrentToken.Value8;
+					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+						iValue = m_CurrentToken.Value8;
+					else
+						iValue = m_CurrentToken.Value16;
 					GetNextToken();
-					//#$00
-					hr = AssembleImmediate(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
-					return hr;
+					if (iValue <= 0xff)
+					{
+						//#$00
+						hr = AssembleImmediate(tk.IdentifierText, (bit8)(iValue & 0xff), pCode, iBuffersize, piBytesWritten);
+						if (SUCCEEDED(hr))
+							return S_OK;
+						hr = AssembleRelative(tk.IdentifierText, (bit8)(iValue & 0xff), pCode, iBuffersize, piBytesWritten);
+						if (SUCCEEDED(hr))
+							return S_OK;
+					}
 				}
 			}
 			else if (m_CurrentToken.SymbolChar == _T('('))
 			{
 				GetNextToken();
-				if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+				if (m_CurrentToken.TokenType == AssemblyToken::Number8 || (m_CurrentToken.TokenType == AssemblyToken::Number16))
 				{
-					num8 = m_CurrentToken.Value8;
+					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+						iValue = m_CurrentToken.Value8;
+					else
+						iValue = m_CurrentToken.Value16;
 					GetNextToken();
 					if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 					{
@@ -231,19 +255,11 @@ bit16 num16;
 									{
 										GetNextToken();
 										//($00,X)
-										hr = AssembleIndirectX(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
-										return hr;
-									}
-								}
-								else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("Y")) == 0)
-								{
-									GetNextToken();
-									if (m_CurrentToken.SymbolChar == _T(')'))
-									{
-										GetNextToken();
-										//($00,Y)
-										hr = AssembleIndirectY(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
-										return hr;
+										if (iValue <= 0xff)
+										{
+											hr = AssembleIndirectX(tk.IdentifierText, (bit8)(iValue & 0xff), pCode, iBuffersize, piBytesWritten);
+											return hr;
+										}
 									}
 								}
 							}
@@ -251,50 +267,30 @@ bit16 num16;
 						else if (m_CurrentToken.SymbolChar == _T(')'))
 						{
 							GetNextToken();
-							//($00)
-							return E_FAIL;
-						}
-					}
-				}
-				else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
-				{
-					num16 = m_CurrentToken.Value16;
-					GetNextToken();
-					if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
-					{
-						if (m_CurrentToken.SymbolChar == _T(','))
-						{
-							GetNextToken();
-							if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
+							//($00)...
+							if (m_CurrentToken.SymbolChar == _T(','))
 							{
-								if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("X")) == 0)
+								GetNextToken();
+								if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 								{
-									GetNextToken();
-									if (m_CurrentToken.SymbolChar == _T(')'))
+									if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("Y")) == 0)
 									{
 										GetNextToken();
-										//($0000,X)
-										return E_FAIL;
-									}
-								}
-								else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("Y")) == 0)
-								{
-									GetNextToken();
-									if (m_CurrentToken.SymbolChar == _T(')'))
-									{
-										GetNextToken();
-										//($0000,Y)
-										return E_FAIL;
+										//($00),Y
+										if (iValue <= 0xff)
+										{
+											hr = AssembleIndirectY(tk.IdentifierText, (bit8)(iValue & 0xff), pCode, iBuffersize, piBytesWritten);
+											return hr;
+										}
 									}
 								}
 							}
-						}
-						else if (m_CurrentToken.SymbolChar == _T(')'))
-						{
-							GetNextToken();
-							//($0000)
-							hr = AssembleIndirect(tk.IdentifierText, num16, pCode, iBuffersize, piBytesWritten);
-							return hr;
+							else
+							{
+								//($00)->($0000)
+								hr = AssembleIndirect(tk.IdentifierText, (bit16)iValue, pCode, iBuffersize, piBytesWritten);
+								return hr;
+							}
 						}
 					}
 				}
@@ -697,7 +693,6 @@ TCHAR ch;
 					m_NextToken.TokenType = AssemblyToken::Number8;
 					m_NextToken.Value8 = m_bufNumber;
 				}
-				_tcsncpy_s(m_NextToken.IdentifierText, _countof(m_NextToken.IdentifierText), m_bufIdentifierString, _countof(m_bufIdentifierString));
 				return;
 			}
 			break;
