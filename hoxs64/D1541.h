@@ -57,6 +57,10 @@ public:
 	//IMonitorCpu
 	virtual bit8 MonReadByte(bit16 address, int memorymap);
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap);
+	virtual int GetCurrentCpuMmuMemoryMap();
+	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
+	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
+
 };
 
 #endif

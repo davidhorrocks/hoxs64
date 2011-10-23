@@ -25,8 +25,8 @@ public:
 		TCHAR AddressText[Monitor::BUFSIZEADDRESSTEXT];
 		TCHAR BytesText[Monitor::BUFSIZEINSTRUCTIONBYTESTEXT];
 		TCHAR MnemonicText[Monitor::BUFSIZEMNEMONICTEXT];
-
-		AssemblyLineBuffer();
+		MEM_TYPE AddressReadAccessType;
+		RECT MnemonicRect;
 		bool IsUnDoc;
 		bool IsPC;
 		bool IsBreak;
@@ -34,17 +34,17 @@ public:
 		bool WantUpdate;
 		int InstructionCycle;
 		bool IsValid;
+
+		AssemblyLineBuffer();
+		bool GetIsReadOnly();
 		void Clear();
 		void WriteDisassemblyString(TCHAR *pszBuffer, int cchBuffer);
 		bool IsEqual(AssemblyLineBuffer& other);
-		RECT MnemonicRect;
 	};
 
 	CDisassemblyEditChild();
 	virtual ~CDisassemblyEditChild();
-
 	static TCHAR ClassName[];
-
 	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
@@ -126,8 +126,10 @@ private:
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnEditFocusedMnemonic();
 
 	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

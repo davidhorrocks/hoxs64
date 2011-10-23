@@ -366,6 +366,11 @@ BOOL br;
 			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		else
 			return 0;
+	case WM_CHAR:
+		if (!OnChar(hWnd, uMsg, wParam, lParam))
+			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		else
+			return 0;
 	case WM_LBUTTONDOWN:
 		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
 			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
@@ -670,6 +675,18 @@ bool CDisassemblyEditChild::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	return true;
 }
 
+void CDisassemblyEditChild::OnEditFocusedMnemonic()
+{
+	for (int i=0 ; i < m_NumLines ; i++)
+	{
+		AssemblyLineBuffer *pAlb = &this->m_pFrontTextBuffer[i];
+		if (pAlb->IsFocused)
+		{
+			ShowEditMnemonic(pAlb);
+		}
+	}
+}
+
 void CDisassemblyEditChild::ShowEditMnemonic(AssemblyLineBuffer *pAlb)
 {
 RECT rcEdit;
@@ -681,6 +698,15 @@ RECT rcEdit;
 	rcEdit.right-= 2 *::GetSystemMetrics(SM_CXBORDER);
 	SetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), pAlb->MnemonicText);
 	SetWindowPos(m_hWndEditText, HWND_TOP, rcEdit.left, rcEdit.top, rcEdit.right - rcEdit.left, rcEdit.bottom - rcEdit.top, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
+	if (pAlb->GetIsReadOnly())
+	{
+		SendMessage(m_hWndEditText, EM_SETREADONLY, TRUE, 0);
+	}
+	else
+	{
+		SendMessage(m_hWndEditText, EM_SETREADONLY, FALSE, 0);
+	}
+	SendMessage(m_hWndEditText, EM_SETSEL, 0, -1);
 	SetFocus(m_hWndEditText);
 }
 
@@ -743,7 +769,20 @@ void CDisassemblyEditChild::ClearFocusedAddress()
 
 bool CDisassemblyEditChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
+	if (wParam == VK_F2)
+	{
+		this->OnEditFocusedMnemonic();
+	}
+	else
+	{
+		SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
+	}
+	return true;
+}
+
+bool CDisassemblyEditChild::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	//SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
 	return true;
 }
 
@@ -805,6 +844,7 @@ RECT rcClient;
 RECT rcBarBreak;
 RECT rcBarStatus;
 RECT rcEdit;
+RECT rcEditRow;
 BOOL br;
 HBRUSH bshBarBreak;
 HBRUSH bshBarStatus;
@@ -901,8 +941,10 @@ TEXTMETRIC tm;
 							for (int i = 0; i < m_NumLines; i++, y += LINE_HEIGHT)
 							{
 								AssemblyLineBuffer albFront = m_pFrontTextBuffer[i];
-								SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 
+								SetRect(&rcEditRow, xcol_Address, y, rcClient.right, y + LINE_HEIGHT);
+								::SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+								::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
 								if (m_cpu->IsBreakPoint(albFront.Address))
 								{
 									SelectObject(hdc, bshBarBreak);
@@ -927,6 +969,15 @@ TEXTMETRIC tm;
 									ExtTextOut(hdc, x_status + width_intflag, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szArrowText, lstrlen(szArrowText), NULL);
 								}
 
+								if (albFront.GetIsReadOnly())
+								{
+									::FillRect(hdc, &rcEditRow, ::GetSysColorBrush(COLOR_BTNFACE));
+									::SetBkColor(hdc, GetSysColor(COLOR_BTNFACE));
+								}
+								else
+								{
+									::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
+								}
 								//Draw the address text
 								x = xcol_Address;
 								slen = (int)_tcsnlen(albFront.AddressText, _countof(albFront.AddressText));
@@ -949,9 +1000,16 @@ TEXTMETRIC tm;
 
 								//Draw the mnemonic text
 								x = xcol_Mnemonic;
-								//SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, rcClient.right, y + LINE_HEIGHT);
 								SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, this->m_MinSizeW, y + LINE_HEIGHT);
 								slen = (int)_tcsnlen(albFront.MnemonicText, _countof(albFront.MnemonicText));
+								if (albFront.AddressReadAccessType == MT_KERNAL || albFront.AddressReadAccessType == MT_BASIC || albFront.AddressReadAccessType == MT_CHARGEN || albFront.AddressReadAccessType == MT_NOTCONNECTED)
+								{
+									::SetBkColor(hdc, GetSysColor(COLOR_BTNFACE));
+								}
+								else
+								{
+									::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
+								}
 								if (slen > 0)
 								{
 									if (albFront.IsUnDoc)
@@ -961,6 +1019,7 @@ TEXTMETRIC tm;
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.MnemonicText, slen, 0, NULL, NULL, &sizeText);
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
 								}
+								::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
 								if (albFront.IsFocused)
 								{
 									::DrawFocusRect(hdc, &albFront.MnemonicRect);
@@ -968,7 +1027,6 @@ TEXTMETRIC tm;
 								albFront.WantUpdate = false;
 								m_pFrontTextBuffer[i] = albFront;
 								m_pBackTextBuffer[i] = albFront;
-				
 							}
 							SelectObject(hMemDC, hbmpPrev);						
 						}
@@ -1082,6 +1140,7 @@ CPUState cpustate;
 			buffer.IsBreak = false;
 
 		int r = m_mon.DisassembleOneInstruction(currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
+		buffer.AddressReadAccessType = m_cpu->GetCpuMmuReadMemoryType(currentAddress, -1);
 		buffer.Address = currentAddress;
 		buffer.IsValid = true;
 		m_pFrontTextBuffer[currentLine] = buffer;
@@ -1257,6 +1316,12 @@ bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& othe
 
 	return true;
 }
+
+bool CDisassemblyEditChild::AssemblyLineBuffer::GetIsReadOnly()
+{
+	return (AddressReadAccessType == MT_KERNAL || AddressReadAccessType == MT_BASIC || AddressReadAccessType == MT_CHARGEN || AddressReadAccessType == MT_NOTCONNECTED);
+}
+
 
 void CDisassemblyEditChild::AssemblyLineBuffer::WriteDisassemblyString(TCHAR *pszBuffer, int cchBuffer)
 {

@@ -1,6 +1,16 @@
 #ifndef __REGISTER_H__
 #define __REGISTER_H__
 
+typedef enum tagMemoryType
+{
+	MT_RAM,
+	MT_IO,
+	MT_CHARGEN,
+	MT_BASIC,
+	MT_KERNAL,
+	MT_NOTCONNECTED
+} MEM_TYPE;
+
 class IRegister
 {
 public:
@@ -92,6 +102,9 @@ public:
 	*/
 	virtual bit8 MonReadByte(bit16 address, int memorymap)=0;
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap)=0;
+	virtual int GetCurrentCpuMmuMemoryMap()=0;
+	virtual MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap)=0;
+	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap)=0;
 	virtual void GetCpuState(CPUState& state)=0;
 	virtual bool IsBreakPoint(bit16 address)=0;
 	virtual void ClearBreakPoint(bit16 address)=0;

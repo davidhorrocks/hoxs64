@@ -125,11 +125,11 @@ bit8 CPUDisk::MonReadByte(bit16 address, int memorymap)
 		}
 		else if (address >= 0x1c00)
 		{
-			return via2->ReadRegister(address, CurrentClock);
+			return via2->ReadRegister_no_affect(address, CurrentClock);
 		}
 		else if (address >= 0x1800)
 		{
-			return via1->ReadRegister(address, CurrentClock);
+			return via1->ReadRegister_no_affect(address, CurrentClock);
 		}
 		else
 			return address >> 8;
@@ -158,6 +158,53 @@ void CPUDisk::WriteByte(bit16 address, bit8 data)
 
 void CPUDisk::MonWriteByte(bit16 address, bit8 data, int memorymap)
 {
+	if (address < 0x8000)
+	{
+		address = address & 0x1fff;
+		if (address < 0x0800)
+		{
+			pMappedRAM[address] = data;
+		}
+		else if (address >= 0x1c00)
+		{
+			return via2->WriteRegister(address, CurrentClock, data);
+		}
+		else if (address >= 0x1800)
+		{
+			return via1->WriteRegister(address, CurrentClock, data);
+		}
+	}
+}
+
+int CPUDisk::GetCurrentCpuMmuMemoryMap()
+{
+	return 0;
+}
+
+MEM_TYPE CPUDisk::GetCpuMmuReadMemoryType(bit16 address, int memorymap)
+{
+	if (address < 0x8000)
+	{
+		address = address & 0x1fff;
+		if (address < 0x0800)
+		{
+			return MT_RAM;
+		}
+		else if (address >= 0x1c00)
+		{
+			return MT_IO;
+		}
+		else if (address >= 0x1800)
+		{
+			return MT_IO;
+		}
+	}
+	return MT_NOTCONNECTED;
+}
+
+MEM_TYPE CPUDisk::GetCpuMmuWriteMemoryType(bit16 address, int memorymap)
+{
+	return GetCpuMmuReadMemoryType(address, memorymap);
 }
 
 //985248 PAL

@@ -44,6 +44,9 @@ public:
 	virtual void GetCpuState(CPUState& state);
 	virtual void SetDdr(bit8 v);
 	virtual void SetData(bit8 v);
+	virtual int GetCurrentCpuMmuMemoryMap();
+	virtual MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
+	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
 
 	void AddClockDelay();
 private:

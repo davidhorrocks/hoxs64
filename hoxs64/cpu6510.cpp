@@ -282,7 +282,7 @@ bit8 *t;
 		if (memorymap < 0)//Use the MMU
 			t=m_ppMemory_map_write[address >> 12];
 		else
-			t= ram->MMU_write[memorymap & 0x1f][address >> 12];
+			t=ram->MMU_write[memorymap & 0x1f][address >> 12];
 
 		if (t)
 			t[address]=data;
@@ -407,6 +407,16 @@ bit8 CPU6510::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 	}
 }
 
+MEM_TYPE CPU6510::GetCpuMmuReadMemoryType(bit16 address, int memorymap)
+{
+	return ram->GetCpuMmuReadMemoryType(address, memorymap);
+}
+
+MEM_TYPE CPU6510::GetCpuMmuWriteMemoryType(bit16 address, int memorymap)
+{
+	return ram->GetCpuMmuWriteMemoryType(address, memorymap);
+}
+
 void CPU6510::CheckPortFade(ICLK sysclock)
 {
 bit8 f;
@@ -500,6 +510,11 @@ void CPU6510::cpu_port(){
 	tape->SetMotorWrite(!CASSETTE_MOTOR, CASSETTE_WRITE);
 }
 
+int CPU6510::GetCurrentCpuMmuMemoryMap()
+{
+	return ram->GetCurrentCpuMmuMemoryMap();
+}
+
 void CPU6510::SetCassetteSense(bit8 sense)
 {
 	CASSETTE_SENSE = sense;
@@ -522,16 +537,19 @@ void CPU6510::Set_CIA_IRQ(ICLK sysclock)
 	SetIRQ(sysclock);
 	IRQ_CIA = 1;
 }
+
 void CPU6510::Clear_CIA_IRQ()
 {
 	if (IRQ_VIC==0)
 		ClearSlowIRQ();
 	IRQ_CIA = 0;
 }
+
 void CPU6510::Set_CIA_NMI(ICLK sysclock)
 {
 	SetNMI(sysclock);
 }
+
 void CPU6510::Clear_CIA_NMI()
 {
 	ClearNMI();
@@ -546,4 +564,3 @@ void CPU6510::SetData(bit8 v)
 {
 	write_cpu_io_data(v);
 }
-
