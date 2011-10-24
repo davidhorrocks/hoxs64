@@ -250,22 +250,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\disassemblychild.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\disassemblyeditchild.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\disassemblyframe.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\disassemblyreg.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\diskinterface.cpp"
 				>
 			</File>
@@ -314,10 +298,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\mdidebuggerframe.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\monitor.cpp"
 				>
 			</File>
@@ -361,6 +341,42 @@
 				RelativePath="..\hoxs64\vic6569.cpp"
 				>
 			</File>
+			<Filter
+				Name="debugger"
+				>
+				<File
+					RelativePath="..\hoxs64\assembler.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\dchelper.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblychild.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblyeditchild.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblyframe.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblyreg.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\edln.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\mdidebuggerframe.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -464,22 +480,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\disassemblychild.h"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\disassemblyeditchild.h"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\disassemblyframe.h"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\disassemblyreg.h"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\diskinterface.h"
 				>
 			</File>
@@ -528,15 +528,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\mdidebuggerframe.h"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\MList.h"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\monitor.h"
 				>
 			</File>
 			<File
@@ -607,6 +599,46 @@
 				RelativePath="..\hoxs64\vic6569.h"
 				>
 			</File>
+			<Filter
+				Name="debugger"
+				>
+				<File
+					RelativePath="..\hoxs64\assembler.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\dchelper.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblychild.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblyeditchild.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblyframe.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\disassemblyreg.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\edln.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\mdidebuggerframe.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\monitor.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"

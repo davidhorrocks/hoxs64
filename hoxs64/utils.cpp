@@ -187,7 +187,9 @@ CLIENTCREATESTRUCT ccs;
 
 WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd)
 {
-	WNDPROC pOldProc = (WNDPROC) SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) ::GlobalSubClassWindowProc);
+	#pragma warning(disable:4244)
+	WNDPROC pOldProc = (WNDPROC) (LONG_PTR)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) ::GlobalSubClassWindowProc);
+	#pragma warning(default:4244)
 	return pOldProc;
 }
 
