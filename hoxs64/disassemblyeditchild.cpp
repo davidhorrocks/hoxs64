@@ -23,6 +23,8 @@
 
 TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
+#define MAX_EDIT_CHARS (256)
+
 CDisassemblyEditChild::CDisassemblyEditChild()
 {
 	WIDTH_LEFTBAR2 = WIDTH_LEFTBAR;
@@ -226,7 +228,7 @@ void CDisassemblyEditChild::CancelAsmEditing()
 HRESULT CDisassemblyEditChild::SaveAsmEditing()
 {
 Assembler as;
-TCHAR szText[30];
+TCHAR szText[MAX_EDIT_CHARS+1];
 int i;
 HRESULT hr;
 bit8 acode[256];
@@ -313,6 +315,7 @@ HRESULT hr;
 	dch.UseFont(m_hFont);
 	//prevent dc restore
 	dch.m_hdc = NULL;
+	m_bIsFocused = false;
 	hr = UpdateMetrics();
 	if (FAILED(hr))
 		return hr;
@@ -393,7 +396,15 @@ BOOL br;
 	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	//case WM_VSCROLL:
 	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	case WM_KILLFOCUS:
+		m_bIsFocused = false;
+		InvalidateFocus();
+		UpdateWindow(m_hWnd);
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_SETFOCUS:
+		m_bIsFocused = true;
+		InvalidateFocus();
+		UpdateWindow(m_hWnd);
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -434,8 +445,11 @@ HRESULT hr;
 				if (SUCCEEDED(hr))
 				{
 					this->HideEditMnemonic();
+					MoveNextLine();
+					InvalidateRectChanges();
 					if (m_hWnd != NULL)
 						SetFocus(m_hWnd);
+					UpdateWindow(m_hWnd);
 					return 0;
 				}
 			}
@@ -521,6 +535,31 @@ void CDisassemblyEditChild::GetRect_Edit(const RECT& rcClient, LPRECT prc)
 	prc->left = WIDTH_LEFTBAR + WIDTH_LEFTBAR2;
 }
 
+void CDisassemblyEditChild::InvalidateFocus()
+{
+	RECT rcLine;
+	RECT rcClient;
+	RECT rcChange;
+	if (GetClientRect(m_hWnd, &rcClient))
+	{
+		int y = MARGIN_TOP + PADDING_TOP;
+		int x = rcClient.left;
+		for (int i=0; i < m_NumLines; i++, y+=LINE_HEIGHT)
+		{
+			bool bIsChanged = false;
+			AssemblyLineBuffer &front = m_pFrontTextBuffer[i];
+			if (front.IsFocused)
+				bIsChanged = true;
+			if (bIsChanged)
+			{				
+				SetRect(&rcLine, x, y, rcClient.right, y+LINE_HEIGHT);
+				if (IntersectRect(&rcChange, &rcClient, &rcLine))
+					InvalidateRect(m_hWnd, &rcChange, TRUE);
+			}
+		}
+	}
+}
+
 void CDisassemblyEditChild::InvalidateRectChanges()
 {
 	RECT rcLine;
@@ -528,6 +567,7 @@ void CDisassemblyEditChild::InvalidateRectChanges()
 	RECT rcChange;
 	if (m_bHasLastDrawText)
 	{
+		//Make sure we overwite previous text messages.
 		InvalidateRect(m_hWnd, &m_rcLastDrawText, TRUE);
 		m_bHasLastDrawText = false;
 	}
@@ -537,9 +577,14 @@ void CDisassemblyEditChild::InvalidateRectChanges()
 		int x = rcClient.left;
 		for (int i=0; i < m_NumLines; i++, y+=LINE_HEIGHT)
 		{
+			bool bIsChanged = false;
 			AssemblyLineBuffer &front = m_pFrontTextBuffer[i];
 			AssemblyLineBuffer &back = m_pBackTextBuffer[i];
 			if (!front.IsEqual(back) || !front.IsValid)
+				bIsChanged = true;
+			if ((m_bIsFocused && !front.IsFocused) || (!m_bIsFocused && front.IsFocused))
+				bIsChanged = true;
+			if (bIsChanged)
 			{				
 				SetRect(&rcLine, x, y, rcClient.right, y+LINE_HEIGHT);
 				if (IntersectRect(&rcChange, &rcClient, &rcLine))
@@ -548,6 +593,7 @@ void CDisassemblyEditChild::InvalidateRectChanges()
 		}
 		if (y < rcClient.bottom)
 		{
+			//Make sure then very bottom of the window is updated.
 			SetRect(&rcChange, x, y, rcClient.right, rcClient.bottom);
 			InvalidateRect(m_hWnd, &rcChange, TRUE);
 		}
@@ -568,6 +614,11 @@ bool bHasPrevAddress;
 
 	if (m_monitorCommand->IsRunning())
 		return false;
+	bool bWasWindowFocused = (hWnd == GetFocus());
+	if (hWnd)
+	{
+		::SetFocus(hWnd);
+	}
 	int xPos = GET_X_LPARAM(lParam); 
 	int yPos = GET_Y_LPARAM(lParam);
 
@@ -613,7 +664,7 @@ bool bHasPrevAddress;
 				bHasPrevAddress = this->GetFocusedAddress(&prevAddress);
 				if (bHasPrevAddress)
 				{
-					if (prevAddress == address)
+					if (prevAddress == address && bWasWindowFocused)
 					{
 						m_bMouseDownOnFocusedAddress = true;
 					}
@@ -635,10 +686,6 @@ bool bHasPrevAddress;
 		UpdateWindow(m_hWnd);
 	}
 
-	if (hWnd)
-	{
-		::SetFocus(hWnd);
-	}
 	return true;
 }
 
@@ -698,6 +745,7 @@ RECT rcEdit;
 	rcEdit.right-= 2 *::GetSystemMetrics(SM_CXBORDER);
 	SetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), pAlb->MnemonicText);
 	SetWindowPos(m_hWndEditText, HWND_TOP, rcEdit.left, rcEdit.top, rcEdit.right - rcEdit.left, rcEdit.bottom - rcEdit.top, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
+	SendMessage(m_hWndEditText, EM_SETLIMITTEXT, MAX_EDIT_CHARS, 0); 
 	if (pAlb->GetIsReadOnly())
 	{
 		SendMessage(m_hWndEditText, EM_SETREADONLY, TRUE, 0);
@@ -716,6 +764,23 @@ void CDisassemblyEditChild::HideEditMnemonic()
 	if (m_hWndEditText==NULL)
 		return;
 	SetWindowPos(m_hWndEditText, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE);
+}
+
+void CDisassemblyEditChild::MoveNextLine()
+{
+AssemblyLineBuffer *pAlb;
+
+	for (int i = 0; i < m_NumLines; i++)
+	{
+		pAlb = &this->m_pFrontTextBuffer[i];
+		if (pAlb->IsFocused)
+		{
+			bit16 nextAddress = (pAlb->Address + pAlb->InstructionSize) & 0xffff;
+			UpdateBuffer(m_pFrontTextBuffer, m_NumLines, nextAddress);
+			SetFocusedAddress(nextAddress);
+			break;
+		}
+	}
 }
 
 bool CDisassemblyEditChild::GetFocusedAddress(bit16 *address)
@@ -744,7 +809,7 @@ bool bFound = false;
 		}
 		else
 		{
-			pAlb->IsFocused = false;
+			pAlb->IsFocused = false;			
 		}
 	}
 	if (bFound)
@@ -1020,7 +1085,7 @@ TEXTMETRIC tm;
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
 								}
 								::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-								if (albFront.IsFocused)
+								if (albFront.IsFocused && m_bIsFocused)
 								{
 									::DrawFocusRect(hdc, &albFront.MnemonicRect);
 								}
@@ -1059,10 +1124,17 @@ TEXTMETRIC tm;
 
 void CDisassemblyEditChild::UpdateBuffer(bool bEnsurePC)
 {
-	UpdateBuffer(m_pFrontTextBuffer, m_NumLines, bEnsurePC);
+int iEnsureAddress = -1;
+	if (bEnsurePC)
+	{
+		CPUState cpustate;
+		m_cpu->GetCpuState(cpustate);
+		iEnsureAddress = cpustate.PC_CurrentOpcode;
+	}
+	UpdateBuffer(m_pFrontTextBuffer, m_NumLines, iEnsureAddress);
 }
 
-void CDisassemblyEditChild::UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, int numLines, bool bEnsurePC)
+void CDisassemblyEditChild::UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, int numLines, int iEnsureAddress)
 {
 RECT rc;
 	ZeroMemory(&rc, sizeof(rc));
@@ -1071,22 +1143,28 @@ RECT rc;
 		m_NumLines = GetNumberOfLines(rc, LINE_HEIGHT);
 		int pcline=-1;
 		bit16 address = this->m_FirstAddress;
-		UpdateBuffer(assemblyLineBuffer, address, 0, numLines, pcline);
-		if (bEnsurePC)
+		UpdateBuffer(assemblyLineBuffer, address, 0, numLines);
+		if (iEnsureAddress >=0 && iEnsureAddress <= 0xffff)
 		{
+			for (int i = 0; i < m_NumLines; i++)
+			{
+				if (iEnsureAddress == m_pFrontTextBuffer[i].Address)
+				{
+					pcline = i;
+					break;
+				}
+			}
 			if (pcline < 0 || pcline > m_NumLines - 5)
 			{
-				CPUState cpustate;
-				m_cpu->GetCpuState(cpustate);
-				address = cpustate.PC_CurrentOpcode;
-				this->SetTopAddress(address);
-				UpdateBuffer(assemblyLineBuffer, address, 0, numLines, pcline);
+				address = iEnsureAddress;
+				SetTopAddress(address);
+				UpdateBuffer(assemblyLineBuffer, address, 0, numLines);
 			}
 		}
 	}
 }
 
-void CDisassemblyEditChild::UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, bit16 address, int startLine, int numLines, int& lineOfPC)
+void CDisassemblyEditChild::UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, bit16 address, int startLine, int numLines)
 {
 bit16 currentAddress = address;
 CPUState cpustate;
@@ -1123,7 +1201,6 @@ CPUState cpustate;
 		{
 			buffer.IsPC = true;
 			buffer.InstructionCycle = cpustate.cycle;
-			lineOfPC = currentLine;
 		}
 
 		if (currentAddress == this->m_iFocusedAddress)
@@ -1139,12 +1216,13 @@ CPUState cpustate;
 		else
 			buffer.IsBreak = false;
 
-		int r = m_mon.DisassembleOneInstruction(currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
+		int instructionSize = m_mon.DisassembleOneInstruction(currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
 		buffer.AddressReadAccessType = m_cpu->GetCpuMmuReadMemoryType(currentAddress, -1);
 		buffer.Address = currentAddress;
+		buffer.InstructionSize = (bit8)instructionSize;
 		buffer.IsValid = true;
 		m_pFrontTextBuffer[currentLine] = buffer;
-		currentAddress += r;
+		currentAddress += instructionSize;
 	}
 
 }

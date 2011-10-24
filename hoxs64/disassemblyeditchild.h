@@ -22,6 +22,7 @@ public:
 	{
 		int index;
 		bit16 Address;
+		bit8 InstructionSize;
 		TCHAR AddressText[Monitor::BUFSIZEADDRESSTEXT];
 		TCHAR BytesText[Monitor::BUFSIZEINSTRUCTIONBYTESTEXT];
 		TCHAR MnemonicText[Monitor::BUFSIZEMNEMONICTEXT];
@@ -88,7 +89,7 @@ private:
 	HWND m_hWndEditText;
 	WNDPROC m_wpOrigEditProc;
 	AssemblyLineBuffer *m_CurrentEditLineBuffer;
-
+	bool m_bIsFocused;
 	int xcol_Address;
 	int xcol_Bytes;
 	int xcol_Mnemonic;
@@ -103,8 +104,9 @@ private:
 	void FreeTextBuffer();
 	void ClearBuffer();
 	void FlipBuffer();
-	void UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, int numLines, bool bEnsurePC);
-	void UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, bit16 address, int startLine, int numLines, int& lineOfPC);
+	void UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, int numLines, int iEnsureAddress);
+	void UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer, bit16 address, int startLine, int numLines);
+	void InvalidateFocus();
 	void InvalidateRectChanges();
 	int GetLineFromYPos(int y);
 	void DrawDisplay(HWND hWnd, HDC hdc);
@@ -113,6 +115,7 @@ private:
 	bool GetFocusedAddress(bit16 *address);
 	void SetFocusedAddress(bit16 address);
 	void ClearFocusedAddress();	
+	void MoveNextLine();
 	void GetRect_Bar(const RECT& rcClient, LPRECT rc);
 	void GetRect_Status(const RECT& rcClient, LPRECT rc);
 	void GetRect_Edit(const RECT& rcClient, LPRECT rc);
