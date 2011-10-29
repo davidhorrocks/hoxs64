@@ -153,7 +153,7 @@ const int sizeheader = 2;
 	}
 
 	r= SetFilePointer (hfile, sfh.dataOffset, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 		goto cleanup;

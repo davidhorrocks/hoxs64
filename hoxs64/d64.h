@@ -184,7 +184,7 @@ public:
 	static void D64_Binary_to_GCR(bit8 *src, bit8 *dest, long length);
 
 	bit16 d64Errors;
-	bit32 trackSize[G64_MAX_TRACKS];
+	bit32 trackSize[G64_MAX_TRACKS];//Track size in bits.
 	bit8 *trackData[G64_MAX_TRACKS];
 	bit8 *speedZone[G64_MAX_TRACKS];
 	bit8 *m_pD64Binary;

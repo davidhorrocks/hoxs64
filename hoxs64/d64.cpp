@@ -1249,12 +1249,13 @@ WORD s;
 		trackSize[tr] = D64_TRACK_SIZE_1_17 * 8;
 	}
 
+	//bounty bob track 30;
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
 		if (trackOffset[tr]!=0)
 		{
 			r = SetFilePointer (hfile, trackOffset[tr], 0L, FILE_BEGIN);
-			if (r == INVALID_FILE_SIZE)
+			if (r == INVALID_SET_FILE_POINTER)
 			{
 				return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 			}
@@ -1277,7 +1278,7 @@ WORD s;
 			if (speedOffset[tr] > 3)
 			{
 				r = SetFilePointer (hfile, speedOffset[tr], 0L, FILE_BEGIN);
-				if (r == INVALID_FILE_SIZE)
+				if (r == INVALID_SET_FILE_POINTER)
 				{
 					return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 				}
@@ -1286,7 +1287,8 @@ WORD s;
 					switch (j & 3)
 					{
 					case 0:
-						hr = ReadFromFile(hfile, filename, (char *)&d, j, 0);
+						d=0;
+						hr = ReadFromFile(hfile, filename, (char *)&d, 1, 0);
 						if (FAILED(hr))
 							return hr;
 						SetSpeedZone(tr, (bit16)j, (bit8)((d >> 6) & 3));
@@ -1377,7 +1379,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 		return SetError(E_FAIL,TEXT("%s is not a valid C64 FDI file."), filename);
 
 	r = SetFilePointer (hfile, 152, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
@@ -1478,7 +1480,7 @@ bit32 vTestCheck=0xCBF43926;
 	crc.pCRC32->Init(CRC32POLY,0xffffffff,0xffffffff, true);
 
 	r = SetFilePointer (hfile, 0L, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
@@ -1487,7 +1489,7 @@ bit32 vTestCheck=0xCBF43926;
 		return hr;
 
 	r = SetFilePointer (hfile, 0x200, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
@@ -1591,7 +1593,7 @@ bit8 speed;
 DWORD r;
 
 	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return E_FAIL;
 	}
@@ -1664,7 +1666,7 @@ bit8 buffer4[4];
 bit8 b1,b2,b3,b4,b5;
 
 	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return E_FAIL;
 	}
@@ -1829,7 +1831,7 @@ DWORD r,d,i;
 FDIStreamsHeader fdiStreamsHeader;
  
 	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return E_FAIL;
 	}
@@ -1891,7 +1893,7 @@ FDIStreamsHeader fdiStreamsHeader;
 		//Min
 		i = filePointer + 16 + fdiStreamsHeader.aveSize;
 		r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
-		if (r == INVALID_FILE_SIZE)
+		if (r == INVALID_SET_FILE_POINTER)
 		{
 			return E_FAIL;
 		}
@@ -1909,7 +1911,7 @@ FDIStreamsHeader fdiStreamsHeader;
 			//Max
 			i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize;
 			r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
-			if (r == INVALID_FILE_SIZE)
+			if (r == INVALID_SET_FILE_POINTER)
 			{
 				return E_FAIL;
 			}
@@ -1930,7 +1932,7 @@ FDIStreamsHeader fdiStreamsHeader;
 	{
 		i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize + fdiStreamsHeader.maxSize;
 		r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
-		if (r == INVALID_FILE_SIZE)
+		if (r == INVALID_SET_FILE_POINTER)
 		{
 			return E_FAIL;
 		}
@@ -2483,7 +2485,7 @@ CRC32Alloc crc;
 
 		
 		r = SetFilePointer (hfile, nextTrackWrite + sizeof(FDIRawTrackHeader), 0L, FILE_BEGIN);
-		if (r == INVALID_FILE_SIZE)
+		if (r == INVALID_SET_FILE_POINTER)
 		{
 			return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 		}
@@ -2531,7 +2533,7 @@ CRC32Alloc crc;
 		fdiRawTrackHeader.idxSize[0] = 0;
 
 		r = SetFilePointer (hfile, nextTrackWrite, 0L, FILE_BEGIN);
-		if (r == INVALID_FILE_SIZE)
+		if (r == INVALID_SET_FILE_POINTER)
 		{
 			return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 		}
@@ -2550,7 +2552,7 @@ CRC32Alloc crc;
 	}
 
 	r = SetFilePointer (hfile, SOFFSET(FDIHeader,trackDescription) , 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
@@ -2561,7 +2563,7 @@ CRC32Alloc crc;
 	/*Calculate CRC-32 values*/
 	/*Seek to begining*/
 	r = SetFilePointer (hfile, 0L, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
@@ -2598,7 +2600,7 @@ CRC32Alloc crc;
 
 	/*Seek to begining*/
 	r = SetFilePointer (hfile, 0L , 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}

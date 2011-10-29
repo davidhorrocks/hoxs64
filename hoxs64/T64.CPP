@@ -260,7 +260,7 @@ DWORD bytes_read,file_size,byteCount;
 	}
 
 	r = SetFilePointer (hfile, offset, 0L, FILE_BEGIN);
-	if (r == INVALID_FILE_SIZE)
+	if (r == INVALID_SET_FILE_POINTER)
 	{
 		CloseHandle(hfile);
 		return SetError(E_FAIL, TEXT("Could not seek in file %s."), filename);
