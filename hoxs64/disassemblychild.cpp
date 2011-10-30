@@ -27,7 +27,7 @@ CDisassemblyChild::CDisassemblyChild()
 	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_hWndScroll = NULL;
-	m_cpu = NULL;
+	m_pMon = NULL;
 }
 
 CDisassemblyChild::~CDisassemblyChild()
@@ -40,13 +40,13 @@ void CDisassemblyChild::Cleanup()
 	UnadviseEvents();
 }
 
-HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
+HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont)
 {
 HRESULT hr;
 	m_pParent = parent;
-	m_cpu = cpu;
+	m_pMon = pMon;
 	m_monitorCommand = monitorCommand;
-	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, cpu, vic, hFont);
+	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, pMon, hFont);
 	if (FAILED(hr))
 		return hr;
 
@@ -238,7 +238,7 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 void CDisassemblyChild::SetHome()
 {
 	CPUState cpustate;
-	this->m_cpu->GetCpuState(cpustate);
+	this->m_pMon->GetCpu()->GetCpuState(cpustate);
 	this->SetTopAddress(cpustate.PC_CurrentOpcode);
 }
 
@@ -471,7 +471,7 @@ HRESULT CDisassemblyChild::AdviseEvents()
 	hr = S_OK;
 	do
 	{
-		if (this->m_cpu->GetCpuId() == 0)
+		if (this->m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
 			hs = this->m_monitorCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
 		else
 			hs = this->m_monitorCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);

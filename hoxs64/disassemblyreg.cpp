@@ -30,8 +30,7 @@ CDisassemblyReg::CDisassemblyReg()
 	m_hFont = NULL;
 	m_monitorCommand = NULL;
 	m_MinSizeDone = false;
-	m_vic = NULL;
-	m_cpu = NULL;
+	m_pMon = NULL;
 	m_hdc = NULL;
 }
 
@@ -40,20 +39,15 @@ CDisassemblyReg::~CDisassemblyReg()
 	Cleanup();
 }
 
-HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
+HRESULT CDisassemblyReg::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont)
 {
 	Cleanup();
-	HRESULT hr;
 	m_pParent = parent;
-	this->m_cpu = cpu;
+	m_pMon = pMon;
 	this->m_hFont = hFont;
 	this->m_monitorCommand = monitorCommand;
-	this->m_vic = vic;
-	hr = this->m_mon.Init(cpu, vic);
-	if (FAILED(hr))
-		return hr;
 
-	return hr;
+	return S_OK;
 }
 
 void CDisassemblyReg::Cleanup()
@@ -101,9 +95,9 @@ BOOL br;
 	{
 		w = PADDING_LEFT + PADDING_RIGHT + GetSystemMetrics(SM_CXFRAME) * 2;
 		h = MARGIN_TOP + PADDING_TOP + PADDING_BOTTOM;
-		int cpuid = 0;
-		if (m_cpu)
-			cpuid = m_cpu->GetCpuId();
+		int cpuid = CPUID_MAIN;
+		if (m_pMon->GetCpu())
+			cpuid = m_pMon->GetCpu()->GetCpuId();
 		if (m_hWnd != NULL && m_hFont != NULL)
 		{
 			HDC hdc = GetDC(m_hWnd);
@@ -120,7 +114,7 @@ BOOL br;
 						if (br)
 						{							
 
-							if (cpuid==0)
+							if (cpuid==CPUID_MAIN)
 							{
 								TCHAR s[]= TEXT("ABCDXABXABXABXNV-BDIZCXABXABXABXLINEXCYC");
 								int slen = lstrlen(s);
@@ -167,7 +161,7 @@ HRESULT hr;
 	int x = PADDING_LEFT;
 	int y = MARGIN_TOP + PADDING_TOP;
 
-	hr = m_RegBuffer.Init(hWnd, m_hdc, m_hFont, x, y, m_cpu->GetCpuId());
+	hr = m_RegBuffer.Init(hWnd, m_hdc, m_hFont, x, y, m_pMon->GetCpu()->GetCpuId());
 	if (FAILED(hr))
 		return hr;
 
@@ -387,13 +381,18 @@ int slen;
 				this->m_RegBuffer.SR.Draw(hdc);
 				this->m_RegBuffer.SP.Draw(hdc);
 
-				if (m_cpu->GetCpuId()==0)
+				if (m_pMon->GetCpu()->GetCpuId()==CPUID_MAIN)
 				{
 					this->m_RegBuffer.Ddr.Draw(hdc);
 					this->m_RegBuffer.Data.Draw(hdc);
 					this->m_RegBuffer.VicLine.Draw(hdc);
 					this->m_RegBuffer.VicCycle.Draw(hdc);
 				}
+				else if (m_pMon->GetCpu()->GetCpuId()==CPUID_DISK)
+				{
+					this->m_RegBuffer.DiskTrack.Draw(hdc);
+				}
+
 				::ShowCaret(hWnd);
 			}
 			else
@@ -439,11 +438,11 @@ void CDisassemblyReg::UpdateDisplay()
 void CDisassemblyReg::UpdateBuffer(RegLineBuffer& b)
 {
 	b.ClearBuffer();
-	//m_mon.GetCpuRegisters(b.PC_Text, _countof(b.PC_Text), b.A_Text, _countof(b.A_Text), b.X_Text, _countof(b.X_Text), b.Y_Text, _countof(b.Y_Text), b.SR_Text, _countof(b.SR_Text), b.SP_Text, _countof(b.SP_Text), b.Ddr_Text, _countof(b.Ddr_Text), b.Data_Text, _countof(b.Data_Text));
-	//m_mon.GetVicRegisters(b.VicLine_Text, _countof(b.VicLine_Text), b.VicCycle_Text, _countof(b.VicCycle_Text));
+	//m_pMon.GetCpuRegisters(b.PC_Text, _countof(b.PC_Text), b.A_Text, _countof(b.A_Text), b.X_Text, _countof(b.X_Text), b.Y_Text, _countof(b.Y_Text), b.SR_Text, _countof(b.SR_Text), b.SP_Text, _countof(b.SP_Text), b.Ddr_Text, _countof(b.Ddr_Text), b.Data_Text, _countof(b.Data_Text));
+	//m_pMon.GetVicRegisters(b.VicLine_Text, _countof(b.VicLine_Text), b.VicCycle_Text, _countof(b.VicCycle_Text));
 
 	CPUState state;
-	m_mon.GetCpu()->GetCpuState(state);
+	m_pMon->GetCpu()->GetCpuState(state);
 
 	b.PC.SetValue(state.PC_CurrentOpcode);
 	b.A.SetValue(state.A);
@@ -451,16 +450,20 @@ void CDisassemblyReg::UpdateBuffer(RegLineBuffer& b)
 	b.Y.SetValue(state.Y);
 	b.SR.SetValue(state.Flags);
 	b.SP.SetValue(state.SP);
-	if (m_mon.GetCpu()->GetCpuId() == 0)
+	if (m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
 	{
 		b.Ddr.SetValue(state.PortDdr);
 		b.Data.SetValue(state.PortDataStored);
 
-		bit16 line = m_mon.GetVic()->GetRasterLine();
-		bit8 cycle = m_mon.GetVic()->GetRasterCycle();
+		bit16 line = m_pMon->GetVic()->GetRasterLine();
+		bit8 cycle = m_pMon->GetVic()->GetRasterCycle();
 		
 		b.VicLine.SetValue(line);
 		b.VicCycle.SetValue(cycle);
+	}
+	else if (m_pMon->GetCpu()->GetCpuId() == CPUID_DISK)
+	{
+		b.DiskTrack.SetValue(m_pMon->GetDisk()->GetHalfTrackIndex());
 	}
 }
 
@@ -476,6 +479,7 @@ void CDisassemblyReg::RegLineBuffer::ClearBuffer()
 	Data.SetValue(0);
 	VicLine.SetValue(0);
 	VicCycle.SetValue(0);
+	DiskTrack.SetValue(0);
 }
 
 void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
@@ -796,18 +800,21 @@ HFONT prevFont = NULL;
 	hr = SP.Init(hWnd, CTRLID_SP, 6, hFont, TEXT("SP"), EdLn::HexByte, true, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Ddr.Init(hWnd, CTRLID_DDR, 7, hFont, TEXT("00"), EdLn::HexByte, cpuid == 0, true, 2);
+	hr = Ddr.Init(hWnd, CTRLID_DDR, 7, hFont, TEXT("00"), EdLn::HexByte, cpuid == CPUID_MAIN, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = Data.Init(hWnd, CTRLID_DATA, 8, hFont, TEXT("01"), EdLn::HexByte, cpuid == 0, true, 2);
+	hr = Data.Init(hWnd, CTRLID_DATA, 8, hFont, TEXT("01"), EdLn::HexByte, cpuid == CPUID_MAIN, true, 2);
 	if (FAILED(hr))
 		return hr;
-	hr = VicLine.Init(hWnd, CTRLID_VICLINE, 9, hFont, TEXT("LINE"), EdLn::Hex, cpuid == 0, false, 3);
+	hr = VicLine.Init(hWnd, CTRLID_VICLINE, 9, hFont, TEXT("LINE"), EdLn::Hex, cpuid == CPUID_MAIN, false, 3);
 	if (FAILED(hr))
 		return hr;
-	hr = VicCycle.Init(hWnd, CTRLID_VICCYCLE, 10, hFont, TEXT("CYC"), EdLn::Dec, cpuid == 0, false, 2);
+	hr = VicCycle.Init(hWnd, CTRLID_VICCYCLE, 10, hFont, TEXT("CYC"), EdLn::Dec, cpuid == CPUID_MAIN, false, 2);
 	if (FAILED(hr))
 		return hr;
+	hr = DiskTrack.Init(hWnd, CTRLID_DISKTRACK, 11, hFont, TEXT("TRACK"), EdLn::DiskTrack, cpuid == CPUID_DISK, false, 2);
+	if (FAILED(hr))
+		return hr;	
 	
 	CurrentControlIndex = 0;
 
@@ -815,7 +822,7 @@ HFONT prevFont = NULL;
 	if (FAILED(hr))
 		return hr;
 
-	EdLn* ctrls[10] = {&PC, &A, &X, &Y, &SR, &SP, &Ddr, &Data, &VicLine, &VicCycle};
+	EdLn* ctrls[] = {&PC, &A, &X, &Y, &SR, &SP, &Ddr, &Data, &VicLine, &VicCycle, &DiskTrack};
 	Controls.Clear();
 	hr = Controls.Resize(_countof(ctrls));
 	if (FAILED(hr))
@@ -865,7 +872,7 @@ RECT rcAll;
 	this->SP.SetPos(x, y);
 	this->SP.GetRects(hdc, NULL, NULL, &rcAll);
 
-	if (cpuid==0)
+	if (cpuid==CPUID_MAIN)
 	{
 		x = rcAll.right + tm.tmAveCharWidth;
 		this->Ddr.SetPos(x, y);
@@ -882,6 +889,12 @@ RECT rcAll;
 		x = rcAll.right + tm.tmAveCharWidth;
 		this->VicCycle.SetPos(x, y);
 		this->VicCycle.GetRects(hdc, NULL, NULL, &rcAll);
+	}
+	else if (cpuid==CPUID_DISK)
+	{
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->DiskTrack.SetPos(x, y);
+		this->DiskTrack.GetRects(hdc, NULL, NULL, &rcAll);
 	}
 	return S_OK;
 }
@@ -941,8 +954,8 @@ bit8 dataByte;
 		{
 			EventArgs regPCChangedEventArgs;
 			address = (bit16)v;
-			this->m_cpu->SetPC(address);
-			if (this->m_cpu->GetCpuId() == 0)
+			this->m_pMon->GetCpu()->SetPC(address);
+			if (this->m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
 			{
 				this->m_monitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
@@ -958,7 +971,7 @@ bit8 dataByte;
 		if (SUCCEEDED(hr))
 		{
 			dataByte = (bit8)v;
-			this->m_cpu->SetA(dataByte);
+			this->m_pMon->GetCpu()->SetA(dataByte);
 		}
 	}
 	else if (id == m_RegBuffer.CTRLID_X)
@@ -967,7 +980,7 @@ bit8 dataByte;
 		if (SUCCEEDED(hr))
 		{
 			dataByte = (bit8)v;
-			this->m_cpu->SetX(dataByte);
+			this->m_pMon->GetCpu()->SetX(dataByte);
 		}
 	}
 	else if (id == m_RegBuffer.CTRLID_Y)
@@ -976,7 +989,7 @@ bit8 dataByte;
 		if (SUCCEEDED(hr))
 		{
 			dataByte = (bit8)v;
-			this->m_cpu->SetY(dataByte);
+			this->m_pMon->GetCpu()->SetY(dataByte);
 		}
 	}
 	else if (id == m_RegBuffer.CTRLID_SR)
@@ -985,7 +998,7 @@ bit8 dataByte;
 		if (SUCCEEDED(hr))
 		{
 			dataByte = (bit8)v;
-			this->m_cpu->SetSR(dataByte);
+			this->m_pMon->GetCpu()->SetSR(dataByte);
 		}
 	}
 	else if (id == m_RegBuffer.CTRLID_SP)
@@ -994,7 +1007,7 @@ bit8 dataByte;
 		if (SUCCEEDED(hr))
 		{
 			dataByte = (bit8)v;
-			this->m_cpu->SetSP(dataByte);
+			this->m_pMon->GetCpu()->SetSP(dataByte);
 		}
 	}
 	else if (id == m_RegBuffer.CTRLID_DDR)
@@ -1003,9 +1016,9 @@ bit8 dataByte;
 		if (SUCCEEDED(hr))
 		{
 			dataByte = (bit8)v;
-			this->m_cpu->SetDdr(dataByte);
+			this->m_pMon->GetCpu()->SetDdr(dataByte);
 			EventArgs regPCChangedEventArgs;
-			if (this->m_cpu->GetCpuId() == 0)
+			if (this->m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
 			{
 				this->m_monitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
@@ -1021,9 +1034,9 @@ bit8 dataByte;
 		if (SUCCEEDED(hr))
 		{
 			dataByte = (bit8)v;
-			this->m_cpu->SetData(dataByte);
+			this->m_pMon->GetCpu()->SetData(dataByte);
 			EventArgs regPCChangedEventArgs;
-			if (this->m_cpu->GetCpuId() == 0)
+			if (this->m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
 			{
 				this->m_monitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
 			}

@@ -30,6 +30,7 @@ public:
 		CpuFlags,
 		Hex,
 		Dec,
+		DiskTrack
 	};
 	EventSource<EdLnTextChangedEventArgs> EsOnTextChanged;
 	EventSource<EdLnTabControlEventArgs> EsOnTabControl;
@@ -100,6 +101,7 @@ private:
 	static const TCHAR m_szMeasureByte[];
 	static const TCHAR m_szMeasureCpuFlags[];
 	static const TCHAR m_szMeasureDigit[];
+	static const TCHAR m_szMeasureMaxTrack[];
 
 	int m_iValue;
 
@@ -120,6 +122,8 @@ private:
 	void SetFlags(int v);
 	void SetHex(int v);
 	void SetDec(int v);
+	void SetHalfTrackIndex(int v);
+	HRESULT GetHalfTrackIndex(int& v);
 	HRESULT GetFlags(int& v);
 	HRESULT GetHex(int& v);
 	HRESULT GetDec(int& v);

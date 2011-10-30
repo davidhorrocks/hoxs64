@@ -54,8 +54,7 @@ CDisassemblyFrame::CDisassemblyFrame()
 	m_hImageListToolBarNormal = NULL;
 	m_pParentWindow = NULL;
 	m_pszCaption = TEXT("Cpu");
-	m_vic = NULL;
-	m_cpu = NULL;
+	m_pMon = NULL;
 	m_iCurrentControlIndex = 0;
 }
 
@@ -64,12 +63,11 @@ CDisassemblyFrame::~CDisassemblyFrame()
 	Cleanup();
 }
 
-HRESULT CDisassemblyFrame::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, LPCTSTR pszCaption)
+HRESULT CDisassemblyFrame::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, LPCTSTR pszCaption)
 {
 HRESULT hr;
 	m_pParentWindow = parent;
-	m_cpu = cpu;
-	m_vic = vic;
+	m_pMon = pMon;
 	if(monitorCommand==NULL)
 		return E_POINTER;
 	m_monitorCommand = monitorCommand;
@@ -78,11 +76,11 @@ HRESULT hr;
 	hr = InitFonts();
 	if (FAILED(hr))
 		return hr;
-	hr = m_DisassemblyChild.Init(this, monitorCommand, cpu, vic, this->m_monitor_font);
+	hr = m_DisassemblyChild.Init(this, monitorCommand, pMon, this->m_monitor_font);
 	if (FAILED(hr))
 		return hr;
 
-	hr = m_DisassemblyReg.Init(this, monitorCommand, cpu, vic, this->m_monitor_font);
+	hr = m_DisassemblyReg.Init(this, monitorCommand, pMon, this->m_monitor_font);
 	if (FAILED(hr))
 		return hr;
 	
@@ -528,9 +526,9 @@ HWND hWnd;
 
 		int gap = (rcDesk.bottom - rcDesk.top) / 10;
 		int id=0;
-		if (this->m_cpu)
-			id = m_cpu->GetCpuId();
-		if (id==0)
+		if (this->m_pMon->GetCpu())
+			id = m_pMon->GetCpu()->GetCpuId();
+		if (id == CPUID_MAIN)
 		{
 			x = wp.rcNormalPosition.left-w;
 			if (wp.rcNormalPosition.left - rcDesk.left >= w)
@@ -854,7 +852,7 @@ void CDisassemblyFrame::CancelEditing()
 
 void CDisassemblyFrame::OnResume(void *sender, EventArgs& e)
 {
-	m_cpu->ClearBreakOnInterruptTaken();
+	m_pMon->GetCpu()->ClearBreakOnInterruptTaken();
 }
 
 void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
@@ -899,7 +897,7 @@ void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 
 void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 {
-	m_cpu->ClearBreakOnInterruptTaken();
+	m_pMon->GetCpu()->ClearBreakOnInterruptTaken();
 	if (IsWindow(this->m_hWnd))
 	{
 		SetHome();
@@ -1033,7 +1031,7 @@ int wmId, wmEvent;
 		if (m_monitorCommand->IsRunning())
 			return true;
 		CancelEditing();
-		if (m_cpu->GetCpuId() == 0)
+		if (m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
 			m_monitorCommand->ExecuteC64Clock();
 		else
 			m_monitorCommand->ExecuteDiskClock();
@@ -1045,7 +1043,7 @@ int wmId, wmEvent;
 		if (m_monitorCommand->IsRunning())
 			return true;
 		CancelEditing();
-		if (m_cpu->GetCpuId() == 0)
+		if (m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
 			m_monitorCommand->ExecuteC64Instruction();
 		else
 			m_monitorCommand->ExecuteDiskInstruction();
@@ -1073,7 +1071,7 @@ int wmId, wmEvent;
 			return true;
 		if (m_monitorCommand->IsRunning())
 			return true;
-		m_cpu->SetBreakOnInterruptTaken();
+		m_pMon->GetCpu()->SetBreakOnInterruptTaken();
 		m_monitorCommand->Trace();
 		return true;
 	case ID_FILE_MONITOR:

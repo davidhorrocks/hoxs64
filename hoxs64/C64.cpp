@@ -74,7 +74,7 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 
 	if (ram.Init(m_szAppDirectory)!=S_OK) return SetError(ram);
 
-	if (cpu.Init(pIC64Event, 0, static_cast<IRegister *>(&cia1), static_cast<IRegister *>(&cia2), static_cast<IRegister *>(&vic), static_cast<IRegister *>(&sid), &ram, static_cast<ITape *>(&tape64))!=S_OK) return SetError(cpu);
+	if (cpu.Init(pIC64Event, CPUID_MAIN, static_cast<IRegister *>(&cia1), static_cast<IRegister *>(&cia2), static_cast<IRegister *>(&vic), static_cast<IRegister *>(&sid), &ram, static_cast<ITape *>(&tape64))!=S_OK) return SetError(cpu);
 
 	if (cia1.Init(cfg, appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx, static_cast<IAutoLoad *>(this))!=S_OK) return SetError(cia1);
 	if (cia2.Init(cfg, appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);

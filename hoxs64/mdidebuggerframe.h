@@ -85,6 +85,8 @@ private:
 	CAppStatus *appStatus;
 	CConfig *cfg;
 	IMonitorCommand *m_monitorCommand;
+	Monitor m_monitorC64;
+	Monitor m_monitorDisk;
 
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);

@@ -122,7 +122,7 @@ public:
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];	
 
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, LPCTSTR pszCaption);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, LPCTSTR pszCaption);
 	HRESULT Show();
 	HRESULT Show(bool bSeekPC);
 
@@ -134,8 +134,7 @@ public:
 private:
 	int m_iCurrentControlIndex;
 	IMonitorCommand *m_monitorCommand;
-	IMonitorCpu *m_cpu;
-	IMonitorVic *m_vic;
+	Monitor *m_pMon;
 	LPCTSTR m_pszCaption;
 	HWND m_hWndRebar;
 	HWND m_hWndTooBar;

@@ -49,7 +49,7 @@ public:
 	static const int BUFSIZEMMUTEXT = 20;
 
 	Monitor();
-	HRESULT Init(IMonitorCpu *pMonitorCpu, IMonitorVic *pMonitorVic);
+	HRESULT Init(int iCpuId, IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk);
 	int DisassembleOneInstruction(bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc);
 	int AssembleMnemonic(bit8 address, int memorymap, const TCHAR *ppMnemonicText);
 	int AssembleBytes(bit8 address, int memorymap, const TCHAR *ppBytesText);
@@ -59,10 +59,18 @@ public:
 
 	HRESULT AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 
+	int GetCpuId();
 	IMonitorCpu *GetCpu();
+	IMonitorCpu *GetMainCpu();
+	IMonitorCpu *GetDiskCpu();
 	IMonitorVic *GetVic();
+	IMonitorDisk *GetDisk();
 private:
-	IMonitorCpu *m_pMonitorCpu;
+	int m_iCpuId;
+	IMonitorCpu *m_pMonitorMainCpu;
+	IMonitorCpu *m_pMonitorDiskCpu;
 	IMonitorVic *m_pMonitorVic;
+	IMonitorDisk *m_pMonitorDisk;
+
 };
 #endif

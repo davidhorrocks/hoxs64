@@ -68,6 +68,7 @@ public:
 			CTRLID_DATA=8,
 			CTRLID_VICLINE=9,
 			CTRLID_VICCYCLE=10,
+			CTRLID_DISKTRACK=11
 		};
 
 		HRESULT Init(HWND hWndParent, HDC hdc, HFONT hFont, int x, int y, int cpuid);
@@ -81,6 +82,7 @@ public:
 		EdLn Data;
 		EdLn VicLine;
 		EdLn VicCycle;
+		EdLn DiskTrack;
 
 		int CurrentControlIndex;
 		CArray<EdLn*> Controls;
@@ -113,7 +115,7 @@ public:
 
 	static TCHAR ClassName[];
 
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
@@ -128,10 +130,7 @@ private:
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;
-
-	IMonitorCpu *m_cpu;
-	IMonitorVic *m_vic;
-	Monitor m_mon;
+	Monitor *m_pMon;
 	IMonitorCommand *m_monitorCommand;
 
 	RegLineBuffer m_RegBuffer;

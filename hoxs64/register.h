@@ -129,5 +129,9 @@ public:
 	virtual bit8 GetRasterCycle()=0;
 };
 
-
+class IMonitorDisk
+{
+public:
+	virtual bit8 GetHalfTrackIndex()=0;
+};
 #endif

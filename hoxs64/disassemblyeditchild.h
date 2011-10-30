@@ -46,7 +46,7 @@ public:
 	CDisassemblyEditChild();
 	virtual ~CDisassemblyEditChild();
 	static TCHAR ClassName[];
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
 
@@ -71,12 +71,10 @@ public:
 private:
 	CVirWindow *m_pParent;
 	IMonitorCommand *m_monitorCommand;
-	IMonitorCpu *m_cpu;
-	IMonitorVic *vic;
+	Monitor *m_pMon;
 	HFONT m_hFont;
 	bit16 m_FirstAddress;
 	int m_NumLines;
-	Monitor m_mon;
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;

@@ -7,7 +7,7 @@
 
 class CIA2;
 
-class DiskInterface : public IRegister, public ErrorMsg
+class DiskInterface : public IRegister, public IMonitorDisk, public ErrorMsg
 {
 public:
 	DiskInterface();
@@ -35,6 +35,9 @@ public:
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+
+	//IMonitorDisk
+	virtual bit8 GetHalfTrackIndex();
 
 	bit8 GetDisk16(bit8 m_currentTrackNumber, bit32 headIndex);
 	void PutDisk16(bit8 trackNumber, bit32 headIndex, bit8 data);

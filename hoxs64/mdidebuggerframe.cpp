@@ -715,14 +715,18 @@ HRESULT hr;
 	IMonitorCpu *monitorMainCpu = &c64->cpu;
 	IMonitorCpu *monitorDiskCpu = &c64->diskdrive.cpu;
 	IMonitorVic *monitorVic = &c64->vic;
+	IMonitorDisk *monitorDisk = &c64->diskdrive;
+
+	m_monitorC64.Init(CPUID_MAIN, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
+	m_monitorDisk.Init(CPUID_DISK, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
 
 	do
 	{
-		hr = m_debugCpuC64.Init(this, monitorCommand, monitorMainCpu, monitorVic, TEXT("C64 - cpu"));
+		hr = m_debugCpuC64.Init(this, monitorCommand, &m_monitorC64, TEXT("C64 - cpu"));
 		if (FAILED(hr))
 			break;
 
-		hr = m_debugCpuDisk.Init(this, monitorCommand, monitorDiskCpu, monitorVic, TEXT("Disk - cpu"));
+		hr = m_debugCpuDisk.Init(this, monitorCommand, &m_monitorDisk, TEXT("Disk - cpu"));
 		if (FAILED(hr))
 			break;
 

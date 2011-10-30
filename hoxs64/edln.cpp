@@ -25,9 +25,9 @@
 
 const TCHAR EdLn::m_szMeasureAddress[] = TEXT("0000");
 const TCHAR EdLn::m_szMeasureByte[] = TEXT("00");
-//const TCHAR EdLn::m_szMeasureCpuFlags[]  = TEXT("NV-BDIZC");
 const TCHAR EdLn::m_szMeasureCpuFlags[] = TEXT("00100010");
 const TCHAR EdLn::m_szMeasureDigit[] = TEXT("0");
+const TCHAR EdLn::m_szMeasureMaxTrack[] = TEXT("40.5");
 
 EdLnTextChangedEventArgs::EdLnTextChangedEventArgs(EdLn* pEdLnControl)
 {
@@ -114,6 +114,9 @@ HRESULT hr = E_FAIL;
 	case Hex:
 	case Dec:
 		m = numChars;
+		break;
+	case DiskTrack:
+		m = 4;
 		break;
 	default:
 		m = numChars;
@@ -647,32 +650,36 @@ HRESULT hr = E_FAIL;
 				if (br)
 				{
 					const TCHAR *psData;
-					int m = 1;
+					int numEditChars = 1;
 					switch (m_style)
 					{
 					case HexAddress:
 						psData = m_szMeasureAddress;
-						m = 4;
+						numEditChars = 4;
 						break;
 					case HexByte:
 						psData = m_szMeasureByte;
-						m = 2;
+						numEditChars = 2;
 						break;
 					case CpuFlags:
 						psData = m_szMeasureCpuFlags;
-						m = 8;
+						numEditChars = 8;
 						break;
 					case Hex:
 						psData = m_szMeasureDigit;
-						m = m_iNumChars;
+						numEditChars = m_iNumChars;
 						break;
 					case Dec:
 						psData = m_szMeasureDigit;
-						m = m_iNumChars;
+						numEditChars = m_iNumChars;
+						break;
+					case DiskTrack:
+						psData = m_szMeasureMaxTrack;
+						numEditChars = 4;
 						break;
 					default:
 						psData = m_szMeasureDigit;
-						m = m_iNumChars;
+						numEditChars = m_iNumChars;
 						break;
 					}
 
@@ -690,7 +697,7 @@ HRESULT hr = E_FAIL;
 						slen1 = 0;
 					slen2 = lstrlen(psData);
 					tx1 = slen1 * tm.tmAveCharWidth;
-					tx2 = m * tm.tmAveCharWidth;
+					tx2 = numEditChars * tm.tmAveCharWidth;
 					BOOL brCaption = FALSE;
 					BOOL brEdit = FALSE;
 					if (slen1 > 0)
@@ -702,7 +709,7 @@ HRESULT hr = E_FAIL;
 							tx1 = (sizeCaption.cx);
 						}
 					}
-					if (m > 0)
+					if (numEditChars > 0)
 					{
 						brEdit = GetTextExtentExPoint(hdc, psData, slen2, 0, NULL, NULL, &sizeEdit);
 						if (brEdit)
@@ -808,6 +815,9 @@ HRESULT hr=E_FAIL;
 	case Dec:
 		hr = GetDec(v);
 		break;
+	case DiskTrack:
+		hr = GetHalfTrackIndex(v);
+		break;
 	}
 	return hr;
 }
@@ -831,6 +841,9 @@ void EdLn::SetValue(int v)
 		break;
 	case Dec:
 		SetDec(v);
+		break;
+	case DiskTrack:
+		SetHalfTrackIndex(v);
 		break;
 	}
 }
@@ -940,6 +953,35 @@ HRESULT hr = E_FAIL;
 void EdLn::SetDec(int v)
 {
 	_sntprintf_s(m_szTextBuffer, m_iTextBufferLength, _TRUNCATE, TEXT("%d"), v);
+}
+
+void EdLn::SetHalfTrackIndex(int v)
+{
+	if (v < 0 || v >= 100)
+	{
+		m_szTextBuffer[0] = 0;
+	}
+	else
+	{
+		double t = ((double)v/2.0) + 1.0f;
+		_sntprintf_s(m_szTextBuffer, m_iTextBufferLength, _TRUNCATE, TEXT("%.1f"), t);
+	}
+}
+
+HRESULT EdLn::GetHalfTrackIndex(int& v)
+{
+HRESULT hr = E_FAIL;
+
+	if (m_szTextBuffer == NULL || m_iNumChars <= 0)
+		return E_FAIL;
+
+	int r = _stscanf_s(m_szTextBuffer, TEXT(" %f"), &v);
+	if (r < 1)
+	{
+		v = 0;
+		return E_FAIL;
+	}
+	return S_OK;
 }
 
 size_t EdLn::GetString(TCHAR buffer[], int bufferSize)

@@ -27,7 +27,7 @@ public:
 	static const int ID_DISASSEMBLY = 2001;
 	static TCHAR ClassName[];
 
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
@@ -40,7 +40,7 @@ public:
 private:
 	HWND m_hWndScroll;
 	IMonitorCommand *m_monitorCommand;
-	IMonitorCpu *m_cpu;
+	Monitor *m_pMon;
 
 	CVirWindow *m_pParent;
 	CDisassemblyEditChild m_DisassemblyEditChild;

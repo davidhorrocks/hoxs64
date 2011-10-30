@@ -29,7 +29,7 @@ CDisassemblyEditChild::CDisassemblyEditChild()
 {
 	WIDTH_LEFTBAR2 = WIDTH_LEFTBAR;
 	LINE_HEIGHT = 16;
-
+	m_pMon = NULL;
 	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_FirstAddress = 0;
@@ -69,19 +69,17 @@ void CDisassemblyEditChild::Cleanup()
 
 }
 
-HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, IMonitorCpu *cpu, IMonitorVic *vic, HFONT hFont)
+HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont)
 {
 HRESULT hr;
 	Cleanup();
 
 	this->m_pParent = parent;
 	this->m_hFont = hFont;
-	this->m_cpu = cpu;
 	this->m_monitorCommand = monitorCommand;
-
+	this->m_pMon = pMon;
 
 	hr = AllocTextBuffer();
-	m_mon.Init(cpu, vic);
 	m_FirstAddress = GetNearestTopAddress(0);
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
@@ -246,7 +244,7 @@ bit16 address;
 			{
 				for (int j = 0; j<i; j++)
 				{
-					this->m_cpu->MonWriteByte(address+j, acode[j], -1);
+					this->m_pMon->GetCpu()->MonWriteByte(address+j, acode[j], -1);
 				}
 				this->UpdateBuffer(false);
 				this->InvalidateRectChanges();
@@ -636,14 +634,14 @@ bool bHasPrevAddress;
 		{
 			pAlb = &this->m_pFrontTextBuffer[iline];
 			address = pAlb->Address;
-			if (m_cpu->IsBreakPoint(address))
+			if (m_pMon->GetCpu()->IsBreakPoint(address))
 			{
-				m_cpu->ClearBreakPoint(address);
+				m_pMon->GetCpu()->ClearBreakPoint(address);
 				pAlb->IsBreak = false;
 			}
 			else
 			{
-				m_cpu->SetExecute(address, 1);
+				m_pMon->GetCpu()->SetExecute(address, 1);
 				pAlb->IsBreak = true;
 			}
 
@@ -891,7 +889,7 @@ LPNMHDR pn;
 void CDisassemblyEditChild::SetHome()
 {
 	CPUState cpustate;
-	this->m_cpu->GetCpuState(cpustate);
+	this->m_pMon->GetCpu()->GetCpuState(cpustate);
 	this->SetTopAddress(cpustate.PC_CurrentOpcode);
 }
 
@@ -917,7 +915,7 @@ HBRUSH bshEdit;
 TEXTMETRIC tm;
 
 	CPUState cpustate;
-	m_cpu->GetCpuState(cpustate);
+	m_pMon->GetCpu()->GetCpuState(cpustate);
 
 	SetBkMode(hdc, OPAQUE);
 	SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
@@ -1010,7 +1008,7 @@ TEXTMETRIC tm;
 								SetRect(&rcEditRow, xcol_Address, y, rcClient.right, y + LINE_HEIGHT);
 								::SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 								::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-								if (m_cpu->IsBreakPoint(albFront.Address))
+								if (m_pMon->GetCpu()->IsBreakPoint(albFront.Address))
 								{
 									SelectObject(hdc, bshBarBreak);
 									DWORD dwROP = MERGECOPY;
@@ -1128,7 +1126,7 @@ int iEnsureAddress = -1;
 	if (bEnsurePC)
 	{
 		CPUState cpustate;
-		m_cpu->GetCpuState(cpustate);
+		m_pMon->GetCpu()->GetCpuState(cpustate);
 		iEnsureAddress = cpustate.PC_CurrentOpcode;
 	}
 	UpdateBuffer(m_pFrontTextBuffer, m_NumLines, iEnsureAddress);
@@ -1169,7 +1167,7 @@ void CDisassemblyEditChild::UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer,
 bit16 currentAddress = address;
 CPUState cpustate;
 	
-	m_cpu->GetCpuState(cpustate);
+	m_pMon->GetCpu()->GetCpuState(cpustate);
 
 	bit16s pcdiff_start = (bit16s)((cpustate.PC_CurrentOpcode - address) & 0xffff);	
 	bool pcfound = false;
@@ -1211,13 +1209,13 @@ CPUState cpustate;
 			}
 		}
 
-		if (m_cpu->IsBreakPoint(currentAddress))
+		if (m_pMon->GetCpu()->IsBreakPoint(currentAddress))
 			buffer.IsBreak = true;
 		else
 			buffer.IsBreak = false;
 
-		int instructionSize = m_mon.DisassembleOneInstruction(currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
-		buffer.AddressReadAccessType = m_cpu->GetCpuMmuReadMemoryType(currentAddress, -1);
+		int instructionSize = m_pMon->DisassembleOneInstruction(currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
+		buffer.AddressReadAccessType = m_pMon->GetCpu()->GetCpuMmuReadMemoryType(currentAddress, -1);
 		buffer.Address = currentAddress;
 		buffer.InstructionSize = (bit8)instructionSize;
 		buffer.IsValid = true;
@@ -1234,7 +1232,7 @@ bit16 currentAddress = address - 32;
 bit16 nextAddress;
 	while((bit16s)(currentAddress - address) < 0)
 	{
-		int instructionLength = m_mon.DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+		int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 		if (instructionLength<=0)
 		{
 			nextAddress = currentAddress+1;
@@ -1289,7 +1287,7 @@ bool isUndoc = false;
 	bit16 currentAddress = startaddress;
 	for (int i=0 ; i<linenumber ; i++)
 	{
-		int instructionLength = m_mon.DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+		int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 		currentAddress+=instructionLength;
 	}
 	
@@ -1301,7 +1299,7 @@ bit16 CDisassemblyEditChild::GetNextAddress()
 bool isUndoc = false;
 bit16 currentAddress = m_FirstAddress;
 bit16 nextAddress;
-	int instructionLength = m_mon.DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+	int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 	if (instructionLength<=0)
 	{
 		nextAddress = currentAddress+1;
@@ -1320,7 +1318,7 @@ bit16 currentAddress = m_FirstAddress - 32;
 bit16 nextAddress;
 	while((bit16s)(currentAddress-m_FirstAddress) < 0)
 	{
-		int instructionLength = m_mon.DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+		int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 		if (instructionLength<=0)
 		{
 			nextAddress = currentAddress+1;

@@ -256,7 +256,7 @@ HRESULT hr;
 	
 	via1.Init(cfg, appStatus, &cpu, this);
 	via2.Init(cfg, appStatus, &cpu, this);
-	cpu.Init(pIC64Event, 1, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom);
+	cpu.Init(pIC64Event, CPUID_DISK, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom);
 
 	m_d64_protectOff=1;//1=no protect;0=protected;
 	return S_OK;
@@ -1057,4 +1057,9 @@ void DiskInterface::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 bit8 DiskInterface::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
 	return 0;
+}
+
+bit8 DiskInterface::GetHalfTrackIndex()
+{
+	return m_currentTrackNumber;
 }
