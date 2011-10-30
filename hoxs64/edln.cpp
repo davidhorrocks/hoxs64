@@ -963,7 +963,7 @@ void EdLn::SetHalfTrackIndex(int v)
 	}
 	else
 	{
-		double t = ((double)v/2.0) + 1.0f;
+		double t = ((double)v/2.0) + 1.0;
 		_sntprintf_s(m_szTextBuffer, m_iTextBufferLength, _TRUNCATE, TEXT("%.1f"), t);
 	}
 }
@@ -971,16 +971,19 @@ void EdLn::SetHalfTrackIndex(int v)
 HRESULT EdLn::GetHalfTrackIndex(int& v)
 {
 HRESULT hr = E_FAIL;
+double t;
 
+	v = 0;
 	if (m_szTextBuffer == NULL || m_iNumChars <= 0)
 		return E_FAIL;
 
-	int r = _stscanf_s(m_szTextBuffer, TEXT(" %f"), &v);
+	t = 0.0;
+	int r = _stscanf_s(m_szTextBuffer, TEXT(" %f"), &t);
 	if (r < 1)
-	{
-		v = 0;
 		return E_FAIL;
-	}
+	if (t<1.0 || t >=100.0)
+		return E_FAIL;
+	v = floor ((t - 1.0) * 2.0);
 	return S_OK;
 }
 
