@@ -1191,8 +1191,10 @@ bit8 tr;
 unsigned long trackOffset[G64_MAX_TRACKS];
 unsigned long speedOffset[G64_MAX_TRACKS];
 long i;
-DWORD file_size,d,j;
+DWORD file_size,j;
+bit32 data32;
 bit8 speed;
+bit8 data8;
 WORD s;
 
 	ClearError();
@@ -1219,25 +1221,25 @@ WORD s;
 
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
-		hr = ReadFromFile(hfile, filename, (char *)&d, 4, 0);
+		hr = ReadFromFile(hfile, filename, (char *)&data32, 4, 0);
 		if (FAILED(hr))
 			return hr;
-		if (d + 2 >= file_size)
+		if (data32 + 2 >= file_size)
 			return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
-		trackOffset[tr] = d;
+		trackOffset[tr] = data32;
 	}
 	
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
-		hr = ReadFromFile(hfile, filename, (char *)&d, 4, 0);
+		hr = ReadFromFile(hfile, filename, (char *)&data32, 4, 0);
 		if (FAILED(hr))
 			return hr;
-		if (d > 3)
+		if (data32 > 3)
 		{
-			if (d + 2 >= file_size)
+			if (data32 + 2 >= file_size)
 				return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
 		}
-		speedOffset[tr] = d;
+		speedOffset[tr] = data32;
 	}
 
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
@@ -1249,7 +1251,6 @@ WORD s;
 		trackSize[tr] = D64_TRACK_SIZE_1_17 * 8;
 	}
 
-	//bounty bob track 30;
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
 		if (trackOffset[tr]!=0)
@@ -1275,6 +1276,7 @@ WORD s;
 			if (FAILED(hr))
 				return hr;
 
+			data8 = 0;
 			if (speedOffset[tr] > 3)
 			{
 				r = SetFilePointer (hfile, speedOffset[tr], 0L, FILE_BEGIN);
@@ -1287,30 +1289,30 @@ WORD s;
 					switch (j & 3)
 					{
 					case 0:
-						d=0;
-						hr = ReadFromFile(hfile, filename, (char *)&d, 1, 0);
+						data8=0;
+						hr = ReadFromFile(hfile, filename, (char *)&data8, 1, 0);
 						if (FAILED(hr))
 							return hr;
-						SetSpeedZone(tr, (bit16)j, (bit8)((d >> 6) & 3));
+						SetSpeedZone(tr, (bit16)j, (bit8)((data8 >> 6) & 3));
 						break;
 					case 1:
-						SetSpeedZone(tr, (bit16)j, (bit8)((d >> 4) & 3));
+						SetSpeedZone(tr, (bit16)j, (bit8)((data8 >> 4) & 3));
 						break;
 					case 2:
-						SetSpeedZone(tr, (bit16)j, (bit8)((d >> 2) & 3));
+						SetSpeedZone(tr, (bit16)j, (bit8)((data8 >> 2) & 3));
 						break;
 					case 3:
-						SetSpeedZone(tr, (bit16)j, (bit8)(d & 3));
+						SetSpeedZone(tr, (bit16)j, (bit8)(data8 & 3));
 						break;
 					}
 				}
 			}
 			else
 			{
-				d = speedOffset[tr];
+				data8 = (bit8)(speedOffset[tr] & 3);
 				for (j=0 ; j < (trackSize[tr] / 8) ; j++)
 				{
-					SetSpeedZone(tr, (bit16)j, (bit8)d);
+					SetSpeedZone(tr, (bit16)j, data8);
 				}
 			}
 		}
