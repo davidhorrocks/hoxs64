@@ -319,6 +319,18 @@ bit8 v[1];
 	for(int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
+		if (inf.address_mode == amIMPLIED && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0 && inf.undoc == 0)
+		{
+			v[0] = inf.opcode;
+			int w = instcopy(pCode, iBuffersize, v, _countof(v));
+			if (piBytesWritten)
+				*piBytesWritten = w;
+			return S_OK;
+		}
+	}
+	for(int i=0; i <= 0xff; i++)
+	{
+		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amIMPLIED && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
 		{
 			v[0] = inf.opcode;

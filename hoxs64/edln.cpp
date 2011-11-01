@@ -983,7 +983,7 @@ double t;
 		return E_FAIL;
 	if (t<1.0 || t >=100.0)
 		return E_FAIL;
-	v = floor ((t - 1.0) * 2.0);
+	v = (int)floor ((t - 1.0) * 2.0);
 	return S_OK;
 }
 
