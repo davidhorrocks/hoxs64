@@ -316,7 +316,7 @@ LRESULT CPRGBrowse::ChildDialogProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM l
 {
 NMHDR *mh;
 TCHAR fileName[MAX_PATH+1];
-__int3264 len=0;
+int len=0;
 LPMEASUREITEMSTRUCT lpmis;
 LPDRAWITEMSTRUCT lpdis;
 BYTE tempC64String[24];
@@ -324,7 +324,7 @@ RGBQUAD rgb;
 HBRUSH hBrushListBox;
 HBRUSH hbrushOld;
 HRESULT hr;
-__int3264 i;
+int i;
 
 LPOFNOTIFY lpOfNotify;
 CPRGBrowse::FIS fis;
@@ -333,6 +333,7 @@ RECT rcListBox;
 RECT rcCheckBoxQuickLoad;
 RECT rcCheckBoxAlignD64Tracks;
 RECT rcDlg;
+LRESULT lr;
 //RECT rcParentDlg;
 	switch (msg) 
 	{ 
@@ -379,13 +380,16 @@ RECT rcDlg;
 				c64file.ClearDirectory();
 				SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
 				LeaveCriticalSection(&mCrtStatus);
-				len = (__int3264)SendMessage(GetParent(hDlg), CDM_GETSPEC, MAX_PATH-1, (LPARAM)fileName);
-				if (len<=1)
+				lr = SendMessage(GetParent(hDlg), CDM_GETSPEC, MAX_PATH-1, (LPARAM)fileName);
+				if (lr <= 1 || lr > MAXLONG)
 					break;
-				len = (__int3264)SendMessage(GetParent(hDlg), CDM_GETFILEPATH, MAX_PATH-1, (LPARAM)fileName);
-				if (len<=1)
+				lr = SendMessage(GetParent(hDlg), CDM_GETFILEPATH, MAX_PATH-1, (LPARAM)fileName);
+				if (lr <= 1 || lr > MAXLONG)
 					break;
-				if (len>MAX_PATH)
+				len = (LONG)lr;
+				if (len <= 1)
+					break;
+				if (len > MAX_PATH)
 				{
 					MessageBox(GetParent(hDlg), TEXT("Path too long."), APPNAME, MB_OK | MB_ICONEXCLAMATION);
 					break;
@@ -403,31 +407,32 @@ RECT rcDlg;
 				SelectedAlignD64Tracks = (IsDlgButtonChecked(hDlg, IDC_CHKALIGND64TRACKS) != BST_UNCHECKED) ? true : false;
 				memset(SelectedC64FileName, 0xA0, sizeof(SelectedC64FileName));
 				lpOfNotify = (LPOFNOTIFY) lParam;
-				//lpOfNotify->lpOFN->lpstrFile;
-				i = (__int3264)SendMessage(hListBox, LB_GETCOUNT, 0, 0);
-				if (i==LB_ERR || i < 0 || i==0)
+				lr = SendMessage(hListBox, LB_GETCOUNT, 0, 0);
+				if (lr == LB_ERR || lr <= 0 || lr > MAXLONG)
 				{
 					//FALSE indicates to accept the file
 					return FALSE;
 				}
-				i = (__int3264)SendMessage(hListBox, LB_GETCURSEL, 0, 0);
-				if (i==LB_ERR || i < 0 || i==0 || i > MAXLONG)
+				lr = SendMessage(hListBox, LB_GETCURSEL, 0, 0);
+				if (lr == LB_ERR || lr <= 0 || lr > MAXLONG)
 				{
 					return FALSE;
 				}
+				i = (LONG)lr;
 				
-				SelectedListItem = (int)i;
+				SelectedListItem = i;
 
 				if (SelectedListItem >= HEADERLINES)
 				{
-					i = (__int3264)SendMessage(hListBox, LB_GETITEMDATA, SelectedListItem, 0);
-					if (i != LB_ERR && i >= 0 && i < MAXLONG)
+					lr = SendMessage(hListBox, LB_GETITEMDATA, SelectedListItem, 0);
+					if (lr != LB_ERR && lr >= 0 && lr < MAXLONG)
 					{
-						SelectedDirectoryIndex = c64file.GetOriginalDirectoryIndex((int)i);
+						i = (LONG)lr;
+						SelectedDirectoryIndex = c64file.GetOriginalDirectoryIndex(i);
+						SelectedC64FileNameLength = c64file.GetDirectoryItemName(i, SelectedC64FileName, sizeof(SelectedC64FileName));
+						if (SelectedC64FileNameLength > sizeof(SelectedC64FileName))
+							SelectedC64FileNameLength = sizeof(SelectedC64FileName);
 					}
-					SelectedC64FileNameLength = c64file.GetDirectoryItemName((int)i, SelectedC64FileName, sizeof(SelectedC64FileName));
-					if (SelectedC64FileNameLength > sizeof(SelectedC64FileName))
-						SelectedC64FileNameLength = sizeof(SelectedC64FileName);
 				}
 				return FALSE;
 			}
@@ -550,10 +555,11 @@ RECT rcDlg;
 		{
 			if ((HIWORD(wParam) == LBN_DBLCLK) && (fis == COMPLETED))
 			{
-				i = (__int3264)SendMessage(hListBox, LB_GETCURSEL, 0, 0);
-				if (i >= 0 && i <= MAXLONG)
+				lr = SendMessage(hListBox, LB_GETCURSEL, 0, 0);
+				if (lr >= 0 && lr <= MAXLONG)
 				{
-					SelectedListItem = (int)i;
+					i = (LONG)lr;
+					SelectedListItem = i;
 					PostMessage(GetParent(hDlg), WM_COMMAND, MAKEWPARAM(IDOK, 1), (LPARAM)GetDlgItem(GetParent(hDlg), IDOK));
 				}
 			}
