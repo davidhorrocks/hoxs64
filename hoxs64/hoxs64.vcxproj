@@ -788,6 +788,8 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="wpanel.cpp" />
+    <ClCompile Include="wpanelmanger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler.h" />
@@ -853,6 +855,8 @@
     <ClInclude Include="via2.h" />
     <ClInclude Include="via6522.h" />
     <ClInclude Include="vic6569.h" />
+    <ClInclude Include="wpanel.h" />
+    <ClInclude Include="wpanelmanger.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="siddrv.asm">

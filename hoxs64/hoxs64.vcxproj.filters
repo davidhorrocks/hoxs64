@@ -177,6 +177,12 @@
     <ClCompile Include="assembler.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="wpanel.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="wpanelmanger.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -366,6 +372,12 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="assembler.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="wpanel.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="wpanelmanger.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>
