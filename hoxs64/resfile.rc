@@ -13,13 +13,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.K.) resources
+// English (United Kingdom) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -52,7 +50,7 @@ END
 // Accelerator
 //
 
-HOXS64 ACCELERATORS 
+HOXS64 ACCELERATORS
 BEGIN
     VK_F9,          ID_FILE_MONITOR,        VIRTKEY, NOINVERT
     "P",            ID_FILE_PAUSE,          VIRTKEY, ALT, NOINVERT
@@ -84,7 +82,7 @@ IDI_BREAK               ICON                    "break.ico"
 // Menu
 //
 
-HOXS64 MENUEX 
+HOXS64 MENUEX
 BEGIN
     POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
@@ -151,7 +149,7 @@ BEGIN
     END
 END
 
-MENU_MDI_DEBUGGER MENU 
+MENU_MDI_DEBUGGER MENU
 BEGIN
     POPUP "Debug"
     BEGIN
@@ -166,7 +164,7 @@ BEGIN
     END
 END
 
-MENU_CPUDISASSEMBLY MENU 
+MENU_CPUDISASSEMBLY MENU
 BEGIN
     POPUP "Step"
     BEGIN
@@ -269,7 +267,7 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,67,161,50,14
 END
 
-IDD_KEYPAGE2 DIALOG  0, 0, 331, 182
+IDD_KEYPAGE2 DIALOG 0, 0, 331, 182
 STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -327,7 +325,7 @@ BEGIN
     RTEXT           "Z",IDC_STATIC,216,57,14,12,SS_CENTERIMAGE
 END
 
-IDD_KEYPAGE4 DIALOG  0, 0, 328, 144
+IDD_KEYPAGE4 DIALOG 0, 0, 328, 144
 STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -355,7 +353,7 @@ BEGIN
     RTEXT           "RIGHT",IDC_STATIC,179,95,28,12,SS_CENTERIMAGE
 END
 
-IDD_JOYSTICK DIALOG  0, 0, 326, 218
+IDD_JOYSTICK DIALOG 0, 0, 326, 218
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Joystick Assignment"
 FONT 8, "MS Sans Serif"
@@ -392,7 +390,7 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,61,201,50,14
 END
 
-IDD_KEYPAGE1 DIALOG  0, 0, 346, 185
+IDD_KEYPAGE1 DIALOG 0, 0, 346, 185
 STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -519,11 +517,11 @@ BEGIN
     CONTROL         "Aggressive",IDC_HOSTCPU_AGGRESSIVE,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,75,92,53,8
 END
 
-IDD_SETTINGTABVIDEO DIALOGEX 0, 0, 249, 183
+IDD_SETTINGTABVIDEO DIALOGEX 0, 0, 248, 183
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
-    GROUPBOX        "Display",IDC_STATIC1,7,7,233,66
+    GROUPBOX        "Display",IDC_STATIC1,7,7,229,66
     LTEXT           "Adapter",IDC_STATIC,15,18,37,10
     COMBOBOX        IDC_CBO_ADAPTER,58,17,172,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Mode",IDC_STATIC,15,34,31,10
@@ -597,7 +595,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_ABOUT, DIALOG
     BEGIN
@@ -672,7 +670,7 @@ BEGIN
     IDD_SETTINGTABVIDEO, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 240
+        RIGHTMARGIN, 239
         TOPMARGIN, 7
         BOTTOMMARGIN, 176
     END
@@ -778,25 +776,25 @@ IDB_DEBUGGERTRACEINTMASK BITMAP                  "candy clock mask.bmp"
 // String Table
 //
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDS_APP_TITLE           "Hoxs 64 C64 Emulator"
     IDS_MONITOR_TITLE       "C64 Monitor"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDS_WINCLASS_KEYPRESS   "GetKeyPressClass"
     IDS_PRESSANYKEY         "press any key"
     ID_DISK_SAVEDISK_FDI    "Save disk as raw binary. Compatible with custom formats."
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_DISK_SAVEDISK_D64    "Save disk in the standard CBM format. Not compatible with custom formats."
 END
 
-#endif    // English (U.K.) resources
+#endif    // English (United Kingdom) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
