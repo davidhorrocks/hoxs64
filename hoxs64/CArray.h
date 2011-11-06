@@ -42,7 +42,7 @@ public:
 
 	CArrayElement<T> *FindElement(CompareFunc fn, T &item)
 	{
-		unsigned __int3264 i;
+		unsigned int i;
 		if (m_count == 0)
 			return NULL;
 		for (i=0 ; i < m_count ; i++)
@@ -53,8 +53,7 @@ public:
 		return NULL;
 	}
 
-	//static const unsigned __int3264 MAXCOUNT = (((unsigned __int3264)1 << ((sizeof(__int3264)*8) - 1)) - 1);
-	static const unsigned __int3264 MAXSCOUNT = ((unsigned __int3264)((signed __int3264)-1)) >> 1;
+	static const unsigned int MAXSCOUNT = ((unsigned int)((signed int)-1)) >> 1;
 	static const int x = 1L;
 
 	void Clear()
@@ -71,14 +70,14 @@ public:
 	{
 		m_count=0;
 	}
-	HRESULT Resize(unsigned __int3264  newsize)
+	HRESULT Resize(unsigned int  newsize)
 	{
 		if (newsize <= 0)
 			return E_FAIL;
 		//T* def = new T();
 		//if (def==NULL)
 		//	return E_OUTOFMEMORY;
-		unsigned __int3264  i,j;
+		unsigned int  i,j;
 		CArrayElement<T> *newmem;
 		newmem = new CArrayElement<T>[newsize];
 		if (newmem == NULL)
@@ -101,22 +100,22 @@ public:
 		m_mem = newmem;
 		return S_OK;
 	}
-	unsigned __int3264 Size()
+	unsigned int Size()
 	{
 		return m_array_size;
 	}
-	unsigned __int3264 Count() const
+	unsigned int Count() const
 	{
 		return m_count;
 	}
 	HRESULT Append(const T &item)
 	{
-		unsigned __int3264 pindex = 0;
+		unsigned int pindex = 0;
 		return Append(item, &pindex);
 	}
-	HRESULT Append(const T &item, unsigned __int3264 *pindex)
+	HRESULT Append(const T &item, unsigned int *pindex)
 	{
-		unsigned __int3264  newsize;
+		unsigned int  newsize;
 		HRESULT r;
 		if (m_count >= m_array_size)
 		{
@@ -141,14 +140,14 @@ public:
 		m_count++;
 		return S_OK;
 	}
-	T &operator[](unsigned __int3264 i) const
+	T &operator[](unsigned int i) const
 	{
 		return m_mem[i].m_data;
 	}
 private:
 	CArrayElement<T> *m_mem;
-	unsigned __int3264  m_array_size;
-	unsigned __int3264  m_count;
+	unsigned int  m_array_size;
+	unsigned int  m_count;
 };
 
 #endif

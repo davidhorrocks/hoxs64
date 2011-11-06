@@ -82,7 +82,7 @@ void CDiagJoystick::loadconfig(const CConfig *cfg)
 
 void CDiagJoystick::saveconfig(CConfig *cfg)
 {
-LRESULT i;
+LRESULT lr;
 
 
 	cfg->m_joy1config.bValid = FALSE;
@@ -96,107 +96,107 @@ LRESULT i;
 	cfg->m_joy2config.dwOfs_Y = 0;
 	cfg->m_joy2config.dwOfs_firebutton = DIJOFS_BUTTON0;
 
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETCURSEL, 0, 0);
+	if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevArray.Count())
+			if ((ULONG)lr < DevArray.Count())
 			{
-				cfg->m_joy1config.joystickID = DevArray[(__int3264)i].guidInstance;
+				cfg->m_joy1config.joystickID = DevArray[(ULONG)lr].guidInstance;
 				cfg->m_joy1config.bValid = TRUE;
 			}
 		}
 	}
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETCURSEL, 0, 0);
+	if (lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevArray.Count())
+			if ((ULONG)lr < DevArray.Count())
 			{
-				cfg->m_joy2config.joystickID = DevArray[(__int3264)i].guidInstance;
+				cfg->m_joy2config.joystickID = DevArray[(ULONG)lr].guidInstance;
 				cfg->m_joy2config.bValid = TRUE;
 			}
 		}
 	}
 
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1V, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1V, CB_GETCURSEL, 0, 0);
+	if (lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1V, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1V, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevAxis1Array.Count())
+			if ((ULONG)lr < DevAxis1Array.Count())
 			{
-				cfg->m_joy1config.dwOfs_Y = DevAxis1Array[(unsigned __int3264)i].dwOfs;
+				cfg->m_joy1config.dwOfs_Y = DevAxis1Array[(ULONG)lr].dwOfs;
 			}
 		}
 	}
 
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_GETCURSEL, 0, 0);
+	if (lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevAxis1Array.Count())
+			if ((ULONG)lr < DevAxis1Array.Count())
 			{
-				cfg->m_joy1config.dwOfs_X = DevAxis1Array[(unsigned __int3264)i].dwOfs;
+				cfg->m_joy1config.dwOfs_X = DevAxis1Array[(ULONG)lr].dwOfs;
 			}
 		}
 	}
 
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_GETCURSEL, 0, 0);
+	if (lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevButton1Array.Count())
+			if ((ULONG)lr < DevButton1Array.Count())
 			{
-				cfg->m_joy1config.dwOfs_firebutton = DevButton1Array[(unsigned __int3264)i].dwOfs;
+				cfg->m_joy1config.dwOfs_firebutton = DevButton1Array[(ULONG)lr].dwOfs;
 			}
 		}
 	}
 
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2V, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2V, CB_GETCURSEL, 0, 0);
+	if (lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2V, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2V, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevAxis2Array.Count())
+			if ((ULONG)lr < DevAxis2Array.Count())
 			{
-				cfg->m_joy2config.dwOfs_Y = DevAxis2Array[(unsigned __int3264)i].dwOfs;
+				cfg->m_joy2config.dwOfs_Y = DevAxis2Array[(ULONG)lr].dwOfs;
 			}
 		}
 	}
 
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_GETCURSEL, 0, 0);
+	if (lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevAxis2Array.Count())
+			if ((ULONG)lr < DevAxis2Array.Count())
 			{
-				cfg->m_joy2config.dwOfs_X = DevAxis2Array[(unsigned __int3264)i].dwOfs;
+				cfg->m_joy2config.dwOfs_X = DevAxis2Array[(ULONG)lr].dwOfs;
 			}
 		}
 	}
 
-	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_GETCURSEL, 0, 0);
-	if (i >= 0)
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_GETCURSEL, 0, 0);
+	if (lr >= 0 && lr < MAXLONG)
 	{
-		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_GETITEMDATA, i, 0);
-		if (i != CB_ERR && i >= 0)
+		lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_GETITEMDATA, lr, 0);
+		if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 		{		
-			if ((unsigned __int3264)i < DevButton2Array.Count())
+			if ((ULONG)lr < DevButton2Array.Count())
 			{
-				cfg->m_joy2config.dwOfs_firebutton = DevButton2Array[(unsigned __int3264)i].dwOfs;
+				cfg->m_joy2config.dwOfs_firebutton = DevButton2Array[(ULONG)lr].dwOfs;
 			}
 		}
 	}
@@ -347,7 +347,7 @@ BOOL CDiagJoystick::EnumDevices(LPCDIDEVICEINSTANCE lpddi)
 {
 LRESULT lr;
 HRESULT hr;
-unsigned __int3264 i;
+unsigned int i;
 
 	hr = DevArray.Append((const DIDEVICEINSTANCE)*lpddi, &i);
 	if(FAILED(hr))
@@ -475,16 +475,16 @@ HRESULT r;
 	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_RESETCONTENT, 0, 0);
 
 	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETCURSEL, 0, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 	i= SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETITEMDATA, i, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 
-	if (DevArray.Count() <= (unsigned __int3264)i)
+	if (DevArray.Count() <= (ULONG)i)
 		return;
 
-	hr = pDX->CreateDeviceJoy(0, DevArray[(unsigned __int3264)i].guidInstance);
+	hr = pDX->CreateDeviceJoy(0, DevArray[(ULONG)i].guidInstance);
 	if (FAILED(hr)) return;
 
 	hr = pDX->SetDataFormatJoy(0, &c_dfDIJoystick);
@@ -495,12 +495,12 @@ HRESULT r;
 	if (!bSetConfig && bGotDefault1Fire)
 	{
 		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_GETCOUNT, 0, 0);
-		if (i != CB_ERR && i >= 0)
+		if (i != CB_ERR && i >= 0 && i <= MAXLONG)
 		{
 			for (j=0 ; j < i ; j++)
 			{
 				k = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_GETITEMDATA, j, 0);
-				if (k != CB_ERR && k >= 0)
+				if (k != CB_ERR && k >= 0 && k < MAXLONG)
 					if (k == default1Fire)
 						SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1FIRE, CB_SETCURSEL, j, 0);
 			}
@@ -526,16 +526,16 @@ HRESULT r;
 	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_RESETCONTENT, 0, 0);
 
 	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETCURSEL, 0, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 	i= SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETITEMDATA, i, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 
-	if (DevArray.Count() <= (unsigned __int3264)i)
+	if (DevArray.Count() <= (ULONG)i)
 		return;
 
-	hr = pDX->CreateDeviceJoy(0, DevArray[(unsigned __int3264)i].guidInstance);
+	hr = pDX->CreateDeviceJoy(0, DevArray[(ULONG)i].guidInstance);
 	if (FAILED(hr)) return;
 
 	hr = pDX->SetDataFormatJoy(0, &c_dfDIJoystick);
@@ -546,12 +546,12 @@ HRESULT r;
 	if (!bSetConfig && bGotDefault2Fire)
 	{
 		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_GETCOUNT, 0, 0);
-		if (i != CB_ERR)
+		if (i != CB_ERR && i >= 0 && i <= MAXLONG)
 		{
 			for (j=0 ; j < i ; j++)
 			{
 				k = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_GETITEMDATA, j, 0);
-				if (k != CB_ERR)
+				if (k != CB_ERR && k < MAXLONG)
 					if (k == default2Fire)
 						SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2FIRE, CB_SETCURSEL, j, 0);
 			}
@@ -580,16 +580,16 @@ HRESULT r;
 	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_RESETCONTENT, 0, 0);
 
 	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETCURSEL, 0, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 	i= SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_GETITEMDATA, i, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 
-	if (DevArray.Count() <= (unsigned __int3264)i)
+	if (DevArray.Count() <= (ULONG)i)
 		return;
 
-	hr = pDX->CreateDeviceJoy(0, DevArray[(unsigned __int3264)i].guidInstance);
+	hr = pDX->CreateDeviceJoy(0, DevArray[(ULONG)i].guidInstance);
 	if (FAILED(hr)) return;
 
 	hr = pDX->SetDataFormatJoy(0, &c_dfDIJoystick);
@@ -600,12 +600,12 @@ HRESULT r;
 	if (!bSetConfig && bGotDefault1X)
 	{
 		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_GETCOUNT, 0, 0);
-		if (i != CB_ERR && i >= 0)
+		if (i != CB_ERR && i >= 0 && i <= MAXLONG)
 		{
 			for (j=0 ; j < i ; j++)
 			{
 				k = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_GETITEMDATA, j, 0);
-				if (k != CB_ERR && k >= 0)
+				if (k != CB_ERR && k >= 0 && k < MAXLONG)
 					if (k == default1X)
 						SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1H, CB_SETCURSEL, j, 0);
 			}
@@ -614,12 +614,12 @@ HRESULT r;
 	if (!bSetConfig && bGotDefault1Y)
 	{
 		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1V, CB_GETCOUNT, 0, 0);
-		if (i != CB_ERR && i >= 0)
+		if (i != CB_ERR && i >= 0 && i <= MAXLONG)
 		{
 			for (j=0 ; j < i ; j++)
 			{
 				k = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1V, CB_GETITEMDATA, j, 0);
-				if (k != CB_ERR && k >= 0)
+				if (k != CB_ERR && k >= 0 && k < MAXLONG)
 					if (k == default1Y)
 						SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1V, CB_SETCURSEL, j, 0);
 			}
@@ -648,16 +648,16 @@ HRESULT r;
 	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_RESETCONTENT, 0, 0);
 
 	i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETCURSEL, 0, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 	i= SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_GETITEMDATA, i, 0);
-	if (i == CB_ERR || i < 0)
+	if (i == CB_ERR || i < 0 || i >= MAXLONG)
 		return;
 
-	if (DevArray.Count() <= (unsigned __int3264)i)
+	if (DevArray.Count() <= (ULONG)i)
 		return;
 
-	hr = pDX->CreateDeviceJoy(0, DevArray[(unsigned __int3264)i].guidInstance);
+	hr = pDX->CreateDeviceJoy(0, DevArray[(ULONG)i].guidInstance);
 	if (FAILED(hr)) return;
 
 	hr = pDX->SetDataFormatJoy(0, &c_dfDIJoystick);
@@ -668,12 +668,12 @@ HRESULT r;
 	if (!bSetConfig && bGotDefault2X)
 	{
 		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_GETCOUNT, 0, 0);
-		if (i != CB_ERR && i >= 0)
+		if (i != CB_ERR && i >= 0 && i <= MAXLONG)
 		{
 			for (j=0 ; j < i ; j++)
 			{
 				k = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_GETITEMDATA, j, 0);
-				if (k != CB_ERR && k >= 0)
+				if (k != CB_ERR && k >= 0 && k < MAXLONG)
 					if (k == default2X)
 						SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2H, CB_SETCURSEL, j, 0);
 			}
@@ -682,12 +682,12 @@ HRESULT r;
 	if (!bSetConfig && bGotDefault2Y)
 	{
 		i = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2V, CB_GETCOUNT, 0, 0);
-		if (i != CB_ERR && i >= 0)
+		if (i != CB_ERR && i >= 0 && i <= MAXLONG)
 		{
 			for (j=0 ; j < i ; j++)
 			{
 				k = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2V, CB_GETITEMDATA, j, 0);
-				if (k != CB_ERR && k >=0)
+				if (k != CB_ERR && k >=0 && k < MAXLONG)
 					if (k == default2Y)
 						SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2V, CB_SETCURSEL, j, 0);
 			}
@@ -695,12 +695,11 @@ HRESULT r;
 	}
 }
 
-
 BOOL CDiagJoystick::EnumJoy1Button(LPCDIDEVICEOBJECTINSTANCE lpddoi)
 {
 HRESULT hr;
 LRESULT lr;
-unsigned __int3264 i;
+unsigned int i;
 
 	hr = DevButton1Array.Append((const DIDEVICEOBJECTINSTANCE)*lpddoi, &i);
 	if(FAILED(hr))
@@ -734,7 +733,7 @@ BOOL CDiagJoystick::EnumJoy2Button(LPCDIDEVICEOBJECTINSTANCE lpddoi)
 {
 HRESULT hr;
 LRESULT lr;
-unsigned __int3264 i;
+unsigned int i;
 
 	hr = DevButton2Array.Append((const DIDEVICEOBJECTINSTANCE)*lpddoi, &i);
 	if(FAILED(hr))
@@ -767,7 +766,7 @@ BOOL CDiagJoystick::EnumJoy1Axis(LPCDIDEVICEOBJECTINSTANCE lpddoi)
 {
 HRESULT hr;
 LRESULT lr;
-unsigned __int3264 i;
+unsigned int i;
 
 	hr = DevAxis1Array.Append((const DIDEVICEOBJECTINSTANCE)*lpddoi, &i);
 	if(FAILED(hr))
@@ -822,7 +821,7 @@ BOOL CDiagJoystick::EnumJoy2Axis(LPCDIDEVICEOBJECTINSTANCE lpddoi)
 {
 HRESULT hr;
 LRESULT lr;
-unsigned __int3264 i;
+unsigned int i;
 
 	hr = DevAxis2Array.Append((const DIDEVICEOBJECTINSTANCE)*lpddoi, &i);
 	if(FAILED(hr))
