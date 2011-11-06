@@ -76,7 +76,7 @@ UINT i;
 HRESULT hr;
 LRESULT lr;
 CDisplayInfo displayInfo;
-unsigned __int3264 j;
+unsigned int j;
 HWND hWndCboAdapter;
 HWND hVideoPage;
 HMONITOR hMonitor;
@@ -116,7 +116,7 @@ LRESULT currentSelection = -1;
 		}
 	}
 
-	for (i=0 ; i<iAdapterCount ; i++)
+	for (i=0 ; i < iAdapterCount ; i++)
 	{
 		ZeroMemory(&displayInfo, sizeof(displayInfo));
 		displayInfo.bRequireClean = true;
@@ -231,7 +231,7 @@ LRESULT index;
 
 	index = lr;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-	if (lr == CB_ERR || lr < 0)
+	if (lr == CB_ERR || lr < 0 || lr >= MAXLONG)
 	{
 		FillModes((UINT)-1);
 		return;
@@ -244,7 +244,7 @@ LRESULT index;
 	} 
 
 	
-	FillModes((UINT)m_AdapterArray[(__int3264)lr].adapterOrdinal);
+	FillModes((UINT)m_AdapterArray[(ULONG)lr].adapterOrdinal);
 }
 
 void CDiagEmulationSettingsTab::FillModes(UINT adapterOrdinal)
@@ -354,7 +354,7 @@ LRESULT index;
 		return;
 
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
-	if (lr < 0)
+	if (lr < 0 || lr >= MAXLONG)
 	{
 		//clear formats list
 		ZeroMemory(&mode, sizeof(mode));
@@ -369,17 +369,17 @@ LRESULT index;
 	{
 		index = lr;
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr < 0)
+		if (lr == CB_ERR || lr < 0 || lr >= MAXLONG)
 		{
 			//clear formats list
 			ZeroMemory(&mode, sizeof(mode));
 			FillFormats((UINT)-1, mode);
 			return;
 		}
-		iAdapterOrdinal  = m_AdapterArray[(__int3264)lr].adapterOrdinal;
+		iAdapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
 	}
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
-	if (lr < 0)
+	if (lr < 0 || lr >= MAXLONG)
 	{
 		//clear formats list
 		ZeroMemory(&mode, sizeof(mode));
@@ -395,7 +395,7 @@ LRESULT index;
 
 	index = lr;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
-	if (lr == CB_ERR || lr < 0)
+	if (lr == CB_ERR || lr == NULL)
 	{
 		ZeroMemory(&mode, sizeof(mode));
 		FillFormats((UINT)-1, mode);
@@ -414,7 +414,6 @@ CDisplayModeInfo  modeInfo;
 UINT i;
 HRESULT hr;
 LRESULT lr;
-
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 		return;
@@ -554,7 +553,7 @@ bool bShowFloppyLed;
 	{
 		index = lr;
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr < 0)
+		if (lr == CB_ERR || lr == NULL)
 		{
 			return;
 		} 
@@ -649,7 +648,7 @@ bool bShowFloppyLed;
 		}
 	}
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
-	if (lr < 0)
+	if (lr < 0 || lr >= MAXLONG)
 	{
 		return;
 	}
@@ -661,11 +660,11 @@ bool bShowFloppyLed;
 	{
 		index = lr;
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr < 0)
+		if (lr == CB_ERR || lr < 0 || lr >= MAXLONG)
 		{
 			return;
 		}
-		iAdapterOrdinal  = m_AdapterArray[(__int3264)lr].adapterOrdinal;
+		iAdapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
 	}
 	D3DCAPS9 caps;
 	ZeroMemory(&caps, sizeof(caps));
@@ -688,7 +687,7 @@ bool bShowFloppyLed;
 	bAddPoint = false;
 	bAddLinear = false;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
-	if (lr < 0)
+	if (lr < 0 || lr >= MAXLONG)
 	{
 		return;
 	}
@@ -701,7 +700,7 @@ bool bShowFloppyLed;
 	{
 		index = lr;
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr < 0)
+		if (lr == CB_ERR || lr == NULL)
 		{
 			return;
 		} 
@@ -1031,16 +1030,15 @@ LRESULT index;
 			{
 				index = lr;
 				lr = SendDlgItemMessage(hWnd, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr >= 0)
+				if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
 				{
 					if (adapterOrdinal!=NULL)
-						*adapterOrdinal  = m_AdapterArray[(__int3264)lr].adapterOrdinal;
+						*adapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
 					if (adapterId!=NULL)
-						*adapterId  = m_AdapterArray[(__int3264)lr].adapter.DeviceIdentifier;
+						*adapterId  = m_AdapterArray[(ULONG)lr].adapter.DeviceIdentifier;
 					return S_OK;
 				}
 			}
-
 		}
 	}
 	return E_FAIL;
@@ -1068,14 +1066,13 @@ LRESULT index;
 			{
 				index = lr;
 				lr = SendDlgItemMessage(hWnd, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr >= 0)
+				if (lr != CB_ERR && lr != NULL)
 				{
 					if (pMode != NULL)
 						*pMode  = ((CDisplayModeInfo *)lr)->mode;
 					return S_OK;
 				}
 			}
-
 		}
 	}
 	return E_FAIL;
@@ -1103,14 +1100,13 @@ LRESULT index;
 			{
 				index = lr;
 				lr = SendDlgItemMessage(hWnd, IDC_CBO_FORMAT, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr >= 0)
+				if (lr != CB_ERR && lr != NULL)
 				{
 					if (pFormat != NULL)
 						*pFormat  = ((CDisplayModeInfo *)lr)->mode.Format;
 					return S_OK;
 				}
 			}
-
 		}
 	}
 	return E_FAIL;
@@ -1140,7 +1136,7 @@ LRESULT index;
 			{
 				index = lr;
 				lr = SendDlgItemMessage(hWnd, IDC_CBO_STRETCH, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr >= 0)
+				if (lr != CB_ERR)
 				{
 					if (pStretch != NULL)
 						*pStretch  = (HCFG::EMUWINDOWSTRETCH)lr;
@@ -1176,7 +1172,7 @@ LRESULT index;
 			{
 				index = lr;
 				lr = SendDlgItemMessage(hWnd, IDC_CBO_FILTER, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr >= 0)
+				if (lr != CB_ERR)
 				{
 					if (pFilter != NULL)
 						*pFilter  = (HCFG::EMUWINDOWFILTER)lr;
@@ -1206,7 +1202,7 @@ LRESULT index;
 		{
 			index = lr;
 			lr = SendDlgItemMessage(hWnd, IDC_CBO_BORDER, CB_GETITEMDATA, index, 0);
-			if (lr != CB_ERR && lr >= 0)
+			if (lr != CB_ERR)
 			{
 				*pBorder  = (HCFG::EMUBORDERSIZE)lr;
 			}
@@ -1239,7 +1235,7 @@ LRESULT index;
 		{
 			index = lr;
 			lr = SendDlgItemMessage(hWnd, IDC_CBO_TRACKZEROSENSOR, CB_GETITEMDATA, index, 0);
-			if (lr != CB_ERR && lr >= 0)
+			if (lr != CB_ERR)
 			{
 				*v  = (HCFG::ETRACKZEROSENSORSTYLE)lr;
 			}
@@ -1263,7 +1259,7 @@ LRESULT index;
 		{
 			index = lr;
 			lr = SendDlgItemMessage(hWnd, IDC_CBO_FPS, CB_GETITEMDATA, index, 0);
-			if (lr != CB_ERR && lr >= 0)
+			if (lr != CB_ERR)
 			{
 				*pFps  = (HCFG::EMUFPS)lr;
 			}

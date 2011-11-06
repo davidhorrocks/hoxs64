@@ -62,17 +62,17 @@ private:
 	BOOL bGotDefault1Y;
 	BOOL bGotDefault1Fire;
 
-	__int3264 default1X;
-	__int3264 default1Y;
-	__int3264 default1Fire;
+	unsigned int default1X;
+	unsigned int default1Y;
+	unsigned int default1Fire;
 
 	BOOL bGotDefault2X;
 	BOOL bGotDefault2Y;
 	BOOL bGotDefault2Fire;
 
-	__int3264 default2X;
-	__int3264 default2Y;
-	__int3264 default2Fire;
+	unsigned int default2X;
+	unsigned int default2Y;
+	unsigned int default2Fire;
 
 	CDX9 *pDX;
 };
