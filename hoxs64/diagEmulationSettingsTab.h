@@ -48,7 +48,7 @@ public:
 protected:
 	void SettingsOnLimitSpeedChange();
 	void SettingsOnPixelDoublerChange();
-
+	CDPI m_dpi;
 
 private:
 	void UpdatePage(int pageno, HWND hWndDlg);
