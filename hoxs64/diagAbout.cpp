@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "servicerelease.h"
 #include "defines.h"
+#include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"

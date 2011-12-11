@@ -7,8 +7,8 @@
 #include <malloc.h>
 #include <memory.h>
 #include "assert.h"
-
 #include "defines.h"
+#include "CDPI.h"
 #include "resource.h"
 #include "bits.h"
 #include "util.h"

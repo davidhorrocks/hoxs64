@@ -453,6 +453,7 @@ protected:
     RECT m_rcDisplay;     // display rectangle for the tab control 
 	int m_tabctl_id;
 	HRESULT CreateAllPages();
+	CDPI m_dpi;
 };
 
 /*C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C

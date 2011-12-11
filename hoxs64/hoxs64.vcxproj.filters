@@ -380,6 +380,9 @@
     <ClInclude Include="wpanelmanger.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
+    <ClInclude Include="CDPI.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="c64def.asm">

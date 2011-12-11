@@ -794,6 +794,7 @@
   <ItemGroup>
     <ClInclude Include="assembler.h" />
     <ClInclude Include="bits.h" />
+    <ClInclude Include="CDPI.h" />
     <ClInclude Include="cevent.h" />
     <ClInclude Include="cmdarg.h" />
     <ClInclude Include="dchelper.h" />

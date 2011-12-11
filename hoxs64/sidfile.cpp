@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "defines.h"
+#include "CDPI.h"
 #include "tchar.h"
 #include "bits.h"
 #include "util.h"
