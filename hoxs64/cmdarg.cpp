@@ -2,6 +2,7 @@
 #include <tchar.h>
 #include <assert.h>
 #include "defines.h"
+#include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"

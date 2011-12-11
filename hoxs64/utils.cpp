@@ -4,31 +4,32 @@
 #include <commctrl.h>
 #include <stdio.h>
 #include "defines.h"
+#include "CDPI.h"
 #include "carray.h"
 #include "mlist.h"
 #include <d3d9.h>
 #include "utils.h"
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
-  Function: WindowProc
+	Function: WindowProc
 
-  Summary:  Standard WindowProc callback function that forwards Windows
-            messages on to the CVirWindow::WindowProc method.  This
-            Window procedure expects that it will receive a "this"
-            pointer as the lpCreateParams member passed as part of the
-            WM_NCCREATE message.  It saves the "this" pointer in the
-            GWL_USERDATA field of the window structure.
+	Summary:  Standard WindowProc callback function that forwards Windows
+			messages on to the CVirWindow::WindowProc method.  This
+			Window procedure expects that it will receive a "this"
+			pointer as the lpCreateParams member passed as part of the
+			WM_NCCREATE message.  It saves the "this" pointer in the
+			GWL_USERDATA field of the window structure.
 
-  Args:     HWND hWnd,
-              Window handle.
-            UINT uMsg,
-              Windows message.
-            WPARAM wParam,
-              First message parameter (word sized).
-            LPARAM lParam);
-              Second message parameter (long sized).
+	Args:     HWND hWnd,
+				Window handle.
+			UINT uMsg,
+				Windows message.
+			WPARAM wParam,
+				First message parameter (word sized).
+			LPARAM lParam);
+				Second message parameter (long sized).
 
-  Returns:  LRESULT.  Windows window procedure callback return value.
+	Returns:  LRESULT.  Windows window procedure callback return value.
 F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F-F*/
 LRESULT CALLBACK WindowProc(
 	HWND hWnd,
@@ -103,35 +104,35 @@ CVirWindow* pWin = NULL;
 }
 
 /*M+M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M
-  Method:   CVirWindow::Create
+	Method:   CVirWindow::Create
 
-  Summary:  Envelopes the Windows' CreateWindow call.  Uses its
-            window-creation data pointer to pass the 'this' pointer.
+	Summary:  Envelopes the Windows' CreateWindow call.  Uses its
+			window-creation data pointer to pass the 'this' pointer.
 
-  Args:     LPTSTR lpszClassName,
-              Address of registered class name.
-            LPTSTR lpszWindowName,
-              Address of window name/title.
-            DWORD dwStyle,
-              Window style.
-            int x,
-              Horizontal position of window.
-            int y,
-              Vertical position of window.
-            int nWidth,
-              Window width.
-            int nHeight,
-              Window height.
-            HWND hwndParent,
-              Handle of parent or owner window.
-            HMENU hmenu,
-              Handle of menu, or child window identifier.
-            HINSTANCE hinst)
-              Handle of application instance.
+	Args:     LPTSTR lpszClassName,
+				Address of registered class name.
+			LPTSTR lpszWindowName,
+				Address of window name/title.
+			DWORD dwStyle,
+				Window style.
+			int x,
+				Horizontal position of window.
+			int y,
+				Vertical position of window.
+			int nWidth,
+				Window width.
+			int nHeight,
+				Window height.
+			HWND hwndParent,
+				Handle of parent or owner window.
+			HMENU hmenu,
+				Handle of menu, or child window identifier.
+			HINSTANCE hinst)
+				Handle of application instance.
 
-  Modifies: m_hWnd, m_hInst.
+	Modifies: m_hWnd, m_hInst.
 
-  Returns:  HWND (Window handle) of the created window.
+	Returns:  HWND (Window handle) of the created window.
 M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M-M*/
 HWND CVirWindow::Create(
 	DWORD dwExStyle,
@@ -199,152 +200,152 @@ LRESULT CVirWindow::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 }
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
-  Function: DialogProc
+	Function: DialogProc
 
-  Summary:  The general dialog procedure callback function.  Used by all
-            CVirDialog class objects.  This procedure is the DialogProc.
-            registered for all dialogs created with the CVirDialog class.
-            It uses the parameter passed with the WM_INITDIALOG message
-            to identify the dialog classes' "this" pointer which it then
-            stores in the window structure's GWL_USERDATA field.
-            All subsequent messages can then be forwarded on to the
-            correct dialog class's DialogProc method by using the pointer
-            stored in the GWL_USERDATA field.
+	Summary:  The general dialog procedure callback function.  Used by all
+			CVirDialog class objects.  This procedure is the DialogProc.
+			registered for all dialogs created with the CVirDialog class.
+			It uses the parameter passed with the WM_INITDIALOG message
+			to identify the dialog classes' "this" pointer which it then
+			stores in the window structure's GWL_USERDATA field.
+			All subsequent messages can then be forwarded on to the
+			correct dialog class's DialogProc method by using the pointer
+			stored in the GWL_USERDATA field.
 
-  Args:     HWND hWndDlg,
-              Handle of dialog box.
-            UINT uMsg,
-              Message.
-            WPARAM wParam,
-              First message parameter (word sized).
-            LPARAM lParam);
-              Second message parameter (long sized).
+	Args:     HWND hWndDlg,
+				Handle of dialog box.
+			UINT uMsg,
+				Message.
+			WPARAM wParam,
+				First message parameter (word sized).
+			LPARAM lParam);
+				Second message parameter (long sized).
 
-  Returns:  BOOL.  Return of the CVirDialog::DialogProc method.
+	Returns:  BOOL.  Return of the CVirDialog::DialogProc method.
 F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F-F*/
 INT_PTR CALLBACK DialogProc(
-                HWND hWndDlg,
-                UINT uMsg,
-                WPARAM wParam,
-                LPARAM lParam)
+				HWND hWndDlg,
+				UINT uMsg,
+				WPARAM wParam,
+				LPARAM lParam)
 {
 
-  // Get a pointer to the window class object.
-  CVirDialog* pdlg = (CVirDialog*) (LONG_PTR)GetWindowLongPtr(hWndDlg, GWLP_USERDATA);
+	// Get a pointer to the window class object.
+	CVirDialog* pdlg = (CVirDialog*) (LONG_PTR)GetWindowLongPtr(hWndDlg, GWLP_USERDATA);
 
-  switch (uMsg)
-  {
-    case WM_INITDIALOG:
-      // Get a pointer to the window class object.
-      pdlg = (CVirDialog*) lParam;
+	switch (uMsg)
+	{
+	case WM_INITDIALOG:
+		// Get a pointer to the window class object.
+		pdlg = (CVirDialog*) lParam;
 
-      // Assign the m_hWnd member variable.
-      pdlg->m_hWnd = hWndDlg;
+		// Assign the m_hWnd member variable.
+		pdlg->m_hWnd = hWndDlg;
 
-      // Set the USERDATA to point to the class object.
-	  #pragma warning(disable:4244)
-      SetWindowLongPtr(hWndDlg, GWLP_USERDATA, (LONG_PTR) pdlg);
-	  #pragma warning(default:4244)
-      break;
+		// Set the USERDATA to point to the class object.
+		#pragma warning(disable:4244)
+		SetWindowLongPtr(hWndDlg, GWLP_USERDATA, (LONG_PTR) pdlg);
+		#pragma warning(default:4244)
+		break;
 
-    default:
-      break;
-  }
+	default:
+		break;
+	}
 
-  // Call its message proc method.
-  if (pdlg != (CVirDialog *) 0)
-    return (pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam));
-  else
-    return (FALSE);
+	// Call its message proc method.
+	if (pdlg != (CVirDialog *) 0)
+	return (pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam));
+	else
+	return (FALSE);
 }
 
 
 /*M+M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M
-  Method:   CVirDialog::ShowDialog
+	Method:   CVirDialog::ShowDialog
 
-  Summary:  Creates the dialog so that it's DialogProc member function can
-            be invoked.  The dialog box object exists until deleted by the
-            caller.  It can be shown any number of times.  This function is
-            analgous to Windows' DialogBox function.  The main difference
-            being that you don't specify a DialogProc; you override the
-            pure virtal function CVirDialog::DialogProc.
+	Summary:  Creates the dialog so that it's DialogProc member function can
+			be invoked.  The dialog box object exists until deleted by the
+			caller.  It can be shown any number of times.  This function is
+			analgous to Windows' DialogBox function.  The main difference
+			being that you don't specify a DialogProc; you override the
+			pure virtal function CVirDialog::DialogProc.
 
-  Args:     HINSTANCE hInst,
-              Handle of the module instance.  Needed to specify the
-              module instance for fetching the dialog template resource
-              (ie, from either a host EXE or DLL).
-            LPTSTR lpszTemplate,
-              Identifies the dialog box template.
-            HWND hwndOwner)
-              Handle of the owner window.
+	Args:     HINSTANCE hInst,
+				Handle of the module instance.  Needed to specify the
+				module instance for fetching the dialog template resource
+				(ie, from either a host EXE or DLL).
+			LPTSTR lpszTemplate,
+				Identifies the dialog box template.
+			HWND hwndOwner)
+				Handle of the owner window.
 
-  Modifies: m_hInst.
+	Modifies: m_hInst.
 
-  Returns:  Return value from the DialogBoxParam Windows API function.
+	Returns:  Return value from the DialogBoxParam Windows API function.
 M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M-M*/
 INT_PTR CVirDialog::ShowDialog(
-      HINSTANCE hInst,
-      LPTSTR lpszTemplate,
-      HWND hWndOwner)
+		HINSTANCE hInst,
+		LPTSTR lpszTemplate,
+		HWND hWndOwner)
 {
-  INT_PTR iResult;
+	INT_PTR iResult;
 
-  // Assign the module instance handle in the Dialog object.
-  m_hInst = hInst;
+	// Assign the module instance handle in the Dialog object.
+	m_hInst = hInst;
 
-  // Create and show the dialog on screen.  Load the dialog resource
-  // from the specified module instance (could be a module other than
-  // that of the EXE that is running--the resources could be in a DLL
-  // that is calling this ShowDialog).  Pass the 'this' pointer to the
-  // dialog object so that it can be assigned inside the dialog object
-  // during WM_INITDIALOG and later available to the dailog procedure
-  // via the GWL_USERDATA associated with the dialog window.
-  iResult = ::DialogBoxParam(
-                hInst,
-                lpszTemplate,
-                hWndOwner,
-                (DLGPROC)::DialogProc,
-                (LPARAM)this);
+	// Create and show the dialog on screen.  Load the dialog resource
+	// from the specified module instance (could be a module other than
+	// that of the EXE that is running--the resources could be in a DLL
+	// that is calling this ShowDialog).  Pass the 'this' pointer to the
+	// dialog object so that it can be assigned inside the dialog object
+	// during WM_INITDIALOG and later available to the dailog procedure
+	// via the GWL_USERDATA associated with the dialog window.
+	iResult = ::DialogBoxParam(
+				hInst,
+				lpszTemplate,
+				hWndOwner,
+				(DLGPROC)::DialogProc,
+				(LPARAM)this);
 
-  return (iResult);
+	return (iResult);
 }
 /*M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M-M*/
 HWND CVirDialog::ShowModelessDialog(
-      HINSTANCE hInst,
-      LPCTSTR szTemplate,
-      HWND hWndOwner)
+		HINSTANCE hInst,
+		LPCTSTR szTemplate,
+		HWND hWndOwner)
 {
-  HWND iResult;
+	HWND iResult;
 
-  m_hInst = hInst;
+	m_hInst = hInst;
 
-  iResult = ::CreateDialogParam(
-                hInst,
-                szTemplate,
-                hWndOwner,
-                (DLGPROC)::DialogProc,
-                (LPARAM)this);
+	iResult = ::CreateDialogParam(
+				hInst,
+				szTemplate,
+				hWndOwner,
+				(DLGPROC)::DialogProc,
+				(LPARAM)this);
 
-  return (iResult);
+	return (iResult);
 }
 /*M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M-M*/
 HWND CVirDialog::ShowModelessDialogIndirect(
-      HINSTANCE hInst,
-      LPCDLGTEMPLATE lpTemplate,
-      HWND hWndOwner)
+		HINSTANCE hInst,
+		LPCDLGTEMPLATE lpTemplate,
+		HWND hWndOwner)
 {
-  HWND iResult;
+	HWND iResult;
 
-  m_hInst = hInst;
+	m_hInst = hInst;
 
-  iResult = ::CreateDialogIndirectParam(
-                hInst,
-                lpTemplate,
-                hWndOwner,
-                (DLGPROC)::DialogProc,
-                (LPARAM)this);
+	iResult = ::CreateDialogIndirectParam(
+				hInst,
+				lpTemplate,
+				hWndOwner,
+				(DLGPROC)::DialogProc,
+				(LPARAM)this);
 
-  return (iResult);
+	return (iResult);
 }
 
 HWND CVirDialog::GetHwnd()
@@ -438,18 +439,18 @@ void CTabDialog::FreePages()
 
 INT_PTR CTabDialog::ShowDialog(HINSTANCE hInst,	LPTSTR lpszTemplate, HWND hWndOwner)
 {
-  INT_PTR iResult;
+	INT_PTR iResult;
 
-  // Assign the module instance handle in the Dialog object.
-  m_hInst = hInst;
+	// Assign the module instance handle in the Dialog object.
+	m_hInst = hInst;
 
-  iResult = ::DialogBoxParam(hInst,
-                lpszTemplate,
-                hWndOwner,
-                (DLGPROC)::DialogProc,
-                (LPARAM)this);
+	iResult = ::DialogBoxParam(hInst,
+				lpszTemplate,
+				hWndOwner,
+				(DLGPROC)::DialogProc,
+				(LPARAM)this);
 
-  return (iResult);
+	return (iResult);
 }
 
 void CTabDialog::SetTabID(int tabctl_id)
@@ -482,33 +483,33 @@ HRESULT hr;
 
 BOOL CTabDialog::OnChildDialogInit(HWND hwndDlg) 
 { 
-    HWND hwndParent = GetParent(hwndDlg); 
+	HWND hwndParent = GetParent(hwndDlg); 
 	if (hwndParent==NULL)
 		return FALSE;
-    SetWindowPos(hwndDlg, HWND_TOP, 
-        m_rcDisplay.left, m_rcDisplay.top, 
-        0, 0, SWP_NOSIZE); 
+	SetWindowPos(hwndDlg, HWND_TOP, 
+		m_rcDisplay.left, m_rcDisplay.top, 
+		0, 0, SWP_NOSIZE); 
 	return TRUE;
 } 
 
 BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg) 
 { 
-    DWORD dwDlgBase = GetDialogBaseUnits(); 
-    TCITEM tie; 
-    RECT rcTab,rcTemp; 
-    HWND hwndButton; 
-    RECT rcButton; 
-    int i; 
+	DWORD dwDlgBase = GetDialogBaseUnits(); 
+	TCITEM tie; 
+	RECT rcTab,rcTemp; 
+	HWND hwndButton; 
+	RECT rcButton; 
+	int i; 
 	BOOL bResult=FALSE;
-    // Create the tab control. 
-    InitCommonControls(); 
+	// Create the tab control. 
+	InitCommonControls(); 
 
 	if (m_tabctl_id)
 	{
 		m_hwndTab = GetDlgItem(hwndDlg, m_tabctl_id);
 		if (m_hwndTab == NULL) {
-	        return FALSE;
-	    }
+			return FALSE;
+		}
 	}
 	else
 		return FALSE;
@@ -516,31 +517,32 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	SetRectEmpty(&rcTemp);
 	rcTemp.right=1;
 	rcTemp.bottom=1;
-	MapDialogRect(hwndDlg ,&rcTemp);
-    int cxMargin = rcTemp.right; 
-    int cyMargin = rcTemp.bottom; 
+	MapDialogRect(hwndDlg, &rcTemp);
+	int cxMargin = abs(rcTemp.right - rcTemp.left);
+	int cyMargin = abs(rcTemp.bottom - rcTemp.top);
 
-    // Add a tab for each of the three child dialog boxes. 
-    for (i = m_pagecount -1; i >=0; i--) { 
+	// Add a tab for each of the three child dialog boxes. 
+	for (i = m_pagecount -1; i >= 0; i--) 
+	{ 
 		tie.mask = TCIF_TEXT | TCIF_IMAGE; 
 		tie.iImage = -1; 
 		tie.pszText = m_pages[i].m_pagetext; 
 		TabCtrl_InsertItem(m_hwndTab, 0, &tie); 
 	}
  
-    // Lock the resources for the three child dialog boxes. 
-    //apRes[0] = DoLockDlgRes(m_hInst, MAKEINTRESOURCE(IDD_KEYPAGE1)); 
+	// Lock the resources for the three child dialog boxes. 
+	//apRes[0] = DoLockDlgRes(m_hInst, MAKEINTRESOURCE(IDD_KEYPAGE1)); 
  
-    // Determine the bounding rectangle for all child dialog boxes. 
-    SetRectEmpty(&rcTab); 
-	for (i = 0; i < m_pagecount; i++) 
+	// Determine the bounding rectangle for all child dialog boxes. 
+	SetRectEmpty(&rcTab);
+	for (i = 0; i < m_pagecount; i++)
 	{ 
 		if (m_pages[i].m_lpTemplate != 0)
 		{
-			if (m_pages[i].m_lpTemplate->cx > rcTab.right) 
+			if (m_pages[i].m_lpTemplate->cx > rcTab.right)
 				rcTab.right = m_pages[i].m_lpTemplate->cx; 
-			if (m_pages[i].m_lpTemplate->cy > rcTab.bottom) 
-				rcTab.bottom = m_pages[i].m_lpTemplate->cy; 
+			if (m_pages[i].m_lpTemplate->cy > rcTab.bottom)
+				rcTab.bottom = m_pages[i].m_lpTemplate->cy;
 		}
 		else if (m_pages[i].m_lpTemplateEx != 0)
 		{
@@ -552,70 +554,71 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	}
 
 	MapDialogRect(hwndDlg ,&rcTab);
-    //rcTab.right = rcTab.right * LOWORD(dwDlgBase) / 4; 
-    //rcTab.bottom = rcTab.bottom * HIWORD(dwDlgBase) / 8; 
+	m_dpi.ScaleRect(&rcTab);
+	//rcTab.right = rcTab.right * LOWORD(dwDlgBase) / 4; 
+	//rcTab.bottom = rcTab.bottom * HIWORD(dwDlgBase) / 8; 
  
-    // Calculate how large to make the tab control, so 
-    // the display area can accommodate all the child dialog boxes. 
-    TabCtrl_AdjustRect(m_hwndTab, TRUE, &rcTab); 
-    OffsetRect(&rcTab, cxMargin - rcTab.left, 
-            cyMargin - rcTab.top); 
+	// Calculate how large to make the tab control, so 
+	// the display area can accommodate all the child dialog boxes. 
+	TabCtrl_AdjustRect(m_hwndTab, TRUE, &rcTab); 
+
+	OffsetRect(&rcTab, cxMargin - rcTab.left, cyMargin - rcTab.top); 
  
-    // Calculate the display rectangle. 
-    CopyRect(&m_rcDisplay, &rcTab); 
-    TabCtrl_AdjustRect(m_hwndTab, FALSE, &m_rcDisplay); 
+	// Calculate the display rectangle. 
+	CopyRect(&m_rcDisplay, &rcTab); 
+	TabCtrl_AdjustRect(m_hwndTab, FALSE, &m_rcDisplay); 
  
-    // Set the size and position of the tab control, buttons, 
-    // and dialog box. 
-    SetWindowPos(m_hwndTab, NULL, rcTab.left, rcTab.top, 
-            rcTab.right - rcTab.left, rcTab.bottom - rcTab.top, 
-            SWP_NOZORDER); 
+	// Set the size and position of the tab control, buttons, 
+	// and dialog box. 
+	SetWindowPos(m_hwndTab, NULL, rcTab.left, rcTab.top, 
+			rcTab.right - rcTab.left, rcTab.bottom - rcTab.top, 
+			SWP_NOZORDER); 
  
-    // Move the first button below the tab control. 
-    hwndButton = GetDlgItem(hwndDlg, IDOK); 
-    SetWindowPos(hwndButton, NULL, 
-            rcTab.left, rcTab.bottom + cyMargin, 0, 0, 
-            SWP_NOSIZE | SWP_NOZORDER); 
+	// Move the first button below the tab control. 
+	hwndButton = GetDlgItem(hwndDlg, IDOK); 
+	SetWindowPos(hwndButton, NULL, 
+			rcTab.left, rcTab.bottom + cyMargin, 0, 0, 
+			SWP_NOSIZE | SWP_NOZORDER); 
  
-    // Determine the size of the button. 
-    GetWindowRect(hwndButton, &rcButton); 
-    rcButton.right -= rcButton.left; 
-    rcButton.bottom -= rcButton.top; 
+	// Determine the size of the button. 
+	GetWindowRect(hwndButton, &rcButton); 
+	rcButton.right -= rcButton.left; 
+	rcButton.bottom -= rcButton.top; 
  
-    // Move the second button to the right of the first. 
-    hwndButton = GetDlgItem(hwndDlg, IDCANCEL); 
-    SetWindowPos(hwndButton, NULL, 
-        rcTab.left + rcButton.right + cxMargin, 
-        rcTab.bottom + cyMargin, 0, 0, 
-        SWP_NOSIZE | SWP_NOZORDER); 
+	// Move the second button to the right of the first. 
+	hwndButton = GetDlgItem(hwndDlg, IDCANCEL); 
+	SetWindowPos(hwndButton, NULL, 
+		rcTab.left + rcButton.right + cxMargin, 
+		rcTab.bottom + cyMargin, 0, 0, 
+		SWP_NOSIZE | SWP_NOZORDER); 
  
-    // Size the dialog box. 
-    SetWindowPos(hwndDlg, NULL, 0, 0, 
-        rcTab.right + cyMargin + 
-        2 * GetSystemMetrics(SM_CXDLGFRAME), 
-        rcTab.bottom + rcButton.bottom + 2 * cyMargin + 
-        2 * GetSystemMetrics(SM_CYDLGFRAME) + 
-        GetSystemMetrics(SM_CYCAPTION), 
-        SWP_NOMOVE | SWP_NOZORDER); 
+	// Size the dialog box. 
+	SetWindowPos(hwndDlg, NULL, 0, 0, 
+		rcTab.right + cyMargin + 
+		2 * GetSystemMetrics(SM_CXDLGFRAME), 
+		rcTab.bottom + rcButton.bottom + 2 * cyMargin + 
+		2 * GetSystemMetrics(SM_CYDLGFRAME) + 
+		GetSystemMetrics(SM_CYCAPTION), 
+		SWP_NOMOVE | SWP_NOZORDER); 
  
-    // Simulate selection of the first item. 
+	// Simulate selection of the first item. 
 	TabCtrl_SetCurSel(m_hwndTab, 0);
 
-    return OnSelChanged(hwndDlg); 
+	return OnSelChanged(hwndDlg); 
 } 
 
 BOOL CTabDialog::OnSelChanged(HWND hwndDlg) 
 { 
 int iSel;
-    // Destroy the current child dialog box, if any. 
-    if (IsWindow(m_hwndDisplay)) 
+	// Destroy the current child dialog box, if any. 
+	if (IsWindow(m_hwndDisplay)) 
 	{
 		ShowWindow(m_hwndDisplay, SW_HIDE);
 		UpdateWindow(m_hwndDisplay);
 	}
 	m_hwndDisplay=NULL;
 
-    iSel = m_current_page_index = TabCtrl_GetCurSel(m_hwndTab); 
+	iSel = m_current_page_index = TabCtrl_GetCurSel(m_hwndTab); 
 
 	if (iSel<0)
 		return FALSE;
@@ -695,35 +698,35 @@ HWND hWnd;
 /**************************************************************************/
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
-  Function: AnsiToUc
+	Function: AnsiToUc
 
-  Summary:  Convert an ANSI 'multibyte' string into a UNICODE 'wide
-            character' string.
+	Summary:  Convert an ANSI 'multibyte' string into a UNICODE 'wide
+			character' string.
 
-  Args:     LPSTR pszAnsi
-              Pointer to a caller's input ANSI string.
-            LPWSTR pwszUc
-              Pointer to a caller's output UNICODE wide string.
-            int cAnsiCharsToConvert
-              Character count. If 0 then use length of pszAnsi.
+	Args:     LPSTR pszAnsi
+				Pointer to a caller's input ANSI string.
+			LPWSTR pwszUc
+				Pointer to a caller's output UNICODE wide string.
+			int cAnsiCharsToConvert
+				Character count. If 0 then use length of pszAnsi.
 
-  Returns:  HRESULT
-              Standard result code. NOERROR for success.
+	Returns:  HRESULT
+				Standard result code. NOERROR for success.
 F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F-F*/
 HRESULT G::AnsiToUc(
-          LPCSTR pszAnsi,
-          LPWSTR pwszUc,
-          int cAnsiCharsToConvert)
+			LPCSTR pszAnsi,
+			LPWSTR pwszUc,
+			int cAnsiCharsToConvert)
 {
 	int chout = 0;
 	return AnsiToUc(pszAnsi, pwszUc, cAnsiCharsToConvert, chout);
 }
 
 HRESULT G::AnsiToUc(
-          LPCSTR pszAnsi,
-          LPWSTR pwszUc,
-          int cAnsiCharsToConvert,
-		  int& chOut)
+			LPCSTR pszAnsi,
+			LPWSTR pwszUc,
+			int cAnsiCharsToConvert,
+			int& chOut)
 {
 HRESULT hr = E_POINTER;
 int cSize;
@@ -760,10 +763,10 @@ int cch;
 }
 
 HRESULT G::AnsiToUcRequiredBufferLength(
-          LPCSTR pszAnsi,
-          int cAnsiCharsToConvert,
-		  int &cOut
-		  )
+			LPCSTR pszAnsi,
+			int cAnsiCharsToConvert,
+			int &cOut
+			)
 {
 HRESULT hr = E_POINTER;
 int cSize;
@@ -790,25 +793,25 @@ int cch;
 }
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
-  Function: UcToAnsi
+	Function: UcToAnsi
 
-  Summary:  Convert a UNICODE 'wide character' input string to an output
-            ANSI 'multi-byte' string.
+	Summary:  Convert a UNICODE 'wide character' input string to an output
+			ANSI 'multi-byte' string.
 
-  Args:     LPWSTR pwszUc
-              Pointer to a caller's input UNICODE wide string.
-            LPSTR pszAnsi
-              Pointer to a caller's output ANSI string.
-            int cWideCharsToConvert
-              Character count. If 0 then use length of pszUc.
+	Args:     LPWSTR pwszUc
+				Pointer to a caller's input UNICODE wide string.
+			LPSTR pszAnsi
+				Pointer to a caller's output ANSI string.
+			int cWideCharsToConvert
+				Character count. If 0 then use length of pszUc.
 
-  Returns:  HRESULT
-              Standard result code. NOERROR for success.
+	Returns:  HRESULT
+				Standard result code. NOERROR for success.
 F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F-F*/
 HRESULT G::UcToAnsi(
-          LPCWSTR pwszUc,
-          LPSTR pszAnsi,
-          int cWideCharsToConvert)
+			LPCWSTR pwszUc,
+			LPSTR pszAnsi,
+			int cWideCharsToConvert)
 {
 HRESULT hr = E_POINTER;
 int cSize;
@@ -865,7 +868,7 @@ int cch;
 
 DLGTEMPLATE * WINAPI G::DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName) 
 { 
-    HRSRC hrsrc = FindResource(NULL, lpszResName, RT_DIALOG); 
+	HRSRC hrsrc = FindResource(NULL, lpszResName, RT_DIALOG); 
 	if (hrsrc)
 	{
 		HGLOBAL hglb = LoadResource(hinst, hrsrc); 
@@ -953,11 +956,11 @@ DWORD err,r;
 
 LPTSTR G::GetStringRes (int id)
 {
-  static TCHAR buffer[MAX_PATH+1];
+	static TCHAR buffer[MAX_PATH+1];
 
-  buffer[0]=0;
-  LoadString (GetModuleHandle (NULL), id, buffer, MAX_PATH);
-  return buffer;
+	buffer[0]=0;
+	LoadString (GetModuleHandle (NULL), id, buffer, MAX_PATH);
+	return buffer;
 }
 
 void G::ArrangeOKCancel(HWND hwndDlg)
@@ -1032,17 +1035,17 @@ void G::InitLateBindLibraryCalls()
 {
 	if (s_bInitLateBindLibraryCallsDone)
 		return;
-    HMODULE hUser32 = GetModuleHandle(TEXT("USER32"));
-    if (hUser32 ) 
-    {
-        OSVERSIONINFOA osvi = {0}; osvi.dwOSVersionInfoSize = sizeof(osvi); GetVersionExA((OSVERSIONINFOA*)&osvi);
-        bool bNT = (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId); 
+	HMODULE hUser32 = GetModuleHandle(TEXT("USER32"));
+	if (hUser32 ) 
+	{
+		OSVERSIONINFOA osvi = {0}; osvi.dwOSVersionInfoSize = sizeof(osvi); GetVersionExA((OSVERSIONINFOA*)&osvi);
+		bool bNT = (VER_PLATFORM_WIN32_NT == osvi.dwPlatformId); 
 
-        s_pFnGetMonitorInfo = (LPGETMONITORINFO) (bNT ? GetProcAddress(hUser32, "GetMonitorInfoW") : GetProcAddress(hUser32, "GetMonitorInfoA"));
+		s_pFnGetMonitorInfo = (LPGETMONITORINFO) (bNT ? GetProcAddress(hUser32, "GetMonitorInfoW") : GetProcAddress(hUser32, "GetMonitorInfoA"));
 		s_pFnMonitorFromRect = (LPMONITORFROMRECT) (GetProcAddress(hUser32, "MonitorFromRect"));
 		s_pFnMonitorFromWindow = (LPMONITORFROMWINDOW) (GetProcAddress(hUser32, "MonitorFromWindow"));
 
-    }
+	}
 	if (G::IsWindowsVistaOrLater())
 	{
 		HMODULE hDwmapi = LoadLibrary(TEXT("Dwmapi.dll"));
@@ -1118,64 +1121,64 @@ HRESULT hr = E_FAIL;
 //    obscured by the tray or other framing elements of the desktop.
 BOOL G::CenterWindow (HWND hwndChild, HWND hwndParent)
 {
-   RECT    rChild, rParent, rWorkArea;
-   int     wChild, hChild, wParent, hParent;
-   int     xNew, yNew;
-   BOOL  bResult;
+	RECT    rChild, rParent, rWorkArea;
+	int     wChild, hChild, wParent, hParent;
+	int     xNew, yNew;
+	BOOL  bResult;
 
-   // Get the Height and Width of the child window
-   GetWindowRect (hwndChild, &rChild);
-   wChild = rChild.right - rChild.left;
-   hChild = rChild.bottom - rChild.top;
+	// Get the Height and Width of the child window
+	GetWindowRect (hwndChild, &rChild);
+	wChild = rChild.right - rChild.left;
+	hChild = rChild.bottom - rChild.top;
 
-   // Get the Height and Width of the parent window
-   GetWindowRect (hwndParent, &rParent);
-   wParent = rParent.right - rParent.left;
-   hParent = rParent.bottom - rParent.top;
+	// Get the Height and Width of the parent window
+	GetWindowRect (hwndParent, &rParent);
+	wParent = rParent.right - rParent.left;
+	hParent = rParent.bottom - rParent.top;
 
-   // Get the limits of the 'workarea'
-   bResult = SystemParametersInfo(
-      SPI_GETWORKAREA,  // system parameter to query or set
-      sizeof(RECT),
-      &rWorkArea,
-      0);
-   if (!bResult) {
-      rWorkArea.left = rWorkArea.top = 0;
-      rWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
-      rWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
-   }
+	// Get the limits of the 'workarea'
+	bResult = SystemParametersInfo(
+		SPI_GETWORKAREA,  // system parameter to query or set
+		sizeof(RECT),
+		&rWorkArea,
+		0);
+	if (!bResult) {
+		rWorkArea.left = rWorkArea.top = 0;
+		rWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
+		rWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
+	}
 
-   // Calculate new X position, then adjust for workarea
-   xNew = rParent.left + ((wParent - wChild) /2);
-   if (xNew < rWorkArea.left) {
-      xNew = rWorkArea.left;
-   } else if ((xNew+wChild) > rWorkArea.right) {
-      xNew = rWorkArea.right - wChild;
-   }
+	// Calculate new X position, then adjust for workarea
+	xNew = rParent.left + ((wParent - wChild) /2);
+	if (xNew < rWorkArea.left) {
+		xNew = rWorkArea.left;
+	} else if ((xNew+wChild) > rWorkArea.right) {
+		xNew = rWorkArea.right - wChild;
+	}
 
-   // Calculate new Y position, then adjust for workarea
-   yNew = rParent.top  + ((hParent - hChild) /2);
-   if (yNew < rWorkArea.top) {
-      yNew = rWorkArea.top;
-   } else if ((yNew+hChild) > rWorkArea.bottom) {
-      yNew = rWorkArea.bottom - hChild;
-   }
+	// Calculate new Y position, then adjust for workarea
+	yNew = rParent.top  + ((hParent - hChild) /2);
+	if (yNew < rWorkArea.top) {
+		yNew = rWorkArea.top;
+	} else if ((yNew+hChild) > rWorkArea.bottom) {
+		yNew = rWorkArea.bottom - hChild;
+	}
 
-   // Set it, and return
-   return SetWindowPos (hwndChild, NULL, xNew, yNew, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+	// Set it, and return
+	return SetWindowPos (hwndChild, NULL, xNew, yNew, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
 HRESULT G::InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError, ...)
 {
-    TCHAR            szBuff[302];
-    va_list         vl;
+	TCHAR            szBuff[302];
+	va_list         vl;
 
-    va_start(vl, szError);
+	va_start(vl, szError);
 	_vsntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, szError, vl);
 	szBuff[299]=0;
-    MessageBox(hWnd, szBuff, APPNAME, MB_OK | MB_ICONEXCLAMATION);
-    va_end(vl);
-    return hRet;
+	MessageBox(hWnd, szBuff, APPNAME, MB_OK | MB_ICONEXCLAMATION);
+	va_end(vl);
+	return hRet;
 }
 
 void G::InitOfn(OPENFILENAME_500EX& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile)
@@ -1342,9 +1345,9 @@ bool G::IsMultiCore()
 
 void G::PaintRect(HDC hdc, RECT *rect, COLORREF colour)
 {
-    COLORREF oldcr = SetBkColor(hdc, colour);
-    ExtTextOut(hdc, 0, 0, ETO_OPAQUE, rect, TEXT(""), 0, 0);
-    SetBkColor(hdc, oldcr);
+	COLORREF oldcr = SetBkColor(hdc, colour);
+	ExtTextOut(hdc, 0, 0, ETO_OPAQUE, rect, TEXT(""), 0, 0);
+	SetBkColor(hdc, oldcr);
 }
 
 void G::AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int maxHeight)
@@ -1524,18 +1527,18 @@ void G::GetWorkArea(RECT& rcWorkArea)
 
 BOOL G::DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP)
 {
-    HDC       hDCBits;
-    BITMAP    Bitmap;
-    BOOL      bResult;
+	HDC       hDCBits;
+	BITMAP    Bitmap;
+	BOOL      bResult;
 
-    if (!hDC || !hBitmap)
-        return FALSE;
+	if (!hDC || !hBitmap)
+		return FALSE;
 
-    hDCBits = CreateCompatibleDC(hDC);
-    GetObject(hBitmap, sizeof(BITMAP), (LPSTR)&Bitmap);
-    SelectObject(hDCBits, hBitmap);
-    bResult = BitBlt(hDC, x, y, Bitmap.bmWidth, Bitmap.bmHeight, hDCBits, 0, 0, dwROP);
-    DeleteDC(hDCBits);
-    return bResult;
+	hDCBits = CreateCompatibleDC(hDC);
+	GetObject(hBitmap, sizeof(BITMAP), (LPSTR)&Bitmap);
+	SelectObject(hDCBits, hBitmap);
+	bResult = BitBlt(hDC, x, y, Bitmap.bmWidth, Bitmap.bmHeight, hDCBits, 0, 0, dwROP);
+	DeleteDC(hDCBits);
+	return bResult;
 }
 

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "defines.h"
+#include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
@@ -39,7 +40,6 @@
 #include "tap.h"
 #include "diskinterface.h"
 #include "C64.h"
-#include "utils.h"
 
 #undef DEBUG_DISKPULSES
 
