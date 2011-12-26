@@ -519,6 +519,7 @@
     </ClCompile>
     <ClCompile Include="C64File.cpp" />
     <ClCompile Include="C6502.cpp" />
+    <ClCompile Include="CDPI.cpp" />
     <ClCompile Include="cia1.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -789,7 +790,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="wpanel.cpp" />
-    <ClCompile Include="wpanelmanger.cpp" />
+    <ClCompile Include="wpanelmanager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler.h" />

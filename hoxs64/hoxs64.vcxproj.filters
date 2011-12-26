@@ -180,7 +180,10 @@
     <ClCompile Include="wpanel.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="wpanelmanger.cpp">
+    <ClCompile Include="wpanelmanager.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="CDPI.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
   </ItemGroup>
