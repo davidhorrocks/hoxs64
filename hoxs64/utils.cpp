@@ -554,7 +554,7 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	}
 
 	MapDialogRect(hwndDlg ,&rcTab);
-	m_dpi.ScaleRect(&rcTab);
+	//m_dpi.ScaleRect(&rcTab);
 	//rcTab.right = rcTab.right * LOWORD(dwDlgBase) / 4; 
 	//rcTab.bottom = rcTab.bottom * HIWORD(dwDlgBase) / 8; 
  

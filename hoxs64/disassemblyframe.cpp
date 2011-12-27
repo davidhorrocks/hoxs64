@@ -192,12 +192,13 @@ HRESULT CDisassemblyFrame::InitFonts()
 		FALSE,
 		FALSE,
 		ANSI_CHARSET,
-		OUT_DEFAULT_PRECIS,
+		OUT_TT_ONLY_PRECIS,
 		CLIP_DEFAULT_PRECIS,
-		DEFAULT_QUALITY,
+		CLEARTYPE_QUALITY,
 		FIXED_PITCH | FF_DONTCARE,
 		//TEXT("Arial"));
 		TEXT("Courier"));
+		//NULL);
 	if (m_monitor_font==0)
 		return SetError(E_FAIL, TEXT("Cannot open Courier font."));
 	return S_OK;

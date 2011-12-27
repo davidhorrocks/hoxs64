@@ -15,12 +15,12 @@ public:
 	BOOL Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum filetype filetypes);
 	LRESULT ChildDialogProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 	void PopulateList(HWND hDlg);
-	void CreateControls(HWND hDlg);
+	HRESULT CreateControls(HWND hDlg);
 	CDirectoryArray dataList;
 
 	void DrawC64String(HDC, int, int, BYTE[], int, bool);
 
-	HINSTANCE hInstance;
+	HINSTANCE m_hInstance;
 	int SelectedListItem;
 	int SelectedDirectoryIndex;
 	bool SelectedQuickLoadDiskFile;
@@ -33,6 +33,7 @@ public:
 	bool DisableQuickLoad;
 
 private:
+	CDPI m_dpi;
 	static const int MAXLISTITEMCOUNT = 1000;
 	int miLoadedListItemCount;
 	enum FIS
@@ -60,16 +61,16 @@ private:
 	HBRUSH m_hbrush;
 	void ReSize(HWND hDlg, LONG w, LONG h);
 	void CleanUp();
-	bit8 *charGen;
-	C64File c64file;
-	HWND hParent;
-	HWND hListBox;
-	HWND hCheckQuickLoad;
-	HWND hCheckAlignD64Tracks;
-	int idListBox;
-	int mgapListBoxBottom;
-	int mgapCheckBoxQuickLoadBottom;
-	int mgapCheckBoxAlignD64TracksBottom;
+	bit8 *m_pCharGen;
+	C64File m_c64file;
+	HWND m_hParent;
+	HWND m_hBrowse;
+	HWND m_hListBox;
+	HWND m_hCheckQuickLoad;
+	HWND m_hCheckAlignD64Tracks;
+	int m_width_custom;
+	int mgapTop;
+	int mgapBottom;
 	bool mbGapsDone;
 };
 

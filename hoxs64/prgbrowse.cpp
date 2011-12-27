@@ -55,11 +55,11 @@ CPRGBrowse::CPRGBrowse()
 	mbDestroyCalled = false;
 
 	m_hbrush = 0;
-	charGen = 0;
-	hParent=0;
-	hListBox= 0;
-	idListBox=0;
-	hInstance = 0;
+	m_pCharGen = 0;
+	m_hParent=0;
+	m_hBrowse=0;
+	m_hListBox= 0;
+	m_hInstance = 0;
 	SelectedListItem=-1;
 	SelectedDirectoryIndex=-1;
 	SelectedQuickLoadDiskFile = false;
@@ -97,11 +97,11 @@ void CPRGBrowse::CleanUp()
 	}
 }
 
-HRESULT CPRGBrowse::Init(bit8 *charGen)
+HRESULT CPRGBrowse::Init(bit8 *pCharGen)
 {
 HRESULT hr;
 RGBQUAD rgb;
-	hr = c64file.Init();
+	hr = m_c64file.Init();
 	if (FAILED(hr))
 	{
 		CleanUp();
@@ -146,14 +146,14 @@ RGBQUAD rgb;
 		CleanUp();
 		return E_FAIL;
 	}
-	this->charGen = charGen;
+	this->m_pCharGen = pCharGen;
 	return S_OK;
 }
 
 BOOL CPRGBrowse::Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum filetype filetypes)
 {
 BOOL r = 0;
-	CPRGBrowse::hInstance = hInstance;
+	CPRGBrowse::m_hInstance = hInstance;
 	pOF->hInstance = hInstance;
 	pOF->Flags = pOF->Flags | OFN_EXPLORER | OFN_ENABLETEMPLATE | OFN_ENABLEHOOK | OFN_ENABLESIZING;
 	pOF->lpTemplateName = MAKEINTRESOURCE(IDD_BROWSEPRG);
@@ -164,13 +164,23 @@ BOOL r = 0;
 	return r;
 }
 
-void CPRGBrowse::CreateControls(HWND hDlg)
+HRESULT CPRGBrowse::CreateControls(HWND hDlg)
 {
-	hListBox = GetDlgItem(hDlg, IDC_CUSTOMPRGLIST);
-	hCheckQuickLoad = GetDlgItem(hDlg, IDC_CHKQUICKLOAD);
-	hCheckAlignD64Tracks = GetDlgItem(hDlg, IDC_CHKALIGND64TRACKS);
+	m_hBrowse = GetDlgItem(hDlg, 1119);
+	if (!m_hBrowse)
+		return E_FAIL;
+	m_hListBox = GetDlgItem(hDlg, IDC_CUSTOMPRGLIST);
+	if (!m_hListBox)
+		return E_FAIL;
+	m_hCheckQuickLoad = GetDlgItem(hDlg, IDC_CHKQUICKLOAD);
+	if (!m_hCheckQuickLoad)
+		return E_FAIL;
+	m_hCheckAlignD64Tracks = GetDlgItem(hDlg, IDC_CHKALIGND64TRACKS);
+	if (!m_hCheckAlignD64Tracks)
+		return E_FAIL;
 	SelectedListItem=-1;
 	SelectedDirectoryIndex=-1;
+	return S_OK;
 }
 
 void CPRGBrowse::CancelFileInspector()
@@ -220,7 +230,7 @@ HRESULT hr;
 
 	if (mAllowTypes != ALL)
 	{
-		hr = c64file.GetC64FileType(mptsFileName, ftype);
+		hr = m_c64file.GetC64FileType(mptsFileName, ftype);
 		if (FAILED(hr))
 		{
 			InspectorCompleteFail();
@@ -266,7 +276,7 @@ HRESULT hr;
 	if (bTypeOK || mAllowTypes == ALL)
 	{
 		int i;
-		hr = c64file.LoadDirectory(mptsFileName, MAXT64LIST, i, false, mhEvtQuit);
+		hr = m_c64file.LoadDirectory(mptsFileName, MAXT64LIST, i, false, mhEvtQuit);
 		if (FAILED(hr))
 		{
 			InspectorCompleteFail();
@@ -280,7 +290,7 @@ HRESULT hr;
 void CPRGBrowse::InspectorStart()
 {
 	EnterCriticalSection(&mCrtStatus);
-	c64file.ClearDirectory();
+	m_c64file.ClearDirectory();
 	mFileInspectorStatus = WORKING;
 	mFileInspectorResult = E_FAIL; 
 	ResetEvent(mhEvtComplete);
@@ -292,7 +302,7 @@ void CPRGBrowse::InspectorStart()
 void CPRGBrowse::InspectorCompleteFail()
 {
 	EnterCriticalSection(&mCrtStatus);
-	c64file.ClearDirectory();
+	m_c64file.ClearDirectory();
 	mFileInspectorStatus = COMPLETED;
 	mFileInspectorResult = E_FAIL; 
 	SetEvent(mhEvtComplete);
@@ -329,6 +339,7 @@ int i;
 LPOFNOTIFY lpOfNotify;
 CPRGBrowse::FIS fis;
 WORD w,h;
+RECT rcBrowse;
 RECT rcListBox;
 RECT rcCheckBoxQuickLoad;
 RECT rcCheckBoxAlignD64Tracks;
@@ -338,11 +349,10 @@ LRESULT lr;
 	switch (msg) 
 	{ 
 	case WM_INITDIALOG:
-		hParent = GetParent(hDlg);
+		m_hParent = GetParent(hDlg);
 		mbGapsDone = false;
-		CreateControls(hDlg);
-
-		return TRUE;
+		hr = CreateControls(hDlg);
+		return (SUCCEEDED(hr)) ? TRUE : FALSE;
 	case WM_SHOWWINDOW:
 		return FALSE;
 	case WM_NOTIFY:
@@ -352,33 +362,32 @@ LRESULT lr;
 			switch(mh->code)
 			{
 			case CDN_INITDONE:
-				if (hDlg !=0 && hListBox!=0 && hCheckQuickLoad!=0 && hCheckAlignD64Tracks!=0)
+				if (hDlg !=0 && m_hListBox!=0 && m_hCheckQuickLoad!=0 && m_hCheckAlignD64Tracks!=0)
 				{
-					if (GetWindowRect(hListBox, &rcListBox)!=0 && GetWindowRect(hCheckQuickLoad, &rcCheckBoxQuickLoad)!=0 && GetWindowRect(hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks)!=0)
-					{
-						ScreenToClient(hDlg, (POINT*)&rcListBox.left);
-						ScreenToClient(hDlg, (POINT*)&rcListBox.right);
-						ScreenToClient(hDlg, (POINT*)&rcCheckBoxQuickLoad.left);
-						ScreenToClient(hDlg, (POINT*)&rcCheckBoxQuickLoad.right);
-						ScreenToClient(hDlg, (POINT*)&rcCheckBoxAlignD64Tracks.left);
-						ScreenToClient(hDlg, (POINT*)&rcCheckBoxAlignD64Tracks.right);
+					GetClientRect(hDlg, &rcDlg);
+					GetWindowRect(m_hBrowse, &rcBrowse);
+					GetWindowRect(m_hListBox, &rcListBox);
+					GetWindowRect(m_hCheckQuickLoad, &rcCheckBoxQuickLoad);
+					GetWindowRect(m_hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks);
+					MapWindowPoints(NULL, hDlg, (POINT *)&rcBrowse, 2);
+					MapWindowPoints(NULL, hDlg, (POINT *)&rcListBox, 2);
+					MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxQuickLoad, 2);
+					MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxAlignD64Tracks, 2);
+					m_width_custom = abs(rcDlg.right - rcDlg.left) - rcBrowse.right;
 
-						GetClientRect(hDlg, &rcDlg);
-						mgapListBoxBottom = rcDlg.bottom - rcListBox.bottom;
-						mgapCheckBoxQuickLoadBottom = rcDlg.bottom - rcCheckBoxQuickLoad.bottom;
-						mgapCheckBoxAlignD64TracksBottom = rcDlg.bottom - rcCheckBoxAlignD64Tracks.bottom;
-						mbGapsDone = true;							
-						ReSize(hDlg, rcDlg.right- rcDlg.left, rcDlg.bottom - rcDlg.top);
-					}
+					mgapTop = abs(rcBrowse.top - rcDlg.top);
+					mgapBottom = abs(rcBrowse.bottom - rcDlg.bottom);
+					mbGapsDone = true;							
+					ReSize(hDlg, rcDlg.right- rcDlg.left, rcDlg.bottom - rcDlg.top);
 				}
 				if (DisableQuickLoad)
-					ShowWindow(hCheckQuickLoad, SW_HIDE);
+					ShowWindow(m_hCheckQuickLoad, SW_HIDE);
 				break;
 			case CDN_SELCHANGE:
 				CancelFileInspector();
 				EnterCriticalSection(&mCrtStatus);
-				c64file.ClearDirectory();
-				SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
+				m_c64file.ClearDirectory();
+				SendMessage(m_hListBox, LB_RESETCONTENT, 0, 0);
 				LeaveCriticalSection(&mCrtStatus);
 				lr = SendMessage(GetParent(hDlg), CDM_GETSPEC, MAX_PATH-1, (LPARAM)fileName);
 				if (lr <= 1 || lr > MAXLONG)
@@ -394,8 +403,8 @@ LRESULT lr;
 					MessageBox(GetParent(hDlg), TEXT("Path too long."), APPNAME, MB_OK | MB_ICONEXCLAMATION);
 					break;
 				}
-				EnableWindow(hCheckQuickLoad, TRUE);
-				EnableWindow(hCheckAlignD64Tracks, TRUE);
+				EnableWindow(m_hCheckQuickLoad, TRUE);
+				EnableWindow(m_hCheckAlignD64Tracks, TRUE);
 				hr = BeginFileInspector(hDlg, fileName);
 				break;
 			case CDN_FILEOK:
@@ -407,13 +416,13 @@ LRESULT lr;
 				SelectedAlignD64Tracks = (IsDlgButtonChecked(hDlg, IDC_CHKALIGND64TRACKS) != BST_UNCHECKED) ? true : false;
 				memset(SelectedC64FileName, 0xA0, sizeof(SelectedC64FileName));
 				lpOfNotify = (LPOFNOTIFY) lParam;
-				lr = SendMessage(hListBox, LB_GETCOUNT, 0, 0);
+				lr = SendMessage(m_hListBox, LB_GETCOUNT, 0, 0);
 				if (lr == LB_ERR || lr <= 0 || lr > MAXLONG)
 				{
 					//FALSE indicates to accept the file
 					return FALSE;
 				}
-				lr = SendMessage(hListBox, LB_GETCURSEL, 0, 0);
+				lr = SendMessage(m_hListBox, LB_GETCURSEL, 0, 0);
 				if (lr == LB_ERR || lr <= 0 || lr > MAXLONG)
 				{
 					return FALSE;
@@ -424,12 +433,12 @@ LRESULT lr;
 
 				if (SelectedListItem >= HEADERLINES)
 				{
-					lr = SendMessage(hListBox, LB_GETITEMDATA, SelectedListItem, 0);
+					lr = SendMessage(m_hListBox, LB_GETITEMDATA, SelectedListItem, 0);
 					if (lr != LB_ERR && lr >= 0 && lr < MAXLONG)
 					{
 						i = (LONG)lr;
-						SelectedDirectoryIndex = c64file.GetOriginalDirectoryIndex(i);
-						SelectedC64FileNameLength = c64file.GetDirectoryItemName(i, SelectedC64FileName, sizeof(SelectedC64FileName));
+						SelectedDirectoryIndex = m_c64file.GetOriginalDirectoryIndex(i);
+						SelectedC64FileNameLength = m_c64file.GetDirectoryItemName(i, SelectedC64FileName, sizeof(SelectedC64FileName));
 						if (SelectedC64FileNameLength > sizeof(SelectedC64FileName))
 							SelectedC64FileNameLength = sizeof(SelectedC64FileName);
 					}
@@ -473,7 +482,7 @@ LRESULT lr;
 				else if (lpdis->itemID == 0)
 				{
 					memset(tempC64String, 0x20, sizeof(tempC64String));
-					charLen = c64file.GetC64Diskname(tempC64String, sizeof(tempC64String));
+					charLen = m_c64file.GetC64Diskname(tempC64String, sizeof(tempC64String));
 					if (charLen > sizeof(tempC64String))
 						charLen = sizeof(tempC64String);
 				}
@@ -485,10 +494,10 @@ LRESULT lr;
 				else
 				{
 					memset(tempC64String, 0x20, sizeof(tempC64String));
-					charLen = c64file.GetDirectoryItemName((int)lpdis->itemData, tempC64String, sizeof(tempC64String));
+					charLen = m_c64file.GetDirectoryItemName((int)lpdis->itemData, tempC64String, sizeof(tempC64String));
 					if (charLen > sizeof(tempC64String))
 						charLen = sizeof(tempC64String);
-					const bit8 *ftname = c64file.GetDirectoryItemTypeName((int)lpdis->itemData);
+					const bit8 *ftname = m_c64file.GetDirectoryItemTypeName((int)lpdis->itemData);
 					if (ftname!=NULL)
 					{
 						if (sizeof(tempC64String) >= (charLen + sizeof(C64File::FTN_CLR) + 1))
@@ -498,7 +507,7 @@ LRESULT lr;
 					}
 				}
 
-				if (c64file.GetFileType()==C64File::ef_SID && charLen >0)
+				if (m_c64file.GetFileType()==C64File::ef_SID && charLen >0)
 				{
 					bUsedShifedCharROMSet = true;
 					for (i=0; i<charLen; i++)
@@ -555,7 +564,7 @@ LRESULT lr;
 		{
 			if ((HIWORD(wParam) == LBN_DBLCLK) && (fis == COMPLETED))
 			{
-				lr = SendMessage(hListBox, LB_GETCURSEL, 0, 0);
+				lr = SendMessage(m_hListBox, LB_GETCURSEL, 0, 0);
 				if (lr >= 0 && lr <= MAXLONG)
 				{
 					i = (LONG)lr;
@@ -576,31 +585,31 @@ LRESULT lr;
 		{
 			PopulateList(hDlg);
 
-			switch (c64file.GetFileType())
+			switch (m_c64file.GetFileType())
 			{
 			case C64File::ef_FDI:
-				EnableWindow(hCheckQuickLoad, TRUE);
-				EnableWindow(hCheckAlignD64Tracks, FALSE);
+				EnableWindow(m_hCheckQuickLoad, TRUE);
+				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
 				break;
 			case C64File::ef_G64:
-				EnableWindow(hCheckQuickLoad, TRUE);
-				EnableWindow(hCheckAlignD64Tracks, FALSE);
+				EnableWindow(m_hCheckQuickLoad, TRUE);
+				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
 				break;
 			case C64File::ef_D64:
-				EnableWindow(hCheckQuickLoad, TRUE);
-				EnableWindow(hCheckAlignD64Tracks, TRUE);
+				EnableWindow(m_hCheckQuickLoad, TRUE);
+				EnableWindow(m_hCheckAlignD64Tracks, TRUE);
 				//CheckDlgButton(hDlg, IDC_CHKQUICKLOAD, BST_UNCHECKED);
 				break;
 			default:
 				//CheckDlgButton(hDlg, IDC_CHKQUICKLOAD, BST_CHECKED);
-				EnableWindow(hCheckQuickLoad, FALSE);
-				EnableWindow(hCheckAlignD64Tracks, FALSE);
+				EnableWindow(m_hCheckQuickLoad, FALSE);
+				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
 				break;
 			}
 		}
 		else if (mFileInspectorStatus == CPRGBrowse::WORKING)
 		{
-			SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("Working..."));
+			SendMessage(m_hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("Working..."));
 		}
 		LeaveCriticalSection(&mCrtStatus);
 		return TRUE;
@@ -622,40 +631,56 @@ LRESULT lr;
 	}
 	return FALSE;
 }
+
 void CPRGBrowse::ReSize(HWND hDlg, LONG w, LONG h)
 {
 RECT rcListBox;
 RECT rcCheckBoxQuickLoad;
 RECT rcCheckBoxAlignD64Tracks;
 RECT rcDlg;
-	if (hDlg !=0 && hListBox!=0 && hCheckQuickLoad!=0 && hCheckAlignD64Tracks!=0 && mbGapsDone)
+RECT rcBrowse;
+
+	if (hDlg != 0 && m_hListBox != 0 && m_hCheckQuickLoad != 0 && m_hCheckAlignD64Tracks != 0 && mbGapsDone)
 	{
-		if (GetWindowRect(hListBox, &rcListBox)!=0 && GetWindowRect(hCheckQuickLoad, &rcCheckBoxQuickLoad)!=0 && GetWindowRect(hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks)!=0)
+		GetClientRect(hDlg, &rcDlg);
+		GetWindowRect(m_hBrowse, &rcBrowse);
+		GetWindowRect(m_hListBox, &rcListBox);
+		GetWindowRect(m_hCheckQuickLoad, &rcCheckBoxQuickLoad);
+		GetWindowRect(m_hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks);
+		MapWindowPoints(NULL, hDlg, (POINT *)&rcBrowse, 2);
+		MapWindowPoints(NULL, hDlg, (POINT *)&rcListBox, 2);
+		MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxQuickLoad, 2);
+		MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxAlignD64Tracks, 2);
+		int gap = m_dpi.ScaleY(4);
+		int width_custom = m_width_custom;
+		int height_custom = abs(rcDlg.bottom - rcDlg.top);
+		int width_listbox = width_custom - 2 * gap;
+		int height_listbox = height_custom - abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) - abs(rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top) - 4 * gap - mgapTop - mgapBottom;
+		if (width_listbox < 0) width_listbox = 0;
+		if (height_listbox < 0) height_listbox = 0;
+		int cx = abs(rcDlg.right - rcDlg.left) - width_custom;
+
+		if (width_listbox > 0 && height_listbox > 0)
 		{
-			ScreenToClient(hDlg, (POINT*)&rcListBox.left);
-			ScreenToClient(hDlg, (POINT*)&rcListBox.right);
-			ScreenToClient(hDlg, (POINT*)&rcCheckBoxQuickLoad.left);
-			ScreenToClient(hDlg, (POINT*)&rcCheckBoxQuickLoad.right);
-			ScreenToClient(hDlg, (POINT*)&rcCheckBoxAlignD64Tracks.left);
-			ScreenToClient(hDlg, (POINT*)&rcCheckBoxAlignD64Tracks.right);
-			GetClientRect(hDlg, &rcDlg);
-			w = rcDlg.right - rcDlg.left;
-			h = rcDlg.bottom - rcDlg.top;
-			if (w>0 && h >0)
-			{
-				InvalidateRect(hDlg, &rcCheckBoxQuickLoad, TRUE);
-				InvalidateRect(hDlg, &rcCheckBoxAlignD64Tracks, TRUE);
-				
-				MoveWindow(hListBox, rcListBox.left, rcListBox.top, (rcListBox.right - rcListBox.left), h - mgapListBoxBottom - rcListBox.top, TRUE);
-				MoveWindow(hCheckQuickLoad, rcListBox.left, h - mgapCheckBoxQuickLoadBottom - (rcCheckBoxQuickLoad.bottom-rcCheckBoxQuickLoad.top), (rcCheckBoxQuickLoad.right - rcCheckBoxQuickLoad.left), (rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top), TRUE);
-				MoveWindow(hCheckAlignD64Tracks, rcListBox.left, h - mgapCheckBoxAlignD64TracksBottom - (rcCheckBoxAlignD64Tracks.bottom-rcCheckBoxAlignD64Tracks.top), (rcCheckBoxAlignD64Tracks.right - rcCheckBoxAlignD64Tracks.left), (rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top), TRUE);
-
-				UpdateWindow(hDlg);
-			}
+			if (!IsWindowVisible(m_hListBox))
+				ShowWindow(m_hListBox, SW_SHOW);
+			MoveWindow(m_hListBox, cx + gap, rcDlg.top + gap, width_listbox, height_listbox, TRUE);
 		}
+		else
+		{
+			if (IsWindowVisible(m_hListBox))
+				ShowWindow(m_hListBox, SW_HIDE);
+		}
+		MoveWindow(m_hCheckQuickLoad, cx + gap, rcDlg.top + gap + height_listbox + gap, width_listbox, abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top), TRUE);
+		MoveWindow(m_hCheckAlignD64Tracks, cx + gap, rcDlg.top + gap + height_listbox + gap + abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) + gap + abs(rcCheckBoxAlignD64Tracks.bottom-rcCheckBoxAlignD64Tracks.top), width_listbox, (rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top), TRUE);
+		
+		//InvalidateRect(hDlg, &rcCheckBoxQuickLoad, TRUE);
+		//InvalidateRect(hDlg, &rcCheckBoxAlignD64Tracks, TRUE);
+		
+		UpdateWindow(hDlg);
 	}
-
 }
+
 void CPRGBrowse::DrawC64String(HDC hdc, int x, int y, BYTE str[], int length, bool bShifted)
 {
 int i;
@@ -679,9 +704,9 @@ RGBQUAD rgb;
 		for (row=0; row<8; row++)
 		{
 			if (bShifted)
-				gdata = charGen[c * 8 + row+ 2048];
+				gdata = m_pCharGen[c * 8 + row+ 2048];
 			else
-				gdata = charGen[c * 8 + row];
+				gdata = m_pCharGen[c * 8 + row];
 			for (col=0; col<8; col++, gdata <<= 1)
 			{
 				if (gdata & 0x80)
@@ -700,26 +725,26 @@ int c;
 
 	EnterCriticalSection(&mCrtStatus);
 	miLoadedListItemCount = 0;
-	SendMessage(hListBox, LB_RESETCONTENT, 0, 0);
+	SendMessage(m_hListBox, LB_RESETCONTENT, 0, 0);
 	if (mFileInspectorResult == S_OK && mFileInspectorStatus == COMPLETED)
 	{
-		j = SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("C64 Header"));
+		j = SendMessage(m_hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("C64 Header"));
 		if (j >= 0)
 		{
-			SendMessage(hListBox, LB_SETITEMDATA, 0, 0);
+			SendMessage(m_hListBox, LB_SETITEMDATA, 0, 0);
 
-			c = c64file.GetFileCount();
+			c = m_c64file.GetFileCount();
 			miLoadedListItemCount = min(c, MAXLISTITEMCOUNT);
 			for (i=0,k=0 ; i < miLoadedListItemCount ; i++)
 			{
-				j = SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("C64 File"));
+				j = SendMessage(m_hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("C64 File"));
 				if (j < 0)
 					break;
-				SendMessage(hListBox, LB_SETITEMDATA, j, i);
+				SendMessage(m_hListBox, LB_SETITEMDATA, j, i);
 				k++;
 			}
 			if (k>0)
-				SendMessage(hListBox, LB_SETCURSEL, 0, 0);
+				SendMessage(m_hListBox, LB_SETCURSEL, 0, 0);
 		}
 	}
 	LeaveCriticalSection(&mCrtStatus);
