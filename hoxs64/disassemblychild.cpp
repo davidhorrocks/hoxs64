@@ -208,12 +208,11 @@ void CDisassemblyChild::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		OnSizeDisassembly(hWndDisassemblyEditChild, w, h);
 
 	bit16 address = this->m_DisassemblyEditChild.GetTopAddress();
-	this->SetAddressScrollPos(address, true);
+	this->SetAddressScrollPos(address);
 }
 
-void CDisassemblyChild::SetAddressScrollPos(int pos, bool bUpdatePageSize)
+void CDisassemblyChild::SetAddressScrollPos(int pos)
 {
-
 	bit16 topAddress = m_DisassemblyEditChild.GetTopAddress();
 	bit16 bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
 	int page = abs((int)(bit16s)(bottomAddress - topAddress));
@@ -223,9 +222,7 @@ void CDisassemblyChild::SetAddressScrollPos(int pos, bool bUpdatePageSize)
 	SCROLLINFO scrollinfo;
 	ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
 	scrollinfo.cbSize=sizeof(SCROLLINFO);
-	scrollinfo.fMask  = SIF_RANGE | SIF_POS;
-	if (bUpdatePageSize)
-		scrollinfo.fMask |= SIF_PAGE;
+	scrollinfo.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS;
 	scrollinfo.nMax=0xffff;
 	scrollinfo.nMin=0x0000;
 	scrollinfo.nPage=page;
@@ -248,14 +245,15 @@ void CDisassemblyChild::SetHome()
 void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
 {
 	m_DisassemblyEditChild.SetTopAddress(address);
-	SetAddressScrollPos((int)address, bSetScrollBarPage);
+	if (bSetScrollBarPage)
+		SetAddressScrollPos((int)address);
 }
 
 void CDisassemblyChild::UpdateDisplay(bool bSeekPC)
 {
 	m_DisassemblyEditChild.UpdateDisplay(bSeekPC);
 	bit16 address = m_DisassemblyEditChild.GetTopAddress();
-	SetAddressScrollPos((int)address, true);
+	SetAddressScrollPos((int)address);
 }
 
 void CDisassemblyChild::InvalidateBuffer()
