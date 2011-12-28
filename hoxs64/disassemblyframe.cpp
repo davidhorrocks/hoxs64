@@ -178,29 +178,31 @@ void CDisassemblyFrame::UnadviseEvents()
 HRESULT CDisassemblyFrame::InitFonts()
 {
 	CloseFonts();
-
 	//m_monitor_font = GetObject(GetStockObject(ANSI_FIXED_FONT), sizeof(LOGFONT), &lf); 
 	//m_monitor_font = (HFONT)GetStockObject(ANSI_FIXED_FONT); 
-
-	m_monitor_font = CreateFont(
-		0,
-		0,
-		0,
-		0,
-		FW_NORMAL,
-		FALSE,
-		FALSE,
-		FALSE,
-		ANSI_CHARSET,
-		OUT_TT_ONLY_PRECIS,
-		CLIP_DEFAULT_PRECIS,
-		CLEARTYPE_QUALITY,
-		FIXED_PITCH | FF_DONTCARE,
-		//TEXT("Arial"));
-		TEXT("Courier"));
-		//NULL);
-	if (m_monitor_font==0)
-		return SetError(E_FAIL, TEXT("Cannot open Courier font."));
+	LPTSTR lstFontName[] = { TEXT("Consolas"), TEXT("Lucida"), TEXT("Courier"), TEXT("")};
+	for (int i =0; m_monitor_font == 0 && i < _countof(lstFontName); i++)
+	{
+		m_monitor_font = CreateFont(
+			0,
+			0,
+			0,
+			0,
+			FW_NORMAL,
+			FALSE,
+			FALSE,
+			FALSE,
+			ANSI_CHARSET,
+			OUT_TT_ONLY_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			CLEARTYPE_QUALITY,
+			FIXED_PITCH | FF_DONTCARE,
+			lstFontName[i]);
+	}
+	if (m_monitor_font == 0)
+	{
+		return SetError(E_FAIL, TEXT("Cannot open a fixed pitch true type font."));
+	}
 	return S_OK;
 }
 

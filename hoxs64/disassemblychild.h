@@ -32,7 +32,7 @@ public:
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
 	void GetMinWindowSize(int &w, int &h);
-	void SetTopAddress(bit16 address);
+	void SetTopAddress(bit16 address, bool bSetScrollBarPage);
 	void SetHome();
 	void UpdateDisplay(bool bEnsurePC);
 	void InvalidateBuffer();
@@ -65,7 +65,7 @@ private:
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	void SetAddressScrollPos(int pos);	
+	void SetAddressScrollPos(int pos, bool bUpdatePageSize);	
 
 	void Cleanup();
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

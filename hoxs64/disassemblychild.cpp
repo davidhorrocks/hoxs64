@@ -208,10 +208,10 @@ void CDisassemblyChild::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		OnSizeDisassembly(hWndDisassemblyEditChild, w, h);
 
 	bit16 address = this->m_DisassemblyEditChild.GetTopAddress();
-	this->SetAddressScrollPos(address);
+	this->SetAddressScrollPos(address, true);
 }
 
-void CDisassemblyChild::SetAddressScrollPos(int pos)
+void CDisassemblyChild::SetAddressScrollPos(int pos, bool bUpdatePageSize)
 {
 
 	bit16 topAddress = m_DisassemblyEditChild.GetTopAddress();
@@ -223,7 +223,9 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 	SCROLLINFO scrollinfo;
 	ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
 	scrollinfo.cbSize=sizeof(SCROLLINFO);
-	scrollinfo.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS;
+	scrollinfo.fMask  = SIF_RANGE | SIF_POS;
+	if (bUpdatePageSize)
+		scrollinfo.fMask |= SIF_PAGE;
 	scrollinfo.nMax=0xffff;
 	scrollinfo.nMin=0x0000;
 	scrollinfo.nPage=page;
@@ -240,20 +242,20 @@ void CDisassemblyChild::SetHome()
 {
 	CPUState cpustate;
 	this->m_pMon->GetCpu()->GetCpuState(cpustate);
-	this->SetTopAddress(cpustate.PC_CurrentOpcode);
+	this->SetTopAddress(cpustate.PC_CurrentOpcode, true);
 }
 
-void CDisassemblyChild::SetTopAddress(bit16 address)
+void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
 {
 	m_DisassemblyEditChild.SetTopAddress(address);
-	SetAddressScrollPos((int)address);
+	SetAddressScrollPos((int)address, bSetScrollBarPage);
 }
 
 void CDisassemblyChild::UpdateDisplay(bool bSeekPC)
 {
 	m_DisassemblyEditChild.UpdateDisplay(bSeekPC);
 	bit16 address = m_DisassemblyEditChild.GetTopAddress();
-	SetAddressScrollPos((int)address);
+	SetAddressScrollPos((int)address, true);
 }
 
 void CDisassemblyChild::InvalidateBuffer()
@@ -280,14 +282,14 @@ int pos;
 	case SB_TOP:
 		address = 0;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress);
+		SetTopAddress(nearestAdress, true);
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);		
 		break;
 	case SB_BOTTOM:
 		address=0xffc0;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress);
+		SetTopAddress(nearestAdress, true);
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
@@ -301,25 +303,25 @@ int pos;
 
 		address-=page;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress);
+		SetTopAddress(nearestAdress, true);
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_PAGEDOWN:
 		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
-		SetTopAddress(bottomAddress);		
+		SetTopAddress(bottomAddress, true);		
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_LINEUP:
 		address = m_DisassemblyEditChild.GetPrevAddress();
-		SetTopAddress(address);
+		SetTopAddress(address, true);
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
 	case SB_LINEDOWN:
 		address = m_DisassemblyEditChild.GetNextAddress();
-		SetTopAddress(address);
+		SetTopAddress(address, true);
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
@@ -333,7 +335,7 @@ int pos;
 		pos = scrollinfo.nTrackPos;
 		address = (bit16)((unsigned int)pos & 0xffff);
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress);
+		SetTopAddress(nearestAdress, true);
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
@@ -347,7 +349,7 @@ int pos;
 		pos = scrollinfo.nTrackPos;
 		address = (bit16)((unsigned int)pos & 0xffff);
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress);
+		SetTopAddress(nearestAdress, false);
 		CancelEditing();
 		m_DisassemblyEditChild.UpdateDisplay(false);
 		break;
