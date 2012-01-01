@@ -112,14 +112,12 @@ RGBQUAD rgb;
 		CleanUp();
 		return E_FAIL;
 	}
-	//mhEvtComplete = CreateEvent(NULL, TRUE, TRUE, TEXT("HOX64EVENT_COMPLETED"));
 	mhEvtComplete = CreateEvent(NULL, TRUE, TRUE, NULL);
 	if (!mhEvtComplete)
 	{
 		CleanUp();
 		return E_FAIL;
 	}
-	//mhEvtQuit = CreateEvent(NULL, TRUE, TRUE, TEXT("HOX64EVENT_QUIT"));
 	mhEvtQuit = CreateEvent(NULL, TRUE, TRUE, NULL);
 	if (!mhEvtQuit)
 	{
@@ -631,7 +629,8 @@ int i;
 			hbrushOld = (HBRUSH)SelectObject(lpdis->hDC, hBrushListBox);
 			if (hbrushOld)
 			{
-				FillRect(lpdis->hDC, &lpdis->rcItem, hBrushListBox);
+				RECT rc = lpdis->rcItem;
+				FillRect(lpdis->hDC, &rc, hBrushListBox);
 			
 				DrawC64String(lpdis->hDC, lpdis->rcItem.left, lpdis->rcItem.top + m_dpi.ScaleY(MARGIN_TOP_LVITEM_96), tempC64String, sizeof(tempC64String), bUsedShifedCharROMSet, m_dpi.ScaleY(HEIGHT_LVFONT_96));
 
@@ -652,9 +651,10 @@ int i;
 						hPen = NULL;
 					}
 				}
-				if (lpdis->itemState & ODS_SELECTED) 
+				if ((lpdis->itemState & ODS_SELECTED))
 				{ 
-					DrawFocusRect(lpdis->hDC, &lpdis->rcItem); 
+					RECT rc = lpdis->rcItem;
+					DrawFocusRect(lpdis->hDC, &rc); 
 				} 
 
 				SelectObject(lpdis->hDC, hbrushOld);
