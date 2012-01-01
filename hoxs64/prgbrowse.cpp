@@ -39,6 +39,11 @@
 #include "resource.h"
 #include "prgbrowse.h"
 
+#define MAXLENLVITEM (24)
+#define HEIGHT_LVITEM_96 (16)
+#define HEIGHT_LVFONT_96 (8)
+#define MARGIN_TOP_LVITEM_96 (4)
+
 CDirectoryArray arr;
 
 UINT_PTR CALLBACK PRGBrowseDialogHookProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -178,6 +183,10 @@ HRESULT CPRGBrowse::CreateControls(HWND hDlg)
 	m_hCheckAlignD64Tracks = GetDlgItem(hDlg, IDC_CHKALIGND64TRACKS);
 	if (!m_hCheckAlignD64Tracks)
 		return E_FAIL;
+
+	SendMessage(m_hListBox, LB_SETITEMHEIGHT, 0, m_dpi.ScaleY(HEIGHT_LVITEM_96));
+	SendMessage(m_hListBox, LB_SETHORIZONTALEXTENT, m_dpi.ScaleX(MAXLENLVITEM * HEIGHT_LVFONT_96), 0);
+
 	SelectedListItem=-1;
 	SelectedDirectoryIndex=-1;
 	return S_OK;
@@ -329,10 +338,7 @@ TCHAR fileName[MAX_PATH+1];
 int len=0;
 LPMEASUREITEMSTRUCT lpmis;
 LPDRAWITEMSTRUCT lpdis;
-BYTE tempC64String[24];
-RGBQUAD rgb;
-HBRUSH hBrushListBox;
-HBRUSH hbrushOld;
+
 HRESULT hr;
 int i;
 
@@ -450,11 +456,11 @@ LRESULT lr;
 	case WM_CTLCOLORLISTBOX:
 		return (LRESULT)m_hbrush;
 	case WM_MEASUREITEM:
+		lpmis =0;
 		if (wParam == IDC_CUSTOMPRGLIST)
 		{
 			lpmis = (LPMEASUREITEMSTRUCT) lParam;
-			lpmis->itemHeight = 16;
-			//lpmis->itemWidth = 8*16;
+			OnMeasureListViewItem(lpmis);
 			return TRUE;
 		}
 		break;
@@ -462,95 +468,7 @@ LRESULT lr;
 		if (wParam == IDC_CUSTOMPRGLIST)
 		{
 			lpdis = (LPDRAWITEMSTRUCT) lParam;
-			if (lpdis->itemID == -1)
-				return TRUE;
-			switch (lpdis->itemAction)
-			{
-			case ODA_SELECT:
-			case ODA_DRAWENTIRE:
-				int charLen;
-				EnterCriticalSection(&mCrtStatus);
-				bool bUsedShifedCharROMSet = false;
-				if (mFileInspectorStatus == WORKING)
-				{
-					memset(tempC64String, 0x20, sizeof(tempC64String));
-					if (lpdis->itemID == 0)
-					{
-						memcpy_s(tempC64String, sizeof(tempC64String), "WORKING..", 9);
-					}
-				}
-				else if (lpdis->itemID == 0)
-				{
-					memset(tempC64String, 0x20, sizeof(tempC64String));
-					charLen = m_c64file.GetC64Diskname(tempC64String, sizeof(tempC64String));
-					if (charLen > sizeof(tempC64String))
-						charLen = sizeof(tempC64String);
-				}
-				else if (lpdis->itemData >= (DWORD)miLoadedListItemCount)
-				{
-					charLen = sizeof(tempC64String);
-					memset(tempC64String, 0x20, sizeof(tempC64String));
-				}
-				else
-				{
-					memset(tempC64String, 0x20, sizeof(tempC64String));
-					charLen = m_c64file.GetDirectoryItemName((int)lpdis->itemData, tempC64String, sizeof(tempC64String));
-					if (charLen > sizeof(tempC64String))
-						charLen = sizeof(tempC64String);
-					const bit8 *ftname = m_c64file.GetDirectoryItemTypeName((int)lpdis->itemData);
-					if (ftname!=NULL)
-					{
-						if (sizeof(tempC64String) >= (charLen + sizeof(C64File::FTN_CLR) + 1))
-						{
-							memcpy_s(&tempC64String[sizeof(tempC64String) - sizeof(C64File::FTN_CLR)], sizeof(C64File::FTN_CLR), ftname, sizeof(C64File::FTN_CLR));
-						}
-					}
-				}
-
-				if (m_c64file.GetFileType()==C64File::ef_SID && charLen >0)
-				{
-					bUsedShifedCharROMSet = true;
-					for (i=0; i<charLen; i++)
-					{
-						if (tempC64String[i] >= 'A' && tempC64String[i] <= 'Z')
-							tempC64String[i]+=0x20;
-						else if (tempC64String[i] >= 'a' && tempC64String[i] <= 'z')
-							tempC64String[i]-=0x20;
-					}
-				}
-				memcpy(&rgb, &VIC6569::vic_color_array[VIC6569::vicBLUE], 4);
-				hBrushListBox = CreateSolidBrush(RGB(rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue));
-
-				hbrushOld = (HBRUSH)SelectObject(lpdis->hDC, hBrushListBox);
-
-				FillRect(lpdis->hDC, &lpdis->rcItem, hBrushListBox);
-
-				DrawC64String(lpdis->hDC, lpdis->rcItem.left, lpdis->rcItem.top + 4, tempC64String, sizeof(tempC64String), bUsedShifedCharROMSet);
-
-				if (lpdis->itemID == 0 && miLoadedListItemCount!=0)
-				{
-					memcpy(&rgb, &VIC6569::vic_color_array[VIC6569::vicGREEN], 4);
-					HPEN hPen = CreatePen(PS_SOLID, 2, RGB(rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue));
-					if (hPen)
-					{
-						HPEN hOldPen = (HPEN)SelectObject(lpdis->hDC, hPen);
-						MoveToEx(lpdis->hDC, 0, lpdis->rcItem.bottom-3, NULL);
-						LineTo(lpdis->hDC, lpdis->rcItem.right-1, lpdis->rcItem.bottom-3);
-						SelectObject(lpdis->hDC, hOldPen);
-						DeleteObject(hPen);
-						hPen = NULL;
-					}
-				}
-                if (lpdis->itemState & ODS_SELECTED) 
-                { 
-                    DrawFocusRect(lpdis->hDC, &lpdis->rcItem); 
-                } 
-
-				SelectObject(lpdis->hDC, hbrushOld);
-				DeleteObject(hBrushListBox);
-				
-				LeaveCriticalSection(&mCrtStatus);
-			}
+			OnDrawListViewItem(lpdis);
 		}
 		return TRUE;
 		break;
@@ -632,6 +550,121 @@ LRESULT lr;
 	return FALSE;
 }
 
+void CPRGBrowse::OnMeasureListViewItem(LPMEASUREITEMSTRUCT lpmis)
+{
+	lpmis->itemHeight = m_dpi.ScaleY(HEIGHT_LVITEM_96);
+}
+
+void CPRGBrowse::OnDrawListViewItem(LPDRAWITEMSTRUCT lpdis)
+{
+BYTE tempC64String[MAXLENLVITEM];
+RGBQUAD rgb;
+HBRUSH hBrushListBox;
+HBRUSH hbrushOld;
+int i;
+
+	if (lpdis->itemID == -1)
+		return;
+	switch (lpdis->itemAction)
+	{
+	case ODA_SELECT:
+	case ODA_DRAWENTIRE:
+		int charLen;
+		EnterCriticalSection(&mCrtStatus);
+		bool bUsedShifedCharROMSet = false;
+		if (mFileInspectorStatus == WORKING)
+		{
+			//Worker thread is still looking for items.
+			memset(tempC64String, 0x20, sizeof(tempC64String));
+			if (lpdis->itemID == 0)
+			{
+				memcpy_s(tempC64String, sizeof(tempC64String), "WORKING..", 9);
+			}
+		}
+		else if (lpdis->itemID == 0)
+		{
+			//Put the title in list index position 0.
+			memset(tempC64String, 0x20, sizeof(tempC64String));
+			charLen = m_c64file.GetC64Diskname(tempC64String, sizeof(tempC64String));
+			if (charLen > sizeof(tempC64String))
+				charLen = sizeof(tempC64String);
+		}
+		else if (lpdis->itemData >= (DWORD)miLoadedListItemCount)
+		{
+			//Blank out list index positions that are out of bounds.
+			charLen = sizeof(tempC64String);
+			memset(tempC64String, 0x20, sizeof(tempC64String));
+		}
+		else
+		{
+			//Get character data for this list item.
+			memset(tempC64String, 0x20, sizeof(tempC64String));
+			charLen = m_c64file.GetDirectoryItemName((int)lpdis->itemData, tempC64String, sizeof(tempC64String));
+			if (charLen > sizeof(tempC64String))
+				charLen = sizeof(tempC64String);
+			const bit8 *ftname = m_c64file.GetDirectoryItemTypeName((int)lpdis->itemData);
+			if (ftname!=NULL)
+			{
+				if (sizeof(tempC64String) >= (charLen + sizeof(C64File::FTN_CLR) + 1))
+				{
+					memcpy_s(&tempC64String[sizeof(tempC64String) - sizeof(C64File::FTN_CLR)], sizeof(C64File::FTN_CLR), ftname, sizeof(C64File::FTN_CLR));
+				}
+			}
+		}
+
+		if (m_c64file.GetFileType()==C64File::ef_SID && charLen >0)
+		{
+			bUsedShifedCharROMSet = true;
+			for (i=0; i<charLen; i++)
+			{
+				if (tempC64String[i] >= 'A' && tempC64String[i] <= 'Z')
+					tempC64String[i]+=0x20;
+				else if (tempC64String[i] >= 'a' && tempC64String[i] <= 'z')
+					tempC64String[i]-=0x20;
+			}
+		}
+		//Create background brush.
+		memcpy(&rgb, &VIC6569::vic_color_array[VIC6569::vicBLUE], 4);
+		hBrushListBox = CreateSolidBrush(RGB(rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue));
+		if (hBrushListBox)
+		{
+			hbrushOld = (HBRUSH)SelectObject(lpdis->hDC, hBrushListBox);
+			if (hbrushOld)
+			{
+				FillRect(lpdis->hDC, &lpdis->rcItem, hBrushListBox);
+			
+				DrawC64String(lpdis->hDC, lpdis->rcItem.left, lpdis->rcItem.top + m_dpi.ScaleY(MARGIN_TOP_LVITEM_96), tempC64String, sizeof(tempC64String), bUsedShifedCharROMSet, m_dpi.ScaleY(HEIGHT_LVFONT_96));
+
+				if (lpdis->itemID == 0 && miLoadedListItemCount!=0)
+				{
+					//Draw unline for the title position
+					int lineThickness = m_dpi.ScaleY(2);
+					memcpy(&rgb, &VIC6569::vic_color_array[VIC6569::vicGREEN], 4);
+					HPEN hPen = CreatePen(PS_SOLID, lineThickness, RGB(rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue));
+					if (hPen)
+					{
+						int y = lpdis->rcItem.bottom - 1 - lineThickness;
+						HPEN hOldPen = (HPEN)SelectObject(lpdis->hDC, hPen);
+						MoveToEx(lpdis->hDC, 0, y, NULL);
+						LineTo(lpdis->hDC, lpdis->rcItem.right-1, y);
+						SelectObject(lpdis->hDC, hOldPen);
+						DeleteObject(hPen);
+						hPen = NULL;
+					}
+				}
+				if (lpdis->itemState & ODS_SELECTED) 
+				{ 
+					DrawFocusRect(lpdis->hDC, &lpdis->rcItem); 
+				} 
+
+				SelectObject(lpdis->hDC, hbrushOld);
+			}
+			DeleteObject(hBrushListBox);
+		}				
+		LeaveCriticalSection(&mCrtStatus);
+	}
+}
+
 void CPRGBrowse::ReSize(HWND hDlg, LONG w, LONG h)
 {
 RECT rcListBox;
@@ -681,12 +714,40 @@ RECT rcBrowse;
 	}
 }
 
-void CPRGBrowse::DrawC64String(HDC hdc, int x, int y, BYTE str[], int length, bool bShifted)
+void CPRGBrowse::DrawC64String(HDC hdc, int x, int y, BYTE str[], int length, bool bShifted, int fontheight)
+{
+const int MULT = 1;
+int dx = 8 * length * MULT;
+int dy = 8 * MULT;
+
+	//DrawC64String(hdc, x, y, str, length, bShifted, 1, 1);
+	//return;
+	HDC hMemDC = CreateCompatibleDC(hdc);
+	if (hMemDC)
+	{
+		HBITMAP hBmpMemory = CreateCompatibleBitmap(hdc, dx, dy);
+		if (hBmpMemory)
+		{
+			HBITMAP hBmpOld = (HBITMAP)SelectObject(hMemDC, hBmpMemory);
+			if (hBmpOld)
+			{
+				DrawC64String(hMemDC, 0, 0, str, length, bShifted, MULT, MULT);
+				StretchBlt(hdc, x, y, fontheight * length, fontheight, hMemDC, 0, 0, dx, dy, SRCCOPY);
+	
+				SelectObject(hMemDC, hBmpOld);
+			}
+			DeleteObject(hBmpMemory);
+		}
+		DeleteDC(hMemDC);
+	}
+}
+
+void CPRGBrowse::DrawC64String(HDC hdc, int x, int y, BYTE str[], int length, bool bShifted, int scalex, int scaley)
 {
 int i;
-int row,col;
-unsigned char c, gdata,petascii;
-COLORREF bg,fg;
+int row, col;
+unsigned char c, gdata, petascii;
+COLORREF bg, fg;
 RGBQUAD rgb;
 
 	memcpy(&rgb, &VIC6569::vic_color_array[VIC6569::vicBLUE], 4);
@@ -695,24 +756,32 @@ RGBQUAD rgb;
 	memcpy(&rgb, &VIC6569::vic_color_array[VIC6569::vicLIGHT_BLUE], 4);
 	fg = PALETTERGB(rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue);
 	
-	for (i=0; i<length; i++, x+=8)
+	int x_advance = 8*scalex;
+	for (i = 0; i < length; i++, x += x_advance)
 	{
-
 		petascii = str[i];	
 		c = C64File::ConvertPetAsciiToScreenCode(petascii);
 
-		for (row=0; row<8; row++)
+		for (row = 0; row < 8; row++)
 		{
 			if (bShifted)
-				gdata = m_pCharGen[c * 8 + row+ 2048];
+				gdata = m_pCharGen[c * 8 + row + 2048];
 			else
 				gdata = m_pCharGen[c * 8 + row];
-			for (col=0; col<8; col++, gdata <<= 1)
+			for (col = 0; col < 8; col++, gdata <<= 1)
 			{
-				if (gdata & 0x80)
-					SetPixel(hdc, x + col, y + row, fg);
-				else
-					SetPixel(hdc, x + col, y + row, bg);
+				int py = y + row*scaley;
+				for (int sy = 0 ; sy < scaley ; sy++, py++)
+				{
+					int px = x + col*scalex;
+					for (int sx = 0 ; sx < scalex ; sx++, px++)
+					{
+						if (gdata & 0x80)
+							SetPixel(hdc, px, py, fg);
+						else
+							SetPixel(hdc, px, py, bg);
+					}
+				}
 			}
 		}
 	}

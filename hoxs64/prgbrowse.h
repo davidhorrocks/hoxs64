@@ -18,7 +18,8 @@ public:
 	HRESULT CreateControls(HWND hDlg);
 	CDirectoryArray dataList;
 
-	void DrawC64String(HDC, int, int, BYTE[], int, bool);
+	void DrawC64String(HDC hdc, int x, int y, BYTE str[], int length, bool bShifted, int scalex, int scaley);
+	void DrawC64String(HDC hdc, int x, int y, BYTE str[], int length, bool bShifted, int fontheight);
 
 	HINSTANCE m_hInstance;
 	int SelectedListItem;
@@ -72,6 +73,8 @@ private:
 	int mgapTop;
 	int mgapBottom;
 	bool mbGapsDone;
+	void OnMeasureListViewItem(LPMEASUREITEMSTRUCT lpdis);
+	void OnDrawListViewItem(LPDRAWITEMSTRUCT lpdis);
 };
 
 
