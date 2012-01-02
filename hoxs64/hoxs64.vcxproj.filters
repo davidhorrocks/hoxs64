@@ -490,6 +490,13 @@
     <None Include="Char.rom">
       <Filter>roms</Filter>
     </None>
+    <None Include="candy_clock_64.png" />
+    <None Include="bitmap2.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="candy_clock_64.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resfile.rc">

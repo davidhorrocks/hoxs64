@@ -34,7 +34,8 @@ const ImageInfo CDisassemblyFrame::TB_ImageList[] =
 	{IDB_DEBUGGERTRACEFRAME, IDB_DEBUGGERTRACEFRAMEMASK},
 	{IDB_DEBUGGERSTEPONECLOCK, IDB_DEBUGGERSTEPONECLOCKMASK},
 	{IDB_DEBUGGERSTEPIN, IDB_DEBUGGERSTEPINMASK},
-	{IDB_DEBUGGERTRACEINT, IDB_DEBUGGERTRACEINTMASK},
+	//{IDB_DEBUGGERTRACEINT, IDB_DEBUGGERTRACEINTMASK},
+	{IDB_DEBUGGERTRACEINT_64, 0},
 	{IDB_DEBUGGERSTOP, IDB_DEBUGGERSTOPMASK},
 };
 
@@ -325,8 +326,7 @@ bool fail = false;
 			{
 				int tool_dx = m_dpi.ScaleX(TOOLBUTTON_WIDTH_96);
 				int tool_dy = m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96);
-				hImageList = ImageList_Create(tool_dx, tool_dy, ILC_MASK, TOOLBUTTON_COUNT, 0);
-				//hImageList = ImageList_Create((TOOLBUTTON_WIDTH_96), (TOOLBUTTON_HEIGHT_96), ILC_MASK, TOOLBUTTON_COUNT, 0);
+				hImageList = ImageList_Create(tool_dx, tool_dy, ILC_MASK | ILC_COLORDDB, TOOLBUTTON_COUNT, 0);
 				if (hImageList)
 				{
 					HBITMAP hbmpImage = NULL;
@@ -341,21 +341,26 @@ bool fail = false;
 							fail = true;
 							break;
 						}
-						hbmpMask = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapMaskResourceId));
-
 						BITMAP bitmapImage;
+						BITMAP bitmapMask;
 						r = GetObject(hbmpImage, sizeof(BITMAP), &bitmapImage);
 						if (!r)
 						{
 							fail = true;
 							break;
 						}
-						BITMAP bitmapMask;
-						r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
-						if (!r)
+						if (TB_ImageList[i].BitmapMaskResourceId!=0)
 						{
-							fail = true;
-							break;
+							hbmpMask = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapMaskResourceId));
+							if (hbmpMask)
+							{
+								r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
+								if (!r)
+								{
+									fail = true;
+									break;
+								}
+							}
 						}
 						hBmpImageSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
 						if (!hBmpImageSz)
@@ -363,13 +368,15 @@ bool fail = false;
 							fail = true;
 							break;
 						}
-						hBmpMaskSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
-						if (!hBmpMaskSz)
+						if (hbmpMask)
 						{
-							fail = true;
-							break;
+							hBmpMaskSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
+							if (!hBmpMaskSz)
+							{
+								fail = true;
+								break;
+							}
 						}
-
 						bool bOK = false;
 						HBITMAP hOld_BmpDest = (HBITMAP)SelectObject(hMemDC_Dest, hBmpImageSz);
 						HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hbmpImage);
@@ -377,11 +384,18 @@ bool fail = false;
 						{
 							StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
 
-							HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
-							HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
-							if (hOld_BmpDest2 && hOld_BmpSrc2)
+							if (hbmpMask && hBmpMaskSz)
 							{
-								StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
+								HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
+								HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
+								if (hOld_BmpDest2 && hOld_BmpSrc2)
+								{
+									StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
+									bOK = true;
+								}
+							}
+							else
+							{
 								bOK = true;
 							}
 						}
@@ -394,18 +408,25 @@ bool fail = false;
 							fail = true;
 							break;
 						}
-						r = ImageList_Add(hImageList, hBmpImageSz, hBmpMaskSz);
+						if (hBmpMaskSz)
+							r = ImageList_Add(hImageList, hBmpImageSz, hBmpMaskSz);
+						else
+							r = ImageList_AddMasked(hImageList, hBmpImageSz, RGB(0xff,0xff,0xff));
 						if (r < 0)
 						{
 							fail = true;
 							break;
 						}
-						DeleteObject(hBmpImageSz);
-						DeleteObject(hBmpMaskSz);
+						if (hBmpImageSz)
+							DeleteObject(hBmpImageSz);
+						if (hBmpMaskSz)
+							DeleteObject(hBmpMaskSz);
+						if (hbmpImage)
+							DeleteObject(hbmpImage);
+						if (hbmpMask)
+							DeleteObject(hbmpMask);
 						hBmpImageSz = NULL;
 						hBmpMaskSz = NULL;
-						DeleteObject(hbmpImage);
-						DeleteObject(hbmpMask);
 						hbmpImage = NULL;
 						hbmpMask = NULL;
 					}

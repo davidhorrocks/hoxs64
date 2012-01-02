@@ -774,6 +774,7 @@ IDB_DEBUGGERTRACEFRAME  BITMAP                  "debugger trace frame.bmp"
 IDB_DEBUGGERTRACEFRAMEMASK BITMAP                  "debugger trace frame mask.bmp"
 IDB_DEBUGGERTRACEINT    BITMAP                  "candy_clock.bmp"
 IDB_DEBUGGERTRACEINTMASK BITMAP                  "candy clock mask.bmp"
+IDB_DEBUGGERTRACEINT_64 BITMAP                  "candy_clock_64.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
