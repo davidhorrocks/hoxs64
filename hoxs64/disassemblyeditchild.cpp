@@ -22,14 +22,22 @@
 #include "disassemblyeditchild.h"
 #include "resource.h"
 
+#define WIDTH_LEFTBAR_96 (16)
+#define PADDING_LEFT_96 (4)
+#define PADDING_RIGHT_96 (4)
+#define PADDING_TOP_96 (4)
+#define PADDING_BOTTOM_96 (4)
+#define MARGIN_TOP_96 (5)
+#define MAX_EDIT_CHARS (256)
+
 TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
-#define MAX_EDIT_CHARS (256)
+
 
 CDisassemblyEditChild::CDisassemblyEditChild()
 {
-	WIDTH_LEFTBAR2 = WIDTH_LEFTBAR;
-	LINE_HEIGHT = 16;
+	WIDTH_LEFTBAR2 = 0;
+	LINE_HEIGHT = 0;
 	m_pMon = NULL;
 	m_AutoDelete = false;
 	m_pParent = NULL;
@@ -271,13 +279,13 @@ SIZE sz;
 	{
 		return E_FAIL;
 	}
-	WIDTH_LEFTBAR2 = sz.cx + 1;
+	WIDTH_LEFTBAR2 = sz.cx + m_dpi.ScaleX(1);
 	LINE_HEIGHT =  tm.tmHeight;
 
-	int min_w = WIDTH_LEFTBAR;
+	int min_w = m_dpi.ScaleX(WIDTH_LEFTBAR_96);
 	int min_h = GetSystemMetrics(SM_CYVTHUMB) * 2 + GetSystemMetrics(SM_CYVTHUMB);
 
-	min_w += WIDTH_LEFTBAR2 + PADDING_LEFT + PADDING_RIGHT;			
+	min_w += WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96) + m_dpi.ScaleX(PADDING_RIGHT_96);			
 
 	TCHAR s[]= TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
 	int slen = lstrlen(s);
@@ -294,7 +302,7 @@ SIZE sz;
 
 	LPCTSTR szSampleAddress = TEXT("$ABCDxx");
 	LPCTSTR szSampleBytes = TEXT("ABxABxABxx");
-	xcol_Address = WIDTH_LEFTBAR + WIDTH_LEFTBAR2 + PADDING_LEFT;
+	xcol_Address = m_dpi.ScaleX(WIDTH_LEFTBAR_96) + WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96);
 	if (!::GetTextExtentExPoint(hdc, szSampleAddress,lstrlen(szSampleAddress),0,NULL,NULL,&sz))
 		return E_FAIL;
 	xcol_Bytes = xcol_Address + sz.cx;
@@ -498,7 +506,7 @@ int CDisassemblyEditChild::GetNumberOfLines(RECT& rc, int lineHeight)
 {
 	int num = 0;
 	if (lineHeight > 0)
-		num = (rc.bottom - rc.top - MARGIN_TOP - PADDING_TOP) / lineHeight;
+		num = (rc.bottom - rc.top - m_dpi.ScaleY(MARGIN_TOP_96) - m_dpi.ScaleY(PADDING_TOP_96)) / lineHeight;
 	if (num <= 0)
 		num = 1;
 	else
@@ -518,20 +526,20 @@ void CDisassemblyEditChild::UpdateDisplay(bool bSeekPC)
 void CDisassemblyEditChild::GetRect_Bar(const RECT& rcClient, LPRECT prc)
 {
 	CopyRect(prc, &rcClient);		
-	prc->right = prc->left + WIDTH_LEFTBAR;
+	prc->right = prc->left + m_dpi.ScaleX(WIDTH_LEFTBAR_96);
 }
 
 void CDisassemblyEditChild::GetRect_Status(const RECT& rcClient, LPRECT prc)
 {
 	CopyRect(prc, &rcClient);
-	prc->left += WIDTH_LEFTBAR;
+	prc->left += m_dpi.ScaleX(WIDTH_LEFTBAR_96);
 	prc->right = prc->left + WIDTH_LEFTBAR2;
 }
 
 void CDisassemblyEditChild::GetRect_Edit(const RECT& rcClient, LPRECT prc)
 {
 	CopyRect(prc, &rcClient);
-	prc->left = WIDTH_LEFTBAR + WIDTH_LEFTBAR2;
+	prc->left = m_dpi.ScaleX(WIDTH_LEFTBAR_96) + WIDTH_LEFTBAR2;
 }
 
 void CDisassemblyEditChild::InvalidateFocus()
@@ -541,7 +549,7 @@ void CDisassemblyEditChild::InvalidateFocus()
 	RECT rcChange;
 	if (GetClientRect(m_hWnd, &rcClient))
 	{
-		int y = MARGIN_TOP + PADDING_TOP;
+		int y = m_dpi.ScaleY(MARGIN_TOP_96) + m_dpi.ScaleY(PADDING_TOP_96);
 		int x = rcClient.left;
 		for (int i=0; i < m_NumLines; i++, y+=LINE_HEIGHT)
 		{
@@ -572,7 +580,7 @@ void CDisassemblyEditChild::InvalidateRectChanges()
 	}
 	if (GetClientRect(m_hWnd, &rcClient))
 	{
-		int y = MARGIN_TOP + PADDING_TOP;
+		int y = m_dpi.ScaleY(MARGIN_TOP_96) + m_dpi.ScaleY(PADDING_TOP_96);
 		int x = rcClient.left;
 		for (int i=0; i < m_NumLines; i++, y+=LINE_HEIGHT)
 		{
@@ -898,7 +906,7 @@ int CDisassemblyEditChild::GetLineFromYPos(int y)
 {
 	if (LINE_HEIGHT==0)
 		return -1;
-	int k = (y - MARGIN_TOP - PADDING_TOP) / LINE_HEIGHT;
+	int k = (y - m_dpi.ScaleY(MARGIN_TOP_96) - m_dpi.ScaleY(PADDING_TOP_96)) / LINE_HEIGHT;
 	return k;
 }
 
@@ -970,10 +978,10 @@ TEXTMETRIC tm;
 	{
 		if (tm.tmHeight > 0 && rcClient.bottom > rcClient.top && m_pFrontTextBuffer != NULL && m_pBackTextBuffer != NULL)
 		{
-			int x_status = WIDTH_LEFTBAR;
+			int x_status = m_dpi.ScaleX(WIDTH_LEFTBAR_96);
 			int x,y;
 			int slen;
-			y = MARGIN_TOP + PADDING_TOP;
+			y = m_dpi.ScaleY(MARGIN_TOP_96) + m_dpi.ScaleY(PADDING_TOP_96);
 			SIZE sizeText;
 			BOOL brTextExtent;
 
@@ -1002,6 +1010,10 @@ TEXTMETRIC tm;
 						hbmpPrev = (HBITMAP)SelectObject(hMemDC, m_hBmpBreak);
 						if (hbmpPrev)
 						{
+							int iWidthImageBreak = m_dpi.ScaleX(bmpBreak.bmWidth);
+							int iHeightImageBreak = m_dpi.ScaleY(bmpBreak.bmHeight);
+							int iTopPosImageBreak = (LINE_HEIGHT - iHeightImageBreak) / 2;
+							int iLeftPosImageBreak = (WIDTH_LEFTBAR2 - iWidthImageBreak) / 2;
 							for (int i = 0; i < m_NumLines; i++, y += LINE_HEIGHT)
 							{
 								AssemblyLineBuffer albFront = m_pFrontTextBuffer[i];
@@ -1013,7 +1025,8 @@ TEXTMETRIC tm;
 								{
 									SelectObject(hdc, bshBarBreak);
 									DWORD dwROP = MERGECOPY;
-									BitBlt(hdc, 0, y, bmpBreak.bmWidth, bmpBreak.bmHeight, hMemDC, 0, 0, dwROP);
+									//BitBlt(hdc, 0, y, bmpBreak.bmWidth, bmpBreak.bmHeight, hMemDC, 0, 0, dwROP);
+									StretchBlt(hdc, 0, y, iWidthImageBreak, iHeightImageBreak, hMemDC, 0, 0, bmpBreak.bmWidth, bmpBreak.bmHeight, dwROP);
 									SelectObject(hdc, bshBarStatus);
 								}
 
@@ -1102,7 +1115,7 @@ TEXTMETRIC tm;
 			{
 				TCHAR *tTitle;
 				RECT rcText;
-				::SetRect(&rcText, WIDTH_LEFTBAR + WIDTH_LEFTBAR2 + PADDING_LEFT, MARGIN_TOP + PADDING_TOP, rcClient.right - PADDING_RIGHT, rcClient.bottom);
+				::SetRect(&rcText, m_dpi.ScaleX(WIDTH_LEFTBAR_96) + WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96), m_dpi.ScaleY(MARGIN_TOP_96) + m_dpi.ScaleY(PADDING_TOP_96), rcClient.right - m_dpi.ScaleX(PADDING_RIGHT_96), rcClient.bottom);
 				if (rcClient.right > rcClient.left && rcClient.bottom > rcClient.top)
 				{
 					tTitle = TEXT("CPU disassembly window unavailable during trace.");

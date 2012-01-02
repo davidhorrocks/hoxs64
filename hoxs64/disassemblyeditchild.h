@@ -4,14 +4,8 @@
 class CDisassemblyEditChild : public CVirWindow
 {
 public:
-	static const int WIDTH_LEFTBAR = 16;
 	int WIDTH_LEFTBAR2;
 	int LINE_HEIGHT;
-	static const int PADDING_LEFT = 4;
-	static const int PADDING_RIGHT = 4;
-	static const int PADDING_TOP = 4;
-	static const int PADDING_BOTTOM = 4;
-	static const int MARGIN_TOP = 5;
 	static const int TAB_ADDRESS = 0;
 	static const int TAB_BYTES = 6;
 	static const int TAB_MNEMONIC = 6+10;
@@ -72,6 +66,7 @@ private:
 	CVirWindow *m_pParent;
 	IMonitorCommand *m_monitorCommand;
 	Monitor *m_pMon;
+	CDPI m_dpi;
 	HFONT m_hFont;
 	bit16 m_FirstAddress;
 	int m_NumLines;

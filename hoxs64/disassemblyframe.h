@@ -111,10 +111,6 @@ public:
 	static const int ID_DISASSEMBLEY = 2002;
 	static const int ID_DISASSEMBLEYREG = 2003;
 
-	static const int TOOLBUTTON_WIDTH = 16;
-	static const int TOOLBUTTON_HEIGHT = 16;
-	//static const int TOOLBUTTON_COUNT = 5;
-
 	static const int TOOLBUTTON_PICTURE_INDEX = 0;
 	static const int TOOLBUTTON_MASK_INDEX = 1;
 	static const ButtonInfo TB_StepButtons[];
@@ -132,6 +128,7 @@ public:
 	void EnsureWindowPosition(int x, int y, int w, int h);
 
 private:
+	CDPI m_dpi;
 	int m_iCurrentControlIndex;
 	IMonitorCommand *m_monitorCommand;
 	Monitor *m_pMon;
@@ -146,7 +143,7 @@ private:
 
 	HWND CreateRebar(HWND hwndTB);
 	HWND CreateToolBar(HIMAGELIST hImageListToolBarNormal);
-	HIMAGELIST CreateImageListNormal();
+	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	HWND CreateDisassemblyChild(int x, int y, int w, int h);
 	HWND CreateDisassemblyReg(int x, int y, int w, int h);
 	HRESULT InitFonts();

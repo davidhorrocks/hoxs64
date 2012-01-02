@@ -22,6 +22,9 @@
 #include "disassemblyframe.h"
 #include "resource.h"
 
+#define TOOLBUTTON_WIDTH_96 (16)
+#define TOOLBUTTON_HEIGHT_96 (16)
+
 const TCHAR CDisassemblyFrame::ClassName[] = TEXT("Hoxs64DisassemblyFrame");
 const TCHAR CDisassemblyFrame::MenuName[] = TEXT("MENU_CPUDISASSEMBLY");
 
@@ -31,7 +34,8 @@ const ImageInfo CDisassemblyFrame::TB_ImageList[] =
 	{IDB_DEBUGGERTRACEFRAME, IDB_DEBUGGERTRACEFRAMEMASK},
 	{IDB_DEBUGGERSTEPONECLOCK, IDB_DEBUGGERSTEPONECLOCKMASK},
 	{IDB_DEBUGGERSTEPIN, IDB_DEBUGGERSTEPINMASK},
-	{IDB_DEBUGGERTRACEINT, IDB_DEBUGGERTRACEINTMASK},
+	//{IDB_DEBUGGERTRACEINT, IDB_DEBUGGERTRACEINTMASK},
+	{IDB_DEBUGGERTRACEINT_64, 0},
 	{IDB_DEBUGGERSTOP, IDB_DEBUGGERSTOPMASK},
 };
 
@@ -184,7 +188,7 @@ HRESULT CDisassemblyFrame::InitFonts()
 	for (int i =0; m_monitor_font == 0 && i < _countof(lstFontName); i++)
 	{
 		m_monitor_font = CreateFont(
-			0,
+			m_dpi.ScaleY(m_dpi.PointsToPixels(12)),
 			0,
 			0,
 			0,
@@ -305,65 +309,162 @@ DWORD_PTR dwBtnSize;
 		return hWndRB;
 }
 
-HIMAGELIST CDisassemblyFrame::CreateImageListNormal()
+HIMAGELIST CDisassemblyFrame::CreateImageListNormal(HWND hWnd)
 {
 HIMAGELIST hImageList = NULL;
-HBITMAP hbmpImage = NULL;
-HBITMAP hbmpMask = NULL;
 int r;
 bool fail = false;
 
-	hImageList = ImageList_Create(TOOLBUTTON_WIDTH, TOOLBUTTON_HEIGHT, ILC_MASK, TOOLBUTTON_COUNT, 0);
-	if (hImageList == NULL)
-		return NULL;
-
-	for(int i=0; i < _countof(TB_ImageList); i++)
+	HDC hdc = GetDC(hWnd);
+	if (hdc)
 	{
-		hbmpImage = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapImageResourceId));
-		if (hbmpImage == NULL)
+		HDC hMemDC_Dest = CreateCompatibleDC(hdc);
+		if (hMemDC_Dest)
 		{
-			fail = true;
-			break;
-		}
-		hbmpMask = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapMaskResourceId));
-		//if (hbmpImage == NULL)
-		//{
-		//	fail = true;
-		//	break;
-		//}
-		r = ImageList_Add(hImageList, hbmpImage, hbmpMask);
-		if (r < 0)
-		{
-			fail = true;
-			break;
-		}
-		DeleteObject(hbmpImage);
-		DeleteObject(hbmpMask);
-		hbmpImage = NULL;
-		hbmpMask = NULL;
-	}
-	if (fail)
-	{
-		if (hbmpImage != NULL)
-		{
-			DeleteObject(hbmpImage);
-			hbmpImage = NULL;
-		}
-		if (hbmpMask != NULL)
-		{
-			DeleteObject(hbmpMask);
-			hbmpMask = NULL;
-		}
-		if (hImageList != NULL)
-		{
-			ImageList_Destroy(hImageList);
-			hImageList = NULL;
-		}
-		return NULL;
-	}
+			HDC hMemDC_Src = CreateCompatibleDC(hdc);
+			if (hMemDC_Src)
+			{
+				int tool_dx = m_dpi.ScaleX(TOOLBUTTON_WIDTH_96);
+				int tool_dy = m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96);
+				hImageList = ImageList_Create(tool_dx, tool_dy, ILC_MASK | ILC_COLORDDB, TOOLBUTTON_COUNT, 0);
+				if (hImageList)
+				{
+					HBITMAP hbmpImage = NULL;
+					HBITMAP hbmpMask = NULL;
+					HBITMAP hBmpImageSz = NULL;
+					HBITMAP hBmpMaskSz = NULL;
+					for(int i = 0; i < _countof(TB_ImageList); i++)
+					{
+						hbmpImage = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapImageResourceId));
+						if (hbmpImage == NULL)
+						{
+							fail = true;
+							break;
+						}
+						BITMAP bitmapImage;
+						BITMAP bitmapMask;
+						r = GetObject(hbmpImage, sizeof(BITMAP), &bitmapImage);
+						if (!r)
+						{
+							fail = true;
+							break;
+						}
+						if (TB_ImageList[i].BitmapMaskResourceId!=0)
+						{
+							hbmpMask = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapMaskResourceId));
+							if (hbmpMask)
+							{
+								r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
+								if (!r)
+								{
+									fail = true;
+									break;
+								}
+							}
+						}
+						hBmpImageSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
+						if (!hBmpImageSz)
+						{
+							fail = true;
+							break;
+						}
+						if (hbmpMask)
+						{
+							hBmpMaskSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
+							if (!hBmpMaskSz)
+							{
+								fail = true;
+								break;
+							}
+						}
+						bool bOK = false;
+						HBITMAP hOld_BmpDest = (HBITMAP)SelectObject(hMemDC_Dest, hBmpImageSz);
+						HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hbmpImage);
+						if (hOld_BmpDest && hOld_BmpSrc)
+						{
+							StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
 
+							if (hbmpMask && hBmpMaskSz)
+							{
+								HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
+								HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
+								if (hOld_BmpDest2 && hOld_BmpSrc2)
+								{
+									StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
+									bOK = true;
+								}
+							}
+							else
+							{
+								bOK = true;
+							}
+						}
+						if (hOld_BmpDest)
+							SelectObject(hMemDC_Dest, hOld_BmpDest);
+						if (hOld_BmpSrc)
+							SelectObject(hMemDC_Src, hOld_BmpSrc);
+						if (!bOK)
+						{
+							fail = true;
+							break;
+						}
+						if (hBmpMaskSz)
+							r = ImageList_Add(hImageList, hBmpImageSz, hBmpMaskSz);
+						else
+							r = ImageList_AddMasked(hImageList, hBmpImageSz, RGB(0xff,0xff,0xff));
+						if (r < 0)
+						{
+							fail = true;
+							break;
+						}
+						if (hBmpImageSz)
+							DeleteObject(hBmpImageSz);
+						if (hBmpMaskSz)
+							DeleteObject(hBmpMaskSz);
+						if (hbmpImage)
+							DeleteObject(hbmpImage);
+						if (hbmpMask)
+							DeleteObject(hbmpMask);
+						hBmpImageSz = NULL;
+						hBmpMaskSz = NULL;
+						hbmpImage = NULL;
+						hbmpMask = NULL;
+					}
+					if (hBmpImageSz != NULL)
+					{
+						DeleteObject(hBmpImageSz);
+						hBmpImageSz = NULL;
+					}
+					if (hBmpMaskSz != NULL)
+					{
+						DeleteObject(hBmpMaskSz);
+						hBmpMaskSz = NULL;
+					}
+					if (hbmpImage != NULL)
+					{
+						DeleteObject(hbmpImage);
+						hbmpImage = NULL;
+					}
+					if (hbmpMask != NULL)
+					{
+						DeleteObject(hbmpMask);
+						hbmpMask = NULL;
+					}
+					if (fail)
+					{
+						if (hImageList != NULL)
+						{
+							ImageList_Destroy(hImageList);
+							hImageList = NULL;
+						}
+					}
+				}
+				DeleteDC(hMemDC_Src);
+			}
+			DeleteDC(hMemDC_Dest);
+		}
+	}
 	return hImageList;
-
 }
 
 HWND CDisassemblyFrame::CreateToolBar(HIMAGELIST hImageListToolBarNormal)
@@ -383,7 +484,7 @@ LRESULT lr = 0;
 
 	lr = SendMessage(hwndTB, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
 
-	lr = SendMessage(hwndTB, TB_SETBUTTONSIZE, 0, MAKELONG(TOOLBUTTON_WIDTH, TOOLBUTTON_HEIGHT));
+	lr = SendMessage(hwndTB, TB_SETBUTTONSIZE, 0, MAKELONG(m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96)));
 
 	lr = SendMessage(hwndTB, TB_SETIMAGELIST, 0, (LPARAM)hImageListToolBarNormal);
 
@@ -758,7 +859,7 @@ HRESULT hr;
 
 HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 {
-	m_hImageListToolBarNormal = CreateImageListNormal();
+	m_hImageListToolBarNormal = CreateImageListNormal(hWnd);
 	if (m_hImageListToolBarNormal == NULL)
 		return E_FAIL;
 	m_hWndTooBar = CreateToolBar(m_hImageListToolBarNormal);
@@ -1175,7 +1276,6 @@ void CDisassemblyFrame::GetMinWindowSize(int &w, int &h)
 {
 	int w1,h1;
 	int w2,h2;
-
 	w = GetSystemMetrics(SM_CXSIZEFRAME) * 2;
 	h = GetSystemMetrics(SM_CYSIZEFRAME) * 2 + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYMENU);
 	
