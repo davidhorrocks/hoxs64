@@ -380,10 +380,10 @@
     <ClInclude Include="wpanel.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
-    <ClInclude Include="wpanelmanger.h">
+    <ClInclude Include="CDPI.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
-    <ClInclude Include="CDPI.h">
+    <ClInclude Include="wpanelmanager.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>

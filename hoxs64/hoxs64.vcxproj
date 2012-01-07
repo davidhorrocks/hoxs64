@@ -882,7 +882,7 @@
     <ClInclude Include="via6522.h" />
     <ClInclude Include="vic6569.h" />
     <ClInclude Include="wpanel.h" />
-    <ClInclude Include="wpanelmanger.h" />
+    <ClInclude Include="wpanelmanager.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="siddrv.asm">

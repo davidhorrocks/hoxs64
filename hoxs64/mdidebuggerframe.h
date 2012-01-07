@@ -36,8 +36,6 @@ class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink// , pub
 public:
 	static const int ID_RERBAR = 2000;
 	static const int ID_TOOLBAR = 2001;
-	static const int TOOLBUTTON_WIDTH = 16;
-	static const int TOOLBUTTON_HEIGHT = 16;
 
 	static const int TOOLBUTTON_PICTURE_INDEX = 0;
 	static const int TOOLBUTTON_MASK_INDEX = 1;
@@ -77,6 +75,7 @@ private:
 	HWND m_hWndRebar;
 	HWND m_hWndTooBar;
 	HIMAGELIST m_hImageListToolBarNormal;
+	CDPI m_dpi;
 	
 	CDisassemblyFrame m_debugCpuC64;
 	CDisassemblyFrame m_debugCpuDisk;
@@ -94,7 +93,7 @@ private:
 	HRESULT CreateMDIToolBars();
 	HWND CreateRebar(HWND hwndTB);
 	HWND CreateToolBar(HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight);
-	HIMAGELIST CreateImageListNormal(const ImageInfo imageInfo[], int length, int imageWidth, int imageHeight);
+	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	void OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void Cleanup();
 	HRESULT AdviseEvents();

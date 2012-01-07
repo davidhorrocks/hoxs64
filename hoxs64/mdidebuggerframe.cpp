@@ -46,12 +46,16 @@
 #include "cevent.h"
 #include "monitor.h"
 #include "edln.h"
+#include "wpanelmanager.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
 #include "mdidebuggerframe.h"
 #include "resource.h"
+
+#define TOOLBUTTON_WIDTH_96 (16)
+#define TOOLBUTTON_HEIGHT_96 (16)
 
 
 const TCHAR CMDIDebuggerFrame::ClassName[] = TEXT("Hoxs64MDIDebuggerFrame");
@@ -61,8 +65,6 @@ const TCHAR CMDIDebuggerFrame::MenuName[] = TEXT("MENU_MDI_DEBUGGER");
 
 const ImageInfo CMDIDebuggerFrame::TB_ImageList[] = 
 {
-	{IDB_DEBUGGERSTEPONECLOCK, IDB_DEBUGGERSTEPONECLOCKMASK},
-	{IDB_DEBUGGERSTEPIN, IDB_DEBUGGERSTEPINMASK},
 	{IDB_DEBUGGERTRACE, IDB_DEBUGGERTRACEMASK},
 	{IDB_DEBUGGERTRACEFRAME, IDB_DEBUGGERTRACEFRAMEMASK},
 	{IDB_DEBUGGERSTOP, IDB_DEBUGGERSTOPMASK}
@@ -70,11 +72,9 @@ const ImageInfo CMDIDebuggerFrame::TB_ImageList[] =
 
 const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] = 
 {
-	{0, TEXT("1 Clock"), ID_STEP_ONECLOCK},
-	{1, TEXT("1 Instruction"), ID_STEP_ONEINSTRUCTION},
-	{2, TEXT("Trace"), ID_STEP_TRACE},
-	{3, TEXT("Trace Frame"), ID_STEP_TRACEFRAME},
-	{4, TEXT("Stop"), ID_STEP_STOP}
+	{0, TEXT("Trace"), ID_STEP_TRACE},
+	{1, TEXT("Trace Frame"), ID_STEP_TRACEFRAME},
+	{2, TEXT("Stop"), ID_STEP_STOP}
 };
 
 CMDIDebuggerFrame::CMDIDebuggerFrame()
@@ -154,19 +154,32 @@ void CMDIDebuggerFrame::SetMenuState()
 		return ;
 	UINT state;
 	UINT stateOpp;
+	UINT stateTb;
+	UINT stateTbOpp;
 	if (m_monitorCommand->IsRunning())
 	{
 		state = MF_DISABLED | MF_GRAYED;
 		stateOpp = MF_ENABLED;
+		stateTb = 0;
+		stateTbOpp = TBSTATE_ENABLED;
 	}
 	else
 	{
 		state = MF_ENABLED;
 		stateOpp = MF_DISABLED | MF_GRAYED;
+		stateTb = TBSTATE_ENABLED;
+		stateTbOpp = 0;
 	}
-	EnableMenuItem(hMenu, ID_STEP_TRACEFRAME, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, ID_STEP_TRACE, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, ID_STEP_TRACEFRAME, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, ID_STEP_STOP, MF_BYCOMMAND | stateOpp);
+
+	if (m_hWndTooBar!=NULL)
+	{
+		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_TRACE, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_TRACEFRAME, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_STOP, stateTbOpp);
+	}
 }
 
 HWND CMDIDebuggerFrame::Show(CVirWindow *pParentWindow)
@@ -297,16 +310,16 @@ HRESULT CMDIDebuggerFrame::CreateMDIToolBars()
 {
 	if (m_hImageListToolBarNormal == NULL)
 	{
-		m_hImageListToolBarNormal = CreateImageListNormal(TB_ImageList, _countof(TB_ImageList), TOOLBUTTON_WIDTH, TOOLBUTTON_HEIGHT);
+		m_hImageListToolBarNormal = CreateImageListNormal(m_hWnd);
 		if (m_hImageListToolBarNormal == NULL)
 			return E_FAIL;
 	}
-	m_hWndTooBar = CreateToolBar(m_hImageListToolBarNormal, TB_StepButtons, _countof(TB_StepButtons), TOOLBUTTON_WIDTH, TOOLBUTTON_HEIGHT);
+	m_hWndTooBar = CreateToolBar(m_hImageListToolBarNormal, TB_StepButtons, _countof(TB_StepButtons), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
 	if (m_hWndTooBar == NULL)
 		return E_FAIL;
-	//m_hWndRebar = CreateRebar(m_hWndTooBar);
-	//if (m_hWndRebar == NULL)
-	//	return E_FAIL;
+	m_hWndRebar = CreateRebar(m_hWndTooBar);
+	if (m_hWndRebar == NULL)
+		return E_FAIL;
 	return S_OK;
 }
 
@@ -372,65 +385,11 @@ DWORD_PTR dwBtnSize;
 }
 
 
-HIMAGELIST CMDIDebuggerFrame::CreateImageListNormal(const ImageInfo imageInfo[], int length, int imageWidth, int imageHeight)
+HIMAGELIST CMDIDebuggerFrame::CreateImageListNormal(HWND hWnd)
 {
-HIMAGELIST hImageList = NULL;
-HBITMAP hbmpImage = NULL;
-HBITMAP hbmpMask = NULL;
-int r;
-bool fail = false;
-
-	hImageList = ImageList_Create(imageWidth, imageHeight, ILC_MASK, length, 0);
-	if (hImageList == NULL)
-		return NULL;
-
-	for(int i=0; i < length; i++)
-	{
-		hbmpImage = LoadBitmap(m_hInst, MAKEINTRESOURCE(imageInfo[i].BitmapImageResourceId));
-		if (hbmpImage == NULL)
-		{
-			fail = true;
-			break;
-		}
-		hbmpMask = LoadBitmap(m_hInst, MAKEINTRESOURCE(imageInfo[i].BitmapMaskResourceId));
-		if (hbmpImage == NULL)
-		{
-			fail = true;
-			break;
-		}
-		r = ImageList_Add(hImageList, hbmpImage, hbmpMask);
-		if (r < 0)
-		{
-			fail = true;
-			break;
-		}
-		DeleteObject(hbmpImage);
-		DeleteObject(hbmpMask);
-		hbmpImage = NULL;
-		hbmpMask = NULL;
-	}
-	if (fail)
-	{
-		if (hbmpImage != NULL)
-		{
-			DeleteObject(hbmpImage);
-			hbmpImage = NULL;
-		}
-		if (hbmpMask != NULL)
-		{
-			DeleteObject(hbmpMask);
-			hbmpMask = NULL;
-		}
-		if (hImageList != NULL)
-		{
-			ImageList_Destroy(hImageList);
-			hImageList = NULL;
-		}
-		return NULL;
-	}
-
-	return hImageList;
-
+	int tool_dx = m_dpi.ScaleX(TOOLBUTTON_WIDTH_96);
+	int tool_dy = m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96);
+	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
 HWND CMDIDebuggerFrame::CreateToolBar(HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight)

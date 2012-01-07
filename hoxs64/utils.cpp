@@ -554,9 +554,6 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	}
 
 	MapDialogRect(hwndDlg ,&rcTab);
-	//m_dpi.ScaleRect(&rcTab);
-	//rcTab.right = rcTab.right * LOWORD(dwDlgBase) / 4; 
-	//rcTab.bottom = rcTab.bottom * HIWORD(dwDlgBase) / 8; 
  
 	// Calculate how large to make the tab control, so 
 	// the display area can accommodate all the child dialog boxes. 
@@ -1542,3 +1539,158 @@ BOOL G::DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP)
 	return bResult;
 }
 
+HIMAGELIST G::CreateImageListNormal(HINSTANCE hInst, HWND hWnd, int tool_dx, int tool_dy, const ImageInfo tbImageList[], int countOfImageList)
+{
+HIMAGELIST hImageList = NULL;
+int r;
+bool fail = false;
+
+	HDC hdc = GetDC(hWnd);
+	if (hdc)
+	{
+		HDC hMemDC_Dest = CreateCompatibleDC(hdc);
+		if (hMemDC_Dest)
+		{
+			HDC hMemDC_Src = CreateCompatibleDC(hdc);
+			if (hMemDC_Src)
+			{
+				hImageList = ImageList_Create(tool_dx, tool_dy, ILC_MASK | ILC_COLORDDB, countOfImageList, 0);
+				if (hImageList)
+				{
+					HBITMAP hbmpImage = NULL;
+					HBITMAP hbmpMask = NULL;
+					HBITMAP hBmpImageSz = NULL;
+					HBITMAP hBmpMaskSz = NULL;
+					for(int i = 0; i < countOfImageList; i++)
+					{
+						hbmpImage = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapImageResourceId));
+						if (hbmpImage == NULL)
+						{
+							fail = true;
+							break;
+						}
+						BITMAP bitmapImage;
+						BITMAP bitmapMask;
+						r = GetObject(hbmpImage, sizeof(BITMAP), &bitmapImage);
+						if (!r)
+						{
+							fail = true;
+							break;
+						}
+						if (tbImageList[i].BitmapMaskResourceId!=0)
+						{
+							hbmpMask = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapMaskResourceId));
+							if (hbmpMask)
+							{
+								r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
+								if (!r)
+								{
+									fail = true;
+									break;
+								}
+							}
+						}
+						hBmpImageSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
+						if (!hBmpImageSz)
+						{
+							fail = true;
+							break;
+						}
+						if (hbmpMask)
+						{
+							hBmpMaskSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
+							if (!hBmpMaskSz)
+							{
+								fail = true;
+								break;
+							}
+						}
+						bool bOK = false;
+						HBITMAP hOld_BmpDest = (HBITMAP)SelectObject(hMemDC_Dest, hBmpImageSz);
+						HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hbmpImage);
+						if (hOld_BmpDest && hOld_BmpSrc)
+						{
+							StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
+
+							if (hbmpMask && hBmpMaskSz)
+							{
+								HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
+								HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
+								if (hOld_BmpDest2 && hOld_BmpSrc2)
+								{
+									StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
+									bOK = true;
+								}
+							}
+							else
+							{
+								bOK = true;
+							}
+						}
+						if (hOld_BmpDest)
+							SelectObject(hMemDC_Dest, hOld_BmpDest);
+						if (hOld_BmpSrc)
+							SelectObject(hMemDC_Src, hOld_BmpSrc);
+						if (!bOK)
+						{
+							fail = true;
+							break;
+						}
+						if (hBmpMaskSz)
+							r = ImageList_Add(hImageList, hBmpImageSz, hBmpMaskSz);
+						else
+							r = ImageList_AddMasked(hImageList, hBmpImageSz, RGB(0xff,0xff,0xff));
+						if (r < 0)
+						{
+							fail = true;
+							break;
+						}
+						if (hBmpImageSz)
+							DeleteObject(hBmpImageSz);
+						if (hBmpMaskSz)
+							DeleteObject(hBmpMaskSz);
+						if (hbmpImage)
+							DeleteObject(hbmpImage);
+						if (hbmpMask)
+							DeleteObject(hbmpMask);
+						hBmpImageSz = NULL;
+						hBmpMaskSz = NULL;
+						hbmpImage = NULL;
+						hbmpMask = NULL;
+					}
+					if (hBmpImageSz != NULL)
+					{
+						DeleteObject(hBmpImageSz);
+						hBmpImageSz = NULL;
+					}
+					if (hBmpMaskSz != NULL)
+					{
+						DeleteObject(hBmpMaskSz);
+						hBmpMaskSz = NULL;
+					}
+					if (hbmpImage != NULL)
+					{
+						DeleteObject(hbmpImage);
+						hbmpImage = NULL;
+					}
+					if (hbmpMask != NULL)
+					{
+						DeleteObject(hbmpMask);
+						hbmpMask = NULL;
+					}
+					if (fail)
+					{
+						if (hImageList != NULL)
+						{
+							ImageList_Destroy(hImageList);
+							hImageList = NULL;
+						}
+					}
+				}
+				DeleteDC(hMemDC_Src);
+			}
+			DeleteDC(hMemDC_Dest);
+		}
+	}
+	return hImageList;
+}

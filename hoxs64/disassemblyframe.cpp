@@ -311,160 +311,9 @@ DWORD_PTR dwBtnSize;
 
 HIMAGELIST CDisassemblyFrame::CreateImageListNormal(HWND hWnd)
 {
-HIMAGELIST hImageList = NULL;
-int r;
-bool fail = false;
-
-	HDC hdc = GetDC(hWnd);
-	if (hdc)
-	{
-		HDC hMemDC_Dest = CreateCompatibleDC(hdc);
-		if (hMemDC_Dest)
-		{
-			HDC hMemDC_Src = CreateCompatibleDC(hdc);
-			if (hMemDC_Src)
-			{
-				int tool_dx = m_dpi.ScaleX(TOOLBUTTON_WIDTH_96);
-				int tool_dy = m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96);
-				hImageList = ImageList_Create(tool_dx, tool_dy, ILC_MASK | ILC_COLORDDB, TOOLBUTTON_COUNT, 0);
-				if (hImageList)
-				{
-					HBITMAP hbmpImage = NULL;
-					HBITMAP hbmpMask = NULL;
-					HBITMAP hBmpImageSz = NULL;
-					HBITMAP hBmpMaskSz = NULL;
-					for(int i = 0; i < _countof(TB_ImageList); i++)
-					{
-						hbmpImage = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapImageResourceId));
-						if (hbmpImage == NULL)
-						{
-							fail = true;
-							break;
-						}
-						BITMAP bitmapImage;
-						BITMAP bitmapMask;
-						r = GetObject(hbmpImage, sizeof(BITMAP), &bitmapImage);
-						if (!r)
-						{
-							fail = true;
-							break;
-						}
-						if (TB_ImageList[i].BitmapMaskResourceId!=0)
-						{
-							hbmpMask = LoadBitmap(m_hInst, MAKEINTRESOURCE(TB_ImageList[i].BitmapMaskResourceId));
-							if (hbmpMask)
-							{
-								r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
-								if (!r)
-								{
-									fail = true;
-									break;
-								}
-							}
-						}
-						hBmpImageSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
-						if (!hBmpImageSz)
-						{
-							fail = true;
-							break;
-						}
-						if (hbmpMask)
-						{
-							hBmpMaskSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
-							if (!hBmpMaskSz)
-							{
-								fail = true;
-								break;
-							}
-						}
-						bool bOK = false;
-						HBITMAP hOld_BmpDest = (HBITMAP)SelectObject(hMemDC_Dest, hBmpImageSz);
-						HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hbmpImage);
-						if (hOld_BmpDest && hOld_BmpSrc)
-						{
-							StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
-
-							if (hbmpMask && hBmpMaskSz)
-							{
-								HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
-								HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
-								if (hOld_BmpDest2 && hOld_BmpSrc2)
-								{
-									StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
-									bOK = true;
-								}
-							}
-							else
-							{
-								bOK = true;
-							}
-						}
-						if (hOld_BmpDest)
-							SelectObject(hMemDC_Dest, hOld_BmpDest);
-						if (hOld_BmpSrc)
-							SelectObject(hMemDC_Src, hOld_BmpSrc);
-						if (!bOK)
-						{
-							fail = true;
-							break;
-						}
-						if (hBmpMaskSz)
-							r = ImageList_Add(hImageList, hBmpImageSz, hBmpMaskSz);
-						else
-							r = ImageList_AddMasked(hImageList, hBmpImageSz, RGB(0xff,0xff,0xff));
-						if (r < 0)
-						{
-							fail = true;
-							break;
-						}
-						if (hBmpImageSz)
-							DeleteObject(hBmpImageSz);
-						if (hBmpMaskSz)
-							DeleteObject(hBmpMaskSz);
-						if (hbmpImage)
-							DeleteObject(hbmpImage);
-						if (hbmpMask)
-							DeleteObject(hbmpMask);
-						hBmpImageSz = NULL;
-						hBmpMaskSz = NULL;
-						hbmpImage = NULL;
-						hbmpMask = NULL;
-					}
-					if (hBmpImageSz != NULL)
-					{
-						DeleteObject(hBmpImageSz);
-						hBmpImageSz = NULL;
-					}
-					if (hBmpMaskSz != NULL)
-					{
-						DeleteObject(hBmpMaskSz);
-						hBmpMaskSz = NULL;
-					}
-					if (hbmpImage != NULL)
-					{
-						DeleteObject(hbmpImage);
-						hbmpImage = NULL;
-					}
-					if (hbmpMask != NULL)
-					{
-						DeleteObject(hbmpMask);
-						hbmpMask = NULL;
-					}
-					if (fail)
-					{
-						if (hImageList != NULL)
-						{
-							ImageList_Destroy(hImageList);
-							hImageList = NULL;
-						}
-					}
-				}
-				DeleteDC(hMemDC_Src);
-			}
-			DeleteDC(hMemDC_Dest);
-		}
-	}
-	return hImageList;
+	int tool_dx = m_dpi.ScaleX(TOOLBUTTON_WIDTH_96);
+	int tool_dy = m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96);
+	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
 HWND CDisassemblyFrame::CreateToolBar(HIMAGELIST hImageListToolBarNormal)
@@ -866,8 +715,8 @@ HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 	if (m_hWndTooBar == NULL)
 		return E_FAIL;
 	m_hWndRebar = CreateRebar(m_hWndTooBar);
-	//if (m_hWndRebar == NULL)
-	//	return E_FAIL;
+	if (m_hWndRebar == NULL)
+		return E_FAIL;
 
 	int heightRebar = 0;
 	if (m_hWndRebar)
