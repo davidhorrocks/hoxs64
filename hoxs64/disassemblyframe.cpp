@@ -245,9 +245,7 @@ WNDCLASSEX  wc;
 
 HWND CDisassemblyFrame::Create(HINSTANCE hInstance, HWND parent, const TCHAR title[], int x,int y, int w, int h)
 {
-	return CVirWindow::Create(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, parent, NULL, hInstance);
-	//return CVirWindow::Create(WS_EX_MDICHILD, ClassName, title, WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN |  WS_CAPTION | WS_BORDER | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX  | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, parent, NULL, hInstance);
-	
+	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, parent, NULL, hInstance);	
 }
 
 HWND CDisassemblyFrame::CreateRebar(HWND hwndTB)

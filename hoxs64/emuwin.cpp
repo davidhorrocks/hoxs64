@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>
+#include <commctrl.h>
 #include <tchar.h>
 #include <winuser.h>
 #include "dx_version.h"
@@ -88,7 +89,7 @@ WNDCLASSEX  wc;
 HWND CEmuWindow::Create(HINSTANCE hInstance, HWND parentWindow, const TCHAR title[], int x,int y, int w, int h, HMENU controlID)
 {
 	this->m_hInstance = hInstance;
-	return CVirWindow::Create(0L, lpszClassName, title, WS_CHILD | WS_VISIBLE, x, y, w, h, parentWindow, controlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_CHILD | WS_VISIBLE, x, y, w, h, parentWindow, controlID, hInstance);
 }
 
 

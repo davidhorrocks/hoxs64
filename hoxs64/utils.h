@@ -234,26 +234,12 @@ public:
 	{
 	m_hInst = NULL;
 	m_hWnd = NULL;
-	m_hwndMDIClient = NULL;
+	m_hWndMDIClient = NULL;
 	m_AutoDelete = true;
 	};
 
 	// Destructor
 	virtual ~CVirWindow(){};
-
-	// Envelopes the Windows' CreateWindow function call.
-	HWND Create(
-			DWORD dwExStyle,
-			LPCTSTR lpszClassName,   // Address of registered class name
-			LPCTSTR lpszWindowName,  // Address of window name
-			DWORD dwStyle,          // Window style
-			int x,                  // Horizontal position of window
-			int y,                  // Vertical position of window
-			int nWidth,             // Window width
-			int nHeight,            // Window height
-			HWND hWndParent,        // Handle of parent or owner window
-			HMENU hmenu,            // Handle of menu, or child window identifier
-			HINSTANCE hinst);       // Handle of application instance
 
 	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
 	// Get the protected handle of this window.
@@ -268,7 +254,7 @@ public:
 
 	HWND Get_MDIClientWindow()
 	{
-		return m_hwndMDIClient;
+		return m_hWndMDIClient;
 	}
 
 	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -282,15 +268,26 @@ protected:
 	HINSTANCE m_hInst;
 	// Handle of this window.
 	HWND m_hWnd;
-	HWND m_hwndMDIClient;
+	HWND m_hWndMDIClient;
 	bool m_AutoDelete;
 
 	WNDPROC SubclassChildWindow(HWND hWnd);
+	// Envelopes the Windows' CreateWindow function call.
+	HWND CreateVirWindow(
+			DWORD dwExStyle,
+			LPCTSTR lpszClassName,   // Address of registered class name
+			LPCTSTR lpszWindowName,  // Address of window name
+			DWORD dwStyle,          // Window style
+			int x,                  // Horizontal position of window
+			int y,                  // Vertical position of window
+			int nWidth,             // Window width
+			int nHeight,            // Window height
+			HWND hWndParent,        // Handle of parent or owner window
+			HMENU hmenu,            // Handle of menu, or child window identifier
+			HINSTANCE hinst);       // Handle of application instance
 	
 
 private:
-	// Tell the compiler that the outside WindowProc callback is a friend
-	// of this class and can get at its protected data members.
 	friend LRESULT CALLBACK ::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	friend LRESULT CALLBACK ::GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

@@ -67,11 +67,11 @@ LRESULT CALLBACK WindowProc(
 		if (pWin)
 		{
 			LRESULT lr = pWin->WindowProc(hWnd, uMsg, wParam, lParam);
+			pWin->m_hWnd = 0;
 			if (pWin->m_AutoDelete)
 			{
 				delete pWin;
 			}
-			pWin->m_hWnd = 0;
 			pWin = NULL;
 			return lr;
 		}
@@ -134,7 +134,7 @@ CVirWindow* pWin = NULL;
 
 	Returns:  HWND (Window handle) of the created window.
 M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M---M-M*/
-HWND CVirWindow::Create(
+HWND CVirWindow::CreateVirWindow(
 	DWORD dwExStyle,
 	LPCTSTR lpszClassName,
 	LPCTSTR lpszWindowName,
@@ -180,10 +180,10 @@ CLIENTCREATESTRUCT ccs;
 	ccs.idFirstChild = firstChildId; 
 
 	// Create the MDI client window. 
-	m_hwndMDIClient = ::CreateWindowEx(0, TEXT("MDICLIENT"), (LPCTSTR) NULL, 
+	m_hWndMDIClient = ::CreateWindowEx(0, TEXT("MDICLIENT"), (LPCTSTR) NULL, 
 		WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL, 
 		0, 0, 0, 0, m_hWnd, (HMENU) LongToPtr(clientId), m_hInst, (LPSTR) &ccs); 
-	return m_hwndMDIClient;
+	return m_hWndMDIClient;
 }
 
 WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd)

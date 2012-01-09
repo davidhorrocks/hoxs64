@@ -76,7 +76,8 @@ private:
 	HWND m_hWndTooBar;
 	HIMAGELIST m_hImageListToolBarNormal;
 	CDPI m_dpi;
-	
+	WPanelManager m_WPanelManager;
+
 	CDisassemblyFrame m_debugCpuC64;
 	CDisassemblyFrame m_debugCpuDisk;
 

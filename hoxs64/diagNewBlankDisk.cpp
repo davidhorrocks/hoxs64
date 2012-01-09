@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>
+#include <commctrl.h>
 #include <winuser.h>
 #include "dx_version.h"
 #include <d3d9.h>

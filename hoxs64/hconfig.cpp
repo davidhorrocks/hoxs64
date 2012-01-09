@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>
+#include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
 #include <ddraw.h>

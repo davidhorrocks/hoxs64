@@ -23,6 +23,20 @@
 
 const TCHAR WPanel::ClassName[] = TEXT("Hoxs64WPanel");
 
+
+WPanel::WPanel()
+{
+	m_pIWPanelManager = NULL;
+}
+
+WPanel::~WPanel()
+{
+	if (m_pIWPanelManager)
+	{
+		m_pIWPanelManager->OnDestroyWPanel(this);
+	}
+}
+
 HRESULT WPanel::RegisterClass(HINSTANCE hInstance)
 {
 WNDCLASSEX  wc;
@@ -45,16 +59,20 @@ WNDCLASSEX  wc;
 	return S_OK;	
 }
 
-HRESULT WPanel::Init()
+HRESULT WPanel::Init(IWPanelManager *pIWPanelManager)
 {
+	m_pIWPanelManager = pIWPanelManager;
 	return S_OK;
 }
 
-HWND WPanel::Create(HINSTANCE hInstance, CVirWindow *pParentWindow, const TCHAR title[], int x,int y, int w, int h, HMENU ctrlID)
+HWND WPanel::Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h, HMENU ctrlID)
 {
+	if (m_pIWPanelManager == NULL)
+		return NULL;
+	CVirWindow *pParentWindow = m_pIWPanelManager->Get_ParentWindow();
 	if (pParentWindow == NULL)
 		return NULL;
-	return CVirWindow::Create(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, pParentWindow->GetHwnd(), ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, pParentWindow->GetHwnd(), ctrlID, hInstance);
 }
 
 HWND WPanel::Show()
@@ -62,3 +80,14 @@ HWND WPanel::Show()
 	return this->m_hWnd;
 }
 
+LRESULT WPanel::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case WM_DESTROY:
+		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	default:
+		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	}
+	return 0;
+}

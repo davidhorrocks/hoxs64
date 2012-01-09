@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <commctrl.h>
 #include <tchar.h>
 #include <assert.h>
 #include "defines.h"

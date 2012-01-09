@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <commctrl.h>
 #include "dx_version.h"
 #include <ddraw.h>
 #include <dinput.h>

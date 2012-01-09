@@ -46,6 +46,7 @@
 #include "cevent.h"
 #include "monitor.h"
 #include "edln.h"
+#include "wpanel.h"
 #include "wpanelmanager.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
@@ -80,7 +81,7 @@ const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] =
 CMDIDebuggerFrame::CMDIDebuggerFrame()
 {
 	m_AutoDelete = false;
-	m_hwndMDIClient = NULL;
+	m_hWndMDIClient = NULL;
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
 	m_hImageListToolBarNormal = NULL;
@@ -237,7 +238,7 @@ int x,y,w,h;
 
 HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND parent, const TCHAR title[], int x,int y, int w, int h)
 {
-	return CVirWindow::Create(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, parent, NULL, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, parent, NULL, hInstance);
 }
 
 HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -246,9 +247,18 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	hr = CreateMDIToolBars();
 	if (FAILED(hr))
 		return hr;
-	HWND hWnd = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD);
-	if (hWnd==NULL)
+	HWND hWndMdiClient = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD);
+	if (hWndMdiClient==NULL)
 		return E_FAIL;
+
+	hr = m_WPanelManager.Init(this->GetHinstance(), this, m_hWndRebar);
+	if (FAILED(hr))
+		return hr;
+
+	hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom);
+	if (FAILED(hr))
+		return hr;
+
 	return S_OK;
 }
 
@@ -278,32 +288,17 @@ void CMDIDebuggerFrame::OnMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 void CMDIDebuggerFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-BOOL br;
 	if (hWnd != this->m_hWnd)
 		return;
 	if (wParam == SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
 		return;
 	
+	if (wParam == SIZE_MINIMIZED)
+		return;
 
-	if (wParam != SIZE_MAXIMIZED || wParam != SIZE_MINIMIZED)
-	{
-		int w = LOWORD(lParam);
-		int h = HIWORD(lParam);
-		RECT rcAbsRebar;
-		int heightRebar = 0;
-		if (m_hWndRebar!=NULL)
-		{
-			br = GetWindowRect(m_hWndRebar, &rcAbsRebar);
-			if (br == FALSE)
-				return;
-			heightRebar = rcAbsRebar.bottom - rcAbsRebar.top;
-
-			SetWindowPos(m_hWndRebar, 0, 0, 0, w, heightRebar, SWP_NOREPOSITION | SWP_NOZORDER);
-		}
-
-		MoveWindow(m_hwndMDIClient, 0, heightRebar, w, h - heightRebar, TRUE);
-	}
-
+	int w = LOWORD(lParam);
+	int h = HIWORD(lParam);
+	this->m_WPanelManager.SizePanels(hWnd, w, h);
 }
 
 HRESULT CMDIDebuggerFrame::CreateMDIToolBars()
@@ -609,7 +604,7 @@ HRESULT hr;
 		hr = OnCreate(uMsg, wParam, lParam);
 		if (FAILED(hr))
 			return -1;
-		ShowWindow(m_hwndMDIClient, SW_SHOW); 
+		ShowWindow(m_hWndMDIClient, SW_SHOW); 
 		return 0;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))

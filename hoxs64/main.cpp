@@ -73,6 +73,8 @@
 #include "cmdarg.h"
 
 #include "edln.h"
+#include "wpanel.h"
+#include "wpanelmanager.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -501,6 +503,12 @@ HRESULT hr;
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Failed to register CDisassemblyReg class."), m_szAppName, MB_ICONEXCLAMATION);
+		return hr;
+	}
+	hr = WPanel::RegisterClass(hInstance);
+	if (FAILED(hr))
+	{
+		MessageBox(0L, TEXT("Failed to register WPanel class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 

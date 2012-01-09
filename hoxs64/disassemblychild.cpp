@@ -81,7 +81,7 @@ WNDCLASSEX  wc;
 
 HWND CDisassemblyChild::Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID)
 {
-	return CVirWindow::Create(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
 }
 
 HWND CDisassemblyChild::CreateScrollBar()

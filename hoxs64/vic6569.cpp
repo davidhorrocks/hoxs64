@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <commctrl.h>
 #include "dx_version.h"
 #include <d3d9.h>
 #include <d3dx9core.h>

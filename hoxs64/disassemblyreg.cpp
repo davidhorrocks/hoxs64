@@ -80,7 +80,7 @@ WNDCLASSEX  wc;
 
 HWND CDisassemblyReg::Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID)
 {
-	return CVirWindow::Create(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
 }
 
 void CDisassemblyReg::GetMinWindowSize(int &w, int &h)

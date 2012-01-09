@@ -1,4 +1,5 @@
-#include "windows.h"
+#include <windows.h>
+#include <commctrl.h>
 #include "CDPI.h"
 #include "utils.h"
 #include "tchar.h"
