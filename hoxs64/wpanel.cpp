@@ -27,13 +27,44 @@ const TCHAR WPanel::ClassName[] = TEXT("Hoxs64WPanel");
 WPanel::WPanel()
 {
 	m_pIWPanelManager = NULL;
+	m_szPreferredSize.cx = 0;
+	m_szPreferredSize.cy = 0;
+	m_hrgSizerTop = NULL;
 }
 
 WPanel::~WPanel()
 {
 	if (m_pIWPanelManager)
 	{
+		if (m_hrgSizerTop)
+		{
+			DeleteObject(m_hrgSizerTop);
+			m_hrgSizerTop = NULL;
+		}
 		m_pIWPanelManager->OnDestroyWPanel(this);
+	}
+}
+
+HRESULT WPanel::Init(IWPanelManager *pIWPanelManager)
+{
+	m_pIWPanelManager = pIWPanelManager;
+	m_szPreferredSize.cx = 150;
+	m_szPreferredSize.cy = 200;
+	m_dpi.ScaleSize(&m_szPreferredSize);
+
+	m_hrgSizerTop = CreateRectRgn(0, 0, 1, 1);
+	if(!m_hrgSizerTop)
+		return E_FAIL;
+
+	return S_OK;
+}
+
+
+void WPanel::UpdateSizerRegion(RECT rcWindow)
+{
+	if (m_hrgSizerTop && m_pIWPanelManager)
+	{
+		SetRectRgn(m_hrgSizerTop, rcWindow.left, rcWindow.top, rcWindow.right, rcWindow.top + m_pIWPanelManager->Get_SizerGap());
 	}
 }
 
@@ -59,10 +90,10 @@ WNDCLASSEX  wc;
 	return S_OK;	
 }
 
-HRESULT WPanel::Init(IWPanelManager *pIWPanelManager)
+void WPanel::GetPreferredSize(SIZE *psz)
 {
-	m_pIWPanelManager = pIWPanelManager;
-	return S_OK;
+	if (psz)
+		*psz = m_szPreferredSize;
 }
 
 HWND WPanel::Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h, HMENU ctrlID)
@@ -72,7 +103,7 @@ HWND WPanel::Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w
 	CVirWindow *pParentWindow = m_pIWPanelManager->Get_ParentWindow();
 	if (pParentWindow == NULL)
 		return NULL;
-	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, pParentWindow->GetHwnd(), ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_CAPTION |  WS_VISIBLE, x, y, w, h, pParentWindow->GetHwnd(), ctrlID, hInstance);
 }
 
 HWND WPanel::Show()
@@ -80,10 +111,33 @@ HWND WPanel::Show()
 	return this->m_hWnd;
 }
 
+LRESULT WPanel::OnSysCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch(wParam & 0xfff0)
+	{
+	case SC_MOVE:
+	case SC_MAXIMIZE:
+	case SC_MINIMIZE:
+	case SC_RESTORE:
+		return 0;
+	default:
+		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	}
+}
+
+LRESULT WPanel::OnHitTestNCA(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+}
+
 LRESULT WPanel::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
+	case WM_NCHITTEST:
+		return OnHitTestNCA(m_hWnd, uMsg, wParam, lParam);
+	case WM_SYSCOMMAND:
+		return OnSysCommand(m_hWnd, uMsg, wParam, lParam);
 	case WM_DESTROY:
 		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	default:

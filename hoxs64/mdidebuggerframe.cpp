@@ -594,6 +594,22 @@ int wmId, wmEvent;
 	}
 }
 
+LRESULT CMDIDebuggerFrame::OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+bool bHandled = m_WPanelManager.Splitter_OnSetCursor(hWnd, uMsg, wParam, lParam);
+	if(bHandled)
+		return TRUE;
+	else
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+LRESULT CMDIDebuggerFrame::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	//this->m_WPanelManager.
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+
 LRESULT CMDIDebuggerFrame::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr;
@@ -611,6 +627,10 @@ HRESULT hr;
 			return 0;
 		else
 			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	case WM_SETCURSOR:
+		return OnSetCursor(hWnd, uMsg, wParam, lParam);
+	case WM_MOUSEMOVE:
+		return OnMouseMove(hWnd, uMsg, wParam, lParam);
 	case WM_MOVE:
 		OnMove(hWnd, uMsg, wParam, lParam);
 		return 0;

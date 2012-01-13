@@ -1105,14 +1105,6 @@ HRESULT hr;
 	case WM_EXITSIZEMOVE:
 		m_monitorCommand->SoundOn();
 		return 0;
-	//case WM_SETFOCUS:
-	//	CreateCaret(hWnd, NULL, 10, 10);
-	//	SetCaretPos(20, 50);
-	//	ShowCaret(hWnd);
-	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	//case WM_KILLFOCUS:
-	//	DestroyCaret();
-	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	default:
 		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	}
