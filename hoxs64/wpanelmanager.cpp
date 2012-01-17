@@ -28,9 +28,9 @@ WPanelManager::~WPanelManager()
 
 HRESULT WPanelManager::Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND hWndRebar)
 {
-	oldy = -4;
-	fMoved = FALSE;
-	fDragMode = FALSE;
+	m_oldy = -4;
+	m_fMoved = FALSE;
+	m_fDragMode = FALSE;
 
 
 	m_pParentWindow = pParentWindow;
@@ -113,7 +113,6 @@ RECT rcMdiClient;
 
 	int iMinHeightMdiClient = heightRebar;
 	int iMinHeightPanel = heightRebar;
-	RECT rcPanel;
 	for (WpElement *p = m_WpList.Head(); p!=NULL ; p = p->Next())
 	{
 		if (p->m_data == NULL)
@@ -123,25 +122,24 @@ RECT rcMdiClient;
 			continue;
 		SIZE szPref;
 		pwp->GetPreferredSize(&szPref);
-		rcPanel.left = rcWin.left;
-		rcPanel.right = rcWin.right;
+		//rcPanel.left = rcWin.left;
+		//rcPanel.right = rcWin.right;
 		//rcPanel.top = rcWin.top;
 		//rcPanel.bottom = rcWin.bottom;
 
+		int heightClientPart = rcWin.bottom - rcWin.top;
+		int widthClientPart = rcWin.bottom - rcWin.top;
+		int heightPanel;
+		int widthPanel = rcWin.right - rcWin.left;
 		if (szPref.cy <= rcWin.bottom - rcWin.top)
 		{
-			rcPanel.top = rcWin.top;
-			rcPanel.bottom = rcWin.top + szPref.cy;
+			heightPanel = szPref.cy;
 		}
 		else
 		{
-			rcPanel.top = rcWin.top;
-			rcPanel.bottom = rcWin.bottom;
+			heightPanel = rcWin.bottom - rcWin.top;
 		}
-		int heightPanel = rcPanel.bottom - rcPanel.top;
-		int widthPanel = rcPanel.right - rcPanel.left;
-		int heightClientPart = rcWin.bottom - rcWin.top;
-		int widthClientPart = rcWin.bottom - rcWin.top;
+		RECT rcPanel;
 		if (heightPanel <= heightClientPart - iMinHeightMdiClient - m_iSizerGap)
 		{
 			//Size mdi client window
@@ -203,6 +201,39 @@ CVirWindow *WPanelManager::Get_ParentWindow()
 }
 
 
+WPanel *WPanelManager::GetPanelSizerFromClientPos(int x, int y, LPRECT prc)
+{
+POINT pt;
+
+	pt.x = x;
+	pt.y = y;
+
+	for (WpElement *p = m_WpList.Head(); p!=NULL ; p = p->Next())
+	{
+		if (p->m_data == NULL)
+			continue;
+		WPanel *pwp = p->m_data;
+		if (pwp == NULL)
+			continue;
+		HRGN rgn = pwp->m_hrgSizerTop;
+		if (rgn == NULL)
+			continue;
+		if (rgn)
+		{
+			if (PtInRegion(rgn, pt.x, pt.y))
+			{
+				if (prc)
+				{
+					SetRectEmpty(prc);
+					GetRgnBox(pwp->m_hrgSizerTop, prc);
+				}
+				return pwp;
+			}
+		}
+	}
+	return NULL;
+}
+
 void WPanelManager::DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 {
 	static WORD _dotPatternBmp[8] = 
@@ -244,141 +275,134 @@ void WPanelManager::OnDestroyWPanel(WPanel *pwp)
 	}
 }
 
-LRESULT WPanelManager::Splitter_OnLButtonDown(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool WPanelManager::Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	POINT pt;
 	HDC hdc;
-	RECT rect;
-
-
+	m_pPanelToSize = NULL;
 
 	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
 	pt.y = (short)HIWORD(lParam);
 
-	GetWindowRect(hwnd, &rect);
+	WPanel *pwp = GetPanelSizerFromClientPos(pt.x, pt.y, &m_rcSizer);
+	if (pwp == NULL)
+		return false;
 
-	//convert the mouse coordinates relative to the top-left of
-	//the window
-	ClientToScreen(hwnd, &pt);
-	pt.x -= rect.left;
-	pt.y -= rect.top;
-	
-	//same for the window coordinates - make them relative to 0,0
-	OffsetRect(&rect, -rect.left, -rect.top);
-	
-	if(pt.y < 0) pt.y = 0;
-	if(pt.y > rect.bottom-4) 
+	m_iSplitterPos = m_rcSizer.top;
+	m_y_offset = pt.y - m_rcSizer.top;
+
+	//GetWindowRect(hWnd, &rect);
+
+	////convert the mouse coordinates relative to the top-left of
+	////the window
+	//ClientToScreen(hWnd, &pt);
+	//pt.x -= rect.left;
+	//pt.y -= rect.top;
+	//
+	////same for the window coordinates - make them relative to 0,0
+	//OffsetRect(&rect, -rect.left, -rect.top);
+	//
+	//if(pt.y < 0) pt.y = 0;
+	//if(pt.y > rect.bottom-4) 
+	//{
+	//	pt.y = rect.bottom-4;
+	//}
+
+	m_fDragMode = TRUE;
+
+	SetCapture(hWnd);
+
+	hdc = GetDC(hWnd);
+	if (hdc)
 	{
-		pt.y = rect.bottom-4;
+		//DrawXorBar(hdc, 1,pt.y - 2, rect.right-2,4);
+		DrawXorBar(hdc, m_rcSizer.left, pt.y - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
+		ReleaseDC(hWnd, hdc);
 	}
+	m_oldy = pt.y;
 
-	fDragMode = TRUE;
-
-	SetCapture(hwnd);
-
-	hdc = GetWindowDC(hwnd);
-	DrawXorBar(hdc, 1,pt.y - 2, rect.right-2,4);
-	ReleaseDC(hwnd, hdc);
-	
-	oldy = pt.y;
+	m_pPanelToSize = pwp;
 		
-	return 0;
+	return true;
 }
 
-
-LRESULT WPanelManager::Splitter_OnLButtonUp(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool WPanelManager::Splitter_OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	HDC hdc;
-	RECT rect;
+	//RECT rect;
 
 	POINT pt;
 	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
 	pt.y = (short)HIWORD(lParam);
 
-	if(fDragMode == FALSE)
-		return 0;
+	if(m_fDragMode == FALSE)
+		return false;
 	
-	GetWindowRect(hwnd, &rect);
-
-	ClientToScreen(hwnd, &pt);
-	pt.x -= rect.left;
-	pt.y -= rect.top;
-	
-	OffsetRect(&rect, -rect.left, -rect.top);
-
-	if(pt.y < 0) pt.y = 0;
-	if(pt.y > rect.bottom-4) 
+	hdc = GetDC(hWnd);
+	if (hdc)
 	{
-		pt.y = rect.bottom-4;
+		DrawXorBar(hdc, m_rcSizer.left, m_oldy - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
+		ReleaseDC(hWnd, hdc);
 	}
+	m_oldy = pt.y;
 
-	hdc = GetWindowDC(hwnd);
-	DrawXorBar(hdc, 1,oldy - 2, rect.right-2,4);			
-	ReleaseDC(hwnd, hdc);
+	m_fDragMode = FALSE;
 
-	oldy = pt.y;
-
-	fDragMode = FALSE;
-
-	//convert the splitter position back to screen coords.
-	GetWindowRect(hwnd, &rect);
-	pt.x += rect.left;
-	pt.y += rect.top;
-
-	//now convert into CLIENT coordinates
-	ScreenToClient(hwnd, &pt);
-	GetClientRect(hwnd, &rect);
-	nSplitterPos = pt.y;
-	
-	//position the child controls
-	//TODO
-	//SizeWindowContents(rect.right,rect.bottom);
+	m_iSplitterPos = pt.y - m_y_offset;
 
 	ReleaseCapture();
 
-	return 0;
+	if (m_pPanelToSize)
+	{
+		RECT rcClient;
+		GetClientRect(hWnd, &rcClient);
+		if (m_iSplitterPos >= rcClient.bottom)
+			m_iSplitterPos = rcClient.bottom - 1;
+		if (m_iSplitterPos < rcClient.top)
+			m_iSplitterPos = rcClient.top;
+
+		SIZE szPref;
+		m_pPanelToSize->GetCurrentSize(&szPref);
+		szPref.cx = rcClient.right - rcClient.left;
+		szPref.cy = szPref.cy + m_rcSizer.top - m_iSplitterPos;
+		if (szPref.cy < 0)
+			szPref.cy = 0;
+		m_pPanelToSize->SetPreferredSize(&szPref);
+		this->SizePanels(hWnd, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
+	
+		m_pPanelToSize = NULL;
+	}
+
+	return true;
 }
 
-LRESULT WPanelManager::Splitter_OnMouseMove(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool WPanelManager::Splitter_OnMouseMove(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	HDC hdc;
-	RECT rect;
-
 	POINT pt;
 
-	if(fDragMode == FALSE) return 0;
+	if(m_fDragMode == FALSE) return false;
 
 	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
 	pt.y = (short)HIWORD(lParam);
 
-	GetWindowRect(hwnd, &rect);
 
-	ClientToScreen(hwnd, &pt);
-	pt.x -= rect.left;
-	pt.y -= rect.top;
-
-	OffsetRect(&rect, -rect.left, -rect.top);
-
-	if(pt.y < 0) pt.y = 0;
-	if(pt.y > rect.bottom-4) 
+	if(pt.y != m_oldy && wParam & MK_LBUTTON)
 	{
-		pt.y = rect.bottom-4;
-	}
-
-	if(pt.y != oldy && wParam & MK_LBUTTON)
-	{
-		hdc = GetWindowDC(hwnd);
-		DrawXorBar(hdc, 1,oldy - 2, rect.right-2,4);
-		DrawXorBar(hdc, 1,pt.y - 2, rect.right-2,4);
+		hdc = GetDC(hwnd);
+		if (hdc)
+		{
+			DrawXorBar(hdc, m_rcSizer.left, m_oldy - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
+			DrawXorBar(hdc, m_rcSizer.left, pt.y - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
+		}
 			
 		ReleaseDC(hwnd, hdc);
 
-		oldy = pt.y;
+		m_oldy = pt.y;
 	}
 
-	return 0;
+	return true;
 }
-
 
 bool WPanelManager::Splitter_OnSetCursor(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -387,24 +411,12 @@ bool WPanelManager::Splitter_OnSetCursor(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 		return false;
 	if (!ScreenToClient(hwnd, &pt))
 		return false;
-	for (WpElement *p = m_WpList.Head(); p!=NULL ; p = p->Next())
-	{
-		if (p->m_data == NULL)
-			continue;
-		WPanel *pwp = p->m_data;
-		if (pwp == NULL)
-			continue;
-		HRGN rgn = pwp->m_hrgSizerTop;
-		if (rgn)
-		{
-			if (PtInRegion(rgn, pt.x, pt.y))
-			{
-				HCURSOR cur = (HCURSOR )LoadImage(NULL, MAKEINTRESOURCE(OCR_SIZENS), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
-				SetCursor(cur);
-				return true;
-			}
-		}
-	}
-	return false;
-}
 
+	WPanel *pwp = GetPanelSizerFromClientPos(pt.x, pt.y, NULL);
+	if (pwp == NULL)
+		return false;
+	
+	HCURSOR cur = (HCURSOR )LoadImage(NULL, MAKEINTRESOURCE(OCR_SIZENS), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+	SetCursor(cur);
+	return true;
+}

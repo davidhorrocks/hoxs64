@@ -603,10 +603,31 @@ bool bHandled = m_WPanelManager.Splitter_OnSetCursor(hWnd, uMsg, wParam, lParam)
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+LRESULT CMDIDebuggerFrame::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	bool bHandled = m_WPanelManager.Splitter_OnLButtonDown(hWnd, uMsg, wParam, lParam);
+	if(bHandled)
+		return 0;
+	else
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);	
+}
+
 LRESULT CMDIDebuggerFrame::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//this->m_WPanelManager.
-	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	bool bHandled = m_WPanelManager.Splitter_OnMouseMove(hWnd, uMsg, wParam, lParam);
+	if(bHandled)
+		return 0;
+	else
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);	
+}
+
+LRESULT CMDIDebuggerFrame::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	bool bHandled = m_WPanelManager.Splitter_OnLButtonUp(hWnd, uMsg, wParam, lParam);
+	if(bHandled)
+		return 0;
+	else
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);	
 }
 
 
@@ -629,8 +650,12 @@ HRESULT hr;
 			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	case WM_SETCURSOR:
 		return OnSetCursor(hWnd, uMsg, wParam, lParam);
+	case WM_LBUTTONDOWN:
+		return OnLButtonDown(hWnd, uMsg, wParam, lParam);
 	case WM_MOUSEMOVE:
 		return OnMouseMove(hWnd, uMsg, wParam, lParam);
+	case WM_LBUTTONUP:
+		return OnLButtonUp(hWnd, uMsg, wParam, lParam);
 	case WM_MOVE:
 		OnMove(hWnd, uMsg, wParam, lParam);
 		return 0;

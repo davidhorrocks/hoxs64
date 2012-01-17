@@ -13,10 +13,10 @@ public:
 	HRESULT CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style);
 	void SizePanels(HWND hWnd, int w, int h);
 
-	LRESULT Splitter_OnLButtonDown(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT Splitter_OnLButtonUp(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT Splitter_OnMouseMove(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	bool Splitter_OnSetCursor(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool Splitter_OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool Splitter_OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool Splitter_OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
 	//IWPanelManager
@@ -24,13 +24,17 @@ private:
 	virtual void OnDestroyWPanel(WPanel *pwp);
 	virtual int Get_SizerGap();
 
+	WPanel *GetPanelSizerFromClientPos(int x, int y, LPRECT prc);
+
 	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height);
 
-
-	int  oldy;
-	BOOL fMoved;
-	BOOL fDragMode;
-	int nSplitterPos;
+	WPanel  *m_pPanelToSize;
+	RECT  m_rcSizer;
+	int  m_y_offset;
+	int  m_oldy;
+	BOOL m_fMoved;
+	BOOL m_fDragMode;
+	int m_iSplitterPos;
 
 	CVirWindow *m_pParentWindow;
 	HWND m_hWndRebar;

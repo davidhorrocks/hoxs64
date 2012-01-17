@@ -32,6 +32,8 @@ public:
 	HWND Show();
 
 	void GetPreferredSize(SIZE *psz);
+	void SetPreferredSize(const SIZE *psz);
+	void GetCurrentSize(SIZE *psz);
 protected:
 	IWPanelManager *m_pIWPanelManager;
 
@@ -44,7 +46,7 @@ protected:
 
 	friend WPanelManager;
 private:
-	void UpdateSizerRegion(RECT rcWindow);
+	void UpdateSizerRegion(const RECT& rcWindow);
 	CDPI m_dpi;
 	SIZE m_szPreferredSize;
 	HRGN m_hrgSizerTop;

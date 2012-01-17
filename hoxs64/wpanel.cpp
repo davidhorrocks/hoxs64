@@ -60,11 +60,14 @@ HRESULT WPanel::Init(IWPanelManager *pIWPanelManager)
 }
 
 
-void WPanel::UpdateSizerRegion(RECT rcWindow)
+void WPanel::UpdateSizerRegion(const RECT& rcWindow)
 {
 	if (m_hrgSizerTop && m_pIWPanelManager)
 	{
-		SetRectRgn(m_hrgSizerTop, rcWindow.left, rcWindow.top, rcWindow.right, rcWindow.top + m_pIWPanelManager->Get_SizerGap());
+		RECT rc;
+		CopyRect(&rc, &rcWindow);
+		int gap = m_pIWPanelManager->Get_SizerGap();
+		SetRectRgn(m_hrgSizerTop, rc.left, rc.top - gap, rc.right, rc.top);
 	}
 }
 
@@ -94,6 +97,32 @@ void WPanel::GetPreferredSize(SIZE *psz)
 {
 	if (psz)
 		*psz = m_szPreferredSize;
+}
+
+void WPanel::SetPreferredSize(const SIZE *psz)
+{
+	if (psz)
+		m_szPreferredSize = *psz;
+}
+
+void WPanel::GetCurrentSize(SIZE *psz)
+{
+	if (psz)
+	{
+		psz->cx = 0;
+		psz->cy = 0;
+		HWND hWnd = this->GetHwnd();
+		if (hWnd)
+		{
+			RECT rc;
+			if (GetWindowRect(hWnd, &rc))
+			{
+				OffsetRect(&rc, -rc.left, -rc.top);
+				psz->cx = rc.right;
+				psz->cy = rc.bottom;
+			}
+		}
+	}
 }
 
 HWND WPanel::Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h, HMENU ctrlID)
