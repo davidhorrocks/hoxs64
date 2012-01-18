@@ -298,7 +298,25 @@ void CMDIDebuggerFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 	int w = LOWORD(lParam);
 	int h = HIWORD(lParam);
-	this->m_WPanelManager.SizePanels(hWnd, w, h);
+
+	RECT rcRootPanel;
+	SetRect(&rcRootPanel, 0, 0, w, h);
+
+	if (m_hWndRebar != NULL)
+	{
+		RECT rcAbsRebar;
+		BOOL br = GetWindowRect(m_hWndRebar, &rcAbsRebar);
+		if (br)
+		{
+			int heightRebar = rcAbsRebar.bottom - rcAbsRebar.top;
+
+			SetWindowPos(m_hWndRebar, 0, 0, 0, w, heightRebar, SWP_NOREPOSITION | SWP_NOZORDER);
+
+			SetRect(&rcRootPanel, 0, heightRebar, w, h);
+		}
+	}
+
+	this->m_WPanelManager.SizePanels(hWnd, rcRootPanel.left, rcRootPanel.top, rcRootPanel.right - rcRootPanel.left, rcRootPanel.bottom - rcRootPanel.top);
 }
 
 HRESULT CMDIDebuggerFrame::CreateMDIToolBars()

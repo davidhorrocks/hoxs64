@@ -28,10 +28,10 @@ WPanelManager::~WPanelManager()
 
 HRESULT WPanelManager::Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND hWndRebar)
 {
+	m_bIsRootRectValid = false;
 	m_oldy = -4;
 	m_fMoved = FALSE;
 	m_fDragMode = FALSE;
-
 
 	m_pParentWindow = pParentWindow;
 	m_hWndRebar = hWndRebar;
@@ -80,39 +80,44 @@ int WPanelManager::Get_SizerGap()
 	return m_iSizerGap;
 }
 
-void WPanelManager::SizePanels(HWND hWnd, int w, int h)
+int WPanelManager::GetMinWindowHeight()
 {
+	int mins = m_dpi.PointsToPixels(15);
+	RECT rcMinWindow;
+	SetRect(&rcMinWindow, 0, 0, mins, mins);
+	AdjustWindowRectEx(&rcMinWindow, WS_CAPTION, false, 0);
+	return rcMinWindow.bottom - rcMinWindow.top;
+}
 
-BOOL br;
-RECT rcAbsRebar;
-int heightRebar = 0;
-RECT rcWin;
+void WPanelManager::SizePanels(HWND hWnd, int x, int y, int w, int h)
+{
+RECT rcRootInner;
 RECT rcMdiClient;
-	SetRect(&rcWin, 0, 0, w, h);
-	
-	if (m_hWndRebar != NULL)
+
+	SetRect(&m_rcRoot, x, y, x+w, y+h);
+	m_bIsRootRectValid = true;
+	CopyRect(&rcRootInner, &m_rcRoot);
+
+	if ((m_rcRoot.right - m_rcRoot.left > 2 * m_iSizerGap))
 	{
-		br = GetWindowRect(m_hWndRebar, &rcAbsRebar);
-		if (br == FALSE)
-			return;
-		heightRebar = rcAbsRebar.bottom - rcAbsRebar.top;
-
-		SetWindowPos(m_hWndRebar, 0, 0, 0, w, heightRebar, SWP_NOREPOSITION | SWP_NOZORDER);
-
-		SetRect(&rcWin, 0, heightRebar, w, h);
+		InflateRect(&rcRootInner, -m_iSizerGap, 0);
+	}
+	else
+	{
+		rcRootInner.left = rcRootInner.right = x + w/2;
+	}
+	if ((m_rcRoot.bottom - m_rcRoot.top > 2 * m_iSizerGap))
+	{
+		InflateRect(&rcRootInner, 0, - m_iSizerGap);
+	}
+	else
+	{
+		rcRootInner.top = rcRootInner.bottom = y + h/2;
 	}
 
-	if (rcWin.right - rcWin.left <= 2*m_iSizerGap)
-		return;
-	if (rcWin.bottom - rcWin.top <= 2*m_iSizerGap)
-		return;
-	
-	InflateRect(&rcWin, -m_iSizerGap, - m_iSizerGap);
-
-	CopyRect(&rcMdiClient, &rcWin);
-
-	int iMinHeightMdiClient = heightRebar;
-	int iMinHeightPanel = heightRebar;
+	int mins = GetMinWindowHeight();
+	int iMinHeightMdiClient = mins;
+	int iMinHeightPanel = mins;
 	for (WpElement *p = m_WpList.Head(); p!=NULL ; p = p->Next())
 	{
 		if (p->m_data == NULL)
@@ -122,43 +127,39 @@ RECT rcMdiClient;
 			continue;
 		SIZE szPref;
 		pwp->GetPreferredSize(&szPref);
-		//rcPanel.left = rcWin.left;
-		//rcPanel.right = rcWin.right;
-		//rcPanel.top = rcWin.top;
-		//rcPanel.bottom = rcWin.bottom;
 
-		int heightClientPart = rcWin.bottom - rcWin.top;
-		int widthClientPart = rcWin.bottom - rcWin.top;
+		int heightClientPart = rcRootInner.bottom - rcRootInner.top;
+		int widthClientPart = rcRootInner.right - rcRootInner.left;
 		int heightPanel;
-		int widthPanel = rcWin.right - rcWin.left;
-		if (szPref.cy <= rcWin.bottom - rcWin.top)
+		int widthPanel = rcRootInner.right - rcRootInner.left;
+		if (szPref.cy <= rcRootInner.bottom - rcRootInner.top)
 		{
 			heightPanel = szPref.cy;
 		}
 		else
 		{
-			heightPanel = rcWin.bottom - rcWin.top;
+			heightPanel = rcRootInner.bottom - rcRootInner.top;
 		}
 		RECT rcPanel;
 		if (heightPanel <= heightClientPart - iMinHeightMdiClient - m_iSizerGap)
 		{
 			//Size mdi client window
-			SetRect(&rcMdiClient, rcWin.left, rcWin.top, rcWin.right, rcWin.bottom - heightPanel - m_iSizerGap);
-			SetRect(&rcPanel, rcWin.left, rcMdiClient.bottom + m_iSizerGap, rcWin.right, rcWin.bottom);
+			SetRect(&rcMdiClient, rcRootInner.left, rcRootInner.top, rcRootInner.right, rcRootInner.bottom - heightPanel - m_iSizerGap);
+			SetRect(&rcPanel, rcRootInner.left, rcMdiClient.bottom + m_iSizerGap, rcRootInner.right, rcRootInner.bottom);
 		}
 		else if (iMinHeightMdiClient + iMinHeightPanel + m_iSizerGap <= heightClientPart)
 		{
 			//The panel's height is too tall so shrink it.
 			heightPanel = heightClientPart - iMinHeightMdiClient - m_iSizerGap;
-			SetRect(&rcMdiClient, rcWin.left, rcWin.top, rcWin.right, rcWin.top + iMinHeightMdiClient);
-			SetRect(&rcPanel, rcWin.left, rcMdiClient.bottom + m_iSizerGap, rcWin.right, rcWin.bottom);
+			SetRect(&rcMdiClient, rcRootInner.left, rcRootInner.top, rcRootInner.right, rcRootInner.top + iMinHeightMdiClient);
+			SetRect(&rcPanel, rcRootInner.left, rcMdiClient.bottom + m_iSizerGap, rcRootInner.right, rcRootInner.bottom);
 		}
 		else
 		{
 			//The the min height panel plus the min height mdiclient window will not fit so zero size the mdiclient and fit only the panel.
 			heightPanel = iMinHeightPanel;
-			SetRect(&rcMdiClient, rcWin.left, rcWin.top, rcWin.right, rcWin.top);
-			SetRect(&rcPanel, rcWin.left, rcWin.top, rcWin.right, rcWin.bottom);
+			SetRect(&rcMdiClient, rcRootInner.left, rcRootInner.top, rcRootInner.right, rcRootInner.top);
+			SetRect(&rcPanel, rcRootInner.left, rcRootInner.top, rcRootInner.right, rcRootInner.bottom);
 		}
 		pwp->UpdateSizerRegion(rcPanel);
 		HWND hWndPanel = p->m_data->GetHwnd();
@@ -182,17 +183,6 @@ RECT rcMdiClient;
 				MoveWindow(hWndMDIClient, rcMdiClient.left, rcMdiClient.top, 0, 0, TRUE);
 		}
 	}
-	//if (m_pParentWindow)
-	//{
-	//	HWND hWndMDIClient = m_pParentWindow->Get_MDIClientWindow();
-	//	if (hWndMDIClient)
-	//	{
-	//		if (rcWin.right - rcWin.left > 0 && rcWin.bottom - rcWin.top > 0)
-	//			MoveWindow(hWndMDIClient, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, TRUE);
-	//		else
-	//			MoveWindow(hWndMDIClient, rcWin.left, rcWin.top, 0, 0, TRUE);
-	//	}
-	//}
 }
 
 CVirWindow *WPanelManager::Get_ParentWindow()
@@ -201,7 +191,7 @@ CVirWindow *WPanelManager::Get_ParentWindow()
 }
 
 
-WPanel *WPanelManager::GetPanelSizerFromClientPos(int x, int y, LPRECT prc)
+WPanel *WPanelManager::GetPanelSizerFromClientPos(int x, int y, LPRECT prcSizerBar)
 {
 POINT pt;
 
@@ -222,10 +212,10 @@ POINT pt;
 		{
 			if (PtInRegion(rgn, pt.x, pt.y))
 			{
-				if (prc)
+				if (prcSizerBar)
 				{
-					SetRectEmpty(prc);
-					GetRgnBox(pwp->m_hrgSizerTop, prc);
+					SetRectEmpty(prcSizerBar);
+					GetRgnBox(pwp->m_hrgSizerTop, prcSizerBar);
 				}
 				return pwp;
 			}
@@ -275,6 +265,53 @@ void WPanelManager::OnDestroyWPanel(WPanel *pwp)
 	}
 }
 
+void WPanelManager::ClipPointToRect(const RECT &rc, POINT *pt)
+{
+	if (pt->y < rc.top)
+	{
+		pt->y = rc.top;
+	}
+	if (pt->y > rc.bottom)
+	{
+		pt->y = rc.bottom;
+	}
+	if (pt->x < rc.left)
+	{
+		pt->x = rc.left;
+	}
+	if (pt->x > rc.right)
+	{
+		pt->x = rc.right;
+	}
+}
+
+void WPanelManager::ClipPointToValidPanelSizer(POINT *pt)
+{
+	if (m_pPanelToSize==NULL)
+		return;
+	int mins = GetMinWindowHeight();
+	RECT rcParent;
+	m_pPanelToSize->GetParentRect(&rcParent);
+	OffsetRect(&rcParent, 0, m_y_offset);
+	if (rcParent.bottom - rcParent.top > 2*m_iSizerGap)
+	{
+		InflateRect(&rcParent, 0, -m_iSizerGap);
+	}
+	if (rcParent.bottom - rcParent.top > 2*mins)
+	{
+		InflateRect(&rcParent, 0, -mins);
+	}
+	ClipPointToRect(rcParent, pt);
+}
+
+void WPanelManager::Get_RootRect(RECT *prc)
+{
+	if (m_bIsRootRectValid)
+		CopyRect(prc, &m_rcRoot);
+	else
+		SetRectEmpty(prc);
+}
+
 bool WPanelManager::Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	POINT pt;
@@ -287,42 +324,48 @@ bool WPanelManager::Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, 
 	WPanel *pwp = GetPanelSizerFromClientPos(pt.x, pt.y, &m_rcSizer);
 	if (pwp == NULL)
 		return false;
-
+	m_pPanelToSize = pwp;
 	m_iSplitterPos = m_rcSizer.top;
 	m_y_offset = pt.y - m_rcSizer.top;
-
-	//GetWindowRect(hWnd, &rect);
-
-	////convert the mouse coordinates relative to the top-left of
-	////the window
-	//ClientToScreen(hWnd, &pt);
-	//pt.x -= rect.left;
-	//pt.y -= rect.top;
-	//
-	////same for the window coordinates - make them relative to 0,0
-	//OffsetRect(&rect, -rect.left, -rect.top);
-	//
-	//if(pt.y < 0) pt.y = 0;
-	//if(pt.y > rect.bottom-4) 
-	//{
-	//	pt.y = rect.bottom-4;
-	//}
-
-	m_fDragMode = TRUE;
+	ClipPointToValidPanelSizer(&pt);
 
 	SetCapture(hWnd);
-
+	m_fDragMode = TRUE;
 	hdc = GetDC(hWnd);
 	if (hdc)
 	{
-		//DrawXorBar(hdc, 1,pt.y - 2, rect.right-2,4);
 		DrawXorBar(hdc, m_rcSizer.left, pt.y - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
 		ReleaseDC(hWnd, hdc);
 	}
 	m_oldy = pt.y;
 
-	m_pPanelToSize = pwp;
-		
+	return true;
+}
+
+bool WPanelManager::Splitter_OnMouseMove(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	HDC hdc;
+	POINT pt;
+
+	if(m_fDragMode == FALSE) return false;
+	if(m_pPanelToSize == 0) return false;
+	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
+	pt.y = (short)HIWORD(lParam);
+
+	ClipPointToValidPanelSizer(&pt);
+	if(pt.y != m_oldy && wParam & MK_LBUTTON)
+	{
+		hdc = GetDC(hwnd);
+		if (hdc)
+		{
+			DrawXorBar(hdc, m_rcSizer.left, m_oldy - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
+			DrawXorBar(hdc, m_rcSizer.left, pt.y - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
+			ReleaseDC(hwnd, hdc);
+		}		
+
+		m_oldy = pt.y;
+	}
+
 	return true;
 }
 
@@ -338,6 +381,7 @@ bool WPanelManager::Splitter_OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 	if(m_fDragMode == FALSE)
 		return false;
 	
+	ClipPointToValidPanelSizer(&pt);
 	hdc = GetDC(hWnd);
 	if (hdc)
 	{
@@ -354,51 +398,22 @@ bool WPanelManager::Splitter_OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 
 	if (m_pPanelToSize)
 	{
-		RECT rcClient;
-		GetClientRect(hWnd, &rcClient);
-		if (m_iSplitterPos >= rcClient.bottom)
-			m_iSplitterPos = rcClient.bottom - 1;
-		if (m_iSplitterPos < rcClient.top)
-			m_iSplitterPos = rcClient.top;
+		RECT rcRootPanel;
+		Get_RootRect(&rcRootPanel);
+		if (m_iSplitterPos >= rcRootPanel.bottom)
+			m_iSplitterPos = rcRootPanel.bottom - 1;
+		if (m_iSplitterPos < rcRootPanel.top)
+			m_iSplitterPos = rcRootPanel.top;
 
 		SIZE szPref;
 		m_pPanelToSize->GetCurrentSize(&szPref);
-		szPref.cx = rcClient.right - rcClient.left;
 		szPref.cy = szPref.cy + m_rcSizer.top - m_iSplitterPos;
 		if (szPref.cy < 0)
 			szPref.cy = 0;
 		m_pPanelToSize->SetPreferredSize(&szPref);
-		this->SizePanels(hWnd, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
+		this->SizePanels(hWnd, rcRootPanel.left, rcRootPanel.top, rcRootPanel.right - rcRootPanel.left, rcRootPanel.bottom - rcRootPanel.top);
 	
 		m_pPanelToSize = NULL;
-	}
-
-	return true;
-}
-
-bool WPanelManager::Splitter_OnMouseMove(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	HDC hdc;
-	POINT pt;
-
-	if(m_fDragMode == FALSE) return false;
-
-	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
-	pt.y = (short)HIWORD(lParam);
-
-
-	if(pt.y != m_oldy && wParam & MK_LBUTTON)
-	{
-		hdc = GetDC(hwnd);
-		if (hdc)
-		{
-			DrawXorBar(hdc, m_rcSizer.left, m_oldy - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
-			DrawXorBar(hdc, m_rcSizer.left, pt.y - m_y_offset, m_rcSizer.right - m_rcSizer.left, m_rcSizer.bottom - m_rcSizer.top);
-		}
-			
-		ReleaseDC(hwnd, hdc);
-
-		m_oldy = pt.y;
 	}
 
 	return true;

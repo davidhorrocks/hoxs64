@@ -11,7 +11,7 @@ public:
 	~WPanelManager();
 	HRESULT Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND hWndRebar);
 	HRESULT CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style);
-	void SizePanels(HWND hWnd, int w, int h);
+	void SizePanels(HWND hWnd, int x, int y, int w, int h);
 
 	bool Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool Splitter_OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -23,12 +23,17 @@ private:
 	virtual CVirWindow *Get_ParentWindow();
 	virtual void OnDestroyWPanel(WPanel *pwp);
 	virtual int Get_SizerGap();
+	virtual void Get_RootRect(RECT *prc);
+	//
 
-	WPanel *GetPanelSizerFromClientPos(int x, int y, LPRECT prc);
-
+	int GetMinWindowHeight();
+	WPanel *GetPanelSizerFromClientPos(int x, int y, LPRECT prcSizerBar);
 	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height);
-
-	WPanel  *m_pPanelToSize;
+	void ClipPointToRect(const RECT &rc, POINT *pt);
+	void ClipPointToValidPanelSizer(POINT *pt);
+	WPanel *m_pPanelToSize;
+	bool m_bIsRootRectValid;
+	RECT m_rcRoot;
 	RECT  m_rcSizer;
 	int  m_y_offset;
 	int  m_oldy;

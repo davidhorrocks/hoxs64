@@ -59,7 +59,6 @@ HRESULT WPanel::Init(IWPanelManager *pIWPanelManager)
 	return S_OK;
 }
 
-
 void WPanel::UpdateSizerRegion(const RECT& rcWindow)
 {
 	if (m_hrgSizerTop && m_pIWPanelManager)
@@ -69,6 +68,11 @@ void WPanel::UpdateSizerRegion(const RECT& rcWindow)
 		int gap = m_pIWPanelManager->Get_SizerGap();
 		SetRectRgn(m_hrgSizerTop, rc.left, rc.top - gap, rc.right, rc.top);
 	}
+}
+
+void WPanel::GetParentRect(RECT *prcParent)
+{
+	m_pIWPanelManager->Get_RootRect(prcParent);
 }
 
 HRESULT WPanel::RegisterClass(HINSTANCE hInstance)

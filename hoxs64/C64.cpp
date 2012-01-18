@@ -574,9 +574,7 @@ ICLK cycles,sysclock;
 	{
 		sid.ExecuteCycle(sysclock);
 	}
-
 	sid.UnLockSoundBuffer();
-	//vic.UnLockBackSurface();
 	CheckDriveLedNofication();
 }
 
