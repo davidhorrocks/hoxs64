@@ -25,7 +25,6 @@ TCHAR CDisassemblyChild::ClassName[] = TEXT("Hoxs64DisassemblyChild");
 
 CDisassemblyChild::CDisassemblyChild()
 {
-	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_hWndScroll = NULL;
 	m_pMon = NULL;

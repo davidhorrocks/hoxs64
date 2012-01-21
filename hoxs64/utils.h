@@ -234,10 +234,11 @@ public:
 	m_hInst = NULL;
 	m_hWnd = NULL;
 	m_hWndMDIClient = NULL;
-	m_AutoDelete = true;
+	m_AutoDelete = false;
 	};
 	virtual ~CVirWindow(){};
 
+	bool m_AutoDelete;
 
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
 
@@ -269,7 +270,6 @@ protected:
 	// Handle of this window.
 	HWND m_hWnd;
 	HWND m_hWndMDIClient;
-	bool m_AutoDelete;
 
 	WNDPROC SubclassChildWindow(HWND hWnd);
 	// Envelopes the Windows' CreateWindow function call.

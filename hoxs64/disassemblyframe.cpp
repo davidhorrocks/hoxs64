@@ -53,7 +53,6 @@ const ButtonInfo CDisassemblyFrame::TB_StepButtons[] =
 
 CDisassemblyFrame::CDisassemblyFrame()
 {
-	m_AutoDelete = false;
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
 	m_hImageListToolBarNormal = NULL;

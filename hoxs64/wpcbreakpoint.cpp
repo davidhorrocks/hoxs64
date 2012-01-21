@@ -60,12 +60,20 @@ HWND WpcBreakpoint::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR tit
 	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
-void WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 }
 
 
 LRESULT WpcBreakpoint::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	switch (uMsg)
+	{
+	case WM_SIZE:
+		return OnSize(hWnd, uMsg, wParam, lParam);
+	default:
+		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	}
 	return 0;
 }

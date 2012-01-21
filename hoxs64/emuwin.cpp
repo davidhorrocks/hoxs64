@@ -49,7 +49,6 @@ const LPTSTR CEmuWindow::lpszClassName = HOXS_EMULATION_WND_CLASS;
 
 CEmuWindow::CEmuWindow()
 {
-	m_AutoDelete = false;
 	m_hInstance = 0;
 	m_dwSolidColourFill=0;
 }

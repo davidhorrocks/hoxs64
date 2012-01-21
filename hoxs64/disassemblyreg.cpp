@@ -26,7 +26,6 @@ TCHAR CDisassemblyReg::ClassName[] = TEXT("Hoxs64DisassemblyReg");
 
 CDisassemblyReg::CDisassemblyReg()
 {
-	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_hFont = NULL;
 	m_monitorCommand = NULL;

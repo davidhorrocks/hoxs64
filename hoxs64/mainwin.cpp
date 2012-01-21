@@ -66,7 +66,6 @@ const LPTSTR CAppWindow::lpszMenuName = APPMENUNAME;
 
 CAppWindow::CAppWindow()
 {
-	m_AutoDelete = false;
 	cfg = NULL;
 	appStatus = NULL;
 	m_hInstance = 0;

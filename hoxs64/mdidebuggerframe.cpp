@@ -81,7 +81,6 @@ const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] =
 
 CMDIDebuggerFrame::CMDIDebuggerFrame()
 {
-	m_AutoDelete = false;
 	m_hWndMDIClient = NULL;
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
@@ -256,14 +255,14 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (FAILED(hr))
 		return hr;
 
-	WpcBreakpoint *pWin = new WpcBreakpoint();
-
+	WpcBreakpoint *pWin = new WpcBreakpoint();	
 	hr = pWin->Init();
 	if (SUCCEEDED(hr))
 	{
 		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, pWin);
 		if (SUCCEEDED(hr))
 		{
+			pWin->m_AutoDelete = true;
 			pWin = NULL;
 		}
 	}

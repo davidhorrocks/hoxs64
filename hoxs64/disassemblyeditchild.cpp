@@ -39,7 +39,6 @@ CDisassemblyEditChild::CDisassemblyEditChild()
 	WIDTH_LEFTBAR2 = 0;
 	LINE_HEIGHT = 0;
 	m_pMon = NULL;
-	m_AutoDelete = false;
 	m_pParent = NULL;
 	m_FirstAddress = 0;
 	m_NumLines = 0;
