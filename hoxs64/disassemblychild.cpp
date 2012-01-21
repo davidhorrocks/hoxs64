@@ -79,9 +79,9 @@ WNDCLASSEX  wc;
 	return S_OK;	
 };
 
-HWND CDisassemblyChild::Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID)
+HWND CDisassemblyChild::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
 HWND CDisassemblyChild::CreateScrollBar()
@@ -132,7 +132,7 @@ RECT rcChild;
 
 HWND CDisassemblyChild::CreateEditWindow(int x, int y, int w, int h)
 {
-	HWND hWnd = m_DisassemblyEditChild.Create(m_hInst, m_hWnd, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyChild::ID_DISASSEMBLY);
+	HWND hWnd = m_DisassemblyEditChild.Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyChild::ID_DISASSEMBLY);
 	return hWnd;
 }
 

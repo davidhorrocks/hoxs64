@@ -212,10 +212,10 @@ bool bGotWorkArea = false;
 }
 
 
-HWND CAppWindow::Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h)
+HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	this->m_hInstance = hInstance;
-	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, x, y, w, h, NULL, NULL, hInstance);
+	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
 	return hWnd;
 }
 

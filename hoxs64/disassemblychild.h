@@ -30,7 +30,7 @@ public:
 	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
+	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	void GetMinWindowSize(int &w, int &h);
 	void SetTopAddress(bit16 address, bool bSetScrollBarPage);
 	void SetHome();

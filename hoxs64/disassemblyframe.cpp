@@ -243,9 +243,9 @@ WNDCLASSEX  wc;
 };
 
 
-HWND CDisassemblyFrame::Create(HINSTANCE hInstance, HWND parent, const TCHAR title[], int x,int y, int w, int h)
+HWND CDisassemblyFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, parent, NULL, hInstance);	
+	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);	
 }
 
 HWND CDisassemblyFrame::CreateRebar(HWND hwndTB)
@@ -468,7 +468,7 @@ HWND hWnd;
 		if (!br)
 			return E_FAIL;
 
-		hWnd = this->Create(hInstance, hWndParent, m_pszCaption, 0, 0, 0, 0);
+		hWnd = this->Create(hInstance, hWndParent, m_pszCaption, 0, 0, 0, 0, NULL);
 		if (hWnd == NULL)
 			return E_FAIL;
 		GetMinWindowSize(w, h);
@@ -751,13 +751,13 @@ void CDisassemblyFrame::SetHome()
 
 HWND CDisassemblyFrame::CreateDisassemblyReg(int x, int y, int w, int h)
 {	
-	HWND hWnd = m_DisassemblyReg.Create(m_hInst, m_hWnd, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEYREG);
+	HWND hWnd = m_DisassemblyReg.Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEYREG);
 	return hWnd;
 }
 
 HWND CDisassemblyFrame::CreateDisassemblyChild(int x, int y, int w, int h)
 {	
-	HWND hWnd = m_DisassemblyChild.Create(m_hInst, m_hWnd, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEY);
+	HWND hWnd = m_DisassemblyChild.Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEY);
 	return hWnd;
 }
 

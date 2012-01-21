@@ -48,10 +48,9 @@ public:
 	CMDIDebuggerFrame();
 	virtual ~CMDIDebuggerFrame();
 
-
 	static HRESULT RegisterClass(HINSTANCE hInstance);
+	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	HRESULT Init(IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64);
-	HWND Create(HINSTANCE hInstance, HWND parent, const TCHAR title[], int x,int y, int w, int h);
 	HWND Show(CVirWindow *pParentWindow);
 
 	void ShowDebugCpuC64(bool bSeekPC);

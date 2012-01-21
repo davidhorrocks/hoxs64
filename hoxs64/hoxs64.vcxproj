@@ -521,6 +521,7 @@
   <ItemGroup>
     <ClCompile Include="appstatus.cpp" />
     <ClCompile Include="assembler.cpp" />
+    <ClCompile Include="wpcbreakpoint.cpp" />
     <ClCompile Include="break_point.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -819,6 +820,7 @@
   <ItemGroup>
     <ClInclude Include="assembler.h" />
     <ClInclude Include="bits.h" />
+    <ClInclude Include="wpcbreakpoint.h" />
     <ClInclude Include="CDPI.h" />
     <ClInclude Include="cevent.h" />
     <ClInclude Include="cmdarg.h" />

@@ -229,7 +229,6 @@ C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
 class CVirWindow
 {
 public:
-	// Constructor
 	CVirWindow()
 	{
 	m_hInst = NULL;
@@ -237,9 +236,10 @@ public:
 	m_hWndMDIClient = NULL;
 	m_AutoDelete = true;
 	};
-
-	// Destructor
 	virtual ~CVirWindow(){};
+
+
+	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
 
 	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
 	// Get the protected handle of this window.

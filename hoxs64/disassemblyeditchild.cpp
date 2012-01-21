@@ -175,7 +175,7 @@ WNDCLASSEX  wc;
 };
 
 
-HWND CDisassemblyEditChild::Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID)
+HWND CDisassemblyEditChild::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	if (m_hBmpBreak == NULL)
 	{
@@ -183,7 +183,7 @@ HWND CDisassemblyEditChild::Create(HINSTANCE hInstance, HWND parent, int x,int y
 		if (m_hBmpBreak==NULL)
 			return NULL;
 	}
-	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
 HWND CDisassemblyEditChild::CreateAsmEdit(HWND hWndParent)

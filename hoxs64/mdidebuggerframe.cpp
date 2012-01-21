@@ -48,6 +48,7 @@
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
+#include "wpcbreakpoint.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -209,7 +210,7 @@ int x,y,w,h;
 		if (hInstance == NULL)
 			hInstance = GetModuleHandle(NULL);
 
-		HWND hWnd = this->Create(hInstance, hWndParent, TEXT("C64 Monitor"), 0, 0, 0, 0);
+		HWND hWnd = this->Create(hInstance, hWndParent, TEXT("C64 Monitor"), 0, 0, 0, 0, NULL);
 		if(hWnd != 0)
 		{
 			EnsureWindowPosition(x, y, w, h);			
@@ -236,9 +237,9 @@ int x,y,w,h;
 }
 
 
-HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND parent, const TCHAR title[], int x,int y, int w, int h)
+HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, parent, NULL, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
 HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -255,11 +256,23 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (FAILED(hr))
 		return hr;
 
-	hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom);
-	if (FAILED(hr))
-		return hr;
+	WpcBreakpoint *pWin = new WpcBreakpoint();
 
-	return S_OK;
+	hr = pWin->Init();
+	if (SUCCEEDED(hr))
+	{
+		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, pWin);
+		if (SUCCEEDED(hr))
+		{
+			pWin = NULL;
+		}
+	}
+	if (pWin)
+	{
+		delete pWin;
+		pWin = NULL;
+	}
+	return hr;
 }
 
 void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

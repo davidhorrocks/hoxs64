@@ -42,14 +42,15 @@ HRESULT WPanelManager::Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND
 	return S_OK;
 }
 
-HRESULT WPanelManager::CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style)
+HRESULT WPanelManager::CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, CVirWindow *pChildWin)
 {
 	HWND hWndPanel = NULL;
 	WPanel *pwp = new WPanel();
-	HRESULT hr = pwp->Init(this);
+	HRESULT hr = pwp->Init(this, pChildWin);
 	if (SUCCEEDED(hr))
 	{
-		HWND hWndPanel = pwp->Create(m_hInstance, TEXT("TOOL"), 0, 0, 200, 100, (HMENU) 1001);
+		CVirWindow *pWin = this->Get_ParentWindow();
+		HWND hWndPanel = pwp->Create(m_hInstance, pWin->GetHwnd(), TEXT("TOOL"), 0, 0, 200, 100, (HMENU) 1001);
 		if (hWndPanel)
 		{
 			hr = this->m_WpList.Append(pwp);

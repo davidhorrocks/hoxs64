@@ -78,9 +78,9 @@ WNDCLASSEX  wc;
 	return S_OK;	
 }
 
-HWND CDisassemblyReg::Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID)
+HWND CDisassemblyReg::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
 void CDisassemblyReg::GetMinWindowSize(int &w, int &h)

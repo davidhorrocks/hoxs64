@@ -27,6 +27,7 @@ const TCHAR WPanel::ClassName[] = TEXT("Hoxs64WPanel");
 WPanel::WPanel()
 {
 	m_pIWPanelManager = NULL;
+	m_pChildWin = NULL;
 	m_szPreferredSize.cx = 0;
 	m_szPreferredSize.cy = 0;
 	m_hrgSizerTop = NULL;
@@ -45,9 +46,10 @@ WPanel::~WPanel()
 	}
 }
 
-HRESULT WPanel::Init(IWPanelManager *pIWPanelManager)
+HRESULT WPanel::Init(IWPanelManager *pIWPanelManager, CVirWindow *pChildWin)
 {
 	m_pIWPanelManager = pIWPanelManager;
+	m_pChildWin = pChildWin;
 	m_szPreferredSize.cx = 150;
 	m_szPreferredSize.cy = 200;
 	m_dpi.ScaleSize(&m_szPreferredSize);
@@ -129,14 +131,11 @@ void WPanel::GetCurrentSize(SIZE *psz)
 	}
 }
 
-HWND WPanel::Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h, HMENU ctrlID)
+HWND WPanel::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	if (m_pIWPanelManager == NULL)
 		return NULL;
-	CVirWindow *pParentWindow = m_pIWPanelManager->Get_ParentWindow();
-	if (pParentWindow == NULL)
-		return NULL;
-	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_CAPTION |  WS_VISIBLE, x, y, w, h, pParentWindow->GetHwnd(), ctrlID, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_CAPTION |  WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
 HWND WPanel::Show()

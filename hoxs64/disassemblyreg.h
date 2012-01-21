@@ -114,11 +114,9 @@ public:
 	virtual ~CDisassemblyReg();
 
 	static TCHAR ClassName[];
-
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
-
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	HWND Create(HINSTANCE hInstance, HWND parent, int x,int y, int w, int h, HMENU ctrlID);
+	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
 	void GetMinWindowSize(int &w, int &h);
 	void UpdateDisplay();
 	void InvalidateBuffer();

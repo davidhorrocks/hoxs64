@@ -10,7 +10,7 @@ public:
 	WPanelManager();
 	~WPanelManager();
 	HRESULT Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND hWndRebar);
-	HRESULT CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style);
+	HRESULT CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, CVirWindow *pChildWin);
 	void SizePanels(HWND hWnd, int x, int y, int w, int h);
 
 	bool Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

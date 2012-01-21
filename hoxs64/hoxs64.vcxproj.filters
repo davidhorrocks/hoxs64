@@ -186,6 +186,9 @@
     <ClCompile Include="CDPI.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="wpcbreakpoint.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -384,6 +387,9 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="wpanelmanager.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="wpcbreakpoint.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>

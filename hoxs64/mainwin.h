@@ -15,7 +15,7 @@ public:
 	CAppWindow();
 	HRESULT Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *, CAppStatus *, C64 *);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	HWND Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h);
+	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	CAppStatus *appStatus;
 	CConfig *cfg;
 	CEmuWindow emuWin;

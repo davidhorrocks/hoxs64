@@ -38,10 +38,11 @@ public:
 	void GetParentRect(RECT *rcParent);
 protected:
 	IWPanelManager *m_pIWPanelManager;
+	CVirWindow *m_pChildWin;
 
 	WPanel();
-	HRESULT Init(IWPanelManager *pIWPanelManager);
-	HWND Create(HINSTANCE hInstance, const TCHAR title[], int x,int y, int w, int h, HMENU ctrlID);
+	HRESULT Init(IWPanelManager *pIWPanelManager, CVirWindow *pChildWin);
+	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	LRESULT OnSysCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnHitTestNCA(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

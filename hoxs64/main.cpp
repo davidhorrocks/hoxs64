@@ -75,6 +75,7 @@
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
+#include "wpcbreakpoint.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -511,6 +512,12 @@ HRESULT hr;
 		MessageBox(0L, TEXT("Failed to register WPanel class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
+	hr = WpcBreakpoint::RegisterClass(hInstance);
+	if (FAILED(hr))
+	{
+		MessageBox(0L, TEXT("Failed to register WpcBreakpoint class."), m_szAppName, MB_ICONEXCLAMATION);
+		return hr;
+	}
 
 	return S_OK;
 }
@@ -659,7 +666,7 @@ TCHAR ext[_MAX_EXT];
 		winpos.y = max(0, (rcWorkArea.bottom - rcWorkArea.top - h) / 2);
 	}
 
-	hWndMain = appWindow.Create(m_hInstance, m_szTitle, 0, 0, w, h);
+	hWndMain = appWindow.Create(m_hInstance, NULL, m_szTitle, 0, 0, w, h, NULL);
 	if (!hWndMain)
 	{
 		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
