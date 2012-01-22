@@ -103,6 +103,7 @@ HRESULT hr;
 	 r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
 	 if (r == -1)
 		 return E_FAIL;
+	 return S_OK;
  }
 
 LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
