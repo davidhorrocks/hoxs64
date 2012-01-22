@@ -14,7 +14,21 @@ public:
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+	LRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+private:
+	class LvBreakColumnIndex
+	{
+	public:
+		enum tagEnumBreakColumnIndex
+		{
+			Cpu = 0,
+			Address = 1,
+			Type = 2
+		};
+	};
+	HWND m_hLvBreak;
+	HRESULT InitListViewColumns(HWND hWndListView);
 };
 
 #endif

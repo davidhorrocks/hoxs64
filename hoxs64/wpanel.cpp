@@ -21,6 +21,8 @@
 #include "wpanel.h"
 #include "resource.h"
 
+#define PANELCHILDID (1001)
+
 const TCHAR WPanel::ClassName[] = TEXT("Hoxs64WPanel");
 
 
@@ -143,6 +145,34 @@ HWND WPanel::Show()
 	return this->m_hWnd;
 }
 
+LRESULT WPanel::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	int w = (short)LOWORD(lParam);  // horizontal position of cursor 
+	int h = (short)HIWORD(lParam);
+	if (wParam == SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
+		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	if (this->m_pChildWin)
+		m_pChildWin->SetSize(w, h);
+	return 0;
+}
+
+LRESULT WPanel::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (m_pChildWin == NULL)
+		return -1;
+	RECT rcWin;
+	GetClientRect(hWnd, &rcWin);
+	int x, y, w, h;
+	x = rcWin.left;
+	y = rcWin.top;
+	w = rcWin.right - rcWin.left;
+	h = rcWin.bottom - rcWin.top;
+	HWND hWndPanelChild = m_pChildWin->Create(m_hInst, hWnd, TEXT(""), x, y, w, h, (HMENU)PANELCHILDID);
+	if (!hWndPanelChild)
+		return -1;
+	return 0;
+}
+
 LRESULT WPanel::OnSysCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(wParam & 0xfff0)
@@ -166,6 +196,10 @@ LRESULT WPanel::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
+	case WM_CREATE:
+		return OnCreate(m_hWnd, uMsg, wParam, lParam);
+	case WM_SIZE:
+		return OnSize(m_hWnd, uMsg, wParam, lParam);
 	case WM_NCHITTEST:
 		return OnHitTestNCA(m_hWnd, uMsg, wParam, lParam);
 	case WM_SYSCOMMAND:

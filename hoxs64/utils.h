@@ -241,7 +241,7 @@ public:
 	bool m_AutoDelete;
 
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
-
+	virtual int SetSize(int w, int h);
 	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
 	// Get the protected handle of this window.
 	HWND GetHwnd(void)

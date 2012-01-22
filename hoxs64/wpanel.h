@@ -43,6 +43,9 @@ protected:
 	WPanel();
 	HRESULT Init(IWPanelManager *pIWPanelManager, CVirWindow *pChildWin);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
+
+	LRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LRESULT OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnSysCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnHitTestNCA(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -52,6 +55,7 @@ private:
 	CDPI m_dpi;
 	SIZE m_szPreferredSize;
 	HRGN m_hrgSizerTop;
+	HWND m_hWndPChild;
 };
 
 #endif

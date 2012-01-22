@@ -91,6 +91,7 @@ private:
 	IMonitorCommand *m_monitorCommand;
 	Monitor m_monitorC64;
 	Monitor m_monitorDisk;
+	bool m_bIsCreated;
 
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);

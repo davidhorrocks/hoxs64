@@ -619,7 +619,7 @@ TCHAR ext[_MAX_EXT];
 	//Initialise common control library.
 	INITCOMMONCONTROLSEX icex;
 	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	icex.dwICC   = ICC_COOL_CLASSES|ICC_BAR_CLASSES;
+	icex.dwICC   = ICC_COOL_CLASSES|ICC_BAR_CLASSES|ICC_LISTVIEW_CLASSES|ICC_USEREX_CLASSES;
 	br = ::InitCommonControlsEx(&icex);
 	if (br == FALSE)
 	{

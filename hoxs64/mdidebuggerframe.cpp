@@ -85,7 +85,7 @@ CMDIDebuggerFrame::CMDIDebuggerFrame()
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
 	m_hImageListToolBarNormal = NULL;
-
+	m_bIsCreated = false;
 	cfg = NULL;
 	appStatus = NULL;
 	c64 = NULL;
@@ -271,13 +271,12 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		delete pWin;
 		pWin = NULL;
 	}
+	m_bIsCreated = SUCCEEDED(hr);
 	return hr;
 }
 
 void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//CConfig::SaveMDIWindowSetting(m_hWnd);
-
 	if (this->m_pParentWindow)
 	{
 		HWND hWndParent = m_pParentWindow->GetHwnd();
@@ -291,7 +290,11 @@ void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (::IsWindow(m_hWnd))
-		CConfig::SaveMDIWindowSetting(m_hWnd);
+	{
+		if (m_bIsCreated)
+			CConfig::SaveMDIWindowSetting(m_hWnd);
+	}
+	m_bIsCreated = false;
 }
 
 void CMDIDebuggerFrame::OnMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
