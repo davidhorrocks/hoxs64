@@ -2,6 +2,23 @@
 #define __MONITOR_H__
 
 
+class SetBreakpointC64ExecuteEventArgs : public EventArgs
+{
+public:
+	MEM_TYPE Memorymap;
+	bit16 Address;
+	int Count;
+	SetBreakpointC64ExecuteEventArgs(MEM_TYPE memorymap, bit16 address, int count);
+};
+
+class SetBreakpointDiskExecuteEventArgs : public EventArgs
+{
+public:
+	bit16 Address;
+	int Count;
+	SetBreakpointDiskExecuteEventArgs(bit16 address, int count);
+};
+
 class IMonitorCommand
 {
 public:
@@ -17,6 +34,8 @@ public:
 	virtual bool IsRunning()=0;
 	virtual void SoundOff()=0;
 	virtual void SoundOn()=0;
+	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, int address, int count)=0;
+	virtual void SetBreakpointDiskExecute(int address, int count)=0;
 
 
 	EventSource<EventArgs> EsResume;
@@ -31,6 +50,10 @@ public:
 
 	EventSource<EventArgs> EsCpuC64RegPCChanged;
 	EventSource<EventArgs> EsCpuDiskRegPCChanged;
+
+	EventSource<SetBreakpointC64ExecuteEventArgs> EsSetBreakpointC64Execute;
+	EventSource<SetBreakpointDiskExecuteEventArgs> EsSetBreakpointDiskExecute;
+
 };
 
 class Monitor

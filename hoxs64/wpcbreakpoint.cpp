@@ -76,6 +76,9 @@ HRESULT hr;
 	hr = InitListViewColumns(m_hLvBreak);
 	if (FAILED(hr))
 		return -1;
+	hr = FillListView();
+	if (FAILED(hr))
+		return -1;
 	return 0;
 }
 
@@ -104,7 +107,12 @@ HRESULT hr;
 	 if (r == -1)
 		 return E_FAIL;
 	 return S_OK;
- }
+}
+
+HRESULT WpcBreakpoint::FillListView()
+{
+	return S_OK;
+}
 
 LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {

@@ -1,14 +1,14 @@
 #ifndef __REGISTER_H__
 #define __REGISTER_H__
 
-typedef enum tagMemoryType
+typedef enum tagMemoryType : int
 {
-	MT_RAM,
-	MT_IO,
-	MT_CHARGEN,
-	MT_BASIC,
-	MT_KERNAL,
-	MT_NOTCONNECTED
+	MT_RAM = 1,
+	MT_IO = 2,
+	MT_CHARGEN = 4,
+	MT_BASIC = 8,
+	MT_KERNAL = 16,
+	MT_NOTCONNECTED = 32
 } MEM_TYPE;
 
 class IRegister
@@ -108,7 +108,7 @@ public:
 	virtual void GetCpuState(CPUState& state)=0;
 	virtual bool IsBreakPoint(bit16 address)=0;
 	virtual void ClearBreakPoint(bit16 address)=0;
-	virtual bool SetExecute(bit16 address, unsigned long count)=0;
+	virtual bool SetExecute(bit16 address, int count)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
 	virtual void SetPC(bit16 address) = 0;

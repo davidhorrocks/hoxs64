@@ -29,6 +29,7 @@ private:
 	};
 	HWND m_hLvBreak;
 	HRESULT InitListViewColumns(HWND hWndListView);
+	HRESULT FillListView();
 };
 
 #endif

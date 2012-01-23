@@ -1,14 +1,29 @@
 #ifndef __CPU6502_H__
 #define __CPU6502_H__
 
-struct cb_break
+#include <map>
+
+struct BreakpointKey
 {
+	BreakpointKey();
+	BreakpointKey(int machine, bit16 address);
+	int machine;
 	bit16 address;
-	unsigned long count;
-	short value;
 };
 
-#define BREAK_LIST_SIZE 50
+struct BreakpointItem
+{
+	BreakpointItem();
+	BreakpointItem(int count);
+	int count;
+};
+
+struct LessBreakpointKey
+{
+	bool operator()(const BreakpointKey& x, const BreakpointKey& y);
+};
+
+#define BREAK_LIST_SIZE 65536
 
 #define psNEGATIVE	(0x80)
 #define psOVERFLOW	(0x40)
@@ -524,7 +539,7 @@ public:
 	virtual void GetCpuState(CPUState& state);
 	virtual bool IsBreakPoint(bit16 address);
 	virtual void ClearBreakPoint(bit16 address);
-	virtual bool SetExecute(bit16 address, unsigned long count);
+	virtual bool SetExecute(bit16 address, int count);
 	virtual void SetBreakOnInterruptTaken();
 	virtual void ClearBreakOnInterruptTaken();
 	virtual void SetPC(bit16 address);
@@ -555,16 +570,6 @@ public:
 	void SetBAHigh(ICLK sysclock);
 	void PreventClockOverflow();
 
-protected:
-	ICLK FirstIRQClock;
-	ICLK FirstNMIClock;
-	ICLK RisingIRQClock;
-	ICLK FirstBALowClock;
-	ICLK LastBAHighClock;
-	ICLK m_CurrentOpcodeClock;
-	bool m_bBALowInClock2OfSEI;
-
-public:
 	bit16 decode_array[256];
 	bit16u mPC;
 	bit8 mA;
@@ -592,22 +597,30 @@ public:
 	ICLK SOTriggerClock;
 
 	void ClearAll();
-	bool SetRead(bit16 address, short value, unsigned long count);
-	bool SetWrite(bit16 address, short value, unsigned long count);
-	void RemoveExecute(int index);
-	void RemoveRead(int index);
-	void RemoveWrite(int index);
+	bool SetRead(bit16 address, int count);
+	bool SetWrite(bit16 address, int count);
 	int CheckExecute(bit16 address);
 	int CheckRead(bit16 address);
 	int CheckWrite(bit16 address);
-	int FindExecuteIndex(bit16 address);
-	int FindReadIndex(bit16 address);
-	int FindWriteIndex(bit16 address);
 	void StartDebug();
 	void StopDebug();
+	bool IsWriteCycle();
+	bool IsOpcodeFetch();
+	bool IsInterruptInstruction();
+	bool GetBreakOnInterruptTaken();
 
 	bit8 m_bDebug;
-protected:	
+	static const InstructionInfo AssemblyData[256];
+
+protected:
+	ICLK FirstIRQClock;
+	ICLK FirstNMIClock;
+	ICLK RisingIRQClock;
+	ICLK FirstBALowClock;
+	ICLK LastBAHighClock;
+	ICLK m_CurrentOpcodeClock;
+	bool m_bBALowInClock2OfSEI;
+
 	void __forceinline code_add();
 	void __forceinline code_sub();
 	void __forceinline code_cmp();
@@ -616,14 +629,8 @@ protected:
 	virtual void check_interrupts1();
 	virtual void check_interrupts0();
 	
-	int br_execute_size;
-	int br_read_size;
-	int br_write_size;
-	cb_break br_execute[BREAK_LIST_SIZE];
-	cb_break br_read[BREAK_LIST_SIZE];
-	cb_break br_write[BREAK_LIST_SIZE];
-
 private:
+	void InitDecoder();
 	bit16u addr;
 	bit16u addr2;
 	bit16u ptr;
@@ -636,17 +643,10 @@ private:
 	unsigned int _r;
 	unsigned long _datalong;
 	bit8 axa_byte;
-	void InitDecoder();
-
-public:
-	static const InstructionInfo AssemblyData[256];
-	bool IsWriteCycle();
-	bool IsOpcodeFetch();
-	bool IsInterruptInstruction();
-	bool GetBreakOnInterruptTaken();
-
-	private:
-		bool m_bBreakOnInterruptTaken;
+	bool m_bBreakOnInterruptTaken;
+	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> MapBpExecute;
+	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> MapBpRead;
+	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> MapBpWrite;
 };
 
 #endif

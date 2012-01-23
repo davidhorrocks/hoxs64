@@ -1334,6 +1334,14 @@ void CApp::SoundOn()
 	SoundResume();
 }
 
+void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, int address, int count)
+{
+}
+
+void CApp::SetBreakpointDiskExecute(int address, int count)
+{
+}
+
 void CApp::TogglePause()
 {
 	MessageBeep(MB_ICONASTERISK);

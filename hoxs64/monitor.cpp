@@ -14,6 +14,19 @@
 #include "cevent.h"
 #include "monitor.h"
 
+SetBreakpointC64ExecuteEventArgs::SetBreakpointC64ExecuteEventArgs(MEM_TYPE memorymap, bit16 address, int count)
+{
+	this->Memorymap = memorymap;
+	this->Address = address;
+	this->Count = count;
+}
+
+SetBreakpointDiskExecuteEventArgs::SetBreakpointDiskExecuteEventArgs(bit16 address, int count)
+{
+	this->Address = address;
+	this->Count = count;
+}
+
 Monitor::Monitor()
 {
 	m_pMonitorMainCpu = NULL;
