@@ -16,7 +16,6 @@
 #include "c6502.h"
 #include "break_point.h"
 
-
 BreakpointKey::BreakpointKey()
 {
 	this->machine = 0;
@@ -29,17 +28,29 @@ BreakpointKey::BreakpointKey(int machine, bit16 address)
 	this->address = address;
 }
 
-bool LessBreakpointKey::operator()(const BreakpointKey& x, const BreakpointKey& y)
+int BreakpointKey::Compare(const BreakpointKey& y) const
 {
+const BreakpointKey& x = *this;
 	if (x.machine < y.machine)
-		return true;
+		return -1;
 	else if (x.machine > y.machine)
-		return false;
+		return 1;
 
 	if (x.address < y.address)
-		return true;
-		
-	return false;
+		return -1;		
+	else if (x.address > y.address)
+		return 1;
+	return 0;
+}
+
+bool BreakpointKey::operator<(const BreakpointKey& y) const
+{
+	return Compare(y) < 0;
+}
+
+bool LessBreakpointKey::operator()(const BreakpointKey& x, const BreakpointKey& y)
+{
+	return x<y;
 }
 
 BreakpointItem::BreakpointItem()
@@ -47,9 +58,47 @@ BreakpointItem::BreakpointItem()
 	this->count = 0;
 }
 
+BreakpointItem::BreakpointItem(int machine, bit16 address) 
+	: BreakpointKey(machine, address)
+{
+}
+
 BreakpointItem::BreakpointItem(int count)
 {
 	this->count = count;
+}
+
+CPU6502::BpEnum::BpEnum(BpMap &m) 
+	: m_map(m)
+{
+	Reset();
+}
+
+int CPU6502::BpEnum::GetCount()
+{
+	size_t c = m_map.size();
+	if (c > MAXLONG)
+		c = MAXLONG;
+	return (LONG)c;
+}
+bool CPU6502::BpEnum::GetNext(BreakpointItem& v)
+{
+	if (m_it == m_map.end())
+		return false;
+
+	v = m_it->second;
+	m_it++;
+	return true;
+}
+void CPU6502::BpEnum::Reset()
+{
+	this->m_it = m_map.begin();
+}
+
+IEnumBreakpointItem *CPU6502::GetEnumBreakpointExecute()
+{
+	BpEnum *r= new BpEnum(this->MapBpExecute);
+	return r;
 }
 
 void CPU6502::ClearAll()
@@ -109,7 +158,7 @@ bool CPU6502::SetWrite(bit16 address, int count)
 int CPU6502::CheckExecute(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
-	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey>::const_iterator it;
+	BpMap::const_iterator it;
 	it = MapBpExecute.find(key);
 	if (it == MapBpExecute.end())
 		return -1;
@@ -119,7 +168,7 @@ int CPU6502::CheckExecute(bit16 address)
 int CPU6502::CheckRead(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
-	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey>::const_iterator it;
+	BpMap::const_iterator it;
 	it = MapBpRead.find(key);
 	if (it == MapBpRead.end())
 		return -1;
@@ -129,7 +178,7 @@ int CPU6502::CheckRead(bit16 address)
 int CPU6502::CheckWrite(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
-	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey>::const_iterator it;
+	BpMap::const_iterator it;
 	it = MapBpWrite.find(key);
 	if (it == MapBpWrite.end())
 		return -1;

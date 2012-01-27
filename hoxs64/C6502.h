@@ -1,7 +1,9 @@
 #ifndef __CPU6502_H__
 #define __CPU6502_H__
 
+#include <list>
 #include <map>
+
 
 struct BreakpointKey
 {
@@ -9,13 +11,23 @@ struct BreakpointKey
 	BreakpointKey(int machine, bit16 address);
 	int machine;
 	bit16 address;
+	int Compare(const BreakpointKey& v) const;
+	bool operator<(const BreakpointKey& v) const;
 };
 
-struct BreakpointItem
+struct BreakpointItem : public BreakpointKey
 {
 	BreakpointItem();
+	BreakpointItem(int machine, bit16 address);
 	BreakpointItem(int count);
 	int count;
+};
+
+class IEnumBreakpointItem
+{
+	virtual int GetCount() = 0;
+	virtual bool GetNext(BreakpointItem& v) = 0;
+	virtual void Reset() = 0;
 };
 
 struct LessBreakpointKey
@@ -526,6 +538,21 @@ class CPU6502 : public IMonitorCpu, public IRegister, public ErrorMsg
 public:
 	CPU6502();
 	~CPU6502();
+
+	typedef std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> BpMap;
+	typedef std::map<BreakpointKey, BreakpointItem, LessBreakpointKey>::iterator BpIter;
+	struct BpEnum : IEnumBreakpointItem
+	{
+	public:
+		BpEnum(BpMap &m);
+		virtual int GetCount();
+		virtual bool GetNext(BreakpointItem& v);
+		virtual void Reset();
+	private:
+		BpMap& m_map;
+		BpIter m_it;
+	};
+
 	HRESULT Init(int ID);
 	void Cleanup();
 
@@ -550,6 +577,8 @@ public:
 	virtual void SetSP(bit8 v);
 	virtual void SetDdr(bit8 v);
 	virtual void SetData(bit8 v);
+
+	virtual IEnumBreakpointItem *GetEnumBreakpointExecute();
 
 	//IRegister
 	virtual void Reset(ICLK sysclock);
@@ -644,9 +673,9 @@ private:
 	unsigned long _datalong;
 	bit8 axa_byte;
 	bool m_bBreakOnInterruptTaken;
-	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> MapBpExecute;
-	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> MapBpRead;
-	std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> MapBpWrite;
+	BpMap MapBpExecute;
+	BpMap MapBpRead;
+	BpMap MapBpWrite;
 };
 
 #endif
