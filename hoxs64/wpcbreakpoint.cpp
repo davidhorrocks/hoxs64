@@ -3,15 +3,20 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
+#include <list>
 #include "defines.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
 #include "assert.h"
-
 #include "mlist.h"
 #include "carray.h"
+#include "register.h"
+#include "errormsg.h"
+#include "cevent.h"
+#include "monitor.h"
+
 #include "wpanel.h"
 #include "wpanelmanager.h"
 #include "wpcbreakpoint.h"
@@ -24,14 +29,16 @@ const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 WpcBreakpoint::WpcBreakpoint()
 {
 	m_hLvBreak = NULL;
+	m_pMonitor = NULL;
 }
 
 WpcBreakpoint::~WpcBreakpoint()
 {
 }
 
-HRESULT WpcBreakpoint::Init()
+HRESULT WpcBreakpoint::Init(Monitor *pMonitor)
 {
+	this->m_pMonitor = pMonitor;
 	return S_OK;
 }
 
@@ -82,35 +89,44 @@ HRESULT hr;
 	return 0;
 }
 
- HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
- {
-	 int r;
-	 LVCOLUMN lvc;
+HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
+{
+	int r;
+	LVCOLUMN lvc;
 
-	 ZeroMemory(&lvc, sizeof(lvc));
-	 lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
-	 lvc.iSubItem = (int)LvBreakColumnIndex::Cpu;
-	 lvc.fmt = LVCFMT_LEFT;
-	 lvc.pszText = TEXT("CPU");
-	 lvc.cx = 100;
-	 r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cpu, &lvc);
-	 if (r == -1)
-		 return E_FAIL;
+	ZeroMemory(&lvc, sizeof(lvc));
+	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+	lvc.iSubItem = (int)LvBreakColumnIndex::Cpu;
+	lvc.fmt = LVCFMT_LEFT;
+	lvc.pszText = TEXT("CPU");
+	lvc.cx = 100;
+	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cpu, &lvc);
+	if (r == -1)
+		return E_FAIL;
 
-	 ZeroMemory(&lvc, sizeof(lvc));
-	 lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
-	 lvc.iSubItem = (int)LvBreakColumnIndex::Address;
-	 lvc.fmt = LVCFMT_LEFT;
-	 lvc.pszText = TEXT("Address");
-	 lvc.cx = 100;
-	 r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
-	 if (r == -1)
-		 return E_FAIL;
-	 return S_OK;
+	ZeroMemory(&lvc, sizeof(lvc));
+	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+	lvc.iSubItem = (int)LvBreakColumnIndex::Address;
+	lvc.fmt = LVCFMT_LEFT;
+	lvc.pszText = TEXT("Address");
+	lvc.cx = 100;
+	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
+	if (r == -1)
+		return E_FAIL;
+	return S_OK;
 }
 
 HRESULT WpcBreakpoint::FillListView()
 {
+	//typedef std::list<BreakpointItem> LstBrk;
+	//LstBrk lst;
+	//
+	//BreakpointItem v;
+	//IEnumBreakpointItem *pEnumBp = m_pMonitor->GetMainCpu()->CreateEnumBreakpointExecute();
+	//while (pEnumBp->GetNext(v))
+	//{
+
+	//}
 	return S_OK;
 }
 

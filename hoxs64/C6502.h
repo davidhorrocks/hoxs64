@@ -1,40 +1,6 @@
 #ifndef __CPU6502_H__
 #define __CPU6502_H__
 
-#include <list>
-#include <map>
-
-
-struct BreakpointKey
-{
-	BreakpointKey();
-	BreakpointKey(int machine, bit16 address);
-	int machine;
-	bit16 address;
-	int Compare(const BreakpointKey& v) const;
-	bool operator<(const BreakpointKey& v) const;
-};
-
-struct BreakpointItem : public BreakpointKey
-{
-	BreakpointItem();
-	BreakpointItem(int machine, bit16 address);
-	BreakpointItem(int count);
-	int count;
-};
-
-class IEnumBreakpointItem
-{
-	virtual int GetCount() = 0;
-	virtual bool GetNext(BreakpointItem& v) = 0;
-	virtual void Reset() = 0;
-};
-
-struct LessBreakpointKey
-{
-	bool operator()(const BreakpointKey& x, const BreakpointKey& y);
-};
-
 #define BREAK_LIST_SIZE 65536
 
 #define psNEGATIVE	(0x80)
@@ -531,7 +497,7 @@ typedef struct {
 #define CPU6502_LOAD_PCH(v) mPC.byte.hiByte=v
 #define CPU6502_IDLE_READ(addr) ReadByte(addr);
 
-class DiskInterface;
+//using namespace std;
 
 class CPU6502 : public IMonitorCpu, public IRegister, public ErrorMsg
 {
@@ -539,19 +505,8 @@ public:
 	CPU6502();
 	~CPU6502();
 
-	typedef std::map<BreakpointKey, BreakpointItem, LessBreakpointKey> BpMap;
-	typedef std::map<BreakpointKey, BreakpointItem, LessBreakpointKey>::iterator BpIter;
-	struct BpEnum : IEnumBreakpointItem
-	{
-	public:
-		BpEnum(BpMap &m);
-		virtual int GetCount();
-		virtual bool GetNext(BreakpointItem& v);
-		virtual void Reset();
-	private:
-		BpMap& m_map;
-		BpIter m_it;
-	};
+	typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
+	typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterator BpIter;
 
 	HRESULT Init(int ID);
 	void Cleanup();
@@ -577,8 +532,7 @@ public:
 	virtual void SetSP(bit8 v);
 	virtual void SetDdr(bit8 v);
 	virtual void SetData(bit8 v);
-
-	virtual IEnumBreakpointItem *GetEnumBreakpointExecute();
+	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute();
 
 	//IRegister
 	virtual void Reset(ICLK sysclock);
@@ -659,6 +613,18 @@ protected:
 	virtual void check_interrupts0();
 	
 private:
+	struct BpEnum : IEnumBreakpointItem
+	{
+	public:
+		BpEnum(BpMap &m);
+		virtual int GetCount();
+		virtual bool GetNext(Sp_BreakpointItem& v);
+		virtual void Reset();
+	private:
+		BpMap& m_map;
+		BpIter m_it;
+	};
+
 	void InitDecoder();
 	bit16u addr;
 	bit16u addr2;

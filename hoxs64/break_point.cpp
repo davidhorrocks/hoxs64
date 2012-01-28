@@ -16,6 +16,7 @@
 #include "c6502.h"
 #include "break_point.h"
 
+
 BreakpointKey::BreakpointKey()
 {
 	this->machine = 0;
@@ -43,14 +44,24 @@ const BreakpointKey& x = *this;
 	return 0;
 }
 
+bool BreakpointKey::operator==(const BreakpointKey& y) const
+{
+	return Compare(y) == 0;
+}
+
 bool BreakpointKey::operator<(const BreakpointKey& y) const
 {
 	return Compare(y) < 0;
 }
 
-bool LessBreakpointKey::operator()(const BreakpointKey& x, const BreakpointKey& y)
+bool BreakpointKey::operator>(const BreakpointKey& y) const
 {
-	return x<y;
+	return Compare(y) > 0;
+}
+
+bool LessBreakpointKey::operator()(const Sp_BreakpointKey& x, const Sp_BreakpointKey& y)
+{
+	return *x < *y;
 }
 
 BreakpointItem::BreakpointItem()
@@ -58,12 +69,8 @@ BreakpointItem::BreakpointItem()
 	this->count = 0;
 }
 
-BreakpointItem::BreakpointItem(int machine, bit16 address) 
+BreakpointItem::BreakpointItem(int machine, bit16 address, int count) 
 	: BreakpointKey(machine, address)
-{
-}
-
-BreakpointItem::BreakpointItem(int count)
 {
 	this->count = count;
 }
@@ -81,13 +88,13 @@ int CPU6502::BpEnum::GetCount()
 		c = MAXLONG;
 	return (LONG)c;
 }
-bool CPU6502::BpEnum::GetNext(BreakpointItem& v)
+bool CPU6502::BpEnum::GetNext(Sp_BreakpointItem& v)
 {
-	if (m_it == m_map.end())
-		return false;
+	//if (m_it == m_map.end())
+	//	return false;
 
-	v = m_it->second;
-	m_it++;
+	//v = m_it->second;
+	//m_it++;
 	return true;
 }
 void CPU6502::BpEnum::Reset()
@@ -95,7 +102,7 @@ void CPU6502::BpEnum::Reset()
 	this->m_it = m_map.begin();
 }
 
-IEnumBreakpointItem *CPU6502::GetEnumBreakpointExecute()
+IEnumBreakpointItem *CPU6502::CreateEnumBreakpointExecute()
 {
 	BpEnum *r= new BpEnum(this->MapBpExecute);
 	return r;
@@ -128,9 +135,12 @@ bool CPU6502::SetExecute(bit16 address, int count)
 {
 	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
 		return false;
-	BreakpointKey key(this->ID, address);
-	BreakpointItem vl = BreakpointItem(count);
-	MapBpExecute[key] = vl;
+	
+	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, count));
+	Sp_BreakpointItem k(new BreakpointItem(this->ID, address, count));
+	if (k == 0 || v == 0)
+		return false;
+	MapBpExecute[k] = v;
 	return true;
 }
 
@@ -138,9 +148,11 @@ bool CPU6502::SetRead(bit16 address, int count)
 {
 	if (MapBpRead.size() >= BREAK_LIST_SIZE)
 		return false;
-	BreakpointKey key(this->ID, address);
-	BreakpointItem vl = BreakpointItem(count);
-	MapBpRead[key] = vl;
+	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, count));
+	Sp_BreakpointItem k(new BreakpointItem(this->ID, address, count));
+	if (k == 0 || v == 0)
+		return false;
+	MapBpRead[k] = v;
 	return true;
 }
 
@@ -149,17 +161,20 @@ bool CPU6502::SetWrite(bit16 address, int count)
 {
 	if (MapBpWrite.size() >= BREAK_LIST_SIZE)
 		return false;
-	BreakpointKey key(this->ID, address);
-	BreakpointItem vl = BreakpointItem(count);
-	MapBpWrite[key] = vl;
+	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, count));
+	Sp_BreakpointItem k(new BreakpointItem(this->ID, address, count));
+	if (k == 0 || v == 0)
+		return false;
+	MapBpWrite[k] = v;
 	return true;
 }
 
 int CPU6502::CheckExecute(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
+	Sp_BreakpointKey k(&key, null_deleter());
 	BpMap::const_iterator it;
-	it = MapBpExecute.find(key);
+	it = MapBpExecute.find(k);
 	if (it == MapBpExecute.end())
 		return -1;
 	return 0;
@@ -168,8 +183,9 @@ int CPU6502::CheckExecute(bit16 address)
 int CPU6502::CheckRead(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
+	Sp_BreakpointKey k(&key, null_deleter());
 	BpMap::const_iterator it;
-	it = MapBpRead.find(key);
+	it = MapBpRead.find(k);
 	if (it == MapBpRead.end())
 		return -1;
 	return 0;
@@ -178,8 +194,9 @@ int CPU6502::CheckRead(bit16 address)
 int CPU6502::CheckWrite(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
+	Sp_BreakpointKey k(&key, null_deleter());
 	BpMap::const_iterator it;
-	it = MapBpWrite.find(key);
+	it = MapBpWrite.find(k);
 	if (it == MapBpWrite.end())
 		return -1;
 	return 0;
@@ -188,11 +205,12 @@ int CPU6502::CheckWrite(bit16 address)
 bool CPU6502::IsBreakPoint(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
-	if (MapBpExecute.find(key) != MapBpExecute.end())
+	Sp_BreakpointKey k(&key, null_deleter());
+	if (MapBpExecute.find(k) != MapBpExecute.end())
 		return true;
-	if (MapBpRead.find(key) != MapBpRead.end())
+	if (MapBpRead.find(k) != MapBpRead.end())
 		return true;
-	if (MapBpWrite.find(key) != MapBpWrite.end())
+	if (MapBpWrite.find(k) != MapBpWrite.end())
 		return true;
 	return false;
 }
@@ -201,9 +219,11 @@ bool CPU6502::IsBreakPoint(bit16 address)
 void CPU6502::ClearBreakPoint(bit16 address)
 {
 	BreakpointKey key(this->ID, address);
-	this->MapBpExecute.erase(key);
-	this->MapBpRead.erase(key);
-	this->MapBpWrite.erase(key);
+	Sp_BreakpointKey k(&key, null_deleter());
+	this->MapBpExecute.erase(k);
+	this->MapBpRead.erase(k);
+	this->MapBpWrite.erase(k);
+
 }
 
 void CPU6502::StartDebug()

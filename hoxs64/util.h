@@ -1,6 +1,13 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
+struct null_deleter
+{
+    void operator()(void const *) const
+    {
+    }
+};
+
 namespace HCFG
 {
 	typedef enum tagAUDIOSPEED

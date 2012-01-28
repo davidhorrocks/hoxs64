@@ -1,6 +1,9 @@
 #ifndef __REGISTER_H__
 #define __REGISTER_H__
 
+#include <list>
+#include <map>
+
 typedef enum tagMemoryType : int
 {
 	MT_RAM = 1,
@@ -91,6 +94,42 @@ struct CPUState
 	bool IsInterruptInstruction;
 };
 
+struct BreakpointKey
+{
+	BreakpointKey();
+	BreakpointKey(int machine, bit16 address);
+	int machine;
+	bit16 address;
+	int Compare(const BreakpointKey& v) const;
+	bool operator<(const BreakpointKey& v) const;
+	bool operator>(const BreakpointKey& v) const;
+	bool operator==(const BreakpointKey& y) const;
+};
+
+struct BreakpointItem : public BreakpointKey
+{
+	BreakpointItem();
+	BreakpointItem(int machine, bit16 address, int count);
+	int count;
+};
+
+typedef std::shared_ptr<BreakpointKey> Sp_BreakpointKey;
+typedef std::shared_ptr<BreakpointItem> Sp_BreakpointItem;
+
+class IEnumBreakpointItem
+{
+public:
+	virtual int GetCount() = 0;
+	virtual bool GetNext(Sp_BreakpointItem& v) = 0;
+	virtual void Reset() = 0;
+};
+
+struct LessBreakpointKey
+{
+	bool operator()(const Sp_BreakpointKey& x, const Sp_BreakpointKey& y);
+};
+
+
 class IMonitorCpu
 {
 public:
@@ -119,6 +158,7 @@ public:
 	virtual void SetSP(bit8 v) = 0;
 	virtual void SetDdr(bit8 v) = 0;
 	virtual void SetData(bit8 v) = 0;
+	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute() = 0;
 };
 
 

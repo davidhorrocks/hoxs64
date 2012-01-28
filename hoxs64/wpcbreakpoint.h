@@ -10,7 +10,7 @@ public:
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 
-	HRESULT Init();
+	HRESULT Init(Monitor *pMonitor);
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -30,6 +30,7 @@ private:
 	HWND m_hLvBreak;
 	HRESULT InitListViewColumns(HWND hWndListView);
 	HRESULT FillListView();
+	Monitor *m_pMonitor;
 };
 
 #endif

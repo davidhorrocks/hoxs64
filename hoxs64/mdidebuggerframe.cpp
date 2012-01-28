@@ -256,7 +256,7 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return hr;
 
 	WpcBreakpoint *pWin = new WpcBreakpoint();	
-	hr = pWin->Init();
+	hr = pWin->Init(&m_monitorC64);
 	if (SUCCEEDED(hr))
 	{
 		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, pWin);
