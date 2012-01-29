@@ -118,15 +118,20 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 
 HRESULT WpcBreakpoint::FillListView()
 {
-	//typedef std::list<BreakpointItem> LstBrk;
-	//LstBrk lst;
-	//
-	//BreakpointItem v;
-	//IEnumBreakpointItem *pEnumBp = m_pMonitor->GetMainCpu()->CreateEnumBreakpointExecute();
-	//while (pEnumBp->GetNext(v))
-	//{
+	typedef std::list<Sp_BreakpointItem> LstBrk;
+	LstBrk lst;
+	
+	Sp_BreakpointItem v;
+	IEnumBreakpointItem *pEnumBp = m_pMonitor->GetMainCpu()->CreateEnumBreakpointExecute();
+	while (pEnumBp->GetNext(v))
+	{
+		lst.push_back(v);
+	}
 
-	//}
+	for (LstBrk::const_iterator it = lst.begin(); it != lst.end(); it++)
+	{
+		//ListView_InsertColumn
+	}
 	return S_OK;
 }
 
