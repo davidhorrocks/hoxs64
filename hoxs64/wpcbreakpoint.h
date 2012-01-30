@@ -28,9 +28,11 @@ private:
 		};
 	};
 	HWND m_hLvBreak;
+	HWND CreateListView(CREATESTRUCT *pcs, HWND hWndParent);
 	HRESULT InitListViewColumns(HWND hWndListView);
 	HRESULT FillListView();
 	Monitor *m_pMonitor;
+	CDPI m_dpi;
 };
 
 #endif

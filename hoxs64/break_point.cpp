@@ -75,36 +75,40 @@ BreakpointItem::BreakpointItem(int machine, bit16 address, int count)
 	this->count = count;
 }
 
-CPU6502::BpEnum::BpEnum(BpMap &m) 
-	: m_map(m)
+CPU6502::BpEnum::BpEnum(BpMap *m) 
 {
+	m_map = m;
 	Reset();
 }
 
 int CPU6502::BpEnum::GetCount()
 {
-	size_t c = m_map.size();
+	size_t c = m_map->size();
 	if (c > MAXLONG)
 		c = MAXLONG;
 	return (LONG)c;
 }
 bool CPU6502::BpEnum::GetNext(Sp_BreakpointItem& v)
 {
-	//if (m_it == m_map.end())
-	//	return false;
+	if (m_it == m_map->end())
+		return false;
 
-	//v = m_it->second;
-	//m_it++;
+	v = m_it->second;
+	m_it++;
 	return true;
 }
 void CPU6502::BpEnum::Reset()
 {
-	this->m_it = m_map.begin();
+	this->m_it = m_map->begin();
+}
+
+CPU6502::BpEnum::~BpEnum()
+{
 }
 
 IEnumBreakpointItem *CPU6502::CreateEnumBreakpointExecute()
 {
-	BpEnum *r= new BpEnum(this->MapBpExecute);
+	BpEnum *r= new BpEnum(&this->MapBpExecute);
 	return r;
 }
 

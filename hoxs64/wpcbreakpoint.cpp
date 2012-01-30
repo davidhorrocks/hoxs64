@@ -75,18 +75,43 @@ HRESULT hr;
 	CREATESTRUCT *pcs = (CREATESTRUCT *)lParam;
 	if (pcs == NULL)
 		return -1;
-	RECT rcWin;
-	GetClientRect(hWnd, &rcWin);
-	m_hLvBreak = CreateWindowEx(0, WC_LISTVIEWW, TEXT(""), WS_CHILD | WS_VISIBLE | LVS_REPORT, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, hWnd, (HMENU)LVBREAKPOINT, pcs->hInstance, NULL);
+	m_hLvBreak = CreateListView(pcs, hWnd);
 	if (!m_hLvBreak)
-		return -1;
-	hr = InitListViewColumns(m_hLvBreak);
-	if (FAILED(hr))
 		return -1;
 	hr = FillListView();
 	if (FAILED(hr))
 		return -1;
 	return 0;
+}
+
+HWND WpcBreakpoint::CreateListView(CREATESTRUCT *pcs, HWND hWndParent)
+{
+HRESULT hr;
+RECT rcWin;
+HWND hWnd = NULL;
+HIMAGELIST hLarge = NULL;
+HIMAGELIST hSmall = NULL;
+
+	const ImageInfo lvImageList[] = 
+	{
+		{IDB_BREAK, 0}
+	};
+
+	//hLarge = G::CreateImageListNormal(pcs->hInstance, hWndParent, m_dpi.ScaleX(GetSystemMetrics(SM_CXICON)), m_dpi.ScaleY(GetSystemMetrics(SM_CYICON)), lvImageList, 1);
+	
+
+	GetClientRect(hWndParent, &rcWin);
+	hWnd = CreateWindowEx(0, WC_LISTVIEWW, TEXT(""), WS_CHILD | WS_VISIBLE | LVS_REPORT, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, hWndParent, (HMENU)LVBREAKPOINT, pcs->hInstance, NULL);
+	if (!hWnd)
+		return NULL;
+
+
+	hr = InitListViewColumns(hWnd);
+	if (FAILED(hr))
+		return NULL;
+
+	return hWnd;
+
 }
 
 HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
@@ -123,14 +148,18 @@ HRESULT WpcBreakpoint::FillListView()
 	
 	Sp_BreakpointItem v;
 	IEnumBreakpointItem *pEnumBp = m_pMonitor->GetMainCpu()->CreateEnumBreakpointExecute();
-	while (pEnumBp->GetNext(v))
+	if (pEnumBp)
 	{
-		lst.push_back(v);
-	}
+		while (pEnumBp->GetNext(v))
+		{
+			lst.push_back(v);
+		}
 
-	for (LstBrk::const_iterator it = lst.begin(); it != lst.end(); it++)
-	{
-		//ListView_InsertColumn
+		for (LstBrk::const_iterator it = lst.begin(); it != lst.end(); it++)
+		{
+			//ListView_InsertColumn
+		}
+		delete pEnumBp;
 	}
 	return S_OK;
 }

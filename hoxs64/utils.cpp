@@ -1699,3 +1699,128 @@ bool fail = false;
 	}
 	return hImageList;
 }
+
+HWND G::CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid, int bmpid)
+{
+RECT rect;
+BOOL br;
+HWND hWndRB = NULL;
+REBARINFO     rbi;
+REBARBANDINFO rbBand;
+DWORD_PTR dwBtnSize;
+
+		br = GetWindowRect(hWnd, &rect);
+		if (!br)
+			return NULL;
+		hWndRB = CreateWindowEx(WS_EX_TOOLWINDOW,
+			REBARCLASSNAME,//class name
+			NULL,//Title
+			WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|WS_CLIPCHILDREN|RBS_VARHEIGHT|CCS_NODIVIDER,
+			0,0,0,0,
+			hWnd,//Parent
+			(HMENU) LongToPtr(rebarid),//Menu
+			hInst,//application instance
+			NULL);
+
+		if (hWndRB == NULL)
+			return NULL;
+
+		// Initialize and send the REBARINFO structure.
+		::ZeroMemory(&rbi, sizeof(REBARINFO));
+		rbi.cbSize = sizeof(REBARINFO);  // Required when using this
+		// structure.
+		rbi.fMask  = 0;
+		rbi.himl   = (HIMAGELIST)NULL;
+		if(!SendMessage(hWndRB, RB_SETBARINFO, 0, (LPARAM)&rbi))
+			return NULL;
+
+		// Initialize structure members that both bands will share.
+		::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
+		rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
+		rbBand.fMask  = RBBIM_COLORS | RBBIM_STYLE | RBBIM_BACKGROUND | RBBIM_CHILD  | RBBIM_CHILDSIZE | RBBIM_SIZE;// | RBBIM_TEXT
+		rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP | RBBS_GRIPPERALWAYS;
+		rbBand.clrFore = GetSysColor(COLOR_BTNTEXT);
+		rbBand.clrBack = GetSysColor(COLOR_BTNFACE);
+		rbBand.hbmBack = LoadBitmap(hInst, MAKEINTRESOURCE(bmpid));   
+   
+		// Get the height of the toolbar.
+		dwBtnSize = SendMessage(hwndTB, TB_GETBUTTONSIZE, 0,0);
+
+		// Set values unique to the band with the toolbar.
+		rbBand.lpText     = TEXT("Tool Bar");
+		rbBand.hwndChild  = hwndTB;
+		rbBand.cxMinChild = HIWORD(dwBtnSize);
+		rbBand.cyMinChild = HIWORD(dwBtnSize);
+		rbBand.cx         = 250;
+
+		// Add the band that has the toolbar.
+		SendMessage(hWndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);		
+
+		return hWndRB;
+}
+
+HWND G::CreateToolBar(HINSTANCE hInst, HWND hWnd, int toolbarid, HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight)
+{
+HWND hwndTB = NULL;
+HWND ret = NULL;
+int i;
+LRESULT lr = 0;
+TBBUTTON* tbArray = NULL;
+HIMAGELIST hOldImageList = NULL;
+
+	int ok=0;
+	for (; ok==0; ok++)
+	{
+		hwndTB = ::CreateWindowEx(0, TOOLBARCLASSNAME, 	(LPTSTR) NULL, 
+			WS_CLIPCHILDREN | WS_CLIPSIBLINGS |	WS_CHILD | 	TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER // | CCS_ADJUSTABLE
+			, 0, 0, 0, 0, 
+			hWnd, 
+			(HMENU) LongToPtr(toolbarid), 
+			hInst, 
+			NULL
+		);
+		if (!hwndTB)
+			break;
+		SendMessage(hwndTB, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
+		lr = SendMessage(hwndTB, TB_SETBUTTONSIZE, 0, MAKELONG(buttonWidth, buttonHeight));
+		if (!lr) 
+			break;
+		hOldImageList = (HIMAGELIST)SendMessage(hwndTB, TB_SETIMAGELIST, 0, (LPARAM)hImageListToolBarNormal);
+
+		tbArray = new TBBUTTON[length];
+
+		if (!tbArray) 
+			break;
+
+		for (i=0; i<length; i++)
+		{
+			ZeroMemory(&tbArray[i], sizeof(TBBUTTON));		
+			tbArray[i].iBitmap = i;
+			tbArray[i].idCommand = buttonInfo[i].CommandId;
+			tbArray[i].fsStyle = BTNS_BUTTON;
+			tbArray[i].fsState = TBSTATE_ENABLED;
+			tbArray[i].iString = -1;//(INT_PTR)TB_ImageListIDs[i].ButtonText;
+		}
+	
+		lr = SendMessage(hwndTB, TB_ADDBUTTONS, length, (LPARAM)tbArray);
+
+	}
+	if (ok)
+	{
+		ret = hwndTB;
+		hwndTB = NULL;
+	}
+	else
+	{
+		if (hwndTB)
+		{
+			if (hOldImageList)
+				SendMessage(hwndTB, TB_SETIMAGELIST, 0, (LPARAM)hOldImageList);
+		}
+	}
+	if (tbArray)
+	{	
+		delete[] tbArray;
+	}
+	return ret;
+}

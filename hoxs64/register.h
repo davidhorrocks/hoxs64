@@ -4,6 +4,12 @@
 #include <list>
 #include <map>
 
+class IBase
+{
+protected:
+	virtual ~IBase(){};
+};
+
 typedef enum tagMemoryType : int
 {
 	MT_RAM = 1,
@@ -116,7 +122,7 @@ struct BreakpointItem : public BreakpointKey
 typedef std::shared_ptr<BreakpointKey> Sp_BreakpointKey;
 typedef std::shared_ptr<BreakpointItem> Sp_BreakpointItem;
 
-class IEnumBreakpointItem
+class IEnumBreakpointItem : IBase
 {
 public:
 	virtual int GetCount() = 0;

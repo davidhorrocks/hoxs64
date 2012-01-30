@@ -141,8 +141,6 @@ private:
 	CDisassemblyChild m_DisassemblyChild;
 	CDisassemblyReg m_DisassemblyReg;
 
-	HWND CreateRebar(HWND hwndTB);
-	HWND CreateToolBar(HIMAGELIST hImageListToolBarNormal);
 	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	HWND CreateDisassemblyChild(int x, int y, int w, int h);
 	HWND CreateDisassemblyReg(int x, int y, int w, int h);

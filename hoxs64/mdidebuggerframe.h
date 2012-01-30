@@ -97,8 +97,6 @@ private:
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);
 
 	HRESULT CreateMDIToolBars();
-	HWND CreateRebar(HWND hwndTB);
-	HWND CreateToolBar(HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight);
 	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	void OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void Cleanup();

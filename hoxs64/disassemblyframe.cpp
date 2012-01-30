@@ -247,112 +247,12 @@ HWND CDisassemblyFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR
 	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);	
 }
 
-HWND CDisassemblyFrame::CreateRebar(HWND hwndTB)
-{
-RECT rect;
-BOOL br;
-HWND hWndRB = NULL;
-REBARINFO     rbi;
-REBARBANDINFO rbBand;
-DWORD_PTR dwBtnSize;
-
-		br = GetWindowRect(m_hWnd, &rect);
-		if (!br)
-			return NULL;
-		hWndRB = CreateWindowEx(WS_EX_TOOLWINDOW,
-			REBARCLASSNAME,//class name
-			NULL,//Title
-			WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|WS_CLIPCHILDREN|RBS_VARHEIGHT|CCS_NODIVIDER,
-			0,0,0,0,
-			m_hWnd,//Parent
-			(HMENU) LongToPtr(ID_RERBAR),//Menu
-			m_hInst,//application instance
-			NULL);
-
-		if (hWndRB == NULL)
-			return NULL;
-
-		// Initialize and send the REBARINFO structure.
-		::ZeroMemory(&rbi, sizeof(REBARINFO));
-		rbi.cbSize = sizeof(REBARINFO);  // Required when using this
-		// structure.
-		rbi.fMask  = 0;
-		rbi.himl   = (HIMAGELIST)NULL;
-		if(!SendMessage(hWndRB, RB_SETBARINFO, 0, (LPARAM)&rbi))
-			return NULL;
-
-		// Initialize structure members that both bands will share.
-		::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
-		rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
-		rbBand.fMask  = RBBIM_COLORS | RBBIM_STYLE | RBBIM_BACKGROUND | RBBIM_CHILD  | RBBIM_CHILDSIZE | RBBIM_SIZE;// | RBBIM_TEXT
-		rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP;
-		rbBand.clrFore = GetSysColor(COLOR_BTNTEXT);
-		rbBand.clrBack = GetSysColor(COLOR_BTNFACE);
-		rbBand.hbmBack = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));   
-   
-		// Get the height of the toolbar.
-		dwBtnSize = SendMessage(hwndTB, TB_GETBUTTONSIZE, 0,0);
-
-		// Set values unique to the band with the toolbar.
-		rbBand.lpText     = TEXT("Tool Bar");
-		rbBand.hwndChild  = hwndTB;
-		rbBand.cxMinChild = 0;
-		rbBand.cyMinChild = HIWORD(dwBtnSize);
-		rbBand.cx         = 250;
-
-		// Add the band that has the toolbar.
-		SendMessage(hWndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);		
-
-		return hWndRB;
-}
-
 HIMAGELIST CDisassemblyFrame::CreateImageListNormal(HWND hWnd)
 {
 	int tool_dx = m_dpi.ScaleX(TOOLBUTTON_WIDTH_96);
 	int tool_dy = m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96);
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
-
-HWND CDisassemblyFrame::CreateToolBar(HIMAGELIST hImageListToolBarNormal)
-{
-HWND hwndTB = NULL;
-int i;
-LRESULT lr = 0;
-
-	hwndTB = CreateWindowEx(0, TOOLBARCLASSNAME, (LPTSTR) NULL, 
-		WS_CLIPCHILDREN | WS_CLIPSIBLINGS |	WS_CHILD | 	TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NORESIZE | CCS_NODIVIDER
-		, 0, 0, 0, 0, 
-		m_hWnd, 
-		(HMENU) LongToPtr(ID_TOOLBAR), 
-		m_hInst, 
-		NULL
-	); 
-
-	lr = SendMessage(hwndTB, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
-
-	lr = SendMessage(hwndTB, TB_SETBUTTONSIZE, 0, MAKELONG(m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96)));
-
-	lr = SendMessage(hwndTB, TB_SETIMAGELIST, 0, (LPARAM)hImageListToolBarNormal);
-
-	//lr = SendMessage(hwndTB, TB_ADDSTRING, 0,  (LPARAM)TEXT("TEST A\0TESTB\0"));
-
-
-	TBBUTTON tbArray[TOOLBUTTON_COUNT];
-	for (i=0; i<_countof(tbArray); i++)
-	{
-		ZeroMemory(&tbArray[i], sizeof(TBBUTTON));		
-		tbArray[i].iBitmap = TB_StepButtons[i].ImageIndex;
-		tbArray[i].idCommand = TB_StepButtons[i].CommandId;
-		tbArray[i].fsStyle = BTNS_BUTTON;
-		tbArray[i].fsState = TBSTATE_ENABLED;
-		tbArray[i].iString = -1;
-	}
-	
-	lr = SendMessage(hwndTB, TB_ADDBUTTONS, TOOLBUTTON_COUNT, (LPARAM)tbArray);
-	
-	return hwndTB;
-}
-
 
 void CDisassemblyFrame::EnsureWindowPosition(int x, int y, int w, int h)
 {
@@ -708,10 +608,10 @@ HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 	m_hImageListToolBarNormal = CreateImageListNormal(hWnd);
 	if (m_hImageListToolBarNormal == NULL)
 		return E_FAIL;
-	m_hWndTooBar = CreateToolBar(m_hImageListToolBarNormal);
+	m_hWndTooBar = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, TB_StepButtons, _countof(TB_StepButtons), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
 	if (m_hWndTooBar == NULL)
 		return E_FAIL;
-	m_hWndRebar = CreateRebar(m_hWndTooBar);
+	m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBar, ID_RERBAR, IDB_REBARBKGND1);
 	if (m_hWndRebar == NULL)
 		return E_FAIL;
 
