@@ -45,6 +45,9 @@
 #include "C64.h"
 #include "c64file.h"
 
+#include "cevent.h"
+#include "monitor.h"
+
 #include "prgbrowse.h"
 #include "diagkeyboard.h"
 #include "diagjoystick.h"
@@ -52,6 +55,16 @@
 #include "diagnewblankdisk.h"
 #include "diagabout.h"
 #include "diagfilesaved64.h"
+
+#include "edln.h"
+#include "wpanel.h"
+#include "wpanelmanager.h"
+#include "wpcbreakpoint.h"
+#include "disassemblyreg.h"
+#include "disassemblyeditchild.h"
+#include "disassemblychild.h"
+#include "disassemblyframe.h"
+#include "mdidebuggerframe.h"
 
 #include "cevent.h"
 #include "monitor.h"
@@ -75,6 +88,7 @@ CAppWindow::CAppWindow()
 	dx = NULL;
 	hCursorBusy = LoadCursor(0L, IDC_WAIT);
 	hOldCursor = NULL;
+	m_pMDIDebugger = NULL;
 }
 
 HRESULT CAppWindow::Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
@@ -1072,3 +1086,58 @@ struct tabpageitem CAppWindow::m_tabPagesSetting[5]=
 	}
 };
 
+HWND CAppWindow::ShowDevelopment()
+{
+HWND hWnd = NULL;
+CMDIDebuggerFrame *pwin = NULL;
+HRESULT hr;
+
+	bool ok = false;
+	appStatus->SoundHalt();
+	c64->SynchroniseDevicesWithVIC();
+	appStatus->m_bRunning = FALSE;
+	appStatus->m_bDebug = TRUE;
+	if (m_pMDIDebugger == NULL)
+	{
+		pwin = m_pMDIDebugger = new CMDIDebuggerFrame();
+	}
+	if (m_pMDIDebugger != NULL)
+	{
+		hr = m_pMDIDebugger->Init(this->m_monitorCommand, this->cfg, this->appStatus, this->c64);
+		if (SUCCEEDED(hr))
+		{
+			m_pMDIDebugger->m_AutoDelete = true;
+			bool bWasClosed = m_pMDIDebugger->GetHwnd() == NULL;
+			HWND hWnd = m_pMDIDebugger->Show(this);
+			if (hWnd != 0)
+			{
+				this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
+				if (bWasClosed)
+				{
+					m_pMDIDebugger->ShowDebugCpuDisk(true);
+					m_pMDIDebugger->ShowDebugCpuC64(true);
+				}
+				this->emuWin.UpdateC64Window();
+				ok = true;
+			}
+		}
+		else
+		{
+			MessageBox(0L, TEXT("Unable to initialise the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
+		}
+	}
+	else
+	{
+		MessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
+	}
+	if (!ok)
+	{
+		if (pwin)
+			delete pwin;
+
+		m_pMDIDebugger = NULL;
+		m_monitorCommand->Resume();
+		m_monitorCommand->ShowDevelopment
+	}
+	return hWnd;
+}

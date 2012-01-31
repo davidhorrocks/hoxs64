@@ -93,7 +93,7 @@ private:
 	int m_posY;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	bool m_MinSizeDone;
+	//bool m_MinSizeDone;
 	int m_iInsertionPoint;
 	int m_iShowCaretCount;
 

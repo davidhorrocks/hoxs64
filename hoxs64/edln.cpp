@@ -62,7 +62,14 @@ void EdLn::InitVars()
 	m_iInsertionPoint = 0;
 	m_iShowCaretCount = 0;
 	m_bIsVisible = true;
+	m_posX = 0;
+	m_posY = 0;
+
+	m_MinSizeW = 0;
+	m_MinSizeH = 0;
+	//m_MinSizeDone = false;
 }
+
 
 EdLn::~EdLn()
 {

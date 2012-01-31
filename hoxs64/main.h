@@ -43,8 +43,6 @@ public:
 	virtual void CAppStatus::ApplyConfig(const CConfig& newcfg);
 	// CAppStatus
 
-	HWND ShowDevelopment(CVirWindow *parent);
-
 	// IMonitorCommand
 	virtual void IMonitorCommand::Resume();
 	virtual void IMonitorCommand::Trace();
@@ -64,7 +62,7 @@ public:
 
 	
 	CAppWindow appWindow;
-	CMDIDebuggerFrame MDIDebugger;
+	
 
 	//IC64Event
 	virtual void BreakExecuteCpu64();

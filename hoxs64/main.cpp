@@ -68,8 +68,6 @@
 #include "diagabout.h"
 #include "diagfilesaved64.h"
 
-#include "emuwin.h"
-#include "mainwin.h"
 #include "cmdarg.h"
 
 #include "edln.h"
@@ -81,6 +79,10 @@
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
 #include "mdidebuggerframe.h"
+
+#include "emuwin.h"
+#include "mainwin.h"
+
 #include "main.h"
 #include "resource.h"
 
@@ -239,15 +241,18 @@ HWND hWndDebuggerMdiClient = 0;
 			bRet = GetMessage(&msg, NULL, 0, 0 );
 			if (bRet==-1 || bRet==0)
 				goto finish;
-			//IsDialogMessage
-			hWndDebuggerMdiClient = MDIDebugger.Get_MDIClientWindow();
-			if (hWndDebuggerMdiClient!=0)
-			{
-				if (TranslateMDISysAccel(hWndDebuggerMdiClient, &msg))
-				{
-					continue;
-				}
-			}		
+			//TESTUI
+			//if (m_pMDIDebugger != NULL)
+			//{
+			//	hWndDebuggerMdiClient = m_pMDIDebugger->Get_MDIClientWindow();
+			//	if (hWndDebuggerMdiClient!=0)
+			//	{
+			//		if (TranslateMDISysAccel(hWndDebuggerMdiClient, &msg))
+			//		{
+			//			continue;
+			//		}
+			//	}
+			//}
 			if (!TranslateAccelerator(msg.hwnd, app.m_hAccelTable, &msg))
 			{
 				TranslateMessage(&msg); 
@@ -724,12 +729,13 @@ TCHAR ext[_MAX_EXT];
 	//Reset the C64
 	c64.Reset(0);
 
-	hr = MDIDebugger.Init(static_cast<IMonitorCommand *>(this), thisCfg, thisAppStatus, &c64);
-	if (FAILED(hr))
-	{
-		MessageBox(0L, TEXT("Unable to initialise the debugger window."), m_szAppName, MB_ICONWARNING);
-		return E_FAIL;
-	}
+	//TESTUI
+	//hr = MDIDebugger.Init(static_cast<IMonitorCommand *>(this), thisCfg, thisAppStatus, &c64);
+	//if (FAILED(hr))
+	//{
+	//	MessageBox(0L, TEXT("Unable to initialise the debugger window."), m_szAppName, MB_ICONWARNING);
+	//	return E_FAIL;
+	//}
 
 	//Process command line arguments.
 	if (pArgs)
@@ -1359,36 +1365,20 @@ void CApp::ToggleSoundMute()
 	appWindow.UpdateWindowTitle(m_szTitle, -1);
 }
 
-HWND CApp::ShowDevelopment(CVirWindow *pParentWindow)
-{
-	SoundHalt();
-	c64.SynchroniseDevicesWithVIC();
-	m_bRunning = FALSE;
-	m_bDebug = TRUE;
-	bool bWasClosed = MDIDebugger.GetHwnd() == NULL;
-	HWND hWnd = MDIDebugger.Show(pParentWindow);
-	if (hWnd!=0)
-	{
-		appWindow.UpdateWindowTitle(m_szTitle, -1);
-		if (bWasClosed)
-		{
-			MDIDebugger.ShowDebugCpuDisk(true);
-			MDIDebugger.ShowDebugCpuC64(true);
-		}
-		appWindow.emuWin.UpdateC64Window();
-	}
-	else
-	{
-		this->Resume();
-	}
-	return hWnd;
-}
-
 HWND CApp::ShowDevelopment()
 {
 EventArgs e;
-	HWND hWnd = ShowDevelopment(&appWindow);
-	EsShowDevelopment.Raise(this, e);
+HWND hWnd = NULL;
+
+	hWnd = appWindow.ShowDevelopment();
+	if (!hWnd)
+	{
+		this->Resume();
+	}
+	else
+	{
+		EsShowDevelopment.Raise(this, e);
+	}
 	return hWnd;
 }
 

@@ -38,6 +38,8 @@ public:
 	HRESULT ToggleFullScreen();
 	HRESULT SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch);
 	void UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed);
+	HWND ShowDevelopment();
+	CMDIDebuggerFrame *m_pMDIDebugger;
 
 protected:
 	const static LPTSTR lpszClassName;
