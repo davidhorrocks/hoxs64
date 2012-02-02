@@ -170,60 +170,6 @@ C64WindowDimensions dims;
 	}
 }
 
-void CAppWindow::EnsureWindowPosition(int x, int y)
-{
-RECT rcMain,rcWorkArea;
-LONG   lRetCode; 
-bool bGotWorkArea = false;
-	if (!m_hWnd)
-		return;
-	GetWindowRect(m_hWnd, &rcMain);
-	OffsetRect(&rcMain, x - rcMain.left, y - rcMain.top);
-
-	SetRectEmpty(&rcWorkArea);
-	if (G::s_pFnMonitorFromRect != NULL && G::s_pFnGetMonitorInfo != NULL)
-	{
-		MONITORINFO mi;
-		ZeroMemory(&mi, sizeof(mi));
-		mi.cbSize = sizeof(mi);
-		HMONITOR hMonitor = G::s_pFnMonitorFromRect(&rcMain, MONITOR_DEFAULTTOPRIMARY);
-		if (G::s_pFnGetMonitorInfo(hMonitor, &mi))
-		{
-			rcWorkArea = mi.rcMonitor;
-			bGotWorkArea = true;
-		}
-	}
-
-	if (!bGotWorkArea)
-	{
-		// Get the limits of the 'workarea'
-		lRetCode = SystemParametersInfo(
-			SPI_GETWORKAREA,  // system parameter to query or set
-			sizeof(RECT),
-			&rcWorkArea,
-			0);
-		if (!lRetCode)
-		{
-			rcWorkArea.left = rcWorkArea.top = 0;
-			rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
-			rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
-		}
-	}
-
-	if (rcMain.right>rcWorkArea.right)
-		OffsetRect(&rcMain, rcWorkArea.right - rcMain.right, 0);
-	if (rcMain.bottom>rcWorkArea.bottom)
-		OffsetRect(&rcMain, 0, rcWorkArea.bottom - rcMain.bottom);
-
-	if (rcMain.left<rcWorkArea.left)
-		OffsetRect(&rcMain, rcWorkArea.left - rcMain.left, 0);
-	if (rcMain.top<rcWorkArea.top)
-		OffsetRect(&rcMain, 0, rcWorkArea.top - rcMain.top);
-
-	SetWindowPos(m_hWnd, 0, rcMain.left,rcMain.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-}
-
-
 HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	this->m_hInst = hInstance;
@@ -889,7 +835,8 @@ LONG_PTR lp;
 		if (m_hWndStatusBar)
 			ShowWindow(m_hWndStatusBar, SW_SHOW);
 
-		EnsureWindowPosition(m_rcMainWindow.left, m_rcMainWindow.top);
+		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		G::EnsureWindowPosition(m_hWnd);
 		SaveMainWindowSize();
 
 		if (cfg->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
@@ -1105,9 +1052,7 @@ bool ok = false;
 			hr = pwin->Init(this->m_monitorCommand, this->cfg, this->appStatus, this->c64);
 			if (SUCCEEDED(hr))
 			{
-
 				int x,y,w,h;
-
 				x = CW_USEDEFAULT;
 				y = CW_USEDEFAULT;
 				w = CW_USEDEFAULT;
@@ -1128,7 +1073,7 @@ bool ok = false;
 					bCreated = true;
 					m_pMDIDebugger = pwin;
 					pwin = NULL;
-					m_pMDIDebugger->EnsureWindowPosition(x, y, w, h);
+					G::EnsureWindowPosition(hWnd);
 				}
 			}
 			else
@@ -1144,10 +1089,6 @@ bool ok = false;
 	else
 	{
 		hWnd = m_pMDIDebugger->GetHwnd();
-	}
-	if (hWnd);
-	{
-		
 	}
 
 	::ShowWindow(hWnd, SW_SHOW);

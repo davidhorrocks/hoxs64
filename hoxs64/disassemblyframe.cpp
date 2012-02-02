@@ -254,91 +254,6 @@ HIMAGELIST CDisassemblyFrame::CreateImageListNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-void CDisassemblyFrame::EnsureWindowPosition(int x, int y, int w, int h)
-{
-RECT rcMain,rcWorkArea;
-bool bGotWorkArea = false;
-bool bWantDefaultSizeAndPos = false;
-
-	if (!m_hWnd)
-		return;
-	if (w<=0 || h<=0)
-	{
-		bWantDefaultSizeAndPos = true;
-		w=h=1;
-	}
-		
-	SetRect(&rcMain, x, y, x+w, y+h);
-	SetRectEmpty(&rcWorkArea);
-	if (G::s_pFnMonitorFromRect != NULL && G::s_pFnGetMonitorInfo != NULL)
-	{
-		MONITORINFO mi;
-		ZeroMemory(&mi, sizeof(mi));
-		mi.cbSize = sizeof(mi);
-		HMONITOR hMonitor = G::s_pFnMonitorFromRect(&rcMain, MONITOR_DEFAULTTOPRIMARY);
-		if (G::s_pFnGetMonitorInfo(hMonitor, &mi))
-		{
-			rcWorkArea = mi.rcMonitor;
-			bGotWorkArea = true;
-		}
-	}
-
-	if (!bGotWorkArea)
-	{
-		// Get the limits of the 'workarea'
-		G::GetWorkArea(rcWorkArea);
-	}
-
-	int minw,minh;
-	//Check minimum size.
-	GetMinWindowSize(minw, minh);
-	int workarea_w = (rcWorkArea.right-rcWorkArea.left);
-	int workarea_h = (rcWorkArea.bottom-rcWorkArea.top);
-	if (bWantDefaultSizeAndPos)
-	{
-
-		//Try for half workspace width and half workspace height.
-		w = workarea_w/2;
-		h = workarea_h/2;
-		//Honour minimum size
-		if (w<minw)
-			w=minw;
-		if (h<minh)
-			h=minh;
-
-		//Center the window
-		x = (workarea_w - w) / 2;
-		y = (workarea_h - h) / 2;
-
-		SetRect(&rcMain, x, y, x+w, y+h);
-	}
-	else
-	{
-		if (w > workarea_w)
-			w = workarea_w;
-		if (h > workarea_h)
-			h = workarea_h;
-		//Honour minimum size
-		if (w<minw)
-			w=minw;
-		if (h<minh)
-			h=minh;
-
-		SetRect(&rcMain, x, y, x+w, y+h);
-	}
-	if (rcMain.right>rcWorkArea.right)
-		OffsetRect(&rcMain, rcWorkArea.right - rcMain.right, 0);
-	if (rcMain.bottom>rcWorkArea.bottom)
-		OffsetRect(&rcMain, 0, rcWorkArea.bottom - rcMain.bottom);
-
-	if (rcMain.left<rcWorkArea.left)
-		OffsetRect(&rcMain, rcWorkArea.left - rcMain.left, 0);
-	if (rcMain.top<rcWorkArea.top)
-		OffsetRect(&rcMain, 0, rcWorkArea.top - rcMain.top);
-
-	SetWindowPos(m_hWnd, 0, rcMain.left,rcMain.top, rcMain.right-rcMain.left, rcMain.bottom-rcMain.top , SWP_NOZORDER);
-}
-
 HRESULT CDisassemblyFrame::Show()
 {
 	return Show(false);
@@ -367,7 +282,7 @@ HWND hWnd;
 		if (!br)
 			return E_FAIL;
 
-		hWnd = this->Create(hInstance, hWndParent, m_pszCaption, 0, 0, 0, 0, NULL);
+		hWnd = this->Create(hInstance, hWndParent, m_pszCaption, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL);
 		if (hWnd == NULL)
 			return E_FAIL;
 		GetMinWindowSize(w, h);
@@ -399,7 +314,8 @@ HWND hWnd;
 			w = w;
 			h = rcDesk.bottom - rcDesk.top -  2*gap;
 		}
-		EnsureWindowPosition(x, y, w, h);
+		SetWindowPos(hWnd, HWND_TOP, x, y, w, h, SWP_NOZORDER);
+		G::EnsureWindowPosition(hWnd);
 	}
 	else
 	{
@@ -410,7 +326,8 @@ HWND hWnd;
 			y = wp.rcNormalPosition.top;
 			w = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
 			h = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
-			EnsureWindowPosition(x, y, w, h);
+			SetWindowPos(hWnd, HWND_TOP, x, y, w, h, SWP_NOZORDER);
+			G::EnsureWindowPosition(hWnd);
 		}
 	}
 	SetMenuState();
@@ -419,7 +336,6 @@ HWND hWnd;
 	::SetForegroundWindow(hWnd);
 	return S_OK;
 }
-
 
 void CDisassemblyFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {

@@ -169,6 +169,12 @@ HWND CVirWindow::CreateVirWindow(
 	return (m_hWnd);
 }
 
+void CVirWindow::GetMinWindowSize(int &w, int &h)
+{
+	w=0;
+	h=0;
+}
+
 HWND CVirWindow::CreateMDIClientWindow(UINT clientId,  UINT firstChildId)
 {
 CLIENTCREATESTRUCT ccs; 
@@ -1823,4 +1829,62 @@ HIMAGELIST hOldImageList = NULL;
 		delete[] tbArray;
 	}
 	return ret;
+}
+
+void G::EnsureWindowPosition(HWND hWnd)
+{
+RECT rcMain, rcWorkArea;
+LONG lRetCode; 
+bool bGotWorkArea = false;
+
+	if (!hWnd)
+		return;
+	BOOL br = GetWindowRect(hWnd, &rcMain);
+	if (!br)
+		return;
+
+	SetRectEmpty(&rcWorkArea);
+	if (G::s_pFnMonitorFromRect != NULL && G::s_pFnGetMonitorInfo != NULL)
+	{
+		MONITORINFO mi;
+		ZeroMemory(&mi, sizeof(mi));
+		mi.cbSize = sizeof(mi);
+		HMONITOR hMonitor = G::s_pFnMonitorFromRect(&rcMain, MONITOR_DEFAULTTOPRIMARY);
+		if (G::s_pFnGetMonitorInfo(hMonitor, &mi))
+		{
+			rcWorkArea = mi.rcMonitor;
+			bGotWorkArea = true;
+		}
+	}
+
+	if (!bGotWorkArea)
+	{
+		// Get the limits of the 'workarea'
+		lRetCode = SystemParametersInfo(
+			SPI_GETWORKAREA,  // system parameter to query or set
+			sizeof(RECT),
+			&rcWorkArea,
+			0);
+		if (!lRetCode)
+		{
+			rcWorkArea.left = rcWorkArea.top = 0;
+			rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
+			rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
+		}
+	}
+
+	int workarea_w = (rcWorkArea.right-rcWorkArea.left);
+	int workarea_h = (rcWorkArea.bottom-rcWorkArea.top);
+
+	if (rcMain.right>rcWorkArea.right)
+		OffsetRect(&rcMain, rcWorkArea.right - rcMain.right, 0);
+	if (rcMain.bottom>rcWorkArea.bottom)
+		OffsetRect(&rcMain, 0, rcWorkArea.bottom - rcMain.bottom);
+
+	if (rcMain.left<rcWorkArea.left)
+		OffsetRect(&rcMain, rcWorkArea.left - rcMain.left, 0);
+	if (rcMain.top<rcWorkArea.top)
+		OffsetRect(&rcMain, 0, rcWorkArea.top - rcMain.top);
+
+	SetWindowPos(hWnd, HWND_TOP, rcMain.left,rcMain.top, rcMain.right-rcMain.left, rcMain.bottom-rcMain.top, SWP_NOZORDER | SWP_NOSIZE);
 }

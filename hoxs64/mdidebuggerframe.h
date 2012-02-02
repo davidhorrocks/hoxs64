@@ -56,8 +56,7 @@ public:
 	void ShowDebugCpuC64(bool bSeekPC);
 	void ShowDebugCpuDisk(bool bSeekPC);
 
-	void GetMinWindowSize(int &w, int &h);
-	void EnsureWindowPosition(int x, int y, int w, int h);
+	virtual void GetMinWindowSize(int &w, int &h);
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual HRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam);

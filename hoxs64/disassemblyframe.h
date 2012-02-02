@@ -125,7 +125,6 @@ public:
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	void GetMinWindowSize(int &w, int &h);
-	void EnsureWindowPosition(int x, int y, int w, int h);
 
 private:
 	CDPI m_dpi;

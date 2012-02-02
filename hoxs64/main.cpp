@@ -657,29 +657,26 @@ TCHAR ext[_MAX_EXT];
 	if (FAILED(hr))
 	{
 		RECT rcWorkArea;
-		br = SystemParametersInfo(
-		  SPI_GETWORKAREA,  // system parameter to query or set
-		  sizeof(RECT),
-		  &rcWorkArea,
-		  0);
-	   if (!br) {
-		  rcWorkArea.left = rcWorkArea.top = 0;
-		  rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
-		  rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
-	   }
+		br = SystemParametersInfo(SPI_GETWORKAREA, sizeof(RECT), &rcWorkArea, 0);
+		if (!br) 
+		{
+			rcWorkArea.left = rcWorkArea.top = 0;
+			rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
+			rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
+		}
 		winpos.x = max(0, (rcWorkArea.right - rcWorkArea.left - w) / 2);
 		winpos.y = max(0, (rcWorkArea.bottom - rcWorkArea.top - h) / 2);
 	}
 
-	hWndMain = appWindow.Create(m_hInstance, NULL, m_szTitle, 0, 0, w, h, NULL);
+	hWndMain = appWindow.Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, w, h, NULL);
 	if (!hWndMain)
 	{
 		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
 		return E_FAIL;
 	}
 
-	appWindow.SetMainWindowSize(m_bDoubleSizedWindow);
-	appWindow.EnsureWindowPosition(winpos.x, winpos.y);
+	//appWindow.SetMainWindowSize(m_bDoubleSizedWindow);
+	G::EnsureWindowPosition(hWndMain);
 
 	//Initialise directx
 	hr = dx.Init(thisCfg, thisAppStatus, VIC6569::vic_color_array);

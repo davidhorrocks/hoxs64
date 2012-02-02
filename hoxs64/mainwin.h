@@ -29,7 +29,6 @@ public:
 	void UpdateMenu();
 	void SetMainWindowSize(bool bDoubleSizedWindow);
 	void GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h);
-	void EnsureWindowPosition(int x, int y);
 	void SaveMainWindowSize();
 	HRESULT ResetDirect3D();
 	HRESULT SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch);

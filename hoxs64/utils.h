@@ -200,6 +200,7 @@ public:
 	static HIMAGELIST CreateImageListNormal(HINSTANCE m_hInst, HWND hWnd, int tool_dx, int tool_dy, const ImageInfo tbImageList[], int countOfImageList);
 	static HWND CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid, int bmpid);
 	static HWND CreateToolBar(HINSTANCE hInst, HWND hWnd, int toolbarid, HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight);
+	static void EnsureWindowPosition(HWND hWnd);
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);
@@ -244,6 +245,8 @@ public:
 
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
 	virtual int SetSize(int w, int h);
+	virtual void GetMinWindowSize(int &w, int &h);
+
 	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
 	// Get the protected handle of this window.
 	HWND GetHwnd(void)
