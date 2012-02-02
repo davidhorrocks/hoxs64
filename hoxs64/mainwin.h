@@ -62,7 +62,6 @@ private:
 	C64 *c64;
 	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SYSMENU;
 	static const DWORD StylesNonWindowed = WS_POPUP | WS_SYSMENU;
-	HINSTANCE m_hInstance;
 
 
 	void OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

@@ -22,7 +22,6 @@ private:
 	CConfig *cfg;
 	CDX9 *dx;
 	C64 *c64;
-	HINSTANCE m_hInstance;
 	const static LPTSTR lpszClassName;
 	DWORD m_dwSolidColourFill;
 };

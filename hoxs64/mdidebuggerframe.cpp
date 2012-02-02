@@ -90,7 +90,6 @@ CMDIDebuggerFrame::CMDIDebuggerFrame()
 	appStatus = NULL;
 	c64 = NULL;
 	m_monitorCommand = NULL;
-	m_pParentWindow = NULL;
 }
 
 CMDIDebuggerFrame::~CMDIDebuggerFrame()
@@ -183,59 +182,6 @@ void CMDIDebuggerFrame::SetMenuState()
 	}
 }
 
-HWND CMDIDebuggerFrame::Show(CVirWindow *pParentWindow)
-{
-int x,y,w,h;
-
-	if(m_hWnd == 0)
-	{
-		this->m_pParentWindow = pParentWindow;
-		POINT pos = {0,0};
-		SIZE size= {0,0};
-		CConfig::LoadMDIWindowSetting(pos, size);
-
-		x = pos.x;
-		y = pos.y;
-		w = size.cx;
-		h = size.cy;
-
-		HWND hWndParent = NULL;
-		HINSTANCE hInstance = NULL;
-		if (pParentWindow != NULL)
-		{
-			hWndParent = pParentWindow->GetHwnd();
-			hInstance = pParentWindow->GetHinstance();
-		}
-		if (hInstance == NULL)
-			hInstance = GetModuleHandle(NULL);
-
-		HWND hWnd = this->Create(hInstance, hWndParent, TEXT("C64 Monitor"), 0, 0, 0, 0, NULL);
-		if(hWnd != 0)
-		{
-			EnsureWindowPosition(x, y, w, h);			
-		}
-		
-	}
-	else
-	{
-		if (this->m_pParentWindow != pParentWindow)
-		{			
-			HWND newParent = NULL;
-			if (pParentWindow)
-				newParent = pParentWindow->GetHwnd();
-			::SetParent(m_hWnd, newParent);
-			this->m_pParentWindow = pParentWindow;
-		}
-	}
-	if(m_hWnd != 0)
-	{
-		::ShowWindow(m_hWnd, SW_SHOW);
-		::SetForegroundWindow(m_hWnd);
-	}
-	return m_hWnd;
-}
-
-
 HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);
@@ -277,13 +223,10 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (this->m_pParentWindow)
+	HWND hWndParent = ::GetParent(hWnd);
+	if (hWndParent)
 	{
-		HWND hWndParent = m_pParentWindow->GetHwnd();
-		if (hWndParent)
-		{
-			::SetForegroundWindow(hWndParent);
-		}
+		::SetForegroundWindow(hWndParent);
 	}
 }
 

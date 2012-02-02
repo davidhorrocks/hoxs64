@@ -1371,11 +1371,7 @@ EventArgs e;
 HWND hWnd = NULL;
 
 	hWnd = appWindow.ShowDevelopment();
-	if (!hWnd)
-	{
-		this->Resume();
-	}
-	else
+	if (hWnd)
 	{
 		EsShowDevelopment.Raise(this, e);
 	}

@@ -75,7 +75,6 @@ protected:
 	LRESULT OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
-	CVirWindow *m_pParentWindow;
 	HWND m_hWndRebar;
 	HWND m_hWndTooBar;
 	HIMAGELIST m_hImageListToolBarNormal;

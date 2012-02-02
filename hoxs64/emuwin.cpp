@@ -49,7 +49,6 @@ const LPTSTR CEmuWindow::lpszClassName = HOXS_EMULATION_WND_CLASS;
 
 CEmuWindow::CEmuWindow()
 {
-	m_hInstance = 0;
 	m_dwSolidColourFill=0;
 }
 
@@ -87,7 +86,7 @@ WNDCLASSEX  wc;
 }
 HWND CEmuWindow::Create(HINSTANCE hInstance, HWND parentWindow, const TCHAR title[], int x,int y, int w, int h, HMENU controlID)
 {
-	this->m_hInstance = hInstance;
+	this->m_hInst = hInstance;
 	return CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_CHILD | WS_VISIBLE, x, y, w, h, parentWindow, controlID, hInstance);
 }
 

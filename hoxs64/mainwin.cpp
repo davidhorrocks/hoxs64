@@ -81,7 +81,6 @@ CAppWindow::CAppWindow()
 {
 	cfg = NULL;
 	appStatus = NULL;
-	m_hInstance = 0;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
 	m_monitorCommand = NULL;
@@ -227,7 +226,7 @@ bool bGotWorkArea = false;
 
 HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	this->m_hInstance = hInstance;
+	this->m_hInst = hInstance;
 	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
 	return hWnd;
 }
@@ -253,7 +252,7 @@ bool bIsWindowMinimised;
 	case WM_CREATE:
 		bOK = false;
 		emuWin.GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, cfg->m_bDoubleSizedWindow, &w, &h);
-		if (emuWin.Create(m_hInstance, m_hWnd, NULL, 0, 0, w, h, (HMENU) LongToPtr(IDC_MAIN_WINEMULATION)) == 0)
+		if (emuWin.Create(m_hInst, m_hWnd, NULL, 0, 0, w, h, (HMENU) LongToPtr(IDC_MAIN_WINEMULATION)) == 0)
 			return -1;
 		/*
 		HLOCAL hloc;
@@ -445,7 +444,7 @@ bool bIsWindowMinimised;
 			hr = mDlgAbout.Init(appStatus->GetVersionInfo());
 			if (SUCCEEDED(hr))
 			{
-				mDlgAbout.ShowDialog(m_hInstance, MAKEINTRESOURCE(IDD_ABOUT), hWnd);
+				mDlgAbout.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_ABOUT), hWnd);
 			}
 			appStatus->SoundResume();
 			break;
@@ -478,7 +477,7 @@ bool bIsWindowMinimised;
 				mDlgSettingsTab.SetTabID(IDC_SETTINGTAB);
 				mDlgSettingsTab.SetPages(5, &m_tabPagesSetting[0]);
 
-				r = mDlgSettingsTab.ShowDialog(m_hInstance, MAKEINTRESOURCE(IDD_SETTING2), hWnd);
+				r = mDlgSettingsTab.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_SETTING2), hWnd);
 				if (LOWORD(r) == IDOK)
 				{
 					tCfg = mDlgSettingsTab.NewCfg;
@@ -500,7 +499,7 @@ bool bIsWindowMinimised;
 				mDlgkey.SetTabID(IDC_KEYBOARDTAB);
 				mDlgkey.SetPages(4, &m_tabPagesKeyboard[0]);
 			 
-				r = mDlgkey.ShowDialog(m_hInstance, MAKEINTRESOURCE(IDD_KEYBOARD),hWnd);
+				r = mDlgkey.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_KEYBOARD),hWnd);
 				if (LOWORD(r) == IDOK)
 				{
 					tCfg = mDlgkey.newCfg;
@@ -522,7 +521,7 @@ bool bIsWindowMinimised;
 			hr = mDlgjoy.Init(dx, &tCfg);
 			if (SUCCEEDED(hr))
 			{
-				r = mDlgjoy.ShowDialog(m_hInstance, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
+				r = mDlgjoy.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
 				if (LOWORD(r) == IDOK)
 				{
 					tCfg = mDlgjoy.newCfg;
@@ -576,7 +575,7 @@ bool bIsWindowMinimised;
 			hr = mDlgNewBlankDisk.Init();
 			if (SUCCEEDED(hr))
 			{
-				r = mDlgNewBlankDisk.ShowDialog(m_hInstance, MAKEINTRESOURCE(IDD_NEWDISK), hWnd);
+				r = mDlgNewBlankDisk.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_NEWDISK), hWnd);
 				if (LOWORD(r) == IDOK)
 				{
 					c64->InsertNewDiskImage(mDlgNewBlankDisk.diskname, mDlgNewBlankDisk.id1, mDlgNewBlankDisk.id2, mDlgNewBlankDisk.bAlignTracks, mDlgNewBlankDisk.numberOfTracks);
@@ -712,6 +711,7 @@ bool bIsWindowMinimised;
 				return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 			}
 		}
+		break;
 	case WM_DESTROY:
 		appStatus->m_bReady = FALSE;
 		appStatus->FreeDirectX();
@@ -1091,53 +1091,79 @@ HWND CAppWindow::ShowDevelopment()
 HWND hWnd = NULL;
 CMDIDebuggerFrame *pwin = NULL;
 HRESULT hr;
-
-	bool ok = false;
+bool bCreated = false;
+bool ok = false;
 	appStatus->SoundHalt();
 	c64->SynchroniseDevicesWithVIC();
 	appStatus->m_bRunning = FALSE;
 	appStatus->m_bDebug = TRUE;
 	if (m_pMDIDebugger == NULL)
 	{
-		pwin = m_pMDIDebugger = new CMDIDebuggerFrame();
-	}
-	if (m_pMDIDebugger != NULL)
-	{
-		hr = m_pMDIDebugger->Init(this->m_monitorCommand, this->cfg, this->appStatus, this->c64);
-		if (SUCCEEDED(hr))
+		pwin = new CMDIDebuggerFrame();
+		if (pwin != NULL)
 		{
-			m_pMDIDebugger->m_AutoDelete = true;
-			bool bWasClosed = m_pMDIDebugger->GetHwnd() == NULL;
-			HWND hWnd = m_pMDIDebugger->Show(this);
-			if (hWnd != 0)
+			hr = pwin->Init(this->m_monitorCommand, this->cfg, this->appStatus, this->c64);
+			if (SUCCEEDED(hr))
 			{
-				this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
-				if (bWasClosed)
+
+				int x,y,w,h;
+
+				x = CW_USEDEFAULT;
+				y = CW_USEDEFAULT;
+				w = CW_USEDEFAULT;
+				h = CW_USEDEFAULT;
+				POINT pos = {0,0};
+				SIZE size= {0,0};
+				hr = CConfig::LoadMDIWindowSetting(pos, size);
+				if (SUCCEEDED(hr))
 				{
-					m_pMDIDebugger->ShowDebugCpuDisk(true);
-					m_pMDIDebugger->ShowDebugCpuC64(true);
+					x = pos.x;
+					y = pos.y;
+					w = size.cx;
+					h = size.cy;
 				}
-				this->emuWin.UpdateC64Window();
-				ok = true;
+				hWnd = this->Create(m_hInst, m_hWnd, TEXT("C64 Monitor"), x, y, w, h, NULL);
+				if (hWnd != 0)
+				{
+					bCreated = true;
+					m_pMDIDebugger = pwin;
+					pwin = NULL;
+					m_pMDIDebugger->EnsureWindowPosition(x, y, w, h);
+				}
+			}
+			else
+			{
+				MessageBox(0L, TEXT("Unable to initialise the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
 			}
 		}
 		else
 		{
-			MessageBox(0L, TEXT("Unable to initialise the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
+			MessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
 		}
 	}
 	else
 	{
-		MessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
+		hWnd = m_pMDIDebugger->GetHwnd();
 	}
-	if (!ok)
+	if (hWnd);
 	{
-		if (pwin)
-			delete pwin;
+		
+	}
 
-		m_pMDIDebugger = NULL;
+	::ShowWindow(hWnd, SW_SHOW);
+	::SetForegroundWindow(hWnd);
+	if (bCreated)
+	{
+		m_pMDIDebugger->ShowDebugCpuDisk(true);
+		m_pMDIDebugger->ShowDebugCpuC64(true);
+	}
+	this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
+	this->emuWin.UpdateC64Window();
+	if (pwin)
+		delete pwin;
+	if (!hWnd)
+	{
 		m_monitorCommand->Resume();
-		m_monitorCommand->ShowDevelopment
 	}
 	return hWnd;
 }
