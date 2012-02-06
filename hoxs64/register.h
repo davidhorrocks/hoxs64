@@ -1,9 +1,6 @@
 #ifndef __REGISTER_H__
 #define __REGISTER_H__
 
-#include <list>
-#include <map>
-
 class IBase
 {
 protected:
@@ -119,8 +116,8 @@ struct BreakpointItem : public BreakpointKey
 	int count;
 };
 
-typedef std::shared_ptr<BreakpointKey> Sp_BreakpointKey;
-typedef std::shared_ptr<BreakpointItem> Sp_BreakpointItem;
+typedef shared_ptr<BreakpointKey> Sp_BreakpointKey;
+typedef shared_ptr<BreakpointItem> Sp_BreakpointItem;
 
 class IEnumBreakpointItem : IBase
 {

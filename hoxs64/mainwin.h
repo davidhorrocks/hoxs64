@@ -3,13 +3,23 @@
 
 class CEmuWindow;
 
-class IMainWindowProc
+class DebuggerFrame_EventSink_OnDestroy : protected EventSink<EventArgs>
 {
-public:
-	virtual LRESULT MainWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)=0;
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnDestroy_DebuggerFrame(sender, e);
+		return 0;
+	}
+	virtual void OnDestroy_DebuggerFrame(void *sender, EventArgs& e)=0;
 };
 
-class CAppWindow : public CVirWindow , public ErrorMsg
+class CAppWindow_EventSink : 
+	public DebuggerFrame_EventSink_OnDestroy
+{
+};
+
+class CAppWindow : public CVirWindow, CAppWindow_EventSink, public ErrorMsg
 {
 public:
 	CAppWindow();
@@ -43,6 +53,7 @@ public:
 protected:
 	const static LPTSTR lpszClassName;
 	const static LPTSTR lpszMenuName;
+	virtual void OnDestroy_DebuggerFrame(void *sender, EventArgs& e);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 private:
 

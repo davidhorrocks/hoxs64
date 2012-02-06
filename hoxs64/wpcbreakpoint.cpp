@@ -4,17 +4,18 @@
 #include <stdarg.h>
 #include <tchar.h>
 #include <list>
+#include <assert.h>
+#include "boost2005.h"
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
+#include "cevent.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "assert.h"
-#include "mlist.h"
-#include "carray.h"
 #include "register.h"
 #include "errormsg.h"
-#include "cevent.h"
 #include "monitor.h"
 
 #include "wpanel.h"
@@ -101,7 +102,7 @@ HIMAGELIST hSmall = NULL;
 	
 
 	GetClientRect(hWndParent, &rcWin);
-	hWnd = CreateWindowEx(0, WC_LISTVIEWW, TEXT(""), WS_CHILD | WS_VISIBLE | LVS_REPORT, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, hWndParent, (HMENU)LVBREAKPOINT, pcs->hInstance, NULL);
+	hWnd = CreateWindowEx(0, WC_LISTVIEW, TEXT(""), WS_CHILD | WS_VISIBLE | LVS_REPORT, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, hWndParent, (HMENU)LVBREAKPOINT, pcs->hInstance, NULL);
 	if (!hWnd)
 		return NULL;
 

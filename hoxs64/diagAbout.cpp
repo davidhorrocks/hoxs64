@@ -16,10 +16,6 @@
 #include "util.h"
 #include "utils.h"
 #include "errormsg.h"
-#include "hconfig.h"
-#include "appstatus.h"
-#include "dxstuff9.h"
-#include "register.h"
 #include "diagabout.h"
 #include "resource.h"
 

@@ -5,7 +5,7 @@
 #include <dsound.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <map>
+#include "boost2005.h"
 #include "defines.h"
 #include "bits.h"
 #include "util.h"

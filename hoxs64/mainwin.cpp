@@ -10,15 +10,17 @@
 #include <dinput.h>
 #include <dsound.h>
 #include <stdio.h>
+#include <assert.h>
+#include "boost2005.h"
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
+#include "cevent.h"
 #include "CDPI.h"
 #include "user_message.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "assert.h"
-#include "mlist.h"
-#include "carray.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -44,10 +46,7 @@
 #include "t64.h"
 #include "C64.h"
 #include "c64file.h"
-
-#include "cevent.h"
 #include "monitor.h"
-
 #include "prgbrowse.h"
 #include "diagkeyboard.h"
 #include "diagjoystick.h"
@@ -66,7 +65,6 @@
 #include "disassemblyframe.h"
 #include "mdidebuggerframe.h"
 
-#include "cevent.h"
 #include "monitor.h"
 #include "emuwin.h"
 #include "mainwin.h"
@@ -1049,6 +1047,7 @@ bool ok = false;
 		pwin = new CMDIDebuggerFrame();
 		if (pwin != NULL)
 		{
+			pwin->m_AutoDelete = true;
 			hr = pwin->Init(this->m_monitorCommand, this->cfg, this->appStatus, this->c64);
 			if (SUCCEEDED(hr))
 			{
@@ -1067,13 +1066,17 @@ bool ok = false;
 					w = size.cx;
 					h = size.cy;
 				}
-				hWnd = this->Create(m_hInst, m_hWnd, TEXT("C64 Monitor"), x, y, w, h, NULL);
-				if (hWnd != 0)
+				HSink hs = pwin->EsOnDestroy.Advise((DebuggerFrame_EventSink_OnDestroy *)this);
+				if (hs)
 				{
-					bCreated = true;
-					m_pMDIDebugger = pwin;
-					pwin = NULL;
-					G::EnsureWindowPosition(hWnd);
+					hWnd = pwin->Create(m_hInst, m_hWnd, TEXT("C64 Monitor"), x, y, w, h, NULL);
+					if (hWnd != 0)
+					{
+						bCreated = true;
+						m_pMDIDebugger = pwin;
+						pwin = NULL;
+						G::EnsureWindowPosition(hWnd);
+					}
 				}
 			}
 			else
@@ -1091,15 +1094,18 @@ bool ok = false;
 		hWnd = m_pMDIDebugger->GetHwnd();
 	}
 
-	::ShowWindow(hWnd, SW_SHOW);
-	::SetForegroundWindow(hWnd);
-	if (bCreated)
+	if (hWnd)
 	{
-		m_pMDIDebugger->ShowDebugCpuDisk(true);
-		m_pMDIDebugger->ShowDebugCpuC64(true);
+		::ShowWindow(hWnd, SW_SHOW);
+		::SetForegroundWindow(hWnd);
+		if (bCreated)
+		{
+			m_pMDIDebugger->ShowDebugCpuDisk(true);
+			m_pMDIDebugger->ShowDebugCpuC64(true);
+		}
+		this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
+		this->emuWin.UpdateC64Window();
 	}
-	this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
-	this->emuWin.UpdateC64Window();
 	if (pwin)
 		delete pwin;
 	if (!hWnd)
@@ -1107,4 +1113,9 @@ bool ok = false;
 		m_monitorCommand->Resume();
 	}
 	return hWnd;
+}
+
+void CAppWindow::OnDestroy_DebuggerFrame(void *sender, EventArgs& e)
+{
+	m_pMDIDebugger = NULL;
 }

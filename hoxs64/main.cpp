@@ -16,15 +16,17 @@
 #include <errno.h>
 #include <malloc.h>
 #include <memory.h>
+#include <assert.h>
 #include "servicerelease.h"
+#include "boost2005.h"
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
+#include "cevent.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "assert.h"
-#include "mlist.h"
-#include "carray.h"
 #include "errormsg.h"
 #include "register.h"
 #include "hconfig.h"
@@ -57,7 +59,6 @@
 #include "c64file.h"
 
 #include "user_message.h"
-#include "cevent.h"
 #include "monitor.h"
 
 #include "prgbrowse.h"
@@ -241,18 +242,18 @@ HWND hWndDebuggerMdiClient = 0;
 			bRet = GetMessage(&msg, NULL, 0, 0 );
 			if (bRet==-1 || bRet==0)
 				goto finish;
-			//TESTUI
-			//if (m_pMDIDebugger != NULL)
-			//{
-			//	hWndDebuggerMdiClient = m_pMDIDebugger->Get_MDIClientWindow();
-			//	if (hWndDebuggerMdiClient!=0)
-			//	{
-			//		if (TranslateMDISysAccel(hWndDebuggerMdiClient, &msg))
-			//		{
-			//			continue;
-			//		}
-			//	}
-			//}
+
+			if (appWindow.m_pMDIDebugger != NULL)
+			{
+				hWndDebuggerMdiClient = appWindow.m_pMDIDebugger->Get_MDIClientWindow();
+				if (hWndDebuggerMdiClient!=0)
+				{
+					if (TranslateMDISysAccel(hWndDebuggerMdiClient, &msg))
+					{
+						continue;
+					}
+				}
+			}
 			if (!TranslateAccelerator(msg.hwnd, app.m_hAccelTable, &msg))
 			{
 				TranslateMessage(&msg); 
@@ -725,14 +726,6 @@ TCHAR ext[_MAX_EXT];
 
 	//Reset the C64
 	c64.Reset(0);
-
-	//TESTUI
-	//hr = MDIDebugger.Init(static_cast<IMonitorCommand *>(this), thisCfg, thisAppStatus, &c64);
-	//if (FAILED(hr))
-	//{
-	//	MessageBox(0L, TEXT("Unable to initialise the debugger window."), m_szAppName, MB_ICONWARNING);
-	//	return E_FAIL;
-	//}
 
 	//Process command line arguments.
 	if (pArgs)

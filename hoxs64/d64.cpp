@@ -3,7 +3,10 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#include "boost2005.h"
 #include "defines.h"
+#include "carray.h"
+#include "mlist.h"
 #include "bits.h"
 #include "util.h"
 #include "errormsg.h"
@@ -11,8 +14,6 @@
 #include "appstatus.h"
 #include "register.h"
 #include "errormsg.h"
-#include "carray.h"
-#include "mlist.h"
 #include "huff.h"
 #include "crc.h"
 #include "defines.h"

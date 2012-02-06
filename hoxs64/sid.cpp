@@ -7,6 +7,7 @@
 #include <d3dx9core.h>
 #include <dinput.h>
 #include <dsound.h>
+#include "boost2005.h"
 #include "defines.h"
 #include "CDPI.h"
 #include "bits.h"

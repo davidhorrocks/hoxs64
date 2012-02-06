@@ -4,19 +4,18 @@
 #include <stdarg.h>
 #include <tchar.h>
 #include <string>
+#include <assert.h>
+#include "boost2005.h"
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
+#include "cevent.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "assert.h"
-#include "mlist.h"
-#include "carray.h"
 #include "errormsg.h"
-
-#include "assert.h"
 #include "hexconv.h"
-#include "cevent.h"
 #include "dchelper.h"
 #include "wpanel.h"
 #include "resource.h"

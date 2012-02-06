@@ -6,6 +6,7 @@
 #include <d3dx9core.h>
 #include <dinput.h>
 #include <dsound.h>
+#include <assert.h>
 #include "defines.h"
 #include <commctrl.h>
 #include "CDPI.h"
@@ -16,8 +17,6 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
-#include "register.h"
-#include "assert.h"
 #include "carray.h"
 #include "MList.h"
 #include "diagemulationsettingstab.h"

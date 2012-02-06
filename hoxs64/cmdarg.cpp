@@ -3,12 +3,12 @@
 #include <tchar.h>
 #include <assert.h>
 #include "defines.h"
+#include "carray.h"
+#include "mlist.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "carray.h"
-#include "mlist.h"
 #include "cmdarg.h"
 
 

@@ -3,17 +3,18 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
+#include <assert.h>
+#include "boost2005.h"
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
+#include "cevent.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "assert.h"
-#include "mlist.h"
-#include "carray.h"
 #include "register.h"
 #include "errormsg.h"
-#include "cevent.h"
 #include "monitor.h"
 #include "edln.h"
 #include "disassemblyreg.h"
@@ -177,12 +178,12 @@ void CDisassemblyFrame::UnadviseEvents()
 	((CDisassemblyFrame_EventSink_OnShowDevelopment *)this)->UnadviseAll();
 
 }
-
+#ifndef CLEARTYPE_QUALITY
+#define CLEARTYPE_QUALITY (0)
+#endif
 HRESULT CDisassemblyFrame::InitFonts()
 {
 	CloseFonts();
-	//m_monitor_font = GetObject(GetStockObject(ANSI_FIXED_FONT), sizeof(LOGFONT), &lf); 
-	//m_monitor_font = (HFONT)GetStockObject(ANSI_FIXED_FONT); 
 	LPTSTR lstFontName[] = { TEXT("Consolas"), TEXT("Lucida"), TEXT("Courier"), TEXT("")};
 	for (int i =0; m_monitor_font == 0 && i < _countof(lstFontName); i++)
 	{

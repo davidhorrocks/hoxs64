@@ -1,6 +1,11 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <assert.h>
+#include "mlist.h"
+#include "carray.h"
+#include "cevent.h"
+
 //struct NM_COMMAND
 
 // pragma pack (1)
@@ -207,6 +212,18 @@ extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPAR
 extern LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
 extern LRESULT CALLBACK GlobalSubClassWindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
 
+class CVirWindow_EventSink_OnDestroy : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnDestroy(sender, e);
+		return 0;
+	}
+	virtual void OnDestroy(void *sender, EventArgs& e) =0;
+};
+
+
 /*C+C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C
   Class:    CVirWindow
 
@@ -242,6 +259,7 @@ public:
 	virtual ~CVirWindow(){};
 
 	bool m_AutoDelete;
+	EventSource<EventArgs> EsOnDestroy;
 
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
 	virtual int SetSize(int w, int h);

@@ -9,13 +9,15 @@
 #include <dinput.h>
 #include <dsound.h>
 #include <stdio.h>
+#include <assert.h>
+#include "boost2005.h"
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "mlist.h"
-#include "carray.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"

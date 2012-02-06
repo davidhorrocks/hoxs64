@@ -16,7 +16,6 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
-#include "register.h"
 #include "diagnewblankdisk.h"
 #include "resource.h"
 

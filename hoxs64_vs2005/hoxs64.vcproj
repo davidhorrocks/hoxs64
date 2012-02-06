@@ -349,6 +349,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\CDPI.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\dchelper.cpp"
 					>
 				</File>
@@ -376,6 +380,18 @@
 					RelativePath="..\hoxs64\mdidebuggerframe.cpp"
 					>
 				</File>
+				<File
+					RelativePath="..\hoxs64\wpanel.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\wpanelmanager.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\wpcbreakpoint.cpp"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -389,6 +405,10 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\bits.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\boost2005.h"
 				>
 			</File>
 			<File
@@ -607,6 +627,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\CDPI.h"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\dchelper.h"
 					>
 				</File>
@@ -636,6 +660,18 @@
 				</File>
 				<File
 					RelativePath="..\hoxs64\monitor.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\wpanel.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\wpanelmanager.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\wpcbreakpoint.h"
 					>
 				</File>
 			</Filter>

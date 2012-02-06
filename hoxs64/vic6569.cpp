@@ -9,13 +9,14 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <intrin.h>
+#include "boost2005.h"
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "mlist.h"
-#include "carray.h"
 #include "tchar.h"
 #include "register.h"
 #include "errormsg.h"

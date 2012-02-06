@@ -3,10 +3,11 @@
 #include <winuser.h>
 #include <commctrl.h>
 #include <stdio.h>
+#include <assert.h>
 #include "defines.h"
-#include "CDPI.h"
 #include "carray.h"
 #include "mlist.h"
+#include "CDPI.h"
 #include <d3d9.h>
 #include "utils.h"
 
@@ -66,6 +67,8 @@ LRESULT CALLBACK WindowProc(
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
 		if (pWin)
 		{
+			EventArgs e;
+			pWin->EsOnDestroy.Raise(pWin, e);
 			LRESULT lr = pWin->WindowProc(hWnd, uMsg, wParam, lParam);
 			pWin->m_hWnd = 0;
 			if (pWin->m_AutoDelete)

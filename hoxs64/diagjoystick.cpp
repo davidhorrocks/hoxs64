@@ -11,18 +11,18 @@
 #include <winuser.h>
 #include <commctrl.h>
 #include <tchar.h>
+#include <assert.h>
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "mlist.h"
-#include "carray.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
-#include "register.h"
 #include "resource.h"
 #include "diagjoystick.h"
 

@@ -15,15 +15,14 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
-#include "assert.h"
+#include <assert.h>
 #include "defines.h"
+#include "mlist.h"
+#include "carray.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "mlist.h"
-#include "carray.h"
-
 #include "resource.h"
 #include "diagfilesaved64.h"
 
