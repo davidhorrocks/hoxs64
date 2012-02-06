@@ -708,10 +708,7 @@ RECT rcBrowse;
 		}
 		MoveWindow(m_hCheckQuickLoad, cx + gap, rcDlg.top + gap + height_listbox + gap, width_listbox, abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top), TRUE);
 		MoveWindow(m_hCheckAlignD64Tracks, cx + gap, rcDlg.top + gap + height_listbox + gap + abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) + gap + abs(rcCheckBoxAlignD64Tracks.bottom-rcCheckBoxAlignD64Tracks.top), width_listbox, (rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top), TRUE);
-		
-		//InvalidateRect(hDlg, &rcCheckBoxQuickLoad, TRUE);
-		//InvalidateRect(hDlg, &rcCheckBoxAlignD64Tracks, TRUE);
-		
+
 		UpdateWindow(hDlg);
 	}
 }
@@ -722,8 +719,6 @@ const int MULT = 1;
 int dx = 8 * length * MULT;
 int dy = 8 * MULT;
 
-	//DrawC64String(hdc, x, y, str, length, bShifted, 1, 1);
-	//return;
 	HDC hMemDC = CreateCompatibleDC(hdc);
 	if (hMemDC)
 	{

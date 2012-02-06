@@ -327,12 +327,12 @@ HWND hWndDebuggerMdiClient = 0;
 					//No limit speed and skip frames.
 					if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 					{
-						//We were quick so skip.
+						//We were quick so skip this frame.
 						m_fskip = 1;
 					}
 					else
 					{
-						//We have use a full frame time so show this frame.
+						//We were slow so show this frame.
 						last_counter.QuadPart = new_counter.QuadPart;
 						m_fskip = -1;
 					}
@@ -357,21 +357,7 @@ HWND hWndDebuggerMdiClient = 0;
 			if (bDrawThisFrame)
 			{
 				appWindow.emuWin.UpdateC64Window();
-				//c64.vic.UpdateBackBuffer();
-				//hRet = appWindow.emuWin.RenderWindow();
-				//if(SUCCEEDED(hRet))
-				//{
-				//	hRet = dx.m_pd3dDevice->Present(NULL, NULL, NULL, NULL);
-				//	if (FAILED(hRet))
-				//	{
-				//		hRet = dx.m_pd3dDevice->TestCooperativeLevel();
-				//		if (FAILED(hRet))
-				//		{
-				//			SoundHalt();
-				//			m_bReady = false;
-				//		}
-				//	}
-				//}
+
 			}				
 			//Handle frame skip
 			if (m_bSkipFrames && bDrawThisFrame)
@@ -454,10 +440,6 @@ HRESULT CApp::RegisterKeyPressWindow(HINSTANCE hInstance)
 HRESULT CApp::InitApplication(HINSTANCE hInstance)
 {
 HRESULT hr;
-	// Win32 will always set hPrevInstance to NULL, so lets check
-	// things a little closer. This is because we only want a single
-	// version of this app to run at a time
-
 	m_hInstance=hInstance;
 
 	hr = CAppWindow::RegisterClass(hInstance);
@@ -676,7 +658,6 @@ TCHAR ext[_MAX_EXT];
 		return E_FAIL;
 	}
 
-	//appWindow.SetMainWindowSize(m_bDoubleSizedWindow);
 	G::EnsureWindowPosition(hWndMain);
 
 	//Initialise directx
@@ -752,7 +733,7 @@ TCHAR ext[_MAX_EXT];
 		}
 	}
 
-	m_bReady = TRUE;//Flag the emulation is ready to run. The painting of the C64 window needs this to be TRUE.
+	m_bReady = TRUE;
 	ShowWindow(hWndMain, nCmdShow);
 	UpdateWindow(hWndMain);
 	return (S_OK);
@@ -997,7 +978,6 @@ CDiagFileSaveD64 childDialog;
 	of.nMaxFileTitle = MAX_PATH;
 	of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 	of.lpstrTitle = TEXT("Save a D64 disk image file");
-	//b = GetSaveFileName((LPOPENFILENAME)&of);
 	b = childDialog.Open(m_hInstance, (LPOPENFILENAME)&of);
 	if (b)
 	{
@@ -1446,7 +1426,6 @@ void CApp::AllowAccessibilityShortcutKeys( bool bAllowKeys )
     {
         // Disable StickyKeys/etc shortcuts but if the accessibility feature is on, 
         // then leave the settings alone as its probably being usefully used
- 
         STICKYKEYS skOff = m_StartupStickyKeys;
         if( (skOff.dwFlags & SKF_STICKYKEYSON) == 0 )
         {
