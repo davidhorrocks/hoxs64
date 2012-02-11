@@ -92,27 +92,43 @@ RECT rcWin;
 HWND hWnd = NULL;
 HIMAGELIST hLarge = NULL;
 HIMAGELIST hSmall = NULL;
-
+bool ok = false;
 	const ImageInfo lvImageList[] = 
 	{
 		{IDB_BREAK, 0}
 	};
-
-	//hLarge = G::CreateImageListNormal(pcs->hInstance, hWndParent, m_dpi.ScaleX(GetSystemMetrics(SM_CXICON)), m_dpi.ScaleY(GetSystemMetrics(SM_CYICON)), lvImageList, 1);
 	
+	do
+	{
+		GetClientRect(hWndParent, &rcWin);
+		hWnd = CreateWindowEx(0, WC_LISTVIEW, TEXT(""), WS_CHILD | WS_VISIBLE | LVS_REPORT, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, hWndParent, (HMENU)LVBREAKPOINT, pcs->hInstance, NULL);
+		if (!hWnd)
+			break;
 
-	GetClientRect(hWndParent, &rcWin);
-	hWnd = CreateWindowEx(0, WC_LISTVIEW, TEXT(""), WS_CHILD | WS_VISIBLE | LVS_REPORT, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, hWndParent, (HMENU)LVBREAKPOINT, pcs->hInstance, NULL);
-	if (!hWnd)
-		return NULL;
+		hSmall = G::CreateImageListNormal(pcs->hInstance, hWndParent, m_dpi.ScaleX(GetSystemMetrics(SM_CXICON)), m_dpi.ScaleY(GetSystemMetrics(SM_CYICON)), lvImageList, 1);
+		if (!hSmall)
+			break;
 
+		HIMAGELIST hSmallOld = ListView_SetImageList(hWnd, hSmall, LVSIL_SMALL);
+		hSmall = NULL;
 
-	hr = InitListViewColumns(hWnd);
-	if (FAILED(hr))
-		return NULL;
+		hr = InitListViewColumns(hWnd);
+		if (FAILED(hr))
+			break;
+	
+		ok = true;
+	}  while (false);
 
+	if (!ok)
+	{
+		hWnd = NULL;
+	}
+	if (hSmall)
+	{
+		ImageList_Destroy(hSmall);
+		hSmall = NULL;
+	}
 	return hWnd;
-
 }
 
 HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
