@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
+#include <vector>
+#include <list>
 #include <assert.h>
 #include "boost2005.h"
 #include "user_message.h"

@@ -922,14 +922,13 @@
     <None Include="Basic.rom">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="bitmap2.bmp" />
     <None Include="break.bmp" />
+    <None Include="break_disable.bmp" />
     <None Include="C1541.rom" />
     <None Include="c64.ram">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="c64def.asm" />
-    <None Include="bitmap1.bmp" />
     <None Include="break.ico" />
     <None Include="candy clock mask.bmp" />
     <None Include="candy_clock.bmp" />

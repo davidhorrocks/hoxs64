@@ -15,14 +15,14 @@
 #include "hexconv.h"
 #include "monitor.h"
 
-SetBreakpointC64ExecuteEventArgs::SetBreakpointC64ExecuteEventArgs(MEM_TYPE memorymap, bit16 address, int count)
+BreakpointC64ExecuteChangedEventArgs::BreakpointC64ExecuteChangedEventArgs(MEM_TYPE memorymap, bit16 address, int count)
 {
 	this->Memorymap = memorymap;
 	this->Address = address;
 	this->Count = count;
 }
 
-SetBreakpointDiskExecuteEventArgs::SetBreakpointDiskExecuteEventArgs(bit16 address, int count)
+BreakpointDiskExecuteChangedEventArgs::BreakpointDiskExecuteChangedEventArgs(bit16 address, int count)
 {
 	this->Address = address;
 	this->Count = count;

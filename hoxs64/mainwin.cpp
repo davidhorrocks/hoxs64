@@ -10,6 +10,8 @@
 #include <dinput.h>
 #include <dsound.h>
 #include <stdio.h>
+#include <vector>
+#include <list>
 #include <assert.h>
 #include "boost2005.h"
 #include "defines.h"

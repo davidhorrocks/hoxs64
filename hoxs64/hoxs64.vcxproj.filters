@@ -397,9 +397,6 @@
     <None Include="c64def.asm">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="bitmap1.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="break.ico">
       <Filter>Resource Files</Filter>
     </None>
@@ -497,10 +494,10 @@
       <Filter>roms</Filter>
     </None>
     <None Include="candy_clock_64.png" />
-    <None Include="bitmap2.bmp">
+    <None Include="candy_clock_64.bmp">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="candy_clock_64.bmp">
+    <None Include="break_disable.bmp">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

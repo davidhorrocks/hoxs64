@@ -2,21 +2,21 @@
 #define __MONITOR_H__
 
 
-class SetBreakpointC64ExecuteEventArgs : public EventArgs
+class BreakpointC64ExecuteChangedEventArgs : public EventArgs
 {
 public:
 	MEM_TYPE Memorymap;
 	bit16 Address;
 	int Count;
-	SetBreakpointC64ExecuteEventArgs(MEM_TYPE memorymap, bit16 address, int count);
+	BreakpointC64ExecuteChangedEventArgs(MEM_TYPE memorymap, bit16 address, int count);
 };
 
-class SetBreakpointDiskExecuteEventArgs : public EventArgs
+class BreakpointDiskExecuteChangedEventArgs : public EventArgs
 {
 public:
 	bit16 Address;
 	int Count;
-	SetBreakpointDiskExecuteEventArgs(bit16 address, int count);
+	BreakpointDiskExecuteChangedEventArgs(bit16 address, int count);
 };
 
 class IMonitorCommand
@@ -51,8 +51,8 @@ public:
 	EventSource<EventArgs> EsCpuC64RegPCChanged;
 	EventSource<EventArgs> EsCpuDiskRegPCChanged;
 
-	EventSource<SetBreakpointC64ExecuteEventArgs> EsSetBreakpointC64Execute;
-	EventSource<SetBreakpointDiskExecuteEventArgs> EsSetBreakpointDiskExecute;
+	EventSource<BreakpointC64ExecuteChangedEventArgs> EsBreakpointChangeC64Execute;
+	EventSource<BreakpointDiskExecuteChangedEventArgs> EsBreakpointDiskExecuteChanged;
 
 };
 

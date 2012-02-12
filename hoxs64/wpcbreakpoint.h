@@ -1,9 +1,11 @@
 #ifndef __BREAKPOINTFRAME_H__
 #define __BREAKPOINTFRAME_H__
 
+
 class WpcBreakpoint : public CVirWindow
 {
 public:
+	typedef std::vector<Sp_BreakpointItem> LstBrk;
 	WpcBreakpoint();
 	virtual ~WpcBreakpoint();
 	static const TCHAR ClassName[];
@@ -12,10 +14,16 @@ public:
 
 	HRESULT Init(Monitor *pMonitor);
 protected:
-	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LstBrk m_lstBreak;
 
+	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresult);
+	bool LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult);
+	HRESULT LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch);
+	int LvBreakPoint_RowCol_State(int iRow, int iCol);
+
 private:
 	class LvBreakColumnIndex
 	{
@@ -30,7 +38,7 @@ private:
 	HWND m_hLvBreak;
 	HWND CreateListView(CREATESTRUCT *pcs, HWND hWndParent);
 	HRESULT InitListViewColumns(HWND hWndListView);
-	HRESULT FillListView();
+	HRESULT FillListView(HWND hWndListView);
 	Monitor *m_pMonitor;
 	CDPI m_dpi;
 };

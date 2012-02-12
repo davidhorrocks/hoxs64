@@ -644,7 +644,6 @@ bool bHasPrevAddress;
 			pAlb = &this->m_pFrontTextBuffer[iline];
 			address = pAlb->Address;
 			IMonitorCpu *pMonitorCpu = m_pMon->GetCpu();
-			//m_pMon->GetCpuId();
 			int iCount;
 			if (pMonitorCpu->IsBreakPoint(address))
 			{				
@@ -660,13 +659,13 @@ bool bHasPrevAddress;
 			}
 			if (pMonitorCpu->GetCpuId() == CPUID_MAIN)
 			{
-				SetBreakpointC64ExecuteEventArgs e((MEM_TYPE)-1, address, iCount);
-				this->m_monitorCommand->EsSetBreakpointC64Execute.Raise(this, e);
+				BreakpointC64ExecuteChangedEventArgs e((MEM_TYPE)-1, address, iCount);
+				this->m_monitorCommand->EsBreakpointChangeC64Execute.Raise(this, e);
 			}
 			else if (pMonitorCpu->GetCpuId() == CPUID_DISK)
 			{
-				SetBreakpointDiskExecuteEventArgs e(address, iCount);
-				this->m_monitorCommand->EsSetBreakpointDiskExecute.Raise(this, e);
+				BreakpointDiskExecuteChangedEventArgs e(address, iCount);
+				this->m_monitorCommand->EsBreakpointDiskExecuteChanged.Raise(this, e);
 			}
 
 			InvalidateRectChanges();
