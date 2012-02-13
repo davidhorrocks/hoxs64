@@ -1,6 +1,42 @@
 #ifndef __C64_H__
 #define __C64_H__
 
+#include <vector>
+#include <list>
+
+#include "boost2005.h"
+#include "user_message.h"
+#include "defines.h"
+#include "mlist.h"
+#include "carray.h"
+#include "cevent.h"
+
+#include "bits.h"
+#include "util.h"
+#include "register.h"
+#include "hconfig.h"
+#include "appstatus.h"
+#include "dxstuff9.h"
+#include "c6502.h"
+#include "ram64.h"
+#include "cpu6510.h"
+#include "cia6526.h"
+#include "cia1.h"
+#include "cia2.h"
+#include "vic6569.h"
+#include "tap.h"
+#include "filter.h"
+#include "sid.h"
+#include "sidfile.h"
+#include "d64.h"
+#include "d1541.h"
+#include "via6522.h"
+#include "via1.h"
+#include "via2.h"
+#include "diskinterface.h"
+#include "t64.h"
+#include "monitor.h"
+
 class SIDLoader;
 
 class C64 : public IC64, private ITapeEvent, public IAutoLoad, public ErrorMsg
@@ -21,6 +57,7 @@ public:
 	CConfig *cfg;
 	IC64Event *pIC64Event;
 	CDX9 *dx;
+	Monitor mon;
 	HRESULT Init(CConfig *, CAppStatus *, IC64Event *, CDX9 *, TCHAR *szAppDirectory);
 	void Reset(ICLK sysclock);
 	void ExecuteDiskInstruction();
@@ -153,5 +190,18 @@ private:
 	bool m_bLastPostedDriveWriteLed;
 	ICLK m_iClockOverflowCheckCounter;
 };
+
+class DefaultCpu : IDefaultCpu
+{
+public:
+	//DefaultCpu();
+	DefaultCpu(int cpuid, C64 *c64);
+	int GetCpuId();
+	IMonitorCpu *GetCpu();
+protected:
+	int cpuid;
+	C64 *c64;
+};
+
 
 #endif

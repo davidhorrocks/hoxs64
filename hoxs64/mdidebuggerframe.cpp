@@ -1,10 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -12,41 +8,13 @@
 #include <vector>
 #include <list>
 #include <assert.h>
-#include "boost2005.h"
-#include "user_message.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
 #include "CDPI.h"
-#include "bits.h"
-#include "util.h"
-#include "utils.h"
-#include "register.h"
+
 #include "errormsg.h"
-#include "hconfig.h"
-#include "appstatus.h"
-#include "dxstuff9.h"
-#include "c6502.h"
-#include "ram64.h"
-#include "cpu6510.h"
-#include "cia6526.h"
-#include "cia1.h"
-#include "cia2.h"
-#include "vic6569.h"
-#include "tap.h"
-#include "filter.h"
-#include "sid.h"
-#include "sidfile.h"
-#include "d64.h"
-#include "d1541.h"
-#include "via6522.h"
-#include "via1.h"
-#include "via2.h"
-#include "diskinterface.h"
-#include "t64.h"
+
 #include "C64.h"
-#include "monitor.h"
+
+#include "utils.h"
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -81,7 +49,11 @@ const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] =
 	{2, TEXT("Stop"), ID_STEP_STOP}
 };
 
-CMDIDebuggerFrame::CMDIDebuggerFrame()
+CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64)
+	:
+	c64(c64),
+	m_debugCpuC64(CPUID_MAIN, c64),
+	m_debugCpuDisk(CPUID_DISK, c64)
 {
 	m_hWndMDIClient = NULL;
 	m_hWndRebar = NULL;
@@ -90,7 +62,6 @@ CMDIDebuggerFrame::CMDIDebuggerFrame()
 	m_bIsCreated = false;
 	cfg = NULL;
 	appStatus = NULL;
-	c64 = NULL;
 	m_monitorCommand = NULL;
 }
 
@@ -203,8 +174,8 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (FAILED(hr))
 		return hr;
 
-	WpcBreakpoint *pWin = new WpcBreakpoint();	
-	hr = pWin->Init(&m_monitorC64);
+	WpcBreakpoint *pWin = new WpcBreakpoint(c64);	
+	hr = pWin->Init();
 	if (SUCCEEDED(hr))
 	{
 		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, pWin);
@@ -485,29 +456,28 @@ void CMDIDebuggerFrame::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	m_debugCpuDisk.Show(true);
 }
 
-HRESULT CMDIDebuggerFrame::Init(IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
+HRESULT CMDIDebuggerFrame::Init(IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus)
 {
 HRESULT hr;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
-	this->c64 = c64;
 	this->m_monitorCommand = monitorCommand;
 
-	IMonitorCpu *monitorMainCpu = &c64->cpu;
-	IMonitorCpu *monitorDiskCpu = &c64->diskdrive.cpu;
-	IMonitorVic *monitorVic = &c64->vic;
-	IMonitorDisk *monitorDisk = &c64->diskdrive;
+	//IMonitorCpu *monitorMainCpu = &c64->cpu;
+	//IMonitorCpu *monitorDiskCpu = &c64->diskdrive.cpu;
+	//IMonitorVic *monitorVic = &c64->vic;
+	//IMonitorDisk *monitorDisk = &c64->diskdrive;
 
-	m_monitorC64.Init(CPUID_MAIN, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
-	m_monitorDisk.Init(CPUID_DISK, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
+	//m_monitorC64.Init(CPUID_MAIN, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
+	//m_monitorDisk.Init(CPUID_DISK, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
 
 	do
 	{
-		hr = m_debugCpuC64.Init(this, monitorCommand, &m_monitorC64, TEXT("C64 - cpu"));
+		hr = m_debugCpuC64.Init(this, monitorCommand, CPUID_MAIN, c64, TEXT("C64 - cpu"));
 		if (FAILED(hr))
 			break;
 
-		hr = m_debugCpuDisk.Init(this, monitorCommand, &m_monitorDisk, TEXT("Disk - cpu"));
+		hr = m_debugCpuDisk.Init(this, monitorCommand, CPUID_DISK, c64, TEXT("Disk - cpu"));
 		if (FAILED(hr))
 			break;
 

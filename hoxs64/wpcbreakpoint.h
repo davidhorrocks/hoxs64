@@ -6,13 +6,13 @@ class WpcBreakpoint : public CVirWindow
 {
 public:
 	typedef std::vector<Sp_BreakpointItem> LstBrk;
-	WpcBreakpoint();
+	WpcBreakpoint(C64 *c64);
 	virtual ~WpcBreakpoint();
 	static const TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 
-	HRESULT Init(Monitor *pMonitor);
+	HRESULT Init();
 protected:
 	LstBrk m_lstBreak;
 
@@ -39,8 +39,8 @@ private:
 	HWND CreateListView(CREATESTRUCT *pcs, HWND hWndParent);
 	HRESULT InitListViewColumns(HWND hWndListView);
 	HRESULT FillListView(HWND hWndListView);
-	Monitor *m_pMonitor;
 	CDPI m_dpi;
+	C64 *c64;
 };
 
 #endif

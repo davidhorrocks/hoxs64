@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "dx_version.h"
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -6,19 +7,11 @@
 #include <vector>
 #include <list>
 #include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
 #include "CDPI.h"
-#include "bits.h"
-#include "util.h"
 #include "utils.h"
-#include "register.h"
 #include "errormsg.h"
 #include "hexconv.h"
-#include "monitor.h"
+#include "C64.h"
 
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -29,19 +22,18 @@ const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 
 #define IDC_LVBREAKPOINT (1001)
 
-WpcBreakpoint::WpcBreakpoint()
+WpcBreakpoint::WpcBreakpoint(C64 *c64)
 {
 	m_hLvBreak = NULL;
-	m_pMonitor = NULL;
+	this->c64 = c64;
 }
 
 WpcBreakpoint::~WpcBreakpoint()
 {
 }
 
-HRESULT WpcBreakpoint::Init(Monitor *pMonitor)
+HRESULT WpcBreakpoint::Init()
 {
-	this->m_pMonitor = pMonitor;
 	return S_OK;
 }
 
@@ -189,7 +181,7 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 	m_lstBreak.clear();
 	
 	Sp_BreakpointItem v;
-	IEnumBreakpointItem *pEnumBp = m_pMonitor->GetMainCpu()->CreateEnumBreakpointExecute();
+	IEnumBreakpointItem *pEnumBp = c64->mon.GetMainCpu()->CreateEnumBreakpointExecute();
 	if (pEnumBp)
 	{
 		while (pEnumBp->GetNext(v))

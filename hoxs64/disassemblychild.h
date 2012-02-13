@@ -17,17 +17,17 @@ class CDisassemblyChild_EventSink :
 {
 };
 
-class CDisassemblyChild : public CVirWindow, public CDisassemblyChild_EventSink
+class CDisassemblyChild : public CVirWindow, public CDisassemblyChild_EventSink, public DefaultCpu
 {
 public:
-	CDisassemblyChild();
+	CDisassemblyChild(int cpuid, C64 *c64);
 	virtual ~CDisassemblyChild();
 
 	static const int ID_SCROLLBAR = 2000;
 	static const int ID_DISASSEMBLY = 2001;
 	static TCHAR ClassName[];
 
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
@@ -40,7 +40,6 @@ public:
 private:
 	HWND m_hWndScroll;
 	IMonitorCommand *m_monitorCommand;
-	Monitor *m_pMon;
 
 	CVirWindow *m_pParent;
 	CDisassemblyEditChild m_DisassemblyEditChild;

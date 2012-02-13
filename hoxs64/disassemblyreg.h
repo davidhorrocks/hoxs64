@@ -41,7 +41,7 @@ class CDisassemblyReg_EventSink :
 {
 };
 
-class CDisassemblyReg : public CVirWindow, public CDisassemblyReg_EventSink
+class CDisassemblyReg : public CVirWindow, public CDisassemblyReg_EventSink, public DefaultCpu
 {
 public:
 	static const int MARGIN_TOP = 0;
@@ -110,13 +110,13 @@ public:
 		int m_iShowCaretCount;
 		HWND m_hWndParent;
 	};
-	CDisassemblyReg();
+	CDisassemblyReg(int cpuid, C64 *c64);
 	virtual ~CDisassemblyReg();
 
 	static TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont);
 	void GetMinWindowSize(int &w, int &h);
 	void UpdateDisplay();
 	void InvalidateBuffer();
@@ -128,7 +128,6 @@ private:
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	Monitor *m_pMon;
 	IMonitorCommand *m_monitorCommand;
 
 	RegLineBuffer m_RegBuffer;

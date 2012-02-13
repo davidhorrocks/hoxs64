@@ -1,34 +1,29 @@
 #include <windows.h>
 #include <windowsx.h>
+#include "dx_version.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
 #include "CDPI.h"
-#include "bits.h"
-#include "util.h"
 #include "utils.h"
-#include "register.h"
 #include "errormsg.h"
-#include "monitor.h"
+#include "C64.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "resource.h"
 
 TCHAR CDisassemblyChild::ClassName[] = TEXT("Hoxs64DisassemblyChild");
 
-CDisassemblyChild::CDisassemblyChild()
+CDisassemblyChild::CDisassemblyChild(int cpuid, C64 *c64) 
+	: 
+	DefaultCpu(cpuid, c64),
+	m_DisassemblyEditChild(cpuid, c64)
 {
 	m_pParent = NULL;
 	m_hWndScroll = NULL;
-	m_pMon = NULL;
 }
 
 CDisassemblyChild::~CDisassemblyChild()
@@ -41,13 +36,12 @@ void CDisassemblyChild::Cleanup()
 	UnadviseEvents();
 }
 
-HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont)
+HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont)
 {
 HRESULT hr;
 	m_pParent = parent;
-	m_pMon = pMon;
 	m_monitorCommand = monitorCommand;
-	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, pMon, hFont);
+	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, hFont);
 	if (FAILED(hr))
 		return hr;
 
@@ -238,7 +232,7 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 void CDisassemblyChild::SetHome()
 {
 	CPUState cpustate;
-	this->m_pMon->GetCpu()->GetCpuState(cpustate);
+	this->GetCpu()->GetCpuState(cpustate);
 	this->SetTopAddress(cpustate.PC_CurrentOpcode, true);
 }
 
@@ -472,7 +466,7 @@ HRESULT CDisassemblyChild::AdviseEvents()
 	hr = S_OK;
 	do
 	{
-		if (this->m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
+		if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
 			hs = this->m_monitorCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
 		else
 			hs = this->m_monitorCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);

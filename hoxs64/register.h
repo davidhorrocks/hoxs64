@@ -132,7 +132,6 @@ struct LessBreakpointKey
 	bool operator()(const Sp_BreakpointKey& x, const Sp_BreakpointKey& y);
 };
 
-
 class IMonitorCpu
 {
 public:
@@ -177,4 +176,12 @@ class IMonitorDisk
 public:
 	virtual bit8 GetHalfTrackIndex()=0;
 };
+
+class IDefaultCpu
+{
+public:
+	virtual int GetCpuId()=0;
+	virtual IMonitorCpu *GetCpu()=0;
+};
+
 #endif

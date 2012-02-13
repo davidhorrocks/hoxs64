@@ -1,23 +1,16 @@
 #include <windows.h>
 #include <windowsx.h>
+#include "dx_version.h"
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
 #include <tchar.h>
 #include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
 #include "CDPI.h"
-#include "bits.h"
-#include "util.h"
 #include "utils.h"
-#include "register.h"
 #include "errormsg.h"
-#include "monitor.h"
+#include "C64.h"
 #include "dchelper.h"
 #include "assembler.h"
 #include "disassemblyeditchild.h"
@@ -35,11 +28,10 @@ TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
 
 
-CDisassemblyEditChild::CDisassemblyEditChild()
+CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64) : DefaultCpu(cpuid, c64)
 {
 	WIDTH_LEFTBAR2 = 0;
 	LINE_HEIGHT = 0;
-	m_pMon = NULL;
 	m_pParent = NULL;
 	m_FirstAddress = 0;
 	m_NumLines = 0;
@@ -78,7 +70,7 @@ void CDisassemblyEditChild::Cleanup()
 
 }
 
-HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont)
+HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont)
 {
 HRESULT hr;
 	Cleanup();
@@ -86,7 +78,6 @@ HRESULT hr;
 	this->m_pParent = parent;
 	this->m_hFont = hFont;
 	this->m_monitorCommand = monitorCommand;
-	this->m_pMon = pMon;
 
 	hr = AllocTextBuffer();
 	m_FirstAddress = GetNearestTopAddress(0);
@@ -253,7 +244,7 @@ bit16 address;
 			{
 				for (int j = 0; j<i; j++)
 				{
-					this->m_pMon->GetCpu()->MonWriteByte(address+j, acode[j], -1);
+					this->GetCpu()->MonWriteByte(address+j, acode[j], -1);
 				}
 				this->UpdateBuffer(false);
 				this->InvalidateRectChanges();
@@ -643,7 +634,7 @@ bool bHasPrevAddress;
 		{
 			pAlb = &this->m_pFrontTextBuffer[iline];
 			address = pAlb->Address;
-			IMonitorCpu *pMonitorCpu = m_pMon->GetCpu();
+			IMonitorCpu *pMonitorCpu = this->GetCpu();
 			int iCount;
 			if (pMonitorCpu->IsBreakPoint(address))
 			{				
@@ -912,7 +903,7 @@ LPNMHDR pn;
 void CDisassemblyEditChild::SetHome()
 {
 	CPUState cpustate;
-	this->m_pMon->GetCpu()->GetCpuState(cpustate);
+	this->GetCpu()->GetCpuState(cpustate);
 	this->SetTopAddress(cpustate.PC_CurrentOpcode);
 }
 
@@ -938,7 +929,7 @@ HBRUSH bshEdit;
 TEXTMETRIC tm;
 
 	CPUState cpustate;
-	m_pMon->GetCpu()->GetCpuState(cpustate);
+	this->GetCpu()->GetCpuState(cpustate);
 
 	SetBkMode(hdc, OPAQUE);
 	SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
@@ -1035,7 +1026,7 @@ TEXTMETRIC tm;
 								SetRect(&rcEditRow, xcol_Address, y, rcClient.right, y + LINE_HEIGHT);
 								::SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 								::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-								if (m_pMon->GetCpu()->IsBreakPoint(albFront.Address))
+								if (this->GetCpu()->IsBreakPoint(albFront.Address))
 								{
 									SelectObject(hdc, bshBarBreak);
 									DWORD dwROP = MERGECOPY;
@@ -1154,7 +1145,7 @@ int iEnsureAddress = -1;
 	if (bEnsurePC)
 	{
 		CPUState cpustate;
-		m_pMon->GetCpu()->GetCpuState(cpustate);
+		this->GetCpu()->GetCpuState(cpustate);
 		iEnsureAddress = cpustate.PC_CurrentOpcode;
 	}
 	UpdateBuffer(m_pFrontTextBuffer, m_NumLines, iEnsureAddress);
@@ -1195,7 +1186,7 @@ void CDisassemblyEditChild::UpdateBuffer(AssemblyLineBuffer *assemblyLineBuffer,
 bit16 currentAddress = address;
 CPUState cpustate;
 	
-	m_pMon->GetCpu()->GetCpuState(cpustate);
+	this->GetCpu()->GetCpuState(cpustate);
 
 	bit16s pcdiff_start = (bit16s)((cpustate.PC_CurrentOpcode - address) & 0xffff);	
 	bool pcfound = false;
@@ -1237,13 +1228,13 @@ CPUState cpustate;
 			}
 		}
 
-		if (m_pMon->GetCpu()->IsBreakPoint(currentAddress))
+		if (this->GetCpu()->IsBreakPoint(currentAddress))
 			buffer.IsBreak = true;
 		else
 			buffer.IsBreak = false;
 
-		int instructionSize = m_pMon->DisassembleOneInstruction(currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
-		buffer.AddressReadAccessType = m_pMon->GetCpu()->GetCpuMmuReadMemoryType(currentAddress, -1);
+		int instructionSize = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
+		buffer.AddressReadAccessType = this->GetCpu()->GetCpuMmuReadMemoryType(currentAddress, -1);
 		buffer.Address = currentAddress;
 		buffer.InstructionSize = (bit8)instructionSize;
 		buffer.IsValid = true;
@@ -1260,7 +1251,7 @@ bit16 currentAddress = address - 32;
 bit16 nextAddress;
 	while((bit16s)(currentAddress - address) < 0)
 	{
-		int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+		int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 		if (instructionLength<=0)
 		{
 			nextAddress = currentAddress+1;
@@ -1315,7 +1306,7 @@ bool isUndoc = false;
 	bit16 currentAddress = startaddress;
 	for (int i=0 ; i<linenumber ; i++)
 	{
-		int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+		int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 		currentAddress+=instructionLength;
 	}
 	
@@ -1327,7 +1318,7 @@ bit16 CDisassemblyEditChild::GetNextAddress()
 bool isUndoc = false;
 bit16 currentAddress = m_FirstAddress;
 bit16 nextAddress;
-	int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+	int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 	if (instructionLength<=0)
 	{
 		nextAddress = currentAddress+1;
@@ -1346,7 +1337,7 @@ bit16 currentAddress = m_FirstAddress - 32;
 bit16 nextAddress;
 	while((bit16s)(currentAddress-m_FirstAddress) < 0)
 	{
-		int instructionLength = m_pMon->DisassembleOneInstruction(currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+		int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 		if (instructionLength<=0)
 		{
 			nextAddress = currentAddress+1;

@@ -1,7 +1,7 @@
 #ifndef __DISSASSEMBLYEDITCHILD_H__
 #define __DISSASSEMBLYEDITCHILD_H__
 
-class CDisassemblyEditChild : public CVirWindow
+class CDisassemblyEditChild : public CVirWindow , public DefaultCpu
 {
 public:
 	int WIDTH_LEFTBAR2;
@@ -37,10 +37,10 @@ public:
 		bool IsEqual(AssemblyLineBuffer& other);
 	};
 
-	CDisassemblyEditChild();
+	CDisassemblyEditChild(int cpuid, C64 *c64);
 	virtual ~CDisassemblyEditChild();
 	static TCHAR ClassName[];
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, HFONT hFont);
+	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 
@@ -65,7 +65,6 @@ public:
 private:
 	CVirWindow *m_pParent;
 	IMonitorCommand *m_monitorCommand;
-	Monitor *m_pMon;
 	CDPI m_dpi;
 	HFONT m_hFont;
 	bit16 m_FirstAddress;
@@ -87,7 +86,6 @@ private:
 	int xcol_Bytes;
 	int xcol_Mnemonic;
 
-	
 	AssemblyLineBuffer *m_pFrontTextBuffer;
 	AssemblyLineBuffer *m_pBackTextBuffer;
 

@@ -1,21 +1,14 @@
 #include <windows.h>
+#include "dx_version.h"
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
 #include "CDPI.h"
-#include "bits.h"
-#include "util.h"
 #include "utils.h"
-#include "register.h"
 #include "errormsg.h"
-#include "monitor.h"
+#include "C64.h"
 #include "edln.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
@@ -52,14 +45,17 @@ const ButtonInfo CDisassemblyFrame::TB_StepButtons[] =
 	{5, TEXT("Stop"), ID_STEP_STOP}
 };
 
-CDisassemblyFrame::CDisassemblyFrame()
+CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64)
+	: 
+	DefaultCpu(cpuid, c64),
+	m_DisassemblyChild(cpuid, c64),
+	m_DisassemblyReg(cpuid, c64)
 {
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
 	m_hImageListToolBarNormal = NULL;
 	m_pParentWindow = NULL;
 	m_pszCaption = TEXT("Cpu");
-	m_pMon = NULL;
 	m_iCurrentControlIndex = 0;
 }
 
@@ -68,11 +64,10 @@ CDisassemblyFrame::~CDisassemblyFrame()
 	Cleanup();
 }
 
-HRESULT CDisassemblyFrame::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, Monitor *pMon, LPCTSTR pszCaption)
+HRESULT CDisassemblyFrame::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, int cpuid, C64 *c64, LPCTSTR pszCaption)
 {
 HRESULT hr;
 	m_pParentWindow = parent;
-	m_pMon = pMon;
 	if(monitorCommand==NULL)
 		return E_POINTER;
 	m_monitorCommand = monitorCommand;
@@ -81,11 +76,11 @@ HRESULT hr;
 	hr = InitFonts();
 	if (FAILED(hr))
 		return hr;
-	hr = m_DisassemblyChild.Init(this, monitorCommand, pMon, this->m_monitor_font);
+	hr = m_DisassemblyChild.Init(this, monitorCommand, this->m_monitor_font);
 	if (FAILED(hr))
 		return hr;
 
-	hr = m_DisassemblyReg.Init(this, monitorCommand, pMon, this->m_monitor_font);
+	hr = m_DisassemblyReg.Init(this, monitorCommand, this->m_monitor_font);
 	if (FAILED(hr))
 		return hr;
 	
@@ -292,9 +287,7 @@ HWND hWnd;
 		G::GetWorkArea(rcDesk);
 
 		int gap = (rcDesk.bottom - rcDesk.top) / 10;
-		int id=0;
-		if (this->m_pMon->GetCpu())
-			id = m_pMon->GetCpu()->GetCpuId();
+		int id=this->GetCpuId();
 		if (id == CPUID_MAIN)
 		{
 			x = wp.rcNormalPosition.left-w;
@@ -620,7 +613,7 @@ void CDisassemblyFrame::CancelEditing()
 
 void CDisassemblyFrame::OnResume(void *sender, EventArgs& e)
 {
-	m_pMon->GetCpu()->ClearBreakOnInterruptTaken();
+	this->GetCpu()->ClearBreakOnInterruptTaken();
 }
 
 void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
@@ -665,7 +658,7 @@ void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 
 void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 {
-	m_pMon->GetCpu()->ClearBreakOnInterruptTaken();
+	this->GetCpu()->ClearBreakOnInterruptTaken();
 	if (IsWindow(this->m_hWnd))
 	{
 		SetHome();
@@ -799,7 +792,7 @@ int wmId, wmEvent;
 		if (m_monitorCommand->IsRunning())
 			return true;
 		CancelEditing();
-		if (m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
+		if (this->GetCpuId() == CPUID_MAIN)
 			m_monitorCommand->ExecuteC64Clock();
 		else
 			m_monitorCommand->ExecuteDiskClock();
@@ -811,7 +804,7 @@ int wmId, wmEvent;
 		if (m_monitorCommand->IsRunning())
 			return true;
 		CancelEditing();
-		if (m_pMon->GetCpu()->GetCpuId() == CPUID_MAIN)
+		if (this->GetCpuId() == CPUID_MAIN)
 			m_monitorCommand->ExecuteC64Instruction();
 		else
 			m_monitorCommand->ExecuteDiskInstruction();
@@ -839,7 +832,7 @@ int wmId, wmEvent;
 			return true;
 		if (m_monitorCommand->IsRunning())
 			return true;
-		m_pMon->GetCpu()->SetBreakOnInterruptTaken();
+		this->GetCpu()->SetBreakOnInterruptTaken();
 		m_monitorCommand->Trace();
 		return true;
 	case ID_FILE_MONITOR:

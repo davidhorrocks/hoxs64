@@ -1046,11 +1046,11 @@ bool ok = false;
 	appStatus->m_bDebug = TRUE;
 	if (m_pMDIDebugger == NULL)
 	{
-		pwin = new CMDIDebuggerFrame();
+		pwin = new CMDIDebuggerFrame(this->c64);
 		if (pwin != NULL)
 		{
 			pwin->m_AutoDelete = true;
-			hr = pwin->Init(this->m_monitorCommand, this->cfg, this->appStatus, this->c64);
+			hr = pwin->Init(this->m_monitorCommand, this->cfg, this->appStatus);
 			if (SUCCEEDED(hr))
 			{
 				int x,y,w,h;

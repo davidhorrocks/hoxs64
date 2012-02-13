@@ -6,4 +6,9 @@
 #define DIRECTDRAW_VERSION 0x0700
 #define DIRECTINPUT_VERSION 0x0700
 
+#include <d3d9.h>
+#include <d3dx9core.h>
+#include <dinput.h>
+#include <dsound.h>
+
 #endif

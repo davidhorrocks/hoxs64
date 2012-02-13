@@ -43,10 +43,6 @@
 #include "c64file.h"
 #include "C64.h"
 
-
-//RAWTAPE *pTAPBase;
-
-
 C64::C64()
 {
 	pIC64Event = 0;
@@ -86,6 +82,8 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 	if (sid.Init(cfg, appStatus, dx, cfg->m_fps)!=S_OK) return SetError(sid);
 
 	if (diskdrive.Init(cfg, appStatus, pIC64Event, szAppDirectory)!=S_OK) return SetError(diskdrive);
+
+	if (mon.Init(&cpu, &diskdrive.cpu, &vic, &diskdrive)!=S_OK) return SetError(E_FAIL, TEXT("C64 monitor initialisation failed"));
 
 	return S_OK;
 }
@@ -1417,3 +1415,31 @@ void C64::ProcessReset()
 		SoftReset(false);
 	}
 }
+
+//DefaultCpu::DefaultCpu()
+//{
+//	cpuid = CPUID_MAIN;
+//	c64 = NULL;
+//}
+
+DefaultCpu::DefaultCpu(int cpuid, C64 *c64)
+{
+	this->cpuid = cpuid;
+	this->c64 = c64;
+}
+
+int DefaultCpu::GetCpuId()
+{
+	return cpuid;
+}
+
+IMonitorCpu *DefaultCpu::GetCpu()
+{
+	if (cpuid == CPUID_MAIN)
+		return &c64->cpu;
+	else if (cpuid == CPUID_DISK)
+		return &c64->diskdrive.cpu;
+	else
+		return NULL;
+}
+

@@ -1,19 +1,12 @@
 #include <windows.h>
+#include "dx_version.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
-#include "bits.h"
-#include "register.h"
 #include "errormsg.h"
-#include "C6502.h"
 #include "hexconv.h"
-#include "monitor.h"
+#include "c64.h"
 
 BreakpointC64ExecuteChangedEventArgs::BreakpointC64ExecuteChangedEventArgs(MEM_TYPE memorymap, bit16 address, int count)
 {
@@ -36,9 +29,8 @@ Monitor::Monitor()
 	m_pMonitorDisk = NULL;
 }
 
-HRESULT Monitor::Init(int iCpuId, IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk)
+HRESULT Monitor::Init(IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk)
 {
-	m_iCpuId = iCpuId;
 	this->m_pMonitorMainCpu = pMonitorMainCpu;
 	this->m_pMonitorDiskCpu = pMonitorDiskCpu;
 	this->m_pMonitorVic = pMonitorVic;
@@ -62,20 +54,17 @@ TCHAR szWord[5];
 	if (pCycle_Text != NULL && cchCycle_Text > 0)
 	{
 		_stprintf_s(pCycle_Text, cchCycle_Text,TEXT("%d"), cycle);
-
-		//HexConv::long_to_hex(cycle, &szByte[0], 2);
-		//_tcsncpy_s(pCycle_Text, cchCycle_Text, szByte, _TRUNCATE);
 	}
 }
 
-void Monitor::GetCpuRegisters(TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDDR_Text, int cchDDR_Text, TCHAR *pData_Text, int cchData_Text)
+void Monitor::GetCpuRegisters(IMonitorCpu *pMonitorCpu, TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDDR_Text, int cchDDR_Text, TCHAR *pData_Text, int cchData_Text)
 {
 TCHAR szWord[5];
 TCHAR szByte[5];
 TCHAR szBitByte[10];
 CPUState cpu;
 
-	this->GetCpu()->GetCpuState(cpu);
+	pMonitorCpu->GetCpuState(cpu);
 
 	if (pPC_Text != NULL && cchPC_Text > 0)
 	{
@@ -133,27 +122,6 @@ CPUState cpu;
 	}
 }
 
-int Monitor::GetCpuId()
-{
-	return m_iCpuId;
-}
-
-IMonitorCpu *Monitor::GetCpu()
-{
-	if (this->m_iCpuId == CPUID_MAIN)
-	{
-		return this->m_pMonitorMainCpu;
-	}
-	else if (this->m_iCpuId == CPUID_DISK)
-	{
-		return this->m_pMonitorDiskCpu;
-	}
-	else
-	{
-		return NULL;
-	}
-}
-
 IMonitorCpu *Monitor::GetMainCpu()
 {
 	return this->m_pMonitorMainCpu;
@@ -174,7 +142,7 @@ IMonitorDisk *Monitor::GetDisk()
 	return this->m_pMonitorDisk;
 }
 
-int Monitor::DisassembleOneInstruction(bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc)
+int Monitor::DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc)
 {
 TCHAR szAddress[BUFSIZEADDRESSTEXT];
 TCHAR szHex[BUFSIZEADDRESSTEXT];
@@ -182,11 +150,11 @@ int instruction_size;
 TCHAR szAssembly[BUFSIZEMNEMONICTEXT];
 bit8 operand1;
 
-	if (this->GetCpu() == NULL)
+	if (pMonitorCpu == NULL)
 		return 0;
 
 	szAssembly[0]=0;
-	bit8 opcode = this->GetCpu()->MonReadByte(address, memorymap);
+	bit8 opcode = pMonitorCpu->MonReadByte(address, memorymap);
 
 	const InstructionInfo& ii = CPU6502::AssemblyData[opcode];
 
@@ -200,75 +168,75 @@ bit8 operand1;
 	case amIMMEDIATE:
 		instruction_size=2;
 		lstrcat(szAssembly,TEXT(" #$"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		break;
 	case amZEROPAGE:
 		instruction_size=2;
 		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		break;
 	case amZEROPAGEX:
 		instruction_size=2;
 		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		lstrcat(szAssembly,TEXT(",X"));
 		break;
 	case amZEROPAGEY:
 		instruction_size=2;
 		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		lstrcat(szAssembly,TEXT(",Y"));
 		break;
 	case amABSOLUTE:
 		instruction_size=3;
 		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+2, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		break;
 	case amABSOLUTEX:
 		instruction_size=3;
 		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+2, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		lstrcat(szAssembly,TEXT(",X"));
 		break;
 	case amABSOLUTEY:
 		instruction_size=3;
 		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+2, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		lstrcat(szAssembly,TEXT(",Y"));
 		break;
 	case amINDIRECT:
 		instruction_size=3;
 		lstrcat(szAssembly,TEXT(" ($"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+2, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		lstrcat(szAssembly,TEXT(")"));
 		break;
 	case amINDIRECTX:
 		instruction_size=2;
 		lstrcat(szAssembly,TEXT(" ($"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		lstrcat(szAssembly,TEXT(",X)"));
 		break;
 	case amINDIRECTY:
 		instruction_size=2;
 		lstrcat(szAssembly,TEXT(" ($"));
-		HexConv::long_to_hex(this->GetCpu()->MonReadByte(address+1, memorymap), szHex, 2);
+		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
 		lstrcat(szAssembly,szHex);
 		lstrcat(szAssembly,TEXT("),Y"));
 		break;
@@ -276,7 +244,7 @@ bit8 operand1;
 		instruction_size=2;
 		lstrcat(szAssembly,TEXT(" $"));
 		
-		operand1=this->GetCpu()->MonReadByte(address+1, memorymap);
+		operand1=pMonitorCpu->MonReadByte(address+1, memorymap);
 		if (operand1 & 0x80)
 			HexConv::long_to_hex(((bit16) address - (bit16) ((bit8)~(operand1) + (bit8)1) + (bit16) 2), szHex, 4);
 		else
@@ -295,7 +263,7 @@ bit8 operand1;
 
 	if (pBytesText != NULL && cchBytesText > 0)
 	{
-		DisassembleBytes(address, memorymap, instruction_size, pBytesText, cchMnemonicText);
+		DisassembleBytes(pMonitorCpu, address, memorymap, instruction_size, pBytesText, cchMnemonicText);
 	}
 
 	if (pAddressText != NULL && cchAddressText > 0)
@@ -308,24 +276,13 @@ bit8 operand1;
 	return instruction_size;
 }
 
-int Monitor::AssembleMnemonic(bit8 address, int memorymap, const TCHAR *ppMnemonicText)
-{
-	return 0;
-}
-
-int Monitor::AssembleBytes(bit8 address, int memorymap, const TCHAR *ppBytesText)
-{
-	return 0;
-}
-
-
-int Monitor::DisassembleBytes(unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer)
+int Monitor::DisassembleBytes(IMonitorCpu *pMonitorCpu, unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer)
 {
 TCHAR *s;
 unsigned char b;
 const unsigned int DIGITS = 2;
 
-	if (this->GetCpu() == NULL)
+	if (pMonitorCpu == NULL)
 		return 0;
 	if (pBuffer == NULL || cchBuffer <=0)
 		return 0;
@@ -334,7 +291,7 @@ const unsigned int DIGITS = 2;
 	int charsRemaining = cchBuffer - 1;
 	int elementsFormatted = 0;
 	while (elementsFormatted < count){
-		b = this->GetCpu()->MonReadByte(address, memorymap);
+		b = pMonitorCpu->MonReadByte(address, memorymap);
 
 		if (elementsFormatted > 0)
 		{
@@ -355,9 +312,4 @@ const unsigned int DIGITS = 2;
 	}
 	*s=0;
 	return elementsFormatted;
-}
-
-HRESULT Monitor::AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten)
-{
-	return E_FAIL;
 }

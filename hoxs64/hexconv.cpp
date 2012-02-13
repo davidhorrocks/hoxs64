@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <tchar.h>
-#include "bits.h"
 #include "hexconv.h"
 
 unsigned char HexConv::hextable[256] = {0};
@@ -19,8 +18,8 @@ unsigned char i;
 	}
 }
 
-bit32 HexConv::hex_to_long(TCHAR *buffer){
-bit32 i,l,v,a,d;
+unsigned int HexConv::hex_to_long(TCHAR *buffer){
+unsigned int i,l,v,a,d;
 
 	if (hextable[0]==0)
 		init_hex_table();
@@ -40,9 +39,9 @@ bit32 i,l,v,a,d;
 	return a;
 }
 
-bit32 HexConv::long_to_hex(bit32 number, TCHAR *buffer, unsigned int digits){
-bit32 lz,i,v,s;
-bit32 mask;
+unsigned int HexConv::long_to_hex(unsigned int number, TCHAR *buffer, unsigned int digits){
+unsigned int lz,i,v,s;
+unsigned int mask;
 
 	lz=0;
 	i=0;	

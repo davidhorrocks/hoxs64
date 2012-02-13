@@ -72,24 +72,16 @@ public:
 	static const int BUFSIZEMMUTEXT = 20;
 
 	Monitor();
-	HRESULT Init(int iCpuId, IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk);
-	int DisassembleOneInstruction(bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc);
-	int AssembleMnemonic(bit8 address, int memorymap, const TCHAR *ppMnemonicText);
-	int AssembleBytes(bit8 address, int memorymap, const TCHAR *ppBytesText);
-	int DisassembleBytes(unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer);
-	void GetCpuRegisters(TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDdr_Text, int cchDdr_Text, TCHAR *pData_Text, int cchData_Text);
+	HRESULT Init(IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk);
+	int DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc);
+	int DisassembleBytes(IMonitorCpu *pMonitorCpu, unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer);
+	void GetCpuRegisters(IMonitorCpu *pMonitorCpu, TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDdr_Text, int cchDdr_Text, TCHAR *pData_Text, int cchData_Text);
 	void GetVicRegisters(TCHAR *pLine_Text, int cchLine_Text, TCHAR *pCycle_Text, int cchCycle_Text);
-
-	HRESULT AssembleText(LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
-
-	int GetCpuId();
-	IMonitorCpu *GetCpu();
 	IMonitorCpu *GetMainCpu();
 	IMonitorCpu *GetDiskCpu();
 	IMonitorVic *GetVic();
 	IMonitorDisk *GetDisk();
 private:
-	int m_iCpuId;
 	IMonitorCpu *m_pMonitorMainCpu;
 	IMonitorCpu *m_pMonitorDiskCpu;
 	IMonitorVic *m_pMonitorVic;
