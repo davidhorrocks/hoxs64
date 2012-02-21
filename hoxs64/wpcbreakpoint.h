@@ -1,8 +1,38 @@
 #ifndef __BREAKPOINTFRAME_H__
 #define __BREAKPOINTFRAME_H__
 
+class WpcBreakpoint_EventSink_OnBreakpointC64ExecuteChanged : public EventSink<BreakpointC64ExecuteChangedEventArgs>
+{
+protected:
 
-class WpcBreakpoint : public CVirWindow
+	virtual int Sink(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
+	{
+		OnBreakpointC64ExecuteChanged(sender, e);
+		return 0;
+	}
+	virtual void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)=0;
+};
+
+class WpcBreakpoint_EventSink_OnBreakpointDiskExecuteChanged : public EventSink<BreakpointDiskExecuteChangedEventArgs>
+{
+protected:
+
+	virtual int Sink(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
+	{
+		OnBreakpointDiskExecuteChanged(sender, e);
+		return 0;
+	}
+	virtual void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)=0;
+};
+
+class WpcBreakpoint_EventSink : 
+	public WpcBreakpoint_EventSink_OnBreakpointC64ExecuteChanged,
+	public WpcBreakpoint_EventSink_OnBreakpointDiskExecuteChanged
+{
+};
+
+
+class WpcBreakpoint : public CVirWindow, protected WpcBreakpoint_EventSink
 {
 public:
 	typedef std::vector<Sp_BreakpointItem> LstBrk;
@@ -39,6 +69,10 @@ private:
 	HWND CreateListView(CREATESTRUCT *pcs, HWND hWndParent);
 	HRESULT InitListViewColumns(HWND hWndListView);
 	HRESULT FillListView(HWND hWndListView);
+
+	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
+	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);
+
 	CDPI m_dpi;
 	C64 *c64;
 };

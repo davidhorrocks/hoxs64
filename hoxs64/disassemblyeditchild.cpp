@@ -83,6 +83,9 @@ HRESULT hr;
 	m_FirstAddress = GetNearestTopAddress(0);
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
+
+	monitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
+	
 	return S_OK;
 }
 
@@ -651,16 +654,18 @@ bool bHasPrevAddress;
 			if (pMonitorCpu->GetCpuId() == CPUID_MAIN)
 			{
 				BreakpointC64ExecuteChangedEventArgs e((MEM_TYPE)-1, address, iCount);
-				this->m_monitorCommand->EsBreakpointChangeC64Execute.Raise(this, e);
+				this->m_monitorCommand->EsBreakpointC64ExecuteChanged.Raise(this, e);
 			}
 			else if (pMonitorCpu->GetCpuId() == CPUID_DISK)
 			{
 				BreakpointDiskExecuteChangedEventArgs e(address, iCount);
 				this->m_monitorCommand->EsBreakpointDiskExecuteChanged.Raise(this, e);
 			}
-
-			InvalidateRectChanges();
-			UpdateWindow(m_hWnd);
+			else
+			{
+				InvalidateRectChanges();
+				UpdateWindow(m_hWnd);
+			}
 		}
 	}
 	else if (PtInRect(&rcEdit, pt))
@@ -1358,6 +1363,18 @@ void CDisassemblyEditChild::GetMinWindowSize(int &w, int &h)
 {
 	w = m_MinSizeW;
 	h = m_MinSizeH;
+}
+
+void CDisassemblyEditChild::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
+{
+	InvalidateRectChanges();
+	UpdateWindow(m_hWnd);
+}
+
+void CDisassemblyEditChild::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
+{
+	InvalidateRectChanges();
+	UpdateWindow(m_hWnd);
 }
 
 CDisassemblyEditChild::AssemblyLineBuffer::AssemblyLineBuffer()

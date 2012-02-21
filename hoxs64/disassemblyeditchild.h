@@ -1,7 +1,37 @@
 #ifndef __DISSASSEMBLYEDITCHILD_H__
 #define __DISSASSEMBLYEDITCHILD_H__
 
-class CDisassemblyEditChild : public CVirWindow , public DefaultCpu
+class CDisassemblyEditChild_EventSink_OnBreakpointC64ExecuteChanged : public EventSink<BreakpointC64ExecuteChangedEventArgs>
+{
+protected:
+
+	virtual int Sink(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
+	{
+		OnBreakpointC64ExecuteChanged(sender, e);
+		return 0;
+	}
+	virtual void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)=0;
+};
+
+class CDisassemblyEditChild_EventSink_OnBreakpointDiskExecuteChanged : public EventSink<BreakpointDiskExecuteChangedEventArgs>
+{
+protected:
+
+	virtual int Sink(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
+	{
+		OnBreakpointDiskExecuteChanged(sender, e);
+		return 0;
+	}
+	virtual void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)=0;
+};
+
+class CDisassemblyEditChild_EventSink : 
+	public CDisassemblyEditChild_EventSink_OnBreakpointC64ExecuteChanged,
+	public CDisassemblyEditChild_EventSink_OnBreakpointDiskExecuteChanged
+{
+};
+
+class CDisassemblyEditChild : public CVirWindow , public DefaultCpu, protected CDisassemblyEditChild_EventSink
 {
 public:
 	int WIDTH_LEFTBAR2;
@@ -124,6 +154,9 @@ private:
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnEditFocusedMnemonic();
+
+	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
+	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);
 
 	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

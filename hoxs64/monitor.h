@@ -51,7 +51,7 @@ public:
 	EventSource<EventArgs> EsCpuC64RegPCChanged;
 	EventSource<EventArgs> EsCpuDiskRegPCChanged;
 
-	EventSource<BreakpointC64ExecuteChangedEventArgs> EsBreakpointChangeC64Execute;
+	EventSource<BreakpointC64ExecuteChangedEventArgs> EsBreakpointC64ExecuteChanged;
 	EventSource<BreakpointDiskExecuteChangedEventArgs> EsBreakpointDiskExecuteChanged;
 
 };
