@@ -104,7 +104,7 @@ class CDisassemblyFrame_EventSink :
 class CDisassemblyFrame : public CVirWindow, public CDisassemblyFrame_EventSink, public DefaultCpu, public ErrorMsg
 {
 public:
-	CDisassemblyFrame(int cpuid, C64 *c64);
+	CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, LPCTSTR pszCaption);
 	virtual ~CDisassemblyFrame();
 	static const int ID_RERBAR = 2000;
 	static const int ID_TOOLBAR = 2001;
@@ -118,7 +118,7 @@ public:
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];	
 
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, int cpuid, C64 *c64, LPCTSTR pszCaption);
+	HRESULT Init(CVirWindow *parent);
 	HRESULT Show();
 	HRESULT Show(bool bSeekPC);
 
@@ -129,7 +129,7 @@ public:
 private:
 	CDPI m_dpi;
 	int m_iCurrentControlIndex;
-	IMonitorCommand *m_monitorCommand;
+	IMonitorCommand *m_pMonitorCommand;
 	LPCTSTR m_pszCaption;
 	HWND m_hWndRebar;
 	HWND m_hWndTooBar;

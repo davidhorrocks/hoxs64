@@ -49,25 +49,67 @@ const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] =
 	{2, TEXT("Stop"), ID_STEP_STOP}
 };
 
-CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64)
+CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand, CConfig *cfg, CAppStatus *appStatus)
 	:
 	c64(c64),
-	m_debugCpuC64(CPUID_MAIN, c64),
-	m_debugCpuDisk(CPUID_DISK, c64)
+	m_debugCpuC64(CPUID_MAIN, c64, pMonitorCommand, TEXT("C64 - cpu")),
+	m_debugCpuDisk(CPUID_DISK, c64, pMonitorCommand, TEXT("Disk - cpu"))
 {
 	m_hWndMDIClient = NULL;
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
 	m_hImageListToolBarNormal = NULL;
 	m_bIsCreated = false;
-	cfg = NULL;
-	appStatus = NULL;
-	m_monitorCommand = NULL;
+	this->cfg = cfg;
+	this->appStatus = appStatus;
+	this->m_pMonitorCommand = pMonitorCommand;
 }
 
 CMDIDebuggerFrame::~CMDIDebuggerFrame()
 {
 	Cleanup();
+}
+
+HRESULT CMDIDebuggerFrame::Init()
+{
+HRESULT hr;
+
+	do
+	{
+		hr = m_debugCpuC64.Init(this);
+		if (FAILED(hr))
+			break;
+
+		hr = m_debugCpuDisk.Init(this);
+		if (FAILED(hr))
+			break;
+
+		hr = AdviseEvents();
+		if (FAILED(hr))
+			break;
+
+		hr = S_OK;
+	} while (false);
+	if (FAILED(hr))
+	{
+		Cleanup();
+		return hr;
+	}
+	else
+	{
+		return S_OK;
+	}
+};
+
+void CMDIDebuggerFrame::Cleanup()
+{
+	UnadviseEvents();
+
+	if (m_hImageListToolBarNormal != NULL)
+	{
+		ImageList_Destroy(m_hImageListToolBarNormal);
+		m_hImageListToolBarNormal = NULL;
+	}
 }
 
 HRESULT CMDIDebuggerFrame::RegisterClass(HINSTANCE hInstance)
@@ -118,7 +160,7 @@ void CMDIDebuggerFrame::OnShowDevelopment(void *sender, EventArgs& e)
 
 void CMDIDebuggerFrame::SetMenuState()
 {
-	if (!m_monitorCommand)
+	if (!m_pMonitorCommand)
 		return ;
 	if (!m_hWnd)
 		return ;
@@ -129,7 +171,7 @@ void CMDIDebuggerFrame::SetMenuState()
 	UINT stateOpp;
 	UINT stateTb;
 	UINT stateTbOpp;
-	if (m_monitorCommand->IsRunning())
+	if (m_pMonitorCommand->IsRunning())
 	{
 		state = MF_DISABLED | MF_GRAYED;
 		stateOpp = MF_ENABLED;
@@ -174,7 +216,7 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	if (FAILED(hr))
 		return hr;
 
-	WpcBreakpoint *pWin = new WpcBreakpoint(c64);	
+	WpcBreakpoint *pWin = new WpcBreakpoint(c64, m_pMonitorCommand);	
 	hr = pWin->Init();
 	if (SUCCEEDED(hr))
 	{
@@ -323,23 +365,23 @@ int wmId, wmEvent;
 		ShowDebugCpuDisk(false);
 		return true;
 	case ID_STEP_TRACEFRAME:
-		if (!m_monitorCommand)
+		if (!m_pMonitorCommand)
 			return false;
-		if (m_monitorCommand->IsRunning())
+		if (m_pMonitorCommand->IsRunning())
 			return false;
-		m_monitorCommand->TraceFrame();
-		m_monitorCommand->UpdateApplication();
+		m_pMonitorCommand->TraceFrame();
+		m_pMonitorCommand->UpdateApplication();
 		return true;
 	case ID_STEP_TRACE:
-		if (!m_monitorCommand)
+		if (!m_pMonitorCommand)
 			return false;
-		this->m_monitorCommand->Trace();
+		this->m_pMonitorCommand->Trace();
 		return true;
 	case ID_FILE_MONITOR:
 	case ID_STEP_STOP:
-		if (!m_monitorCommand)
+		if (!m_pMonitorCommand)
 			return false;
-		this->m_monitorCommand->ShowDevelopment();
+		this->m_pMonitorCommand->ShowDevelopment();
 		return true;
 	default:
 		return false;
@@ -412,8 +454,8 @@ HRESULT hr;
 		OnMove(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_CLOSE:
-		if (m_monitorCommand)
-			m_monitorCommand->Resume();
+		if (m_pMonitorCommand)
+			m_pMonitorCommand->Resume();
 		OnClose(m_hWnd, uMsg, wParam, lParam);
 		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	case WM_DESTROY:
@@ -429,16 +471,16 @@ HRESULT hr;
 		OnBreakCpuDisk(m_hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_ENTERMENULOOP:
-		m_monitorCommand->SoundOff();
+		m_pMonitorCommand->SoundOff();
 		return 0;
 	case WM_EXITMENULOOP:
-		m_monitorCommand->SoundOn();
+		m_pMonitorCommand->SoundOn();
 		return 0;
 	case WM_ENTERSIZEMOVE:
-		m_monitorCommand->SoundOff();
+		m_pMonitorCommand->SoundOff();
 		return 0;
 	case WM_EXITSIZEMOVE:
-		m_monitorCommand->SoundOn();
+		m_pMonitorCommand->SoundOn();
 		return 0;
 	default:
 		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
@@ -456,59 +498,6 @@ void CMDIDebuggerFrame::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	m_debugCpuDisk.Show(true);
 }
 
-HRESULT CMDIDebuggerFrame::Init(IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus)
-{
-HRESULT hr;
-	this->cfg = cfg;
-	this->appStatus = appStatus;
-	this->m_monitorCommand = monitorCommand;
-
-	//IMonitorCpu *monitorMainCpu = &c64->cpu;
-	//IMonitorCpu *monitorDiskCpu = &c64->diskdrive.cpu;
-	//IMonitorVic *monitorVic = &c64->vic;
-	//IMonitorDisk *monitorDisk = &c64->diskdrive;
-
-	//m_monitorC64.Init(CPUID_MAIN, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
-	//m_monitorDisk.Init(CPUID_DISK, monitorMainCpu, monitorDiskCpu, monitorVic, monitorDisk);
-
-	do
-	{
-		hr = m_debugCpuC64.Init(this, monitorCommand, CPUID_MAIN, c64, TEXT("C64 - cpu"));
-		if (FAILED(hr))
-			break;
-
-		hr = m_debugCpuDisk.Init(this, monitorCommand, CPUID_DISK, c64, TEXT("Disk - cpu"));
-		if (FAILED(hr))
-			break;
-
-		hr = AdviseEvents();
-		if (FAILED(hr))
-			break;
-
-		hr = S_OK;
-	} while (false);
-	if (FAILED(hr))
-	{
-		Cleanup();
-		return hr;
-	}
-	else
-	{
-		return S_OK;
-	}
-};
-
-void CMDIDebuggerFrame::Cleanup()
-{
-	UnadviseEvents();
-
-	if (m_hImageListToolBarNormal != NULL)
-	{
-		ImageList_Destroy(m_hImageListToolBarNormal);
-		m_hImageListToolBarNormal = NULL;
-	}
-}
-
 HRESULT CMDIDebuggerFrame::AdviseEvents()
 {
 	HRESULT hr;
@@ -517,13 +506,13 @@ HRESULT CMDIDebuggerFrame::AdviseEvents()
 	do
 	{
 
-		hs = m_monitorCommand->EsShowDevelopment.Advise((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this);
+		hs = m_pMonitorCommand->EsShowDevelopment.Advise((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_monitorCommand->EsTrace.Advise((CMDIDebuggerFrame_EventSink_OnTrace *)this);
+		hs = m_pMonitorCommand->EsTrace.Advise((CMDIDebuggerFrame_EventSink_OnTrace *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;

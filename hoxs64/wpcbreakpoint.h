@@ -36,7 +36,7 @@ class WpcBreakpoint : public CVirWindow, protected WpcBreakpoint_EventSink
 {
 public:
 	typedef std::vector<Sp_BreakpointItem> LstBrk;
-	WpcBreakpoint(C64 *c64);
+	WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand);
 	virtual ~WpcBreakpoint();
 	static const TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -75,6 +75,7 @@ private:
 
 	CDPI m_dpi;
 	C64 *c64;
+	IMonitorCommand *m_pMonitorCommand;
 };
 
 #endif

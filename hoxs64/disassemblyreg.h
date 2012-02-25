@@ -110,13 +110,13 @@ public:
 		int m_iShowCaretCount;
 		HWND m_hWndParent;
 	};
-	CDisassemblyReg(int cpuid, C64 *c64);
+	CDisassemblyReg(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand);
 	virtual ~CDisassemblyReg();
+	HRESULT Init(CVirWindow *parent, HFONT hFont);
 
 	static TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-	HRESULT Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont);
 	void GetMinWindowSize(int &w, int &h);
 	void UpdateDisplay();
 	void InvalidateBuffer();
@@ -128,7 +128,7 @@ private:
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	IMonitorCommand *m_monitorCommand;
+	IMonitorCommand *m_pMonitorCommand;
 
 	RegLineBuffer m_RegBuffer;
 

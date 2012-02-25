@@ -22,10 +22,11 @@ const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 
 #define IDC_LVBREAKPOINT (1001)
 
-WpcBreakpoint::WpcBreakpoint(C64 *c64)
+WpcBreakpoint::WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand)
 {
 	m_hLvBreak = NULL;
 	this->c64 = c64;
+	this->m_pMonitorCommand = pMonitorCommand;
 }
 
 WpcBreakpoint::~WpcBreakpoint()

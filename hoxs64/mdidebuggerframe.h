@@ -45,12 +45,12 @@ public:
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];
 
-	CMDIDebuggerFrame(C64 *c64);
+	CMDIDebuggerFrame(C64 *c64, IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus);
 	virtual ~CMDIDebuggerFrame();
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-	HRESULT Init(IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus);
+	HRESULT Init();
 	HWND Show(CVirWindow *pParentWindow);
 
 	void ShowDebugCpuC64(bool bSeekPC);
@@ -86,7 +86,7 @@ private:
 	C64 *c64;
 	CAppStatus *appStatus;
 	CConfig *cfg;
-	IMonitorCommand *m_monitorCommand;
+	IMonitorCommand *m_pMonitorCommand;
 	//Monitor m_monitorC64;
 	//Monitor m_monitorDisk;
 	bool m_bIsCreated;

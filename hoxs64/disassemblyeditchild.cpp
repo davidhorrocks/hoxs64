@@ -28,18 +28,18 @@ TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
 
 
-CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64) : DefaultCpu(cpuid, c64)
+CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand) 
+	: DefaultCpu(cpuid, c64)
 {
 	WIDTH_LEFTBAR2 = 0;
 	LINE_HEIGHT = 0;
+	m_hFont = NULL;
 	m_pParent = NULL;
 	m_FirstAddress = 0;
 	m_NumLines = 0;
-	m_hFont = NULL;
 	m_MinSizeDone = false;
 	m_pFrontTextBuffer = NULL;
 	m_pBackTextBuffer = NULL;
-	m_monitorCommand = NULL;
 	m_hBmpBreak = NULL;
 	m_bHasLastDrawText = false;
 	m_bIsFocusedAddress = false;
@@ -48,7 +48,9 @@ CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64) : DefaultCpu(c
 	m_hWndEditText = NULL;
 	m_wpOrigEditProc = NULL;
 	m_CurrentEditLineBuffer = NULL;
-	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));	
+	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));
+
+	m_pMonitorCommand = pMonitorCommand;
 }
 
 CDisassemblyEditChild::~CDisassemblyEditChild()
@@ -70,21 +72,20 @@ void CDisassemblyEditChild::Cleanup()
 
 }
 
-HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont)
+HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, HFONT hFont)
 {
 HRESULT hr;
 	Cleanup();
 
-	this->m_pParent = parent;
-	this->m_hFont = hFont;
-	this->m_monitorCommand = monitorCommand;
+	m_pParent = parent;
+	m_hFont = hFont;
 
 	hr = AllocTextBuffer();
 	m_FirstAddress = GetNearestTopAddress(0);
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
 
-	monitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
+	m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
 	
 	return S_OK;
 }
@@ -613,7 +614,7 @@ bool bHasPrevAddress;
 
 	m_bMouseDownOnFocusedAddress = false;
 
-	if (m_monitorCommand->IsRunning())
+	if (m_pMonitorCommand->IsRunning())
 		return false;
 	bool bWasWindowFocused = (hWnd == GetFocus());
 	if (hWnd)
@@ -654,12 +655,12 @@ bool bHasPrevAddress;
 			if (pMonitorCpu->GetCpuId() == CPUID_MAIN)
 			{
 				BreakpointC64ExecuteChangedEventArgs e((MEM_TYPE)-1, address, iCount);
-				this->m_monitorCommand->EsBreakpointC64ExecuteChanged.Raise(this, e);
+				this->m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Raise(this, e);
 			}
 			else if (pMonitorCpu->GetCpuId() == CPUID_DISK)
 			{
 				BreakpointDiskExecuteChangedEventArgs e(address, iCount);
-				this->m_monitorCommand->EsBreakpointDiskExecuteChanged.Raise(this, e);
+				this->m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Raise(this, e);
 			}
 			else
 			{
@@ -712,7 +713,7 @@ bool CDisassemblyEditChild::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	RECT rcClient;
 	RECT rcEdit;
 
-	if (m_monitorCommand->IsRunning())
+	if (m_pMonitorCommand->IsRunning())
 		return false;
 	if (::GetFocus() != hWnd)
 		return true;
@@ -981,7 +982,7 @@ TEXTMETRIC tm;
 		}
 	}
 
-	bool bUnavailable = m_monitorCommand->IsRunning();
+	bool bUnavailable = m_pMonitorCommand->IsRunning();
 
 	br = GetTextMetrics(hdc, &tm);
 	if (br)

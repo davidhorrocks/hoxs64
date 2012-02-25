@@ -17,13 +17,14 @@
 
 TCHAR CDisassemblyChild::ClassName[] = TEXT("Hoxs64DisassemblyChild");
 
-CDisassemblyChild::CDisassemblyChild(int cpuid, C64 *c64) 
+CDisassemblyChild::CDisassemblyChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand) 
 	: 
 	DefaultCpu(cpuid, c64),
-	m_DisassemblyEditChild(cpuid, c64)
+	m_DisassemblyEditChild(cpuid, c64, pMonitorCommand)
 {
 	m_pParent = NULL;
 	m_hWndScroll = NULL;
+	m_pMonitorCommand = pMonitorCommand;
 }
 
 CDisassemblyChild::~CDisassemblyChild()
@@ -36,12 +37,11 @@ void CDisassemblyChild::Cleanup()
 	UnadviseEvents();
 }
 
-HRESULT CDisassemblyChild::Init(CVirWindow *parent, IMonitorCommand *monitorCommand, HFONT hFont)
+HRESULT CDisassemblyChild::Init(CVirWindow *parent, HFONT hFont)
 {
 HRESULT hr;
 	m_pParent = parent;
-	m_monitorCommand = monitorCommand;
-	hr = m_DisassemblyEditChild.Init(parent, monitorCommand, hFont);
+	hr = m_DisassemblyEditChild.Init(parent, hFont);
 	if (FAILED(hr))
 		return hr;
 
@@ -467,9 +467,9 @@ HRESULT CDisassemblyChild::AdviseEvents()
 	do
 	{
 		if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
-			hs = this->m_monitorCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
+			hs = this->m_pMonitorCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
 		else
-			hs = this->m_monitorCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
+			hs = this->m_pMonitorCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;

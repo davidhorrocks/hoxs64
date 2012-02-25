@@ -67,7 +67,7 @@ private:
 	CDiagAbout mDlgAbout;
 	static struct tabpageitem m_tabPagesKeyboard[4];
 	static struct tabpageitem m_tabPagesSetting[5];
-	IMonitorCommand *m_monitorCommand;
+	IMonitorCommand *m_pMonitorCommand;
 	CDX9 *dx;
 	C64 *c64;
 	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SYSMENU;

@@ -83,7 +83,7 @@ CAppWindow::CAppWindow()
 	appStatus = NULL;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
-	m_monitorCommand = NULL;
+	m_pMonitorCommand = NULL;
 	dx = NULL;
 	hCursorBusy = LoadCursor(0L, IDC_WAIT);
 	hOldCursor = NULL;
@@ -98,7 +98,7 @@ HRESULT hr;
 		return E_POINTER;
 
 	this->dx = dx;
-	this->m_monitorCommand = monitorCommand;
+	this->m_pMonitorCommand = monitorCommand;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
@@ -374,7 +374,7 @@ bool bIsWindowMinimised;
 			break;
 		case ID_FILE_MONITOR:
 			if (appStatus->m_bWindowed)
-				m_monitorCommand->ShowDevelopment();
+				m_pMonitorCommand->ShowDevelopment();
 			break;
 		case ID_FILE_PAUSE:
 			appStatus->TogglePause();
@@ -681,7 +681,7 @@ void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 {
 	appStatus->SoundHalt();
 	MessageBox(hWnd, TEXT("A C64 CPU execute break point occurred."), TEXT("Monitor Break Point"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_monitorCommand->ShowDevelopment();
+	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -692,7 +692,7 @@ void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 {
 	appStatus->SoundHalt();
 	MessageBox(hWnd, TEXT("A disk CPU execute break point occurred."), TEXT("Monitor Break Point"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_monitorCommand->ShowDevelopment();
+	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -1046,11 +1046,11 @@ bool ok = false;
 	appStatus->m_bDebug = TRUE;
 	if (m_pMDIDebugger == NULL)
 	{
-		pwin = new CMDIDebuggerFrame(this->c64);
+		pwin = new CMDIDebuggerFrame(this->c64, this->m_pMonitorCommand, this->cfg, this->appStatus);
 		if (pwin != NULL)
 		{
 			pwin->m_AutoDelete = true;
-			hr = pwin->Init(this->m_monitorCommand, this->cfg, this->appStatus);
+			hr = pwin->Init();
 			if (SUCCEEDED(hr))
 			{
 				int x,y,w,h;
@@ -1112,7 +1112,7 @@ bool ok = false;
 		delete pwin;
 	if (!hWnd)
 	{
-		m_monitorCommand->Resume();
+		m_pMonitorCommand->Resume();
 	}
 	return hWnd;
 }
