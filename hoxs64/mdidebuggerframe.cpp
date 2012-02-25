@@ -220,7 +220,7 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	hr = pWin->Init();
 	if (SUCCEEDED(hr))
 	{
-		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, pWin);
+		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, TEXT("Breakpoints"), pWin);
 		if (SUCCEEDED(hr))
 		{
 			pWin->m_AutoDelete = true;

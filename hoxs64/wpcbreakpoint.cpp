@@ -35,6 +35,14 @@ WpcBreakpoint::~WpcBreakpoint()
 
 HRESULT WpcBreakpoint::Init()
 {
+HSink hs;
+
+	hs = m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
+	hs = m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
 	return S_OK;
 }
 
@@ -182,22 +190,25 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 	m_lstBreak.clear();
 	
 	Sp_BreakpointItem v;
-	IEnumBreakpointItem *pEnumBp = c64->mon.GetMainCpu()->CreateEnumBreakpointExecute();
-	if (pEnumBp)
+	IEnumBreakpointItem *pEnumBpMain = c64->mon.GetMainCpu()->CreateEnumBreakpointExecute();
+	if (pEnumBpMain)
 	{
-		while (pEnumBp->GetNext(v))
+		while (pEnumBpMain->GetNext(v))
 		{
 			m_lstBreak.push_back(v);
 		}
-
-		ListView_SetItemCountEx(hWndListView, m_lstBreak.size(), 0);
-
-		//for (LstBrk::const_iterator it = m_lstBreak.begin(); it != m_lstBreak.end(); it++)
-		//{
-		//	//ListView_InsertColumn
-		//}
-		delete pEnumBp;
+		delete pEnumBpMain;
 	}
+	IEnumBreakpointItem *pEnumBpDisk = c64->mon.GetDiskCpu()->CreateEnumBreakpointExecute();
+	if (pEnumBpDisk)
+	{
+		while (pEnumBpDisk->GetNext(v))
+		{
+			m_lstBreak.push_back(v);
+		}
+		delete pEnumBpDisk;
+	}
+	ListView_SetItemCountEx(hWndListView, m_lstBreak.size(), 0);
 	return S_OK;
 }
 

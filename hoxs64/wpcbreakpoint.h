@@ -38,11 +38,11 @@ public:
 	typedef std::vector<Sp_BreakpointItem> LstBrk;
 	WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand);
 	virtual ~WpcBreakpoint();
+	HRESULT Init();
+
 	static const TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-
-	HRESULT Init();
 protected:
 	LstBrk m_lstBreak;
 

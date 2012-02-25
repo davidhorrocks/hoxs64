@@ -136,7 +136,7 @@ HWND WPanel::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], i
 {
 	if (m_pIWPanelManager == NULL)
 		return NULL;
-	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_CAPTION |  WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_CHILD | WS_CAPTION |  WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
 HWND WPanel::Show()

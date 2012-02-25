@@ -75,6 +75,7 @@ void CDisassemblyEditChild::Cleanup()
 HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, HFONT hFont)
 {
 HRESULT hr;
+HSink hs;
 	Cleanup();
 
 	m_pParent = parent;
@@ -85,8 +86,12 @@ HRESULT hr;
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
 
-	m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
-	
+	hs = m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
+	hs = m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
 	return S_OK;
 }
 
