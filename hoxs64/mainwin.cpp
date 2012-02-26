@@ -337,55 +337,55 @@ bool bIsWindowMinimised;
 		//Parse the menu selections:
 		switch (wmId) 
 		{
-		case ID_TAPE_INSERT:
+		case IDM_TAPE_INSERT:
 			appStatus->SoundHalt();
 			appStatus->InsertTape(hWnd);
 			appStatus->SoundResume();
 			break;
-		case ID_TAPE_PLAY:
+		case IDM_TAPE_PLAY:
 			c64->TapePressPlay();
 			break;
-		case ID_TAPE_STOP:
+		case IDM_TAPE_STOP:
 			c64->TapePressStop();
 			break;
-		case ID_TAPE_REWIND:
+		case IDM_TAPE_REWIND:
 			c64->TapeRewind();
 			break;
-		case ID_TAPE_LOADIMAGE:
+		case IDM_TAPE_LOADIMAGE:
 			appStatus->SoundHalt();
 			appStatus->LoadC64Image(hWnd);
 			appStatus->SoundResume();
 			break;
-		case ID_TAPE_LOADT64:
+		case IDM_TAPE_LOADT64:
 			appStatus->SoundHalt();
 			appStatus->LoadT64(hWnd);
 			appStatus->SoundResume();
 			break;
-		case ID_FILE_AUTOLOAD:
+		case IDM_FILE_AUTOLOAD:
 			appStatus->SoundHalt();
 			appStatus->AutoLoad(hWnd);
 			appStatus->SoundResume();
 			break;
-		case ID_FILE_HARDRESET:
+		case IDM_FILE_HARDRESET:
 			c64->HardReset(true);
 			break;
-		case ID_FILE_SOFTRESET:
+		case IDM_FILE_SOFTRESET:
 			c64->SoftReset(true);
 			break;
-		case ID_FILE_MONITOR:
+		case IDM_FILE_MONITOR:
 			if (appStatus->m_bWindowed)
 				m_pMonitorCommand->ShowDevelopment();
 			break;
-		case ID_FILE_PAUSE:
+		case IDM_FILE_PAUSE:
 			appStatus->TogglePause();
 			break;
-		case ID_SETTING_MUTESOUND:
+		case IDM_SETTING_MUTESOUND:
 			appStatus->ToggleSoundMute();			
 			break;
 		case IDM_EXIT:
 			PostMessage(hWnd, WM_CLOSE, 0, 0);
 			break;
-		case ID_HELP_ABOUT:
+		case IDM_HELP_ABOUT:
 			appStatus->SoundHalt();
 			hr = mDlgAbout.Init(appStatus->GetVersionInfo());
 			if (SUCCEEDED(hr))
@@ -394,27 +394,27 @@ bool bIsWindowMinimised;
 			}
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_RESTOREDEFAULT:
+		case IDM_SETTING_RESTOREDEFAULT:
 			appStatus->SoundHalt();
 			appStatus->RestoreDefaultSettings();
 			this->emuWin.UpdateC64Window();
 			MessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_LOADSETTINGS_RESTOREUSER:
+		case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
 			appStatus->SoundHalt();
 			appStatus->RestoreUserSettings();
 			this->emuWin.UpdateC64Window();
 			MessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_SAVE:
+		case IDM_SETTING_SAVE:
 			appStatus->SoundHalt();
 			appStatus->SaveCurrentSetting();
 			MessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_EMULATION2:
+		case IDM_SETTING_EMULATION2:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
 			hr = mDlgSettingsTab.Init(dx, &tCfg);
@@ -436,7 +436,7 @@ bool bIsWindowMinimised;
 				mDlgSettingsTab.DisplayError(hWnd, appStatus->GetAppName());
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_KEYBOARD:
+		case IDM_SETTING_KEYBOARD:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
 			hr = mDlgkey.Init(dx, &tCfg);
@@ -461,7 +461,7 @@ bool bIsWindowMinimised;
 			dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY); 
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_JOYSTICK:
+		case IDM_SETTING_JOYSTICK:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
 			hr = mDlgjoy.Init(dx, &tCfg);
@@ -479,7 +479,7 @@ bool bIsWindowMinimised;
 				mDlgjoy.DisplayError(hWnd, appStatus->GetAppName());
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_DOUBLESIZEDWINDOW:
+		case IDM_SETTING_DOUBLESIZEDWINDOW:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
 			tCfg.m_bDoubleSizedWindow = !tCfg.m_bDoubleSizedWindow;
@@ -487,7 +487,7 @@ bool bIsWindowMinimised;
 			appStatus->ApplyConfig(tCfg);
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_SWAPJOYSTICKS:
+		case IDM_SETTING_SWAPJOYSTICKS:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
 			tCfg.m_bSwapJoysticks = !tCfg.m_bSwapJoysticks;
@@ -496,27 +496,27 @@ bool bIsWindowMinimised;
 			MessageBeep(MB_ICONASTERISK);
 			appStatus->SoundResume();
 			break;
-		case ID_SETTING_MAXSPEED:
+		case IDM_SETTING_MAXSPEED:
 			appStatus->SoundHalt();
 			appStatus->ToggleMaxSpeed();
 			appStatus->SoundResume();
 			break;
-		case ID_DISK_INSERT_EXISTINGDISK:
+		case IDM_DISK_INSERT_EXISTINGDISK:
 			appStatus->SoundHalt();
 			appStatus->InsertDiskImage(hWnd);
 			appStatus->SoundResume();
 			break;
-		case ID_DISK_SAVEDISK_D64:
+		case IDM_DISK_SAVEDISK_D64:
 			appStatus->SoundHalt();
 			appStatus->SaveD64Image(hWnd);
 			appStatus->SoundResume();
 			break;
-		case ID_DISK_SAVEDISK_FDI:
+		case IDM_DISK_SAVEDISK_FDI:
 			appStatus->SoundHalt();
 			appStatus->SaveFDIImage(hWnd);
 			appStatus->SoundResume();
 			break;
-		case ID_DISK_INSERT_NEWBLANKDISK:
+		case IDM_DISK_INSERT_NEWBLANKDISK:
 			appStatus->SoundHalt();
 			hr = mDlgNewBlankDisk.Init();
 			if (SUCCEEDED(hr))
@@ -531,21 +531,21 @@ bool bIsWindowMinimised;
 				mDlgNewBlankDisk.DisplayError(hWnd, appStatus->GetAppName());
 			appStatus->SoundResume();
 			break;
-		case ID_DISK_REMOVEDISK:
+		case IDM_DISK_REMOVEDISK:
 			c64->RemoveDisk();
 			break;
-		case ID_DISK_WRITEPROTECT_ON:     
+		case IDM_DISK_WRITEPROTECT_ON:     
 			c64->diskdrive.D64_DiskProtect(TRUE);
 			UpdateMenu();
 			break;
-		case ID_DISK_WRITEPROTECT_OFF:        
+		case IDM_DISK_WRITEPROTECT_OFF:        
 			c64->diskdrive.D64_DiskProtect(FALSE);
 			UpdateMenu();
 			break;
-		case ID_DISK_RESETDRIVE:
+		case IDM_DISK_RESETDRIVE:
 			c64->diskdrive.Reset(c64->cpu.CurrentClock);
 			break;
-		case ID_TOGGLEFULLSCREEN:
+		case IDM_TOGGLEFULLSCREEN:
 			appStatus->SoundHalt();
             if (appStatus->m_bActive && appStatus->m_bReady && !appStatus->m_bDebug)
             {
@@ -707,43 +707,43 @@ HMENU hMenu;
 	{
 		if (c64->diskdrive.m_d64_protectOff==0)
 		{
-			CheckMenuItem (hMenu, ID_DISK_WRITEPROTECT_ON, MF_BYCOMMAND | MF_CHECKED);
-			CheckMenuItem (hMenu, ID_DISK_WRITEPROTECT_OFF, MF_BYCOMMAND | MF_UNCHECKED);
+			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_ON, MF_BYCOMMAND | MF_CHECKED);
+			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_OFF, MF_BYCOMMAND | MF_UNCHECKED);
 		}
 		else
 		{
-			CheckMenuItem (hMenu, ID_DISK_WRITEPROTECT_ON, MF_BYCOMMAND | MF_UNCHECKED);
-			CheckMenuItem (hMenu, ID_DISK_WRITEPROTECT_OFF, MF_BYCOMMAND | MF_CHECKED);
+			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_ON, MF_BYCOMMAND | MF_UNCHECKED);
+			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_OFF, MF_BYCOMMAND | MF_CHECKED);
 		}
 		if (cfg->m_bDoubleSizedWindow)
 		{
-			CheckMenuItem (hMenu, ID_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_CHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_CHECKED);
 		}
 		else
 		{
-			CheckMenuItem (hMenu, ID_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_UNCHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_UNCHECKED);
 		}
 
 	
 		if (cfg->m_bSwapJoysticks)
-			CheckMenuItem (hMenu, ID_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_CHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_CHECKED);
 		else
-			CheckMenuItem (hMenu, ID_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_UNCHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_UNCHECKED);
 
 		if (cfg->m_bMaxSpeed)
-			CheckMenuItem (hMenu, ID_SETTING_MAXSPEED, MF_BYCOMMAND | MF_CHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_MAXSPEED, MF_BYCOMMAND | MF_CHECKED);
 		else
-			CheckMenuItem (hMenu, ID_SETTING_MAXSPEED, MF_BYCOMMAND | MF_UNCHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_MAXSPEED, MF_BYCOMMAND | MF_UNCHECKED);
 
 		if (appStatus->m_bPaused)
-			CheckMenuItem (hMenu, ID_FILE_PAUSE, MF_BYCOMMAND | MF_CHECKED);
+			CheckMenuItem (hMenu, IDM_FILE_PAUSE, MF_BYCOMMAND | MF_CHECKED);
 		else
-			CheckMenuItem (hMenu, ID_FILE_PAUSE, MF_BYCOMMAND | MF_UNCHECKED);
+			CheckMenuItem (hMenu, IDM_FILE_PAUSE, MF_BYCOMMAND | MF_UNCHECKED);
 
 		if (appStatus->m_bSoundMute)
-			CheckMenuItem (hMenu, ID_SETTING_MUTESOUND, MF_BYCOMMAND | MF_CHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_MUTESOUND, MF_BYCOMMAND | MF_CHECKED);
 		else
-			CheckMenuItem (hMenu, ID_SETTING_MUTESOUND, MF_BYCOMMAND | MF_UNCHECKED);
+			CheckMenuItem (hMenu, IDM_SETTING_MUTESOUND, MF_BYCOMMAND | MF_UNCHECKED);
 	}
 }
 

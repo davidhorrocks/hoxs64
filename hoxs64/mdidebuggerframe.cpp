@@ -44,9 +44,9 @@ const ImageInfo CMDIDebuggerFrame::TB_ImageList[] =
 
 const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] = 
 {
-	{0, TEXT("Trace"), ID_STEP_TRACE},
-	{1, TEXT("Trace Frame"), ID_STEP_TRACEFRAME},
-	{2, TEXT("Stop"), ID_STEP_STOP}
+	{0, TEXT("Trace"), IDM_STEP_TRACE},
+	{1, TEXT("Trace Frame"), IDM_STEP_TRACEFRAME},
+	{2, TEXT("Stop"), IDM_STEP_STOP}
 };
 
 CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand, CConfig *cfg, CAppStatus *appStatus)
@@ -185,15 +185,15 @@ void CMDIDebuggerFrame::SetMenuState()
 		stateTb = TBSTATE_ENABLED;
 		stateTbOpp = 0;
 	}
-	EnableMenuItem(hMenu, ID_STEP_TRACE, MF_BYCOMMAND | state);
-	EnableMenuItem(hMenu, ID_STEP_TRACEFRAME, MF_BYCOMMAND | state);
-	EnableMenuItem(hMenu, ID_STEP_STOP, MF_BYCOMMAND | stateOpp);
+	EnableMenuItem(hMenu, IDM_STEP_TRACE, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_TRACEFRAME, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
 
 	if (m_hWndTooBar!=NULL)
 	{
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_TRACE, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_TRACEFRAME, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_STOP, stateTbOpp);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
 	}
 }
 
@@ -358,13 +358,13 @@ int wmId, wmEvent;
 	wmEvent = HIWORD(wParam);
 	switch (wmId) 
 	{
-	case ID_DEBUG_CPUC64:
+	case IDM_DEBUG_CPUC64:
 		ShowDebugCpuC64(false);
 		return true;
-	case ID_DEBUG_CPUDISK:
+	case IDM_DEBUG_CPUDISK:
 		ShowDebugCpuDisk(false);
 		return true;
-	case ID_STEP_TRACEFRAME:
+	case IDM_STEP_TRACEFRAME:
 		if (!m_pMonitorCommand)
 			return false;
 		if (m_pMonitorCommand->IsRunning())
@@ -372,13 +372,13 @@ int wmId, wmEvent;
 		m_pMonitorCommand->TraceFrame();
 		m_pMonitorCommand->UpdateApplication();
 		return true;
-	case ID_STEP_TRACE:
+	case IDM_STEP_TRACE:
 		if (!m_pMonitorCommand)
 			return false;
 		this->m_pMonitorCommand->Trace();
 		return true;
-	case ID_FILE_MONITOR:
-	case ID_STEP_STOP:
+	case IDM_FILE_MONITOR:
+	case IDM_STEP_STOP:
 		if (!m_pMonitorCommand)
 			return false;
 		this->m_pMonitorCommand->ShowDevelopment();

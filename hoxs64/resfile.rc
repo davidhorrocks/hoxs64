@@ -52,17 +52,17 @@ END
 
 HOXS64 ACCELERATORS
 BEGIN
-    VK_F9,          ID_FILE_MONITOR,        VIRTKEY, NOINVERT
-    "P",            ID_FILE_PAUSE,          VIRTKEY, ALT, NOINVERT
-    "/",            ID_HELP_ABOUT,          ASCII,  ALT, NOINVERT
-    "Q",            ID_SETTING_MAXSPEED,    VIRTKEY, ALT, NOINVERT
-    "M",            ID_SETTING_MUTESOUND,   VIRTKEY, ALT, NOINVERT
-    "J",            ID_SETTING_SWAPJOYSTICKS, VIRTKEY, ALT, NOINVERT
-    VK_F8,          ID_STEP_ONECLOCK,       VIRTKEY, NOINVERT
-    VK_F7,          ID_STEP_ONEINSTRUCTION, VIRTKEY, NOINVERT
-    VK_F5,          ID_STEP_TRACE,          VIRTKEY, NOINVERT
-    VK_F6,          ID_STEP_TRACEFRAME,     VIRTKEY, NOINVERT
-    VK_RETURN,      ID_TOGGLEFULLSCREEN,    VIRTKEY, ALT, NOINVERT
+    VK_F9,          IDM_FILE_MONITOR,       VIRTKEY, NOINVERT
+    "P",            IDM_FILE_PAUSE,         VIRTKEY, ALT, NOINVERT
+    "/",            IDM_HELP_ABOUT,         ASCII,  ALT, NOINVERT
+    "Q",            IDM_SETTING_MAXSPEED,   VIRTKEY, ALT, NOINVERT
+    "M",            IDM_SETTING_MUTESOUND,  VIRTKEY, ALT, NOINVERT
+    "J",            IDM_SETTING_SWAPJOYSTICKS, VIRTKEY, ALT, NOINVERT
+    VK_F7,          IDM_STEP_ONECLOCK,      VIRTKEY, NOINVERT
+    VK_F8,          IDM_STEP_ONEINSTRUCTION, VIRTKEY, NOINVERT
+    VK_F5,          IDM_STEP_TRACE,         VIRTKEY, NOINVERT
+    VK_F6,          IDM_STEP_TRACEFRAME,    VIRTKEY, NOINVERT
+    VK_RETURN,      IDM_TOGGLEFULLSCREEN,   VIRTKEY, ALT, NOINVERT
 END
 
 
@@ -86,66 +86,66 @@ HOXS64 MENUEX
 BEGIN
     POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "&Auto Load",                  ID_FILE_AUTOLOAD,MFT_STRING,MFS_ENABLED
-        MENUITEM "Hard Reset\tF12",             ID_FILE_HARDRESET,MFT_STRING,MFS_ENABLED
-        MENUITEM "Soft Reset \tF11",            ID_FILE_SOFTRESET,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Auto Load",                  IDM_FILE_AUTOLOAD,MFT_STRING,MFS_ENABLED
+        MENUITEM "Hard Reset\tF12",             IDM_FILE_HARDRESET,MFT_STRING,MFS_ENABLED
+        MENUITEM "Soft Reset \tF11",            IDM_FILE_SOFTRESET,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "&Monitor\tF9",                ID_FILE_MONITOR,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
-        MENUITEM "Pause\tAlt P",                ID_FILE_PAUSE,MFT_STRING,MFS_CHECKED
+        MENUITEM "&Monitor\tF9",                IDM_FILE_MONITOR,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
+        MENUITEM "Pause\tAlt P",                IDM_FILE_PAUSE,MFT_STRING,MFS_CHECKED
         MENUITEM MFT_SEPARATOR
         MENUITEM "E&xit",                       IDM_EXIT,MFT_STRING,MFS_ENABLED
     END
     POPUP "&Tape",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "&Insert",                     ID_TAPE_INSERT,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Play",                       ID_TAPE_PLAY,MFT_STRING,MFS_ENABLED
-        MENUITEM "S&top",                       ID_TAPE_STOP,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Rewind",                     ID_TAPE_REWIND,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Load Image",                 ID_TAPE_LOADIMAGE,MFT_STRING,MFS_ENABLED
-        MENUITEM "Load T64",                    ID_TAPE_LOADT64,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Insert",                     IDM_TAPE_INSERT,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Play",                       IDM_TAPE_PLAY,MFT_STRING,MFS_ENABLED
+        MENUITEM "S&top",                       IDM_TAPE_STOP,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Rewind",                     IDM_TAPE_REWIND,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Load Image",                 IDM_TAPE_LOADIMAGE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Load T64",                    IDM_TAPE_LOADT64,MFT_STRING,MFS_ENABLED
     END
     POPUP "&Disk",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
         POPUP "&Insert",                        65535,MFT_STRING,MFS_ENABLED
         BEGIN
-            MENUITEM "Existing Disk",               ID_DISK_INSERT_EXISTINGDISK,MFT_STRING,MFS_ENABLED
-            MENUITEM "New Blank Disk",              ID_DISK_INSERT_NEWBLANKDISK,MFT_STRING,MFS_ENABLED
+            MENUITEM "Existing Disk",               IDM_DISK_INSERT_EXISTINGDISK,MFT_STRING,MFS_ENABLED
+            MENUITEM "New Blank Disk",              IDM_DISK_INSERT_NEWBLANKDISK,MFT_STRING,MFS_ENABLED
         END
         POPUP "&Save Disk",                     65535,MFT_STRING,MFS_ENABLED
         BEGIN
-            MENUITEM "Save As D64",                 ID_DISK_SAVEDISK_D64,MFT_STRING,MFS_ENABLED
-            MENUITEM "Save As FDI",                 ID_DISK_SAVEDISK_FDI,MFT_STRING,MFS_ENABLED
+            MENUITEM "Save As D64",                 IDM_DISK_SAVEDISK_D64,MFT_STRING,MFS_ENABLED
+            MENUITEM "Save As FDI",                 IDM_DISK_SAVEDISK_FDI,MFT_STRING,MFS_ENABLED
         END
         POPUP "&Write Protect",                 65535,MFT_STRING,MFS_ENABLED
         BEGIN
-            MENUITEM "On",                          ID_DISK_WRITEPROTECT_ON,MFT_STRING,MFS_ENABLED
-            MENUITEM "Off",                         ID_DISK_WRITEPROTECT_OFF,MFT_STRING,MFS_CHECKED
+            MENUITEM "On",                          IDM_DISK_WRITEPROTECT_ON,MFT_STRING,MFS_ENABLED
+            MENUITEM "Off",                         IDM_DISK_WRITEPROTECT_OFF,MFT_STRING,MFS_CHECKED
         END
-        MENUITEM "&Remove Disk",                ID_DISK_REMOVEDISK,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Remove Disk",                IDM_DISK_REMOVEDISK,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "Reset Drive",                 ID_DISK_RESETDRIVE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Reset Drive",                 IDM_DISK_RESETDRIVE,MFT_STRING,MFS_ENABLED
     END
     POPUP "&Setting",                       65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Toggle Full Screen\tAlt Enter", ID_TOGGLEFULLSCREEN,MFT_STRING,MFS_ENABLED
-        MENUITEM "Emulation",                   ID_SETTING_EMULATION2,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Keyboard",                   ID_SETTING_KEYBOARD,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Joystick",                   ID_SETTING_JOYSTICK,MFT_STRING,MFS_ENABLED
-        MENUITEM "Double Sized Window",         ID_SETTING_DOUBLESIZEDWINDOW,MFT_STRING,MFS_CHECKED
-        MENUITEM "Swap Joysticks\tAlt J",       ID_SETTING_SWAPJOYSTICKS,MFT_STRING,MFS_CHECKED
-        MENUITEM "Toggle Max Speed\tAlt Q",     ID_SETTING_MAXSPEED,MFT_STRING,MFS_CHECKED
-        MENUITEM "Mute Sound\tAlt M",           ID_SETTING_MUTESOUND,MFT_STRING,MFS_CHECKED
+        MENUITEM "Toggle Full Screen\tAlt Enter", IDM_TOGGLEFULLSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM "Emulation",                   IDM_SETTING_EMULATION2,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Keyboard",                   IDM_SETTING_KEYBOARD,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Joystick",                   IDM_SETTING_JOYSTICK,MFT_STRING,MFS_ENABLED
+        MENUITEM "Double Sized Window",         IDM_SETTING_DOUBLESIZEDWINDOW,MFT_STRING,MFS_CHECKED
+        MENUITEM "Swap Joysticks\tAlt J",       IDM_SETTING_SWAPJOYSTICKS,MFT_STRING,MFS_CHECKED
+        MENUITEM "Toggle Max Speed\tAlt Q",     IDM_SETTING_MAXSPEED,MFT_STRING,MFS_CHECKED
+        MENUITEM "Mute Sound\tAlt M",           IDM_SETTING_MUTESOUND,MFT_STRING,MFS_CHECKED
         MENUITEM MFT_SEPARATOR
-        MENUITEM "&Save Settings",              ID_SETTING_SAVE,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Save Settings",              IDM_SETTING_SAVE,MFT_STRING,MFS_ENABLED
         POPUP "&Load Settings",                 65535,MFT_STRING,MFS_ENABLED
         BEGIN
-            MENUITEM "Restore &User Settings",      ID_SETTING_LOADSETTINGS_RESTOREUSER,MFT_STRING,MFS_ENABLED
-            MENUITEM "Restore &Default Settings",   ID_SETTING_RESTOREDEFAULT,MFT_STRING,MFS_ENABLED
+            MENUITEM "Restore &User Settings",      IDM_SETTING_LOADSETTINGS_RESTOREUSER,MFT_STRING,MFS_ENABLED
+            MENUITEM "Restore &Default Settings",   IDM_SETTING_RESTOREDEFAULT,MFT_STRING,MFS_ENABLED
         END
     END
     POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "&About",                      ID_HELP_ABOUT,MFT_STRING,MFS_ENABLED
+        MENUITEM "&About",                      IDM_HELP_ABOUT,MFT_STRING,MFS_ENABLED
     END
 END
 
@@ -153,14 +153,14 @@ MENU_MDI_DEBUGGER MENU
 BEGIN
     POPUP "Debug"
     BEGIN
-        MENUITEM "CPU C64",                     ID_DEBUG_CPUC64
-        MENUITEM "CPU Disk",                    ID_DEBUG_CPUDISK
+        MENUITEM "CPU C64",                     IDM_DEBUG_CPUC64
+        MENUITEM "CPU Disk",                    IDM_DEBUG_CPUDISK
     END
     POPUP "Step"
     BEGIN
-        MENUITEM "Trace\tF5",                   ID_STEP_TRACE
-        MENUITEM "Trace Frame\tF6",             ID_STEP_TRACEFRAME
-        MENUITEM "Stop\tF9",                    ID_STEP_STOP
+        MENUITEM "Trace\tF5",                   IDM_STEP_TRACE
+        MENUITEM "Trace Frame\tF6",             IDM_STEP_TRACEFRAME
+        MENUITEM "Stop\tF9",                    IDM_STEP_STOP
     END
 END
 
@@ -168,13 +168,13 @@ MENU_CPUDISASSEMBLY MENU
 BEGIN
     POPUP "Step"
     BEGIN
-        MENUITEM "Clock\tF8",                   ID_STEP_ONECLOCK
-        MENUITEM "Instruction\tF7",             ID_STEP_ONEINSTRUCTION
+        MENUITEM "Clock\tF7",                   IDM_STEP_ONECLOCK
+        MENUITEM "Instruction\tF8",             IDM_STEP_ONEINSTRUCTION
         MENUITEM SEPARATOR
-        MENUITEM "Trace\tF5",                   ID_STEP_TRACE
-        MENUITEM "Trace Frame\tF6",             ID_STEP_TRACEFRAME
-        MENUITEM "Trace Interrupt Taken",       ID_STEP_TRACEINTERRUPTTAKEN
-        MENUITEM "Stop\tF9",                    ID_STEP_STOP
+        MENUITEM "Trace\tF5",                   IDM_STEP_TRACE
+        MENUITEM "Trace Frame\tF6",             IDM_STEP_TRACEFRAME
+        MENUITEM "Trace Interrupt Taken",       IDM_STEP_TRACEINTERRUPTTAKEN
+        MENUITEM "Stop\tF9",                    IDM_STEP_STOP
     END
 END
 
@@ -792,12 +792,12 @@ STRINGTABLE
 BEGIN
     IDS_WINCLASS_KEYPRESS   "GetKeyPressClass"
     IDS_PRESSANYKEY         "press any key"
-    ID_DISK_SAVEDISK_FDI    "Save disk as raw binary. Compatible with custom formats."
+    IDS_DISK_SAVEDISK_FDI   "Save disk as raw binary. Compatible with custom formats."
 END
 
 STRINGTABLE
 BEGIN
-    ID_DISK_SAVEDISK_D64    "Save disk in the standard CBM format. Not compatible with custom formats."
+    IDS_DISK_SAVEDISK_D64   "Save disk in the standard CBM format. Not compatible with custom formats."
 END
 
 #endif    // English (United Kingdom) resources

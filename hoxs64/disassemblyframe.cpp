@@ -37,12 +37,12 @@ const ImageInfo CDisassemblyFrame::TB_ImageList[] =
 
 const ButtonInfo CDisassemblyFrame::TB_StepButtons[] = 
 {
-	{0, TEXT("Trace"), ID_STEP_TRACE},
-	{1, TEXT("Trace Frame"), ID_STEP_TRACEFRAME},
-	{2, TEXT("1 Clock"), ID_STEP_ONECLOCK},
-	{3, TEXT("1 Instruction"), ID_STEP_ONEINSTRUCTION},
-	{4, TEXT("Trace INT"), ID_STEP_TRACEINTERRUPTTAKEN},
-	{5, TEXT("Stop"), ID_STEP_STOP}
+	{0, TEXT("Trace"), IDM_STEP_TRACE},
+	{1, TEXT("Trace Frame"), IDM_STEP_TRACEFRAME},
+	{2, TEXT("1 Clock"), IDM_STEP_ONECLOCK},
+	{3, TEXT("1 Instruction"), IDM_STEP_ONEINSTRUCTION},
+	{4, TEXT("Trace INT"), IDM_STEP_TRACEINTERRUPTTAKEN},
+	{5, TEXT("Stop"), IDM_STEP_STOP}
 };
 
 CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, LPCTSTR pszCaption)
@@ -697,22 +697,22 @@ void CDisassemblyFrame::SetMenuState()
 		stateTb = TBSTATE_ENABLED;
 		stateTbOpp = 0;
 	}
-	EnableMenuItem(hMenu, ID_STEP_ONECLOCK, MF_BYCOMMAND | state);
-	EnableMenuItem(hMenu, ID_STEP_ONEINSTRUCTION, MF_BYCOMMAND | state);
-	EnableMenuItem(hMenu, ID_STEP_TRACE, MF_BYCOMMAND | state);
-	EnableMenuItem(hMenu, ID_STEP_TRACEFRAME, MF_BYCOMMAND | state);
-	EnableMenuItem(hMenu, ID_STEP_TRACEINTERRUPTTAKEN, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_ONECLOCK, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_ONEINSTRUCTION, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_TRACE, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_TRACEFRAME, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_TRACEINTERRUPTTAKEN, MF_BYCOMMAND | state);
 	
-	EnableMenuItem(hMenu, ID_STEP_STOP, MF_BYCOMMAND | stateOpp);
+	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
 	if (m_hWndTooBar!=NULL)
 	{
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_ONECLOCK, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_ONEINSTRUCTION, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_TRACE, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_TRACEFRAME, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_TRACEINTERRUPTTAKEN, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_ONECLOCK, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_ONEINSTRUCTION, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACEINTERRUPTTAKEN, stateTb);
 
-		SendMessage(m_hWndTooBar, TB_SETSTATE, ID_STEP_STOP, stateTbOpp);
+		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
 	}
 }
 
@@ -739,27 +739,27 @@ bool CDisassemblyFrame::OnToolBarInfo(LPNMTBGETINFOTIP info)
 		int id = info->iItem;
 		if (info->pszText)
 		{
-			if (id == ID_STEP_ONECLOCK)
+			if (id == IDM_STEP_ONECLOCK)
 			{
 				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Step 1 clock"), _TRUNCATE);
 			}
-			else if (id == ID_STEP_ONEINSTRUCTION)
+			else if (id == IDM_STEP_ONEINSTRUCTION)
 			{
 				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Step 1 instruction"), _TRUNCATE);
 			}
-			else if (id == ID_STEP_TRACE)
+			else if (id == IDM_STEP_TRACE)
 			{
 				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Trace"), _TRUNCATE);
 			}
-			else if (id == ID_STEP_TRACEFRAME)
+			else if (id == IDM_STEP_TRACEFRAME)
 			{
 				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Trace 1 frame"), _TRUNCATE);
 			}
-			else if (id == ID_STEP_TRACEINTERRUPTTAKEN)
+			else if (id == IDM_STEP_TRACEINTERRUPTTAKEN)
 			{
 				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Trace till IRQ/NMI taken"), _TRUNCATE);
 			}
-			else if (id == ID_STEP_STOP)
+			else if (id == IDM_STEP_STOP)
 			{
 				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Stop tracing"), _TRUNCATE);
 			}
@@ -783,7 +783,7 @@ int wmId, wmEvent;
 	wmEvent = HIWORD(wParam);
 	switch (wmId) 
 	{
-	case ID_STEP_ONECLOCK:
+	case IDM_STEP_ONECLOCK:
 		if (!m_pMonitorCommand)
 			return true;
 		if (m_pMonitorCommand->IsRunning())
@@ -795,7 +795,7 @@ int wmId, wmEvent;
 			m_pMonitorCommand->ExecuteDiskClock();
 		m_pMonitorCommand->UpdateApplication();
 		return true;
-	case ID_STEP_ONEINSTRUCTION:
+	case IDM_STEP_ONEINSTRUCTION:
 		if (!m_pMonitorCommand)
 			return true;
 		if (m_pMonitorCommand->IsRunning())
@@ -807,7 +807,7 @@ int wmId, wmEvent;
 			m_pMonitorCommand->ExecuteDiskInstruction();
 		m_pMonitorCommand->UpdateApplication();
 		return true;
-	case ID_STEP_TRACEFRAME:
+	case IDM_STEP_TRACEFRAME:
 		if (!m_pMonitorCommand)
 			return true;
 		if (m_pMonitorCommand->IsRunning())
@@ -816,7 +816,7 @@ int wmId, wmEvent;
 		m_pMonitorCommand->TraceFrame();
 		m_pMonitorCommand->UpdateApplication();
 		return true;
-	case ID_STEP_TRACE:
+	case IDM_STEP_TRACE:
 		if (!m_pMonitorCommand)
 			return true;
 		if (m_pMonitorCommand->IsRunning())
@@ -824,7 +824,7 @@ int wmId, wmEvent;
 		CancelEditing();
 		m_pMonitorCommand->Trace();
 		return true;
-	case ID_STEP_TRACEINTERRUPTTAKEN:
+	case IDM_STEP_TRACEINTERRUPTTAKEN:
 		if (!m_pMonitorCommand)
 			return true;
 		if (m_pMonitorCommand->IsRunning())
@@ -832,8 +832,8 @@ int wmId, wmEvent;
 		this->GetCpu()->SetBreakOnInterruptTaken();
 		m_pMonitorCommand->Trace();
 		return true;
-	case ID_FILE_MONITOR:
-	case ID_STEP_STOP:
+	case IDM_FILE_MONITOR:
+	case IDM_STEP_STOP:
 		if (!m_pMonitorCommand)
 			return true;
 		CancelEditing();
