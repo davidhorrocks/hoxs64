@@ -4,21 +4,21 @@
 //
 #define IDS_APP_TITLE                   1
 #define IDS_MONITOR_TITLE               2
-#define IDM_WINDOWCHILD                 3
 #define IDI_ICON_BIG                    102
 #define IDI_ICON_SMALL                  103
 #define IDD_ABOUT                       104
-#define IDC_MAIN_MDI                    105
 #define IDI_BREAK                       106
 #define IDD_NEWDISK                     107
 #define IDD_KEYBOARD                    108
 #define IDD_KEYPAGE2                    109
 #define IDD_KEYPAGE4                    110
+#define IDC_MAIN_MDI                    110
 #define IDD_JOYSTICK                    111
+#define IDM_WINDOWCHILD                 111
 #define IDD_KEYPAGE1                    112
+#define IDC_MAIN_WINEMULATION           112
 #define IDD_KEYPAGE3                    113
 #define IDR_SIDDRIVER                   114
-#define IDR_FONT64                      115
 #define IDD_BROWSEPRG                   116
 #define IDB_LEDREDON                    117
 #define IDB_LEDBLUEOFF                  118
@@ -26,7 +26,6 @@
 #define IDB_LEDGREENOFF                 120
 #define IDB_LEDGREENON                  121
 #define IDB_LEDREDOFF                   122
-#define IDD_SETTINGTAB                  123
 #define IDD_SETTING2                    124
 #define IDD_SETTINGTABGENERAL           125
 #define IDD_SETTINGTABVIDEO             126
@@ -51,14 +50,9 @@
 #define IDB_DEBUGGERTRACEFRAME          170
 #define IDB_DEBUGGERTRACEFRAMEMASK      171
 #define IDB_DEBUGGERTRACEINT            173
-#define IDB_BITMAP1                     174
 #define IDB_DEBUGGERTRACEINTMASK        174
-#define IDB_BITMAP2                     178
 #define IDB_DEBUGGERTRACEINT_64         178
-#define IDB_BITMAP3                     179
 #define IDB_BREAKDISABLE                179
-#define IDC_MAIN_WINEMULATION           700
-#define IDC_MAIN_WINSTATUSBAR           701
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
 #define IDC_INFO2                       1002
@@ -172,7 +166,6 @@
 #define IDC_SID_RESAMPLE                1110
 #define IDC_SID_DOWNSAMPLE              1111
 #define IDC_CUSTOMPRGLIST               1112
-#define IDC_LIST1                       1113
 #define IDC_CHKQUICKLOAD                1114
 #define IDC_SETTINGTAB                  1115
 #define IDC_CBO_ADAPTER                 1116
@@ -180,7 +173,6 @@
 #define IDC_CBO_FORMAT                  1118
 #define IDC_CBO_FILTER                  1119
 #define IDC_CBO_STRETCH                 1120
-#define IDC_SETTING                     1289
 #define IDC_SETTINGS_PIXELDOUBLER       1289
 #define IDC_RAD_TRACKS40                1289
 #define IDC_LBL_STRETCH                 1290
@@ -198,7 +190,6 @@
 #define IDC_RAD_CIA6526                 1309
 #define IDC_GROUP_CIAMODE               1310
 #define IDC_RAD_CIA6526A                1311
-#define IDC_CHECK1                      1312
 #define IDC_CHK_TIMERBBUG               1312
 #define IDC_DISABLE_DWM_FULLSCREEN      1312
 #define IDC_TXT_CURSORUP                1313
@@ -211,7 +202,6 @@
 #define ID_TAPE_REWIND                  40007
 #define ID_TAPE_STOP                    40008
 #define ID_TAPE_LOADIMAGE               40010
-#define ID_SETTING_EMULATION            40011
 #define ID_TOGGLEFULLSCREEN             40015
 #define ID_FILE_HARDRESET               40016
 #define ID_FILE_SOFTRESET               40017
@@ -221,7 +211,6 @@
 #define ID_DISK_WRITEPROTECT_OFF        40024
 #define ID_DISK_INSERT_EXISTINGDISK     40028
 #define ID_DISK_INSERT_NEWBLANKDISK     40029
-#define ID_DISK_SAVEDISK                40030
 #define ID_DISK_SAVEDISK_FDI            40030
 #define ID_DISK_REMOVEDISK              40031
 #define ID_SETTING_KEYBOARD             40032
@@ -243,24 +232,18 @@
 #define ID_DEBUG_CPUDISK                40059
 #define ID_STEP_ONEINSTRUCTION          40060
 #define ID_STEP_ONECLOCK                40061
-#define ID_STEP_JSRSUBROUTE             40062
 #define ID_STEP_TRACE                   40063
 #define ID_STEP_STOP                    40070
-#define ID_STEP_TRACE40071              40071
-#define ID_STEP_STOP40072               40072
-#define ID_MDI_STEP_TRACE               40074
-#define ID_MDI_STEP_STOP                40075
 #define ID_STEP_TRACEFRAME              40084
-#define ID_STEP_TRACEFRAME40085         40085
 #define ID_STEP_TRACEINTERRUPTTAKEN     40088
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        180
-#define _APS_NEXT_COMMAND_VALUE         40089
+#define _APS_NEXT_RESOURCE_VALUE        181
+#define _APS_NEXT_COMMAND_VALUE         40095
 #define _APS_NEXT_CONTROL_VALUE         1315
-#define _APS_NEXT_SYMED_VALUE           110
+#define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif
