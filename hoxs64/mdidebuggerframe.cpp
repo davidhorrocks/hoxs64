@@ -319,7 +319,7 @@ HIMAGELIST CMDIDebuggerFrame::CreateImageListNormal(HWND hWnd)
 
 void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	HRESULT hr = m_debugCpuC64.ShowW();
+	HRESULT hr = m_debugCpuC64.Show();
 	if (SUCCEEDED(hr))
 	{
 		m_debugCpuC64.UpdateDisplay(pcmode, address);
@@ -328,7 +328,7 @@ void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::DisassemblyPCUpdateMode pcmode, 
 
 void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	HRESULT hr = m_debugCpuDisk.ShowW();
+	HRESULT hr = m_debugCpuDisk.Show();
 	if (SUCCEEDED(hr))
 	{
 		m_debugCpuDisk.UpdateDisplay(pcmode, address);

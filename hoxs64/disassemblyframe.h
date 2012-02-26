@@ -119,7 +119,7 @@ public:
 	static const TCHAR MenuName[];	
 
 	HRESULT Init(CVirWindow *parent);
-	HRESULT ShowW();
+	HRESULT Show();
 	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);

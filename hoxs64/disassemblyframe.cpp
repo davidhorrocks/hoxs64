@@ -247,7 +247,7 @@ HIMAGELIST CDisassemblyFrame::CreateImageListNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-HRESULT CDisassemblyFrame::ShowW()
+HRESULT CDisassemblyFrame::Show()
 {
 WINDOWPLACEMENT wp;
 int x,y,w,h;
