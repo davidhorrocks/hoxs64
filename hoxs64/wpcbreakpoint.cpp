@@ -25,17 +25,27 @@ const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 WpcBreakpoint::WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand)
 {
 	m_hLvBreak = NULL;
+	m_hMenuBreakPoint = NULL;
 	this->c64 = c64;
 	this->m_pMonitorCommand = pMonitorCommand;
 }
 
 WpcBreakpoint::~WpcBreakpoint()
 {
+	if (m_hMenuBreakPoint)
+	{
+		DestroyMenu(m_hMenuBreakPoint);
+		m_hMenuBreakPoint = NULL;
+	}
 }
 
 HRESULT WpcBreakpoint::Init()
 {
 HSink hs;
+
+	m_hMenuBreakPoint = LoadMenu(this->m_hInst, TEXT("MENU_BREAKPOINT"));
+	if (!m_hMenuBreakPoint)
+		return E_FAIL;
 
 	hs = m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
 	if (!hs)
@@ -284,6 +294,21 @@ bool WpcBreakpoint::LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult
 	return false;
 }
 
+bool WpcBreakpoint::LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult)
+{
+RECT rcWin;
+HMENU hMenu;
+	lresult = 0;
+	GetWindowRect(m_hLvBreak, &rcWin);
+	OffsetRect(&rcWin,  pnmh->ptAction.x, pnmh->ptAction.y);
+	hMenu = GetSubMenu(m_hMenuBreakPoint, 0);
+	if (hMenu)
+	{
+		TrackPopupMenuEx(hMenu, TPM_LEFTALIGN, rcWin.left, rcWin.top, m_hWnd, NULL);
+	}
+	return false;
+}
+
 bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresult)
 {
 	switch(pnmh->idFrom)
@@ -300,6 +325,11 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 		case LVN_ODCACHEHINT:
 		case LVN_ODFINDITEM:
 			break;
+		case NM_RCLICK:
+			if (pnmh->hwndFrom == this->m_hLvBreak)
+			{
+				return LvBreakPoint_OnRClick((NMITEMACTIVATE *)pnmh, lresult);
+			}			
 		}
 		break;
 	}
@@ -321,6 +351,8 @@ LRESULT WpcBreakpoint::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 LPNMHDR pnmh;
 LRESULT lr;
 bool bHandled;
+int wmId, wmEvent;
+
 	switch (uMsg)
 	{
 	case WM_CREATE:
@@ -329,15 +361,22 @@ bool bHandled;
 		return OnSize(hWnd, uMsg, wParam, lParam);
 	case WM_NOTIFY:
 		pnmh = (LPNMHDR)lParam;
-		if (pnmh == NULL)
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		bHandled =  OnNotify(hWnd, (int)wParam, pnmh, lr);
-		if (!bHandled)
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		else
+		if (pnmh != NULL)
+		{
+			bHandled =  OnNotify(hWnd, (int)wParam, pnmh, lr);
+			if (bHandled)
+				return 0;
+		}
+	case WM_COMMAND:
+		wmId    = LOWORD(wParam); // Remember, these are...
+		wmEvent = HIWORD(wParam); // ...different for Win32!
+		switch (wmId) 
+		{
+		case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
+
 			return 0;
-	default:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		}
+		break;
 	}
-	return 0;
+	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);;
 }

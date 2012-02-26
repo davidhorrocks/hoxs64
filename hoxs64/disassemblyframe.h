@@ -119,8 +119,8 @@ public:
 	static const TCHAR MenuName[];	
 
 	HRESULT Init(CVirWindow *parent);
-	HRESULT Show();
-	HRESULT Show(bool bSeekPC);
+	HRESULT ShowW();
+	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
@@ -150,7 +150,6 @@ private:
 	void SetMenuState();
 
 	void SetHome();
-	void UpdateDisplay(bool bSeekPC);
 	void CancelEditing();
 
 	void OnResume(void *sender, EventArgs& e);

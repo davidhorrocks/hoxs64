@@ -53,6 +53,7 @@
 #define IDB_DEBUGGERTRACEINTMASK        174
 #define IDB_DEBUGGERTRACEINT_64         178
 #define IDB_BREAKDISABLE                179
+#define IDR_MENU1                       181
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
 #define IDC_INFO2                       1002
@@ -238,13 +239,14 @@
 #define IDM_STEP_STOP                   40131
 #define IDM_DEBUG_CPUC64                40132
 #define IDM_DEBUG_CPUDISK               40133
+#define IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY 40135
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        181
-#define _APS_NEXT_COMMAND_VALUE         40134
+#define _APS_NEXT_RESOURCE_VALUE        182
+#define _APS_NEXT_COMMAND_VALUE         40136
 #define _APS_NEXT_CONTROL_VALUE         1315
 #define _APS_NEXT_SYMED_VALUE           113
 #endif

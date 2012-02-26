@@ -243,11 +243,11 @@ void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
 		SetAddressScrollPos((int)address);
 }
 
-void CDisassemblyChild::UpdateDisplay(bool bSeekPC)
+void CDisassemblyChild::UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	m_DisassemblyEditChild.UpdateDisplay(bSeekPC);
-	bit16 address = m_DisassemblyEditChild.GetTopAddress();
-	SetAddressScrollPos((int)address);
+	m_DisassemblyEditChild.UpdateDisplay(pcmode, address);
+	bit16 currentaddress = m_DisassemblyEditChild.GetTopAddress();
+	SetAddressScrollPos((int)currentaddress);
 }
 
 void CDisassemblyChild::InvalidateBuffer()
@@ -276,14 +276,14 @@ int pos;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
 		SetTopAddress(nearestAdress, true);
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);		
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);		
 		break;
 	case SB_BOTTOM:
 		address=0xffc0;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
 		SetTopAddress(nearestAdress, true);
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	case SB_PAGEUP:
 		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
@@ -297,25 +297,25 @@ int pos;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
 		SetTopAddress(nearestAdress, true);
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	case SB_PAGEDOWN:
 		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
 		SetTopAddress(bottomAddress, true);		
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	case SB_LINEUP:
 		address = m_DisassemblyEditChild.GetPrevAddress();
 		SetTopAddress(address, true);
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	case SB_LINEDOWN:
 		address = m_DisassemblyEditChild.GetNextAddress();
 		SetTopAddress(address, true);
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	case SB_THUMBPOSITION:
 		ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
@@ -329,7 +329,7 @@ int pos;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
 		SetTopAddress(nearestAdress, true);
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	case SB_THUMBTRACK:
 		ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
@@ -343,7 +343,7 @@ int pos;
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
 		SetTopAddress(nearestAdress, false);
 		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(false);
+		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	default:
 		return;
@@ -374,7 +374,7 @@ bool CDisassemblyChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break; 
 	case VK_HOME:
 		SetHome();
-		UpdateDisplay(true);
+		UpdateDisplay(DBGSYM::SeekPC, 0);
 		break; 
 	default:
 		return false;
@@ -456,7 +456,7 @@ void CDisassemblyChild::GetMinWindowSize(int &w, int &h)
 
 void CDisassemblyChild::OnCpuRegPCChanged(void *sender, EventArgs& e)
 {
-	UpdateDisplay(false);
+	UpdateDisplay(DBGSYM::None, 0);
 }
 
 HRESULT CDisassemblyChild::AdviseEvents()

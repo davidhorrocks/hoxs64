@@ -34,7 +34,7 @@ public:
 	void GetMinWindowSize(int &w, int &h);
 	void SetTopAddress(bit16 address, bool bSetScrollBarPage);
 	void SetHome();
-	void UpdateDisplay(bool bEnsurePC);
+	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void InvalidateBuffer();
 	void CancelEditing();
 private:

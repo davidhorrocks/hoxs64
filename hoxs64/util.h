@@ -1,6 +1,9 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
+#include "defines.h"
+#include "bits.h"
+
 struct null_deleter
 {
     void operator()(void const *) const
@@ -120,6 +123,16 @@ public:
 	static const int iNoBorderFirstRaster = 51;
 	static const int iNoBorderLastRaster = 250;
 
+};
+
+namespace DBGSYM
+{
+	enum DisassemblyPCUpdateMode
+	{
+		None = 0,
+		SeekPC = 1,
+		SeekAddress = 2
+	};
 };
 
 #endif

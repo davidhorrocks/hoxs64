@@ -317,14 +317,22 @@ HIMAGELIST CMDIDebuggerFrame::CreateImageListNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-void CMDIDebuggerFrame::ShowDebugCpuC64(bool bSeekPC)
+void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	m_debugCpuC64.Show(bSeekPC);
+	HRESULT hr = m_debugCpuC64.ShowW();
+	if (SUCCEEDED(hr))
+	{
+		m_debugCpuC64.UpdateDisplay(pcmode, address);
+	}
 }
 
-void CMDIDebuggerFrame::ShowDebugCpuDisk(bool bSeekPC)
+void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	m_debugCpuDisk.Show(bSeekPC);
+	HRESULT hr = m_debugCpuDisk.ShowW();
+	if (SUCCEEDED(hr))
+	{
+		m_debugCpuDisk.UpdateDisplay(pcmode, address);
+	}
 }
 
 void CMDIDebuggerFrame::OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -359,10 +367,10 @@ int wmId, wmEvent;
 	switch (wmId) 
 	{
 	case IDM_DEBUG_CPUC64:
-		ShowDebugCpuC64(false);
+		ShowDebugCpuC64(DBGSYM::None, 0);
 		return true;
 	case IDM_DEBUG_CPUDISK:
-		ShowDebugCpuDisk(false);
+		ShowDebugCpuDisk(DBGSYM::None, 0);
 		return true;
 	case IDM_STEP_TRACEFRAME:
 		if (!m_pMonitorCommand)
@@ -490,12 +498,12 @@ HRESULT hr;
 
 void CMDIDebuggerFrame::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	m_debugCpuC64.Show(true);
+	ShowDebugCpuC64(DBGSYM::SeekPC, 0);
 }
 
 void CMDIDebuggerFrame::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	m_debugCpuDisk.Show(true);
+	ShowDebugCpuDisk(DBGSYM::SeekPC, 0);
 }
 
 HRESULT CMDIDebuggerFrame::AdviseEvents()

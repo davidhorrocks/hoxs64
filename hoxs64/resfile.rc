@@ -178,6 +178,14 @@ BEGIN
     END
 END
 
+MENU_BREAKPOINT MENU
+BEGIN
+    POPUP "Breakpoint Options"
+    BEGIN
+        MENUITEM "Show Assembly",               IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

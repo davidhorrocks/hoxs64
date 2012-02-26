@@ -51,6 +51,8 @@ protected:
 	LRESULT OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresult);
 	bool LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult);
+	bool LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult);
+	
 	HRESULT LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch);
 	int LvBreakPoint_RowCol_State(int iRow, int iCol);
 
@@ -66,6 +68,7 @@ private:
 		};
 	};
 	HWND m_hLvBreak;
+	HMENU m_hMenuBreakPoint;
 	HWND CreateListView(CREATESTRUCT *pcs, HWND hWndParent);
 	HRESULT InitListViewColumns(HWND hWndListView);
 	HRESULT FillListView(HWND hWndListView);

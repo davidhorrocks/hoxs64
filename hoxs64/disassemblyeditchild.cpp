@@ -7,7 +7,9 @@
 #include <math.h>
 #include <tchar.h>
 #include <assert.h>
+#include "defines.h"
 #include "CDPI.h"
+#include "util.h"
 #include "utils.h"
 #include "errormsg.h"
 #include "C64.h"
@@ -255,7 +257,7 @@ bit16 address;
 				{
 					this->GetCpu()->MonWriteByte(address+j, acode[j], -1);
 				}
-				this->UpdateBuffer(false);
+				this->UpdateBuffer(DBGSYM::None, 0);
 				this->InvalidateRectChanges();
 				::UpdateWindow(m_hWnd);
 				return S_OK;
@@ -369,7 +371,7 @@ BOOL br;
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		if (wParam==SIZE_MINIMIZED)
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		UpdateDisplay(false);
+		UpdateDisplay(DBGSYM::None, 0);
 		return 0;
 	case WM_KEYDOWN:
 		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
@@ -516,9 +518,9 @@ int CDisassemblyEditChild::GetNumberOfLines(RECT& rc, int lineHeight)
 	return num;
 }
 
-void CDisassemblyEditChild::UpdateDisplay(bool bSeekPC)
+void CDisassemblyEditChild::UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	UpdateBuffer(bSeekPC);
+	UpdateBuffer(pcmode, address);
 	InvalidateRectChanges();
 	UpdateWindow(m_hWnd);
 }
@@ -1150,14 +1152,22 @@ TEXTMETRIC tm;
 
 }
 
-void CDisassemblyEditChild::UpdateBuffer(bool bEnsurePC)
+void CDisassemblyEditChild::UpdateBuffer(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 int iEnsureAddress = -1;
-	if (bEnsurePC)
+	if (pcmode == DBGSYM::SeekPC)
 	{
 		CPUState cpustate;
 		this->GetCpu()->GetCpuState(cpustate);
 		iEnsureAddress = cpustate.PC_CurrentOpcode;
+	}
+	else if (pcmode == DBGSYM::SeekAddress)
+	{
+		iEnsureAddress = address;
+	}
+	else if (pcmode == DBGSYM::None)
+	{
+		iEnsureAddress = -1;
 	}
 	UpdateBuffer(m_pFrontTextBuffer, m_NumLines, iEnsureAddress);
 }

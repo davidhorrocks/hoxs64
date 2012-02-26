@@ -247,12 +247,7 @@ HIMAGELIST CDisassemblyFrame::CreateImageListNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-HRESULT CDisassemblyFrame::Show()
-{
-	return Show(false);
-}
-
-HRESULT CDisassemblyFrame::Show(bool bSeekPC)
+HRESULT CDisassemblyFrame::ShowW()
 {
 WINDOWPLACEMENT wp;
 int x,y,w,h;
@@ -322,7 +317,6 @@ HWND hWnd;
 		}
 	}
 	SetMenuState();
-	UpdateDisplay(bSeekPC);
 	::ShowWindow(hWnd, SW_SHOW);
 	::SetForegroundWindow(hWnd);
 	return S_OK;
@@ -585,7 +579,7 @@ bool CDisassemblyFrame::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break; 
 	case VK_HOME:
 		SetHome();
-		UpdateDisplay(true);
+		UpdateDisplay(DBGSYM::SeekPC, 0);
 		break; 
 	default:
 		return false;
@@ -593,12 +587,12 @@ bool CDisassemblyFrame::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	return true;
 }
 
-void CDisassemblyFrame::UpdateDisplay(bool bSeekPC)
+void CDisassemblyFrame::UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 	if (IsWindow(m_hWnd))
 	{
 		this->m_DisassemblyReg.UpdateDisplay();
-		this->m_DisassemblyChild.UpdateDisplay(bSeekPC);
+		this->m_DisassemblyChild.UpdateDisplay(pcmode, address);
 	}
 }
 
@@ -619,7 +613,7 @@ void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
 	{
 		m_DisassemblyReg.InvalidateBuffer();
 		m_DisassemblyChild.InvalidateBuffer();
-		this->UpdateDisplay(false);
+		this->UpdateDisplay(DBGSYM::None, 0);
 		SetMenuState();
 	}
 }
@@ -629,28 +623,28 @@ void CDisassemblyFrame::OnTraceFrame(void *sender, EventArgs& e)
 	if (IsWindow(this->m_hWnd))
 	{
 		this->SetHome();
-		this->UpdateDisplay(true);
+		this->UpdateDisplay(DBGSYM::SeekPC, 0);
 	}
 }
 
 void CDisassemblyFrame::OnExecuteC64Clock(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(true);
+	this->UpdateDisplay(DBGSYM::SeekPC, 0);
 }
 
 void CDisassemblyFrame::OnExecuteDiskClock(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(true);
+	this->UpdateDisplay(DBGSYM::SeekPC, 0);
 }
 
 void CDisassemblyFrame::OnExecuteC64Instruction(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(true);
+	this->UpdateDisplay(DBGSYM::SeekPC, 0);
 }
 
 void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(true);
+	this->UpdateDisplay(DBGSYM::SeekPC, 0);
 }
 
 void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
@@ -659,7 +653,7 @@ void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 	if (IsWindow(this->m_hWnd))
 	{
 		SetHome();
-		UpdateDisplay(true);
+		UpdateDisplay(DBGSYM::SeekPC, 0);
 		SetMenuState();
 	}
 }
