@@ -53,6 +53,7 @@ protected:
 	bool LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult);
 	bool LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult);
 	
+	HRESULT LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& bp);
 	HRESULT LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch);
 	int LvBreakPoint_RowCol_State(int iRow, int iCol);
 
@@ -79,6 +80,7 @@ private:
 	CDPI m_dpi;
 	C64 *c64;
 	IMonitorCommand *m_pMonitorCommand;
+	Sp_BreakpointItem m_SelectedBreakpointItem;
 };
 
 #endif

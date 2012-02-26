@@ -1312,12 +1312,26 @@ void CApp::SoundOn()
 	SoundResume();
 }
 
-void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, int address, int count)
+void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count)
 {
 }
 
-void CApp::SetBreakpointDiskExecute(int address, int count)
+void CApp::SetBreakpointDiskExecute(bit16 address, int count)
 {
+}
+
+void CApp::ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
+{
+HWND hWndMdiDebugger = NULL;
+	if (!appWindow.m_pMDIDebugger)
+		hWndMdiDebugger = appWindow.ShowDevelopment();
+	if (!appWindow.m_pMDIDebugger)
+		return;
+
+	if (cpuid == CPUID_MAIN)
+		appWindow.m_pMDIDebugger->ShowDebugCpuC64(pcmode, address);
+	else if (cpuid == CPUID_DISK)
+		appWindow.m_pMDIDebugger->ShowDebugCpuDisk(pcmode, address);
 }
 
 void CApp::TogglePause()

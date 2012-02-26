@@ -232,9 +232,20 @@ LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 	return 0;
 }
 
+HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& bp)
+{
+	if (iRow >= this->m_lstBreak.size() || iRow < 0)
+	{
+		return E_FAIL;
+	}
+	bp = m_lstBreak[iRow];
+	return S_OK;
+}
+
 HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch)
 {
 #define ADDRESS_DIGITS 4
+HRESULT hr;
 LPCTSTR sDisk = TEXT("Disk");
 LPCTSTR sC64 = TEXT("C64");
 TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
@@ -242,11 +253,10 @@ TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
 	if (cch <= 0)
 		return E_FAIL;
 	*pText = _T('\0');
-	if (iRow >= this->m_lstBreak.size() || iRow < 0)
-	{
-		return S_FALSE;
-	}
-	Sp_BreakpointItem bp = m_lstBreak[iRow];
+	Sp_BreakpointItem bp;
+	hr = LvBreakPoint_RowCol_GetData(iRow, bp);
+	if (FAILED(hr))
+		return hr;
 	switch(iCol)
 	{
 	case LvBreakColumnIndex::Cpu:
@@ -265,12 +275,11 @@ TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
 
 int WpcBreakpoint::LvBreakPoint_RowCol_State(int iRow, int iCol)
 {
-	if (iRow >= 0 && iRow < this->m_lstBreak.size())
-	{
-		Sp_BreakpointItem bp = m_lstBreak[iRow];
-		return bp->count != 0;
-	}
-	return 0;
+	Sp_BreakpointItem bp;
+	HRESULT hr = LvBreakPoint_RowCol_GetData(iRow, bp);
+	if (FAILED(hr))
+		return 0;
+	return bp->count != 0;
 }
 
 bool WpcBreakpoint::LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult)
@@ -298,7 +307,16 @@ bool WpcBreakpoint::LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult
 {
 RECT rcWin;
 HMENU hMenu;
+HRESULT hr;
+
+	m_SelectedBreakpointItem = 0;
+	Sp_BreakpointItem bp;
 	lresult = 0;
+	hr = LvBreakPoint_RowCol_GetData(pnmh->iItem, bp);
+	if (FAILED(hr))
+		return false;
+	m_SelectedBreakpointItem = bp;
+
 	GetWindowRect(m_hLvBreak, &rcWin);
 	OffsetRect(&rcWin,  pnmh->ptAction.x, pnmh->ptAction.y);
 	hMenu = GetSubMenu(m_hMenuBreakPoint, 0);
@@ -373,7 +391,10 @@ int wmId, wmEvent;
 		switch (wmId) 
 		{
 		case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
-
+			if(m_SelectedBreakpointItem!=0)
+			{
+				this->m_pMonitorCommand->ShowCpuDisassembly(m_SelectedBreakpointItem->machine, DBGSYM::SeekAddress, m_SelectedBreakpointItem->address);
+			}
 			return 0;
 		}
 		break;

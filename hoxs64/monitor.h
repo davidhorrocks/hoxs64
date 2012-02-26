@@ -34,9 +34,9 @@ public:
 	virtual bool IsRunning()=0;
 	virtual void SoundOff()=0;
 	virtual void SoundOn()=0;
-	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, int address, int count)=0;
-	virtual void SetBreakpointDiskExecute(int address, int count)=0;
-
+	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count)=0;
+	virtual void SetBreakpointDiskExecute(bit16 address, int count)=0;
+	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
 
 	EventSource<EventArgs> EsResume;
 	EventSource<EventArgs> EsTrace;
