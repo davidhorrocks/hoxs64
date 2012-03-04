@@ -2771,22 +2771,49 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case HLT_IMPLIED:
 			break;
 		case TAS_ABSOLUTEY:
+			this->SyncChips();
+			if (this->LastBAHighClock != CurrentClock)
+			{
+				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
+			}
+			else
+			{
+				axa_byte = 0xff;
+			}
 			mSP = (mA & mX);
-			WriteByte(addr.word,mSP & ((bit8)((addr.word-mY) >> 8)+1));
+			WriteByte(addr.word, mSP & axa_byte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
 		case SAY_ABSOLUTEX:
-			WriteByte(addr.word,mY & ((bit8)((addr.word-mX) >> 8)+1));
+			this->SyncChips();
+			if (this->LastBAHighClock != CurrentClock)
+			{
+				axa_byte = ((bit8)((addr.word-mX) >> 8)+1);
+			}
+			else
+			{
+				axa_byte = 0xff;
+			}
+			WriteByte(addr.word, mY & axa_byte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
 		case XAS_ABSOLUTEY:
-			WriteByte(addr.word,mX & ((bit8)((addr.word-mY) >> 8)+1));
+			this->SyncChips();
+			if (this->LastBAHighClock != CurrentClock)
+			{
+				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
+			}
+			else
+			{
+				axa_byte = 0xff;
+			}
+			WriteByte(addr.word, mA & mX & axa_byte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
