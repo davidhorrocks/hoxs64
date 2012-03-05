@@ -319,7 +319,7 @@ CPU6502::CPU6502()
 {
 	m_bDebug=0;
 	InitDecoder();
-	ClearAll();
+	ClearAllBreakpoints();
 	CurrentClock=0;
 	FirstIRQClock=0;
 	FirstNMIClock=0;

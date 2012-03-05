@@ -1312,14 +1312,6 @@ void CApp::SoundOn()
 	SoundResume();
 }
 
-void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count)
-{
-}
-
-void CApp::SetBreakpointDiskExecute(bit16 address, int count)
-{
-}
-
 void CApp::ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 HWND hWndMdiDebugger = NULL;
@@ -1332,6 +1324,59 @@ HWND hWndMdiDebugger = NULL;
 		appWindow.m_pMDIDebugger->ShowDebugCpuC64(pcmode, address);
 	else if (cpuid == CPUID_DISK)
 		appWindow.m_pMDIDebugger->ShowDebugCpuDisk(pcmode, address);
+}
+
+bool CApp::IsBreakpointC64Execute(bit16 address)
+{
+	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
+	return p->IsBreakPoint(address);
+}
+
+bool CApp::IsBreakpointDiskExecute(bit16 address)
+{
+	IMonitorCpu *p = c64.GetCpu(CPUID_DISK);
+	return p->IsBreakPoint(address);
+}
+
+void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count)
+{
+	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
+	p->SetExecute(address, count);
+}
+
+void CApp::SetBreakpointDiskExecute(bit16 address, int count)
+{
+	IMonitorCpu *p = c64.GetCpu(CPUID_DISK);
+	p->SetExecute(address, count);
+}
+
+void CApp::DeleteBreakpointC64Execute(bit16 address)
+{
+	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
+	p->ClearBreakPoint(address);
+}
+
+void CApp::DeleteBreakpointDiskExecute(bit16 address)
+{
+	IMonitorCpu *p = c64.GetCpu(CPUID_DISK);
+	p->ClearBreakPoint(address);
+}
+
+void CApp::EnableAllBreakpoints()
+{
+}
+
+void CApp::DisableAllBreakpoints()
+{
+}
+
+void CApp::DeleteAllBreakpoints()
+{
+	IMonitorCpu *p;
+	p = c64.GetCpu(CPUID_MAIN);
+	p->ClearAllBreakpoints();
+	p = c64.GetCpu(CPUID_DISK);
+	p->ClearAllBreakpoints();
 }
 
 void CApp::TogglePause()

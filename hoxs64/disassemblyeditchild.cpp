@@ -645,34 +645,25 @@ bool bHasPrevAddress;
 		{
 			pAlb = &this->m_pFrontTextBuffer[iline];
 			address = pAlb->Address;
-			IMonitorCpu *pMonitorCpu = this->GetCpu();
-			int iCount;
-			if (pMonitorCpu->IsBreakPoint(address))
-			{				
-				iCount = 0;
-				pMonitorCpu->ClearBreakPoint(address);
-				pAlb->IsBreak = false;				
-			}
-			else
+
+			if (this->GetCpuId() == CPUID_MAIN)
 			{
-				iCount = 1;
-				pMonitorCpu->SetExecute(address, iCount);
-				pAlb->IsBreak = true;
-			}
-			if (pMonitorCpu->GetCpuId() == CPUID_MAIN)
-			{
-				BreakpointC64ExecuteChangedEventArgs e((MEM_TYPE)-1, address, iCount);
+				if (this->m_pMonitorCommand->IsBreakpointC64Execute(address))
+					this->m_pMonitorCommand->DeleteBreakpointC64Execute(address);
+				else
+					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, 1);
+				
+				BreakpointC64ExecuteChangedEventArgs e(MT_DEFAULT, address, 1);
 				this->m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Raise(this, e);
 			}
-			else if (pMonitorCpu->GetCpuId() == CPUID_DISK)
+			else if (this->GetCpuId() == CPUID_DISK)
 			{
-				BreakpointDiskExecuteChangedEventArgs e(address, iCount);
+				if (this->m_pMonitorCommand->IsBreakpointDiskExecute(address))
+					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(address);
+				else
+					this->m_pMonitorCommand->SetBreakpointDiskExecute(address, 1);
+				BreakpointDiskExecuteChangedEventArgs e(address, 1);
 				this->m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Raise(this, e);
-			}
-			else
-			{
-				InvalidateRectChanges();
-				UpdateWindow(m_hWnd);
 			}
 		}
 	}
@@ -1383,14 +1374,12 @@ void CDisassemblyEditChild::GetMinWindowSize(int &w, int &h)
 
 void CDisassemblyEditChild::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
 {
-	InvalidateRectChanges();
-	UpdateWindow(m_hWnd);
+	UpdateDisplay(DBGSYM::None, 0);
 }
 
 void CDisassemblyEditChild::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
 {
-	InvalidateRectChanges();
-	UpdateWindow(m_hWnd);
+	UpdateDisplay(DBGSYM::None, 0);
 }
 
 CDisassemblyEditChild::AssemblyLineBuffer::AssemblyLineBuffer()

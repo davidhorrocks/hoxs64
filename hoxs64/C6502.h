@@ -579,7 +579,7 @@ public:
 	bool SOTrigger;
 	ICLK SOTriggerClock;
 
-	void ClearAll();
+	void ClearAllBreakpoints();
 	bool SetRead(bit16 address, int count);
 	bool SetWrite(bit16 address, int count);
 	int CheckExecute(bit16 address);

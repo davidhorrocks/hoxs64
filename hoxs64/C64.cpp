@@ -1416,6 +1416,17 @@ void C64::ProcessReset()
 	}
 }
 
+IMonitorCpu *C64::GetCpu(int cpuid)
+{
+	if (cpuid == CPUID_MAIN)
+		return &cpu;
+	else if (cpuid == CPUID_DISK)
+		return &diskdrive.cpu;
+	else
+		return NULL;
+}
+
+
 //DefaultCpu::DefaultCpu()
 //{
 //	cpuid = CPUID_MAIN;

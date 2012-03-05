@@ -9,6 +9,7 @@ protected:
 
 typedef enum tagMemoryType : int
 {
+	MT_DEFAULT = 0,
 	MT_RAM = 1,
 	MT_IO = 2,
 	MT_CHARGEN = 4,
@@ -152,6 +153,7 @@ public:
 	virtual bool SetExecute(bit16 address, int count)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
+	virtual void ClearAllBreakpoints() = 0;
 	virtual void SetPC(bit16 address) = 0;
 	virtual void SetA(bit8 v) = 0;
 	virtual void SetX(bit8 v) = 0;

@@ -107,6 +107,8 @@ public:
 	void PostHardReset(bool bCancelAutoload);
 	void PostSoftReset(bool bCancelAutoload);
 
+	IMonitorCpu *GetCpu(int cpuid);
+
 	enum AutoLoadType
 	{
 		AUTOLOAD_NONE,

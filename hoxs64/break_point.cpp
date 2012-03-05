@@ -112,7 +112,7 @@ IEnumBreakpointItem *CPU6502::CreateEnumBreakpointExecute()
 	return r;
 }
 
-void CPU6502::ClearAll()
+void CPU6502::ClearAllBreakpoints()
 {
 	MapBpExecute.clear();
 	MapBpRead.clear();

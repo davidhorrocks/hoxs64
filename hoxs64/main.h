@@ -56,9 +56,16 @@ public:
 	virtual bool IMonitorCommand::IsRunning();
 	virtual void IMonitorCommand::SoundOff();
 	virtual void IMonitorCommand::SoundOn();
+	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
+	virtual bool IsBreakpointC64Execute(bit16 address);
+	virtual bool IsBreakpointDiskExecute(bit16 address);
 	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count);
 	virtual void SetBreakpointDiskExecute(bit16 address, int count);
-	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
+	virtual void DeleteBreakpointC64Execute(bit16 address);
+	virtual void DeleteBreakpointDiskExecute(bit16 address);
+	virtual void EnableAllBreakpoints();
+	virtual void DeleteAllBreakpoints();
+	virtual void DisableAllBreakpoints();
 	// IMonitorCommand
 
 	
