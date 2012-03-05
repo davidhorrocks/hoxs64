@@ -240,13 +240,14 @@
 #define IDM_DEBUG_CPUC64                40132
 #define IDM_DEBUG_CPUDISK               40133
 #define IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY 40135
+#define IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS 40137
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        182
-#define _APS_NEXT_COMMAND_VALUE         40136
+#define _APS_NEXT_COMMAND_VALUE         40138
 #define _APS_NEXT_CONTROL_VALUE         1315
 #define _APS_NEXT_SYMED_VALUE           113
 #endif

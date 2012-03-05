@@ -1342,24 +1342,36 @@ void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count)
 {
 	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
 	p->SetExecute(address, count);
+
+	BreakpointC64ExecuteChangedEventArgs e(MT_DEFAULT, address, 1);
+	this->EsBreakpointC64ExecuteChanged.Raise(this, e);
 }
 
 void CApp::SetBreakpointDiskExecute(bit16 address, int count)
 {
 	IMonitorCpu *p = c64.GetCpu(CPUID_DISK);
 	p->SetExecute(address, count);
+
+	BreakpointDiskExecuteChangedEventArgs e(address, 0);
+	this->EsBreakpointDiskExecuteChanged.Raise(this, e);
 }
 
 void CApp::DeleteBreakpointC64Execute(bit16 address)
 {
 	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
 	p->ClearBreakPoint(address);
+
+	BreakpointC64ExecuteChangedEventArgs e(MT_DEFAULT, address, 0);
+	this->EsBreakpointC64ExecuteChanged.Raise(this, e);
 }
 
 void CApp::DeleteBreakpointDiskExecute(bit16 address)
 {
 	IMonitorCpu *p = c64.GetCpu(CPUID_DISK);
 	p->ClearBreakPoint(address);
+
+	BreakpointDiskExecuteChangedEventArgs e(address, 0);
+	this->EsBreakpointDiskExecuteChanged.Raise(this, e);
 }
 
 void CApp::EnableAllBreakpoints()
@@ -1377,6 +1389,11 @@ void CApp::DeleteAllBreakpoints()
 	p->ClearAllBreakpoints();
 	p = c64.GetCpu(CPUID_DISK);
 	p->ClearAllBreakpoints();
+
+	BreakpointC64ExecuteChangedEventArgs eMain(MT_DEFAULT, 0, 0);
+	this->EsBreakpointC64ExecuteChanged.Raise(this, eMain);
+	BreakpointDiskExecuteChangedEventArgs eDisk(0, 0);
+	this->EsBreakpointDiskExecuteChanged.Raise(this, eDisk);
 }
 
 void CApp::TogglePause()

@@ -651,10 +651,7 @@ bool bHasPrevAddress;
 				if (this->m_pMonitorCommand->IsBreakpointC64Execute(address))
 					this->m_pMonitorCommand->DeleteBreakpointC64Execute(address);
 				else
-					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, 1);
-				
-				BreakpointC64ExecuteChangedEventArgs e(MT_DEFAULT, address, 1);
-				this->m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Raise(this, e);
+					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, 1);				
 			}
 			else if (this->GetCpuId() == CPUID_DISK)
 			{
@@ -662,8 +659,6 @@ bool bHasPrevAddress;
 					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(address);
 				else
 					this->m_pMonitorCommand->SetBreakpointDiskExecute(address, 1);
-				BreakpointDiskExecuteChangedEventArgs e(address, 1);
-				this->m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Raise(this, e);
 			}
 		}
 	}
