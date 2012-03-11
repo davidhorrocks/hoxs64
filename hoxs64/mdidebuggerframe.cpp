@@ -9,6 +9,7 @@
 #include <list>
 #include <assert.h>
 #include "CDPI.h"
+#include "utils.h"
 
 #include "errormsg.h"
 

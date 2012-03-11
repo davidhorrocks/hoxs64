@@ -104,10 +104,10 @@ struct BreakpointKey
 	BreakpointKey(int machine, bit16 address);
 	int machine;
 	bit16 address;
-	int Compare(const BreakpointKey& v) const;
-	bool operator<(const BreakpointKey& v) const;
-	bool operator>(const BreakpointKey& v) const;
-	bool operator==(const BreakpointKey& y) const;
+	int Compare(const BreakpointKey v) const;
+	bool operator<(const BreakpointKey v) const;
+	bool operator>(const BreakpointKey v) const;
+	bool operator==(const BreakpointKey y) const;
 };
 
 struct BreakpointItem : public BreakpointKey
@@ -130,7 +130,7 @@ public:
 
 struct LessBreakpointKey
 {
-	bool operator()(const Sp_BreakpointKey& x, const Sp_BreakpointKey& y);
+	bool operator()(const Sp_BreakpointKey x, const Sp_BreakpointKey y) const;
 };
 
 class IMonitorCpu

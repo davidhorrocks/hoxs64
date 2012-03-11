@@ -234,7 +234,7 @@ LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& bp)
 {
-	if (iRow >= this->m_lstBreak.size() || iRow < 0)
+	if ((iRow < 0) || ((unsigned int)iRow >= this->m_lstBreak.size()))
 	{
 		return E_FAIL;
 	}
@@ -309,7 +309,7 @@ RECT rcWin;
 HMENU hMenu;
 HRESULT hr;
 
-	m_SelectedBreakpointItem = 0;
+	m_SelectedBreakpointItem = Sp_BreakpointItem();
 	Sp_BreakpointItem bp;
 	lresult = 0;
 	hr = LvBreakPoint_RowCol_GetData(pnmh->iItem, bp);

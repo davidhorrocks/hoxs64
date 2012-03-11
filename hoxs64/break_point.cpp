@@ -29,7 +29,7 @@ BreakpointKey::BreakpointKey(int machine, bit16 address)
 	this->address = address;
 }
 
-int BreakpointKey::Compare(const BreakpointKey& y) const
+int BreakpointKey::Compare(BreakpointKey y) const
 {
 const BreakpointKey& x = *this;
 	if (x.machine < y.machine)
@@ -44,22 +44,22 @@ const BreakpointKey& x = *this;
 	return 0;
 }
 
-bool BreakpointKey::operator==(const BreakpointKey& y) const
+bool BreakpointKey::operator==(const BreakpointKey y) const
 {
 	return Compare(y) == 0;
 }
 
-bool BreakpointKey::operator<(const BreakpointKey& y) const
+bool BreakpointKey::operator<(const BreakpointKey y) const
 {
 	return Compare(y) < 0;
 }
 
-bool BreakpointKey::operator>(const BreakpointKey& y) const
+bool BreakpointKey::operator>(const BreakpointKey y) const
 {
 	return Compare(y) > 0;
 }
 
-bool LessBreakpointKey::operator()(const Sp_BreakpointKey& x, const Sp_BreakpointKey& y)
+bool LessBreakpointKey::operator()(const Sp_BreakpointKey x, const Sp_BreakpointKey y) const
 {
 	return *x < *y;
 }

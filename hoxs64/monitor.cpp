@@ -1,9 +1,12 @@
 #include <windows.h>
 #include "dx_version.h"
+#include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
+#include "CDPI.h"
+#include "utils.h"
 #include "errormsg.h"
 #include "hexconv.h"
 #include "c64.h"
