@@ -1021,6 +1021,15 @@ TEXTMETRIC tm;
 							for (int i = 0; i < m_NumLines; i++, y += LINE_HEIGHT)
 							{
 								AssemblyLineBuffer albFront = m_pFrontTextBuffer[i];
+								int sys_back_colour;
+								if (albFront.GetIsReadOnly())
+								{
+									sys_back_colour = COLOR_3DLIGHT;
+								}
+								else
+								{
+									sys_back_colour = COLOR_WINDOW;
+								}
 
 								SetRect(&rcEditRow, xcol_Address, y, rcClient.right, y + LINE_HEIGHT);
 								::SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
@@ -1050,15 +1059,8 @@ TEXTMETRIC tm;
 									ExtTextOut(hdc, x_status + width_intflag, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szArrowText, lstrlen(szArrowText), NULL);
 								}
 
-								if (albFront.GetIsReadOnly())
-								{
-									::FillRect(hdc, &rcEditRow, ::GetSysColorBrush(COLOR_BTNFACE));
-									::SetBkColor(hdc, GetSysColor(COLOR_BTNFACE));
-								}
-								else
-								{
-									::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-								}
+								::FillRect(hdc, &rcEditRow, ::GetSysColorBrush(sys_back_colour));
+								::SetBkColor(hdc, GetSysColor(sys_back_colour));
 								//Draw the address text
 								x = xcol_Address;
 								slen = (int)_tcsnlen(albFront.AddressText, _countof(albFront.AddressText));
@@ -1079,18 +1081,11 @@ TEXTMETRIC tm;
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.BytesText, slen, NULL);
 								}
 
+								::SetBkColor(hdc, GetSysColor(sys_back_colour));
 								//Draw the mnemonic text
 								x = xcol_Mnemonic;
 								SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, this->m_MinSizeW, y + LINE_HEIGHT);
 								slen = (int)_tcsnlen(albFront.MnemonicText, _countof(albFront.MnemonicText));
-								if (albFront.AddressReadAccessType == MT_KERNAL || albFront.AddressReadAccessType == MT_BASIC || albFront.AddressReadAccessType == MT_CHARGEN || albFront.AddressReadAccessType == MT_NOTCONNECTED)
-								{
-									::SetBkColor(hdc, GetSysColor(COLOR_BTNFACE));
-								}
-								else
-								{
-									::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-								}
 								if (slen > 0)
 								{
 									if (albFront.IsUnDoc)
@@ -1100,7 +1095,7 @@ TEXTMETRIC tm;
 									brTextExtent = GetTextExtentExPoint(hdc, albFront.MnemonicText, slen, 0, NULL, NULL, &sizeText);
 									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
 								}
-								::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
+								::SetBkColor(hdc, GetSysColor(sys_back_colour));
 								if (albFront.IsFocused && m_bIsFocused)
 								{
 									::DrawFocusRect(hdc, &albFront.MnemonicRect);
@@ -1135,7 +1130,6 @@ TEXTMETRIC tm;
 			}
 		}
 	}
-
 }
 
 void CDisassemblyEditChild::UpdateBuffer(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)

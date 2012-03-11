@@ -151,16 +151,20 @@ END
 
 MENU_MDI_DEBUGGER MENU
 BEGIN
-    POPUP "Debug"
-    BEGIN
-        MENUITEM "CPU C64",                     IDM_DEBUG_CPUC64
-        MENUITEM "CPU Disk",                    IDM_DEBUG_CPUDISK
-    END
     POPUP "Step"
     BEGIN
         MENUITEM "Trace\tF5",                   IDM_STEP_TRACE
         MENUITEM "Trace Frame\tF6",             IDM_STEP_TRACEFRAME
         MENUITEM "Stop\tF9",                    IDM_STEP_STOP
+    END
+    POPUP "Breakpoint"
+    BEGIN
+        MENUITEM "Delete All Breakpoints",      IDM_BREAKPOINT_DELETEALLBREAKPOINTS
+    END
+    POPUP "Window"
+    BEGIN
+        MENUITEM "CPU C64",                     IDM_DEBUG_CPUC64
+        MENUITEM "CPU Disk",                    IDM_DEBUG_CPUDISK
     END
 END
 
