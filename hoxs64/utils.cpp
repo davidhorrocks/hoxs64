@@ -1781,7 +1781,7 @@ HIMAGELIST hOldImageList = NULL;
 	for (; ok==0; ok++)
 	{
 		hwndTB = ::CreateWindowEx(0, TOOLBARCLASSNAME, 	(LPTSTR) NULL, 
-			WS_CLIPCHILDREN | WS_CLIPSIBLINGS |	WS_CHILD | 	TBSTYLE_FLAT | CCS_NORESIZE | CCS_NODIVIDER // | CCS_ADJUSTABLE
+			WS_CLIPCHILDREN | WS_CLIPSIBLINGS |	WS_CHILD | 	TBSTYLE_FLAT | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_TOOLTIPS | CCS_NORESIZE | CCS_NODIVIDER // | CCS_ADJUSTABLE
 			, 0, 0, 0, 0, 
 			hWnd, 
 			(HMENU) LongToPtr(toolbarid), 
@@ -1794,6 +1794,9 @@ HIMAGELIST hOldImageList = NULL;
 		lr = SendMessage(hwndTB, TB_SETBUTTONSIZE, 0, MAKELONG(buttonWidth, buttonHeight));
 		if (!lr) 
 			break;
+
+		SendMessage(hwndTB, TB_SETMAXTEXTROWS, 0, 0);
+		 
 		hOldImageList = (HIMAGELIST)SendMessage(hwndTB, TB_SETIMAGELIST, 0, (LPARAM)hImageListToolBarNormal);
 
 		tbArray = new TBBUTTON[length];
@@ -1808,7 +1811,7 @@ HIMAGELIST hOldImageList = NULL;
 			tbArray[i].idCommand = buttonInfo[i].CommandId;
 			tbArray[i].fsStyle = BTNS_BUTTON;
 			tbArray[i].fsState = TBSTATE_ENABLED;
-			tbArray[i].iString = -1;//(INT_PTR)TB_ImageListIDs[i].ButtonText;
+			tbArray[i].iString = (INT_PTR)buttonInfo[i].ButtonText;
 		}
 	
 		lr = SendMessage(hwndTB, TB_ADDBUTTONS, length, (LPARAM)tbArray);
