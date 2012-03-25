@@ -37,7 +37,6 @@
 #define DECIMATION_FACTOR_50 (156)
 #define INTERPOLATION_FACTOR_50 (7)
 
-//define SIDRESAMPLEFIRLENGTH_50_12 (218944 +1)
 #define SIDRESAMPLEFIRLENGTH_50_12 (74900 +1)
 #define DECIMATION_FACTOR_50_12 (27368)
 #define INTERPOLATION_FACTOR_50_12 (1225)
@@ -126,33 +125,11 @@ DWORD gap;
 		//bufferLockPoint =  (m_soundplay_pos + 4 * bufferLockSize) % soundBufferSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
-		if (this->cfg->m_syncMode == HCFG::FSSM_VBL)
-		{
-			//if (refLastAudioVBLCatchUpCounter < 60)
-			//{
-			//	refLastAudioVBLCatchUpCounter +=1;
-			//	if (appStatus->m_fskip < 0)
-			//	{
-			//		appStatus->m_fskip = 5;
-			//	}
-			//}
-		}
 	}
 	else if (gap <= (DSGAP2 * bufferLockSize/8))
 	{
 		//AUDIO_QUICK means to apply a correction using the audio clock sync function to speed up the emulation to catch up with the audio.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_QUICK;
-		if (this->cfg->m_syncMode == HCFG::FSSM_VBL)
-		{
-			//if (refLastAudioVBLCatchUpCounter < 60)
-			//{
-			//	refLastAudioVBLCatchUpCounter+=1;
-			//	if (appStatus->m_fskip < 0)
-			//	{
-			//		appStatus->m_fskip = 1;
-			//	}
-			//}
-		}
 	}
 	else if (gap <= (DSGAP3 * bufferLockSize/8))
 	{
@@ -217,7 +194,6 @@ void SID64::UnLockSoundBuffer()
 		dx->pSecondarySoundBuffer->Unlock(pBuffer1, bufferLen1, pBuffer2, bufferLen2);
 		pBuffer1 = NULL;
 	}
-
 }
 
 
@@ -240,81 +216,6 @@ const WORD SID64::sidAttackRate[16]=
 /*e*/	19532,
 /*f*/	31251
 };
-
-
-/*
-bit8 sid_upward_exponential_counter_period[] = {
-	01, 01, 01, 01, 01, 01, 1E, 1E, 
-	1E, 1E, 1E, 1E, 1E, 1E, 10, 10, 
-	10, 10, 10, 10, 10, 10, 10, 10,
-	10, 10, 08, 08, 08, 08, 08, 08, 
-	08, 08, 08, 08, 08, 08, 08, 08, 
-	08, 08, 08, 08, 08, 08, 08, 08, 
-	08, 08, 08, 08, 08, 08, 04, 04, 
-	04, 04, 04, 04, 04, 04, 04, 04, 
-	04, 04, 04, 04, 04, 04, 04, 04, 
-	04, 04, 04, 04, 04, 04, 04, 04, 
-	04, 04, 04, 04, 04, 04, 04, 04, 
-	04, 04, 04, 04, 04, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 01
-};
-
-bit8 sid_downward_exponential_counter_period[] = {
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 01, 01, 01, 01, 01, 01, 
-	01, 01, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 02, 02, 02, 02, 02, 02, 02, 
-	02, 04, 04, 04, 04, 04, 04, 04, 
-	04, 04, 04, 04, 04, 04, 04, 04, 
-	04, 04, 04, 04, 04, 04, 04, 04, 
-	04, 04, 04, 04, 04, 08, 08, 08, 
-	08, 08, 08, 08, 08, 08, 08, 08, 
-	08, 10, 10, 10, 10, 10, 10, 10, 
-	10, 1E, 1E, 1E, 1E, 1E, 1E, 01
-}
-
-*/
-
 
 HRESULT SID64::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, HCFG::EMUFPS fps)
 {
@@ -660,18 +561,6 @@ bit8 ctl;
 	}
 }
 
-#define SIDNOISEWAVE(shifer) ((unsigned short)(\
-				((sidShiftRegister & 0x400000) >> 11) |\
-				((sidShiftRegister & 0x100000) >> 10) |\
-				((sidShiftRegister & 0x010000) >> 7) |\
-				((sidShiftRegister & 0x002000) >> 5) |\
-				((sidShiftRegister & 0x000800) >> 4) |\
-				((sidShiftRegister & 0x000080) >> 1) |\
-				((sidShiftRegister & 0x000010) << 1) |\
-				((sidShiftRegister & 0x000004) << 2)\
-				))
-
-
 unsigned short SIDVoice::CalcWave(bit8 waveType)
 {
 bool msb;
@@ -708,7 +597,16 @@ DWORD dwMsb;
 			}
 		}
 	case sidNOISE:
-		return SIDNOISEWAVE(sidShiftRegister);
+		 return ((unsigned short)(
+			((sidShiftRegister & 0x400000) >> 11) |
+			((sidShiftRegister & 0x100000) >> 10) |
+			((sidShiftRegister & 0x010000) >> 7) |
+			((sidShiftRegister & 0x002000) >> 5) |
+			((sidShiftRegister & 0x000800) >> 4) |
+			((sidShiftRegister & 0x000080) >> 1) |
+			((sidShiftRegister & 0x000010) << 1) |
+			((sidShiftRegister & 0x000004) << 2)
+			));
 	case sidTRIANGLEPULSE:
 		if (ring_mod)
 			dwMsb = ((modulator_voice->counter ^ counter) & 0x00800000);
@@ -1371,8 +1269,6 @@ void SID64::SoundHalt(short value)
 		{
 			((WORD *)pOverflowBuffer)[i] = value;
 		}
-
-		//ZeroMemory(pOverflowBuffer, overflowBufferSampleLen * BYTES_PER_SAMPLE);
 	}
 }
 
