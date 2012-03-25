@@ -642,6 +642,7 @@ ICLK period;
 bit16 loadSize;
 int directoryIndex;
 char szAddress[7];
+LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 
 	if (autoLoadCommand.sequence == AUTOSEQ_RESET)
 	{
@@ -712,8 +713,10 @@ char szAddress[7];
 			}
 			else
 			{
-				//FIXME Desirable not to show messages in the C64 class
-				DisplayError(NULL, errorText);
+				if (this->pIC64Event)
+				{
+					pIC64Event->ShowErrorBox(SZAUTOLOADTITLE, errorText);
+				}
 				autoLoadCommand.CleanUp();
 				appStatus->m_bAutoload = FALSE;
 				break;
@@ -800,8 +803,13 @@ char szAddress[7];
 					}
 				}
 				else
+				{
 					//FIXME Desirable not to show messages in the C64 class
-					sl.DisplayError(NULL, sl.errorText);
+					if (this->pIC64Event)
+					{
+						pIC64Event->ShowErrorBox(SZAUTOLOADTITLE, sl.errorText);
+					}
+				}
 			}
 			autoLoadCommand.CleanUp();
 			appStatus->m_bAutoload = FALSE;

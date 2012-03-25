@@ -1218,6 +1218,12 @@ void CApp::DiskWriteLed(bool bOn)
 	m_bDiskLedWrite = bOn;
 }
 
+void CApp::ShowErrorBox(LPCTSTR title, LPCTSTR message)
+{
+	HWND hWnd = appWindow.GetHwnd();
+	MessageBox(hWnd, message, title, MB_OK | MB_ICONEXCLAMATION);
+}
+
 void CApp::Resume()
 {
 HWND hWnd;

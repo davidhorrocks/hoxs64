@@ -79,6 +79,7 @@ public:
 	virtual void DiskMotorLed(bool bOn);
 	virtual void DiskDriveLed(bool bOn);
 	virtual void DiskWriteLed(bool bOn);
+	virtual void ShowErrorBox(LPCTSTR title, LPCTSTR message);
 
 	C64 c64;
 

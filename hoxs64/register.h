@@ -67,6 +67,7 @@ public:
 	virtual void DiskMotorLed(bool bOn)=0;
 	virtual void DiskDriveLed(bool bOn)=0;
 	virtual void DiskWriteLed(bool bOn)=0;
+	virtual void ShowErrorBox(LPCTSTR title, LPCTSTR message)=0;
 };
 
 class IC64
