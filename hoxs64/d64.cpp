@@ -818,11 +818,11 @@ bit8 speed;
 bit8 byte;
 unsigned long sourceSize;
 unsigned long sourceCounter;
-unsigned long rawCounter;
 unsigned long nextRawCounter;
 unsigned long rawSize;
 unsigned long bits;
-
+const bool bAllowTrackStretch = true;
+const bool bAllowTrackShrink = true;
 
 	rawSize = DISK_RAW_TRACK_SIZE * 16;
 	ZeroMemory(m_rawTrackData[trackNumber], DISK_RAW_TRACK_SIZE);
@@ -847,7 +847,6 @@ unsigned long bits;
 
 	bits = 8;
 	sourceCounter = 0;
-	rawCounter = 0;
 	for (i=0 ; i < len ; i++)
 	{
 		if (i >= trackSize[trackNumber] / 8)
@@ -861,8 +860,17 @@ unsigned long bits;
 		byte = trackData[trackNumber][i];
 		for (j=0 ; j < bits ; j++)
 		{
-			nextRawCounter = (unsigned long)(((double)sourceCounter / (double)sourceSize) * (double)rawSize);
-			assert((nextRawCounter/16) < DISK_RAW_TRACK_SIZE);
+			if (((bAllowTrackStretch && sourceSize < rawSize) || (bAllowTrackShrink && sourceSize > rawSize)))
+			{
+				nextRawCounter = (unsigned long)(((double)sourceCounter / (double)sourceSize) * (double)rawSize);
+			}
+			else 
+			{
+				nextRawCounter = sourceCounter;				
+			}
+			if (nextRawCounter >= rawSize) 
+				break;
+			//assert((nextRawCounter/16) < DISK_RAW_TRACK_SIZE);
 			if ((signed char)byte < 0)
 			{
 				m_rawTrackData[trackNumber][nextRawCounter/16] = ((bit8)nextRawCounter & 0xf) + 1;
@@ -870,6 +878,8 @@ unsigned long bits;
 			byte <<= 1;
 			sourceCounter += speed;
 		}
+		if (nextRawCounter >= rawSize) 
+			break;
 	}
 }
 
