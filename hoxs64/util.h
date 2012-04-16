@@ -130,8 +130,9 @@ namespace DBGSYM
 	enum DisassemblyPCUpdateMode
 	{
 		None = 0,
-		SeekPC = 1,
-		SeekAddress = 2
+		EnsurePCVisible = 1,
+		EnsureAddressVisible = 2,
+		SetTopAddress = 3
 	};
 };
 

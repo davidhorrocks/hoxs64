@@ -10,14 +10,17 @@
 #include "errormsg.h"
 #include "C64.h"
 #include "edln.h"
+#include "assembler.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
+#include "dchelper.h"
 #include "resource.h"
 
 #define TOOLBUTTON_WIDTH_96 (16)
 #define TOOLBUTTON_HEIGHT_96 (16)
+#define MAX_EDIT_GOTO_ADDRESS_CHARS (256)
 
 const TCHAR CDisassemblyFrame::ClassName[] = TEXT("Hoxs64DisassemblyFrame");
 const TCHAR CDisassemblyFrame::MenuName[] = TEXT("MENU_CPUDISASSEMBLY");
@@ -59,6 +62,9 @@ CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMoni
 	m_pszCaption = TEXT("Cpu");
 	m_pMonitorCommand = pMonitorCommand;
 	m_pszCaption = pszCaption;
+	m_hWndTxtAddress = NULL;
+	m_wpOrigEditProc = NULL;
+	m_hWndButGoAddress = NULL;
 }
 
 CDisassemblyFrame::~CDisassemblyFrame()
@@ -96,6 +102,9 @@ void CDisassemblyFrame::Cleanup()
 		ImageList_Destroy(m_hImageListToolBarNormal);
 		m_hImageListToolBarNormal = NULL;
 	}
+	m_hWndTxtAddress = NULL;
+	m_wpOrigEditProc = NULL;
+	m_hWndButGoAddress = NULL;
 }
 
 HRESULT CDisassemblyFrame::AdviseEvents()
@@ -506,6 +515,17 @@ HRESULT hr;
 
 HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 {
+HRESULT hr;
+
+	HDC hdc = GetDC(hWnd);
+	if (!hdc)
+		return E_FAIL;
+	DcHelper dch(hdc);
+	dch.UseMapMode(MM_TEXT);
+	dch.UseFont(this->m_monitor_font);
+	//prevent dc restore
+	dch.m_hdc = NULL;
+
 	m_hImageListToolBarNormal = CreateImageListNormal(hWnd);
 	if (m_hImageListToolBarNormal == NULL)
 		return E_FAIL;
@@ -515,6 +535,10 @@ HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 	m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBar, ID_RERBAR, IDB_REBARBKGND1);
 	if (m_hWndRebar == NULL)
 		return E_FAIL;
+
+	hr = RebarAddAddressBar(m_hWndRebar);
+	if (FAILED(hr))
+		return hr;
 
 	int heightRebar = 0;
 	if (m_hWndRebar)
@@ -544,9 +568,92 @@ HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 	return S_OK;
 }
 
+HRESULT CDisassemblyFrame::RebarAddAddressBar(HWND hWndRebar)
+{
+RECT rc;
+RECT rcEdit;
+RECT rcClient;
+REBARBANDINFO rbBand;
+BOOL br;
+
+	m_hWndTxtAddress = 0;
+	m_hWndButGoAddress = 0;
+
+	HDC hdc = GetDC(m_hWnd);
+	if (!hdc)
+		return E_FAIL;
+
+	br = GetClientRect(m_hWnd, &rcClient);
+	if (!br)
+		return E_FAIL;
+	SIZE sizeText;
+
+	TCHAR s[]= TEXT("$ABCDx");
+	int slen = lstrlen(s);
+	br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
+	if (!br)
+		return E_FAIL;
+	SetRect(&rcEdit, 0, 0, sizeText.cx, sizeText.cy);
+	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
+	OffsetRect(&rcEdit, -rcEdit.left, -rcEdit.top);
+
+	m_hWndTxtAddress = CreateTextBox(hWndRebar, IDC_TXT_GOTOADDRESS, 0, 0, rcEdit.right, rcEdit.bottom);
+	if (!m_hWndTxtAddress)
+		return E_FAIL;
+
+	SendMessage(m_hWndTxtAddress, WM_SETFONT, (WPARAM)m_monitor_font, FALSE);
+	m_wpOrigEditProc = SubclassChildWindow(m_hWndTxtAddress);
+
+	//TCHAR s[]= TEXT("GO");
+	//int slen = lstrlen(s);
+	//BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeGo);
+	//if (!br)
+	//	return E_FAIL;
+
+	//m_hWndButGoAddress = CreateButton(hWndRebar, IDC_BUT_GOTOADDRESS, 0, 0, sizeGo.cx, sizeGo.cy);
+	//if (!m_hWndButGoAddress)
+	//	return E_FAIL;
+
+	GetWindowRect(m_hWndTxtAddress, &rc);
+
+	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
+	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
+	rbBand.fMask  = RBBIM_COLORS | RBBIM_STYLE | RBBIM_BACKGROUND | RBBIM_CHILD  | RBBIM_CHILDSIZE | RBBIM_SIZE | RBBIM_TEXT;
+	rbBand.fStyle = RBBS_BREAK | RBBS_CHILDEDGE /*| RBBS_FIXEDBMP*/ | RBBS_GRIPPERALWAYS;
+	rbBand.clrFore = GetSysColor(COLOR_BTNTEXT);
+	rbBand.clrBack = GetSysColor(COLOR_BTNFACE);
+	rbBand.hbmBack = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));   
+
+	rbBand.lpText     = TEXT("Address");
+	rbBand.hwndChild  = m_hWndTxtAddress;
+	rbBand.cxMinChild = 0;
+	rbBand.cyMinChild = rc.bottom - rc.top;
+	rbBand.cx         = rcClient.right - rcClient.left;
+
+	SendMessage(hWndRebar, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);
+
+	return S_OK;
+}
+
+HWND CDisassemblyFrame::CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h)
+{
+	HWND hwnd = CreateWindow(TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
+	if (!hwnd)
+		return 0;
+	return hwnd;
+}
+
+HWND CDisassemblyFrame::CreateButton(HWND hWndParent, int id, int x, int y, int w, int h)
+{
+	HWND hwnd = CreateWindow(TEXT("BUTTON"), NULL, WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
+	if (!hwnd)
+		return 0;
+	return hwnd;
+}
+
 void CDisassemblyFrame::SetHome()
 {
-	this->m_DisassemblyChild.SetHome();;
+	this->m_DisassemblyChild.SetHome();
 }
 
 HWND CDisassemblyFrame::CreateDisassemblyReg(int x, int y, int w, int h)
@@ -579,7 +686,7 @@ bool CDisassemblyFrame::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break; 
 	case VK_HOME:
 		SetHome();
-		UpdateDisplay(DBGSYM::SeekPC, 0);
+		UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 		break; 
 	default:
 		return false;
@@ -623,28 +730,28 @@ void CDisassemblyFrame::OnTraceFrame(void *sender, EventArgs& e)
 	if (IsWindow(this->m_hWnd))
 	{
 		this->SetHome();
-		this->UpdateDisplay(DBGSYM::SeekPC, 0);
+		this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 	}
 }
 
 void CDisassemblyFrame::OnExecuteC64Clock(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::SeekPC, 0);
+	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnExecuteDiskClock(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::SeekPC, 0);
+	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnExecuteC64Instruction(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::SeekPC, 0);
+	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::SeekPC, 0);
+	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
@@ -653,7 +760,7 @@ void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 	if (IsWindow(this->m_hWnd))
 	{
 		SetHome();
-		UpdateDisplay(DBGSYM::SeekPC, 0);
+		UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 		SetMenuState();
 	}
 }
@@ -718,10 +825,57 @@ bool CDisassemblyFrame::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 	NMHDR *pn = (NMHDR *)lParam;
 	if (!pn->hwndFrom)
 		return false;
-	switch (pn->code)
+	if (pn->hwndFrom == this->m_hWndRebar)
 	{
-	case TBN_GETINFOTIP:
-		return OnToolBarInfo((LPNMTBGETINFOTIP)lParam);
+		if (pn->code == RBN_HEIGHTCHANGE)
+			return OnReBarHeightChange((LPNMHDR)lParam);
+	}
+	else if (pn->hwndFrom == this->m_hWndTooBar)
+	{
+		switch (pn->code)
+		{
+		case TBN_GETINFOTIP:
+			return OnToolBarInfo((LPNMTBGETINFOTIP)lParam);
+		}
+	}
+	return false;
+}
+
+bool CDisassemblyFrame::OnEnterGotoAddress()
+{
+Assembler as;
+bit16 v = 0;
+HRESULT hr;
+TCHAR szText[MAX_EDIT_GOTO_ADDRESS_CHARS+1];
+LRESULT lr;
+
+	lr = SendMessage(m_hWndTxtAddress, EM_LINELENGTH, 0, 0);
+	if (lr == 0)
+		return false;
+	if (lr < 0 || lr >= _countof(szText))
+		return false;
+	
+	*((LPWORD)&szText[0]) = _countof(szText);
+
+	lr = SendMessage(m_hWndTxtAddress, EM_GETLINE, 0, (LPARAM)&szText[0]);
+	if (lr < 0 || lr >= _countof(szText))
+		return false;
+
+	szText[lr] = 0;
+
+	hr = as.ParseAddress16(szText, &v);
+	if (SUCCEEDED(hr))
+	{
+		UpdateDisplay(DBGSYM::SetTopAddress, v);
+	}
+	return false;
+}
+
+bool CDisassemblyFrame::OnReBarHeightChange(LPNMHDR notify)
+{
+	if (notify->hwndFrom == this->m_hWndRebar)
+	{
+		Refresh();
 	}
 	return false;
 }
@@ -768,6 +922,82 @@ bool CDisassemblyFrame::OnToolBarInfo(LPNMTBGETINFOTIP info)
 	{
 		return false;
 	}
+}
+
+LRESULT CDisassemblyFrame::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (hWnd == NULL)
+		return 0;
+	if (hWnd == this->m_hWndTxtAddress)
+	{
+		switch(uMsg)
+		{
+		case WM_CHAR:
+			if (wParam == VK_ESCAPE)
+			{				
+				return 0;
+			}
+			else if (wParam == VK_RETURN)
+			{				
+				return 0;
+			}
+			break;
+		case WM_KEYDOWN:
+			if (wParam == VK_RETURN)
+			{
+				this->OnEnterGotoAddress();
+			}
+			break;
+		}
+		if (m_wpOrigEditProc)
+		{
+			return ::CallWindowProc(m_wpOrigEditProc, hWnd, uMsg, wParam, lParam);
+		}
+	}
+	return 0;
+}
+
+void CDisassemblyFrame::Refresh()
+{
+RECT rc;
+HRESULT hr;
+
+	if (!m_hWnd)
+		return;
+	HWND hWndReg = m_DisassemblyReg.GetHwnd();
+	if (hWndReg == NULL)
+		return;
+	HWND hWndDis = m_DisassemblyChild.GetHwnd();
+	if (hWndDis == NULL)
+		return;
+
+LONG x, y, w, h;
+
+	//Get the child register window desired location.
+	hr = GetSizeRectReg(rc);
+	if (FAILED(hr))
+		return;
+	G::RectToWH(rc, x, y, w, h);
+	if (w < 0)
+		w = 0;
+	if (h < 0)
+		h = 0;	
+	//Move the child register window desired location.
+	SetWindowPos(hWndReg, HWND_NOTOPMOST, x, y, w, h, SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOCOPYBITS);
+
+	//Get the child disassembly window desired location.
+	hr = this->GetSizeRectDisassembly(rc);
+	if (FAILED(hr))
+		return;
+	G::RectToWH(rc, x, y, w, h);
+	if (w < 0)
+		w = 0;
+	if (h < 0)
+		h = 0;	
+	//Move the child disassembly window to the new location.
+	SetWindowPos(hWndDis, HWND_NOTOPMOST, x, y, w, h, SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOCOPYBITS);
+
+	UpdateWindow(m_hWnd);
 }
 
 bool CDisassemblyFrame::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

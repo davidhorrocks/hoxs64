@@ -49,9 +49,10 @@ bool Assembler::AppendToIdentifierString(TCHAR ch)
 	return true;
 }
 
-HRESULT Assembler::AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::InitParser(LPCTSTR pszText)
 {
-HRESULT hr;
+	if (!pszText)
+		return E_POINTER;
 	m_pos = 0;
 	m_bIsStartChar = true;
 	m_bIsStartToken = true;
@@ -67,6 +68,48 @@ HRESULT hr;
 
 	GetNextToken();
 	GetNextToken();
+
+	return S_OK;
+}
+
+HRESULT Assembler::ParseAddress16(LPCTSTR pszText, bit16 *piAddress)
+{
+	if (!piAddress)
+		return E_POINTER;
+	HRESULT hr = InitParser(pszText);
+	if (FAILED(hr))
+		return hr;
+
+	if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+	{
+		*piAddress = m_CurrentToken.Value8;
+		GetNextToken();
+	}
+	else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
+	{
+		*piAddress = m_CurrentToken.Value16;
+		GetNextToken();
+	}
+	else
+	{
+		*piAddress = 0;
+		return E_FAIL;
+	}
+
+
+	if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT Assembler::AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+{
+HRESULT hr;
+
+	hr = InitParser(pszText);
+	if (FAILED(hr))
+		return hr;
 
 	hr = AssembleOneInstruction(address, pCode, iBuffersize, piBytesWritten);
 	if (FAILED(hr))

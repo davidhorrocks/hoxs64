@@ -245,6 +245,8 @@ void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
 
 void CDisassemblyChild::UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
+	if (pcmode == DBGSYM::SetTopAddress)
+		m_DisassemblyEditChild.SetTopAddress(address);
 	m_DisassemblyEditChild.UpdateDisplay(pcmode, address);
 	bit16 currentaddress = m_DisassemblyEditChild.GetTopAddress();
 	SetAddressScrollPos((int)currentaddress);
@@ -374,7 +376,7 @@ bool CDisassemblyChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break; 
 	case VK_HOME:
 		SetHome();
-		UpdateDisplay(DBGSYM::SeekPC, 0);
+		UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
 		break; 
 	default:
 		return false;

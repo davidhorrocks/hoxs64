@@ -1135,13 +1135,13 @@ TEXTMETRIC tm;
 void CDisassemblyEditChild::UpdateBuffer(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 int iEnsureAddress = -1;
-	if (pcmode == DBGSYM::SeekPC)
+	if (pcmode == DBGSYM::EnsurePCVisible)
 	{
 		CPUState cpustate;
 		this->GetCpu()->GetCpuState(cpustate);
 		iEnsureAddress = cpustate.PC_CurrentOpcode;
 	}
-	else if (pcmode == DBGSYM::SeekAddress)
+	else if (pcmode == DBGSYM::EnsureAddressVisible)
 	{
 		iEnsureAddress = address;
 	}

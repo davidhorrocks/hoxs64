@@ -18,7 +18,9 @@
 #define IDD_KEYPAGE1                    112
 #define IDC_MAIN_WINEMULATION           112
 #define IDD_KEYPAGE3                    113
+#define IDC_TXT_GOTOADDRESS             113
 #define IDR_SIDDRIVER                   114
+#define IDC_BUT_GOTOADDRESS             114
 #define IDD_BROWSEPRG                   116
 #define IDB_LEDREDON                    117
 #define IDB_LEDBLUEOFF                  118
@@ -54,7 +56,6 @@
 #define IDB_DEBUGGERTRACEINT_64         178
 #define IDB_BREAKDISABLE                179
 #define IDR_MENU1                       181
-#define IDI_ICON1                       182
 #define IDI_CHIP1                       182
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
@@ -243,16 +244,17 @@
 #define IDM_DEBUG_CPUDISK               40133
 #define IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY 40135
 #define IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS 40137
-#define ID_BREAKPOINT_DELETEALLBREAKPOINTS 40138
 #define IDM_BREAKPOINT_DELETEALLBREAKPOINTS 40139
+#define ID_VIEW_ADDRESS                 40140
+#define IDM_VIEW_ADDRESS                40141
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        183
-#define _APS_NEXT_COMMAND_VALUE         40140
+#define _APS_NEXT_COMMAND_VALUE         40142
 #define _APS_NEXT_CONTROL_VALUE         1315
-#define _APS_NEXT_SYMED_VALUE           113
+#define _APS_NEXT_SYMED_VALUE           115
 #endif
 #endif

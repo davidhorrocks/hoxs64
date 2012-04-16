@@ -393,7 +393,7 @@ int wmId, wmEvent;
 		case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
 			if(m_SelectedBreakpointItem!=0)
 			{
-				this->m_pMonitorCommand->ShowCpuDisassembly(m_SelectedBreakpointItem->machine, DBGSYM::SeekAddress, m_SelectedBreakpointItem->address);
+				this->m_pMonitorCommand->ShowCpuDisassembly(m_SelectedBreakpointItem->machine, DBGSYM::EnsureAddressVisible, m_SelectedBreakpointItem->address);
 			}
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS:

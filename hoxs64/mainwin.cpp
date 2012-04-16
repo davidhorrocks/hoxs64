@@ -1114,8 +1114,8 @@ bool ok = false;
 		::SetForegroundWindow(hWnd);
 		if (bCreated)
 		{
-			m_pMDIDebugger->ShowDebugCpuDisk(DBGSYM::SeekPC, 0);
-			m_pMDIDebugger->ShowDebugCpuC64(DBGSYM::SeekPC, 0);
+			m_pMDIDebugger->ShowDebugCpuDisk(DBGSYM::EnsurePCVisible, 0);
+			m_pMDIDebugger->ShowDebugCpuC64(DBGSYM::EnsurePCVisible, 0);
 		}
 		this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
 		this->emuWin.UpdateC64Window();

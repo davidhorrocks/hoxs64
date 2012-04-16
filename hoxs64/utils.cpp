@@ -95,13 +95,17 @@ LRESULT CALLBACK GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
 CVirWindow* pWin = NULL;
 	if (hWnd != NULL)
 	{
-		HWND hWndParent = GetParent(hWnd);
-		if (hWndParent)
-		{
-			pWin = (CVirWindow*) (LONG_PTR)GetWindowLongPtr(hWndParent, GWLP_USERDATA);
-			if (NULL != pWin)
-				return (pWin->SubclassWindowProc(hWnd, uMsg, wParam, lParam));
-		}
+		pWin = (CVirWindow*) (LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+		if (NULL != pWin)
+			return (pWin->SubclassWindowProc(hWnd, uMsg, wParam, lParam));
+		
+		//HWND hWndParent = GetParent(hWnd);
+		//if (hWndParent)
+		//{
+		//	pWin = (CVirWindow*) (LONG_PTR)GetWindowLongPtr(hWndParent, GWLP_USERDATA);
+		//	if (NULL != pWin)
+		//		return (pWin->SubclassWindowProc(hWnd, uMsg, wParam, lParam));
+		//}
 	}
 	return 0;
 }
@@ -198,6 +202,7 @@ CLIENTCREATESTRUCT ccs;
 WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd)
 {
 	#pragma warning(disable:4244)
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) this);
 	WNDPROC pOldProc = (WNDPROC) (LONG_PTR)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) ::GlobalSubClassWindowProc);
 	#pragma warning(default:4244)
 	return pOldProc;
@@ -1712,6 +1717,7 @@ bool fail = false;
 HWND G::CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid, int bmpid)
 {
 RECT rect;
+RECT rcClient;
 BOOL br;
 HWND hWndRB = NULL;
 REBARINFO     rbi;
@@ -1719,6 +1725,9 @@ REBARBANDINFO rbBand;
 DWORD_PTR dwBtnSize;
 
 		br = GetWindowRect(hWnd, &rect);
+		if (!br)
+			return NULL;
+		br = GetClientRect(hWnd, &rcClient);
 		if (!br)
 			return NULL;
 		hWndRB = CreateWindowEx(WS_EX_TOOLWINDOW,
@@ -1747,7 +1756,7 @@ DWORD_PTR dwBtnSize;
 		::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
 		rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
 		rbBand.fMask  = RBBIM_COLORS | RBBIM_STYLE | RBBIM_BACKGROUND | RBBIM_CHILD  | RBBIM_CHILDSIZE | RBBIM_SIZE;// | RBBIM_TEXT
-		rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP | RBBS_GRIPPERALWAYS;
+		rbBand.fStyle = RBBS_CHILDEDGE /*| RBBS_FIXEDBMP*/ | RBBS_GRIPPERALWAYS;
 		rbBand.clrFore = GetSysColor(COLOR_BTNTEXT);
 		rbBand.clrBack = GetSysColor(COLOR_BTNFACE);
 		rbBand.hbmBack = LoadBitmap(hInst, MAKEINTRESOURCE(bmpid));   
@@ -1760,7 +1769,7 @@ DWORD_PTR dwBtnSize;
 		rbBand.hwndChild  = hwndTB;
 		rbBand.cxMinChild = HIWORD(dwBtnSize);
 		rbBand.cyMinChild = HIWORD(dwBtnSize);
-		rbBand.cx         = 250;
+		rbBand.cx         = rcClient.right - rcClient.left;
 
 		// Add the band that has the toolbar.
 		SendMessage(hWndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);		

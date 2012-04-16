@@ -497,12 +497,12 @@ HRESULT hr;
 
 void CMDIDebuggerFrame::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	ShowDebugCpuC64(DBGSYM::SeekPC, 0);
+	ShowDebugCpuC64(DBGSYM::EnsurePCVisible, 0);
 }
 
 void CMDIDebuggerFrame::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	ShowDebugCpuDisk(DBGSYM::SeekPC, 0);
+	ShowDebugCpuDisk(DBGSYM::EnsurePCVisible, 0);
 }
 
 HRESULT CMDIDebuggerFrame::AdviseEvents()
