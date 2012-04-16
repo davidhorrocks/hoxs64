@@ -926,28 +926,36 @@ bool CDisassemblyFrame::OnToolBarInfo(LPNMTBGETINFOTIP info)
 
 LRESULT CDisassemblyFrame::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+bool bIsRunning = true;
 	if (hWnd == NULL)
 		return 0;
 	if (hWnd == this->m_hWndTxtAddress)
 	{
-		switch(uMsg)
+		if (m_pMonitorCommand)
 		{
-		case WM_CHAR:
-			if (wParam == VK_ESCAPE)
-			{				
-				return 0;
-			}
-			else if (wParam == VK_RETURN)
-			{				
-				return 0;
-			}
-			break;
-		case WM_KEYDOWN:
-			if (wParam == VK_RETURN)
+			bIsRunning = m_pMonitorCommand->IsRunning();
+		}
+		if (!bIsRunning)
+		{
+			switch(uMsg)
 			{
-				this->OnEnterGotoAddress();
+			case WM_CHAR:
+				if (wParam == VK_ESCAPE)
+				{				
+					return 0;
+				}
+				else if (wParam == VK_RETURN)
+				{				
+					return 0;
+				}
+				break;
+			case WM_KEYDOWN:
+				if (wParam == VK_RETURN)
+				{
+					this->OnEnterGotoAddress();
+				}
+				break;
 			}
-			break;
 		}
 		if (m_wpOrigEditProc)
 		{
