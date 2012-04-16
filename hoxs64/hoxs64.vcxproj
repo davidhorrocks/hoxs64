@@ -922,47 +922,46 @@
     <None Include="Basic.rom">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="break.bmp" />
-    <None Include="break_disable.bmp" />
+    <None Include="img\break.bmp" />
+    <None Include="img\break_disable.bmp" />
     <None Include="C1541.rom" />
     <None Include="c64.ram">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="c64def.asm" />
-    <None Include="break.ico" />
-    <None Include="candy clock mask.bmp" />
-    <None Include="candy_clock.bmp" />
-    <None Include="candy_clock_64.bmp" />
-    <None Include="candy_clock_64.png" />
+    <None Include="img\break.ico" />
+    <None Include="img\candy clock mask.bmp" />
+    <None Include="img\candy_clock.bmp" />
+    <None Include="img\candy_clock_64.bmp" />
     <None Include="Char.rom">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="debugger step in mask.bmp" />
-    <None Include="debugger step in.bmp" />
-    <None Include="debugger step one clock mask.bmp" />
-    <None Include="debugger step one clock.bmp" />
-    <None Include="debugger step out mask.bmp" />
-    <None Include="debugger step out.bmp" />
-    <None Include="debugger step over mask.bmp" />
-    <None Include="debugger step over.bmp" />
-    <None Include="debugger stop mask.bmp" />
-    <None Include="debugger stop.bmp" />
-    <None Include="debugger trace frame mask.bmp" />
-    <None Include="debugger trace frame.bmp" />
-    <None Include="debugger trace mask.bmp" />
-    <None Include="debugger trace.bmp" />
-    <None Include="icon1.ico" />
-    <None Include="icon_sma.ico" />
+    <None Include="img\debugger step in mask.bmp" />
+    <None Include="img\debugger step in.bmp" />
+    <None Include="img\debugger step one clock mask.bmp" />
+    <None Include="img\debugger step one clock.bmp" />
+    <None Include="img\debugger step out mask.bmp" />
+    <None Include="img\debugger step out.bmp" />
+    <None Include="img\debugger step over mask.bmp" />
+    <None Include="img\debugger step over.bmp" />
+    <None Include="img\debugger stop mask.bmp" />
+    <None Include="img\debugger stop.bmp" />
+    <None Include="img\debugger trace frame mask.bmp" />
+    <None Include="img\debugger trace frame.bmp" />
+    <None Include="img\debugger trace mask.bmp" />
+    <None Include="img\debugger trace.bmp" />
+    <None Include="img\icon1.ico" />
+    <None Include="img\icon_sma.ico" />
     <None Include="Kernal.rom">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="ledblueoff.bmp" />
-    <None Include="ledblueon.bmp" />
-    <None Include="ledgreenoff.bmp" />
-    <None Include="ledgreenon.bmp" />
-    <None Include="ledredoff.bmp" />
-    <None Include="ledredon.bmp" />
-    <None Include="rebarbackground.bmp" />
+    <None Include="img\ledblueoff.bmp" />
+    <None Include="img\ledblueon.bmp" />
+    <None Include="img\ledgreenoff.bmp" />
+    <None Include="img\ledgreenon.bmp" />
+    <None Include="img\ledredoff.bmp" />
+    <None Include="img\ledredon.bmp" />
+    <None Include="img\rebarbackground.bmp" />
     <CustomBuildStep Include="siddrv.o65">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>

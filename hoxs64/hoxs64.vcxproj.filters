@@ -397,87 +397,6 @@
     <None Include="c64def.asm">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="break.ico">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step in mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step in.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step out mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step out.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step over mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step over.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="icon1.ico">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="icon_sma.ico">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ledblueoff.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ledblueon.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ledgreenoff.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ledgreenon.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ledredoff.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ledredon.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="rebarbackground.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="break.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step one clock.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger step one clock mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger trace.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger trace mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger stop.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger stop mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger trace frame.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="debugger trace frame mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="candy_clock.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="candy clock mask.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="Basic.rom">
       <Filter>roms</Filter>
     </None>
@@ -493,11 +412,91 @@
     <None Include="Char.rom">
       <Filter>roms</Filter>
     </None>
-    <None Include="candy_clock_64.png" />
-    <None Include="candy_clock_64.bmp">
+    <None Include="img\rebarbackground.bmp">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="break_disable.bmp">
+    <None Include="img\ledredon.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\ledredoff.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\ledgreenon.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\ledgreenoff.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\ledblueon.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\ledblueoff.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\icon_sma.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\icon1.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger trace.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger trace mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger trace frame.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger trace frame mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger stop.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger stop mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step over.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step over mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step out.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step out mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step one clock.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step one clock mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step in.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\debugger step in mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\candy_clock_64.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\candy_clock.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\candy clock mask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\break_disable.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\break.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\break.bmp">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

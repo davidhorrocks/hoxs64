@@ -1071,7 +1071,8 @@ bool ok = false;
 				HSink hs = pwin->EsOnDestroy.Advise((DebuggerFrame_EventSink_OnDestroy *)this);
 				if (hs)
 				{
-					hWnd = pwin->Create(m_hInst, m_hWnd, TEXT("C64 Monitor"), x, y, w, h, NULL);
+					//hWnd = pwin->Create(m_hInst, m_hWnd, TEXT("C64 Monitor"), x, y, w, h, NULL);
+					hWnd = pwin->Create(m_hInst, 0, TEXT("C64 Monitor"), x, y, w, h, NULL);
 					if (hWnd != 0)
 					{
 						bCreated = true;
