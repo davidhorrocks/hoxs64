@@ -936,6 +936,7 @@
     <None Include="Char.rom">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="img\chip1.ico" />
     <None Include="img\debugger step in mask.bmp" />
     <None Include="img\debugger step in.bmp" />
     <None Include="img\debugger step one clock mask.bmp" />

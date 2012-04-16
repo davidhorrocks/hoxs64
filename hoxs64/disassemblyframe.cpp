@@ -223,7 +223,7 @@ WNDCLASSEX  wc;
 	wc.cbClsExtra    = 0;
 	wc.cbWndExtra    = sizeof(CDisassemblyFrame *);
 	wc.hInstance     = hInstance;
-	wc.hIcon         = LoadIcon (hInstance, MAKEINTRESOURCE(IDI_ICON_SMALL));
+	wc.hIcon         = LoadIcon (hInstance, MAKEINTRESOURCE(IDI_CHIP1));
 	wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
 	wc.lpszMenuName  = MenuName;

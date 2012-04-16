@@ -1228,15 +1228,18 @@ void CApp::Resume()
 {
 HWND hWnd;
 EventArgs e;
-	hWnd = appWindow.GetHwnd();
 	m_bDebug = FALSE;
 	m_bBreak = FALSE;
 	m_bRunning = TRUE;
 	m_bPaused = FALSE;
-	if (hWnd)
-		SetForegroundWindow(hWnd);
-	SoundResume();
-	EsResume.Raise(this, e);
+	if (!m_bClosing)
+	{
+		hWnd = appWindow.GetHwnd();
+		if (hWnd)
+			SetForegroundWindow(hWnd);
+		SoundResume();
+		EsResume.Raise(this, e);
+	}
 }
 
 void CApp::Trace()

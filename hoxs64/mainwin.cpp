@@ -192,6 +192,8 @@ HRESULT hr;
 CConfig tCfg;
 bool bIsWindowActive;
 bool bIsWindowMinimised;
+HWND hWndDebuggerFrame;
+LRESULT lr;
 
 	switch (uMsg) 
 	{
@@ -563,6 +565,15 @@ bool bIsWindowMinimised;
 	case WM_CLOSE:
 		appStatus->SoundHalt();
 		appStatus->m_bClosing = true;
+		if (this->m_pMDIDebugger != NULL)
+		{
+			hWndDebuggerFrame = this->m_pMDIDebugger->GetHwnd();
+			if (hWndDebuggerFrame != 0)
+			{
+				lr = SendMessage(hWndDebuggerFrame, WM_CLOSE, 0, 0);
+			}
+		}
+
 		if (!appStatus->m_bWindowed)
 		{
 			if (SUCCEEDED(ToggleFullScreen()))

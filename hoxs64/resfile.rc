@@ -76,6 +76,7 @@ END
 IDI_ICON_BIG            ICON                    "img\\icon1.ico"
 IDI_ICON_SMALL          ICON                    "img\\icon_sma.ico"
 IDI_BREAK               ICON                    "img\\break.ico"
+IDI_CHIP1               ICON                    "img\\chip1.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

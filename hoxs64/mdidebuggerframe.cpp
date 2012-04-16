@@ -126,8 +126,8 @@ WNDCLASSEX wc;
     wc.cbClsExtra    = 0; 
     wc.cbWndExtra    = sizeof(CMDIDebuggerFrame *); 
     wc.hInstance     = hInstance; 
-    wc.hIcon         = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON_BIG)); 
-	wc.hIconSm       = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON_SMALL)); 
+    wc.hIcon         = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_CHIP1)); 
+	//wc.hIconSm       = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON_SMALL)); 
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW); 
     wc.hbrBackground = (HBRUSH) (COLOR_APPWORKSPACE + 1); 
     wc.lpszMenuName  = MenuName; 
@@ -239,11 +239,8 @@ HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	HWND hWndParent = ::GetParent(hWnd);
-	if (hWndParent)
-	{
-		::SetForegroundWindow(hWndParent);
-	}
+	if (m_pMonitorCommand)
+		m_pMonitorCommand->Resume();
 }
 
 void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -466,8 +463,6 @@ HRESULT hr;
 		OnMove(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_CLOSE:
-		if (m_pMonitorCommand)
-			m_pMonitorCommand->Resume();
 		OnClose(m_hWnd, uMsg, wParam, lParam);
 		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	case WM_DESTROY:
