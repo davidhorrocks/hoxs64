@@ -1903,3 +1903,17 @@ bool bGotWorkArea = false;
 
 	SetWindowPos(hWnd, HWND_TOP, rcMain.left,rcMain.top, rcMain.right-rcMain.left, rcMain.bottom-rcMain.top, SWP_NOZORDER | SWP_NOSIZE);
 }
+
+int G::GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer)
+{
+int c;
+	c = (int)SendMessage(hEditControl, EM_LINELENGTH, 0, 0);
+	if (buffer != NULL && cchBuffer > 0)
+	{
+		*((LPWORD)&buffer[0]) = cchBuffer;
+		c = (int)SendMessage(hEditControl, EM_GETLINE, 0, (LPARAM)buffer);
+	}	
+	if (c < 0)
+		c = 0;
+	return c;
+}

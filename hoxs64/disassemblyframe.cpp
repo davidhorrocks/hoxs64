@@ -22,6 +22,8 @@
 #define TOOLBUTTON_HEIGHT_96 (16)
 #define MAX_EDIT_GOTO_ADDRESS_CHARS (256)
 
+#define WNDCLASS_DFREBARCHILD = TEXT("Hoxs64DFRebarChild")
+
 const TCHAR CDisassemblyFrame::ClassName[] = TEXT("Hoxs64DisassemblyFrame");
 const TCHAR CDisassemblyFrame::MenuName[] = TEXT("MENU_CPUDISASSEMBLY");
 
@@ -76,6 +78,7 @@ HRESULT CDisassemblyFrame::Init(CVirWindow *parent)
 {
 HRESULT hr;
 	m_pParentWindow = parent;
+
 	hr = InitFonts();
 	if (FAILED(hr))
 		return hr;
@@ -783,8 +786,8 @@ void CDisassemblyFrame::SetMenuState()
 	UINT stateOpp;
 	UINT stateTb;
 	UINT stateTbOpp;
-	//
-	if (m_pMonitorCommand->IsRunning())
+	bool bIsRunning = m_pMonitorCommand->IsRunning();
+	if (bIsRunning)
 	{
 		state = MF_DISABLED | MF_GRAYED;
 		stateOpp = MF_ENABLED;
@@ -814,6 +817,11 @@ void CDisassemblyFrame::SetMenuState()
 		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACEINTERRUPTTAKEN, stateTb);
 
 		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
+	}
+
+	if (m_hWndTxtAddress!=NULL)
+	{
+		EnableWindow(m_hWndTxtAddress, (BOOL)!bIsRunning);
 	}
 }
 
@@ -847,21 +855,10 @@ Assembler as;
 bit16 v = 0;
 HRESULT hr;
 TCHAR szText[MAX_EDIT_GOTO_ADDRESS_CHARS+1];
-LRESULT lr;
+int c;
 
-	lr = SendMessage(m_hWndTxtAddress, EM_LINELENGTH, 0, 0);
-	if (lr == 0)
-		return false;
-	if (lr < 0 || lr >= _countof(szText))
-		return false;
-	
-	*((LPWORD)&szText[0]) = _countof(szText);
-
-	lr = SendMessage(m_hWndTxtAddress, EM_GETLINE, 0, (LPARAM)&szText[0]);
-	if (lr < 0 || lr >= _countof(szText))
-		return false;
-
-	szText[lr] = 0;
+	c = G::GetEditLineString(m_hWndTxtAddress, 0, &szText[0], _countof(szText));
+	szText[c] = 0;
 
 	hr = as.ParseAddress16(szText, &v);
 	if (SUCCEEDED(hr))

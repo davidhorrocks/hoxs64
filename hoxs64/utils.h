@@ -206,6 +206,7 @@ public:
 	static HWND CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid, int bmpid);
 	static HWND CreateToolBar(HINSTANCE hInst, HWND hWnd, int toolbarid, HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight);
 	static void EnsureWindowPosition(HWND hWnd);
+	static int GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);
