@@ -189,6 +189,9 @@
     <ClCompile Include="wpcbreakpoint.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="toolitemaddress.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -390,6 +393,9 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="wpcbreakpoint.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="toolitemaddress.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>

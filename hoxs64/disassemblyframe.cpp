@@ -22,8 +22,6 @@
 #define TOOLBUTTON_HEIGHT_96 (16)
 #define MAX_EDIT_GOTO_ADDRESS_CHARS (256)
 
-#define WNDCLASS_DFREBARCHILD = TEXT("Hoxs64DFRebarChild")
-
 const TCHAR CDisassemblyFrame::ClassName[] = TEXT("Hoxs64DisassemblyFrame");
 const TCHAR CDisassemblyFrame::MenuName[] = TEXT("MENU_CPUDISASSEMBLY");
 
