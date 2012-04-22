@@ -77,6 +77,7 @@
 #include "wpanel.h"
 #include "wpanelmanager.h"
 #include "wpcbreakpoint.h"
+#include "toolitemaddress.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -471,7 +472,12 @@ HRESULT hr;
 		MessageBox(0L, TEXT("Failed to register CMDIDebuggerFrame class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
-
+	hr = CToolItemAddress::RegisterClass(hInstance);
+	if (FAILED(hr))
+	{
+		MessageBox(0L, TEXT("Failed to register RegisterClass class."), m_szAppName, MB_ICONEXCLAMATION);
+		return hr;
+	}
 	hr = CDisassemblyFrame::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{

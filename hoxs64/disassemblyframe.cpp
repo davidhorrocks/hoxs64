@@ -11,6 +11,7 @@
 #include "C64.h"
 #include "edln.h"
 #include "assembler.h"
+#include "toolitemaddress.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -62,9 +63,10 @@ CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMoni
 	m_pszCaption = TEXT("Cpu");
 	m_pMonitorCommand = pMonitorCommand;
 	m_pszCaption = pszCaption;
-	m_hWndTxtAddress = NULL;
-	m_wpOrigEditProc = NULL;
-	m_hWndButGoAddress = NULL;
+	m_hWndToolItemAddress = NULL;
+	//m_hWndTxtAddress = NULL;
+	//m_wpOrigEditProc = NULL;
+	//m_hWndButGoAddress = NULL;
 }
 
 CDisassemblyFrame::~CDisassemblyFrame()
@@ -103,9 +105,10 @@ void CDisassemblyFrame::Cleanup()
 		ImageList_Destroy(m_hImageListToolBarNormal);
 		m_hImageListToolBarNormal = NULL;
 	}
-	m_hWndTxtAddress = NULL;
-	m_wpOrigEditProc = NULL;
-	m_hWndButGoAddress = NULL;
+	m_hWndToolItemAddress = NULL;
+	//m_hWndTxtAddress = NULL;
+	//m_wpOrigEditProc = NULL;
+	//m_hWndButGoAddress = NULL;
 }
 
 HRESULT CDisassemblyFrame::AdviseEvents()
@@ -572,13 +575,14 @@ HRESULT hr;
 HRESULT CDisassemblyFrame::RebarAddAddressBar(HWND hWndRebar)
 {
 RECT rc;
-RECT rcEdit;
+//RECT rcEdit;
 RECT rcClient;
 REBARBANDINFO rbBand;
 BOOL br;
 
-	m_hWndTxtAddress = 0;
-	m_hWndButGoAddress = 0;
+	m_hWndToolItemAddress = 0;
+	//m_hWndTxtAddress = 0;
+	//m_hWndButGoAddress = 0;
 
 	HDC hdc = GetDC(m_hWnd);
 	if (!hdc)
@@ -587,23 +591,23 @@ BOOL br;
 	br = GetClientRect(m_hWnd, &rcClient);
 	if (!br)
 		return E_FAIL;
-	SIZE sizeText;
+	//SIZE sizeText;
 
-	TCHAR s[]= TEXT("$ABCDx");
-	int slen = lstrlen(s);
-	br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
-	if (!br)
-		return E_FAIL;
-	SetRect(&rcEdit, 0, 0, sizeText.cx, sizeText.cy);
-	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
-	OffsetRect(&rcEdit, -rcEdit.left, -rcEdit.top);
+	//TCHAR s[]= TEXT("$ABCDx");
+	//int slen = lstrlen(s);
+	//br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
+	//if (!br)
+	//	return E_FAIL;
+	//SetRect(&rcEdit, 0, 0, sizeText.cx, sizeText.cy);
+	//InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
+	//OffsetRect(&rcEdit, -rcEdit.left, -rcEdit.top);
 
-	m_hWndTxtAddress = CreateTextBox(hWndRebar, IDC_TXT_GOTOADDRESS, 0, 0, rcEdit.right, rcEdit.bottom);
-	if (!m_hWndTxtAddress)
-		return E_FAIL;
+	//m_hWndTxtAddress = CreateTextBox(hWndRebar, IDC_TXT_GOTOADDRESS, 0, 0, rcEdit.right, rcEdit.bottom);
+	//if (!m_hWndTxtAddress)
+	//	return E_FAIL;
 
-	SendMessage(m_hWndTxtAddress, WM_SETFONT, (WPARAM)m_monitor_font, FALSE);
-	m_wpOrigEditProc = SubclassChildWindow(m_hWndTxtAddress);
+	//SendMessage(m_hWndTxtAddress, WM_SETFONT, (WPARAM)m_monitor_font, FALSE);
+	//m_wpOrigEditProc = SubclassChildWindow(m_hWndTxtAddress);
 
 	//TCHAR s[]= TEXT("GO");
 	//int slen = lstrlen(s);
@@ -615,7 +619,13 @@ BOOL br;
 	//if (!m_hWndButGoAddress)
 	//	return E_FAIL;
 
-	GetWindowRect(m_hWndTxtAddress, &rc);
+	m_pToolItemAddress = CreateToolItemAddress(hWndRebar);
+	if (!m_pToolItemAddress)
+		return E_FAIL;
+	m_hWndToolItemAddress = m_pToolItemAddress->GetHwnd();
+	m_pToolItemAddress->SetInterface(this);
+
+	GetWindowRect(m_hWndToolItemAddress, &rc);
 
 	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
 	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
@@ -626,7 +636,7 @@ BOOL br;
 	rbBand.hbmBack = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));   
 
 	rbBand.lpText     = TEXT("Address");
-	rbBand.hwndChild  = m_hWndTxtAddress;
+	rbBand.hwndChild  = m_hWndToolItemAddress;
 	rbBand.cxMinChild = 0;
 	rbBand.cyMinChild = rc.bottom - rc.top;
 	rbBand.cx         = rcClient.right - rcClient.left;
@@ -636,21 +646,36 @@ BOOL br;
 	return S_OK;
 }
 
-HWND CDisassemblyFrame::CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h)
+CToolItemAddress *CDisassemblyFrame::CreateToolItemAddress(HWND hWndParent)
 {
-	HWND hwnd = CreateWindow(TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
+	CToolItemAddress *p = new CToolItemAddress();
+	if (!p)
+		return NULL;
+	HWND hwnd = p->Create(m_hInst, hWndParent, NULL, 0, 0, 16, 16, (HMENU)IDC_TOI_GOTOADDRESS);
 	if (!hwnd)
-		return 0;
-	return hwnd;
+	{
+		delete p;
+		return NULL;
+	}
+	p->m_AutoDelete = true;
+	return p;
 }
 
-HWND CDisassemblyFrame::CreateButton(HWND hWndParent, int id, int x, int y, int w, int h)
-{
-	HWND hwnd = CreateWindow(TEXT("BUTTON"), NULL, WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
-	if (!hwnd)
-		return 0;
-	return hwnd;
-}
+//HWND CDisassemblyFrame::CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h)
+//{
+//	HWND hwnd = CreateWindow(TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
+//	if (!hwnd)
+//		return 0;
+//	return hwnd;
+//}
+//
+//HWND CDisassemblyFrame::CreateButton(HWND hWndParent, int id, int x, int y, int w, int h)
+//{
+//	HWND hwnd = CreateWindow(TEXT("BUTTON"), NULL, WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
+//	if (!hwnd)
+//		return 0;
+//	return hwnd;
+//}
 
 void CDisassemblyFrame::SetHome()
 {
@@ -817,9 +842,9 @@ void CDisassemblyFrame::SetMenuState()
 		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
 	}
 
-	if (m_hWndTxtAddress!=NULL)
+	if (m_hWndToolItemAddress!=NULL)
 	{
-		EnableWindow(m_hWndTxtAddress, (BOOL)!bIsRunning);
+		EnableWindow(m_hWndToolItemAddress, (BOOL)!bIsRunning);
 	}
 }
 
@@ -847,23 +872,18 @@ bool CDisassemblyFrame::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 	return false;
 }
 
-bool CDisassemblyFrame::OnEnterGotoAddress()
+void CDisassemblyFrame::OnEnterGotoAddress(LPTSTR pszAddress)
 {
 Assembler as;
 bit16 v = 0;
 HRESULT hr;
-TCHAR szText[MAX_EDIT_GOTO_ADDRESS_CHARS+1];
-int c;
+//int c;
 
-	c = G::GetEditLineString(m_hWndTxtAddress, 0, &szText[0], _countof(szText));
-	szText[c] = 0;
-
-	hr = as.ParseAddress16(szText, &v);
+	hr = as.ParseAddress16(pszAddress, &v);
 	if (SUCCEEDED(hr))
 	{
 		UpdateDisplay(DBGSYM::SetTopAddress, v);
 	}
-	return false;
 }
 
 bool CDisassemblyFrame::OnReBarHeightChange(LPNMHDR notify)
@@ -919,46 +939,46 @@ bool CDisassemblyFrame::OnToolBarInfo(LPNMTBGETINFOTIP info)
 	}
 }
 
-LRESULT CDisassemblyFrame::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-bool bIsRunning = true;
-	if (hWnd == NULL)
-		return 0;
-	if (hWnd == this->m_hWndTxtAddress)
-	{
-		if (m_pMonitorCommand)
-		{
-			bIsRunning = m_pMonitorCommand->IsRunning();
-		}
-		if (!bIsRunning)
-		{
-			switch(uMsg)
-			{
-			case WM_CHAR:
-				if (wParam == VK_ESCAPE)
-				{				
-					return 0;
-				}
-				else if (wParam == VK_RETURN)
-				{				
-					return 0;
-				}
-				break;
-			case WM_KEYDOWN:
-				if (wParam == VK_RETURN)
-				{
-					this->OnEnterGotoAddress();
-				}
-				break;
-			}
-		}
-		if (m_wpOrigEditProc)
-		{
-			return ::CallWindowProc(m_wpOrigEditProc, hWnd, uMsg, wParam, lParam);
-		}
-	}
-	return 0;
-}
+//LRESULT CDisassemblyFrame::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+//{
+//bool bIsRunning = true;
+//	if (hWnd == NULL)
+//		return 0;
+//	if (hWnd == this->m_hWndTxtAddress)
+//	{
+//		if (m_pMonitorCommand)
+//		{
+//			bIsRunning = m_pMonitorCommand->IsRunning();
+//		}
+//		if (!bIsRunning)
+//		{
+//			switch(uMsg)
+//			{
+//			case WM_CHAR:
+//				if (wParam == VK_ESCAPE)
+//				{				
+//					return 0;
+//				}
+//				else if (wParam == VK_RETURN)
+//				{				
+//					return 0;
+//				}
+//				break;
+//			case WM_KEYDOWN:
+//				if (wParam == VK_RETURN)
+//				{
+//					this->OnEnterGotoAddress(NULL);
+//				}
+//				break;
+//			}
+//		}
+//		if (m_wpOrigEditProc)
+//		{
+//			return ::CallWindowProc(m_wpOrigEditProc, hWnd, uMsg, wParam, lParam);
+//		}
+//	}
+//	return 0;
+//}
 
 void CDisassemblyFrame::Refresh()
 {

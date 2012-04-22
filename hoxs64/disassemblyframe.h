@@ -101,7 +101,7 @@ class CDisassemblyFrame_EventSink :
 {
 };
 
-class CDisassemblyFrame : public CVirWindow, public CDisassemblyFrame_EventSink, public DefaultCpu, public ErrorMsg
+class CDisassemblyFrame : public CVirWindow, public CDisassemblyFrame_EventSink, public DefaultCpu, public ErrorMsg, IEnterGotoAddress
 {
 public:
 	CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, LPCTSTR pszCaption);
@@ -126,7 +126,7 @@ public:
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	void GetMinWindowSize(int &w, int &h);
 	void Refresh();
-	bool OnEnterGotoAddress();
+	virtual void OnEnterGotoAddress(LPTSTR pszAddress);
 
 private:
 	CDPI m_dpi;
@@ -140,15 +140,19 @@ private:
 	CVirWindow *m_pParentWindow;
 	CDisassemblyChild m_DisassemblyChild;
 	CDisassemblyReg m_DisassemblyReg;
-	HWND m_hWndTxtAddress;
-	WNDPROC m_wpOrigEditProc;
-	HWND m_hWndButGoAddress;
+	CToolItemAddress *m_pToolItemAddress;
+	HWND m_hWndToolItemAddress;
+
+	//HWND m_hWndTxtAddress;
+	//WNDPROC m_wpOrigEditProc;
+	//HWND m_hWndButGoAddress;
 
 	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	HWND CreateDisassemblyChild(int x, int y, int w, int h);
 	HWND CreateDisassemblyReg(int x, int y, int w, int h);
-	HWND CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h);
-	HWND CreateButton(HWND hWndParent, int id, int x, int y, int w, int h);
+	CToolItemAddress *CreateToolItemAddress(HWND hWndParent);
+	//HWND CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h);
+	//HWND CreateButton(HWND hWndParent, int id, int x, int y, int w, int h);
 	HRESULT RebarAddAddressBar(HWND hWndRebar);
 
 	HRESULT InitFonts();
@@ -189,7 +193,7 @@ private:
 	bool OnToolBarInfo(LPNMTBGETINFOTIP info);
 	bool OnReBarHeightChange(LPNMHDR notify);
 	void Cleanup();
-	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	//virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 

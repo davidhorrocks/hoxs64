@@ -20,6 +20,7 @@
 #include "wpanel.h"
 #include "wpanelmanager.h"
 #include "wpcbreakpoint.h"
+#include "toolitemaddress.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"

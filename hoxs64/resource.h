@@ -21,6 +21,7 @@
 #define IDC_TXT_GOTOADDRESS             113
 #define IDR_SIDDRIVER                   114
 #define IDC_BUT_GOTOADDRESS             114
+#define IDC_TOI_GOTOADDRESS             115
 #define IDD_BROWSEPRG                   116
 #define IDB_LEDREDON                    117
 #define IDB_LEDBLUEOFF                  118
@@ -245,7 +246,6 @@
 #define IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY 40135
 #define IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS 40137
 #define IDM_BREAKPOINT_DELETEALLBREAKPOINTS 40139
-#define ID_VIEW_ADDRESS                 40140
 #define IDM_VIEW_ADDRESS                40141
 
 // Next default values for new objects
@@ -255,6 +255,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        183
 #define _APS_NEXT_COMMAND_VALUE         40142
 #define _APS_NEXT_CONTROL_VALUE         1315
-#define _APS_NEXT_SYMED_VALUE           115
+#define _APS_NEXT_SYMED_VALUE           116
 #endif
 #endif
