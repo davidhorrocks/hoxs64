@@ -508,6 +508,15 @@
     <None Include="img\chip1.ico">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="img\greenfind.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\icon2.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="img\ico00001.ico">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resfile.rc">

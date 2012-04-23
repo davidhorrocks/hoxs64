@@ -83,12 +83,15 @@ struct ImageInfo
 {
 	int BitmapImageResourceId;
 	int BitmapMaskResourceId;
+	int IconResourceId;
 };
 
 struct ButtonInfo
 {
 	int ImageIndex;
 	TCHAR *ButtonText;
+	TCHAR *ToolTipText;
+	BYTE Style;
 	int CommandId;
 };
 
@@ -207,6 +210,7 @@ public:
 	static HWND CreateToolBar(HINSTANCE hInst, HWND hWnd, int toolbarid, HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight);
 	static void EnsureWindowPosition(HWND hWnd);
 	static int GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
+	static int GetEditLineSzString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);

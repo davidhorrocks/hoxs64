@@ -46,9 +46,9 @@ const ImageInfo CMDIDebuggerFrame::TB_ImageList[] =
 
 const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] = 
 {
-	{0, TEXT("Trace"), IDM_STEP_TRACE},
-	{1, TEXT("Trace Frame"), IDM_STEP_TRACEFRAME},
-	{2, TEXT("Stop"), IDM_STEP_STOP}
+	{0, TEXT("Trace"), TEXT("Trace"), BTNS_BUTTON, IDM_STEP_TRACE},
+	{1, TEXT("Trace Frame"), TEXT("Trace 1 frame"), BTNS_BUTTON, IDM_STEP_TRACEFRAME},
+	{2, TEXT("Stop"), TEXT("Stop tracing"), BTNS_BUTTON, IDM_STEP_STOP}
 };
 
 CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand, CConfig *cfg, CAppStatus *appStatus)

@@ -26,6 +26,8 @@ public:
 	void OnEnterGotoAddress();
 	void SetInterface(IEnterGotoAddress *pIEnterGotoAddress);
 
+	HRESULT GetDefaultTextBoxSize(HWND hWnd, SIZE& sizeText);
+	int GetAddressText(int linenumber, LPTSTR szBuffer, int cchBufferLength);
 private:
 	IEnterGotoAddress *m_pIEnterGotoAddress;
 	HWND m_hWndTxtAddress;

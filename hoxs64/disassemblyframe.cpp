@@ -28,25 +28,30 @@ const TCHAR CDisassemblyFrame::MenuName[] = TEXT("MENU_CPUDISASSEMBLY");
 
 const ImageInfo CDisassemblyFrame::TB_ImageList[] = 
 {
-	{IDB_DEBUGGERTRACE, IDB_DEBUGGERTRACEMASK},
-	{IDB_DEBUGGERTRACEFRAME, IDB_DEBUGGERTRACEFRAMEMASK},
-	{IDB_DEBUGGERSTEPONECLOCK, IDB_DEBUGGERSTEPONECLOCKMASK},
-	{IDB_DEBUGGERSTEPIN, IDB_DEBUGGERSTEPINMASK},
-	//{IDB_DEBUGGERTRACEINT, IDB_DEBUGGERTRACEINTMASK},
-	{IDB_DEBUGGERTRACEINT_64, 0},
-	{IDB_DEBUGGERSTOP, IDB_DEBUGGERSTOPMASK},
+	{IDB_DEBUGGERTRACE, IDB_DEBUGGERTRACEMASK, 0},
+	{IDB_DEBUGGERTRACEFRAME, IDB_DEBUGGERTRACEFRAMEMASK, 0},
+	{IDB_DEBUGGERSTEPONECLOCK, IDB_DEBUGGERSTEPONECLOCKMASK, 0},
+	{IDB_DEBUGGERSTEPIN, IDB_DEBUGGERSTEPINMASK, 0},
+	//{IDB_DEBUGGERTRACEINT, IDB_DEBUGGERTRACEINTMASK, 0},
+	{IDB_DEBUGGERTRACEINT_64, 0, 0},	
+	{IDB_DEBUGGERSTOP, IDB_DEBUGGERSTOPMASK, 0},
+	{0, 0, IDI_GREENFIND}
 };
 
-#define TOOLBUTTON_COUNT (_countof(TB_StepButtons))
-
-const ButtonInfo CDisassemblyFrame::TB_StepButtons[] = 
+const ButtonInfo CDisassemblyFrame::TB_ButtonsStep[] = 
 {
-	{0, TEXT("Trace"), IDM_STEP_TRACE},
-	{1, TEXT("Trace Frame"), IDM_STEP_TRACEFRAME},
-	{2, TEXT("1 Clock"), IDM_STEP_ONECLOCK},
-	{3, TEXT("1 Instruction"), IDM_STEP_ONEINSTRUCTION},
-	{4, TEXT("Trace INT"), IDM_STEP_TRACEINTERRUPTTAKEN},
-	{5, TEXT("Stop"), IDM_STEP_STOP}
+	{0, TEXT("Trace"), TEXT("Trace"), BTNS_BUTTON, IDM_STEP_TRACE},
+	{1, TEXT("Trace Frame"), TEXT("Trace 1 frame"), BTNS_BUTTON, IDM_STEP_TRACEFRAME},
+	{2, TEXT("1 Clock"), TEXT("Step 1 clock"), BTNS_BUTTON, IDM_STEP_ONECLOCK},
+	{3, TEXT("1 Instruction"), TEXT("Step 1 instruction"), BTNS_BUTTON, IDM_STEP_ONEINSTRUCTION},
+	{4, TEXT("Trace INT"), TEXT("Trace till IRQ/NMI taken"), BTNS_BUTTON, IDM_STEP_TRACEINTERRUPTTAKEN},
+	{5, TEXT("Stop"), TEXT("Stop tracing"), BTNS_BUTTON, IDM_STEP_STOP}
+};
+
+const ButtonInfo CDisassemblyFrame::TB_ButtonsAddress[] = 
+{
+	{1, (TCHAR *)-1, TEXT(""), BTNS_SEP, 0},
+	{6, TEXT("Find Address"), TEXT("Find address"), BTNS_BUTTON, IDM_VIEW_ADDRESS}
 };
 
 CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, LPCTSTR pszCaption)
@@ -56,7 +61,8 @@ CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMoni
 	m_DisassemblyReg(cpuid, c64, pMonitorCommand)
 {
 	m_hWndRebar = NULL;
-	m_hWndTooBar = NULL;
+	m_hWndTooBarStep = NULL;
+	m_hWndTooBarAddress = NULL;
 	m_hImageListToolBarNormal = NULL;
 	m_iCurrentControlIndex = 0;
 
@@ -64,9 +70,6 @@ CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMoni
 	m_pMonitorCommand = pMonitorCommand;
 	m_pszCaption = pszCaption;
 	m_hWndToolItemAddress = NULL;
-	//m_hWndTxtAddress = NULL;
-	//m_wpOrigEditProc = NULL;
-	//m_hWndButGoAddress = NULL;
 }
 
 CDisassemblyFrame::~CDisassemblyFrame()
@@ -106,9 +109,6 @@ void CDisassemblyFrame::Cleanup()
 		m_hImageListToolBarNormal = NULL;
 	}
 	m_hWndToolItemAddress = NULL;
-	//m_hWndTxtAddress = NULL;
-	//m_wpOrigEditProc = NULL;
-	//m_hWndButGoAddress = NULL;
 }
 
 HRESULT CDisassemblyFrame::AdviseEvents()
@@ -253,7 +253,7 @@ HWND CDisassemblyFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR
 	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);	
 }
 
-HIMAGELIST CDisassemblyFrame::CreateImageListNormal(HWND hWnd)
+HIMAGELIST CDisassemblyFrame::CreateImageListStepNormal(HWND hWnd)
 {
 	int tool_dx = m_dpi.ScaleX(TOOLBUTTON_WIDTH_96);
 	int tool_dy = m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96);
@@ -520,27 +520,37 @@ HRESULT hr;
 HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 {
 HRESULT hr;
+ButtonInfo l_TB_ButtonsAddress[_countof(TB_ButtonsAddress)];
+RECT rcToolItem;
+	memcpy(l_TB_ButtonsAddress, TB_ButtonsAddress, sizeof(l_TB_ButtonsAddress));
 
-	HDC hdc = GetDC(hWnd);
-	if (!hdc)
-		return E_FAIL;
-	DcHelper dch(hdc);
-	dch.UseMapMode(MM_TEXT);
-	dch.UseFont(this->m_monitor_font);
-	//prevent dc restore
-	dch.m_hdc = NULL;
-
-	m_hImageListToolBarNormal = CreateImageListNormal(hWnd);
+	m_hImageListToolBarNormal = CreateImageListStepNormal(hWnd);
 	if (m_hImageListToolBarNormal == NULL)
 		return E_FAIL;
-	m_hWndTooBar = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, TB_StepButtons, _countof(TB_StepButtons), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
-	if (m_hWndTooBar == NULL)
+	m_hWndTooBarStep = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, TB_ButtonsStep, _countof(TB_ButtonsStep), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
+	if (m_hWndTooBarStep == NULL)
 		return E_FAIL;
-	m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBar, ID_RERBAR, IDB_REBARBKGND1);
+
+	m_pToolItemAddress = CreateToolItemAddress(hWnd);
+	if (!m_pToolItemAddress)
+		return E_FAIL;
+	m_hWndToolItemAddress = m_pToolItemAddress->GetHwnd();
+	m_pToolItemAddress->SetInterface(this);
+	GetWindowRect(m_hWndToolItemAddress, &rcToolItem);
+	l_TB_ButtonsAddress[0].ImageIndex = rcToolItem.right - rcToolItem.left;
+	l_TB_ButtonsAddress[0].Style = BTNS_SEP;
+
+	m_hWndTooBarAddress = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, l_TB_ButtonsAddress, _countof(l_TB_ButtonsAddress), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
+	if (m_hWndTooBarAddress == NULL)
+		return E_FAIL;
+	
+	SetParent(m_hWndToolItemAddress, m_hWndTooBarAddress);
+
+	m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBarStep, ID_RERBAR, IDB_REBARBKGND1);
 	if (m_hWndRebar == NULL)
 		return E_FAIL;
 
-	hr = RebarAddAddressBar(m_hWndRebar);
+	hr = RebarAddAddressBar(m_hWndRebar, m_hWndTooBarAddress);
 	if (FAILED(hr))
 		return hr;
 
@@ -572,60 +582,19 @@ HRESULT hr;
 	return S_OK;
 }
 
-HRESULT CDisassemblyFrame::RebarAddAddressBar(HWND hWndRebar)
+HRESULT CDisassemblyFrame::RebarAddAddressBar(HWND hWndRebar, HWND hWndToolbar)
 {
-RECT rc;
-//RECT rcEdit;
 RECT rcClient;
 REBARBANDINFO rbBand;
 BOOL br;
-
-	m_hWndToolItemAddress = 0;
-	//m_hWndTxtAddress = 0;
-	//m_hWndButGoAddress = 0;
-
-	HDC hdc = GetDC(m_hWnd);
-	if (!hdc)
-		return E_FAIL;
+DWORD_PTR dwBtnSize;
 
 	br = GetClientRect(m_hWnd, &rcClient);
 	if (!br)
 		return E_FAIL;
-	//SIZE sizeText;
 
-	//TCHAR s[]= TEXT("$ABCDx");
-	//int slen = lstrlen(s);
-	//br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
-	//if (!br)
-	//	return E_FAIL;
-	//SetRect(&rcEdit, 0, 0, sizeText.cx, sizeText.cy);
-	//InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
-	//OffsetRect(&rcEdit, -rcEdit.left, -rcEdit.top);
-
-	//m_hWndTxtAddress = CreateTextBox(hWndRebar, IDC_TXT_GOTOADDRESS, 0, 0, rcEdit.right, rcEdit.bottom);
-	//if (!m_hWndTxtAddress)
-	//	return E_FAIL;
-
-	//SendMessage(m_hWndTxtAddress, WM_SETFONT, (WPARAM)m_monitor_font, FALSE);
-	//m_wpOrigEditProc = SubclassChildWindow(m_hWndTxtAddress);
-
-	//TCHAR s[]= TEXT("GO");
-	//int slen = lstrlen(s);
-	//BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeGo);
-	//if (!br)
-	//	return E_FAIL;
-
-	//m_hWndButGoAddress = CreateButton(hWndRebar, IDC_BUT_GOTOADDRESS, 0, 0, sizeGo.cx, sizeGo.cy);
-	//if (!m_hWndButGoAddress)
-	//	return E_FAIL;
-
-	m_pToolItemAddress = CreateToolItemAddress(hWndRebar);
-	if (!m_pToolItemAddress)
-		return E_FAIL;
-	m_hWndToolItemAddress = m_pToolItemAddress->GetHwnd();
-	m_pToolItemAddress->SetInterface(this);
-
-	GetWindowRect(m_hWndToolItemAddress, &rc);
+	// Get the height of the toolbar.
+	dwBtnSize = SendMessage(hWndToolbar, TB_GETBUTTONSIZE, 0,0);
 
 	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
 	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
@@ -636,9 +605,9 @@ BOOL br;
 	rbBand.hbmBack = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));   
 
 	rbBand.lpText     = TEXT("Address");
-	rbBand.hwndChild  = m_hWndToolItemAddress;
-	rbBand.cxMinChild = 0;
-	rbBand.cyMinChild = rc.bottom - rc.top;
+	rbBand.hwndChild  = hWndToolbar;
+	rbBand.cxMinChild = HIWORD(dwBtnSize);
+	rbBand.cyMinChild = HIWORD(dwBtnSize);
 	rbBand.cx         = rcClient.right - rcClient.left;
 
 	SendMessage(hWndRebar, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);
@@ -648,10 +617,25 @@ BOOL br;
 
 CToolItemAddress *CDisassemblyFrame::CreateToolItemAddress(HWND hWndParent)
 {
+HRESULT hr;
+SIZE sizeText;
+
 	CToolItemAddress *p = new CToolItemAddress();
 	if (!p)
 		return NULL;
-	HWND hwnd = p->Create(m_hInst, hWndParent, NULL, 0, 0, 16, 16, (HMENU)IDC_TOI_GOTOADDRESS);
+	hr = p->Init(this->m_monitor_font);
+	if (FAILED(hr))
+	{
+		delete p;
+		return NULL;
+	}
+	hr = p->GetDefaultTextBoxSize(hWndParent, sizeText);
+	if (FAILED(hr))
+	{
+		delete p;
+		return NULL;
+	}
+	HWND hwnd = p->Create(m_hInst, hWndParent, NULL, 0, 0, sizeText.cx, sizeText.cy, (HMENU)IDC_TOI_GOTOADDRESS);
 	if (!hwnd)
 	{
 		delete p;
@@ -660,22 +644,6 @@ CToolItemAddress *CDisassemblyFrame::CreateToolItemAddress(HWND hWndParent)
 	p->m_AutoDelete = true;
 	return p;
 }
-
-//HWND CDisassemblyFrame::CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h)
-//{
-//	HWND hwnd = CreateWindow(TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
-//	if (!hwnd)
-//		return 0;
-//	return hwnd;
-//}
-//
-//HWND CDisassemblyFrame::CreateButton(HWND hWndParent, int id, int x, int y, int w, int h)
-//{
-//	HWND hwnd = CreateWindow(TEXT("BUTTON"), NULL, WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
-//	if (!hwnd)
-//		return 0;
-//	return hwnd;
-//}
 
 void CDisassemblyFrame::SetHome()
 {
@@ -831,17 +799,20 @@ void CDisassemblyFrame::SetMenuState()
 	EnableMenuItem(hMenu, IDM_STEP_TRACEINTERRUPTTAKEN, MF_BYCOMMAND | state);
 	
 	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
-	if (m_hWndTooBar!=NULL)
+	if (m_hWndTooBarStep!=NULL)
 	{
-		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_ONECLOCK, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_ONEINSTRUCTION, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
-		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACEINTERRUPTTAKEN, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_ONECLOCK, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_ONEINSTRUCTION, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEINTERRUPTTAKEN, stateTb);
 
-		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
 	}
-
+	if (m_hWndTooBarStep!=NULL)
+	{
+		SendMessage(m_hWndTooBarAddress, TB_SETSTATE, IDM_VIEW_ADDRESS, stateTb);
+	}
 	if (m_hWndToolItemAddress!=NULL)
 	{
 		EnableWindow(m_hWndToolItemAddress, (BOOL)!bIsRunning);
@@ -861,7 +832,7 @@ bool CDisassemblyFrame::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 		if (pn->code == RBN_HEIGHTCHANGE)
 			return OnReBarHeightChange((LPNMHDR)lParam);
 	}
-	else if (pn->hwndFrom == this->m_hWndTooBar)
+	else if (pn->hwndFrom == this->m_hWndTooBarStep)
 	{
 		switch (pn->code)
 		{
@@ -877,7 +848,6 @@ void CDisassemblyFrame::OnEnterGotoAddress(LPTSTR pszAddress)
 Assembler as;
 bit16 v = 0;
 HRESULT hr;
-//int c;
 
 	hr = as.ParseAddress16(pszAddress, &v);
 	if (SUCCEEDED(hr))
@@ -897,88 +867,20 @@ bool CDisassemblyFrame::OnReBarHeightChange(LPNMHDR notify)
 
 bool CDisassemblyFrame::OnToolBarInfo(LPNMTBGETINFOTIP info)
 {
-	if (info->hdr.hwndFrom == this->m_hWndTooBar)
+	if (info->hdr.hwndFrom == this->m_hWndTooBarStep)
 	{
 		int id = info->iItem;
-		if (info->pszText)
+		for (int i = 0; i < _countof(TB_ButtonsStep); i++)
 		{
-			if (id == IDM_STEP_ONECLOCK)
+			if (id == TB_ButtonsStep[i].CommandId)
 			{
-				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Step 1 clock"), _TRUNCATE);
-			}
-			else if (id == IDM_STEP_ONEINSTRUCTION)
-			{
-				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Step 1 instruction"), _TRUNCATE);
-			}
-			else if (id == IDM_STEP_TRACE)
-			{
-				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Trace"), _TRUNCATE);
-			}
-			else if (id == IDM_STEP_TRACEFRAME)
-			{
-				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Trace 1 frame"), _TRUNCATE);
-			}
-			else if (id == IDM_STEP_TRACEINTERRUPTTAKEN)
-			{
-				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Trace till IRQ/NMI taken"), _TRUNCATE);
-			}
-			else if (id == IDM_STEP_STOP)
-			{
-				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("Stop tracing"), _TRUNCATE);
-			}
-			else 
-			{
-				_tcsncpy_s(info->pszText, info->cchTextMax, TEXT("?"), _TRUNCATE);
+				_tcsncpy_s(info->pszText, info->cchTextMax, TB_ButtonsStep[i].ToolTipText, _TRUNCATE);
+				return true;
 			}
 		}
-		return false;
 	}
-	else
-	{
-		return false;
-	}
+	return false;
 }
-
-//LRESULT CDisassemblyFrame::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-//{
-//bool bIsRunning = true;
-//	if (hWnd == NULL)
-//		return 0;
-//	if (hWnd == this->m_hWndTxtAddress)
-//	{
-//		if (m_pMonitorCommand)
-//		{
-//			bIsRunning = m_pMonitorCommand->IsRunning();
-//		}
-//		if (!bIsRunning)
-//		{
-//			switch(uMsg)
-//			{
-//			case WM_CHAR:
-//				if (wParam == VK_ESCAPE)
-//				{				
-//					return 0;
-//				}
-//				else if (wParam == VK_RETURN)
-//				{				
-//					return 0;
-//				}
-//				break;
-//			case WM_KEYDOWN:
-//				if (wParam == VK_RETURN)
-//				{
-//					this->OnEnterGotoAddress(NULL);
-//				}
-//				break;
-//			}
-//		}
-//		if (m_wpOrigEditProc)
-//		{
-//			return ::CallWindowProc(m_wpOrigEditProc, hWnd, uMsg, wParam, lParam);
-//		}
-//	}
-//	return 0;
-//}
 
 void CDisassemblyFrame::Refresh()
 {
@@ -1026,6 +928,7 @@ LONG x, y, w, h;
 bool CDisassemblyFrame::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 int wmId, wmEvent;
+
 	wmId    = LOWORD(wParam);
 	wmEvent = HIWORD(wParam);
 	switch (wmId) 
@@ -1086,6 +989,12 @@ int wmId, wmEvent;
 		CancelEditing();
 		m_pMonitorCommand->ShowDevelopment();
 		::SetForegroundWindow(m_hWnd);
+		return true;
+	case IDM_VIEW_ADDRESS:
+		if (!m_pMonitorCommand)
+			return true;
+		this->m_pToolItemAddress->GetAddressText(0, &m_tempAddressBuffer[0], _countof(m_tempAddressBuffer));
+		this->OnEnterGotoAddress(m_tempAddressBuffer);
 		return true;
 	default:
 		return true;

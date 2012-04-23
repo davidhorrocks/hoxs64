@@ -58,6 +58,7 @@
 #define IDB_BREAKDISABLE                179
 #define IDR_MENU1                       181
 #define IDI_CHIP1                       182
+#define IDI_GREENFIND                   183
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
 #define IDC_INFO2                       1002
@@ -252,7 +253,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        183
+#define _APS_NEXT_RESOURCE_VALUE        187
 #define _APS_NEXT_COMMAND_VALUE         40142
 #define _APS_NEXT_CONTROL_VALUE         1315
 #define _APS_NEXT_SYMED_VALUE           116

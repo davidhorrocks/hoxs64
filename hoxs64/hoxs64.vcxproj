@@ -953,7 +953,10 @@
     <None Include="img\debugger trace frame.bmp" />
     <None Include="img\debugger trace mask.bmp" />
     <None Include="img\debugger trace.bmp" />
+    <None Include="img\greenfind.ico" />
+    <None Include="img\ico00001.ico" />
     <None Include="img\icon1.ico" />
+    <None Include="img\icon2.ico" />
     <None Include="img\icon_sma.ico" />
     <None Include="Kernal.rom">
       <DeploymentContent>true</DeploymentContent>

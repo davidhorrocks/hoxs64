@@ -113,7 +113,8 @@ public:
 
 	static const int TOOLBUTTON_PICTURE_INDEX = 0;
 	static const int TOOLBUTTON_MASK_INDEX = 1;
-	static const ButtonInfo TB_StepButtons[];
+	static const ButtonInfo TB_ButtonsStep[];
+	static const ButtonInfo TB_ButtonsAddress[];
 	static const ImageInfo TB_ImageList[];
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];	
@@ -134,7 +135,8 @@ private:
 	IMonitorCommand *m_pMonitorCommand;
 	LPCTSTR m_pszCaption;
 	HWND m_hWndRebar;
-	HWND m_hWndTooBar;
+	HWND m_hWndTooBarStep;
+	HWND m_hWndTooBarAddress;
 	HIMAGELIST m_hImageListToolBarNormal;
 	HFONT m_monitor_font;
 	CVirWindow *m_pParentWindow;
@@ -142,18 +144,13 @@ private:
 	CDisassemblyReg m_DisassemblyReg;
 	CToolItemAddress *m_pToolItemAddress;
 	HWND m_hWndToolItemAddress;
+	TCHAR m_tempAddressBuffer[MAX_EDIT_GOTO_ADDRESS_CHARS + 1];
 
-	//HWND m_hWndTxtAddress;
-	//WNDPROC m_wpOrigEditProc;
-	//HWND m_hWndButGoAddress;
-
-	HIMAGELIST CreateImageListNormal(HWND hWnd);
+	HIMAGELIST CreateImageListStepNormal(HWND hWnd);
 	HWND CreateDisassemblyChild(int x, int y, int w, int h);
 	HWND CreateDisassemblyReg(int x, int y, int w, int h);
 	CToolItemAddress *CreateToolItemAddress(HWND hWndParent);
-	//HWND CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h);
-	//HWND CreateButton(HWND hWndParent, int id, int x, int y, int w, int h);
-	HRESULT RebarAddAddressBar(HWND hWndRebar);
+	HRESULT RebarAddAddressBar(HWND hWndRebar, HWND hWndToolbar);
 
 	HRESULT InitFonts();
 	void CloseFonts();

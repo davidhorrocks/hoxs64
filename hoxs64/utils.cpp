@@ -1573,109 +1573,129 @@ bool fail = false;
 			HDC hMemDC_Src = CreateCompatibleDC(hdc);
 			if (hMemDC_Src)
 			{
-				hImageList = ImageList_Create(tool_dx, tool_dy, ILC_MASK | ILC_COLORDDB, countOfImageList, 0);
+				hImageList = ImageList_Create(tool_dx, tool_dy, ILC_MASK | ILC_COLOR32, countOfImageList, 0);
 				if (hImageList)
 				{
 					HBITMAP hbmpImage = NULL;
 					HBITMAP hbmpMask = NULL;
 					HBITMAP hBmpImageSz = NULL;
 					HBITMAP hBmpMaskSz = NULL;
+					HICON hIconImage = NULL;
 					for(int i = 0; i < countOfImageList; i++)
 					{
-						hbmpImage = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapImageResourceId));
-						if (hbmpImage == NULL)
+						if (tbImageList[i].BitmapImageResourceId!=0)
 						{
-							fail = true;
-							break;
-						}
-						BITMAP bitmapImage;
-						BITMAP bitmapMask;
-						r = GetObject(hbmpImage, sizeof(BITMAP), &bitmapImage);
-						if (!r)
-						{
-							fail = true;
-							break;
-						}
-						if (tbImageList[i].BitmapMaskResourceId!=0)
-						{
-							hbmpMask = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapMaskResourceId));
+							hbmpImage = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapImageResourceId));
+							if (hbmpImage == NULL)
+							{
+								fail = true;
+								break;
+							}
+							BITMAP bitmapImage;
+							BITMAP bitmapMask;
+							r = GetObject(hbmpImage, sizeof(BITMAP), &bitmapImage);
+							if (!r)
+							{
+								fail = true;
+								break;
+							}
+							if (tbImageList[i].BitmapMaskResourceId!=0)
+							{
+								hbmpMask = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapMaskResourceId));
+								if (hbmpMask)
+								{
+									r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
+									if (!r)
+									{
+										fail = true;
+										break;
+									}
+								}
+							}
+							hBmpImageSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
+							if (!hBmpImageSz)
+							{
+								fail = true;
+								break;
+							}
 							if (hbmpMask)
 							{
-								r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
-								if (!r)
+								hBmpMaskSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
+								if (!hBmpMaskSz)
 								{
 									fail = true;
 									break;
 								}
 							}
-						}
-						hBmpImageSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
-						if (!hBmpImageSz)
-						{
-							fail = true;
-							break;
-						}
-						if (hbmpMask)
-						{
-							hBmpMaskSz = CreateCompatibleBitmap(hdc, tool_dx, tool_dy);
-							if (!hBmpMaskSz)
+							bool bOK = false;
+							HBITMAP hOld_BmpDest = (HBITMAP)SelectObject(hMemDC_Dest, hBmpImageSz);
+							HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hbmpImage);
+							if (hOld_BmpDest && hOld_BmpSrc)
+							{
+								StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
+
+								if (hbmpMask && hBmpMaskSz)
+								{
+									HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
+									HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
+									if (hOld_BmpDest2 && hOld_BmpSrc2)
+									{
+										StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
+										bOK = true;
+									}
+								}
+								else
+								{
+									bOK = true;
+								}
+							}
+							if (hOld_BmpDest)
+								SelectObject(hMemDC_Dest, hOld_BmpDest);
+							if (hOld_BmpSrc)
+								SelectObject(hMemDC_Src, hOld_BmpSrc);
+							if (!bOK)
 							{
 								fail = true;
 								break;
 							}
-						}
-						bool bOK = false;
-						HBITMAP hOld_BmpDest = (HBITMAP)SelectObject(hMemDC_Dest, hBmpImageSz);
-						HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hbmpImage);
-						if (hOld_BmpDest && hOld_BmpSrc)
-						{
-							StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
-
-							if (hbmpMask && hBmpMaskSz)
-							{
-								HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
-								HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
-								if (hOld_BmpDest2 && hOld_BmpSrc2)
-								{
-									StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
-									bOK = true;
-								}
-							}
+							if (hBmpMaskSz)
+								r = ImageList_Add(hImageList, hBmpImageSz, hBmpMaskSz);
 							else
+								r = ImageList_AddMasked(hImageList, hBmpImageSz, RGB(0xff,0xff,0xff));
+							if (r < 0)
 							{
-								bOK = true;
+								fail = true;
+								break;
 							}
+							if (hBmpImageSz)
+								DeleteObject(hBmpImageSz);
+							if (hBmpMaskSz)
+								DeleteObject(hBmpMaskSz);
+							if (hbmpImage)
+								DeleteObject(hbmpImage);
+							if (hbmpMask)
+								DeleteObject(hbmpMask);
+							hBmpImageSz = NULL;
+							hBmpMaskSz = NULL;
+							hbmpImage = NULL;
+							hbmpMask = NULL;
 						}
-						if (hOld_BmpDest)
-							SelectObject(hMemDC_Dest, hOld_BmpDest);
-						if (hOld_BmpSrc)
-							SelectObject(hMemDC_Src, hOld_BmpSrc);
-						if (!bOK)
-						{
-							fail = true;
-							break;
-						}
-						if (hBmpMaskSz)
-							r = ImageList_Add(hImageList, hBmpImageSz, hBmpMaskSz);
 						else
-							r = ImageList_AddMasked(hImageList, hBmpImageSz, RGB(0xff,0xff,0xff));
-						if (r < 0)
 						{
-							fail = true;
-							break;
+							hIconImage = LoadIcon(hInst, MAKEINTRESOURCE(tbImageList[i].IconResourceId));
+							if (hIconImage == NULL)
+							{
+								fail = true;
+								break;
+							}
+							r = ImageList_AddIcon(hImageList, hIconImage);
+							if (r < 0)
+							{
+								fail = true;
+								break;
+							}
+							r = ImageList_AddMasked(hImageList, 0, RGB(0xff,0xff,0xff));
 						}
-						if (hBmpImageSz)
-							DeleteObject(hBmpImageSz);
-						if (hBmpMaskSz)
-							DeleteObject(hBmpMaskSz);
-						if (hbmpImage)
-							DeleteObject(hbmpImage);
-						if (hbmpMask)
-							DeleteObject(hbmpMask);
-						hBmpImageSz = NULL;
-						hBmpMaskSz = NULL;
-						hbmpImage = NULL;
-						hbmpMask = NULL;
 					}
 					if (hBmpImageSz != NULL)
 					{
@@ -1711,6 +1731,8 @@ bool fail = false;
 			DeleteDC(hMemDC_Dest);
 		}
 	}
+	if (hImageList)
+		ImageList_SetBkColor(hImageList, CLR_NONE);
 	return hImageList;
 }
 
@@ -1816,9 +1838,9 @@ HIMAGELIST hOldImageList = NULL;
 		for (i=0; i<length; i++)
 		{
 			ZeroMemory(&tbArray[i], sizeof(TBBUTTON));		
-			tbArray[i].iBitmap = i;
+			tbArray[i].iBitmap = buttonInfo[i].ImageIndex;
 			tbArray[i].idCommand = buttonInfo[i].CommandId;
-			tbArray[i].fsStyle = BTNS_BUTTON;
+			tbArray[i].fsStyle = buttonInfo[i].Style;
 			tbArray[i].fsState = TBSTATE_ENABLED;
 			tbArray[i].iString = (INT_PTR)buttonInfo[i].ButtonText;
 		}
@@ -1912,6 +1934,25 @@ int c;
 	{
 		*((LPWORD)&buffer[0]) = cchBuffer;
 		c = (int)SendMessage(hEditControl, EM_GETLINE, 0, (LPARAM)buffer);
+	}	
+	if (c < 0)
+		c = 0;
+	return c;
+}
+
+int G::GetEditLineSzString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer)
+{
+int c;
+	c = (int)SendMessage(hEditControl, EM_LINELENGTH, 0, 0);
+	if (buffer != NULL && cchBuffer > 0)
+	{
+		*((LPWORD)&buffer[0]) = cchBuffer;
+		c = (int)SendMessage(hEditControl, EM_GETLINE, 0, (LPARAM)buffer);
+		if (c >= cchBuffer)
+			c = cchBuffer - 1;
+		if (c < 0)
+			c = 0;
+		buffer[c] = 0;
 	}	
 	if (c < 0)
 		c = 0;

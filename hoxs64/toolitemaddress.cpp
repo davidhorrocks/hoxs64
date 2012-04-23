@@ -89,10 +89,9 @@ void CToolItemAddress::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 {
 }
 
-HRESULT CToolItemAddress::OnCreate(HWND hWnd)
+HRESULT CToolItemAddress::GetDefaultTextBoxSize(HWND hWnd, SIZE& sizeText)
 {
-	RECT rcEdit;
-	SIZE sizeText;
+RECT rcEdit;
 	HDC hdc = GetDC(hWnd);
 	if (!hdc)
 		return E_FAIL;
@@ -109,8 +108,19 @@ HRESULT CToolItemAddress::OnCreate(HWND hWnd)
 	SetRect(&rcEdit, 0, 0, sizeText.cx, sizeText.cy);
 	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
 	OffsetRect(&rcEdit, -rcEdit.left, -rcEdit.top);
+	sizeText.cx = rcEdit.right;
+	sizeText.cy = rcEdit.bottom;
+	return S_OK;
+}
 
-	m_hWndTxtAddress = CreateTextBox(hWnd, IDC_TXT_GOTOADDRESS, 0, 0, rcEdit.right, rcEdit.bottom);
+HRESULT CToolItemAddress::OnCreate(HWND hWnd)
+{
+	HRESULT hr;
+	SIZE sizeText;
+	hr = GetDefaultTextBoxSize(hWnd, sizeText);
+	if (FAILED(hr))
+		return hr;
+	m_hWndTxtAddress = CreateTextBox(hWnd, IDC_TXT_GOTOADDRESS, 0, 0, sizeText.cx, sizeText.cy);
 	if (!m_hWndTxtAddress)
 		return E_FAIL;
 
@@ -163,6 +173,11 @@ int c;
 		m_tempAddressTextBuffer[c] = 0;
 		m_pIEnterGotoAddress->OnEnterGotoAddress(&m_tempAddressTextBuffer[0]);
 	}
+}
+
+int CToolItemAddress::GetAddressText(int linenumber, LPTSTR szBuffer, int cchBufferLength)
+{
+	return G::GetEditLineSzString(m_hWndTxtAddress, 0, szBuffer, cchBufferLength);
 }
 
 LRESULT CToolItemAddress::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
