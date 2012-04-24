@@ -131,6 +131,15 @@ HRESULT CToolItemAddress::OnCreate(HWND hWnd)
 	return S_OK;
 }
 
+void CToolItemAddress::OnDestroy(HWND hWnd)
+{
+	if (m_wpOrigEditProc!=NULL && m_hWndTxtAddress!=NULL)
+	{
+		SubclassChildWindow(m_hWndTxtAddress, m_wpOrigEditProc);
+		m_wpOrigEditProc= NULL;
+	}
+}
+
 LRESULT CToolItemAddress::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (hWnd == NULL)
@@ -186,6 +195,9 @@ HRESULT hr;
 		if (FAILED(hr))
 			return -1;
 		return 0;
+	case WM_DESTROY:
+		OnDestroy(hWnd);
+		break;
 	case WM_SIZE:
 		OnSize(hWnd, uMsg, wParam, lParam);
 		break;

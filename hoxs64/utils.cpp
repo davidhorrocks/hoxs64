@@ -208,6 +208,15 @@ WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd)
 	return pOldProc;
 }
 
+WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd, WNDPROC proc)
+{
+	#pragma warning(disable:4244)
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) this);
+	WNDPROC pOldProc = (WNDPROC) (LONG_PTR)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) proc);
+	#pragma warning(default:4244)
+	return pOldProc;
+}
+
 LRESULT CVirWindow::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	return 0;

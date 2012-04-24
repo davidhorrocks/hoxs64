@@ -45,6 +45,7 @@ private:
 	HRESULT GetSizeRectButton(RECT &rc);
 
 	HRESULT OnCreate(HWND hWnd);
+	void OnDestroy(HWND hWnd);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	void Cleanup();

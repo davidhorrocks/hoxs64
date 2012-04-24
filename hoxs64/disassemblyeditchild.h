@@ -145,6 +145,7 @@ private:
 	bool IsEditing();
 	HRESULT UpdateMetrics();
 	HRESULT OnCreate(HWND hWnd);
+	void OnDestroy(HWND hWnd);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

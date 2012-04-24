@@ -300,6 +300,7 @@ protected:
 	HWND m_hWndMDIClient;
 
 	WNDPROC SubclassChildWindow(HWND hWnd);
+	WNDPROC SubclassChildWindow(HWND hWnd, WNDPROC proc);
 	// Envelopes the Windows' CreateWindow function call.
 	HWND CreateVirWindow(
 			DWORD dwExStyle,

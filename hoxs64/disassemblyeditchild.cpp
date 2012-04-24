@@ -334,6 +334,16 @@ HRESULT hr;
 	return S_OK;
 }
 
+void CDisassemblyEditChild::OnDestroy(HWND hWnd)
+{
+	if (m_wpOrigEditProc!=NULL && m_hWndEditText!=NULL)
+	{
+		SubclassChildWindow(m_hWndEditText, m_wpOrigEditProc);
+		m_wpOrigEditProc= NULL;
+	}
+}
+
+
 void CDisassemblyEditChild::OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (hWnd == m_hWnd)
@@ -355,72 +365,63 @@ BOOL br;
 		if (FAILED(hr))
 			return -1;
 		return 0;
+	case WM_DESTROY:
+		OnDestroy(hWnd);
+		break;
 	case WM_PAINT:
 		br = GetUpdateRect(hWnd, NULL, FALSE);
-		if (!br)
-			break;
-		hdc = BeginPaint (hWnd, &ps);
-		if (hdc != NULL)
+		if (br)
 		{
-			DrawDisplay(hWnd, hdc);
+			hdc = BeginPaint (hWnd, &ps);
+			if (hdc != NULL)
+			{
+				DrawDisplay(hWnd, hdc);
+				EndPaint (hWnd, &ps);
+			}
 		}
-		EndPaint (hWnd, &ps);
-		break;
+		return 0;
 	case WM_SIZE:
 		if (wParam==SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+			return 0;
 		if (wParam==SIZE_MINIMIZED)
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+			return 0;
 		UpdateDisplay(DBGSYM::None, 0);
 		return 0;
 	case WM_KEYDOWN:
-		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		else
+		if (OnKeyDown(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_CHAR:
-		if (!OnChar(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		else
+		if (OnChar(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_LBUTTONDOWN:
-		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		else
+		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_LBUTTONUP:
-		if (!OnLButtonUp(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		else
+		if (OnLButtonUp(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_COMMAND:
-		if (!OnCommand(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		else
+		if (OnCommand(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_NOTIFY:
 		OnNotify(hWnd, uMsg, wParam, lParam);
 		return 0;
-	//case WM_HSCROLL:
-	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	//case WM_VSCROLL:
-	//	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_KILLFOCUS:
 		m_bIsFocused = false;
 		InvalidateFocus();
 		UpdateWindow(m_hWnd);
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_SETFOCUS:
 		m_bIsFocused = true;
 		InvalidateFocus();
 		UpdateWindow(m_hWnd);
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	case WM_CLOSE:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	default:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		break;
 	}
-	return 0;
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 LRESULT CDisassemblyEditChild::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
