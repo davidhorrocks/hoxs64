@@ -66,13 +66,17 @@ bool LessBreakpointKey::operator()(const Sp_BreakpointKey x, const Sp_Breakpoint
 
 BreakpointItem::BreakpointItem()
 {
-	this->count = 0;
+	this->enabled = true;
+	this->initialSkipOnHitCount = 0;
+	this->currentSkipOnHitCount = 0;
 }
 
-BreakpointItem::BreakpointItem(int machine, bit16 address, int count) 
+BreakpointItem::BreakpointItem(int machine, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 	: BreakpointKey(machine, address)
 {
-	this->count = count;
+	this->enabled = enabled;
+	this->initialSkipOnHitCount = initialSkipOnHitCount;
+	this->currentSkipOnHitCount = currentSkipOnHitCount;
 }
 
 CPU6502::BpEnum::BpEnum(BpMap *m) 
@@ -135,13 +139,13 @@ bool CPU6502::GetBreakOnInterruptTaken()
 	return m_bBreakOnInterruptTaken ;
 }
 
-bool CPU6502::SetExecute(bit16 address, int count)
+bool CPU6502::SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
 	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
 		return false;
 	
-	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, count));
-	Sp_BreakpointItem k(new BreakpointItem(this->ID, address, count));
+	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
+	Sp_BreakpointKey k(new BreakpointKey(this->ID, address));
 	if (k == 0 || v == 0)
 		return false;
 	MapBpExecute[k] = v;
@@ -152,8 +156,8 @@ bool CPU6502::SetRead(bit16 address, int count)
 {
 	if (MapBpRead.size() >= BREAK_LIST_SIZE)
 		return false;
-	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, count));
-	Sp_BreakpointItem k(new BreakpointItem(this->ID, address, count));
+	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, true, count, 0));
+	Sp_BreakpointKey k(new BreakpointKey(this->ID, address));
 	if (k == 0 || v == 0)
 		return false;
 	MapBpRead[k] = v;
@@ -165,45 +169,78 @@ bool CPU6502::SetWrite(bit16 address, int count)
 {
 	if (MapBpWrite.size() >= BREAK_LIST_SIZE)
 		return false;
-	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, count));
-	Sp_BreakpointItem k(new BreakpointItem(this->ID, address, count));
+	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, true, count, 0));
+	Sp_BreakpointKey k(new BreakpointKey(this->ID, address));
 	if (k == 0 || v == 0)
 		return false;
 	MapBpWrite[k] = v;
 	return true;
 }
 
-int CPU6502::CheckExecute(bit16 address)
+int CPU6502::CheckExecute(bit16 address, bool bHitIt)
 {
+int i = -1;
 	BreakpointKey key(this->ID, address);
 	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::const_iterator it;
+	BpMap::iterator it;
 	it = MapBpExecute.find(k);
-	if (it == MapBpExecute.end())
-		return -1;
-	return 0;
+	if (it != MapBpExecute.end())
+	{
+		Sp_BreakpointItem& bp = it->second;
+		if (bp->enabled)
+		{
+			i = bp->currentSkipOnHitCount;
+			if (bHitIt && i == 0)
+			{
+				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+			}
+		}			
+	}
+	return i;
 } 
 
-int CPU6502::CheckRead(bit16 address)
+int CPU6502::CheckRead(bit16 address, bool bHitIt)
 {
+int i = -1;
 	BreakpointKey key(this->ID, address);
 	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::const_iterator it;
+	BpMap::iterator it;
 	it = MapBpRead.find(k);
-	if (it == MapBpRead.end())
-		return -1;
-	return 0;
+	if (it != MapBpExecute.end())
+	{
+		Sp_BreakpointItem& bp = it->second;
+		if (bp->enabled)
+		{
+			int i = bp->currentSkipOnHitCount;
+			if (bHitIt && i == 0)
+			{
+				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+			}
+		}			
+	}
+	return i;
 } 
 
-int CPU6502::CheckWrite(bit16 address)
+int CPU6502::CheckWrite(bit16 address, bool bHitIt)
 {
+int i = -1;
 	BreakpointKey key(this->ID, address);
 	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::const_iterator it;
+	BpMap::iterator it;
 	it = MapBpWrite.find(k);
-	if (it == MapBpWrite.end())
-		return -1;
-	return 0;
+	if (it != MapBpExecute.end())
+	{
+		Sp_BreakpointItem& bp = it->second;
+		if (bp->enabled)
+		{
+			i = bp->currentSkipOnHitCount;
+			if (bHitIt && i == 0)
+			{
+				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+			}
+		}			
+	}
+	return i;
 } 
 
 bool CPU6502::IsBreakPoint(bit16 address)

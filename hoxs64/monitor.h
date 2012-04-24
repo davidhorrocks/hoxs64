@@ -37,8 +37,8 @@ public:
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
 	virtual bool IsBreakpointC64Execute(bit16 address)=0;
 	virtual bool IsBreakpointDiskExecute(bit16 address)=0;
-	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count)=0;
-	virtual void SetBreakpointDiskExecute(bit16 address, int count)=0;
+	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
+	virtual void SetBreakpointDiskExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
 	virtual void DeleteBreakpointC64Execute(bit16 address)=0;
 	virtual void DeleteBreakpointDiskExecute(bit16 address)=0;
 	virtual void EnableAllBreakpoints()=0;

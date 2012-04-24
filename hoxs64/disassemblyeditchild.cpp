@@ -652,14 +652,14 @@ bool bHasPrevAddress;
 				if (this->m_pMonitorCommand->IsBreakpointC64Execute(address))
 					this->m_pMonitorCommand->DeleteBreakpointC64Execute(address);
 				else
-					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, 1);				
+					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, true, 0, 0);				
 			}
 			else if (this->GetCpuId() == CPUID_DISK)
 			{
 				if (this->m_pMonitorCommand->IsBreakpointDiskExecute(address))
 					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(address);
 				else
-					this->m_pMonitorCommand->SetBreakpointDiskExecute(address, 1);
+					this->m_pMonitorCommand->SetBreakpointDiskExecute(address, true, 0, 0);
 			}
 		}
 	}

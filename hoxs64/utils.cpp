@@ -2,6 +2,7 @@
 #include <tchar.h>
 #include <winuser.h>
 #include <commctrl.h>
+#include <shlwapi.h>
 #include <stdio.h>
 #include <assert.h>
 #include "defines.h"
@@ -1055,6 +1056,8 @@ LPMONITORFROMWINDOW G::s_pFnMonitorFromWindow = NULL;
 LPDWMISCOMPOSITIONENABLED G::s_pFnDwmIsCompositionEnabled = NULL;
 LPDWMENABLECOMPOSITION G::s_pFnDwmEnableComposition = NULL;
 
+bool G::m_bHasCachedCommonControlsVersion = false;
+DWORD G::m_dwCachedCommonControlsVersion = 0;
 bool G::s_bInitLateBindLibraryCallsDone = false;
 void G::InitLateBindLibraryCalls()
 {
@@ -1966,4 +1969,56 @@ int c;
 	if (c < 0)
 		c = 0;
 	return c;
+}
+
+DWORD G::GetDllVersion(LPCTSTR lpszDllName)
+{
+    HINSTANCE hinstDll;
+    DWORD dwVersion = 0;
+
+    /* For security purposes, LoadLibrary should be provided with a 
+       fully-qualified path to the DLL. The lpszDllName variable should be
+       tested to ensure that it is a fully qualified path before it is used. */
+    hinstDll = LoadLibrary(lpszDllName);
+	
+    if(hinstDll)
+    {
+        DLLGETVERSIONPROC pDllGetVersion;
+        pDllGetVersion = (DLLGETVERSIONPROC)GetProcAddress(hinstDll, 
+                          "DllGetVersion");
+
+        /* Because some DLLs might not implement this function, you
+        must test for it explicitly. Depending on the particular 
+        DLL, the lack of a DllGetVersion function can be a useful
+        indicator of the version. */
+
+        if(pDllGetVersion)
+        {
+            DLLVERSIONINFO dvi;
+            HRESULT hr;
+
+            ZeroMemory(&dvi, sizeof(dvi));
+            dvi.cbSize = sizeof(dvi);
+
+            hr = (*pDllGetVersion)(&dvi);
+
+            if(SUCCEEDED(hr))
+            {
+               dwVersion = PACKVERSION(dvi.dwMajorVersion, dvi.dwMinorVersion);
+            }
+        }
+
+        FreeLibrary(hinstDll);
+    }
+    return dwVersion;
+}
+
+DWORD G::CachedCommonControlsVersion()
+{
+	if (!m_bHasCachedCommonControlsVersion)
+	{
+		m_dwCachedCommonControlsVersion = GetDllVersion(TEXT("comctl32.dll"));
+		m_bHasCachedCommonControlsVersion = true;
+	}
+	return m_dwCachedCommonControlsVersion;
 }

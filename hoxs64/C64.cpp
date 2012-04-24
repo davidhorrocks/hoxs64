@@ -437,7 +437,7 @@ bool bBreakC64, bBreakDisk;
 				{
 					if (diskdrive.cpu.PROCESSOR_INTERRUPT == 0)
 					{
-						if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word) >= 0)
+						if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word, true) == 0)
 						{
 							bBreakDisk = true;
 							break;
@@ -466,7 +466,7 @@ bool bBreakC64, bBreakDisk;
 		{			
 			if (cpu.PROCESSOR_INTERRUPT == 0)
 			{
-				if (cpu.CheckExecute(cpu.mPC.word) >= 0)
+				if (cpu.CheckExecute(cpu.mPC.word, true) == 0)
 				{
 					bBreakC64 = true;
 				}
@@ -489,7 +489,7 @@ bool bBreakC64, bBreakDisk;
 				{
 					if (diskdrive.cpu.PROCESSOR_INTERRUPT == 0)
 					{
-						if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word) >= 0)
+						if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word, true) == 0)
 						{
 							bBreakDisk = true;
 							break;

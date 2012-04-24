@@ -6,6 +6,8 @@
 #include "carray.h"
 #include "cevent.h"
 
+#define PACKVERSION(major,minor) MAKELONG(minor,major)
+
 //struct NM_COMMAND
 
 // pragma pack (1)
@@ -160,6 +162,8 @@ class G
 private:
 	G();
 	static bool s_bInitLateBindLibraryCallsDone;
+	static bool m_bHasCachedCommonControlsVersion;
+	static DWORD m_dwCachedCommonControlsVersion;
 public:
 	static void InitLateBindLibraryCalls();
 	static bool IsMultiMonitorApiOk();
@@ -211,6 +215,8 @@ public:
 	static void EnsureWindowPosition(HWND hWnd);
 	static int GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
 	static int GetEditLineSzString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
+	static DWORD GetDllVersion(LPCTSTR lpszDllName);
+	static DWORD CachedCommonControlsVersion();
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);

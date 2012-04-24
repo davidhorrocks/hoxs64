@@ -521,7 +521,7 @@ public:
 	virtual void GetCpuState(CPUState& state);
 	virtual bool IsBreakPoint(bit16 address);
 	virtual void ClearBreakPoint(bit16 address);
-	virtual bool SetExecute(bit16 address, int count);
+	virtual bool SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
 	virtual void SetBreakOnInterruptTaken();
 	virtual void ClearBreakOnInterruptTaken();
 	virtual void SetPC(bit16 address);
@@ -582,9 +582,9 @@ public:
 	void ClearAllBreakpoints();
 	bool SetRead(bit16 address, int count);
 	bool SetWrite(bit16 address, int count);
-	int CheckExecute(bit16 address);
-	int CheckRead(bit16 address);
-	int CheckWrite(bit16 address);
+	int CheckExecute(bit16 address, bool bHitIt);
+	int CheckRead(bit16 address, bool bHitIt);
+	int CheckWrite(bit16 address, bool bHitIt);
 	void StartDebug();
 	void StopDebug();
 	bool IsWriteCycle();

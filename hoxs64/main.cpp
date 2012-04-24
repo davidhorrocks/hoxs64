@@ -1353,19 +1353,19 @@ bool CApp::IsBreakpointDiskExecute(bit16 address)
 	return p->IsBreakPoint(address);
 }
 
-void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, int count)
+void CApp::SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
 	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
-	p->SetExecute(address, count);
+	p->SetExecute(address, enabled, initialSkipOnHitCount, currentSkipOnHitCount);
 
 	BreakpointC64ExecuteChangedEventArgs e(MT_DEFAULT, address, 1);
 	this->EsBreakpointC64ExecuteChanged.Raise(this, e);
 }
 
-void CApp::SetBreakpointDiskExecute(bit16 address, int count)
+void CApp::SetBreakpointDiskExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
 	IMonitorCpu *p = c64.GetCpu(CPUID_DISK);
-	p->SetExecute(address, count);
+	p->SetExecute(address, enabled, initialSkipOnHitCount, currentSkipOnHitCount);
 
 	BreakpointDiskExecuteChangedEventArgs e(address, 0);
 	this->EsBreakpointDiskExecuteChanged.Raise(this, e);

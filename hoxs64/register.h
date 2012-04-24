@@ -114,8 +114,10 @@ struct BreakpointKey
 struct BreakpointItem : public BreakpointKey
 {
 	BreakpointItem();
-	BreakpointItem(int machine, bit16 address, int count);
-	int count;
+	BreakpointItem(int machine, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	bool enabled;
+	int initialSkipOnHitCount;
+	int currentSkipOnHitCount;
 };
 
 typedef shared_ptr<BreakpointKey> Sp_BreakpointKey;
@@ -151,7 +153,7 @@ public:
 	virtual void GetCpuState(CPUState& state)=0;
 	virtual bool IsBreakPoint(bit16 address)=0;
 	virtual void ClearBreakPoint(bit16 address)=0;
-	virtual bool SetExecute(bit16 address, int count)=0;
+	virtual bool SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
 	virtual void ClearAllBreakpoints() = 0;

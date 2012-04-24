@@ -280,7 +280,10 @@ int WpcBreakpoint::LvBreakPoint_RowCol_State(int iRow, int iCol)
 	HRESULT hr = LvBreakPoint_RowCol_GetData(iRow, bp);
 	if (FAILED(hr))
 		return 0;
-	return bp->count != 0;
+	if (bp->enabled)
+		return 1;
+	else
+		return 2;
 }
 
 bool WpcBreakpoint::LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult)
@@ -298,11 +301,52 @@ bool WpcBreakpoint::LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult
 	if (item.mask & LVIF_STATE)
 	{
 		int k = LvBreakPoint_RowCol_State(item.iItem, item.iSubItem);
-		k=1;
 		item.state = (item.mask & ~(LVIS_STATEIMAGEMASK)) | (INDEXTOSTATEIMAGEMASK(k & 0xf));
 		item.stateMask |= LVIS_STATEIMAGEMASK;
 	}
 	return true;
+}
+
+bool WpcBreakpoint::LvBreakPoint_OnLClick(NMITEMACTIVATE *pnmh, LRESULT &lresult)
+{
+HRESULT hr;
+lresult = 0;
+
+	LVHITTESTINFO lvHitTestInfo;
+	lvHitTestInfo.pt = pnmh->ptAction;
+	int iRow = ListView_HitTest(this->m_hLvBreak, &lvHitTestInfo);
+	if (iRow >= 0)
+	{
+		if ((lvHitTestInfo.flags & LVHT_ONITEMSTATEICON) != 0 && (lvHitTestInfo.flags & LVHT_ONITEMLABEL) == 0)
+		{
+			Sp_BreakpointItem bp;
+			hr = LvBreakPoint_RowCol_GetData(pnmh->iItem, bp);
+			if (SUCCEEDED(hr))
+			{
+				if (bp->machine == CPUID_MAIN)
+				{
+					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
+				}
+				else if (bp->machine == CPUID_DISK)
+				{
+					this->m_pMonitorCommand->SetBreakpointDiskExecute(bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
+				}				
+				RECT rcState;
+				if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))
+				{
+					InvalidateRect(m_hLvBreak, &rcState, FALSE);
+				}
+				else
+				{
+					InvalidateRect(m_hLvBreak, NULL, FALSE);
+				}
+
+				UpdateWindow(m_hLvBreak);
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 bool WpcBreakpoint::LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult)
@@ -351,8 +395,21 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 		case NM_RCLICK:
 			if (pnmh->hwndFrom == this->m_hLvBreak)
 			{
-				return LvBreakPoint_OnRClick((NMITEMACTIVATE *)pnmh, lresult);
-			}			
+				if (G::CachedCommonControlsVersion()  >= PACKVERSION(4,71))
+				{
+					return LvBreakPoint_OnRClick((NMITEMACTIVATE *)pnmh, lresult);
+				}
+			}
+			break;
+		case NM_CLICK: 
+			if (pnmh->hwndFrom == this->m_hLvBreak)
+			{
+				if (G::CachedCommonControlsVersion()  >= PACKVERSION(4,71))
+				{
+					return LvBreakPoint_OnLClick((NMITEMACTIVATE *)pnmh, lresult);				
+				}
+			}
+			break;
 		}
 		break;
 	}

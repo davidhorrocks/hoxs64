@@ -51,6 +51,7 @@ protected:
 	LRESULT OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresult);
 	bool LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult);
+	bool LvBreakPoint_OnLClick(NMITEMACTIVATE *pnmh, LRESULT &lresult);
 	bool LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult);
 	
 	HRESULT LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& bp);
