@@ -127,7 +127,8 @@ public:
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	void GetMinWindowSize(int &w, int &h);
 	void Refresh();
-	virtual void OnEnterGotoAddress(LPTSTR pszAddress);
+	bool OnEnterGotoAddress();
+	virtual bool OnEnterGotoAddress(LPTSTR pszAddress);
 
 private:
 	CDPI m_dpi;

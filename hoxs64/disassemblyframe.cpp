@@ -843,7 +843,7 @@ bool CDisassemblyFrame::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 	return false;
 }
 
-void CDisassemblyFrame::OnEnterGotoAddress(LPTSTR pszAddress)
+bool CDisassemblyFrame::OnEnterGotoAddress(LPTSTR pszAddress)
 {
 Assembler as;
 bit16 v = 0;
@@ -853,7 +853,11 @@ HRESULT hr;
 	if (SUCCEEDED(hr))
 	{
 		UpdateDisplay(DBGSYM::SetTopAddress, v);
+		MessageBeep(MB_ICONASTERISK);
+		return true;
 	}
+	MessageBeep(MB_OK);
+	return false;
 }
 
 bool CDisassemblyFrame::OnReBarHeightChange(LPNMHDR notify)
@@ -992,13 +996,19 @@ int wmId, wmEvent;
 		return true;
 	case IDM_VIEW_ADDRESS:
 		if (!m_pMonitorCommand)
-			return true;
-		this->m_pToolItemAddress->GetAddressText(0, &m_tempAddressBuffer[0], _countof(m_tempAddressBuffer));
-		this->OnEnterGotoAddress(m_tempAddressBuffer);
+			return true;		
+		OnEnterGotoAddress();
 		return true;
 	default:
 		return true;
 	}
+}
+
+bool CDisassemblyFrame::OnEnterGotoAddress()
+{
+	m_tempAddressBuffer[0] = 0;
+	m_pToolItemAddress->GetAddressText(0, &m_tempAddressBuffer[0], _countof(m_tempAddressBuffer));
+	return OnEnterGotoAddress(m_tempAddressBuffer);
 }
 
 void CDisassemblyFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

@@ -68,7 +68,7 @@ HWND CToolItemAddress::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR 
 
 HWND CToolItemAddress::CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h)
 {
-	HWND hwnd = CreateWindow(TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
+	HWND hwnd = CreateWindowEx(0, TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
 	if (!hwnd)
 		return 0;
 	return hwnd;
@@ -123,7 +123,7 @@ HRESULT CToolItemAddress::OnCreate(HWND hWnd)
 	m_hWndTxtAddress = CreateTextBox(hWnd, IDC_TXT_GOTOADDRESS, 0, 0, sizeText.cx, sizeText.cy);
 	if (!m_hWndTxtAddress)
 		return E_FAIL;
-
+	SendMessage(m_hWndTxtAddress, EM_SETLIMITTEXT, 5, 0);
 	if (m_hFont)
 		SendMessage(m_hWndTxtAddress, WM_SETFONT, (WPARAM)m_hFont, FALSE);
 	m_wpOrigEditProc = SubclassChildWindow(m_hWndTxtAddress);
@@ -146,13 +146,8 @@ LRESULT CToolItemAddress::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam
 			}
 			else if (wParam == VK_RETURN)
 			{				
-				return 0;
-			}
-			break;
-		case WM_KEYDOWN:
-			if (wParam == VK_RETURN)
-			{
 				OnEnterGotoAddress();
+				return 0;
 			}
 			break;
 		}
@@ -164,15 +159,16 @@ LRESULT CToolItemAddress::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam
 	return 0;
 }
 
-void CToolItemAddress::OnEnterGotoAddress()
+bool CToolItemAddress::OnEnterGotoAddress()
 {
 int c;
 	if (m_pIEnterGotoAddress)
 	{
 		c = G::GetEditLineString(m_hWndTxtAddress, 0, &m_tempAddressTextBuffer[0], _countof(m_tempAddressTextBuffer));
 		m_tempAddressTextBuffer[c] = 0;
-		m_pIEnterGotoAddress->OnEnterGotoAddress(&m_tempAddressTextBuffer[0]);
+		return m_pIEnterGotoAddress->OnEnterGotoAddress(&m_tempAddressTextBuffer[0]);
 	}
+	return false;
 }
 
 int CToolItemAddress::GetAddressText(int linenumber, LPTSTR szBuffer, int cchBufferLength)

@@ -6,7 +6,7 @@
 class IEnterGotoAddress
 {
 public:
-	virtual void OnEnterGotoAddress(LPTSTR pszAddress) = 0;
+	virtual bool OnEnterGotoAddress(LPTSTR pszAddress) = 0;
 };
 
 class CToolItemAddress : public CVirWindow
@@ -23,7 +23,7 @@ public:
 
 	static const TCHAR ClassName[];
 
-	void OnEnterGotoAddress();
+	bool OnEnterGotoAddress();
 	void SetInterface(IEnterGotoAddress *pIEnterGotoAddress);
 
 	HRESULT GetDefaultTextBoxSize(HWND hWnd, SIZE& sizeText);
