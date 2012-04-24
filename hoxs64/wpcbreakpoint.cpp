@@ -110,7 +110,8 @@ bool ok = false;
 	const ImageInfo lvImageList[] = 
 	{
 		{IDB_BREAK, 0},
-		{IDB_BREAKDISABLE, 0}
+		{IDB_BREAKDISABLE, 0, 0},
+		{0, 0, IDI_CHIP1}
 	};
 	
 	do
@@ -120,23 +121,23 @@ bool ok = false;
 		if (!hWnd)
 			break;
 
-		ListView_SetExtendedListViewStyleEx(hWnd, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT); 
-		////hSmall = G::CreateImageListNormal(pcs->hInstance, hWndParent, m_dpi.ScaleX(GetSystemMetrics(SM_CXSMICON)), m_dpi.ScaleY(GetSystemMetrics(SM_CYSMICON)), lvImageList, 2);
-		//hSmall = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), lvImageList, 2);
-		//if (!hSmall)
-		//	break;
-		//hLarge = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), lvImageList, 2);
-		//if (!hLarge)
-		//	break;
-		hState = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), lvImageList, 2);
+		ListView_SetExtendedListViewStyleEx(hWnd, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+		ListView_SetCallbackMask(hWnd, LVIS_STATEIMAGEMASK);
+		hSmall = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), lvImageList, _countof(lvImageList));
+		if (!hSmall)
+			break;
+		hLarge = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), lvImageList, _countof(lvImageList));
+		if (!hLarge)
+			break;
+		hState = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), lvImageList, _countof(lvImageList));
 		if (!hState)
 			break;
 
-		//ListView_SetImageList(hWnd, hSmall, LVSIL_SMALL);
-		//ListView_SetImageList(hWnd, hLarge, LVSIL_NORMAL);
+		ListView_SetImageList(hWnd, hSmall, LVSIL_SMALL);
+		ListView_SetImageList(hWnd, hLarge, LVSIL_NORMAL);
 		ListView_SetImageList(hWnd, hState, LVSIL_STATE);
-		//hSmall = NULL;
-		//hLarge = NULL;
+		hSmall = NULL;
+		hLarge = NULL;
 		hState = NULL;
 
 		hr = InitListViewColumns(hWnd);
@@ -290,17 +291,18 @@ bool WpcBreakpoint::LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult
 	{
 		LvBreakPoint_RowCol_GetText(item.iItem, item.iSubItem, item.pszText, item.cchTextMax);
 	}
-	//if (item.mask & LVIF_IMAGE)
-	//{
-	//	item.iImage = 0;
-	//}
+	if (item.mask & LVIF_IMAGE)
+	{
+		item.iImage = 2;
+	}
 	if (item.mask & LVIF_STATE)
 	{
 		int k = LvBreakPoint_RowCol_State(item.iItem, item.iSubItem);
+		k=1;
 		item.state = (item.mask & ~(LVIS_STATEIMAGEMASK)) | (INDEXTOSTATEIMAGEMASK(k & 0xf));
 		item.stateMask |= LVIS_STATEIMAGEMASK;
 	}
-	return false;
+	return true;
 }
 
 bool WpcBreakpoint::LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult)
@@ -341,8 +343,11 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 			}
 			break;
 		case LVN_ODCACHEHINT:
+			lresult = 0;
+			return true;
 		case LVN_ODFINDITEM:
-			break;
+			lresult = -1;
+			return true;
 		case NM_RCLICK:
 			if (pnmh->hwndFrom == this->m_hLvBreak)
 			{
@@ -383,8 +388,9 @@ int wmId, wmEvent;
 		{
 			bHandled =  OnNotify(hWnd, (int)wParam, pnmh, lr);
 			if (bHandled)
-				return 0;
+				return lr;
 		}
+		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam); // Remember, these are...
 		wmEvent = HIWORD(wParam); // ...different for Win32!
