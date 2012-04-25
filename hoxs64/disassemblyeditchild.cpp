@@ -42,7 +42,8 @@ CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorComman
 	m_MinSizeDone = false;
 	m_pFrontTextBuffer = NULL;
 	m_pBackTextBuffer = NULL;
-	m_hBmpBreak = NULL;
+	m_hBmpBreakEnabled = NULL;
+	m_hBmpBreakDisabled = NULL;
 	m_bHasLastDrawText = false;
 	m_bIsFocusedAddress = false;
 	m_iFocusedAddress = 0;
@@ -66,12 +67,16 @@ void CDisassemblyEditChild::Cleanup()
 	m_wpOrigEditProc = NULL;
 
 	FreeTextBuffer();
-	if (m_hBmpBreak)
+	if (m_hBmpBreakEnabled)
 	{
-		DeleteBitmap(m_hBmpBreak);
-		m_hBmpBreak=NULL;
+		DeleteBitmap(m_hBmpBreakEnabled);
+		m_hBmpBreakEnabled=NULL;
 	}
-
+	if (m_hBmpBreakDisabled)
+	{
+		DeleteBitmap(m_hBmpBreakDisabled);
+		m_hBmpBreakDisabled=NULL;
+	}
 }
 
 HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, HFONT hFont)
@@ -179,10 +184,16 @@ WNDCLASSEX  wc;
 
 HWND CDisassemblyEditChild::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	if (m_hBmpBreak == NULL)
+	if (m_hBmpBreakEnabled == NULL)
 	{
-		m_hBmpBreak = (HBITMAP) LoadImage(hInstance, MAKEINTRESOURCE(IDB_BREAK), IMAGE_BITMAP, 0, 0, LR_LOADTRANSPARENT);
-		if (m_hBmpBreak==NULL)
+		m_hBmpBreakEnabled = (HBITMAP) LoadImage(hInstance, MAKEINTRESOURCE(IDB_BREAK), IMAGE_BITMAP, 0, 0, LR_LOADTRANSPARENT);
+		if (m_hBmpBreakEnabled==NULL)
+			return NULL;
+	}
+	if (m_hBmpBreakDisabled == NULL)
+	{
+		m_hBmpBreakDisabled = (HBITMAP) LoadImage(hInstance, MAKEINTRESOURCE(IDB_BREAKDISABLE), IMAGE_BITMAP, 0, 0, LR_LOADTRANSPARENT);
+		if (m_hBmpBreakDisabled==NULL)
 			return NULL;
 	}
 	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
@@ -1005,109 +1016,110 @@ TEXTMETRIC tm;
 
 			if (!bUnavailable)
 			{
-				BITMAP bmpBreak;
 				HDC hMemDC = CreateCompatibleDC(hdc);
 				if (hMemDC)
 				{
 					HBITMAP hbmpPrev = 0;
-					if (GetObject(m_hBmpBreak, sizeof(BITMAP), (BITMAP *)&bmpBreak))
-					{
-						hbmpPrev = (HBITMAP)SelectObject(hMemDC, m_hBmpBreak);
-						if (hbmpPrev)
+					hbmpPrev = (HBITMAP)SelectObject(hMemDC, m_hBmpBreakEnabled);
+					if (hbmpPrev)
+					{//
+						for (int i = 0; i < m_NumLines; i++, y += LINE_HEIGHT)
 						{
-							int iWidthImageBreak = m_dpi.ScaleX(bmpBreak.bmWidth);
-							int iHeightImageBreak = m_dpi.ScaleY(bmpBreak.bmHeight);
-							int iTopPosImageBreak = (LINE_HEIGHT - iHeightImageBreak) / 2;
-							int iLeftPosImageBreak = (WIDTH_LEFTBAR2 - iWidthImageBreak) / 2;
-							for (int i = 0; i < m_NumLines; i++, y += LINE_HEIGHT)
+							AssemblyLineBuffer albFront = m_pFrontTextBuffer[i];
+							int sys_back_colour;
+							if (albFront.GetIsReadOnly())
 							{
-								AssemblyLineBuffer albFront = m_pFrontTextBuffer[i];
-								int sys_back_colour;
-								if (albFront.GetIsReadOnly())
-								{
-									sys_back_colour = COLOR_3DLIGHT;
-								}
-								else
-								{
-									sys_back_colour = COLOR_WINDOW;
-								}
+								sys_back_colour = COLOR_3DLIGHT;
+							}
+							else
+							{
+								sys_back_colour = COLOR_WINDOW;
+							}
 
-								SetRect(&rcEditRow, xcol_Address, y, rcClient.right, y + LINE_HEIGHT);
-								::SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-								::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-								if (this->GetCpu()->IsBreakPoint(albFront.Address))
+							SetRect(&rcEditRow, xcol_Address, y, rcClient.right, y + LINE_HEIGHT);
+							::SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+							::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
+							if (this->GetCpu()->IsBreakPoint(albFront.Address))
+							{
+								Sp_BreakpointItem breakpoint;
+								if (this->GetCpu()->GetExecute(albFront.Address, breakpoint))
 								{
 									SelectObject(hdc, bshBarBreak);
-									DWORD dwROP = MERGECOPY;
-									//BitBlt(hdc, 0, y, bmpBreak.bmWidth, bmpBreak.bmHeight, hMemDC, 0, 0, dwROP);
-									StretchBlt(hdc, 0, y, iWidthImageBreak, iHeightImageBreak, hMemDC, 0, 0, bmpBreak.bmWidth, bmpBreak.bmHeight, dwROP);
+									if (breakpoint->enabled)
+									{
+										DrawBitmap(hdc, 0, y, hMemDC, m_hBmpBreakEnabled);
+									}
+									else
+									{
+										DrawBitmap(hdc, 0, y, hMemDC, m_hBmpBreakDisabled);
+									}
 									SelectObject(hdc, bshBarStatus);
 								}
-
-								if (albFront.Address == cpustate.PC_CurrentOpcode)
-								{
-									if (cpustate.IsInterruptInstruction)
-									{
-										SetTextColor(hdc, RGB(0xff,02,70));
-										ExtTextOut(hdc, x_status, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szIntText, lstrlen(szIntText), NULL);
-									}									
-									TCHAR szArrowText[3] = TEXT(">0");
-									if (cpustate.cycle >= 0 && cpustate.cycle <= 9)
-										szArrowText[1] = TEXT('0') + ((abs(cpustate.cycle) % 10));
-									else
-										szArrowText[1] = TEXT('#');
-									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-									ExtTextOut(hdc, x_status + width_intflag, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szArrowText, lstrlen(szArrowText), NULL);
-								}
-
-								::FillRect(hdc, &rcEditRow, ::GetSysColorBrush(sys_back_colour));
-								::SetBkColor(hdc, GetSysColor(sys_back_colour));
-								//Draw the address text
-								x = xcol_Address;
-								slen = (int)_tcsnlen(albFront.AddressText, _countof(albFront.AddressText));
-								if (slen > 0)
-								{
-									brTextExtent = GetTextExtentExPoint(hdc, albFront.AddressText, slen, 0, NULL, NULL, &sizeText);
-									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.AddressText, slen, NULL);
-								}
-
-								//Draw the data bytes text
-								x = xcol_Bytes;
-								slen = (int)_tcsnlen(albFront.BytesText, _countof(albFront.BytesText));
-								if (slen > 0)
-								{
-									brTextExtent = GetTextExtentExPoint(hdc, albFront.BytesText, slen, 0, NULL, NULL, &sizeText);
-									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.BytesText, slen, NULL);
-								}
-
-								::SetBkColor(hdc, GetSysColor(sys_back_colour));
-								//Draw the mnemonic text
-								x = xcol_Mnemonic;
-								SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, this->m_MinSizeW, y + LINE_HEIGHT);
-								slen = (int)_tcsnlen(albFront.MnemonicText, _countof(albFront.MnemonicText));
-								if (slen > 0)
-								{
-									if (albFront.IsUnDoc)
-										SetTextColor(hdc, RGB(2, 134, 172));
-									else
-										SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-									brTextExtent = GetTextExtentExPoint(hdc, albFront.MnemonicText, slen, 0, NULL, NULL, &sizeText);
-									ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
-								}
-								::SetBkColor(hdc, GetSysColor(sys_back_colour));
-								if (albFront.IsFocused && m_bIsFocused)
-								{
-									::DrawFocusRect(hdc, &albFront.MnemonicRect);
-								}
-								albFront.WantUpdate = false;
-								m_pFrontTextBuffer[i] = albFront;
-								m_pBackTextBuffer[i] = albFront;
 							}
-							SelectObject(hMemDC, hbmpPrev);						
+
+							if (albFront.Address == cpustate.PC_CurrentOpcode)
+							{
+								if (cpustate.IsInterruptInstruction)
+								{
+									SetTextColor(hdc, RGB(0xff,02,70));
+									ExtTextOut(hdc, x_status, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szIntText, lstrlen(szIntText), NULL);
+								}									
+								TCHAR szArrowText[3] = TEXT(">0");
+								if (cpustate.cycle >= 0 && cpustate.cycle <= 9)
+									szArrowText[1] = TEXT('0') + ((abs(cpustate.cycle) % 10));
+								else
+									szArrowText[1] = TEXT('#');
+								SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+								ExtTextOut(hdc, x_status + width_intflag, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szArrowText, lstrlen(szArrowText), NULL);
+							}
+
+							::FillRect(hdc, &rcEditRow, ::GetSysColorBrush(sys_back_colour));
+							::SetBkColor(hdc, GetSysColor(sys_back_colour));
+							//Draw the address text
+							x = xcol_Address;
+							slen = (int)_tcsnlen(albFront.AddressText, _countof(albFront.AddressText));
+							if (slen > 0)
+							{
+								brTextExtent = GetTextExtentExPoint(hdc, albFront.AddressText, slen, 0, NULL, NULL, &sizeText);
+								SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+								ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.AddressText, slen, NULL);
+							}
+
+							//Draw the data bytes text
+							x = xcol_Bytes;
+							slen = (int)_tcsnlen(albFront.BytesText, _countof(albFront.BytesText));
+							if (slen > 0)
+							{
+								brTextExtent = GetTextExtentExPoint(hdc, albFront.BytesText, slen, 0, NULL, NULL, &sizeText);
+								SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+								ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.BytesText, slen, NULL);
+							}
+
+							::SetBkColor(hdc, GetSysColor(sys_back_colour));
+							//Draw the mnemonic text
+							x = xcol_Mnemonic;
+							SetRect(&albFront.MnemonicRect, xcol_Mnemonic, y, this->m_MinSizeW, y + LINE_HEIGHT);
+							slen = (int)_tcsnlen(albFront.MnemonicText, _countof(albFront.MnemonicText));
+							if (slen > 0)
+							{
+								if (albFront.IsUnDoc)
+									SetTextColor(hdc, RGB(2, 134, 172));
+								else
+									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+								brTextExtent = GetTextExtentExPoint(hdc, albFront.MnemonicText, slen, 0, NULL, NULL, &sizeText);
+								ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
+							}
+							::SetBkColor(hdc, GetSysColor(sys_back_colour));
+							if (albFront.IsFocused && m_bIsFocused)
+							{
+								::DrawFocusRect(hdc, &albFront.MnemonicRect);
+							}
+							albFront.WantUpdate = false;
+							m_pFrontTextBuffer[i] = albFront;
+							m_pBackTextBuffer[i] = albFront;
 						}
-					}		
+						SelectObject(hMemDC, hbmpPrev);						
+					}//
 					DeleteDC(hMemDC);
 				}
 			}
@@ -1129,6 +1141,23 @@ TEXTMETRIC tm;
 					}
 				}
 			}
+		}
+	}
+}
+
+void CDisassemblyEditChild::DrawBitmap(HDC hdcDest, int x, int y, HDC hdcSource, HBITMAP hBmpSource)
+{
+BITMAP bmp;
+	if (GetObject(hBmpSource, sizeof(BITMAP), (BITMAP *)&bmp))
+	{
+		HBITMAP hbmpPrev = (HBITMAP)SelectObject(hdcSource, hBmpSource);
+		if (hbmpPrev)
+		{
+			int iWidthImageBreak = m_dpi.ScaleX(bmp.bmWidth);
+			int iHeightImageBreak = m_dpi.ScaleY(bmp.bmHeight);
+			DWORD dwROP = MERGECOPY;
+			StretchBlt(hdcDest, 0, y, iWidthImageBreak, iHeightImageBreak, hdcSource, 0, 0, bmp.bmWidth, bmp.bmHeight, dwROP);
+			SelectObject(hdcSource, hbmpPrev);
 		}
 	}
 }
@@ -1167,7 +1196,7 @@ RECT rc;
 		{
 			for (int i = 0; i < m_NumLines; i++)
 			{
-				if (iEnsureAddress == m_pFrontTextBuffer[i].Address)
+				if (iEnsureAddress == assemblyLineBuffer[i].Address)
 				{
 					pcline = i;
 					break;
@@ -1197,7 +1226,7 @@ CPUState cpustate;
 	{
 		AssemblyLineBuffer buffer = AssemblyLineBuffer();
 
-		CopyRect(&buffer.MnemonicRect, &m_pFrontTextBuffer[currentLine].MnemonicRect);
+		CopyRect(&buffer.MnemonicRect, &assemblyLineBuffer[currentLine].MnemonicRect);
 
 		if (!pcfound)
 		{
@@ -1230,17 +1259,24 @@ CPUState cpustate;
 			}
 		}
 
+		buffer.IsBreak = false;
+		buffer.IsBreakEnabled = false;
 		if (this->GetCpu()->IsBreakPoint(currentAddress))
+		{
 			buffer.IsBreak = true;
-		else
-			buffer.IsBreak = false;
+			Sp_BreakpointItem bp;
+			if (this->GetCpu()->GetExecute(currentAddress, bp))
+			{
+				buffer.IsBreakEnabled = bp->enabled;
+			}
+		}
 
 		int instructionSize = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
 		buffer.AddressReadAccessType = this->GetCpu()->GetCpuMmuReadMemoryType(currentAddress, -1);
 		buffer.Address = currentAddress;
 		buffer.InstructionSize = (bit8)instructionSize;
 		buffer.IsValid = true;
-		m_pFrontTextBuffer[currentLine] = buffer;
+		assemblyLineBuffer[currentLine] = buffer;
 		currentAddress += instructionSize;
 	}
 
@@ -1386,6 +1422,7 @@ void CDisassemblyEditChild::AssemblyLineBuffer::Clear()
 	IsUnDoc = false;
 	IsPC = false;
 	IsBreak = false;
+	IsBreakEnabled = false;
 	InstructionCycle = 0;
 	IsValid = false;
 	IsFocused = false;
@@ -1404,6 +1441,8 @@ bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& othe
 	if (IsPC != other.IsPC)
 		return false;
 	if (IsBreak != other.IsBreak)
+		return false;
+	if (IsBreakEnabled != other.IsBreakEnabled)
 		return false;
 	if (IsFocused != other.IsFocused)
 		return false;

@@ -1343,12 +1343,14 @@ HWND hWndMdiDebugger = NULL;
 
 bool CApp::IsBreakpointC64Execute(bit16 address)
 {
+	//FIXME IsBreakPoint looks are read/write and execute
 	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
 	return p->IsBreakPoint(address);
 }
 
 bool CApp::IsBreakpointDiskExecute(bit16 address)
 {
+	//FIXME IsBreakPoint looks are read/write and execute
 	IMonitorCpu *p = c64.GetCpu(CPUID_DISK);
 	return p->IsBreakPoint(address);
 }

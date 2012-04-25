@@ -143,13 +143,34 @@ bool CPU6502::SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount,
 {
 	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
 		return false;
-	
+	Sp_BreakpointItem bp;
 	Sp_BreakpointItem v(new BreakpointItem(this->ID, address, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
 	Sp_BreakpointKey k(new BreakpointKey(this->ID, address));
 	if (k == 0 || v == 0)
 		return false;
-	MapBpExecute[k] = v;
+	if (GetExecute(address, bp))
+	{
+		*(MapBpExecute[k]) = *v;
+	}
+	else
+	{
+		MapBpExecute[k] = v;
+	}
 	return true;
+}
+
+bool CPU6502::GetExecute(bit16 address, Sp_BreakpointItem& breakpoint)
+{
+	BreakpointKey key(this->ID, address);
+	Sp_BreakpointKey k(&key, null_deleter());
+	BpMap::iterator it;
+	it = MapBpExecute.find(k);
+	if (it != MapBpExecute.end())
+	{
+		breakpoint =it->second;
+		return true;
+	}
+	return false;
 }
 
 bool CPU6502::SetRead(bit16 address, int count)

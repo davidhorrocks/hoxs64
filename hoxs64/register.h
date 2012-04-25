@@ -154,6 +154,7 @@ public:
 	virtual bool IsBreakPoint(bit16 address)=0;
 	virtual void ClearBreakPoint(bit16 address)=0;
 	virtual bool SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
+	virtual bool GetExecute(bit16 address, Sp_BreakpointItem& breakpoint)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
 	virtual void ClearAllBreakpoints() = 0;

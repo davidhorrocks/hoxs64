@@ -44,7 +44,6 @@ public:
 
 	struct AssemblyLineBuffer
 	{
-		int index;
 		bit16 Address;
 		bit8 InstructionSize;
 		TCHAR AddressText[Monitor::BUFSIZEADDRESSTEXT];
@@ -55,6 +54,7 @@ public:
 		bool IsUnDoc;
 		bool IsPC;
 		bool IsBreak;
+		bool IsBreakEnabled;
 		bool IsFocused;
 		bool WantUpdate;
 		int InstructionCycle;
@@ -102,7 +102,8 @@ private:
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	HBITMAP m_hBmpBreak;
+	HBITMAP m_hBmpBreakEnabled;
+	HBITMAP m_hBmpBreakDisabled;
 	bool m_bHasLastDrawText;
 	RECT m_rcLastDrawText;
 	bit16 m_iFocusedAddress;
@@ -132,6 +133,7 @@ private:
 	int GetLineFromYPos(int y);
 	void DrawDisplay(HWND hWnd, HDC hdc);
 	void DrawDisplay2(HWND hWnd, HDC hdc);
+	void DrawBitmap(HDC hdcDest, int x, int y, HDC hdcSource, HBITMAP hBmpSource);
 	int GetNumberOfLines(RECT& rc, int lineHeight);
 	bool GetFocusedAddress(bit16 *address);
 	void SetFocusedAddress(bit16 address);

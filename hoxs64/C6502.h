@@ -522,6 +522,7 @@ public:
 	virtual bool IsBreakPoint(bit16 address);
 	virtual void ClearBreakPoint(bit16 address);
 	virtual bool SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	virtual bool GetExecute(bit16 address, Sp_BreakpointItem& breakpoint);
 	virtual void SetBreakOnInterruptTaken();
 	virtual void ClearBreakOnInterruptTaken();
 	virtual void SetPC(bit16 address);
