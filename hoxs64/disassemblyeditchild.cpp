@@ -650,16 +650,16 @@ bool bHasPrevAddress;
 			if (this->GetCpuId() == CPUID_MAIN)
 			{
 				if (this->m_pMonitorCommand->IsBreakpointC64Execute(address))
-					this->m_pMonitorCommand->DeleteBreakpointC64Execute(address);
+					this->m_pMonitorCommand->DeleteBreakpointC64Execute(this, address);
 				else
-					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, true, 0, 0);				
+					this->m_pMonitorCommand->SetBreakpointC64Execute(this, MT_DEFAULT, address, true, 0, 0);				
 			}
 			else if (this->GetCpuId() == CPUID_DISK)
 			{
 				if (this->m_pMonitorCommand->IsBreakpointDiskExecute(address))
-					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(address);
+					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(this, address);
 				else
-					this->m_pMonitorCommand->SetBreakpointDiskExecute(address, true, 0, 0);
+					this->m_pMonitorCommand->SetBreakpointDiskExecute(this, address, true, 0, 0);
 			}
 		}
 	}

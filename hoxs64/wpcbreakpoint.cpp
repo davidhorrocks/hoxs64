@@ -325,11 +325,11 @@ lresult = 0;
 			{
 				if (bp->machine == CPUID_MAIN)
 				{
-					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
+					this->m_pMonitorCommand->SetBreakpointC64Execute(this, MT_DEFAULT, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
 				}
 				else if (bp->machine == CPUID_DISK)
 				{
-					this->m_pMonitorCommand->SetBreakpointDiskExecute(bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
+					this->m_pMonitorCommand->SetBreakpointDiskExecute(this, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
 				}				
 				RECT rcState;
 				if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))
@@ -418,11 +418,15 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 
 void WpcBreakpoint::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
 {
+	if (sender == this)
+		return;
 	FillListView(m_hLvBreak);
 }
 
 void WpcBreakpoint::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
 {
+	if (sender == this)
+		return;
 	FillListView(m_hLvBreak);
 }
 
@@ -460,7 +464,7 @@ int wmId, wmEvent;
 			}
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS:
-			this->m_pMonitorCommand->DeleteAllBreakpoints();
+			this->m_pMonitorCommand->DeleteAllBreakpoints(NULL);
 			return 0;
 		}
 		break;

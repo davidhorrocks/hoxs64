@@ -391,7 +391,7 @@ int wmId, wmEvent;
 		this->m_pMonitorCommand->ShowDevelopment();
 		return true;
 	case IDM_BREAKPOINT_DELETEALLBREAKPOINTS:
-		this->m_pMonitorCommand->DeleteAllBreakpoints();
+		this->m_pMonitorCommand->DeleteAllBreakpoints(NULL);
 		return true;
 	default:
 		return false;

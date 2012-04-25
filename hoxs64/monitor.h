@@ -37,13 +37,13 @@ public:
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
 	virtual bool IsBreakpointC64Execute(bit16 address)=0;
 	virtual bool IsBreakpointDiskExecute(bit16 address)=0;
-	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
-	virtual void SetBreakpointDiskExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
-	virtual void DeleteBreakpointC64Execute(bit16 address)=0;
-	virtual void DeleteBreakpointDiskExecute(bit16 address)=0;
-	virtual void EnableAllBreakpoints()=0;
-	virtual void DisableAllBreakpoints()=0;
-	virtual void DeleteAllBreakpoints()=0;
+	virtual void SetBreakpointC64Execute(void *sender, MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
+	virtual void SetBreakpointDiskExecute(void *sender, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
+	virtual void DeleteBreakpointC64Execute(void *sender, bit16 address)=0;
+	virtual void DeleteBreakpointDiskExecute(void *sender, bit16 address)=0;
+	virtual void EnableAllBreakpoints(void *sender)=0;
+	virtual void DisableAllBreakpoints(void *sender)=0;
+	virtual void DeleteAllBreakpoints(void *sender)=0;
 
 	EventSource<EventArgs> EsResume;
 	EventSource<EventArgs> EsTrace;

@@ -40,6 +40,10 @@ EdLnTabControlEventArgs::EdLnTabControlEventArgs(EdLn* pEdLnControl, bool isNext
 	this->IsNext = isNext;
 }
 
+EdLnEscControlEventArgs::EdLnEscControlEventArgs(EdLn* pEdLnControl)
+{
+	this->pEdLnControl = pEdLnControl;
+}
 
 EdLn::EdLn()
 {
