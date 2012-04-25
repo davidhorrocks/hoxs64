@@ -70,6 +70,7 @@ CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMoni
 	m_pMonitorCommand = pMonitorCommand;
 	m_pszCaption = pszCaption;
 	m_hWndToolItemAddress = NULL;
+	m_wheel_current = 0;
 }
 
 CDisassemblyFrame::~CDisassemblyFrame()
@@ -1023,6 +1024,19 @@ void CDisassemblyFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	}
 }
 
+void CDisassemblyFrame::OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+	m_wheel_current += zDelta;
+	if (abs(m_wheel_current) < WHEEL_DELTA)
+		return;
+	int amount = m_wheel_current / WHEEL_DELTA;
+	bit16 address = m_DisassemblyChild.GetTopAddress();
+	address = m_DisassemblyChild.GetNthAddress(address, - amount);
+	m_DisassemblyChild.UpdateDisplay(DBGSYM::SetTopAddress, address);
+	m_wheel_current = m_wheel_current - amount * WHEEL_DELTA;
+}
+
 LRESULT CDisassemblyFrame::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr;
@@ -1043,28 +1057,24 @@ HRESULT hr;
 		OnGetMinMaxSizeInfo(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_KEYDOWN:
-		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		else
+		if (OnKeyDown(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_LBUTTONDOWN:
-		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		else
+		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
 			return 0;
-		else
-			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_NOTIFY:
 		if (OnNotify(hWnd, uMsg, wParam, lParam))
 			return 0;
-		else
-			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);		
-	case WM_DESTROY:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-
+		break;
+	case WM_MOUSEWHEEL:
+		OnMouseWheel(hWnd, uMsg, wParam, lParam);
+		return 0;
 	case WM_ENTERMENULOOP:
 		m_pMonitorCommand->SoundOff();
 		return 0;
@@ -1077,10 +1087,8 @@ HRESULT hr;
 	case WM_EXITSIZEMOVE:
 		m_pMonitorCommand->SoundOn();
 		return 0;
-	default:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	}
-	return 0;
+	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 };
 
 void CDisassemblyFrame::GetMinWindowSize(int &w, int &h)

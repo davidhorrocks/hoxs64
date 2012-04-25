@@ -229,11 +229,26 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 
 }
 
+int CDisassemblyChild::GetNumberOfLines()
+{
+	return m_DisassemblyEditChild.GetNumberOfLines();
+}
+
 void CDisassemblyChild::SetHome()
 {
 	CPUState cpustate;
 	this->GetCpu()->GetCpuState(cpustate);
 	this->SetTopAddress(cpustate.PC_CurrentOpcode, true);
+}
+
+bit16 CDisassemblyChild::GetTopAddress()
+{
+	return m_DisassemblyEditChild.GetTopAddress();
+}
+
+bit16 CDisassemblyChild::GetNthAddress(bit16 startaddress, int linenumber)
+{
+	return m_DisassemblyEditChild.GetNthAddress(startaddress, linenumber);
 }
 
 void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
@@ -288,14 +303,12 @@ int pos;
 		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::None, 0);
 		break;
 	case SB_PAGEUP:
-		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
-		address = m_DisassemblyEditChild.GetTopAddress();
-		//FIXME could do with an improved accuracy for paging up.
-		page = abs((int)(bit16s)(bottomAddress - address));
-		if (page <=0)
+		page = this->GetNumberOfLines();
+		page -= 2;
+		if (page < 0)
 			page = 1;
-
-		address-=page;
+		address = this->GetTopAddress();
+		address = this->GetNthAddress(address, - page);
 		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
 		SetTopAddress(nearestAdress, true);
 		CancelEditing();

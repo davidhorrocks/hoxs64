@@ -32,7 +32,9 @@ public:
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	void GetMinWindowSize(int &w, int &h);
-	void SetTopAddress(bit16 address, bool bSetScrollBarPage);
+	bit16 GetTopAddress();
+	bit16 GetNthAddress(bit16 startaddress, int linenumber);
+	int GetNumberOfLines();
 	void SetHome();
 	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void InvalidateBuffer();
@@ -54,6 +56,7 @@ private:
 
 	HRESULT GetSizeRectEditWindow(RECT &rc);
 	HRESULT GetSizeRectScrollBar(RECT &rc);
+	void SetTopAddress(bit16 address, bool bSetScrollBarPage);
 
 	HRESULT OnCreate(HWND hWnd);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

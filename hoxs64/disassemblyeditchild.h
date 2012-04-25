@@ -78,6 +78,7 @@ public:
 	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void UpdateBuffer(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void SetTopAddress(bit16 address);
+	int GetNumberOfLines();
 	bit16 GetNearestTopAddress(bit16 address);
 	bit16 GetNthAddress(bit16 startaddress, int linenumber);
 	bit16 GetTopAddress();
@@ -134,7 +135,7 @@ private:
 	void DrawDisplay(HWND hWnd, HDC hdc);
 	void DrawDisplay2(HWND hWnd, HDC hdc);
 	void DrawBitmap(HDC hdcDest, int x, int y, HDC hdcSource, HBITMAP hBmpSource);
-	int GetNumberOfLines(RECT& rc, int lineHeight);
+	int GetNumberOfLinesForRect(const RECT& rc, int lineHeight);
 	bool GetFocusedAddress(bit16 *address);
 	void SetFocusedAddress(bit16 address);
 	void ClearFocusedAddress();	

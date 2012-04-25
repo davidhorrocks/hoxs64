@@ -26,6 +26,8 @@
 #define MARGIN_TOP_96 (5)
 #define MAX_EDIT_CHARS (256)
 
+#define INSTRUCTION_LOOKBACK (32)
+
 TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
 
@@ -516,7 +518,12 @@ HBRUSH bshWhite;
 		SetMapMode(hdc, prevMapMode);
 }
 
-int CDisassemblyEditChild::GetNumberOfLines(RECT& rc, int lineHeight)
+int CDisassemblyEditChild::GetNumberOfLines()
+{
+	return m_NumLines;
+}
+
+int CDisassemblyEditChild::GetNumberOfLinesForRect(const RECT& rc, int lineHeight)
 {
 	int num = 0;
 	if (lineHeight > 0)
@@ -1188,7 +1195,7 @@ RECT rc;
 	ZeroMemory(&rc, sizeof(rc));
 	if (GetClientRect(m_hWnd, &rc))
 	{
-		m_NumLines = GetNumberOfLines(rc, LINE_HEIGHT);
+		m_NumLines = GetNumberOfLinesForRect(rc, LINE_HEIGHT);
 		int pcline=-1;
 		bit16 address = this->m_FirstAddress;
 		UpdateBuffer(assemblyLineBuffer, address, 0, numLines);
@@ -1285,7 +1292,7 @@ CPUState cpustate;
 bit16 CDisassemblyEditChild::GetNearestTopAddress(bit16 address)
 {
 bool isUndoc = false;
-bit16 currentAddress = address - 32;
+bit16 currentAddress = address - INSTRUCTION_LOOKBACK;
 bit16 nextAddress;
 	while((bit16s)(currentAddress - address) < 0)
 	{
@@ -1336,19 +1343,54 @@ bool isUndoc = false;
 		return GetNthAddress(m_FirstAddress, m_NumLines + offset - 1);
 }
 
+typedef std::vector<bit16> VecAddress;
+
 bit16 CDisassemblyEditChild::GetNthAddress(bit16 startaddress, int linenumber)
 {
 bool isUndoc = false;
-	if (linenumber <= 0)
-		return startaddress;
-	bit16 currentAddress = startaddress;
-	for (int i=0 ; i<linenumber ; i++)
+
+	if (linenumber >= 0)
 	{
-		int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
-		currentAddress+=instructionLength;
+		bit16 currentAddress = startaddress;
+		for (int i=0 ; i<linenumber ; i++)
+		{
+			int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+			currentAddress += instructionLength;
+		}
+		return currentAddress;
 	}
-	
-	return currentAddress;
+	else
+	{
+		VecAddress vecAddress;
+		bit16 nextAddress;
+		bit16 currentAddress = startaddress - (INSTRUCTION_LOOKBACK - (linenumber * 3));
+		vecAddress.reserve(INSTRUCTION_LOOKBACK - linenumber);
+		while((bit16s)(currentAddress - startaddress) < 0)
+		{
+			vecAddress.push_back(currentAddress);
+			int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+			if (instructionLength <= 0)
+			{
+				nextAddress = currentAddress + 1;
+			}
+			else
+			{
+				nextAddress = currentAddress + instructionLength;
+			}
+			if ((bit16s)(nextAddress - startaddress) >= 0)
+			{
+				if (vecAddress.size() + linenumber >= 0)
+					return vecAddress[vecAddress.size() + linenumber];
+				else if (vecAddress.size() > 0)
+					return vecAddress[0];
+				else
+					return currentAddress;
+			}
+
+			currentAddress = nextAddress;
+		}
+		return (bit16)(startaddress - linenumber);
+	}	
 }
 
 bit16 CDisassemblyEditChild::GetNextAddress()
@@ -1371,7 +1413,7 @@ bit16 nextAddress;
 bit16 CDisassemblyEditChild::GetPrevAddress()
 {
 bool isUndoc = false;
-bit16 currentAddress = m_FirstAddress - 32;
+bit16 currentAddress = m_FirstAddress - INSTRUCTION_LOOKBACK;
 bit16 nextAddress;
 	while((bit16s)(currentAddress-m_FirstAddress) < 0)
 	{

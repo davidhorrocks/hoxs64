@@ -146,6 +146,7 @@ private:
 	CToolItemAddress *m_pToolItemAddress;
 	HWND m_hWndToolItemAddress;
 	TCHAR m_tempAddressBuffer[MAX_EDIT_GOTO_ADDRESS_CHARS + 1];
+	int m_wheel_current;
 
 	HIMAGELIST CreateImageListStepNormal(HWND hWnd);
 	HWND CreateDisassemblyChild(int x, int y, int w, int h);
@@ -187,6 +188,7 @@ private:
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	bool OnToolBarInfo(LPNMTBGETINFOTIP info);
 	bool OnReBarHeightChange(LPNMHDR notify);
