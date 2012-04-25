@@ -411,7 +411,7 @@ SHORT nVirtKey;
 	else if (keycode == VK_ESCAPE || keycode == VK_RETURN)
 	{
 		IsFocused = false;
-		EventArgs evt;
+		EdLnEscControlEventArgs evt(this);
 		EsOnEscControl.Raise(this, evt); 
 	}
 	Refresh();

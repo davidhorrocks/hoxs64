@@ -23,15 +23,15 @@ protected:
 	virtual void OnTabControl(void *sender, EdLnTabControlEventArgs& e) =0;
 };
 
-class CDisassemblyReg_EventSink_OnEscControl : public EventSink<EventArgs>
+class CDisassemblyReg_EventSink_OnEscControl : public EventSink<EdLnEscControlEventArgs>
 {
 protected:
-	virtual int Sink(void *sender, EventArgs& e)
+	virtual int Sink(void *sender, EdLnEscControlEventArgs& e)
 	{
 		OnEscControl(sender, e);
 		return 0;
 	}
-	virtual void OnEscControl(void *sender, EventArgs& e) =0;
+	virtual void OnEscControl(void *sender, EdLnEscControlEventArgs& e) =0;
 };
 
 class CDisassemblyReg_EventSink : 
@@ -145,7 +145,7 @@ private:
 	bool OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnTextChanged(void *sender, EdLnTextChangedEventArgs& e);
 	void OnTabControl(void *sender, EdLnTabControlEventArgs& e);
-	void OnEscControl(void *sender, EventArgs& e);
+	void OnEscControl(void *sender, EdLnEscControlEventArgs& e);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	HRESULT AdviseEvents();

@@ -1072,9 +1072,9 @@ int i;
 	}
 }
 
-void CDisassemblyReg::OnEscControl(void *sender, EventArgs& e)
+void CDisassemblyReg::OnEscControl(void *sender, EdLnEscControlEventArgs& e)
 {
-	EdLn *p = (EdLn*)sender;
+	EdLn *p = e.pEdLnControl;
 	p->IsFocused  = false;
 	m_RegBuffer.UpdateCaret(m_hWnd, m_hdc);
 }

@@ -20,6 +20,14 @@ public:
 	bool IsNext;
 };
 
+class EdLnEscControlEventArgs : public EventArgs
+{
+public:
+	EdLnEscControlEventArgs(EdLn* pEdLnControl);
+
+	EdLn* pEdLnControl;
+};
+
 class EdLn
 {
 public:
@@ -34,7 +42,7 @@ public:
 	};
 	EventSource<EdLnTextChangedEventArgs> EsOnTextChanged;
 	EventSource<EdLnTabControlEventArgs> EsOnTabControl;
-	EventSource<EventArgs> EsOnEscControl;
+	EventSource<EdLnEscControlEventArgs> EsOnEscControl;
 
 	bool IsFocused;
 	EdLn();
