@@ -52,7 +52,6 @@ private:
 	CRITICAL_SECTION mCrtStatus;
 	bool mbSectionOK;
 	HANDLE mhEvtQuit;
-	bool mbDestroyCalled;
 	FIS mFileInspectorStatus;
 	HRESULT mFileInspectorResult;
 	void InspectorCompleteFail();

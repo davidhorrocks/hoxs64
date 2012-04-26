@@ -59,7 +59,6 @@ CPRGBrowse::CPRGBrowse()
 	mhWndInspector = 0;
 	mhEvtComplete = 0;
 	mbSectionOK = false;
-	mbDestroyCalled = false;
 
 	m_hbrush = 0;
 	m_pCharGen = 0;
@@ -303,7 +302,7 @@ void CPRGBrowse::InspectorStart()
 	mFileInspectorStatus = WORKING;
 	mFileInspectorResult = E_FAIL; 
 	ResetEvent(mhEvtComplete);
-	if (mhWndInspector!=0 || mbDestroyCalled)
+	if (mhWndInspector!=0)
 		PostMessage(mhWndInspector, WM_FILEINSPECTOR, 0, 0);
 	LeaveCriticalSection(&mCrtStatus);
 }
@@ -315,7 +314,7 @@ void CPRGBrowse::InspectorCompleteFail()
 	mFileInspectorStatus = COMPLETED;
 	mFileInspectorResult = E_FAIL; 
 	SetEvent(mhEvtComplete);
-	if (mhWndInspector!=0 || mbDestroyCalled)
+	if (mhWndInspector!=0)
 		PostMessage(mhWndInspector, WM_FILEINSPECTOR, 0, 0);
 	LeaveCriticalSection(&mCrtStatus);
 }
@@ -326,7 +325,7 @@ void CPRGBrowse::InspectorCompleteOK()
 	mFileInspectorStatus = COMPLETED;
 	mFileInspectorResult = S_OK; 
 	SetEvent(mhEvtComplete);
-	if (mhWndInspector!=0 || mbDestroyCalled)
+	if (mhWndInspector!=0)
 		PostMessage(mhWndInspector, WM_FILEINSPECTOR, 0, 0);
 	LeaveCriticalSection(&mCrtStatus);
 }
@@ -493,10 +492,7 @@ LRESULT lr;
 		}
 		else
 			return FALSE;
-	case WM_FILEINSPECTOR:
-		if (mbDestroyCalled)
-			return TRUE;
-		
+	case WM_FILEINSPECTOR:		
 		EnterCriticalSection(&mCrtStatus);
 		if (mFileInspectorStatus == CPRGBrowse::COMPLETED)
 		{
@@ -524,7 +520,7 @@ LRESULT lr;
 		}
 		else if (mFileInspectorStatus == CPRGBrowse::WORKING)
 		{
-			SendMessage(m_hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("Working..."));
+			SendMessage(m_hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT(""));
 		}
 		LeaveCriticalSection(&mCrtStatus);
 		return TRUE;
@@ -535,7 +531,6 @@ LRESULT lr;
 		return TRUE;
 	case WM_DESTROY:
 		EnterCriticalSection(&mCrtStatus);
-		mbDestroyCalled = false;
 		mhWndInspector = NULL;
 		LeaveCriticalSection(&mCrtStatus);
 		CancelFileInspector();
@@ -554,7 +549,7 @@ void CPRGBrowse::OnMeasureListViewItem(LPMEASUREITEMSTRUCT lpmis)
 
 void CPRGBrowse::OnDrawListViewItem(LPDRAWITEMSTRUCT lpdis)
 {
-const char S_WORKING[] = "WORKING..";
+const char S_WORKING[] = "WORKING...";
 BYTE tempC64String[MAXLENLVITEM];
 RGBQUAD rgb;
 HBRUSH hBrushListBox;
