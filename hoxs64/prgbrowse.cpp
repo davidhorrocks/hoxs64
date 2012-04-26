@@ -351,7 +351,6 @@ RECT rcCheckBoxQuickLoad;
 RECT rcCheckBoxAlignD64Tracks;
 RECT rcDlg;
 LRESULT lr;
-//RECT rcParentDlg;
 	switch (msg) 
 	{ 
 	case WM_INITDIALOG:
@@ -516,10 +515,8 @@ LRESULT lr;
 			case C64File::ef_D64:
 				EnableWindow(m_hCheckQuickLoad, TRUE);
 				EnableWindow(m_hCheckAlignD64Tracks, TRUE);
-				//CheckDlgButton(hDlg, IDC_CHKQUICKLOAD, BST_UNCHECKED);
 				break;
 			default:
-				//CheckDlgButton(hDlg, IDC_CHKQUICKLOAD, BST_CHECKED);
 				EnableWindow(m_hCheckQuickLoad, FALSE);
 				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
 				break;
@@ -557,10 +554,12 @@ void CPRGBrowse::OnMeasureListViewItem(LPMEASUREITEMSTRUCT lpmis)
 
 void CPRGBrowse::OnDrawListViewItem(LPDRAWITEMSTRUCT lpdis)
 {
+const char S_WORKING[] = "WORKING..";
 BYTE tempC64String[MAXLENLVITEM];
 RGBQUAD rgb;
 HBRUSH hBrushListBox;
 HBRUSH hbrushOld;
+int charLen=0;
 int i;
 
 	if (lpdis->itemID == -1)
@@ -569,16 +568,16 @@ int i;
 	{
 	case ODA_SELECT:
 	case ODA_DRAWENTIRE:
-		int charLen;
 		EnterCriticalSection(&mCrtStatus);
 		bool bUsedShifedCharROMSet = false;
 		if (mFileInspectorStatus == WORKING)
 		{
 			//Worker thread is still looking for items.
+			charLen = sizeof(tempC64String);
 			memset(tempC64String, 0x20, sizeof(tempC64String));
 			if (lpdis->itemID == 0)
 			{
-				memcpy_s(tempC64String, sizeof(tempC64String), "WORKING..", 9);
+				memcpy_s(tempC64String, sizeof(tempC64String), S_WORKING, sizeof(S_WORKING) - 1);
 			}
 		}
 		else if (lpdis->itemID == 0)
@@ -612,10 +611,10 @@ int i;
 			}
 		}
 
-		if (m_c64file.GetFileType()==C64File::ef_SID && charLen >0)
+		if (m_c64file.GetFileType()==C64File::ef_SID)
 		{
 			bUsedShifedCharROMSet = true;
-			for (i=0; i<charLen; i++)
+			for (i=0; i < sizeof(tempC64String); i++)
 			{
 				if (tempC64String[i] >= 'A' && tempC64String[i] <= 'Z')
 					tempC64String[i]+=0x20;
