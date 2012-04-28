@@ -94,6 +94,8 @@ private:
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);
 
+	void ShowDlgBreakpointVicRaster();
+
 	HRESULT CreateMDIToolBars();
 	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	void OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

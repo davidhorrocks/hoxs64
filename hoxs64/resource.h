@@ -59,6 +59,7 @@
 #define IDR_MENU1                       181
 #define IDI_CHIP1                       182
 #define IDI_GREENFIND                   183
+#define IDD_BRKVICRASTER                187
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
 #define IDC_INFO2                       1002
@@ -200,6 +201,12 @@
 #define IDC_DISABLE_DWM_FULLSCREEN      1312
 #define IDC_TXT_CURSORUP                1313
 #define IDC_TXT_CURSORLEFT              1314
+#define IDC_TXT_BREAKPOINTRASTERLINE    1315
+#define IDC_LBL_BREAKPOINTRASTERLINE    1318
+#define IDC_TXT_RASTERCYCLE             1319
+#define IDC_TXT_BREAKPOINTRASTERCYCLE   1319
+#define IDC_LBL_BREAKPOINTRASTERCYCLE   1320
+#define IDC_GRP_RASTERVALUE             1321
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -248,14 +255,16 @@
 #define IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS 40137
 #define IDM_BREAKPOINT_DELETEALLBREAKPOINTS 40139
 #define IDM_VIEW_ADDRESS                40141
+#define ID_BREAKPOINT_VICRASTER         40142
+#define IDM_BREAKPOINT_VICRASTER        40143
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        187
-#define _APS_NEXT_COMMAND_VALUE         40142
-#define _APS_NEXT_CONTROL_VALUE         1315
+#define _APS_NEXT_RESOURCE_VALUE        188
+#define _APS_NEXT_COMMAND_VALUE         40144
+#define _APS_NEXT_CONTROL_VALUE         1322
 #define _APS_NEXT_SYMED_VALUE           116
 #endif
 #endif

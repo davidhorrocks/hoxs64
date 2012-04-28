@@ -1941,11 +1941,11 @@ bool bGotWorkArea = false;
 int G::GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer)
 {
 int c;
-	c = (int)SendMessage(hEditControl, EM_LINELENGTH, 0, 0);
+	c = (int)SendMessage(hEditControl, EM_LINELENGTH, linenumber, 0);
 	if (buffer != NULL && cchBuffer > 0)
 	{
 		*((LPWORD)&buffer[0]) = cchBuffer;
-		c = (int)SendMessage(hEditControl, EM_GETLINE, 0, (LPARAM)buffer);
+		c = (int)SendMessage(hEditControl, EM_GETLINE, linenumber, (LPARAM)buffer);
 	}	
 	if (c < 0)
 		c = 0;
@@ -1955,11 +1955,11 @@ int c;
 int G::GetEditLineSzString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer)
 {
 int c;
-	c = (int)SendMessage(hEditControl, EM_LINELENGTH, 0, 0);
+	c = (int)SendMessage(hEditControl, EM_LINELENGTH, linenumber, 0);
 	if (buffer != NULL && cchBuffer > 0)
 	{
 		*((LPWORD)&buffer[0]) = cchBuffer;
-		c = (int)SendMessage(hEditControl, EM_GETLINE, 0, (LPARAM)buffer);
+		c = (int)SendMessage(hEditControl, EM_GETLINE, linenumber, (LPARAM)buffer);
 		if (c >= cchBuffer)
 			c = cchBuffer - 1;
 		if (c < 0)
@@ -1969,6 +1969,20 @@ int c;
 	if (c < 0)
 		c = 0;
 	return c;
+}
+
+LPTSTR G::GetMallocEditLineSzString(HWND hEditControl, int linenumber)
+{
+int c;
+	c = (int)SendMessage(hEditControl, EM_LINELENGTH, linenumber, 0);
+	if (c < 0)
+		return NULL;
+	LPTSTR s = (LPTSTR)malloc(c + sizeof(TCHAR));
+	if (!s)
+		return NULL;
+	SendMessage(hEditControl, EM_GETLINE, linenumber, (LPARAM)s);
+	s[c] = 0;
+	return s;
 }
 
 DWORD G::GetDllVersion(LPCTSTR lpszDllName)

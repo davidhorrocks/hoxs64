@@ -215,6 +215,7 @@ public:
 	static void EnsureWindowPosition(HWND hWnd);
 	static int GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
 	static int GetEditLineSzString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
+	static LPTSTR GetMallocEditLineSzString(HWND hEditControl, int linenumber);
 	static DWORD GetDllVersion(LPCTSTR lpszDllName);
 	static DWORD CachedCommonControlsVersion();
 };

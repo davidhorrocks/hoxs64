@@ -521,6 +521,7 @@
   <ItemGroup>
     <ClCompile Include="appstatus.cpp" />
     <ClCompile Include="assembler.cpp" />
+    <ClCompile Include="diagbreakpointvicraster.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />
     <ClCompile Include="wpcbreakpoint.cpp" />
     <ClCompile Include="break_point.cpp">
@@ -821,6 +822,7 @@
   <ItemGroup>
     <ClInclude Include="assembler.h" />
     <ClInclude Include="bits.h" />
+    <ClInclude Include="diagbreakpointvicraster.h" />
     <ClInclude Include="toolitemaddress.h" />
     <ClInclude Include="wpcbreakpoint.h" />
     <ClInclude Include="CDPI.h" />

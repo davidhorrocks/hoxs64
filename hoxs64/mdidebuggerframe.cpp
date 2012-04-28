@@ -21,6 +21,7 @@
 #include "wpanelmanager.h"
 #include "wpcbreakpoint.h"
 #include "toolitemaddress.h"
+#include "diagbreakpointvicraster.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -393,8 +394,22 @@ int wmId, wmEvent;
 	case IDM_BREAKPOINT_DELETEALLBREAKPOINTS:
 		this->m_pMonitorCommand->DeleteAllBreakpoints(NULL);
 		return true;
+	case IDM_BREAKPOINT_VICRASTER:
+		ShowDlgBreakpointVicRaster();
+		return TRUE;
 	default:
 		return false;
+	}
+}
+
+void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
+{
+	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster());	
+	if (pdlg == 0)
+		return;
+	INT_PTR r = pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
+	if (LOWORD(r) == IDOK)
+	{
 	}
 }
 
