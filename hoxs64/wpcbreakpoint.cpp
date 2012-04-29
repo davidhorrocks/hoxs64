@@ -169,17 +169,28 @@ bool ok = false;
 	return hWnd;
 }
 
+int WpcBreakpoint::GetTextWidth(HWND hWnd, LPCTSTR szText, int fallbackWidthOnError)
+{
+SIZE size;
+	HRESULT hr = G::GetTextSize(hWnd, szText, size);
+	if (SUCCEEDED(hr))
+		return size.cx;
+	else
+		return fallbackWidthOnError;
+}
+
 HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 {
+	int ColumnWidthPadding = 8;
 	int r;
 	LVCOLUMN lvc;
-
+	SIZE sz;
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	lvc.iSubItem = (int)LvBreakColumnIndex::Cpu;
 	lvc.fmt = LVCFMT_LEFT;
 	lvc.pszText = TEXT("CPU");
-	lvc.cx = m_dpi.ScaleX(100);
+	lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("00000000"), 100) + ColumnWidthPadding);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cpu, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -189,7 +200,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Type;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Type");
-	lvc.cx = m_dpi.ScaleX(100);
+	lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("Raster Compare"), 100) + ColumnWidthPadding);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Type, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -199,7 +210,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Address;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Address");
-	lvc.cx = m_dpi.ScaleX(100);
+	lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("0000000"), 100) + ColumnWidthPadding);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -209,7 +220,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Line;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Line");
-	lvc.cx = m_dpi.ScaleX(100);
+	lvc.cx = lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("00000"), 100) + ColumnWidthPadding);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Line, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -219,7 +230,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Cycle;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Cycle");
-	lvc.cx = m_dpi.ScaleX(100);
+	lvc.cx = lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("Cycle"), 100) + ColumnWidthPadding);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cycle, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -398,7 +409,7 @@ lresult = 0;
 					this->m_pMonitorCommand->SetBreakpointDiskExecute(this, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
 					break;
 				case DBGSYM::MachineIdent::Vic:
-					this->m_pMonitorCommand->SetBreakpointVicRasterCompare(this, bp->vic_line, bp->vic_cycle, true, 0, 0);
+					this->m_pMonitorCommand->SetBreakpointVicRasterCompare(this, bp->vic_line, bp->vic_cycle, !bp->enabled, 0, 0);
 					break;
 				}
 				RECT rcState;

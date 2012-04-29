@@ -2036,3 +2036,19 @@ DWORD G::CachedCommonControlsVersion()
 	}
 	return m_dwCachedCommonControlsVersion;
 }
+
+HRESULT G::GetTextSize(HWND hWnd, LPCTSTR szText, SIZE& sizeText)
+{
+RECT rcEdit;
+HRESULT hr = E_FAIL;
+	HDC hdc = GetDC(hWnd);
+	if (hdc)
+	{
+		int slen = lstrlen(szText);
+		BOOL br = GetTextExtentExPoint(hdc, szText, slen, 0, NULL, NULL, &sizeText);
+		if (br)
+			hr = S_OK;
+		ReleaseDC(hWnd, hdc);
+	}
+	return hr;
+}

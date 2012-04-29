@@ -76,6 +76,7 @@ private:
 	HWND CreateListView(CREATESTRUCT *pcs, HWND hWndParent);
 	HRESULT InitListViewColumns(HWND hWndListView);
 	HRESULT FillListView(HWND hWndListView);
+	int GetTextWidth(HWND hWnd, LPCTSTR szText, int fallbackWidthOnError);
 
 	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
 	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);

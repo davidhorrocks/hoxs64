@@ -130,7 +130,7 @@ void VIA2::SetPinsPortA(bit8 newPin)
 	disk->m_d64_diskwritebyte = newPin;
 }
 
-//Does motor the motor need to be on for head stepping?
+//Does the motor need to be on for head stepping?
 void VIA2::SetPinsPortB(bit8 newPin)
 {
 bit8 t;
