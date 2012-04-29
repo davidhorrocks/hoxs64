@@ -10,7 +10,10 @@ public:
 	int GetRasterLine();
 	int GetRasterCycle();
 private:
-	HRESULT SavePosition();
+	int m_iLine;
+	int m_iCycle;
+	void InitControls(HWND hWndDlg);
+	bool SaveUI();
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 

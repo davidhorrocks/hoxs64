@@ -121,7 +121,7 @@ public:
 
 	HRESULT Init(CVirWindow *parent);
 	HRESULT Show();
-	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);

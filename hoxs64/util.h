@@ -127,12 +127,34 @@ public:
 
 namespace DBGSYM
 {
-	enum DisassemblyPCUpdateMode
+	namespace MachineIdent
 	{
-		None = 0,
-		EnsurePCVisible = 1,
-		EnsureAddressVisible = 2,
-		SetTopAddress = 3
+		enum MachineIdent
+		{
+			MainCpu = 0,
+			DiskCpu = 1,
+			Vic = 2
+		};
+	};
+	namespace SetDisassemblyAddress
+	{
+		enum DisassemblyPCUpdateMode
+		{
+			None = 0,
+			EnsurePCVisible = 1,
+			EnsureAddressVisible = 2,
+			SetTopAddress = 3
+		};
+	};
+	namespace BreakpointType
+	{
+		enum BreakpointType
+		{
+			Execute = 0,
+			Read = 1,
+			Write = 2,
+			VicRasterCompare = 3,
+		};
 	};
 };
 

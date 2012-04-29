@@ -34,7 +34,7 @@ public:
 	virtual bool IsRunning()=0;
 	virtual void SoundOff()=0;
 	virtual void SoundOn()=0;
-	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
+	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
 	virtual bool IsBreakpointC64Execute(bit16 address)=0;
 	virtual bool IsBreakpointDiskExecute(bit16 address)=0;
 	virtual void SetBreakpointC64Execute(void *sender, MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;

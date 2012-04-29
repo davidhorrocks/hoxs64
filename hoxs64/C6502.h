@@ -642,8 +642,6 @@ private:
 	bit8 axa_byte;
 	bool m_bBreakOnInterruptTaken;
 	BpMap MapBpExecute;
-	BpMap MapBpRead;
-	BpMap MapBpWrite;
 };
 
 #endif

@@ -681,7 +681,7 @@ bool CDisassemblyFrame::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		break; 
 	case VK_HOME:
 		SetHome();
-		UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
+		UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		break; 
 	default:
 		return false;
@@ -689,7 +689,7 @@ bool CDisassemblyFrame::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	return true;
 }
 
-void CDisassemblyFrame::UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
+void CDisassemblyFrame::UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 	if (IsWindow(m_hWnd))
 	{
@@ -715,7 +715,7 @@ void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
 	{
 		m_DisassemblyReg.InvalidateBuffer();
 		m_DisassemblyChild.InvalidateBuffer();
-		this->UpdateDisplay(DBGSYM::None, 0);
+		this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 		SetMenuState();
 	}
 }
@@ -725,28 +725,28 @@ void CDisassemblyFrame::OnTraceFrame(void *sender, EventArgs& e)
 	if (IsWindow(this->m_hWnd))
 	{
 		this->SetHome();
-		this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
+		this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 	}
 }
 
 void CDisassemblyFrame::OnExecuteC64Clock(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
+	this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnExecuteDiskClock(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
+	this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnExecuteC64Instruction(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
+	this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 {
-	this->UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
+	this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 }
 
 void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
@@ -755,7 +755,7 @@ void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 	if (IsWindow(this->m_hWnd))
 	{
 		SetHome();
-		UpdateDisplay(DBGSYM::EnsurePCVisible, 0);
+		UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		SetMenuState();
 	}
 }
@@ -853,7 +853,7 @@ HRESULT hr;
 	hr = as.ParseAddress16(pszAddress, &v);
 	if (SUCCEEDED(hr))
 	{
-		UpdateDisplay(DBGSYM::SetTopAddress, v);
+		UpdateDisplay(DBGSYM::SetDisassemblyAddress::SetTopAddress, v);
 		MessageBeep(MB_ICONASTERISK);
 		return true;
 	}
@@ -1033,7 +1033,7 @@ void CDisassemblyFrame::OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	int amount = m_wheel_current / WHEEL_DELTA;
 	bit16 address = m_DisassemblyChild.GetTopAddress();
 	address = m_DisassemblyChild.GetNthAddress(address, - amount);
-	m_DisassemblyChild.UpdateDisplay(DBGSYM::SetTopAddress, address);
+	m_DisassemblyChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::SetTopAddress, address);
 	m_wheel_current = m_wheel_current - amount * WHEEL_DELTA;
 }
 

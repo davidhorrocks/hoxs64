@@ -1434,13 +1434,6 @@ IMonitorCpu *C64::GetCpu(int cpuid)
 		return NULL;
 }
 
-
-//DefaultCpu::DefaultCpu()
-//{
-//	cpuid = CPUID_MAIN;
-//	c64 = NULL;
-//}
-
 DefaultCpu::DefaultCpu(int cpuid, C64 *c64)
 {
 	this->cpuid = cpuid;

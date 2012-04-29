@@ -53,8 +53,8 @@ public:
 	HRESULT Init();
 	HWND Show(CVirWindow *pParentWindow);
 
-	void ShowDebugCpuC64(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
-	void ShowDebugCpuDisk(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 
 	virtual void GetMinWindowSize(int &w, int &h);
 protected:

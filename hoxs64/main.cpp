@@ -1327,7 +1327,7 @@ void CApp::SoundOn()
 	SoundResume();
 }
 
-void CApp::ShowCpuDisassembly(int cpuid, DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
+void CApp::ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 HWND hWndMdiDebugger = NULL;
 	if (!appWindow.m_pMDIDebugger)

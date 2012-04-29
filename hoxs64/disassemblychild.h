@@ -36,7 +36,7 @@ public:
 	bit16 GetNthAddress(bit16 startaddress, int linenumber);
 	int GetNumberOfLines();
 	void SetHome();
-	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void InvalidateBuffer();
 	void CancelEditing();
 private:

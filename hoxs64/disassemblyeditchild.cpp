@@ -270,7 +270,7 @@ bit16 address;
 				{
 					this->GetCpu()->MonWriteByte(address+j, acode[j], -1);
 				}
-				this->UpdateBuffer(DBGSYM::None, 0);
+				this->UpdateBuffer(DBGSYM::SetDisassemblyAddress::None, 0);
 				this->InvalidateRectChanges();
 				::UpdateWindow(m_hWnd);
 				return S_OK;
@@ -398,7 +398,7 @@ BOOL br;
 			return 0;
 		if (wParam==SIZE_MINIMIZED)
 			return 0;
-		UpdateDisplay(DBGSYM::None, 0);
+		UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 		return 0;
 	case WM_KEYDOWN:
 		if (OnKeyDown(hWnd, uMsg, wParam, lParam))
@@ -537,7 +537,7 @@ int CDisassemblyEditChild::GetNumberOfLinesForRect(const RECT& rc, int lineHeigh
 	return num;
 }
 
-void CDisassemblyEditChild::UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
+void CDisassemblyEditChild::UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 	UpdateBuffer(pcmode, address);
 	InvalidateRectChanges();
@@ -1169,20 +1169,20 @@ BITMAP bmp;
 	}
 }
 
-void CDisassemblyEditChild::UpdateBuffer(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address)
+void CDisassemblyEditChild::UpdateBuffer(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 int iEnsureAddress = -1;
-	if (pcmode == DBGSYM::EnsurePCVisible)
+	if (pcmode == DBGSYM::SetDisassemblyAddress::EnsurePCVisible)
 	{
 		CPUState cpustate;
 		this->GetCpu()->GetCpuState(cpustate);
 		iEnsureAddress = cpustate.PC_CurrentOpcode;
 	}
-	else if (pcmode == DBGSYM::EnsureAddressVisible)
+	else if (pcmode == DBGSYM::SetDisassemblyAddress::EnsureAddressVisible)
 	{
 		iEnsureAddress = address;
 	}
-	else if (pcmode == DBGSYM::None)
+	else if (pcmode == DBGSYM::SetDisassemblyAddress::None)
 	{
 		iEnsureAddress = -1;
 	}
@@ -1442,12 +1442,12 @@ void CDisassemblyEditChild::GetMinWindowSize(int &w, int &h)
 
 void CDisassemblyEditChild::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
 {
-	UpdateDisplay(DBGSYM::None, 0);
+	UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 }
 
 void CDisassemblyEditChild::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
 {
-	UpdateDisplay(DBGSYM::None, 0);
+	UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 }
 
 CDisassemblyEditChild::AssemblyLineBuffer::AssemblyLineBuffer()

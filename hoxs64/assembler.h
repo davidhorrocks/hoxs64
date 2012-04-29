@@ -29,6 +29,8 @@ class Assembler
 public:
 	HRESULT AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 	HRESULT ParseAddress16(LPCTSTR pszText, bit16 *piAddress);
+
+	static HRESULT TryParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 private:
 	struct LexState
 	{

@@ -102,8 +102,9 @@ struct CPUState
 struct BreakpointKey
 {
 	BreakpointKey();
-	BreakpointKey(int machine, bit16 address);
-	int machine;
+	BreakpointKey(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
+	DBGSYM::MachineIdent::MachineIdent machineident;
+	DBGSYM::BreakpointType::BreakpointType bptype;
 	bit16 address;
 	int Compare(const BreakpointKey v) const;
 	bool operator<(const BreakpointKey v) const;
@@ -114,7 +115,7 @@ struct BreakpointKey
 struct BreakpointItem : public BreakpointKey
 {
 	BreakpointItem();
-	BreakpointItem(int machine, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
 	bool enabled;
 	int initialSkipOnHitCount;
 	int currentSkipOnHitCount;

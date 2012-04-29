@@ -75,8 +75,8 @@ public:
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 
 	void InvalidateBuffer();
-	void UpdateDisplay(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
-	void UpdateBuffer(DBGSYM::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void UpdateBuffer(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void SetTopAddress(bit16 address);
 	int GetNumberOfLines();
 	bit16 GetNearestTopAddress(bit16 address);

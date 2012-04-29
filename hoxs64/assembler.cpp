@@ -72,6 +72,12 @@ HRESULT Assembler::InitParser(LPCTSTR pszText)
 	return S_OK;
 }
 
+HRESULT Assembler::TryParseAddress16(LPCTSTR pszText, bit16 *piAddress)
+{
+Assembler as;
+	return as.ParseAddress16(pszText, piAddress);
+}
+
 HRESULT Assembler::ParseAddress16(LPCTSTR pszText, bit16 *piAddress)
 {
 	if (!piAddress)

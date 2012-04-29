@@ -261,9 +261,9 @@ TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
 	switch(iCol)
 	{
 	case LvBreakColumnIndex::Cpu:
-		if (bp->machine == CPUID_MAIN)
+		if (bp->machineident == DBGSYM::MachineIdent::MainCpu)
 			_tcsncpy_s(pText, cch, sC64, _TRUNCATE);
-		else if (bp->machine == CPUID_DISK)
+		else if (bp->machineident == DBGSYM::MachineIdent::DiskCpu)
 			_tcsncpy_s(pText, cch, sDisk, _TRUNCATE);
 		break;
 	case LvBreakColumnIndex::Address:
@@ -323,14 +323,15 @@ lresult = 0;
 			hr = LvBreakPoint_RowCol_GetData(pnmh->iItem, bp);
 			if (SUCCEEDED(hr))
 			{
-				if (bp->machine == CPUID_MAIN)
+				switch(bp->machineident)
 				{
+				case DBGSYM::MachineIdent::MainCpu:
 					this->m_pMonitorCommand->SetBreakpointC64Execute(this, MT_DEFAULT, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
-				}
-				else if (bp->machine == CPUID_DISK)
-				{
+					break;
+				case DBGSYM::MachineIdent::DiskCpu:
 					this->m_pMonitorCommand->SetBreakpointDiskExecute(this, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
-				}				
+					break;
+				}
 				RECT rcState;
 				if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))
 				{
@@ -460,7 +461,15 @@ int wmId, wmEvent;
 		case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
 			if(m_SelectedBreakpointItem!=0)
 			{
-				this->m_pMonitorCommand->ShowCpuDisassembly(m_SelectedBreakpointItem->machine, DBGSYM::EnsureAddressVisible, m_SelectedBreakpointItem->address);
+				switch(m_SelectedBreakpointItem->machineident)
+				{
+				case DBGSYM::MachineIdent::MainCpu:
+					this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
+					break;
+				case DBGSYM::MachineIdent::DiskCpu:
+					this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
+					break;
+				}
 			}
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS:
