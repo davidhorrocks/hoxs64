@@ -1373,6 +1373,15 @@ void CApp::SetBreakpointDiskExecute(void *sender, bit16 address, bool enabled, i
 	this->EsBreakpointDiskExecuteChanged.Raise(sender, e);
 }
 
+void CApp::SetBreakpointVicRasterCompare(void *sender, int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
+{
+	IMonitorVic *p = c64.mon.GetVic();
+	p->SetBreakpointRasterCompare(line, cycle, enabled, initialSkipOnHitCount, currentSkipOnHitCount);
+
+	EventArgs e;
+	this->EsBreakpointVicChanged.Raise(sender, e);
+}
+
 void CApp::DeleteBreakpointC64Execute(void *sender, bit16 address)
 {
 	IMonitorCpu *p = c64.GetCpu(CPUID_MAIN);
@@ -1402,6 +1411,9 @@ void CApp::DisableAllBreakpoints(void *sender)
 void CApp::DeleteAllBreakpoints(void *sender)
 {
 	IMonitorCpu *p;
+	IMonitorVic *v;
+	v = c64.mon.GetVic();
+	v->ClearAllBreakpoints();
 	p = c64.GetCpu(CPUID_MAIN);
 	p->ClearAllBreakpoints();
 	p = c64.GetCpu(CPUID_DISK);
@@ -1411,6 +1423,8 @@ void CApp::DeleteAllBreakpoints(void *sender)
 	this->EsBreakpointC64ExecuteChanged.Raise(sender, eMain);
 	BreakpointDiskExecuteChangedEventArgs eDisk(0, 0);
 	this->EsBreakpointDiskExecuteChanged.Raise(sender, eDisk);
+	EventArgs e;
+	this->EsBreakpointVicChanged.Raise(sender, e);
 }
 
 void CApp::TogglePause()

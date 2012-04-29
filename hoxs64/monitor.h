@@ -39,6 +39,7 @@ public:
 	virtual bool IsBreakpointDiskExecute(bit16 address)=0;
 	virtual void SetBreakpointC64Execute(void *sender, MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
 	virtual void SetBreakpointDiskExecute(void *sender, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
+	virtual void SetBreakpointVicRasterCompare(void *sender, int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
 	virtual void DeleteBreakpointC64Execute(void *sender, bit16 address)=0;
 	virtual void DeleteBreakpointDiskExecute(void *sender, bit16 address)=0;
 	virtual void EnableAllBreakpoints(void *sender)=0;
@@ -60,7 +61,7 @@ public:
 
 	EventSource<BreakpointC64ExecuteChangedEventArgs> EsBreakpointC64ExecuteChanged;
 	EventSource<BreakpointDiskExecuteChangedEventArgs> EsBreakpointDiskExecuteChanged;
-
+	EventSource<EventArgs> EsBreakpointVicChanged;
 };
 
 class Monitor

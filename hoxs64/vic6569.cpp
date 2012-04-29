@@ -4784,3 +4784,8 @@ bool VIC6569::GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem&
 	}
 	return false;
 }
+
+void VIC6569::ClearAllBreakpoints()
+{
+	m_MapBpVic.clear();
+}

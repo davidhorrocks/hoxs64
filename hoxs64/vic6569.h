@@ -214,6 +214,7 @@ public:
 	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute();
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint);
+	virtual void ClearAllBreakpoints();
 
 	HRESULT Init(CConfig *, CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu);
 	void Cleanup();

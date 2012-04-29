@@ -397,6 +397,9 @@ lresult = 0;
 				case DBGSYM::MachineIdent::DiskCpu:
 					this->m_pMonitorCommand->SetBreakpointDiskExecute(this, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
 					break;
+				case DBGSYM::MachineIdent::Vic:
+					this->m_pMonitorCommand->SetBreakpointVicRasterCompare(this, bp->vic_line, bp->vic_cycle, true, 0, 0);
+					break;
 				}
 				RECT rcState;
 				if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))

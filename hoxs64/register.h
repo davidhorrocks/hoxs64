@@ -181,6 +181,7 @@ public:
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint) = 0;
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) = 0; 
 	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute() = 0;
+	virtual void ClearAllBreakpoints() = 0;
 };
 
 class IMonitorDisk
