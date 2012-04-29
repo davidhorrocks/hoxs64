@@ -410,6 +410,10 @@ void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 	INT_PTR r = pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
 	if (LOWORD(r) == IDOK)
 	{
+		IMonitorVic *pMonVic = c64->mon.GetVic();
+		pMonVic->SetBreakpointRasterCompare(pdlg->GetRasterLine(), pdlg->GetRasterCycle(), true, 0, 0);
+		BreakpointC64ExecuteChangedEventArgs e(MT_DEFAULT, 0, 0);
+		this->m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Raise(this, e);
 	}
 }
 

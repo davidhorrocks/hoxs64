@@ -4739,3 +4739,48 @@ bit8 VIC6569::GetRasterCycle()
 	return this->vic_raster_cycle;
 }
 
+IEnumBreakpointItem *VIC6569::CreateEnumBreakpointExecute()
+{
+	BpEnum *r= new BpEnum(&this->m_MapBpVic);
+	return r;
+}
+
+bool VIC6569::SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
+{
+	if (m_MapBpVic.size() >= BREAK_LIST_SIZE)
+		return false;
+	Sp_BreakpointItem bp;
+	Sp_BreakpointItem v(new BreakpointItem(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
+	if (v == 0)
+		return false;
+	v->vic_line = line;
+	v->vic_cycle = cycle;
+	Sp_BreakpointKey k(new BreakpointKey(*v));
+	if (k == 0)
+		return false;
+	if (GetBreakpointRasterCompare(line, cycle, bp))
+	{
+		*(m_MapBpVic[k]) = *v;
+	}
+	else
+	{
+		m_MapBpVic[k] = v;
+	}
+	return true;
+}
+
+bool VIC6569::GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint)
+{
+	BreakpointKey key(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0);
+	Sp_BreakpointKey k(&key, null_deleter());
+	k->vic_line = line;
+	k->vic_cycle = cycle;
+	BpMap::iterator it;
+	it = m_MapBpVic.find(k);
+	if (it != m_MapBpVic.end())
+	{
+		breakpoint =it->second;
+		return true;
+	}
+	return false;
+}

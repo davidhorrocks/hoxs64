@@ -106,6 +106,8 @@ struct BreakpointKey
 	DBGSYM::MachineIdent::MachineIdent machineident;
 	DBGSYM::BreakpointType::BreakpointType bptype;
 	bit16 address;
+	int vic_line;
+	int vic_cycle;
 	int Compare(const BreakpointKey v) const;
 	bool operator<(const BreakpointKey v) const;
 	bool operator>(const BreakpointKey v) const;
@@ -176,6 +178,9 @@ class IMonitorVic
 public:
 	virtual bit16 GetRasterLine()=0;
 	virtual bit8 GetRasterCycle()=0;
+	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint) = 0;
+	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) = 0; 
+	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute() = 0;
 };
 
 class IMonitorDisk

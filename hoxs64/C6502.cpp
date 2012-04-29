@@ -13,9 +13,8 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "register.h"
+#include "bpenum.h"
 #include "c6502.h"
-
-
 
 const InstructionInfo CPU6502::AssemblyData[256]=
 {

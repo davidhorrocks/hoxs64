@@ -211,7 +211,9 @@ public:
 	//IMonitorVic
 	virtual bit16 GetRasterLine();
 	virtual bit8 GetRasterCycle();
-
+	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute();
+	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint);
 
 	HRESULT Init(CConfig *, CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu);
 	void Cleanup();
@@ -352,7 +354,7 @@ private:
 	bit8 *vic_3fff_ptr;
 
 	int m_iLastBackedUpFrameNumber;
-
+	BpMap m_MapBpVic;
 public:
 
 	friend VICSprite;

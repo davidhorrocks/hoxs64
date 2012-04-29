@@ -66,7 +66,9 @@ private:
 		{
 			Cpu = 0,
 			Address = 1,
-			Type = 2
+			Type = 2,
+			Line = 3,
+			Cycle = 4
 		};
 	};
 	HWND m_hLvBreak;

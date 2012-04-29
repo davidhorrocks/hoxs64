@@ -186,11 +186,41 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+	lvc.iSubItem = (int)LvBreakColumnIndex::Type;
+	lvc.fmt = LVCFMT_RIGHT;
+	lvc.pszText = TEXT("Type");
+	lvc.cx = m_dpi.ScaleX(100);
+	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Type, &lvc);
+	if (r == -1)
+		return E_FAIL;
+
+	ZeroMemory(&lvc, sizeof(lvc));
+	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	lvc.iSubItem = (int)LvBreakColumnIndex::Address;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Address");
 	lvc.cx = m_dpi.ScaleX(100);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
+	if (r == -1)
+		return E_FAIL;
+
+	ZeroMemory(&lvc, sizeof(lvc));
+	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+	lvc.iSubItem = (int)LvBreakColumnIndex::Line;
+	lvc.fmt = LVCFMT_RIGHT;
+	lvc.pszText = TEXT("Line");
+	lvc.cx = m_dpi.ScaleX(100);
+	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Line, &lvc);
+	if (r == -1)
+		return E_FAIL;
+
+	ZeroMemory(&lvc, sizeof(lvc));
+	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+	lvc.iSubItem = (int)LvBreakColumnIndex::Cycle;
+	lvc.fmt = LVCFMT_RIGHT;
+	lvc.pszText = TEXT("Cycle");
+	lvc.cx = m_dpi.ScaleX(100);
+	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cycle, &lvc);
 	if (r == -1)
 		return E_FAIL;
 	return S_OK;
@@ -211,6 +241,15 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 		delete pEnumBpMain;
 	}
 	IEnumBreakpointItem *pEnumBpDisk = c64->mon.GetDiskCpu()->CreateEnumBreakpointExecute();
+	if (pEnumBpDisk)
+	{
+		while (pEnumBpDisk->GetNext(v))
+		{
+			m_lstBreak.push_back(v);
+		}
+		delete pEnumBpDisk;
+	}
+	IEnumBreakpointItem *pEnumBpVic = c64->mon.GetVic()->CreateEnumBreakpointExecute();
 	if (pEnumBpDisk)
 	{
 		while (pEnumBpDisk->GetNext(v))
@@ -249,7 +288,10 @@ HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pT
 HRESULT hr;
 LPCTSTR sDisk = TEXT("Disk");
 LPCTSTR sC64 = TEXT("C64");
+LPCTSTR sExecute = TEXT("Execute");
+LPCTSTR sRasterCompare = TEXT("Raster Compare");
 TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
+TCHAR sIntBuffer[20];
 
 	if (cch <= 0)
 		return E_FAIL;
@@ -266,9 +308,33 @@ TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
 		else if (bp->machineident == DBGSYM::MachineIdent::DiskCpu)
 			_tcsncpy_s(pText, cch, sDisk, _TRUNCATE);
 		break;
+	case LvBreakColumnIndex::Type:
+		if (bp->bptype == DBGSYM::BreakpointType::Execute)
+			_tcsncpy_s(pText, cch, sExecute, _TRUNCATE);
+		else if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+			_tcsncpy_s(pText, cch, sRasterCompare, _TRUNCATE);
+		break;
 	case LvBreakColumnIndex::Address:
-		HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
-		_tcsncpy_s(pText, cch, sAddressHexBuf, _TRUNCATE);
+		if (bp->bptype == DBGSYM::BreakpointType::Execute)
+		{
+			HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
+			_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
+			_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
+		}
+		break;
+	case LvBreakColumnIndex::Line:
+		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+		{
+			_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_line);
+			_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+		}
+		break;
+	case LvBreakColumnIndex::Cycle:
+		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+		{
+			_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_cycle);
+			_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+		}
 		break;
 	}
 	return S_OK;

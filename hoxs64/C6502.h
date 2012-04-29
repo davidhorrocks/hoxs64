@@ -1,6 +1,8 @@
 #ifndef __CPU6502_H__
 #define __CPU6502_H__
 
+#include "bpenum.h"
+
 #define BREAK_LIST_SIZE 65536
 
 #define psNEGATIVE	(0x80)
@@ -505,9 +507,6 @@ public:
 	CPU6502();
 	~CPU6502();
 
-	typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
-	typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterator BpIter;
-
 	HRESULT Init(int ID);
 	void Cleanup();
 
@@ -614,18 +613,6 @@ protected:
 	virtual void check_interrupts0();
 	
 private:
-	struct BpEnum : IEnumBreakpointItem
-	{
-	public:
-		BpEnum(BpMap *m);
-		virtual ~BpEnum();
-		virtual int GetCount();
-		virtual bool GetNext(Sp_BreakpointItem& v);
-		virtual void Reset();
-	private:
-		BpMap* m_map;
-		BpIter m_it;
-	};
 
 	void InitDecoder();
 	bit16u addr;

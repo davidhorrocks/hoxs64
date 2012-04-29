@@ -13,6 +13,7 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "register.h"
+#include "bpenum.h"
 #include "c6502.h"
 #include "break_point.h"
 
@@ -22,6 +23,8 @@ BreakpointKey::BreakpointKey()
 	this->machineident = DBGSYM::MachineIdent::MainCpu;
 	this->bptype = DBGSYM::BreakpointType::Execute;
 	this->address = 0;
+	this->vic_cycle = 1;
+	this->vic_line = 0;
 }
 
 BreakpointKey::BreakpointKey(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
@@ -29,6 +32,8 @@ BreakpointKey::BreakpointKey(DBGSYM::MachineIdent::MachineIdent machineident, DB
 	this->machineident = machineident;
 	this->bptype = bptype;
 	this->address = address;
+	this->vic_cycle = 1;
+	this->vic_line = 0;
 }
 
 int BreakpointKey::Compare(BreakpointKey y) const
@@ -44,10 +49,27 @@ const BreakpointKey& x = *this;
 	else if (x.bptype > y.bptype)
 		return 1;
 
-	if (x.address < y.address)
-		return -1;		
-	else if (x.address > y.address)
-		return 1;
+	switch (x.bptype)
+	{
+	case DBGSYM::BreakpointType::Execute:
+	case DBGSYM::BreakpointType::Read:
+	case DBGSYM::BreakpointType::Write:
+		if (x.address < y.address)
+			return -1;		
+		else if (x.address > y.address)
+			return 1;
+		return 0;
+	case DBGSYM::BreakpointType::VicRasterCompare:
+		if (x.vic_line < y.vic_line)
+			return -1;		
+		else if (x.vic_line > y.vic_line)
+			return 1;
+		if (x.vic_cycle < y.vic_cycle)
+			return -1;		
+		else if (x.vic_cycle > y.vic_cycle)
+			return 1;
+		return 0;
+	}
 	return 0;
 }
 
@@ -84,37 +106,6 @@ BreakpointItem::BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, 
 	this->enabled = enabled;
 	this->initialSkipOnHitCount = initialSkipOnHitCount;
 	this->currentSkipOnHitCount = currentSkipOnHitCount;
-}
-
-CPU6502::BpEnum::BpEnum(BpMap *m) 
-{
-	m_map = m;
-	Reset();
-}
-
-int CPU6502::BpEnum::GetCount()
-{
-	size_t c = m_map->size();
-	if (c > MAXLONG)
-		c = MAXLONG;
-	return (LONG)c;
-}
-bool CPU6502::BpEnum::GetNext(Sp_BreakpointItem& v)
-{
-	if (m_it == m_map->end())
-		return false;
-
-	v = m_it->second;
-	m_it++;
-	return true;
-}
-void CPU6502::BpEnum::Reset()
-{
-	this->m_it = m_map->begin();
-}
-
-CPU6502::BpEnum::~BpEnum()
-{
 }
 
 IEnumBreakpointItem *CPU6502::CreateEnumBreakpointExecute()
