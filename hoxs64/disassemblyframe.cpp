@@ -1033,6 +1033,7 @@ void CDisassemblyFrame::OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	int amount = m_wheel_current / WHEEL_DELTA;
 	bit16 address = m_DisassemblyChild.GetTopAddress();
 	address = m_DisassemblyChild.GetNthAddress(address, - amount);
+	m_DisassemblyChild.CancelEditing();
 	m_DisassemblyChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::SetTopAddress, address);
 	m_wheel_current = m_wheel_current - amount * WHEEL_DELTA;
 }
