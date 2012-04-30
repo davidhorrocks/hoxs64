@@ -4731,7 +4731,10 @@ unsigned short h;
 
 bit16 VIC6569::GetRasterLine()
 {
-	return (bit16)this->vic_raster_line;
+	if (vic_check_irq_in_cycle2)
+		return 0;
+	else
+		return (bit16)this->vic_raster_line;
 }
 
 bit8 VIC6569::GetRasterCycle()
