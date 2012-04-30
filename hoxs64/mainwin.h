@@ -76,6 +76,7 @@ private:
 
 	void OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 #endif

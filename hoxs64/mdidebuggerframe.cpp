@@ -417,40 +417,24 @@ void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 	}
 }
 
-LRESULT CMDIDebuggerFrame::OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool CMDIDebuggerFrame::OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-bool bHandled = m_WPanelManager.Splitter_OnSetCursor(hWnd, uMsg, wParam, lParam);
-	if(bHandled)
-		return TRUE;
-	else
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	return m_WPanelManager.Splitter_OnSetCursor(hWnd, uMsg, wParam, lParam);
 }
 
-LRESULT CMDIDebuggerFrame::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool CMDIDebuggerFrame::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	bool bHandled = m_WPanelManager.Splitter_OnLButtonDown(hWnd, uMsg, wParam, lParam);
-	if(bHandled)
-		return 0;
-	else
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);	
+	return m_WPanelManager.Splitter_OnLButtonDown(hWnd, uMsg, wParam, lParam);
 }
 
-LRESULT CMDIDebuggerFrame::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool CMDIDebuggerFrame::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	bool bHandled = m_WPanelManager.Splitter_OnMouseMove(hWnd, uMsg, wParam, lParam);
-	if(bHandled)
-		return 0;
-	else
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);	
+	return m_WPanelManager.Splitter_OnMouseMove(hWnd, uMsg, wParam, lParam);
 }
 
-LRESULT CMDIDebuggerFrame::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool CMDIDebuggerFrame::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	bool bHandled = m_WPanelManager.Splitter_OnLButtonUp(hWnd, uMsg, wParam, lParam);
-	if(bHandled)
-		return 0;
-	else
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);	
+	return m_WPanelManager.Splitter_OnLButtonUp(hWnd, uMsg, wParam, lParam);
 }
 
 
@@ -469,25 +453,32 @@ HRESULT hr;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
 			return 0;
-		else
-			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_SETCURSOR:
-		return OnSetCursor(hWnd, uMsg, wParam, lParam);
+		if (OnSetCursor(hWnd, uMsg, wParam, lParam))
+			return TRUE;
+		break;
 	case WM_LBUTTONDOWN:
-		return OnLButtonDown(hWnd, uMsg, wParam, lParam);
+		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
+			return 0;
+		break;
 	case WM_MOUSEMOVE:
-		return OnMouseMove(hWnd, uMsg, wParam, lParam);
+		if (OnMouseMove(hWnd, uMsg, wParam, lParam))
+			return 0;
+		break;
 	case WM_LBUTTONUP:
-		return OnLButtonUp(hWnd, uMsg, wParam, lParam);
+		if (OnLButtonUp(hWnd, uMsg, wParam, lParam))
+			return 0;
+		break;
 	case WM_MOVE:
 		OnMove(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_CLOSE:
 		OnClose(m_hWnd, uMsg, wParam, lParam);
-		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_DESTROY:
 		OnDestroy(m_hWnd, uMsg, wParam, lParam);
-		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_SIZE:
 		OnSize(hWnd, uMsg, wParam, lParam);
 		return 0;
@@ -496,6 +487,9 @@ HRESULT hr;
 		return 0;
 	case WM_MONITOR_BREAK_CPUDISK:
 		OnBreakCpuDisk(m_hWnd, uMsg, wParam, lParam);
+		return 0;
+	case WM_MONITOR_BREAK_VICRASTER:
+		OnBreakVic(m_hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_ENTERMENULOOP:
 		m_pMonitorCommand->SoundOff();
@@ -509,10 +503,8 @@ HRESULT hr;
 	case WM_EXITSIZEMOVE:
 		m_pMonitorCommand->SoundOn();
 		return 0;
-	default:
-		return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	}
-	return 0;	
+	return ::DefFrameProc(m_hWnd, this->m_hWndMDIClient, uMsg, wParam, lParam);
 }
 
 void CMDIDebuggerFrame::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -523,6 +515,11 @@ void CMDIDebuggerFrame::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 void CMDIDebuggerFrame::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
+}
+
+void CMDIDebuggerFrame::OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 }
 
 HRESULT CMDIDebuggerFrame::AdviseEvents()

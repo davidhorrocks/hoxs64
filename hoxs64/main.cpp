@@ -251,13 +251,37 @@ HWND hWndDebuggerMdiClient = 0;
 				hWndDebuggerMdiClient = appWindow.m_pMDIDebugger->Get_MDIClientWindow();
 				if (hWndDebuggerMdiClient!=0)
 				{
+					HWND hwndactive = GetActiveWindow();
 					if (TranslateMDISysAccel(hWndDebuggerMdiClient, &msg))
-					{
 						continue;
+
+					if (hwndactive == appWindow.GetHwnd())
+					{
+						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
+							continue;
 					}
+					if (hwndactive == appWindow.m_pMDIDebugger->GetHwnd())
+					{
+						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
+							continue;
+					}
+					if (hwndactive == appWindow.m_pMDIDebugger->m_debugCpuC64.GetHwnd())
+					{
+						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
+							continue;
+					}
+					if (hwndactive == appWindow.m_pMDIDebugger->m_debugCpuDisk.GetHwnd())
+					{
+						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
+							continue;
+					}
+
+					TranslateMessage(&msg); 
+					DispatchMessage(&msg);
+					continue;
 				}
 			}
-			if (!TranslateAccelerator(msg.hwnd, app.m_hAccelTable, &msg))
+			if (!TranslateAccelerator(appWindow.GetHwnd(), app.m_hAccelTable, &msg))
 			{
 				TranslateMessage(&msg); 
 				DispatchMessage(&msg);
@@ -265,7 +289,6 @@ HWND hWndDebuggerMdiClient = 0;
 		}
 		frequency.QuadPart = m_framefrequency.QuadPart;
 
-		//m_bPaused=true;
 		if (m_bActive && m_bReady && m_bRunning && !m_bPaused)
 		{
 			SoundResume();
@@ -1206,6 +1229,18 @@ HWND hWnd;
 		m_bBreak = TRUE;
 		m_bRunning = FALSE;
 		PostMessage(hWnd, WM_MONITOR_BREAK_CPUDISK, 0, 0);
+	}
+}
+
+void CApp::BreakVicRasterCompare()
+{
+HWND hWnd;
+	hWnd = appWindow.GetHwnd();
+	if (hWnd != 0)
+	{
+		m_bBreak = TRUE;
+		m_bRunning = FALSE;
+		PostMessage(hWnd, WM_MONITOR_BREAK_VICRASTER, 0, 0);
 	}
 }
 

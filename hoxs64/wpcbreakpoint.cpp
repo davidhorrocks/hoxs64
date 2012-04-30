@@ -20,8 +20,6 @@
 
 const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 
-#define IDC_LVBREAKPOINT (1001)
-
 WpcBreakpoint::WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand)
 {
 	m_hLvBreak = NULL;
@@ -184,7 +182,6 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	int ColumnWidthPadding = 8;
 	int r;
 	LVCOLUMN lvc;
-	SIZE sz;
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	lvc.iSubItem = (int)LvBreakColumnIndex::Cpu;

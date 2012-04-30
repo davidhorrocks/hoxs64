@@ -76,6 +76,7 @@ public:
 	//IC64Event
 	virtual void BreakExecuteCpu64();
 	virtual void BreakExecuteCpuDisk();
+	virtual void BreakVicRasterCompare();
 	virtual void SetBusy(bool bBusy);
 	virtual void DiskMotorLed(bool bOn);
 	virtual void DiskDriveLed(bool bOn);

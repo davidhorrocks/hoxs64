@@ -57,6 +57,8 @@ public:
 	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 
 	virtual void GetMinWindowSize(int &w, int &h);
+	CDisassemblyFrame m_debugCpuC64;
+	CDisassemblyFrame m_debugCpuDisk;
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual HRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -67,11 +69,12 @@ protected:
 	virtual void OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual void OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	
-	LRESULT OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
 	HWND m_hWndRebar;
@@ -80,8 +83,6 @@ private:
 	CDPI m_dpi;
 	WPanelManager m_WPanelManager;
 
-	CDisassemblyFrame m_debugCpuC64;
-	CDisassemblyFrame m_debugCpuDisk;
 
 	C64 *c64;
 	CAppStatus *appStatus;

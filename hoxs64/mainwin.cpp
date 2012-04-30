@@ -682,6 +682,9 @@ LRESULT lr;
 	case WM_MONITOR_BREAK_CPUDISK:
 		OnBreakCpuDisk(hWnd, uMsg, wParam, lParam);
 		return 0;
+	case WM_MONITOR_BREAK_VICRASTER:
+		OnBreakVic(hWnd, uMsg, wParam, lParam);
+		return 0;
 	default:
 		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 	}
@@ -692,7 +695,7 @@ LRESULT lr;
 void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	appStatus->SoundHalt();
-	MessageBox(hWnd, TEXT("A C64 CPU execute break point occurred."), TEXT("Monitor Break Point"), MB_ICONSTOP|MB_OK);
+	MessageBox(hWnd, TEXT("A C64 CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
 	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
 	if (hWndMon)
 	{
@@ -703,7 +706,18 @@ void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	appStatus->SoundHalt();
-	MessageBox(hWnd, TEXT("A disk CPU execute break point occurred."), TEXT("Monitor Break Point"), MB_ICONSTOP|MB_OK);
+	MessageBox(hWnd, TEXT("A disk CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
+	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
+	if (hWndMon)
+	{
+		SendMessage(hWndMon, uMsg, wParam, lParam);
+	}
+}
+
+void CAppWindow::OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	appStatus->SoundHalt();
+	MessageBox(hWnd, TEXT("A VIC raster compare breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
 	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
 	if (hWndMon)
 	{

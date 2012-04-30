@@ -58,6 +58,7 @@ class IC64BreakEvent
 public:
 	virtual void BreakExecuteCpu64()=0;
 	virtual void BreakExecuteCpuDisk()=0;
+	virtual void BreakVicRasterCompare()=0;
 };
 
 class IC64Event : public IC64BreakEvent

@@ -403,7 +403,7 @@ bool bBreak;
 void C64::ExecuteDebugFrame()
 {
 ICLK cycles,sysclock;
-bool bBreakC64, bBreakDisk;
+bool bBreakC64, bBreakDisk, bBreakVic;
 
 	if (bPendingReset)
 	{
@@ -421,6 +421,7 @@ bool bBreakC64, bBreakDisk;
 	EnterDebugRun(true);
 	bBreakC64 = false;
 	bBreakDisk = false;
+	bBreakVic = false;
 	while(cycles > 0)
 	{
 		cycles--;
@@ -461,6 +462,11 @@ bool bBreakC64, bBreakDisk;
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
+
+		if (vic.CheckBreakpointRasterCompare(vic.GetRasterLine(), vic.GetRasterCycle(), true) == 0)
+		{
+			bBreakVic = true;
+		}
 
 		if (cpu.IsOpcodeFetch() && !bWasC64CpuOpCodeFetch)
 		{			
@@ -507,7 +513,7 @@ bool bBreakC64, bBreakDisk;
 		{
 			sid.ExecuteCycle(sysclock);
 		}
- 		if (bBreakC64 || bBreakDisk)
+ 		if (bBreakC64 || bBreakDisk || bBreakVic)
 			break;
 
 	}
@@ -521,6 +527,10 @@ bool bBreakC64, bBreakDisk;
 		if (bBreakDisk)
 		{
 			pIC64Event->BreakExecuteCpuDisk();
+		}
+		if (bBreakVic)
+		{
+			pIC64Event->BreakVicRasterCompare();
 		}
 	}
 }

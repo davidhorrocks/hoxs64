@@ -4789,3 +4789,28 @@ void VIC6569::ClearAllBreakpoints()
 {
 	m_MapBpVic.clear();
 }
+
+
+int VIC6569::CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt)
+{
+int i = -1;
+	BreakpointKey key(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0);
+	key.vic_line = line;
+	key.vic_cycle = cycle;
+	Sp_BreakpointKey k(&key, null_deleter());
+	BpMap::iterator it;
+	it = m_MapBpVic.find(k);
+	if (it != m_MapBpVic.end())
+	{
+		Sp_BreakpointItem& bp = it->second;
+		if (bp->enabled)
+		{
+			i = bp->currentSkipOnHitCount;
+			if (bHitIt && i == 0)
+			{
+				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+			}
+		}			
+	}
+	return i;
+} 

@@ -23,6 +23,7 @@
 #define IDC_BUT_GOTOADDRESS             114
 #define IDC_TOI_GOTOADDRESS             115
 #define IDD_BROWSEPRG                   116
+#define IDC_LVBREAKPOINT                116
 #define IDB_LEDREDON                    117
 #define IDB_LEDBLUEOFF                  118
 #define IDB_LEDBLUEON                   119
@@ -203,7 +204,6 @@
 #define IDC_TXT_CURSORLEFT              1314
 #define IDC_TXT_BREAKPOINTRASTERLINE    1315
 #define IDC_LBL_BREAKPOINTRASTERLINE    1318
-#define IDC_TXT_RASTERCYCLE             1319
 #define IDC_TXT_BREAKPOINTRASTERCYCLE   1319
 #define IDC_LBL_BREAKPOINTRASTERCYCLE   1320
 #define IDC_GRP_RASTERVALUE             1321
@@ -255,7 +255,6 @@
 #define IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS 40137
 #define IDM_BREAKPOINT_DELETEALLBREAKPOINTS 40139
 #define IDM_VIEW_ADDRESS                40141
-#define ID_BREAKPOINT_VICRASTER         40142
 #define IDM_BREAKPOINT_VICRASTER        40143
 
 // Next default values for new objects
@@ -265,6 +264,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        188
 #define _APS_NEXT_COMMAND_VALUE         40144
 #define _APS_NEXT_CONTROL_VALUE         1322
-#define _APS_NEXT_SYMED_VALUE           116
+#define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif
