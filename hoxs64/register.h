@@ -155,13 +155,17 @@ public:
 	virtual MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap)=0;
 	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap)=0;
 	virtual void GetCpuState(CPUState& state)=0;
-	virtual bool IsBreakPoint(bit16 address)=0;
-	virtual void ClearBreakPoint(bit16 address)=0;
-	virtual bool SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
-	virtual bool GetExecute(bit16 address, Sp_BreakpointItem& breakpoint)=0;
+	virtual bool IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
+	virtual void ClearBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
+	virtual void EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
+	virtual void DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
+	virtual bool SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
+	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
 	virtual void ClearAllBreakpoints() = 0;
+	virtual void EnableAllBreakpoints() = 0;
+	virtual void DisableAllBreakpoints() = 0;
 	virtual void SetPC(bit16 address) = 0;
 	virtual void SetA(bit8 v) = 0;
 	virtual void SetX(bit8 v) = 0;
@@ -177,12 +181,18 @@ public:
 class IMonitorVic
 {
 public:
+	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute() = 0;
 	virtual bit16 GetRasterLine()=0;
 	virtual bit8 GetRasterCycle()=0;
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint) = 0;
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) = 0; 
-	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute() = 0;
+	virtual int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt) = 0;
+	virtual void EnableAllBreakpoints() = 0;
+	virtual void DisableAllBreakpoints() = 0;
 	virtual void ClearAllBreakpoints() = 0;
+	virtual void EnableBreakpoint(Sp_BreakpointKey bp) = 0;
+	virtual void DisableBreakpoint(Sp_BreakpointKey bp) = 0;
+	virtual void ClearBreakpoint(Sp_BreakpointKey bp) = 0;
 };
 
 class IMonitorDisk

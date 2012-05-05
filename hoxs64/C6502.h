@@ -518,12 +518,16 @@ public:
 	virtual bit8 MonReadByte(bit16 address, int memorymap)=0;
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap)=0;
 	virtual void GetCpuState(CPUState& state);
-	virtual bool IsBreakPoint(bit16 address);
-	virtual void ClearBreakPoint(bit16 address);
-	virtual bool SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
-	virtual bool GetExecute(bit16 address, Sp_BreakpointItem& breakpoint);
+	virtual bool IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
+	virtual void ClearBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
+	virtual void EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
+	virtual void DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
+	virtual bool SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint);
 	virtual void SetBreakOnInterruptTaken();
 	virtual void ClearBreakOnInterruptTaken();
+	virtual void EnableAllBreakpoints();
+	virtual void DisableAllBreakpoints();
 	virtual void SetPC(bit16 address);
 	virtual void SetA(bit8 v);
 	virtual void SetX(bit8 v);
@@ -580,11 +584,11 @@ public:
 	ICLK SOTriggerClock;
 
 	void ClearAllBreakpoints();
-	bool SetRead(bit16 address, int count);
-	bool SetWrite(bit16 address, int count);
+	//bool SetRead(bit16 address, int count);
+	//bool SetWrite(bit16 address, int count);
 	int CheckExecute(bit16 address, bool bHitIt);
-	int CheckRead(bit16 address, bool bHitIt);
-	int CheckWrite(bit16 address, bool bHitIt);
+	//int CheckRead(bit16 address, bool bHitIt);
+	//int CheckWrite(bit16 address, bool bHitIt);
 	void StartDebug();
 	void StopDebug();
 	bool IsWriteCycle();

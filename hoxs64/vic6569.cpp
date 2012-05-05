@@ -4788,11 +4788,47 @@ bool VIC6569::GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem&
 	return false;
 }
 
+void VIC6569::EnableAllBreakpoints()
+{
+	for (BpMap::iterator it = m_MapBpVic.begin(); it!=m_MapBpVic.end(); it++)
+		it->second->enabled = true;
+}
+
+void VIC6569::DisableAllBreakpoints()
+{
+	for (BpMap::iterator it = m_MapBpVic.begin(); it!=m_MapBpVic.end(); it++)
+		it->second->enabled = false;
+}
+
 void VIC6569::ClearAllBreakpoints()
 {
 	m_MapBpVic.clear();
 }
 
+void VIC6569::EnableBreakpoint(Sp_BreakpointKey bp)
+{
+	BpMap::iterator it;
+	it = m_MapBpVic.find(bp);
+	if (it != m_MapBpVic.end())
+	{
+		it->second->enabled = true;
+	}
+}
+
+void VIC6569::DisableBreakpoint(Sp_BreakpointKey bp)
+{
+	BpMap::iterator it;
+	it = m_MapBpVic.find(bp);
+	if (it != m_MapBpVic.end())
+	{
+		it->second->enabled = false;
+	}
+}
+
+void VIC6569::ClearBreakpoint(Sp_BreakpointKey bp)
+{
+	m_MapBpVic.erase(bp);
+}
 
 int VIC6569::CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt)
 {

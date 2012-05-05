@@ -135,7 +135,7 @@ bool CPU6502::GetBreakOnInterruptTaken()
 	return m_bBreakOnInterruptTaken ;
 }
 
-bool CPU6502::SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
+bool CPU6502::SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
 	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
 		return false;
@@ -144,9 +144,9 @@ bool CPU6502::SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount,
 	Sp_BreakpointKey k(new BreakpointKey((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address));
 	if (k == 0 || v == 0)
 		return false;
-	if (GetExecute(address, bp))
+	if (GetBreakpoint(bptype, address, bp))
 	{
-		*(MapBpExecute[k]) = *v;
+		*bp = *v;
 	}
 	else
 	{
@@ -155,7 +155,7 @@ bool CPU6502::SetExecute(bit16 address, bool enabled, int initialSkipOnHitCount,
 	return true;
 }
 
-bool CPU6502::GetExecute(bit16 address, Sp_BreakpointItem& breakpoint)
+bool CPU6502::GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint)
 {
 	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address);
 	Sp_BreakpointKey k(&key, null_deleter());
@@ -167,31 +167,6 @@ bool CPU6502::GetExecute(bit16 address, Sp_BreakpointItem& breakpoint)
 		return true;
 	}
 	return false;
-}
-
-bool CPU6502::SetRead(bit16 address, int count)
-{
-	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
-		return false;
-	Sp_BreakpointItem v(new BreakpointItem((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Read, address, true, count, 0));
-	Sp_BreakpointKey k(new BreakpointKey((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Read, address));
-	if (k == 0 || v == 0)
-		return false;
-	MapBpExecute[k] = v;
-	return true;
-}
-
-
-bool CPU6502::SetWrite(bit16 address, int count)
-{
-	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
-		return false;
-	Sp_BreakpointItem v(new BreakpointItem((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Write, address, true, count, 0));
-	Sp_BreakpointKey k(new BreakpointKey((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Write, address));
-	if (k == 0 || v == 0)
-		return false;
-	MapBpExecute[k] = v;
-	return true;
 }
 
 int CPU6502::CheckExecute(bit16 address, bool bHitIt)
@@ -216,80 +191,49 @@ int i = -1;
 	return i;
 } 
 
-int CPU6502::CheckRead(bit16 address, bool bHitIt)
+bool CPU6502::IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-int i = -1;
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Read, address);
-	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::iterator it;
-	it = MapBpExecute.find(k);
-	if (it != MapBpExecute.end())
-	{
-		Sp_BreakpointItem& bp = it->second;
-		if (bp->enabled)
-		{
-			int i = bp->currentSkipOnHitCount;
-			if (bHitIt && i == 0)
-			{
-				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
-			}
-		}			
-	}
-	return i;
-} 
-
-int CPU6502::CheckWrite(bit16 address, bool bHitIt)
-{
-int i = -1;
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Write, address);
-	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::iterator it;
-	it = MapBpExecute.find(k);
-	if (it != MapBpExecute.end())
-	{
-		Sp_BreakpointItem& bp = it->second;
-		if (bp->enabled)
-		{
-			i = bp->currentSkipOnHitCount;
-			if (bHitIt && i == 0)
-			{
-				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
-			}
-		}			
-	}
-	return i;
-} 
-
-bool CPU6502::IsBreakPoint(bit16 address)
-{
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address);
+	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address);
 	Sp_BreakpointKey k(&key, null_deleter());
 	if (MapBpExecute.find(k) != MapBpExecute.end())
 		return true;
-
-	k->bptype = DBGSYM::BreakpointType::Read;
-	if (MapBpExecute.find(k) != MapBpExecute.end())
-		return true;
-
-	k->bptype = DBGSYM::BreakpointType::Write;
-	if (MapBpExecute.find(k) != MapBpExecute.end())
-		return true;
-
 	return false;
 }
 
-
-void CPU6502::ClearBreakPoint(bit16 address)
+void CPU6502::ClearBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address);
-	Sp_BreakpointKey k(&key, null_deleter());
-	this->MapBpExecute.erase(k);
+	//BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address);
+	//Sp_BreakpointKey k(&key, null_deleter());
+	//this->MapBpExecute.erase(k);
+	Sp_BreakpointItem bp;
+	if (this->GetBreakpoint(bptype, address, bp))
+		this->MapBpExecute.erase(bp);
+}
 
-	k->bptype = DBGSYM::BreakpointType::Read;
-	this->MapBpExecute.erase(k);
+void CPU6502::EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
+{
+	Sp_BreakpointItem bp;
+	if (this->GetBreakpoint(bptype, address, bp))
+		bp->enabled = true;
+}
 
-	k->bptype = DBGSYM::BreakpointType::Write;
-	this->MapBpExecute.erase(k);
+void CPU6502::DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
+{
+	Sp_BreakpointItem bp;
+	if (this->GetBreakpoint(bptype, address, bp))
+		bp->enabled = false;
+}
+
+void CPU6502::EnableAllBreakpoints()
+{
+	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+		it->second->enabled = true;
+}
+
+void CPU6502::DisableAllBreakpoints()
+{
+	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+		it->second->enabled = false;
 }
 
 void CPU6502::StartDebug()

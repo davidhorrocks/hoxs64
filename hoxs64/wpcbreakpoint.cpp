@@ -51,6 +51,12 @@ HSink hs;
 	hs = m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Advise(this);
 	if (!hs)
 		return E_FAIL;
+	hs = m_pMonitorCommand->EsBreakpointVicChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
+	hs = m_pMonitorCommand->EsBreakpointChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
 	return S_OK;
 }
 
@@ -258,13 +264,13 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 		delete pEnumBpDisk;
 	}
 	IEnumBreakpointItem *pEnumBpVic = c64->mon.GetVic()->CreateEnumBreakpointExecute();
-	if (pEnumBpDisk)
+	if (pEnumBpVic)
 	{
-		while (pEnumBpDisk->GetNext(v))
+		while (pEnumBpVic->GetNext(v))
 		{
 			m_lstBreak.push_back(v);
 		}
-		delete pEnumBpDisk;
+		delete pEnumBpVic;
 	}
 	ListView_SetItemCountEx(hWndListView, m_lstBreak.size(), 0);
 	return S_OK;
@@ -400,13 +406,13 @@ lresult = 0;
 				switch(bp->machineident)
 				{
 				case DBGSYM::MachineIdent::MainCpu:
-					this->m_pMonitorCommand->SetBreakpointC64Execute(this, MT_DEFAULT, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
+					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
 					break;
 				case DBGSYM::MachineIdent::DiskCpu:
-					this->m_pMonitorCommand->SetBreakpointDiskExecute(this, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
+					this->m_pMonitorCommand->SetBreakpointDiskExecute(bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
 					break;
 				case DBGSYM::MachineIdent::Vic:
-					this->m_pMonitorCommand->SetBreakpointVicRasterCompare(this, bp->vic_line, bp->vic_cycle, !bp->enabled, 0, 0);
+					this->m_pMonitorCommand->SetBreakpointVicRasterCompare(bp->vic_line, bp->vic_cycle, !bp->enabled, 0, 0);
 					break;
 				}
 				RECT rcState;
@@ -496,16 +502,85 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 
 void WpcBreakpoint::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
 {
+}
+
+void WpcBreakpoint::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
+{
+}
+
+void WpcBreakpoint::OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e)
+{
+}
+
+void WpcBreakpoint::OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)
+{
 	if (sender == this)
 		return;
 	FillListView(m_hLvBreak);
 }
 
-void WpcBreakpoint::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
+void WpcBreakpoint::OnShowAssembly()
 {
-	if (sender == this)
-		return;
-	FillListView(m_hLvBreak);
+	if(m_SelectedBreakpointItem!=0)
+	{
+		switch(m_SelectedBreakpointItem->machineident)
+		{
+		case DBGSYM::MachineIdent::MainCpu:
+			this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
+			break;
+		case DBGSYM::MachineIdent::DiskCpu:
+			this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
+			break;
+		}
+	}
+}
+
+void WpcBreakpoint::OnDeleteBreakpoint()
+{
+	if(m_SelectedBreakpointItem!=0)
+	{
+		switch(m_SelectedBreakpointItem->machineident)
+		{
+		case DBGSYM::MachineIdent::MainCpu:
+			this->m_pMonitorCommand->DeleteBreakpointC64Execute(m_SelectedBreakpointItem->address);
+			break;
+		case DBGSYM::MachineIdent::DiskCpu:
+			this->m_pMonitorCommand->DeleteBreakpointDiskExecute(m_SelectedBreakpointItem->address);
+			break;
+		case DBGSYM::MachineIdent::Vic:
+			this->m_pMonitorCommand->DeleteVicBreakpoint(m_SelectedBreakpointItem);
+			break;
+		}
+	}
+}
+
+void WpcBreakpoint::OnEnabledBreakpoint()
+{
+	if(m_SelectedBreakpointItem!=0)
+	{
+		m_SelectedBreakpointItem->enabled = true;
+		BreakpointChangedEventArgs e;
+		this->m_pMonitorCommand->EsBreakpointChanged.Raise(NULL, e);
+	}
+}
+
+void WpcBreakpoint::OnDisableBreakpoint()
+{
+	if(m_SelectedBreakpointItem!=0)
+	{
+		switch(m_SelectedBreakpointItem->machineident)
+		{
+		case DBGSYM::MachineIdent::MainCpu:
+			//this->m_pMonitorCommand->DeleteBreakpointC64Execute(m_SelectedBreakpointItem->address);
+			break;
+		case DBGSYM::MachineIdent::DiskCpu:
+			//this->m_pMonitorCommand->DeleteBreakpointDiskExecute(m_SelectedBreakpointItem->address);
+			break;
+		case DBGSYM::MachineIdent::Vic:
+			//this->m_pMonitorCommand->
+			break;
+		}
+	}
 }
 
 LRESULT WpcBreakpoint::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -536,21 +611,13 @@ int wmId, wmEvent;
 		switch (wmId) 
 		{
 		case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
-			if(m_SelectedBreakpointItem!=0)
-			{
-				switch(m_SelectedBreakpointItem->machineident)
-				{
-				case DBGSYM::MachineIdent::MainCpu:
-					this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
-					break;
-				case DBGSYM::MachineIdent::DiskCpu:
-					this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
-					break;
-				}
-			}
+			OnShowAssembly();
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS:
-			this->m_pMonitorCommand->DeleteAllBreakpoints(NULL);
+			this->m_pMonitorCommand->DeleteAllBreakpoints();
+			return 0;
+		case IDM_BREAKPOINTOPTIONS_DELETEBREAKPOINT:
+			OnDeleteBreakpoint();
 			return 0;
 		}
 		break;

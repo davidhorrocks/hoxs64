@@ -59,14 +59,15 @@ public:
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	virtual bool IsBreakpointC64Execute(bit16 address);
 	virtual bool IsBreakpointDiskExecute(bit16 address);
-	virtual void SetBreakpointC64Execute(void *sender, MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
-	virtual void SetBreakpointDiskExecute(void *sender, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
-	virtual void SetBreakpointVicRasterCompare(void *sender, int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
-	virtual void DeleteBreakpointC64Execute(void *sender, bit16 address);
-	virtual void DeleteBreakpointDiskExecute(void *sender, bit16 address);
-	virtual void EnableAllBreakpoints(void *sender);
-	virtual void DeleteAllBreakpoints(void *sender);
-	virtual void DisableAllBreakpoints(void *sender);
+	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	virtual void SetBreakpointDiskExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	virtual void SetBreakpointVicRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	virtual void DeleteBreakpointC64Execute(bit16 address);
+	virtual void DeleteBreakpointDiskExecute(bit16 address);
+	virtual void DeleteVicBreakpoint(Sp_BreakpointKey bp);
+	virtual void EnableAllBreakpoints();
+	virtual void DeleteAllBreakpoints();
+	virtual void DisableAllBreakpoints();
 	// IMonitorCommand
 
 	

@@ -25,9 +25,35 @@ protected:
 	virtual void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)=0;
 };
 
+class CDisassemblyEditChild_EventSink_OnBreakpointVicChanged : public EventSink<BreakpointVicChangedEventArgs>
+{
+protected:
+
+	virtual int Sink(void *sender, BreakpointVicChangedEventArgs& e)
+	{
+		OnBreakpointVicChanged(sender, e);
+		return 0;
+	}
+	virtual void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e)=0;
+};
+
+class CDisassemblyEditChild_EventSink_OnBreakpointChanged : public EventSink<BreakpointChangedEventArgs>
+{
+protected:
+
+	virtual int Sink(void *sender, BreakpointChangedEventArgs& e)
+	{
+		OnBreakpointChanged(sender, e);
+		return 0;
+	}
+	virtual void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)=0;
+};
+
 class CDisassemblyEditChild_EventSink : 
 	public CDisassemblyEditChild_EventSink_OnBreakpointC64ExecuteChanged,
-	public CDisassemblyEditChild_EventSink_OnBreakpointDiskExecuteChanged
+	public CDisassemblyEditChild_EventSink_OnBreakpointDiskExecuteChanged,
+	public CDisassemblyEditChild_EventSink_OnBreakpointVicChanged,
+	public CDisassemblyEditChild_EventSink_OnBreakpointChanged
 {
 };
 
@@ -161,6 +187,8 @@ private:
 
 	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
 	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);
+	void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e);
+	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e);
 
 	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

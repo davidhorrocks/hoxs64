@@ -209,13 +209,18 @@ public:
 	bit8 vicBankChangeByte;
 
 	//IMonitorVic
+	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute();
 	virtual bit16 GetRasterLine();
 	virtual bit8 GetRasterCycle();
-	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute();
-	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint);
-	virtual void ClearAllBreakpoints();
+	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount); 
 	virtual int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt);
+	virtual void EnableAllBreakpoints();
+	virtual void DisableAllBreakpoints();
+	virtual void ClearAllBreakpoints();
+	virtual void EnableBreakpoint(Sp_BreakpointKey bp);
+	virtual void DisableBreakpoint(Sp_BreakpointKey bp);
+	virtual void ClearBreakpoint(Sp_BreakpointKey bp);
 
 	HRESULT Init(CConfig *, CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu);
 	void Cleanup();

@@ -392,7 +392,13 @@ int wmId, wmEvent;
 		this->m_pMonitorCommand->ShowDevelopment();
 		return true;
 	case IDM_BREAKPOINT_DELETEALLBREAKPOINTS:
-		this->m_pMonitorCommand->DeleteAllBreakpoints(NULL);
+		this->m_pMonitorCommand->DeleteAllBreakpoints();
+		return true;
+	case IDM_BREAKPOINT_ENABLEALLBREAKPOINTS:
+		this->m_pMonitorCommand->EnableAllBreakpoints();
+		return true;
+	case IDM_BREAKPOINT_DISABLEALLBREAKPOINTS:
+		this->m_pMonitorCommand->DisableAllBreakpoints();
 		return true;
 	case IDM_BREAKPOINT_VICRASTER:
 		ShowDlgBreakpointVicRaster();
@@ -410,10 +416,7 @@ void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 	INT_PTR r = pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
 	if (LOWORD(r) == IDOK)
 	{
-		IMonitorVic *pMonVic = c64->mon.GetVic();
-		pMonVic->SetBreakpointRasterCompare(pdlg->GetRasterLine(), pdlg->GetRasterCycle(), true, 0, 0);
-		BreakpointC64ExecuteChangedEventArgs e(MT_DEFAULT, 0, 0);
-		this->m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Raise(this, e);
+		this->m_pMonitorCommand->SetBreakpointVicRasterCompare(pdlg->GetRasterLine(), pdlg->GetRasterCycle(), true, 0, 0);
 	}
 }
 

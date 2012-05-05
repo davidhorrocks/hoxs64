@@ -101,6 +101,12 @@ HSink hs;
 	hs = m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Advise(this);
 	if (!hs)
 		return E_FAIL;
+	hs = m_pMonitorCommand->EsBreakpointVicChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
+	hs = m_pMonitorCommand->EsBreakpointChanged.Advise(this);
+	if (!hs)
+		return E_FAIL;
 	return S_OK;
 }
 
@@ -668,16 +674,16 @@ bool bHasPrevAddress;
 			if (this->GetCpuId() == CPUID_MAIN)
 			{
 				if (this->m_pMonitorCommand->IsBreakpointC64Execute(address))
-					this->m_pMonitorCommand->DeleteBreakpointC64Execute(this, address);
+					this->m_pMonitorCommand->DeleteBreakpointC64Execute(address);
 				else
-					this->m_pMonitorCommand->SetBreakpointC64Execute(this, MT_DEFAULT, address, true, 0, 0);				
+					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, true, 0, 0);				
 			}
 			else if (this->GetCpuId() == CPUID_DISK)
 			{
 				if (this->m_pMonitorCommand->IsBreakpointDiskExecute(address))
-					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(this, address);
+					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(address);
 				else
-					this->m_pMonitorCommand->SetBreakpointDiskExecute(this, address, true, 0, 0);
+					this->m_pMonitorCommand->SetBreakpointDiskExecute(address, true, 0, 0);
 			}
 		}
 	}
@@ -1046,10 +1052,10 @@ TEXTMETRIC tm;
 							SetRect(&rcEditRow, xcol_Address, y, rcClient.right, y + LINE_HEIGHT);
 							::SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 							::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-							if (this->GetCpu()->IsBreakPoint(albFront.Address))
+							if (this->GetCpu()->IsBreakpoint(DBGSYM::BreakpointType::Execute, albFront.Address))
 							{
 								Sp_BreakpointItem breakpoint;
-								if (this->GetCpu()->GetExecute(albFront.Address, breakpoint))
+								if (this->GetCpu()->GetBreakpoint(DBGSYM::BreakpointType::Execute, albFront.Address, breakpoint))
 								{
 									SelectObject(hdc, bshBarBreak);
 									if (breakpoint->enabled)
@@ -1268,11 +1274,11 @@ CPUState cpustate;
 
 		buffer.IsBreak = false;
 		buffer.IsBreakEnabled = false;
-		if (this->GetCpu()->IsBreakPoint(currentAddress))
+		if (this->GetCpu()->IsBreakpoint(DBGSYM::BreakpointType::Execute, currentAddress))
 		{
 			buffer.IsBreak = true;
 			Sp_BreakpointItem bp;
-			if (this->GetCpu()->GetExecute(currentAddress, bp))
+			if (this->GetCpu()->GetBreakpoint(DBGSYM::BreakpointType::Execute, currentAddress, bp))
 			{
 				buffer.IsBreakEnabled = bp->enabled;
 			}
@@ -1442,10 +1448,17 @@ void CDisassemblyEditChild::GetMinWindowSize(int &w, int &h)
 
 void CDisassemblyEditChild::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
 {
-	UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 }
 
 void CDisassemblyEditChild::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
+{
+}
+
+void CDisassemblyEditChild::OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e)
+{
+}
+
+void CDisassemblyEditChild::OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)
 {
 	UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 }
