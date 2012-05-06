@@ -2039,7 +2039,6 @@ DWORD G::CachedCommonControlsVersion()
 
 HRESULT G::GetTextSize(HWND hWnd, LPCTSTR szText, SIZE& sizeText)
 {
-RECT rcEdit;
 HRESULT hr = E_FAIL;
 	HDC hdc = GetDC(hWnd);
 	if (hdc)
@@ -2051,4 +2050,18 @@ HRESULT hr = E_FAIL;
 		ReleaseDC(hWnd, hdc);
 	}
 	return hr;
+}
+
+int G::CalcListViewMinWidth(HWND hWnd, ...)
+{
+	va_list         vl;
+	LPCTSTR p;
+	va_start(vl, hWnd);
+	int k = 0;
+	for (p = va_arg(vl, LPCTSTR); p != NULL; p = va_arg(vl, LPCTSTR))
+	{
+		k = max(k, ListView_GetStringWidth(hWnd, p));
+	}
+	va_end(vl);
+	return k;
 }

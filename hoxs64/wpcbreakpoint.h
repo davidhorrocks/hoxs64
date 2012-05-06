@@ -85,7 +85,15 @@ protected:
 	int LvBreakPoint_RowCol_State(int iRow, int iCol);
 
 private:
-	class LvBreakColumnIndex
+	static LPCTSTR sVic;
+	static LPCTSTR sDisk;
+	static LPCTSTR sC64;
+	static LPCTSTR sExecute;
+	static LPCTSTR sRasterCompare;
+	static LPCTSTR sLine;
+	static LPCTSTR sCycle;
+	static LPCTSTR sAddress;
+class LvBreakColumnIndex
 	{
 	public:
 		enum tagEnumBreakColumnIndex

@@ -219,6 +219,7 @@ public:
 	static DWORD GetDllVersion(LPCTSTR lpszDllName);
 	static DWORD CachedCommonControlsVersion();
 	static HRESULT GetTextSize(HWND hWnd, LPCTSTR szText, SIZE& sizeText);
+	static int CalcListViewMinWidth(HWND hWnd, ...);
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);

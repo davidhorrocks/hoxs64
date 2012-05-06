@@ -177,7 +177,8 @@ SIZE size;
 
 HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 {
-	int ColumnWidthPadding = 8;
+	int WidthPaddingItem = 7;
+	int WidthPaddingSubItem = 14;
 	int r;
 	LVCOLUMN lvc;
 	ZeroMemory(&lvc, sizeof(lvc));
@@ -185,7 +186,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Cpu;
 	lvc.fmt = LVCFMT_LEFT;
 	lvc.pszText = TEXT("CPU");
-	lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("00000000"), 100) + ColumnWidthPadding);
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, sDisk, sC64, NULL) + WidthPaddingItem + m_dpi.ScaleX((16+8) *2);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cpu, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -193,9 +194,9 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 	lvc.iSubItem = (int)LvBreakColumnIndex::Type;
-	lvc.fmt = LVCFMT_RIGHT;
+	lvc.fmt = LVCFMT_LEFT;
 	lvc.pszText = TEXT("Type");
-	lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("Raster Compare"), 100) + ColumnWidthPadding);
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, sRasterCompare, NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Type, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -205,7 +206,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Address;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Address");
-	lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("0000000"), 100) + ColumnWidthPadding);
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$00000"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -215,7 +216,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Line;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Line");
-	lvc.cx = lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("00000"), 100) + ColumnWidthPadding);
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("0000"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Line, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -225,7 +226,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Cycle;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Cycle");
-	lvc.cx = lvc.cx = m_dpi.ScaleX(GetTextWidth(hWndListView, TEXT("Cycle"), 100) + ColumnWidthPadding);
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("0000"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cycle, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -271,14 +272,19 @@ HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& 
 	return S_OK;
 }
 
+LPCTSTR WpcBreakpoint::sVic = TEXT("VIC");
+LPCTSTR WpcBreakpoint::sDisk = TEXT("Disk");
+LPCTSTR WpcBreakpoint::sC64 = TEXT("C64");
+LPCTSTR WpcBreakpoint::sExecute = TEXT("Execute");
+LPCTSTR WpcBreakpoint::sRasterCompare = TEXT("Raster Compare");
+LPCTSTR WpcBreakpoint::sLine = TEXT("Line");
+LPCTSTR WpcBreakpoint::sCycle = TEXT("Cycle");
+LPCTSTR WpcBreakpoint::sAddress = TEXT("Address");
 HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch)
 {
 #define ADDRESS_DIGITS 4
 HRESULT hr;
-LPCTSTR sDisk = TEXT("Disk");
-LPCTSTR sC64 = TEXT("C64");
-LPCTSTR sExecute = TEXT("Execute");
-LPCTSTR sRasterCompare = TEXT("Raster Compare");
+
 TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
 TCHAR sIntBuffer[20];
 
@@ -296,6 +302,8 @@ TCHAR sIntBuffer[20];
 			_tcsncpy_s(pText, cch, sC64, _TRUNCATE);
 		else if (bp->machineident == DBGSYM::MachineIdent::DiskCpu)
 			_tcsncpy_s(pText, cch, sDisk, _TRUNCATE);
+		else if (bp->machineident == DBGSYM::MachineIdent::Vic)
+			_tcsncpy_s(pText, cch, sVic, _TRUNCATE);
 		break;
 	case LvBreakColumnIndex::Type:
 		if (bp->bptype == DBGSYM::BreakpointType::Execute)
@@ -465,7 +473,6 @@ void WpcBreakpoint::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64Exe
 
 void WpcBreakpoint::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
 {
-
 }
 
 void WpcBreakpoint::OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e)
