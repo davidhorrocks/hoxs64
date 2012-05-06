@@ -110,14 +110,18 @@ private:
 	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e);
 
 	void OnShowAssembly();
-	void OnDeleteBreakpoint();
-	void OnEnabledBreakpoint();
-	void OnDisableBreakpoint();
+	void DeleteBreakpoint(Sp_BreakpointKey bp);
+	void EnableBreakpoint(Sp_BreakpointKey bp);
+	void DisableBreakpoint(Sp_BreakpointKey bp);
 
+	void OnDeleteSelectedBreakpoint();
+	void OnEnableSelectedBreakpoint();
+	void OnDisableSelectedBreakpoint();
+
+	bool m_bSuppressThisBreakpointEvent;
 	CDPI m_dpi;
 	C64 *c64;
 	IMonitorCommand *m_pMonitorCommand;
-	Sp_BreakpointItem m_SelectedBreakpointItem;
 };
 
 #endif

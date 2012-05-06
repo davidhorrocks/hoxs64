@@ -26,14 +26,16 @@ BreakpointDiskExecuteChangedEventArgs::BreakpointDiskExecuteChangedEventArgs(bit
 
 Monitor::Monitor()
 {
+	m_bMonitorEvents = true;
 	m_pMonitorMainCpu = NULL;
 	m_pMonitorDiskCpu = NULL;
 	m_pMonitorVic = NULL;
 	m_pMonitorDisk = NULL;
 }
 
-HRESULT Monitor::Init(IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk)
+HRESULT Monitor::Init(IC64Event *pIC64Event, IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk)
 {
+	this->m_pIC64Event = pIC64Event;
 	this->m_pMonitorMainCpu = pMonitorMainCpu;
 	this->m_pMonitorDiskCpu = pMonitorDiskCpu;
 	this->m_pMonitorVic = pMonitorVic;
@@ -315,4 +317,113 @@ const unsigned int DIGITS = 2;
 	}
 	*s=0;
 	return elementsFormatted;
+}
+
+
+bool Monitor::BM_SetBreakpoint(Sp_BreakpointItem bp)
+{
+	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
+		return false;
+	Sp_BreakpointItem bp_find;
+	if (BM_GetBreakpoint(bp, bp_find))
+	{
+		*bp_find = *bp;
+	}
+	else
+	{
+		MapBpExecute[bp] = bp;
+	}
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->BreakpointChanged();
+	}
+	return true;
+}
+
+bool Monitor::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp)
+{
+	BpMap::iterator it;
+	it = MapBpExecute.find(k);
+	if (it != MapBpExecute.end())
+	{
+		bp = it->second;
+		return true;
+	}
+	return false;
+}
+
+void Monitor::BM_DeleteBreakpoint(Sp_BreakpointKey k)
+{
+Sp_BreakpointItem bp;
+	if (this->BM_GetBreakpoint(k, bp))
+		this->MapBpExecute.erase(k);
+
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->BreakpointChanged();
+	}
+}
+
+void Monitor::BM_EnableBreakpoint(Sp_BreakpointKey k)
+{
+Sp_BreakpointItem bp;
+	if (this->BM_GetBreakpoint(k, bp))
+	{
+		bp->enabled = true;
+	}
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->BreakpointChanged();
+	}
+}
+
+void Monitor::BM_DisableBreakpoint(Sp_BreakpointKey k)
+{
+Sp_BreakpointItem bp;
+	if (this->BM_GetBreakpoint(k, bp))
+	{
+		bp->enabled = false;
+	}
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->BreakpointChanged();
+	}
+}
+
+void Monitor::BM_EnableAllBreakpoints()
+{
+	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+		it->second->enabled = true;
+
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->BreakpointChanged();
+	}
+}
+
+void Monitor::BM_DisableAllBreakpoints() 
+{
+	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+		it->second->enabled = false;
+
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->BreakpointChanged();
+	}
+}
+
+void Monitor::BM_DeleteAllBreakpoints()
+{
+	MapBpExecute.clear();
+
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->BreakpointChanged();
+	}
+}
+
+IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
+{
+	BpEnum *r= new BpEnum(&this->MapBpExecute);
+	return r;
 }

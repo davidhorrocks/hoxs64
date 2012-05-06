@@ -7,6 +7,34 @@ protected:
 	virtual ~IBase(){};
 };
 
+struct BreakpointKey
+{
+	BreakpointKey();
+	BreakpointKey(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
+	DBGSYM::MachineIdent::MachineIdent machineident;
+	DBGSYM::BreakpointType::BreakpointType bptype;
+	bit16 address;
+	int vic_line;
+	int vic_cycle;
+	int Compare(const BreakpointKey v) const;
+	bool operator<(const BreakpointKey v) const;
+	bool operator>(const BreakpointKey v) const;
+	bool operator==(const BreakpointKey y) const;
+};
+
+struct BreakpointItem : public BreakpointKey
+{
+	BreakpointItem();
+	BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
+	bool enabled;
+	int initialSkipOnHitCount;
+	int currentSkipOnHitCount;
+};
+
+typedef shared_ptr<BreakpointKey> Sp_BreakpointKey;
+typedef shared_ptr<BreakpointItem> Sp_BreakpointItem;
+
+
 typedef enum tagMemoryType : int
 {
 	MT_DEFAULT = 0,
@@ -53,12 +81,35 @@ public:
 	virtual void EndOfTape(ICLK sysclock)=0;
 };
 
+class IEnumBreakpointItem : IBase
+{
+public:
+	virtual int GetCount() = 0;
+	virtual bool GetNext(Sp_BreakpointItem& v) = 0;
+	virtual void Reset() = 0;
+};
+
+class IBreakpointManager
+{
+public:
+	virtual bool BM_SetBreakpoint(Sp_BreakpointItem bp) = 0;
+	virtual bool BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp) = 0;
+	virtual void BM_DeleteBreakpoint(Sp_BreakpointKey k) = 0;
+	virtual void BM_EnableBreakpoint(Sp_BreakpointKey k) = 0;
+	virtual void BM_DisableBreakpoint(Sp_BreakpointKey k) = 0;
+	virtual void BM_EnableAllBreakpoints() = 0;
+	virtual void BM_DisableAllBreakpoints() = 0;
+	virtual void BM_DeleteAllBreakpoints() = 0;
+	virtual IEnumBreakpointItem *BM_CreateEnumBreakpointItem() = 0;
+};
+
 class IC64BreakEvent
 {
 public:
 	virtual void BreakExecuteCpu64()=0;
 	virtual void BreakExecuteCpuDisk()=0;
 	virtual void BreakVicRasterCompare()=0;
+	virtual void BreakpointChanged()=0;
 };
 
 class IC64Event : public IC64BreakEvent
@@ -100,41 +151,6 @@ struct CPUState
 	bool IsInterruptInstruction;
 };
 
-struct BreakpointKey
-{
-	BreakpointKey();
-	BreakpointKey(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
-	DBGSYM::MachineIdent::MachineIdent machineident;
-	DBGSYM::BreakpointType::BreakpointType bptype;
-	bit16 address;
-	int vic_line;
-	int vic_cycle;
-	int Compare(const BreakpointKey v) const;
-	bool operator<(const BreakpointKey v) const;
-	bool operator>(const BreakpointKey v) const;
-	bool operator==(const BreakpointKey y) const;
-};
-
-struct BreakpointItem : public BreakpointKey
-{
-	BreakpointItem();
-	BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
-	bool enabled;
-	int initialSkipOnHitCount;
-	int currentSkipOnHitCount;
-};
-
-typedef shared_ptr<BreakpointKey> Sp_BreakpointKey;
-typedef shared_ptr<BreakpointItem> Sp_BreakpointItem;
-
-class IEnumBreakpointItem : IBase
-{
-public:
-	virtual int GetCount() = 0;
-	virtual bool GetNext(Sp_BreakpointItem& v) = 0;
-	virtual void Reset() = 0;
-};
-
 struct LessBreakpointKey
 {
 	bool operator()(const Sp_BreakpointKey x, const Sp_BreakpointKey y) const;
@@ -156,16 +172,13 @@ public:
 	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap)=0;
 	virtual void GetCpuState(CPUState& state)=0;
 	virtual bool IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
-	virtual void ClearBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
+	virtual void DeleteBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
 	virtual void EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
 	virtual void DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)=0;
 	virtual bool SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
 	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
-	virtual void ClearAllBreakpoints() = 0;
-	virtual void EnableAllBreakpoints() = 0;
-	virtual void DisableAllBreakpoints() = 0;
 	virtual void SetPC(bit16 address) = 0;
 	virtual void SetA(bit8 v) = 0;
 	virtual void SetX(bit8 v) = 0;
@@ -174,25 +187,17 @@ public:
 	virtual void SetSP(bit8 v) = 0;
 	virtual void SetDdr(bit8 v) = 0;
 	virtual void SetData(bit8 v) = 0;
-	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute() = 0;
 };
 
 
 class IMonitorVic
 {
 public:
-	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute() = 0;
 	virtual bit16 GetRasterLine()=0;
 	virtual bit8 GetRasterCycle()=0;
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint) = 0;
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) = 0; 
 	virtual int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt) = 0;
-	virtual void EnableAllBreakpoints() = 0;
-	virtual void DisableAllBreakpoints() = 0;
-	virtual void ClearAllBreakpoints() = 0;
-	virtual void EnableBreakpoint(Sp_BreakpointKey bp) = 0;
-	virtual void DisableBreakpoint(Sp_BreakpointKey bp) = 0;
-	virtual void ClearBreakpoint(Sp_BreakpointKey bp) = 0;
 };
 
 class IMonitorDisk

@@ -318,7 +318,6 @@ CPU6502::CPU6502()
 {
 	m_bDebug=0;
 	InitDecoder();
-	ClearAllBreakpoints();
 	CurrentClock=0;
 	FirstIRQClock=0;
 	FirstNMIClock=0;
@@ -857,9 +856,10 @@ void CPU6502::Reset(ICLK sysclock)
 	mPC.byte.hiByte = ReadByte(0xFFFD);
 }
 
-HRESULT CPU6502::Init(int ID)
+HRESULT CPU6502::Init(int ID, IBreakpointManager *pIBreakpointManager)
 {	
 	this->ID = ID;
+	this->m_pIBreakpointManager = pIBreakpointManager;
 	return S_OK;
 }
 

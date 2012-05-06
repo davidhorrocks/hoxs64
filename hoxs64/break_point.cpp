@@ -108,18 +108,6 @@ BreakpointItem::BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, 
 	this->currentSkipOnHitCount = currentSkipOnHitCount;
 }
 
-IEnumBreakpointItem *CPU6502::CreateEnumBreakpointExecute()
-{
-	BpEnum *r= new BpEnum(&this->MapBpExecute);
-	return r;
-}
-
-void CPU6502::ClearAllBreakpoints()
-{
-	MapBpExecute.clear();
-	m_bBreakOnInterruptTaken = false;
-}
-
 void CPU6502::SetBreakOnInterruptTaken()
 {
 	m_bBreakOnInterruptTaken = true;
@@ -137,48 +125,26 @@ bool CPU6502::GetBreakOnInterruptTaken()
 
 bool CPU6502::SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
-	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
+	Sp_BreakpointItem v(new BreakpointItem((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
+	if (v == 0)
 		return false;
-	Sp_BreakpointItem bp;
-	Sp_BreakpointItem v(new BreakpointItem((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
-	Sp_BreakpointKey k(new BreakpointKey((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address));
-	if (k == 0 || v == 0)
-		return false;
-	if (GetBreakpoint(bptype, address, bp))
-	{
-		*bp = *v;
-	}
-	else
-	{
-		MapBpExecute[k] = v;
-	}
-	return true;
+	return this->m_pIBreakpointManager->BM_SetBreakpoint(v);
 }
 
 bool CPU6502::GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint)
 {
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address);
+	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address);
 	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::iterator it;
-	it = MapBpExecute.find(k);
-	if (it != MapBpExecute.end())
-	{
-		breakpoint =it->second;
-		return true;
-	}
-	return false;
+	return this->m_pIBreakpointManager->BM_GetBreakpoint(k, breakpoint);
 }
 
 int CPU6502::CheckExecute(bit16 address, bool bHitIt)
 {
 int i = -1;
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, DBGSYM::BreakpointType::Execute, address);
-	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::iterator it;
-	it = MapBpExecute.find(k);
-	if (it != MapBpExecute.end())
+
+	Sp_BreakpointItem bp;
+	if (GetBreakpoint(DBGSYM::BreakpointType::Execute, address, bp))
 	{
-		Sp_BreakpointItem& bp = it->second;
 		if (bp->enabled)
 		{
 			i = bp->currentSkipOnHitCount;
@@ -193,21 +159,17 @@ int i = -1;
 
 bool CPU6502::IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address);
-	Sp_BreakpointKey k(&key, null_deleter());
-	if (MapBpExecute.find(k) != MapBpExecute.end())
-		return true;
-	return false;
+	Sp_BreakpointItem bp;
+	return GetBreakpoint(bptype, address, bp);
 }
 
-void CPU6502::ClearBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
+void CPU6502::DeleteBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-	//BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address);
-	//Sp_BreakpointKey k(&key, null_deleter());
-	//this->MapBpExecute.erase(k);
 	Sp_BreakpointItem bp;
 	if (this->GetBreakpoint(bptype, address, bp))
-		this->MapBpExecute.erase(bp);
+	{
+		this->m_pIBreakpointManager->BM_DeleteBreakpoint(bp);
+	}
 }
 
 void CPU6502::EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
@@ -222,18 +184,6 @@ void CPU6502::DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, b
 	Sp_BreakpointItem bp;
 	if (this->GetBreakpoint(bptype, address, bp))
 		bp->enabled = false;
-}
-
-void CPU6502::EnableAllBreakpoints()
-{
-	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
-		it->second->enabled = true;
-}
-
-void CPU6502::DisableAllBreakpoints()
-{
-	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
-		it->second->enabled = false;
 }
 
 void CPU6502::StartDebug()

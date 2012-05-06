@@ -12,7 +12,7 @@ class DiskInterface : public IRegister, public IMonitorDisk, public ErrorMsg
 public:
 	DiskInterface();
 	~DiskInterface();
-	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, TCHAR *szAppDirectory);
+	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager, TCHAR *szAppDirectory);
 	HRESULT InitDiskThread();
 	static DWORD WINAPI DiskThreadProc( LPVOID lpParam );
 	DWORD DiskThreadProc();

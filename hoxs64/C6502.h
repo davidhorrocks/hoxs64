@@ -507,7 +507,7 @@ public:
 	CPU6502();
 	~CPU6502();
 
-	HRESULT Init(int ID);
+	HRESULT Init(int ID, IBreakpointManager *pIBreakpointManager);
 	void Cleanup();
 
 	virtual bit8 ReadByte(bit16 address)=0;
@@ -519,15 +519,13 @@ public:
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap)=0;
 	virtual void GetCpuState(CPUState& state);
 	virtual bool IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
-	virtual void ClearBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
+	virtual void DeleteBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
 	virtual void EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
 	virtual void DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
 	virtual bool SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
 	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint);
 	virtual void SetBreakOnInterruptTaken();
 	virtual void ClearBreakOnInterruptTaken();
-	virtual void EnableAllBreakpoints();
-	virtual void DisableAllBreakpoints();
 	virtual void SetPC(bit16 address);
 	virtual void SetA(bit8 v);
 	virtual void SetX(bit8 v);
@@ -536,7 +534,6 @@ public:
 	virtual void SetSP(bit8 v);
 	virtual void SetDdr(bit8 v);
 	virtual void SetData(bit8 v);
-	virtual IEnumBreakpointItem *CreateEnumBreakpointExecute();
 
 	//IRegister
 	virtual void Reset(ICLK sysclock);
@@ -583,12 +580,7 @@ public:
 	bool SOTrigger;
 	ICLK SOTriggerClock;
 
-	void ClearAllBreakpoints();
-	//bool SetRead(bit16 address, int count);
-	//bool SetWrite(bit16 address, int count);
 	int CheckExecute(bit16 address, bool bHitIt);
-	//int CheckRead(bit16 address, bool bHitIt);
-	//int CheckWrite(bit16 address, bool bHitIt);
 	void StartDebug();
 	void StopDebug();
 	bool IsWriteCycle();
@@ -632,7 +624,8 @@ private:
 	unsigned long _datalong;
 	bit8 axa_byte;
 	bool m_bBreakOnInterruptTaken;
-	BpMap MapBpExecute;
+	//BpMap MapBpExecute;
+	IBreakpointManager *m_pIBreakpointManager;
 };
 
 #endif

@@ -95,15 +95,6 @@ HSink hs;
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
 
-	hs = m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
-	if (!hs)
-		return E_FAIL;
-	hs = m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Advise(this);
-	if (!hs)
-		return E_FAIL;
-	hs = m_pMonitorCommand->EsBreakpointVicChanged.Advise(this);
-	if (!hs)
-		return E_FAIL;
 	hs = m_pMonitorCommand->EsBreakpointChanged.Advise(this);
 	if (!hs)
 		return E_FAIL;
@@ -670,20 +661,13 @@ bool bHasPrevAddress;
 		{
 			pAlb = &this->m_pFrontTextBuffer[iline];
 			address = pAlb->Address;
-
-			if (this->GetCpuId() == CPUID_MAIN)
+			IMonitorCpu *pIMonitorCpu = this->GetCpu();
+			if (pIMonitorCpu)
 			{
-				if (this->m_pMonitorCommand->IsBreakpointC64Execute(address))
-					this->m_pMonitorCommand->DeleteBreakpointC64Execute(address);
-				else
-					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, address, true, 0, 0);				
-			}
-			else if (this->GetCpuId() == CPUID_DISK)
-			{
-				if (this->m_pMonitorCommand->IsBreakpointDiskExecute(address))
-					this->m_pMonitorCommand->DeleteBreakpointDiskExecute(address);
-				else
-					this->m_pMonitorCommand->SetBreakpointDiskExecute(address, true, 0, 0);
+				if (pIMonitorCpu->IsBreakpoint(DBGSYM::BreakpointType::Execute, address))
+					pIMonitorCpu->DeleteBreakpoint(DBGSYM::BreakpointType::Execute, address);
+				else 
+					pIMonitorCpu->SetBreakpoint(DBGSYM::BreakpointType::Execute, address, true, 0, 0);
 			}
 		}
 	}

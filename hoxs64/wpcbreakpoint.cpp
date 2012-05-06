@@ -22,6 +22,7 @@ const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 
 WpcBreakpoint::WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand)
 {
+	m_bSuppressThisBreakpointEvent = false;
 	m_hLvBreak = NULL;
 	m_hMenuBreakPoint = NULL;
 	this->c64 = c64;
@@ -45,15 +46,6 @@ HSink hs;
 	if (!m_hMenuBreakPoint)
 		return E_FAIL;
 
-	hs = m_pMonitorCommand->EsBreakpointC64ExecuteChanged.Advise(this);
-	if (!hs)
-		return E_FAIL;
-	hs = m_pMonitorCommand->EsBreakpointDiskExecuteChanged.Advise(this);
-	if (!hs)
-		return E_FAIL;
-	hs = m_pMonitorCommand->EsBreakpointVicChanged.Advise(this);
-	if (!hs)
-		return E_FAIL;
 	hs = m_pMonitorCommand->EsBreakpointChanged.Advise(this);
 	if (!hs)
 		return E_FAIL;
@@ -245,7 +237,8 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 	m_lstBreak.clear();
 	
 	Sp_BreakpointItem v;
-	IEnumBreakpointItem *pEnumBpMain = c64->mon.GetMainCpu()->CreateEnumBreakpointExecute();
+	
+	IEnumBreakpointItem *pEnumBpMain = c64->mon.BM_CreateEnumBreakpointItem();
 	if (pEnumBpMain)
 	{
 		while (pEnumBpMain->GetNext(v))
@@ -253,24 +246,6 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 			m_lstBreak.push_back(v);
 		}
 		delete pEnumBpMain;
-	}
-	IEnumBreakpointItem *pEnumBpDisk = c64->mon.GetDiskCpu()->CreateEnumBreakpointExecute();
-	if (pEnumBpDisk)
-	{
-		while (pEnumBpDisk->GetNext(v))
-		{
-			m_lstBreak.push_back(v);
-		}
-		delete pEnumBpDisk;
-	}
-	IEnumBreakpointItem *pEnumBpVic = c64->mon.GetVic()->CreateEnumBreakpointExecute();
-	if (pEnumBpVic)
-	{
-		while (pEnumBpVic->GetNext(v))
-		{
-			m_lstBreak.push_back(v);
-		}
-		delete pEnumBpVic;
 	}
 	ListView_SetItemCountEx(hWndListView, m_lstBreak.size(), 0);
 	return S_OK;
@@ -399,53 +374,37 @@ lresult = 0;
 	{
 		if ((lvHitTestInfo.flags & LVHT_ONITEMSTATEICON) != 0 && (lvHitTestInfo.flags & LVHT_ONITEMLABEL) == 0)
 		{
+			m_bSuppressThisBreakpointEvent = true;
 			Sp_BreakpointItem bp;
 			hr = LvBreakPoint_RowCol_GetData(pnmh->iItem, bp);
 			if (SUCCEEDED(hr))
 			{
-				switch(bp->machineident)
-				{
-				case DBGSYM::MachineIdent::MainCpu:
-					this->m_pMonitorCommand->SetBreakpointC64Execute(MT_DEFAULT, bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
-					break;
-				case DBGSYM::MachineIdent::DiskCpu:
-					this->m_pMonitorCommand->SetBreakpointDiskExecute(bp->address, !bp->enabled, bp->initialSkipOnHitCount, bp->currentSkipOnHitCount);
-					break;
-				case DBGSYM::MachineIdent::Vic:
-					this->m_pMonitorCommand->SetBreakpointVicRasterCompare(bp->vic_line, bp->vic_cycle, !bp->enabled, 0, 0);
-					break;
-				}
-				RECT rcState;
-				if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))
-				{
-					InvalidateRect(m_hLvBreak, &rcState, FALSE);
-				}
+				if (bp->enabled)
+					this->DisableBreakpoint(bp);
 				else
-				{
-					InvalidateRect(m_hLvBreak, NULL, FALSE);
-				}
-
-				UpdateWindow(m_hLvBreak);
-				return true;
+					this->EnableBreakpoint(bp);
 			}
+			m_bSuppressThisBreakpointEvent = false;
+			RECT rcState;
+			if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))
+			{
+				InvalidateRect(m_hLvBreak, &rcState, FALSE);
+			}
+			else
+			{
+				InvalidateRect(m_hLvBreak, NULL, FALSE);
+			}
+
+			UpdateWindow(m_hLvBreak);
 		}
 	}
-	return false;
+	return true;
 }
 
 bool WpcBreakpoint::LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult)
 {
 RECT rcWin;
 HMENU hMenu;
-HRESULT hr;
-
-	m_SelectedBreakpointItem = Sp_BreakpointItem();
-	Sp_BreakpointItem bp;
-	lresult = 0;
-	hr = LvBreakPoint_RowCol_GetData(pnmh->iItem, bp);
-	if (FAILED(hr))
-		return false;
-	m_SelectedBreakpointItem = bp;
 
 	GetWindowRect(m_hLvBreak, &rcWin);
 	OffsetRect(&rcWin,  pnmh->ptAction.x, pnmh->ptAction.y);
@@ -506,6 +465,7 @@ void WpcBreakpoint::OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64Exe
 
 void WpcBreakpoint::OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
 {
+
 }
 
 void WpcBreakpoint::OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e)
@@ -514,71 +474,101 @@ void WpcBreakpoint::OnBreakpointVicChanged(void *sender, BreakpointVicChangedEve
 
 void WpcBreakpoint::OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)
 {
-	if (sender == this)
+	if (m_bSuppressThisBreakpointEvent)
 		return;
 	FillListView(m_hLvBreak);
 }
 
 void WpcBreakpoint::OnShowAssembly()
 {
-	if(m_SelectedBreakpointItem!=0)
+
+	int i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
+	if (i>=0)
 	{
-		switch(m_SelectedBreakpointItem->machineident)
+		Sp_BreakpointItem bp;
+		if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 		{
-		case DBGSYM::MachineIdent::MainCpu:
-			this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
-			break;
-		case DBGSYM::MachineIdent::DiskCpu:
-			this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, m_SelectedBreakpointItem->address);
-			break;
+			switch(bp->machineident)
+			{
+			case DBGSYM::MachineIdent::MainCpu:
+				this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
+				break;
+			case DBGSYM::MachineIdent::DiskCpu:
+				this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
+				break;
+			}
 		}
 	}
 }
 
-void WpcBreakpoint::OnDeleteBreakpoint()
+void WpcBreakpoint::DeleteBreakpoint(Sp_BreakpointKey bp)
 {
-	if(m_SelectedBreakpointItem!=0)
+	if(bp!=0)
 	{
-		switch(m_SelectedBreakpointItem->machineident)
+		this->c64->mon.BM_DeleteBreakpoint(bp);
+	}
+}
+
+void WpcBreakpoint::EnableBreakpoint(Sp_BreakpointKey bp)
+{
+	if(bp!=0)
+	{
+		this->c64->mon.BM_EnableBreakpoint(bp);
+	}
+}
+
+void WpcBreakpoint::DisableBreakpoint(Sp_BreakpointKey bp)
+{
+	if(bp!=0)
+	{
+		this->c64->mon.BM_DisableBreakpoint(bp);
+	}
+}
+
+void WpcBreakpoint::OnDeleteSelectedBreakpoint()
+{
+	for (int i=0, c = 0 ; i>=0 && c<1 ; c++)
+	{
+		i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
+		if (i>=0)
 		{
-		case DBGSYM::MachineIdent::MainCpu:
-			this->m_pMonitorCommand->DeleteBreakpointC64Execute(m_SelectedBreakpointItem->address);
-			break;
-		case DBGSYM::MachineIdent::DiskCpu:
-			this->m_pMonitorCommand->DeleteBreakpointDiskExecute(m_SelectedBreakpointItem->address);
-			break;
-		case DBGSYM::MachineIdent::Vic:
-			this->m_pMonitorCommand->DeleteVicBreakpoint(m_SelectedBreakpointItem);
-			break;
+			Sp_BreakpointItem bp;
+			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
+			{
+				c64->mon.BM_DeleteBreakpoint(bp);
+			}
 		}
 	}
 }
 
-void WpcBreakpoint::OnEnabledBreakpoint()
+void WpcBreakpoint::OnEnableSelectedBreakpoint()
 {
-	if(m_SelectedBreakpointItem!=0)
+	for (int i=0, c = 0 ; i>=0 && c<10 ; c++)
 	{
-		m_SelectedBreakpointItem->enabled = true;
-		BreakpointChangedEventArgs e;
-		this->m_pMonitorCommand->EsBreakpointChanged.Raise(NULL, e);
+		i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
+		if (i>=0)
+		{
+			Sp_BreakpointItem bp;
+			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
+			{
+				c64->mon.BM_EnableBreakpoint(bp);
+			}
+		}
 	}
 }
 
-void WpcBreakpoint::OnDisableBreakpoint()
+void WpcBreakpoint::OnDisableSelectedBreakpoint()
 {
-	if(m_SelectedBreakpointItem!=0)
+	for (int i=0, c = 0 ; i>=0 && c<10 ; c++)
 	{
-		switch(m_SelectedBreakpointItem->machineident)
+		i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
+		if (i>=0)
 		{
-		case DBGSYM::MachineIdent::MainCpu:
-			//this->m_pMonitorCommand->DeleteBreakpointC64Execute(m_SelectedBreakpointItem->address);
-			break;
-		case DBGSYM::MachineIdent::DiskCpu:
-			//this->m_pMonitorCommand->DeleteBreakpointDiskExecute(m_SelectedBreakpointItem->address);
-			break;
-		case DBGSYM::MachineIdent::Vic:
-			//this->m_pMonitorCommand->
-			break;
+			Sp_BreakpointItem bp;
+			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
+			{
+				c64->mon.BM_DisableBreakpoint(bp);
+			}
 		}
 	}
 }
@@ -614,10 +604,16 @@ int wmId, wmEvent;
 			OnShowAssembly();
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS:
-			this->m_pMonitorCommand->DeleteAllBreakpoints();
+			c64->mon.BM_DeleteAllBreakpoints();
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEBREAKPOINT:
-			OnDeleteBreakpoint();
+			OnDeleteSelectedBreakpoint();
+			return 0;
+		case IDM_BREAKPOINTOPTIONS_ENABLEBREAKPOINT:
+			OnEnableSelectedBreakpoint();
+			return 0;
+		case IDM_BREAKPOINTOPTIONS_DISABLEBREAKPOINT:
+			OnDisableSelectedBreakpoint();
 			return 0;
 		}
 		break;

@@ -43,17 +43,6 @@ public:
 	virtual void SoundOff()=0;
 	virtual void SoundOn()=0;
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
-	virtual bool IsBreakpointC64Execute(bit16 address)=0;
-	virtual bool IsBreakpointDiskExecute(bit16 address)=0;
-	virtual void SetBreakpointC64Execute(MEM_TYPE memorymap, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
-	virtual void SetBreakpointDiskExecute(bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
-	virtual void SetBreakpointVicRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)=0;
-	virtual void DeleteBreakpointC64Execute(bit16 address)=0;
-	virtual void DeleteBreakpointDiskExecute(bit16 address)=0;
-	virtual void DeleteVicBreakpoint(Sp_BreakpointKey bp)=0;
-	virtual void EnableAllBreakpoints()=0;
-	virtual void DisableAllBreakpoints()=0;
-	virtual void DeleteAllBreakpoints()=0;
 
 	EventSource<EventArgs> EsResume;
 	EventSource<EventArgs> EsTrace;
@@ -68,13 +57,10 @@ public:
 	EventSource<EventArgs> EsCpuC64RegPCChanged;
 	EventSource<EventArgs> EsCpuDiskRegPCChanged;
 
-	EventSource<BreakpointC64ExecuteChangedEventArgs> EsBreakpointC64ExecuteChanged;
-	EventSource<BreakpointDiskExecuteChangedEventArgs> EsBreakpointDiskExecuteChanged;
-	EventSource<BreakpointVicChangedEventArgs> EsBreakpointVicChanged;
 	EventSource<BreakpointChangedEventArgs> EsBreakpointChanged;
 };
 
-class Monitor
+class Monitor : public IBreakpointManager
 {
 public:
 	static const int BUFSIZEADDRESSTEXT = 6;
@@ -90,7 +76,9 @@ public:
 	static const int BUFSIZEMMUTEXT = 20;
 
 	Monitor();
-	HRESULT Init(IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk);
+	HRESULT Init(IC64Event *pIC64Event, IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk);
+	void MonitorEventsOn();
+	void MonitorEventsOff();
 	int DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc);
 	int DisassembleBytes(IMonitorCpu *pMonitorCpu, unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer);
 	void GetCpuRegisters(IMonitorCpu *pMonitorCpu, TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDdr_Text, int cchDdr_Text, TCHAR *pData_Text, int cchData_Text);
@@ -99,11 +87,26 @@ public:
 	IMonitorCpu *GetDiskCpu();
 	IMonitorVic *GetVic();
 	IMonitorDisk *GetDisk();
+
+	virtual bool IBreakpointManager::BM_SetBreakpoint(Sp_BreakpointItem bp);
+	virtual bool IBreakpointManager::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp);
+	virtual void IBreakpointManager::BM_DeleteBreakpoint(Sp_BreakpointKey k);
+	virtual void IBreakpointManager::BM_EnableBreakpoint(Sp_BreakpointKey k);
+	virtual void IBreakpointManager::BM_DisableBreakpoint(Sp_BreakpointKey k);
+	virtual void IBreakpointManager::BM_EnableAllBreakpoints();
+	virtual void IBreakpointManager::BM_DisableAllBreakpoints();
+	virtual void IBreakpointManager::BM_DeleteAllBreakpoints();
+	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
+
 private:
 	IMonitorCpu *m_pMonitorMainCpu;
 	IMonitorCpu *m_pMonitorDiskCpu;
 	IMonitorVic *m_pMonitorVic;
 	IMonitorDisk *m_pMonitorDisk;
 
+	//Breakpoint container
+	BpMap MapBpExecute;
+	bool m_bMonitorEvents;
+	IC64Event *m_pIC64Event;
 };
 #endif

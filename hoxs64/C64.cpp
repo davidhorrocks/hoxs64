@@ -72,18 +72,18 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 
 	if (ram.Init(m_szAppDirectory)!=S_OK) return SetError(ram);
 
-	if (cpu.Init(pIC64Event, CPUID_MAIN, static_cast<IRegister *>(&cia1), static_cast<IRegister *>(&cia2), static_cast<IRegister *>(&vic), static_cast<IRegister *>(&sid), &ram, static_cast<ITape *>(&tape64))!=S_OK) return SetError(cpu);
+	if (cpu.Init(pIC64Event, CPUID_MAIN, static_cast<IRegister *>(&cia1), static_cast<IRegister *>(&cia2), static_cast<IRegister *>(&vic), static_cast<IRegister *>(&sid), &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
 
 	if (cia1.Init(cfg, appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx, static_cast<IAutoLoad *>(this))!=S_OK) return SetError(cia1);
 	if (cia2.Init(cfg, appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
 
-	if (vic.Init(cfg, appStatus, dx, &ram, &cpu)!=S_OK) return SetError(vic);
+	if (vic.Init(cfg, appStatus, dx, &ram, &cpu, &mon)!=S_OK) return SetError(vic);
 
 	if (sid.Init(cfg, appStatus, dx, cfg->m_fps)!=S_OK) return SetError(sid);
 
-	if (diskdrive.Init(cfg, appStatus, pIC64Event, szAppDirectory)!=S_OK) return SetError(diskdrive);
+	if (diskdrive.Init(cfg, appStatus, pIC64Event, &mon, szAppDirectory)!=S_OK) return SetError(diskdrive);
 
-	if (mon.Init(&cpu, &diskdrive.cpu, &vic, &diskdrive)!=S_OK) return SetError(E_FAIL, TEXT("C64 monitor initialisation failed"));
+	if (mon.Init(pIC64Event, &cpu, &diskdrive.cpu, &vic, &diskdrive)!=S_OK) return SetError(E_FAIL, TEXT("C64 monitor initialisation failed"));
 
 	return S_OK;
 }

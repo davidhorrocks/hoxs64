@@ -10,7 +10,7 @@ class CPU6510 : public CPU6502
 public:
 	CPU6510();
 	~CPU6510();
-	HRESULT Init(IC64Event *pIC64Event, int ID, IRegister *cia1, IRegister *cia2, IRegister *vic, IRegister *sid, RAM64 *ram, ITape *tape);
+	HRESULT Init(IC64Event *pIC64Event, int ID, IRegister *cia1, IRegister *cia2, IRegister *vic, IRegister *sid, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
 	void SetCassetteSense(bit8 sense);
 
 	bit8 IRQ_VIC;	

@@ -1881,7 +1881,7 @@ VIC6569::~VIC6569()
 	Cleanup();
 }
 
-HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu)
+HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager)
 {
 	Cleanup();
 
@@ -1890,7 +1890,7 @@ HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram,
 	this->dx = dx;
 	this->ram = ram;
 	this->cpu = cpu;
-
+	this->m_pIBreakpointManager = pIBreakpointManager;
 	SetMMU(0);
 	setup_multicolor_mask_table();
 	setup_vic_ba();
@@ -4742,34 +4742,14 @@ bit8 VIC6569::GetRasterCycle()
 	return this->vic_raster_cycle;
 }
 
-IEnumBreakpointItem *VIC6569::CreateEnumBreakpointExecute()
-{
-	BpEnum *r= new BpEnum(&this->m_MapBpVic);
-	return r;
-}
-
 bool VIC6569::SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
-	if (m_MapBpVic.size() >= BREAK_LIST_SIZE)
+	Sp_BreakpointItem bp(new BreakpointItem(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
+	if (bp == 0)
 		return false;
-	Sp_BreakpointItem bp;
-	Sp_BreakpointItem v(new BreakpointItem(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
-	if (v == 0)
-		return false;
-	v->vic_line = line;
-	v->vic_cycle = cycle;
-	Sp_BreakpointKey k(new BreakpointKey(*v));
-	if (k == 0)
-		return false;
-	if (GetBreakpointRasterCompare(line, cycle, bp))
-	{
-		*(m_MapBpVic[k]) = *v;
-	}
-	else
-	{
-		m_MapBpVic[k] = v;
-	}
-	return true;
+	bp->vic_line = line;
+	bp->vic_cycle = cycle;
+	return this->m_pIBreakpointManager->BM_SetBreakpoint(bp);
 }
 
 bool VIC6569::GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint)
@@ -4778,70 +4758,16 @@ bool VIC6569::GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem&
 	Sp_BreakpointKey k(&key, null_deleter());
 	k->vic_line = line;
 	k->vic_cycle = cycle;
-	BpMap::iterator it;
-	it = m_MapBpVic.find(k);
-	if (it != m_MapBpVic.end())
-	{
-		breakpoint =it->second;
-		return true;
-	}
-	return false;
-}
-
-void VIC6569::EnableAllBreakpoints()
-{
-	for (BpMap::iterator it = m_MapBpVic.begin(); it!=m_MapBpVic.end(); it++)
-		it->second->enabled = true;
-}
-
-void VIC6569::DisableAllBreakpoints()
-{
-	for (BpMap::iterator it = m_MapBpVic.begin(); it!=m_MapBpVic.end(); it++)
-		it->second->enabled = false;
-}
-
-void VIC6569::ClearAllBreakpoints()
-{
-	m_MapBpVic.clear();
-}
-
-void VIC6569::EnableBreakpoint(Sp_BreakpointKey bp)
-{
-	BpMap::iterator it;
-	it = m_MapBpVic.find(bp);
-	if (it != m_MapBpVic.end())
-	{
-		it->second->enabled = true;
-	}
-}
-
-void VIC6569::DisableBreakpoint(Sp_BreakpointKey bp)
-{
-	BpMap::iterator it;
-	it = m_MapBpVic.find(bp);
-	if (it != m_MapBpVic.end())
-	{
-		it->second->enabled = false;
-	}
-}
-
-void VIC6569::ClearBreakpoint(Sp_BreakpointKey bp)
-{
-	m_MapBpVic.erase(bp);
+	return this->m_pIBreakpointManager->BM_GetBreakpoint(k, breakpoint);
 }
 
 int VIC6569::CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt)
 {
 int i = -1;
-	BreakpointKey key(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0);
-	key.vic_line = line;
-	key.vic_cycle = cycle;
-	Sp_BreakpointKey k(&key, null_deleter());
-	BpMap::iterator it;
-	it = m_MapBpVic.find(k);
-	if (it != m_MapBpVic.end())
+
+	Sp_BreakpointItem bp;
+	if (GetBreakpointRasterCompare(line, cycle, bp))
 	{
-		Sp_BreakpointItem& bp = it->second;
 		if (bp->enabled)
 		{
 			i = bp->currentSkipOnHitCount;

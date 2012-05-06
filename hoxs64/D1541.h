@@ -18,7 +18,7 @@ public:
 	CPUDisk();
 	~CPUDisk();
 
-	HRESULT Init(IC64Event *pIC64Event, int ID, IRegister *via1, IRegister *via2, DiskInterface *disk, bit8 *pMappedRAM, bit8 *pMappedROM);
+	HRESULT Init(IC64Event *pIC64Event, int ID, IRegister *via1, IRegister *via2, DiskInterface *disk, bit8 *pMappedRAM, bit8 *pMappedROM, IBreakpointManager *pIBreakpointManager);
 
 	IC64Event *pIC64Event;
 	bit8 *pMappedRAM;

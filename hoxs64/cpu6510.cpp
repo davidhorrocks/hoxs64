@@ -73,11 +73,11 @@ void CPU6510::Reset(ICLK sysclock)
 	CPU6502::Reset(sysclock);
 }
 
-HRESULT CPU6510::Init(IC64Event *pIC64Event, int ID, IRegister *cia1, IRegister *cia2, IRegister *vic, IRegister *sid, RAM64 *ram, ITape *tape)
+HRESULT CPU6510::Init(IC64Event *pIC64Event, int ID, IRegister *cia1, IRegister *cia2, IRegister *vic, IRegister *sid, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
 {
 HRESULT hr;
 	ClearError();
-	hr = CPU6502::Init(ID);
+	hr = CPU6502::Init(ID, pIBreakpointManager);
 	if (FAILED(hr))
 		return hr;
 
