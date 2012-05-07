@@ -588,7 +588,7 @@ RECT rcToolItem;
 		for (int iBandNext = 0; iBandNext < iCountBands; iBandNext++)
 		{
 			int heightBand = (int)SendMessage(m_hWndRebar, RB_GETROWHEIGHT, iBandNext, 0);
-			HBITMAP hBmpSz = G::CreateResizedBitmap(hdc, m_hBmpRebarNotSized, iBandNext, heightBand);
+			HBITMAP hBmpSz = G::CreateResizedBitmap(hdc, m_hBmpRebarNotSized, iBandNext, heightBand, false, true);
 			if (hBmpSz)
 			{
 				m_vec_hBmpRebarSized.push_back(hBmpSz);

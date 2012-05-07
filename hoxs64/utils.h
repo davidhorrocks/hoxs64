@@ -220,7 +220,7 @@ public:
 	static DWORD CachedCommonControlsVersion();
 	static HRESULT GetTextSize(HWND hWnd, LPCTSTR szText, SIZE& sizeText);
 	static int CalcListViewMinWidth(HWND hWnd, ...);
-	static HBITMAP CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight);
+	static HBITMAP CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight, bool bAllowShrink, bool bAllowStretch);
 	static HRESULT SetRebarBandBitmap(HWND hWndRB, int iBandIndex, HBITMAP hBmpSrc);
 };
 

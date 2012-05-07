@@ -1570,7 +1570,7 @@ BOOL G::DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP)
 	return bResult;
 }
 
-HBITMAP G::CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight)
+HBITMAP G::CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight, bool bAllowShrink, bool bAllowStretch)
 {
 int r;
 bool ok = false;
@@ -1590,6 +1590,21 @@ HBITMAP hBmpImageSz = NULL;
 					newwidth = bitmapImage.bmWidth;
 				if (newheight <= 0)
 					newheight = bitmapImage.bmHeight;
+
+				if (!bAllowShrink)
+				{
+					if (newwidth < bitmapImage.bmWidth)
+						newwidth = bitmapImage.bmWidth;
+					if (newheight < bitmapImage.bmHeight)
+						newheight = bitmapImage.bmHeight;
+				}
+				if (!bAllowStretch)
+				{
+					if (newwidth > bitmapImage.bmWidth)
+						newwidth = bitmapImage.bmWidth;
+					if (newheight > bitmapImage.bmHeight)
+						newheight = bitmapImage.bmHeight;
+				}
 
 				hBmpImageSz = CreateCompatibleBitmap(hdc, newwidth, newheight);
 				if (hBmpImageSz)
