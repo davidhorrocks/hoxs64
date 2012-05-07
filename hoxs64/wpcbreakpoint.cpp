@@ -424,6 +424,36 @@ HMENU hMenu;
 	return false;
 }
 
+bool WpcBreakpoint::LvBreakPoint_OnKeyDown(NMLVKEYDOWN *pnmh, LRESULT &lresult)
+{
+SHORT nVirtKey;
+lresult = 0;
+const SHORT ISDOWN = 0x8000;
+	switch (pnmh->wVKey)
+	{
+		case VK_DELETE:
+			OnDeleteSelectedBreakpoint();
+			return true;
+		case 'O':
+			nVirtKey = GetKeyState(VK_CONTROL); 
+			if ((nVirtKey & ISDOWN))
+			{
+				OnEnableSelectedBreakpoint();
+				return true;
+			}
+			break;
+		case 'P':
+			nVirtKey = GetKeyState(VK_CONTROL); 
+			if ((nVirtKey & ISDOWN))
+			{
+				OnDisableSelectedBreakpoint();
+				return true;
+			}
+			break;
+	}
+	return false;
+}
+
 bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresult)
 {
 	switch(pnmh->idFrom)
@@ -461,6 +491,8 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 				}
 			}
 			break;
+		case LVN_KEYDOWN:
+			return LvBreakPoint_OnKeyDown((NMLVKEYDOWN *)pnmh, lresult);
 		}
 		break;
 	}
@@ -534,25 +566,35 @@ void WpcBreakpoint::DisableBreakpoint(Sp_BreakpointKey bp)
 
 void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 {
-	for (int i=0, c = 0 ; i>=0 && c<1 ; c++)
+	int selcount = ListView_GetSelectedCount(m_hLvBreak);
+	std::vector<Sp_BreakpointItem> vecDelete;
+	vecDelete.reserve(selcount);
+	
+	for (int c = 0, i = -1 ; c==0 || (i>=0 && c<selcount) ; c++)
 	{
-		i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
+		i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
 		if (i>=0)
 		{
 			Sp_BreakpointItem bp;
 			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 			{
-				c64->mon.BM_DeleteBreakpoint(bp);
+				vecDelete.push_back(bp);
+				//c64->mon.BM_DeleteBreakpoint(bp);
 			}
 		}
+	}
+	for (std::vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
+	{
+		c64->mon.BM_DeleteBreakpoint(*it);
 	}
 }
 
 void WpcBreakpoint::OnEnableSelectedBreakpoint()
 {
-	for (int i=0, c = 0 ; i>=0 && c<10 ; c++)
+	int selcount = ListView_GetSelectedCount(m_hLvBreak);
+	for (int c = 0, i = -1 ; c==0 || (i>=0 && c<selcount) ; c++)
 	{
-		i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
+		i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
 		if (i>=0)
 		{
 			Sp_BreakpointItem bp;
@@ -566,9 +608,10 @@ void WpcBreakpoint::OnEnableSelectedBreakpoint()
 
 void WpcBreakpoint::OnDisableSelectedBreakpoint()
 {
-	for (int i=0, c = 0 ; i>=0 && c<10 ; c++)
+	int selcount = ListView_GetSelectedCount(m_hLvBreak);
+	for (int c = 0, i = -1 ; c==0 || (i>=0 && c<selcount) ; c++)
 	{
-		i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
+		i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
 		if (i>=0)
 		{
 			Sp_BreakpointItem bp;

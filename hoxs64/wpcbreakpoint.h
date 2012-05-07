@@ -79,6 +79,7 @@ protected:
 	bool LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult);
 	bool LvBreakPoint_OnLClick(NMITEMACTIVATE *pnmh, LRESULT &lresult);
 	bool LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult);
+	bool LvBreakPoint_OnKeyDown(NMLVKEYDOWN *pnmh, LRESULT &lresult);
 	
 	HRESULT LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& bp);
 	HRESULT LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch);
