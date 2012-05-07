@@ -60,6 +60,8 @@ CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMoni
 	m_DisassemblyChild(cpuid, c64, pMonitorCommand),
 	m_DisassemblyReg(cpuid, c64, pMonitorCommand)
 {
+	m_hBmpRebarNotSized = NULL;
+	//m_hBmpRebarSized = NULL;
 	m_hWndRebar = NULL;
 	m_hWndTooBarStep = NULL;
 	m_hWndTooBarAddress = NULL;
@@ -110,6 +112,22 @@ void CDisassemblyFrame::Cleanup()
 		m_hImageListToolBarNormal = NULL;
 	}
 	m_hWndToolItemAddress = NULL;
+
+	for (std::vector<HBITMAP>::iterator it = m_vec_hBmpRebarSized.begin(); it != m_vec_hBmpRebarSized.end(); it++)
+	{
+		if (*it != NULL)
+		{
+			DeleteObject(*it);
+			*it = NULL;
+		}
+	}
+	m_vec_hBmpRebarSized.clear();
+
+	if (m_hBmpRebarNotSized != NULL)
+	{
+		DeleteObject(m_hBmpRebarNotSized);
+		m_hBmpRebarNotSized = NULL;
+	}
 }
 
 HRESULT CDisassemblyFrame::AdviseEvents()
@@ -523,7 +541,16 @@ HRESULT CDisassemblyFrame::OnCreate(HWND hWnd)
 HRESULT hr;
 ButtonInfo l_TB_ButtonsAddress[_countof(TB_ButtonsAddress)];
 RECT rcToolItem;
+	
+	HDC hdc = GetDC(hWnd);
+	if (!hdc)
+		return E_FAIL;
+
+	DcHelper dch(hdc);
+
 	memcpy(l_TB_ButtonsAddress, TB_ButtonsAddress, sizeof(l_TB_ButtonsAddress));
+
+	m_hBmpRebarNotSized = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));
 
 	m_hImageListToolBarNormal = CreateImageListStepNormal(hWnd);
 	if (m_hImageListToolBarNormal == NULL)
@@ -547,7 +574,7 @@ RECT rcToolItem;
 	
 	SetParent(m_hWndToolItemAddress, m_hWndTooBarAddress);
 
-	m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBarStep, ID_RERBAR, IDB_REBARBKGND1);
+	m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBarStep, ID_RERBAR);
 	if (m_hWndRebar == NULL)
 		return E_FAIL;
 
@@ -555,13 +582,20 @@ RECT rcToolItem;
 	if (FAILED(hr))
 		return hr;
 
-	int heightRebar = 0;
-	if (m_hWndRebar)
+	if (m_hBmpRebarNotSized)
 	{
-		 heightRebar = (int)SendMessage(this->m_hWndRebar, RB_GETBARHEIGHT, 0 , 0);
+		int iCountBands = (int)SendMessage(m_hWndRebar, RB_GETBANDCOUNT, 0, 0);		
+		for (int iBandNext = 0; iBandNext < iCountBands; iBandNext++)
+		{
+			int heightBand = (int)SendMessage(m_hWndRebar, RB_GETROWHEIGHT, iBandNext, 0);
+			HBITMAP hBmpSz = G::CreateResizedBitmap(hdc, m_hBmpRebarNotSized, iBandNext, heightBand);
+			if (hBmpSz)
+			{
+				m_vec_hBmpRebarSized.push_back(hBmpSz);
+				G::SetRebarBandBitmap(m_hWndRebar, iBandNext, hBmpSz);
+			}
+		}
 	}
-	if (heightRebar < 0)
-		heightRebar = 0;
 
 	RECT rc;
 	GetClientRect(hWnd, &rc);
@@ -596,6 +630,8 @@ DWORD_PTR dwBtnSize;
 
 	// Get the height of the toolbar.
 	dwBtnSize = SendMessage(hWndToolbar, TB_GETBUTTONSIZE, 0,0);
+	int butSizeX = HIWORD(dwBtnSize);
+	int butSizeY = HIWORD(dwBtnSize) * 2;
 
 	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
 	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
@@ -603,16 +639,15 @@ DWORD_PTR dwBtnSize;
 	rbBand.fStyle = RBBS_BREAK | RBBS_CHILDEDGE /*| RBBS_FIXEDBMP*/ | RBBS_GRIPPERALWAYS;
 	rbBand.clrFore = GetSysColor(COLOR_BTNTEXT);
 	rbBand.clrBack = GetSysColor(COLOR_BTNFACE);
-	rbBand.hbmBack = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));   
 
 	rbBand.lpText     = TEXT("Address");
 	rbBand.hwndChild  = hWndToolbar;
-	rbBand.cxMinChild = HIWORD(dwBtnSize);
-	rbBand.cyMinChild = HIWORD(dwBtnSize);
+	rbBand.cxMinChild = butSizeX;
+	rbBand.cyMinChild = butSizeY;
 	rbBand.cx         = rcClient.right - rcClient.left;
 
+	int iBandNext = (int)SendMessage(hWndRebar, RB_GETBANDCOUNT, (WPARAM)-1, (LPARAM)&rbBand);
 	SendMessage(hWndRebar, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);
-
 	return S_OK;
 }
 

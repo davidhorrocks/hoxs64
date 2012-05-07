@@ -138,6 +138,8 @@ private:
 	HWND m_hWndRebar;
 	HWND m_hWndTooBarStep;
 	HWND m_hWndTooBarAddress;
+	HBITMAP m_hBmpRebarNotSized;
+	std::vector<HBITMAP> m_vec_hBmpRebarSized;
 	HIMAGELIST m_hImageListToolBarNormal;
 	HFONT m_monitor_font;
 	CVirWindow *m_pParentWindow;

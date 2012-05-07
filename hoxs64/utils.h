@@ -210,7 +210,7 @@ public:
 	//Win98 WinNT 4 SP6
 	//static BOOL IsWindowEnabled(HWND hWnd, bool &bResult);
 	static HIMAGELIST CreateImageListNormal(HINSTANCE m_hInst, HWND hWnd, int tool_dx, int tool_dy, const ImageInfo tbImageList[], int countOfImageList);
-	static HWND CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid, int bmpid);
+	static HWND CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid);
 	static HWND CreateToolBar(HINSTANCE hInst, HWND hWnd, int toolbarid, HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight);
 	static void EnsureWindowPosition(HWND hWnd);
 	static int GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer);
@@ -220,6 +220,8 @@ public:
 	static DWORD CachedCommonControlsVersion();
 	static HRESULT GetTextSize(HWND hWnd, LPCTSTR szText, SIZE& sizeText);
 	static int CalcListViewMinWidth(HWND hWnd, ...);
+	static HBITMAP CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight);
+	static HRESULT SetRebarBandBitmap(HWND hWndRB, int iBandIndex, HBITMAP hBmpSrc);
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);

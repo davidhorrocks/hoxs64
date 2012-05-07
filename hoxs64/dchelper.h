@@ -15,11 +15,12 @@ public:
 private:
 	void InitVars(HDC hdc);
 
-	bool m_bChangedMapMode;
-	int m_prevMapMode;
+	int iSavedDC;
+	//bool m_bChangedMapMode;
+	//int m_prevMapMode;
 
-	bool m_bChangedFont;
-	HFONT m_prevFont;
+	//bool m_bChangedFont;
+	//HFONT m_prevFont;
 };
 
 #endif

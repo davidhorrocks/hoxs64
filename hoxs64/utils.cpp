@@ -1570,6 +1570,57 @@ BOOL G::DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP)
 	return bResult;
 }
 
+HBITMAP G::CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight)
+{
+int r;
+bool ok = false;
+HBITMAP hBmpImageSz = NULL;
+	HDC hMemDC_Dest = CreateCompatibleDC(hdc);
+	if (hMemDC_Dest)
+	{
+		HDC hMemDC_Src = CreateCompatibleDC(hdc);
+		if (hMemDC_Src)
+		{
+
+			BITMAP bitmapImage;
+			r = GetObject(hBmpSrc, sizeof(BITMAP), &bitmapImage);
+			if (r)
+			{
+				if (newwidth <= 0)
+					newwidth = bitmapImage.bmWidth;
+				if (newheight <= 0)
+					newheight = bitmapImage.bmHeight;
+
+				hBmpImageSz = CreateCompatibleBitmap(hdc, newwidth, newheight);
+				if (hBmpImageSz)
+				{
+					HBITMAP hOld_BmpDest = (HBITMAP)SelectObject(hMemDC_Dest, hBmpImageSz);
+					HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hBmpSrc);
+					if (hOld_BmpDest && hOld_BmpSrc)
+					{
+						StretchBlt(hMemDC_Dest, 0, 0, newwidth, newheight, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
+						ok = true;
+					}
+					if (hOld_BmpDest)
+						SelectObject(hMemDC_Dest, hOld_BmpDest);
+					if (hOld_BmpSrc)
+						SelectObject(hMemDC_Src, hOld_BmpSrc);
+
+					if (!ok)
+					{
+						DeleteObject(hBmpImageSz);
+						hBmpImageSz = NULL;
+					}
+				}
+
+			}
+			DeleteDC(hMemDC_Src);
+		}
+		DeleteDC(hMemDC_Dest);
+	}
+	return hBmpImageSz;
+}
+
 HIMAGELIST G::CreateImageListNormal(HINSTANCE hInst, HWND hWnd, int tool_dx, int tool_dy, const ImageInfo tbImageList[], int countOfImageList)
 {
 HIMAGELIST hImageList = NULL;
@@ -1748,7 +1799,7 @@ bool fail = false;
 	return hImageList;
 }
 
-HWND G::CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid, int bmpid)
+HWND G::CreateRebar(HINSTANCE hInst, HWND hWnd, HWND hwndTB, int rebarid)
 {
 RECT rect;
 RECT rcClient;
@@ -1758,57 +1809,78 @@ REBARINFO     rbi;
 REBARBANDINFO rbBand;
 DWORD_PTR dwBtnSize;
 
-		br = GetWindowRect(hWnd, &rect);
-		if (!br)
-			return NULL;
-		br = GetClientRect(hWnd, &rcClient);
-		if (!br)
-			return NULL;
-		hWndRB = CreateWindowEx(WS_EX_TOOLWINDOW,
-			REBARCLASSNAME,//class name
-			NULL,//Title
-			WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|WS_CLIPCHILDREN|RBS_VARHEIGHT|CCS_NODIVIDER,
-			0,0,0,0,
-			hWnd,//Parent
-			(HMENU) LongToPtr(rebarid),//Menu
-			hInst,//application instance
-			NULL);
+	br = GetWindowRect(hWnd, &rect);
+	if (!br)
+		return NULL;
+	br = GetClientRect(hWnd, &rcClient);
+	if (!br)
+		return NULL;
+	hWndRB = CreateWindowEx(WS_EX_TOOLWINDOW,
+		REBARCLASSNAME,//class name
+		NULL,//Title
+		WS_CHILD|WS_VISIBLE|WS_CLIPSIBLINGS|WS_CLIPCHILDREN|RBS_VARHEIGHT|CCS_NODIVIDER,
+		0,0,0,0,
+		hWnd,//Parent
+		(HMENU) LongToPtr(rebarid),//Menu
+		hInst,//application instance
+		NULL);
 
-		if (hWndRB == NULL)
-			return NULL;
+	if (hWndRB == NULL)
+		return NULL;
+			
+	// Initialize and send the REBARINFO structure.
+	::ZeroMemory(&rbi, sizeof(REBARINFO));
+	rbi.cbSize = sizeof(REBARINFO);  // Required when using this
+	// structure.
+	rbi.fMask  = 0;
+	rbi.himl   = (HIMAGELIST)NULL;
+	if(!SendMessage(hWndRB, RB_SETBARINFO, 0, (LPARAM)&rbi))
+		return NULL;
 
-		// Initialize and send the REBARINFO structure.
-		::ZeroMemory(&rbi, sizeof(REBARINFO));
-		rbi.cbSize = sizeof(REBARINFO);  // Required when using this
-		// structure.
-		rbi.fMask  = 0;
-		rbi.himl   = (HIMAGELIST)NULL;
-		if(!SendMessage(hWndRB, RB_SETBARINFO, 0, (LPARAM)&rbi))
-			return NULL;
+	// Get the height of the toolbar.
+	dwBtnSize = SendMessage(hwndTB, TB_GETBUTTONSIZE, 0,0);
+	int butSizeX = HIWORD(dwBtnSize);
+	int butSizeY = HIWORD(dwBtnSize) * 2;
 
-		// Initialize structure members that both bands will share.
-		::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
-		rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
-		rbBand.fMask  = RBBIM_COLORS | RBBIM_STYLE | RBBIM_BACKGROUND | RBBIM_CHILD  | RBBIM_CHILDSIZE | RBBIM_SIZE;// | RBBIM_TEXT
-		rbBand.fStyle = RBBS_CHILDEDGE /*| RBBS_FIXEDBMP*/ | RBBS_GRIPPERALWAYS;
-		rbBand.clrFore = GetSysColor(COLOR_BTNTEXT);
-		rbBand.clrBack = GetSysColor(COLOR_BTNFACE);
-		rbBand.hbmBack = LoadBitmap(hInst, MAKEINTRESOURCE(bmpid));   
-   
-		// Get the height of the toolbar.
-		dwBtnSize = SendMessage(hwndTB, TB_GETBUTTONSIZE, 0,0);
+	// Initialize structure members that both bands will share.
+	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
+	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
+	rbBand.fMask  = RBBIM_COLORS | RBBIM_STYLE | RBBIM_CHILD  | RBBIM_CHILDSIZE | RBBIM_SIZE;// | RBBIM_TEXT
+	rbBand.fStyle = RBBS_CHILDEDGE /*| RBBS_FIXEDBMP*/ | RBBS_GRIPPERALWAYS;
+	rbBand.clrFore = GetSysColor(COLOR_BTNTEXT);
+	rbBand.clrBack = GetSysColor(COLOR_BTNFACE);
+  
 
-		// Set values unique to the band with the toolbar.
-		rbBand.lpText     = TEXT("Tool Bar");
-		rbBand.hwndChild  = hwndTB;
-		rbBand.cxMinChild = HIWORD(dwBtnSize);
-		rbBand.cyMinChild = HIWORD(dwBtnSize);
-		rbBand.cx         = rcClient.right - rcClient.left;
+	// Set values unique to the band with the toolbar.
+	rbBand.lpText     = TEXT("Tool Bar");
+	rbBand.hwndChild  = hwndTB;
+	rbBand.cxMinChild = butSizeX;
+	rbBand.cyMinChild = butSizeY;
+	rbBand.cx         = rcClient.right - rcClient.left;
 
-		// Add the band that has the toolbar.
-		SendMessage(hWndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);		
+	int iBandNext = (int)SendMessage(hWndRB, RB_GETBANDCOUNT, (WPARAM)-1, (LPARAM)&rbBand);
 
-		return hWndRB;
+	// Add the band that has the toolbar.
+	SendMessage(hWndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);
+	return hWndRB;
+}
+
+HRESULT G::SetRebarBandBitmap(HWND hWndRB, int iBandIndex, HBITMAP hBmpSrc)
+{
+REBARBANDINFO rbBand;
+
+	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
+	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
+	if (SendMessage(hWndRB, RB_GETBANDINFO, iBandIndex, (LPARAM)&rbBand))
+	{
+		rbBand.hbmBack = hBmpSrc;
+		rbBand.fMask |= RBBIM_BACKGROUND;
+		if (SendMessage(hWndRB, RB_SETBANDINFO, iBandIndex, (LPARAM)&rbBand))
+		{
+			return S_OK;
+		}
+	}
+	return E_FAIL;
 }
 
 HWND G::CreateToolBar(HINSTANCE hInst, HWND hWnd, int toolbarid, HIMAGELIST hImageListToolBarNormal, const ButtonInfo buttonInfo[], int length, int buttonWidth, int buttonHeight)

@@ -80,6 +80,8 @@ private:
 	HWND m_hWndRebar;
 	HWND m_hWndTooBar;
 	HIMAGELIST m_hImageListToolBarNormal;
+	HBITMAP m_hBmpRebarNotSized;
+	std::vector<HBITMAP> m_vec_hBmpRebarSized;
 	CDPI m_dpi;
 	WPanelManager m_WPanelManager;
 
@@ -97,7 +99,7 @@ private:
 
 	void ShowDlgBreakpointVicRaster();
 
-	HRESULT CreateMDIToolBars();
+	HRESULT CreateMDIToolBars(HDC hdc);
 	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	void OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void Cleanup();

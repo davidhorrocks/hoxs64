@@ -27,6 +27,7 @@
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
 #include "mdidebuggerframe.h"
+#include "dchelper.h"
 #include "resource.h"
 
 #define TOOLBUTTON_WIDTH_96 (16)
@@ -62,6 +63,7 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand,
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
 	m_hImageListToolBarNormal = NULL;
+	m_hBmpRebarNotSized = NULL;
 	m_bIsCreated = false;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
@@ -112,6 +114,21 @@ void CMDIDebuggerFrame::Cleanup()
 	{
 		ImageList_Destroy(m_hImageListToolBarNormal);
 		m_hImageListToolBarNormal = NULL;
+	}
+	for (std::vector<HBITMAP>::iterator it = m_vec_hBmpRebarSized.begin(); it != m_vec_hBmpRebarSized.end(); it++)
+	{
+		if (*it != NULL)
+		{
+			DeleteObject(*it);
+			*it = NULL;
+		}
+	}
+	m_vec_hBmpRebarSized.clear();
+
+	if (m_hBmpRebarNotSized != NULL)
+	{
+		DeleteObject(m_hBmpRebarNotSized);
+		m_hBmpRebarNotSized = NULL;
 	}
 }
 
@@ -207,8 +224,16 @@ HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR
 
 HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	HRESULT hr;
-	hr = CreateMDIToolBars();
+HRESULT hr;
+
+	HDC hdc = GetDC(m_hWnd);
+	if (!hdc)
+		return E_FAIL;
+	DcHelper dch(hdc);
+
+	m_hBmpRebarNotSized = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));
+
+	hr = CreateMDIToolBars(hdc);
 	if (FAILED(hr))
 		return hr;
 	HWND hWndMdiClient = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD);
@@ -292,7 +317,7 @@ void CMDIDebuggerFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	this->m_WPanelManager.SizePanels(hWnd, rcRootPanel.left, rcRootPanel.top, rcRootPanel.right - rcRootPanel.left, rcRootPanel.bottom - rcRootPanel.top);
 }
 
-HRESULT CMDIDebuggerFrame::CreateMDIToolBars()
+HRESULT CMDIDebuggerFrame::CreateMDIToolBars(HDC hdc)
 {
 	if (m_hImageListToolBarNormal == NULL)
 	{
@@ -304,9 +329,25 @@ HRESULT CMDIDebuggerFrame::CreateMDIToolBars()
 	m_hWndTooBar = G::CreateToolBar(m_hInst, m_hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, TB_StepButtons, _countof(TB_StepButtons), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
 	if (m_hWndTooBar == NULL)
 		return E_FAIL;
-	m_hWndRebar = G::CreateRebar(m_hInst, m_hWnd, m_hWndTooBar, ID_RERBAR, IDB_REBARBKGND1);
+	m_hWndRebar = G::CreateRebar(m_hInst, m_hWnd, m_hWndTooBar, ID_RERBAR);
 	if (m_hWndRebar == NULL)
 		return E_FAIL;
+
+	if (m_hBmpRebarNotSized)
+	{
+		int iCountBands = (int)SendMessage(m_hWndRebar, RB_GETBANDCOUNT, 0, 0);		
+		for (int iBandNext = 0; iBandNext < iCountBands; iBandNext++)
+		{
+			int heightBand = (int)SendMessage(m_hWndRebar, RB_GETROWHEIGHT, iBandNext, 0);
+			HBITMAP hBmpSz = G::CreateResizedBitmap(hdc, m_hBmpRebarNotSized, iBandNext, heightBand);
+			if (hBmpSz)
+			{
+				m_vec_hBmpRebarSized.push_back(hBmpSz);
+				G::SetRebarBandBitmap(m_hWndRebar, iBandNext, hBmpSz);
+			}
+		}
+	}
+
 	return S_OK;
 }
 

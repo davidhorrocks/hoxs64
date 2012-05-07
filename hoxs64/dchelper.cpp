@@ -19,10 +19,11 @@ DcHelper::DcHelper(HDC hdc)
 void DcHelper::InitVars(HDC hdc)
 {
 	m_hdc = hdc;
-	m_bChangedMapMode = false;
-	m_bChangedFont = false;
-	m_prevMapMode = 0;
-	m_prevFont = NULL;
+	iSavedDC = ::SaveDC(hdc);
+	//m_bChangedMapMode = false;
+	//m_bChangedFont = false;
+	//m_prevMapMode = 0;
+	//m_prevFont = NULL;
 }
 
 DcHelper::~DcHelper()
@@ -35,11 +36,11 @@ HFONT DcHelper::UseFont(HFONT hFont)
 	if (m_hdc==NULL)
 		return NULL;
 	HFONT v = (HFONT)::SelectObject(m_hdc, hFont);
-	if (v != NULL && !m_bChangedFont)
-	{
-		m_bChangedFont = true;
-		m_prevFont = v;
-	}
+	//if (v != NULL && !m_bChangedFont)
+	//{
+	//	m_bChangedFont = true;
+	//	m_prevFont = v;
+	//}
 	return v;
 }
 
@@ -48,25 +49,26 @@ int DcHelper::UseMapMode(int mode)
 	if (m_hdc==NULL)
 		return NULL;
 	int v = SetMapMode(m_hdc, mode);
-	if (v != 0 && !m_bChangedMapMode)
-	{
-		m_bChangedMapMode = true;
-		m_prevMapMode = v;
-	}
+	//if (v != 0 && !m_bChangedMapMode)
+	//{
+	//	m_bChangedMapMode = true;
+	//	m_prevMapMode = v;
+	//}
 	return v;
 }
 
 void DcHelper::Restore()
 {
-	if (m_hdc==NULL)
-		return;
-	if (m_bChangedFont)
-	{
-		::SelectObject(m_hdc, m_prevFont);
-	}
-	if (m_bChangedMapMode)
-	{
-		::SetMapMode(m_hdc, m_prevMapMode);
-	}
+	::RestoreDC(m_hdc, iSavedDC);
+	//if (m_hdc==NULL)
+	//	return;
+	//if (m_bChangedFont)
+	//{
+	//	::SelectObject(m_hdc, m_prevFont);
+	//}
+	//if (m_bChangedMapMode)
+	//{
+	//	::SetMapMode(m_hdc, m_prevMapMode);
+	//}
 }
 
