@@ -631,7 +631,7 @@ DWORD_PTR dwBtnSize;
 	// Get the height of the toolbar.
 	dwBtnSize = SendMessage(hWndToolbar, TB_GETBUTTONSIZE, 0,0);
 	int butSizeX = HIWORD(dwBtnSize);
-	int butSizeY = HIWORD(dwBtnSize) * 2;
+	int butSizeY = HIWORD(dwBtnSize);
 
 	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
 	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
