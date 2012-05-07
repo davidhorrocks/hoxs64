@@ -249,22 +249,22 @@ HWND hWndDebuggerMdiClient = 0;
 
 			if (appWindow.m_pMDIDebugger != NULL)
 			{
-				HWND defwindow = GetActiveWindow();
-				if (defwindow == NULL || 
+				HWND hWndDefaultAccelerator = GetActiveWindow();
+				if (hWndDefaultAccelerator == NULL || 
 					(
-						defwindow != appWindow.GetHwnd() 
-						&& defwindow != appWindow.m_pMDIDebugger->GetHwnd() 
-						&& defwindow != appWindow.m_pMDIDebugger->m_debugCpuC64.GetHwnd()
-						&& defwindow != appWindow.m_pMDIDebugger->m_debugCpuDisk.GetHwnd()
+						hWndDefaultAccelerator != appWindow.GetHwnd() 
+						&& hWndDefaultAccelerator != appWindow.m_pMDIDebugger->GetHwnd() 
+						&& hWndDefaultAccelerator != appWindow.m_pMDIDebugger->m_debugCpuC64.GetHwnd()
+						&& hWndDefaultAccelerator != appWindow.m_pMDIDebugger->m_debugCpuDisk.GetHwnd()
 					))
 				{
-					defwindow = appWindow.m_pMDIDebugger->GetHwnd();
+					hWndDefaultAccelerator = appWindow.m_pMDIDebugger->GetHwnd();
 				}
 				hWndDebuggerMdiClient = appWindow.m_pMDIDebugger->Get_MDIClientWindow();
 				if (
 					(!appWindow.m_pMDIDebugger->IsWinDlgModelessBreakpointVicRaster() || !IsDialogMessage(appWindow.m_pMDIDebugger->m_pdlgModelessBreakpointVicRaster->GetHwnd(), &msg))
 					&& (!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) 
-					&& !TranslateAccelerator(defwindow, app.m_hAccelTable, &msg))
+					&& !TranslateAccelerator(hWndDefaultAccelerator, app.m_hAccelTable, &msg))
 				{
 					TranslateMessage(&msg); 
 					DispatchMessage(&msg);
