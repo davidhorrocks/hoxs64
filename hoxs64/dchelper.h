@@ -16,11 +16,6 @@ private:
 	void InitVars(HDC hdc);
 
 	int iSavedDC;
-	//bool m_bChangedMapMode;
-	//int m_prevMapMode;
-
-	//bool m_bChangedFont;
-	//HFONT m_prevFont;
 };
 
 #endif

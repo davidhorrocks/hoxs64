@@ -1840,7 +1840,7 @@ DWORD_PTR dwBtnSize;
 	// Get the height of the toolbar.
 	dwBtnSize = SendMessage(hwndTB, TB_GETBUTTONSIZE, 0,0);
 	int butSizeX = HIWORD(dwBtnSize);
-	int butSizeY = HIWORD(dwBtnSize) * 2;
+	int butSizeY = HIWORD(dwBtnSize);
 
 	// Initialize structure members that both bands will share.
 	::ZeroMemory(&rbBand, sizeof(REBARBANDINFO));
