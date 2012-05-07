@@ -68,6 +68,7 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand,
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->m_pMonitorCommand = pMonitorCommand;
+	m_pdlgModelessBreakpointVicRaster = NULL;
 }
 
 CMDIDebuggerFrame::~CMDIDebuggerFrame()
@@ -167,6 +168,11 @@ WNDCLASSEX wc;
     return S_OK; 
 
 };
+
+bool CMDIDebuggerFrame::IsWinDlgModelessBreakpointVicRaster()
+{
+	return m_pdlgModelessBreakpointVicRaster != NULL && IsWindow(m_pdlgModelessBreakpointVicRaster->GetHwnd());
+}
 
 void CMDIDebuggerFrame::OnTrace(void *sender, EventArgs& e)
 {

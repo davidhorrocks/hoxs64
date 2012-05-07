@@ -55,10 +55,12 @@ public:
 
 	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
+	bool IsWinDlgModelessBreakpointVicRaster();
 
 	virtual void GetMinWindowSize(int &w, int &h);
 	CDisassemblyFrame m_debugCpuC64;
 	CDisassemblyFrame m_debugCpuDisk;
+	CDiagBreakpointVicRaster *m_pdlgModelessBreakpointVicRaster;
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual HRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -84,7 +86,6 @@ private:
 	std::vector<HBITMAP> m_vec_hBmpRebarSized;
 	CDPI m_dpi;
 	WPanelManager m_WPanelManager;
-
 
 	C64 *c64;
 	CAppStatus *appStatus;

@@ -62,6 +62,7 @@
 #include "wpanelmanager.h"
 #include "wpcbreakpoint.h"
 #include "toolitemaddress.h"
+#include "diagbreakpointvicraster.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"

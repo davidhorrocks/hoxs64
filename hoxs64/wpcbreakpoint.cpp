@@ -428,13 +428,13 @@ bool WpcBreakpoint::LvBreakPoint_OnKeyDown(NMLVKEYDOWN *pnmh, LRESULT &lresult)
 {
 SHORT nVirtKey;
 lresult = 0;
-const SHORT ISDOWN = 0x8000;
+const USHORT ISDOWN = 0x8000;
 	switch (pnmh->wVKey)
 	{
 		case VK_DELETE:
 			OnDeleteSelectedBreakpoint();
 			return true;
-		case 'O':
+		case 'P':
 			nVirtKey = GetKeyState(VK_CONTROL); 
 			if ((nVirtKey & ISDOWN))
 			{
@@ -442,7 +442,7 @@ const SHORT ISDOWN = 0x8000;
 				return true;
 			}
 			break;
-		case 'P':
+		case 'O':
 			nVirtKey = GetKeyState(VK_CONTROL); 
 			if ((nVirtKey & ISDOWN))
 			{

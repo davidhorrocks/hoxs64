@@ -78,6 +78,7 @@
 #include "wpanelmanager.h"
 #include "wpcbreakpoint.h"
 #include "toolitemaddress.h"
+#include "diagbreakpointvicraster.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
@@ -248,38 +249,27 @@ HWND hWndDebuggerMdiClient = 0;
 
 			if (appWindow.m_pMDIDebugger != NULL)
 			{
-				hWndDebuggerMdiClient = appWindow.m_pMDIDebugger->Get_MDIClientWindow();
-				if (hWndDebuggerMdiClient!=0)
+				HWND defwindow = GetActiveWindow();
+				if (defwindow == NULL || 
+					(
+						defwindow != appWindow.GetHwnd() 
+						&& defwindow != appWindow.m_pMDIDebugger->GetHwnd() 
+						&& defwindow != appWindow.m_pMDIDebugger->m_debugCpuC64.GetHwnd()
+						&& defwindow != appWindow.m_pMDIDebugger->m_debugCpuDisk.GetHwnd()
+					))
 				{
-					HWND hwndactive = GetActiveWindow();
-					if (TranslateMDISysAccel(hWndDebuggerMdiClient, &msg))
-						continue;
-
-					if (hwndactive == appWindow.GetHwnd())
-					{
-						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
-							continue;
-					}
-					if (hwndactive == appWindow.m_pMDIDebugger->GetHwnd())
-					{
-						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
-							continue;
-					}
-					if (hwndactive == appWindow.m_pMDIDebugger->m_debugCpuC64.GetHwnd())
-					{
-						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
-							continue;
-					}
-					if (hwndactive == appWindow.m_pMDIDebugger->m_debugCpuDisk.GetHwnd())
-					{
-						if (TranslateAccelerator(hwndactive, app.m_hAccelTable, &msg) )
-							continue;
-					}
-
+					defwindow = appWindow.m_pMDIDebugger->GetHwnd();
+				}
+				hWndDebuggerMdiClient = appWindow.m_pMDIDebugger->Get_MDIClientWindow();
+				if (
+					(!appWindow.m_pMDIDebugger->IsWinDlgModelessBreakpointVicRaster() || !IsDialogMessage(appWindow.m_pMDIDebugger->m_pdlgModelessBreakpointVicRaster->GetHwnd(), &msg))
+					&& (!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) 
+					&& !TranslateAccelerator(defwindow, app.m_hAccelTable, &msg))
+				{
 					TranslateMessage(&msg); 
 					DispatchMessage(&msg);
-					continue;
 				}
+				continue;
 			}
 			if (!TranslateAccelerator(appWindow.GetHwnd(), app.m_hAccelTable, &msg))
 			{
