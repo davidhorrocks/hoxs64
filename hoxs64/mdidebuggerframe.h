@@ -31,7 +31,7 @@ class CMDIDebuggerFrame_EventSink :
 };
 
 
-class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink// , public ErrorMsg
+class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink, CDiagBreakpointVicRaster::INotify
 {
 public:
 	static const int ID_RERBAR = 2000;
@@ -60,7 +60,7 @@ public:
 	virtual void GetMinWindowSize(int &w, int &h);
 	CDisassemblyFrame m_debugCpuC64;
 	CDisassemblyFrame m_debugCpuDisk;
-	CDiagBreakpointVicRaster *m_pdlgModelessBreakpointVicRaster;
+	Sp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual HRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -91,14 +91,17 @@ private:
 	CAppStatus *appStatus;
 	CConfig *cfg;
 	IMonitorCommand *m_pMonitorCommand;
-	//Monitor m_monitorC64;
-	//Monitor m_monitorDisk;
 	bool m_bIsCreated;
 
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);
 
+	virtual void INotify::OnAccept(CDiagBreakpointVicRaster *p);
+	virtual void INotify::OnCancel(CDiagBreakpointVicRaster *p);
+	virtual void INotify::OnDestory(CDiagBreakpointVicRaster *p);
+
 	void ShowDlgBreakpointVicRaster();
+	void ShowModelessDlgBreakpointVicRaster();
 
 	HRESULT CreateMDIToolBars(HDC hdc);
 	HIMAGELIST CreateImageListNormal(HWND hWnd);

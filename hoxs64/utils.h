@@ -2,6 +2,7 @@
 #define __UTILS_H__
 
 #include <assert.h>
+#include "boost2005.h"
 #include "mlist.h"
 #include "carray.h"
 #include "cevent.h"
@@ -353,9 +354,11 @@ private:
             ~CVirDialog:
               Destructor
 C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
-class CVirDialog
+class CVirDialog : public std::enable_shared_from_this<CVirDialog>
 {
-public:
+public:	
+	CVirDialog();
+
 	// Destructor
 	virtual ~CVirDialog(){};
 
@@ -388,7 +391,8 @@ public:
 protected:
   HINSTANCE m_hInst;
   HWND m_hWnd;
-
+  bool m_bIsModeless;
+  std::shared_ptr<CVirDialog> m_pKeepAlive;
   // Tell the compiler that the outside DialogProc callback is a friend
   // of this class and can get at its protected data members.
   friend INT_PTR CALLBACK ::DialogProc(
@@ -464,7 +468,7 @@ public:
 	HRESULT SetPages(int,struct tabpageitem *);
 	void FreePages();
 	void SetTabID(int tabctl_id);
-	CTabPageDialog *GetPage(int i);
+	shared_ptr<CTabPageDialog> GetPage(int i);
 
 	virtual BOOL OnTabbedDialogInit(HWND hwndDlg);
 	virtual BOOL OnChildDialogInit(HWND hwndDlg);
@@ -484,8 +488,8 @@ public:
 		LPARAM lParam);
 	int m_current_page_index;
 protected:
-	CTabPageDialog	*m_pages;
-	int m_pagecount;
+	std::vector<shared_ptr<CTabPageDialog>>	m_vecpages;
+	//int m_pagecount;
     HWND m_hwndTab;       // tab control 
     HWND m_hwndDisplay;   // current child dialog box 
     RECT m_rcDisplay;     // display rectangle for the tab control 

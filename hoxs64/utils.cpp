@@ -5,6 +5,7 @@
 #include <shlwapi.h>
 #include <stdio.h>
 #include <assert.h>
+#include "boost2005.h"
 #include "defines.h"
 #include "carray.h"
 #include "mlist.h"
@@ -261,20 +262,46 @@ INT_PTR CALLBACK DialogProc(
 
 	// Get a pointer to the window class object.
 	CVirDialog* pdlg = (CVirDialog*) (LONG_PTR)GetWindowLongPtr(hWndDlg, GWLP_USERDATA);
-
+	BOOL br;
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
 		// Get a pointer to the window class object.
 		pdlg = (CVirDialog*) lParam;
 
-		// Assign the m_hWnd member variable.
-		pdlg->m_hWnd = hWndDlg;
-
-		// Set the USERDATA to point to the class object.
 		#pragma warning(disable:4244)
 		SetWindowLongPtr(hWndDlg, GWLP_USERDATA, (LONG_PTR) pdlg);
 		#pragma warning(default:4244)
+		pdlg->m_hWnd = hWndDlg;
+		br = pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam);
+		if (br)
+		{
+			pdlg->m_pKeepAlive = pdlg->shared_from_this();
+			return br;
+		}
+		else
+		{
+			return FALSE;
+		}
+		// Set the USERDATA to point to the class object.
+		break;
+	case WM_DESTROY:
+		// This is our signal to destroy the window object.
+		SetWindowLongPtr(hWndDlg, GWLP_USERDATA, 0);
+		if (pdlg)
+		{
+			//EventArgs e;
+			//pdlg->EsOnDestroy.Raise(pdlg, e);
+			LRESULT lr = pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam);
+			pdlg->m_hWnd = 0;
+			pdlg->m_pKeepAlive.reset();
+			//if (pdlg->m_AutoDelete)
+			//{
+			//	delete pdlg;
+			//}
+			pdlg = NULL;
+			return lr;
+		}
 		break;
 
 	default:
@@ -283,11 +310,15 @@ INT_PTR CALLBACK DialogProc(
 
 	// Call its message proc method.
 	if (pdlg != (CVirDialog *) 0)
-	return (pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam));
+		return (pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam));
 	else
-	return (FALSE);
-}
+		return (FALSE);
+	}
 
+CVirDialog::CVirDialog()
+{
+	m_bIsModeless = false;
+}
 
 /*M+M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M
 	Method:   CVirDialog::ShowDialog
@@ -345,7 +376,7 @@ HWND CVirDialog::ShowModelessDialog(
 		HWND hWndOwner)
 {
 	HWND iResult;
-
+	m_bIsModeless = true;
 	m_hInst = hInst;
 
 	iResult = ::CreateDialogParam(
@@ -364,7 +395,7 @@ HWND CVirDialog::ShowModelessDialogIndirect(
 		HWND hWndOwner)
 {
 	HWND iResult;
-
+	m_bIsModeless = true;
 	m_hInst = hInst;
 
 	iResult = ::CreateDialogIndirectParam(
@@ -440,12 +471,12 @@ BOOL CTabPageDialog::DialogProc(HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lPar
 
 CTabDialog::CTabDialog()
 {
-	m_pagecount=0;
+	//m_pagecount=0;
 	m_hwndDisplay=0;
 	m_hWnd=0;
 	m_hInst=0;
 	m_hwndTab=0;
-	m_pages=NULL;
+	//m_pages=NULL;
 	m_tabctl_id=0;
 	m_current_page_index = -1;
 }
@@ -457,13 +488,13 @@ CTabDialog::~CTabDialog()
 
 void CTabDialog::FreePages()
 {
-
-	if (m_pages)
-	{
-		delete [] m_pages;
-		m_pages = NULL;
-		m_pagecount = 0;
-	}
+	m_vecpages.clear();
+	//if (m_pages)
+	//{
+	//	delete [] m_pages;
+	//	m_pages = NULL;
+	//	m_pagecount = 0;
+	//}
 }
 
 INT_PTR CTabDialog::ShowDialog(HINSTANCE hInst,	LPTSTR lpszTemplate, HWND hWndOwner)
@@ -493,14 +524,21 @@ int i;
 HRESULT hr;
 
 	FreePages();
-	m_pages = new CTabPageDialog[pagecount];
-	if (m_pages==0)
+	m_vecpages.reserve(pagecount);
+	if (m_vecpages.capacity()==0)
 		return E_OUTOFMEMORY;
-	m_pagecount = pagecount;
+	//m_pagecount = pagecount;
 
 	for (i=0 ; i<pagecount ; i++)
 	{
-		hr = m_pages[i].init(this, pageitem[i].pageid, pageitem[i].lpszText, i);
+		shared_ptr<CTabPageDialog> pTabPageDialog = shared_ptr<CTabPageDialog>(new CTabPageDialog());
+		if (pTabPageDialog==0)
+		{
+			FreePages();
+			return E_OUTOFMEMORY;
+		}
+		m_vecpages.push_back(pTabPageDialog);
+		hr = m_vecpages[i]->init(this, pageitem[i].pageid, pageitem[i].lpszText, i);
 		if (FAILED(hr))
 		{
 			FreePages();
@@ -551,11 +589,11 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	int cyMargin = abs(rcTemp.bottom - rcTemp.top);
 
 	// Add a tab for each of the three child dialog boxes. 
-	for (i = m_pagecount -1; i >= 0; i--) 
+	for (i = (int)m_vecpages.size() -1; i >= 0; i--) 
 	{ 
 		tie.mask = TCIF_TEXT | TCIF_IMAGE; 
 		tie.iImage = -1; 
-		tie.pszText = m_pages[i].m_pagetext; 
+		tie.pszText = m_vecpages[i]->m_pagetext; 
 		TabCtrl_InsertItem(m_hwndTab, 0, &tie); 
 	}
  
@@ -564,21 +602,21 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
  
 	// Determine the bounding rectangle for all child dialog boxes. 
 	SetRectEmpty(&rcTab);
-	for (i = 0; i < m_pagecount; i++)
+	for (i = 0; i <  m_vecpages.size(); i++)
 	{ 
-		if (m_pages[i].m_lpTemplate != 0)
+		if (m_vecpages[i]->m_lpTemplate != 0)
 		{
-			if (m_pages[i].m_lpTemplate->cx > rcTab.right)
-				rcTab.right = m_pages[i].m_lpTemplate->cx; 
-			if (m_pages[i].m_lpTemplate->cy > rcTab.bottom)
-				rcTab.bottom = m_pages[i].m_lpTemplate->cy;
+			if (m_vecpages[i]->m_lpTemplate->cx > rcTab.right)
+				rcTab.right = m_vecpages[i]->m_lpTemplate->cx; 
+			if (m_vecpages[i]->m_lpTemplate->cy > rcTab.bottom)
+				rcTab.bottom = m_vecpages[i]->m_lpTemplate->cy;
 		}
-		else if (m_pages[i].m_lpTemplateEx != 0)
+		else if (m_vecpages[i]->m_lpTemplateEx != 0)
 		{
-			if (m_pages[i].m_lpTemplateEx->cx > rcTab.right) 
-				rcTab.right = m_pages[i].m_lpTemplateEx->cx; 
-			if (m_pages[i].m_lpTemplateEx->cy > rcTab.bottom) 
-				rcTab.bottom = m_pages[i].m_lpTemplateEx->cy; 
+			if (m_vecpages[i]->m_lpTemplateEx->cx > rcTab.right) 
+				rcTab.right = m_vecpages[i]->m_lpTemplateEx->cx; 
+			if (m_vecpages[i]->m_lpTemplateEx->cy > rcTab.bottom) 
+				rcTab.bottom = m_vecpages[i]->m_lpTemplateEx->cy; 
 		}
 	}
 
@@ -649,22 +687,22 @@ int iSel;
 	if (iSel<0)
 		return FALSE;
 
-	if (m_pagecount<1)
+	if (iSel >= m_vecpages.size())
 		return FALSE;
 
-	if (!m_pages[iSel].m_bIsCreated)
+	if (!m_vecpages[iSel]->m_bIsCreated)
 	{
 		// Create the new child dialog box. 
-		if (m_pages[iSel].m_lpTemplate !=0)
-			m_hwndDisplay = CreateDialogIndirectParam (m_hInst, m_pages[iSel].m_lpTemplate, hwndDlg, ::DialogProc, (LPARAM) &(this->m_pages[iSel])); 
-		else if (m_pages[iSel].m_lpTemplateEx !=0)
-			m_hwndDisplay = CreateDialogIndirectParam (m_hInst, (LPCDLGTEMPLATE)m_pages[iSel].m_lpTemplateEx, hwndDlg, ::DialogProc, (LPARAM) &(this->m_pages[iSel])); 
+		if (m_vecpages[iSel]->m_lpTemplate !=0)
+			m_hwndDisplay = CreateDialogIndirectParam (m_hInst, m_vecpages[iSel]->m_lpTemplate, hwndDlg, ::DialogProc, (LPARAM) (this->m_vecpages[iSel].get())); 
+		else if (m_vecpages[iSel]->m_lpTemplateEx !=0)
+			m_hwndDisplay = CreateDialogIndirectParam (m_hInst, (LPCDLGTEMPLATE)m_vecpages[iSel]->m_lpTemplateEx, hwndDlg, ::DialogProc, (LPARAM) (this->m_vecpages[iSel].get())); 
 		if (m_hwndDisplay)
-			m_pages[iSel].m_bIsCreated = true;
+			m_vecpages[iSel]->m_bIsCreated = true;
 	}
 	else
 	{
-		m_hwndDisplay = m_pages[iSel].m_hWnd;
+		m_hwndDisplay = m_vecpages[iSel]->m_hWnd;
 	}
 	if (m_hwndDisplay != NULL)
 	{
@@ -691,9 +729,9 @@ int iSel;
 		return FALSE;
 }
 
-CTabPageDialog *CTabDialog::GetPage(int i)
+shared_ptr<CTabPageDialog> CTabDialog::GetPage(int i)
 {
-	return &m_pages[i];
+	return m_vecpages[i];
 }
 
 HRESULT CTabDialog::CreateAllPages()
@@ -701,17 +739,17 @@ HRESULT CTabDialog::CreateAllPages()
 int i;
 HRESULT hr = S_OK;
 HWND hWnd;
-	for (i=0 ; i<m_pagecount ; i++)
+	for (i=0 ; i<m_vecpages.size() ; i++)
 	{
-		if (!m_pages[i].m_bIsCreated)
+		if (!m_vecpages[i]->m_bIsCreated)
 		{
-			if (m_pages[i].m_lpTemplate !=0)
-				hWnd = CreateDialogIndirectParam (m_hInst, m_pages[i].m_lpTemplate, m_hWnd, ::DialogProc, (LPARAM) &(this->m_pages[i])); 
-			else if (m_pages[i].m_lpTemplateEx !=0)
-				hWnd = CreateDialogIndirectParam (m_hInst, (LPCDLGTEMPLATE)m_pages[i].m_lpTemplateEx, m_hWnd, ::DialogProc, (LPARAM) &(this->m_pages[i])); 
+			if (m_vecpages[i]->m_lpTemplate !=0)
+				hWnd = CreateDialogIndirectParam (m_hInst, m_vecpages[i]->m_lpTemplate, m_hWnd, ::DialogProc, (LPARAM) (this->m_vecpages[i].get())); 
+			else if (m_vecpages[i]->m_lpTemplateEx !=0)
+				hWnd = CreateDialogIndirectParam (m_hInst, (LPCDLGTEMPLATE)m_vecpages[i]->m_lpTemplateEx, m_hWnd, ::DialogProc, (LPARAM) (this->m_vecpages[i].get())); 
 			if (hWnd)
 			{
-				m_pages[i].m_bIsCreated = true;
+				m_vecpages[i]->m_bIsCreated = true;
 				ShowWindow(hWnd, SW_HIDE);
 			}
 			else

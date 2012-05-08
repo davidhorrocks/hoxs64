@@ -57,6 +57,7 @@ public:
 	virtual void IMonitorCommand::SoundOff();
 	virtual void IMonitorCommand::SoundOn();
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
+	virtual HWND GetMainFrameWindow();
 	// IMonitorCommand
 
 	

@@ -59,12 +59,6 @@ private:
 
 	HCURSOR hCursorBusy;
 	HCURSOR hOldCursor;
-	/*Dialogs*/
-	CDiagKeyboard mDlgkey;
-	CDiagJoystick mDlgjoy;
-	CDiagEmulationSettingsTab mDlgSettingsTab;
-	CDiagNewBlankDisk mDlgNewBlankDisk;
-	CDiagAbout mDlgAbout;
 	static struct tabpageitem m_tabPagesKeyboard[4];
 	static struct tabpageitem m_tabPagesSetting[5];
 	IMonitorCommand *m_pMonitorCommand;

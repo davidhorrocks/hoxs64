@@ -43,6 +43,7 @@ public:
 	virtual void SoundOff()=0;
 	virtual void SoundOn()=0;
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
+	virtual HWND GetMainFrameWindow() = 0;
 
 	EventSource<EventArgs> EsResume;
 	EventSource<EventArgs> EsTrace;

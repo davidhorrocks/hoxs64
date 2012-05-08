@@ -19,14 +19,17 @@
 #include "diagbreakpointvicraster.h"
 
 
-CDiagBreakpointVicRaster::CDiagBreakpointVicRaster()
+CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(INotify *pINotify)
 {
 	m_iLine = 0;
 	m_iCycle = 1;
+	m_pINotify = pINotify;
 }
 
 CDiagBreakpointVicRaster::~CDiagBreakpointVicRaster()
 {
+	int x = 0;
+	x++;
 }
 
 int CDiagBreakpointVicRaster::GetRasterLine()
@@ -116,18 +119,34 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 	case WM_INITDIALOG:
 		G::ArrangeOKCancel(hWndDlg);
 		InitControls(hWndDlg);
-		//FillDevices();
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
 		case IDOK:
-			//saveconfig(&newCfg);
 			if (SaveUI())
-				EndDialog(hWndDlg, wParam);
+			{
+				if (m_bIsModeless)
+				{
+					if (m_pINotify)
+						m_pINotify->OnAccept(this);					
+				}
+				else
+				{
+					EndDialog(hWndDlg, wParam);
+				}
+			}
 			return TRUE;
 		case IDCANCEL:
-			EndDialog(hWndDlg, wParam);
+			if (m_bIsModeless)
+			{
+				if (m_pINotify)
+					m_pINotify->OnCancel(this);
+			}
+			else
+			{
+				EndDialog(hWndDlg, wParam);
+			}
 			return TRUE;
 		case IDC_TXT_BREAKPOINTRASTERLINE:
 			switch(HIWORD(wParam))
@@ -145,17 +164,11 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 				break;
 			}
 			break;
-		//case IDC_CBO_JOY1DEVICE:
-		//	switch (HIWORD(wParam))
-		//	{
-		//	case CBN_SELCHANGE:
-		//		FillJoy1Axis(FALSE);
-		//		FillJoy1Button(FALSE);
-		//		return TRUE;
-		//	}
-		//	break;
 		}
+		break;
 	case WM_DESTROY:
+		if (m_pINotify)
+			m_pINotify->OnDestory(this);
 		return TRUE;
 	}
 	return FALSE;

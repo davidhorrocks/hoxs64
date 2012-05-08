@@ -910,10 +910,10 @@ void CDiagEmulationSettingsTab::SettingsOnLimitSpeedChange()
 HWND hWndCtrl;
 BOOL bOn;
 HWND hWnd;
-CTabPageDialog *page;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_GENERAL)) != NULL)
+shared_ptr<CTabPageDialog> pPage;
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_GENERAL)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 
 		bOn = (IsDlgButtonChecked(hWnd, IDC_LIMITSPEED) != BST_UNCHECKED) ? TRUE : FALSE;
 		hWndCtrl = GetDlgItem(hWnd, IDC_AUDIOCLOCKSYNC);
@@ -947,11 +947,11 @@ void CDiagEmulationSettingsTab::SettingsOnPixelDoublerChange()
 {
 HWND hWndCtrl, hVideoPage;
 bool bIsCpuDoubler;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hVideoPage = page->GetHwnd();
+		hVideoPage = pPage->GetHwnd();
 		bIsCpuDoubler = (IsDlgButtonChecked(hVideoPage, IDC_DOUBLER_CPU) != BST_UNCHECKED);
 
 		hWndCtrl = GetDlgItem(hVideoPage, IDC_LBL_FILTER);
@@ -1008,13 +1008,13 @@ LRESULT lr;
 HRESULT CDiagEmulationSettingsTab::ReadAdapterOrdinal(DWORD *adapterOrdinal, GUID *adapterId)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1047,14 +1047,14 @@ LRESULT index;
 HRESULT CDiagEmulationSettingsTab::ReadAdapterMode(D3DDISPLAYMODE *pMode)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
 	ZeroMemory(pMode, sizeof(D3DDISPLAYMODE));
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1081,14 +1081,14 @@ LRESULT index;
 HRESULT CDiagEmulationSettingsTab::ReadAdapterFormat(D3DFORMAT *pFormat)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
 	*pFormat = D3DFMT_UNKNOWN;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_FORMAT, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1115,15 +1115,15 @@ LRESULT index;
 HRESULT CDiagEmulationSettingsTab::ReadAdapterStretch(HCFG::EMUWINDOWSTRETCH *pStretch)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
 
 	*pStretch = HCFG::EMUWINSTR_AUTO;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_STRETCH, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1152,14 +1152,14 @@ LRESULT index;
 HRESULT CDiagEmulationSettingsTab::ReadAdapterFilter(HCFG::EMUWINDOWFILTER *pFilter)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
 	*pFilter = HCFG::EMUWINFILTER_AUTO;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_FILTER, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1189,14 +1189,14 @@ LRESULT index;
 void CDiagEmulationSettingsTab::ReadBorder(HCFG::EMUBORDERSIZE *pBorder)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
 	*pBorder = HCFG::EMUBORDER_FULL;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_BORDER, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1222,14 +1222,14 @@ LRESULT index;
 void CDiagEmulationSettingsTab::ReadTrackZeroSensor(HCFG::ETRACKZEROSENSORSTYLE *v)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
 	*v = HCFG::TZSSPullHigh;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_TRACKZEROSENSOR, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1246,14 +1246,14 @@ LRESULT index;
 void CDiagEmulationSettingsTab::ReadFps(HCFG::EMUFPS *pFps)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
 	*pFps = HCFG::EMUFPS_50;
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_FPS, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
@@ -1279,11 +1279,11 @@ LRESULT index;
 void CDiagEmulationSettingsTab::loadconfig(const CConfig *cfg)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_GENERAL)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_GENERAL)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (cfg->m_bShowSpeed)
 			CheckDlgButton(hWnd, IDC_SHOWSPEED, BST_CHECKED);
 		else
@@ -1313,9 +1313,9 @@ CTabPageDialog *page;
 			CheckDlgButton(hWnd, IDC_DISABLE_DWM_FULLSCREEN, BST_UNCHECKED);
 	}
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (cfg->m_bSkipFrames)
 			CheckDlgButton(hWnd, IDC_SKIPFRAMES, BST_CHECKED);
 		else
@@ -1330,9 +1330,9 @@ CTabPageDialog *page;
 			CheckRadioButton(hWnd, IDC_DOUBLER_BLIT, IDC_DOUBLER_CPU, IDC_DOUBLER_CPU);	
 	}
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_AUDIO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_AUDIO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (cfg->m_bSID_Emulation_Enable)
 			CheckDlgButton(hWnd, IDC_SID_EMULATION, BST_CHECKED);
 		else
@@ -1352,9 +1352,9 @@ CTabPageDialog *page;
 			CheckDlgButton(hWnd, IDC_SIDDIGIBOOT, BST_UNCHECKED);
 	}
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (cfg->m_bD1541_Emulation_Enable)
 			CheckDlgButton(hWnd, IDC_1541_EMULATION, BST_CHECKED);
 		else
@@ -1366,9 +1366,9 @@ CTabPageDialog *page;
 			CheckDlgButton(hWnd, IDC_CHK_SHOWFLOPPYLED, BST_UNCHECKED);
 	}
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (cfg->m_bTimerBbug)
 			CheckDlgButton(hWnd, IDC_CHK_TIMERBBUG, BST_CHECKED);
 		else
@@ -1386,11 +1386,11 @@ CTabPageDialog *page;
 void CDiagEmulationSettingsTab::saveconfig(CConfig *cfg)
 {
 HWND hWnd;
-CTabPageDialog *page;
+shared_ptr<CTabPageDialog> pPage;
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_GENERAL)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_GENERAL)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_HOSTCPU_FRIENDLY))
 			cfg->m_bCPUFriendly=TRUE;
 		else
@@ -1422,9 +1422,9 @@ CTabPageDialog *page;
 			cfg->m_bDisableDwmFullscreen = FALSE;
 	}
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_SKIPFRAMES))
 		{
 			cfg->m_bSkipFrames = TRUE;
@@ -1492,9 +1492,9 @@ CTabPageDialog *page;
 		cfg->m_fps = fps;
 
 	}
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_AUDIO)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_AUDIO)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_AUDIOCLOCKSYNC))
 			cfg->m_bAudioClockSync=TRUE;
 		else
@@ -1515,9 +1515,9 @@ CTabPageDialog *page;
 			cfg->m_bSIDResampleMode = FALSE;
 	}
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_1541_EMULATION))
 			cfg->m_bD1541_Emulation_Enable=TRUE;
 		else
@@ -1531,9 +1531,9 @@ CTabPageDialog *page;
 		ReadTrackZeroSensor(&cfg->m_TrackZeroSensorStyle);
 	}
 
-	if ((page = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP)) != NULL)
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP)) != NULL)
 	{
-		hWnd = page->GetHwnd();
+		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_RAD_CIA6526))
 			cfg->m_CIAMode = HCFG::CM_CIA6526; 
 		else if (IsDlgButtonChecked(hWnd, IDC_RAD_CIA6526A))

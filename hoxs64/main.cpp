@@ -262,8 +262,8 @@ HWND hWndDebuggerMdiClient = 0;
 				}
 				hWndDebuggerMdiClient = appWindow.m_pMDIDebugger->Get_MDIClientWindow();
 				if (
-					(!appWindow.m_pMDIDebugger->IsWinDlgModelessBreakpointVicRaster() || !IsDialogMessage(appWindow.m_pMDIDebugger->m_pdlgModelessBreakpointVicRaster->GetHwnd(), &msg))
-					&& (!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) 
+					//(!appWindow.m_pMDIDebugger->IsWinDlgModelessBreakpointVicRaster() || !IsDialogMessage(appWindow.m_pMDIDebugger->m_pdlgModelessBreakpointVicRaster->GetHwnd(), &msg))
+					 (!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) 
 					&& !TranslateAccelerator(hWndDefaultAccelerator, app.m_hAccelTable, &msg))
 				{
 					TranslateMessage(&msg); 
@@ -1369,6 +1369,11 @@ HWND hWndMdiDebugger = NULL;
 		appWindow.m_pMDIDebugger->ShowDebugCpuC64(pcmode, address);
 	else if (cpuid == CPUID_DISK)
 		appWindow.m_pMDIDebugger->ShowDebugCpuDisk(pcmode, address);
+}
+
+HWND CApp::GetMainFrameWindow()
+{
+	return this->appWindow.GetHwnd();
 }
 
 void CApp::TogglePause()

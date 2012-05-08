@@ -21,7 +21,9 @@
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
+#pragma warning(disable: 4995)
 #include "utils.h"
+#pragma warning( default: 4995)
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"

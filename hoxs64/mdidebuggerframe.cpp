@@ -68,7 +68,6 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand,
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->m_pMonitorCommand = pMonitorCommand;
-	m_pdlgModelessBreakpointVicRaster = NULL;
 }
 
 CMDIDebuggerFrame::~CMDIDebuggerFrame()
@@ -278,6 +277,10 @@ void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (this->IsWinDlgModelessBreakpointVicRaster())
+	{
+		DestroyWindow(this->m_pdlgModelessBreakpointVicRaster->GetHwnd());
+	}
 	if (::IsWindow(m_hWnd))
 	{
 		if (m_bIsCreated)
@@ -448,7 +451,8 @@ int wmId, wmEvent;
 		c64->mon.BM_DisableAllBreakpoints();
 		return true;
 	case IDM_BREAKPOINT_VICRASTER:
-		ShowDlgBreakpointVicRaster();
+		//ShowDlgBreakpointVicRaster();
+		ShowModelessDlgBreakpointVicRaster();
 		return TRUE;
 	default:
 		return false;
@@ -457,7 +461,7 @@ int wmId, wmEvent;
 
 void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 {
-	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster());	
+	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(NULL));	
 	if (pdlg == 0)
 		return;
 	INT_PTR r = pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
@@ -465,6 +469,48 @@ void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 	{
 		this->c64->mon.GetVic()->SetBreakpointRasterCompare(pdlg->GetRasterLine(), pdlg->GetRasterCycle(), true, 0, 0);
 	}
+}
+
+void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
+{
+	if (!this->IsWinDlgModelessBreakpointVicRaster())
+	{
+		Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this));	
+		if (pdlg == 0)
+			return;
+		HWND hWndOwner;
+		//hWndOwner = this->m_hWnd;
+		hWndOwner = this->m_pMonitorCommand->GetMainFrameWindow();
+
+		HWND hwnd = pdlg->ShowModelessDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), hWndOwner);
+		if (hwnd)
+		{
+			ShowWindow(hwnd, SW_SHOW);
+			this->m_pdlgModelessBreakpointVicRaster = pdlg;
+		}
+	}
+	else
+	{
+		HWND hwnd = m_pdlgModelessBreakpointVicRaster->GetHwnd();
+		ShowWindow(hwnd, SW_SHOW);
+		SetForegroundWindow(hwnd);
+	}
+}
+
+void CMDIDebuggerFrame::OnAccept(CDiagBreakpointVicRaster *p)
+{
+	DestroyWindow(p->GetHwnd());
+}
+
+void CMDIDebuggerFrame::OnCancel(CDiagBreakpointVicRaster *p)
+{
+	DestroyWindow(p->GetHwnd());
+}
+
+void CMDIDebuggerFrame::OnDestory(CDiagBreakpointVicRaster *p)
+{
+	int i=0;
+	m_pdlgModelessBreakpointVicRaster.reset();
 }
 
 bool CMDIDebuggerFrame::OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

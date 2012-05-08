@@ -196,6 +196,12 @@ bool bIsWindowActive;
 bool bIsWindowMinimised;
 HWND hWndDebuggerFrame;
 LRESULT lr;
+/*Dialogs*/
+shared_ptr<CDiagKeyboard> pDiagKeyboard;
+shared_ptr<CDiagJoystick> pDiagJoystick;
+shared_ptr<CDiagEmulationSettingsTab> pDiagEmulationSettingsTab;
+shared_ptr<CDiagNewBlankDisk> pDiagNewBlankDisk;
+shared_ptr<CDiagAbout> pDiagAbout;
 
 	switch (uMsg) 
 	{
@@ -391,10 +397,14 @@ LRESULT lr;
 			break;
 		case IDM_HELP_ABOUT:
 			appStatus->SoundHalt();
-			hr = mDlgAbout.Init(appStatus->GetVersionInfo());
-			if (SUCCEEDED(hr))
+			pDiagAbout = shared_ptr<CDiagAbout>(new CDiagAbout());
+			if (pDiagAbout!=0)
 			{
-				mDlgAbout.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_ABOUT), hWnd);
+				hr = pDiagAbout->Init(appStatus->GetVersionInfo());
+				if (SUCCEEDED(hr))
+				{
+					pDiagAbout->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_ABOUT), hWnd);
+				}
 			}
 			appStatus->SoundResume();
 			break;
@@ -421,46 +431,56 @@ LRESULT lr;
 		case IDM_SETTING_EMULATION2:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
-			hr = mDlgSettingsTab.Init(dx, &tCfg);
-			if (SUCCEEDED(hr))
+			pDiagEmulationSettingsTab = shared_ptr<CDiagEmulationSettingsTab>(new CDiagEmulationSettingsTab());
+			if (pDiagEmulationSettingsTab!=0)
 			{
-				mDlgSettingsTab.SetTabID(IDC_SETTINGTAB);
-				mDlgSettingsTab.SetPages(5, &m_tabPagesSetting[0]);
-
-				r = mDlgSettingsTab.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_SETTING2), hWnd);
-				if (LOWORD(r) == IDOK)
+				hr = pDiagEmulationSettingsTab->Init(dx, &tCfg);
+				if (SUCCEEDED(hr))
 				{
-					tCfg = mDlgSettingsTab.NewCfg;
-					appStatus->SetUserConfig(tCfg);
-					appStatus->ApplyConfig(tCfg);
+					pDiagEmulationSettingsTab->SetTabID(IDC_SETTINGTAB);
+					hr = pDiagEmulationSettingsTab->SetPages(5, &m_tabPagesSetting[0]);
+					if (SUCCEEDED(hr))
+					{
+						r = pDiagEmulationSettingsTab->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_SETTING2), hWnd);
+						if (LOWORD(r) == IDOK)
+						{
+							tCfg = pDiagEmulationSettingsTab->NewCfg;
+							appStatus->SetUserConfig(tCfg);
+							appStatus->ApplyConfig(tCfg);
+						}
+						pDiagEmulationSettingsTab->FreePages();
+					}
 				}
-				mDlgSettingsTab.FreePages();
+				else
+					pDiagEmulationSettingsTab->DisplayError(hWnd, appStatus->GetAppName());
 			}
-			else
-				mDlgSettingsTab.DisplayError(hWnd, appStatus->GetAppName());
 			appStatus->SoundResume();
 			break;
 		case IDM_SETTING_KEYBOARD:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
-			hr = mDlgkey.Init(dx, &tCfg);
-			if (SUCCEEDED(hr))
+			pDiagKeyboard = shared_ptr<CDiagKeyboard>(new CDiagKeyboard());
+			if (pDiagKeyboard!=0)
 			{
-				mDlgkey.SetTabID(IDC_KEYBOARDTAB);
-				mDlgkey.SetPages(4, &m_tabPagesKeyboard[0]);
-			 
-				r = mDlgkey.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_KEYBOARD),hWnd);
-				if (LOWORD(r) == IDOK)
+				hr = pDiagKeyboard->Init(dx, &tCfg);
+				if (SUCCEEDED(hr))
 				{
-					tCfg = mDlgkey.newCfg;
-					appStatus->SetUserConfig(tCfg);
-					appStatus->ApplyConfig(tCfg);
-				}
+					pDiagKeyboard->SetTabID(IDC_KEYBOARDTAB);
+					pDiagKeyboard->SetPages(4, &m_tabPagesKeyboard[0]);
+			 
+					r = pDiagKeyboard->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_KEYBOARD),hWnd);
+					if (LOWORD(r) == IDOK)
+					{
+						tCfg = pDiagKeyboard->newCfg;
+						appStatus->SetUserConfig(tCfg);
+						appStatus->ApplyConfig(tCfg);
+					}
 
-				mDlgkey.FreePages();
+					pDiagKeyboard->FreePages();
+				}
+				else
+					pDiagKeyboard->DisplayError(hWnd, appStatus->GetAppName());
 			}
-			else
-				mDlgkey.DisplayError(hWnd, appStatus->GetAppName());
 			dx->pKeyboard->Unacquire();
 			dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY); 
 			appStatus->SoundResume();
@@ -468,19 +488,23 @@ LRESULT lr;
 		case IDM_SETTING_JOYSTICK:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
-			hr = mDlgjoy.Init(dx, &tCfg);
-			if (SUCCEEDED(hr))
+			pDiagJoystick = shared_ptr<CDiagJoystick>(new CDiagJoystick());
+			if (pDiagJoystick!=0)
 			{
-				r = mDlgjoy.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
-				if (LOWORD(r) == IDOK)
+				hr = pDiagJoystick->Init(dx, &tCfg);
+				if (SUCCEEDED(hr))
 				{
-					tCfg = mDlgjoy.newCfg;
-					appStatus->SetUserConfig(tCfg);
-					appStatus->ApplyConfig(tCfg);
+					r = pDiagJoystick->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
+					if (LOWORD(r) == IDOK)
+					{
+						tCfg = pDiagJoystick->newCfg;
+						appStatus->SetUserConfig(tCfg);
+						appStatus->ApplyConfig(tCfg);
+					}
 				}
+				else
+					pDiagJoystick->DisplayError(hWnd, appStatus->GetAppName());
 			}
-			else
-				mDlgjoy.DisplayError(hWnd, appStatus->GetAppName());
 			appStatus->SoundResume();
 			break;
 		case IDM_SETTING_DOUBLESIZEDWINDOW:
@@ -522,17 +546,21 @@ LRESULT lr;
 			break;
 		case IDM_DISK_INSERT_NEWBLANKDISK:
 			appStatus->SoundHalt();
-			hr = mDlgNewBlankDisk.Init();
-			if (SUCCEEDED(hr))
+			pDiagNewBlankDisk = shared_ptr<CDiagNewBlankDisk>(new CDiagNewBlankDisk());
+			if (pDiagNewBlankDisk!=0)
 			{
-				r = mDlgNewBlankDisk.ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_NEWDISK), hWnd);
-				if (LOWORD(r) == IDOK)
+				hr = pDiagNewBlankDisk->Init();
+				if (SUCCEEDED(hr))
 				{
-					c64->InsertNewDiskImage(mDlgNewBlankDisk.diskname, mDlgNewBlankDisk.id1, mDlgNewBlankDisk.id2, mDlgNewBlankDisk.bAlignTracks, mDlgNewBlankDisk.numberOfTracks);
-				}	
+					r = pDiagNewBlankDisk->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_NEWDISK), hWnd);
+					if (LOWORD(r) == IDOK)
+					{
+						c64->InsertNewDiskImage(pDiagNewBlankDisk->diskname, pDiagNewBlankDisk->id1, pDiagNewBlankDisk->id2, pDiagNewBlankDisk->bAlignTracks, pDiagNewBlankDisk->numberOfTracks);
+					}	
+				}
+				else
+					pDiagNewBlankDisk->DisplayError(hWnd, appStatus->GetAppName());
 			}
-			else
-				mDlgNewBlankDisk.DisplayError(hWnd, appStatus->GetAppName());
 			appStatus->SoundResume();
 			break;
 		case IDM_DISK_REMOVEDISK:
