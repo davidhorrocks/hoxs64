@@ -285,20 +285,14 @@ INT_PTR CALLBACK DialogProc(
 		}
 		// Set the USERDATA to point to the class object.
 		break;
-	case WM_DESTROY:
+	case WM_NCDESTROY:
 		// This is our signal to destroy the window object.
 		SetWindowLongPtr(hWndDlg, GWLP_USERDATA, 0);
 		if (pdlg)
 		{
-			//EventArgs e;
-			//pdlg->EsOnDestroy.Raise(pdlg, e);
 			LRESULT lr = pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam);
 			pdlg->m_hWnd = 0;
 			pdlg->m_pKeepAlive.reset();
-			//if (pdlg->m_AutoDelete)
-			//{
-			//	delete pdlg;
-			//}
 			pdlg = NULL;
 			return lr;
 		}
