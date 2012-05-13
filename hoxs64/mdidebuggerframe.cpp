@@ -67,13 +67,6 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand,
 	this->appStatus = appStatus;
 	this->m_pMonitorCommand = pMonitorCommand;
 
-	m_pWinDebugCpuC64 = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, pMonitorCommand, TEXT("C64 - cpu")));
-	if (m_pWinDebugCpuC64 == 0)
-		throw std::bad_alloc();
-	m_pWinDebugCpuDisk = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, pMonitorCommand, TEXT("Disk - cpu")));
-	if (m_pWinDebugCpuDisk == 0)
-		throw std::bad_alloc();
-	
 	HRESULT hr = Init();
 	if (FAILED(hr))
 		throw new std::runtime_error("CMDIDebuggerFrame::Init() Failed");
@@ -368,21 +361,53 @@ HIMAGELIST CMDIDebuggerFrame::CreateImageListNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
+void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) throw()
 {
-	HRESULT hr = m_pWinDebugCpuC64->Show(this->shared_from_this());
-	if (SUCCEEDED(hr))
+HRESULT hr;
+	try
 	{
-		m_pWinDebugCpuC64->UpdateDisplay(pcmode, address);
+		shared_ptr<CDisassemblyFrame> pwin = m_pWinDebugCpuC64.lock();
+		if (pwin == NULL)
+		{
+			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, m_pMonitorCommand, TEXT("C64 - cpu")));
+			m_pWinDebugCpuC64 = pwin;
+		}
+		if (pwin != NULL)
+		{
+			hr = pwin->Show(this->shared_from_this());
+			if (SUCCEEDED(hr))
+			{
+				pwin->UpdateDisplay(pcmode, address);
+			}
+		}
+	}
+	catch(std::exception&)
+	{
 	}
 }
 
 void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	HRESULT hr = m_pWinDebugCpuDisk->Show(this->shared_from_this());
-	if (SUCCEEDED(hr))
+HRESULT hr;
+	try
 	{
-		m_pWinDebugCpuDisk->UpdateDisplay(pcmode, address);
+		shared_ptr<CDisassemblyFrame> pwin = m_pWinDebugCpuDisk.lock();
+		if (pwin == NULL)
+		{
+			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, m_pMonitorCommand, TEXT("Disk - cpu")));		
+			m_pWinDebugCpuDisk = pwin;
+		}
+		if (pwin != NULL)
+		{
+			hr = pwin->Show(this->shared_from_this());
+			if (SUCCEEDED(hr))
+			{
+				pwin->UpdateDisplay(pcmode, address);
+			}
+		}
+	}
+	catch(std::exception&)
+	{
 	}
 }
 

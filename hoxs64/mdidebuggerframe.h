@@ -57,8 +57,8 @@ public:
 	bool IsWinDlgModelessBreakpointVicRaster();
 
 	virtual void GetMinWindowSize(int &w, int &h);
-	shared_ptr<CDisassemblyFrame> m_pWinDebugCpuC64;
-	shared_ptr<CDisassemblyFrame> m_pWinDebugCpuDisk;
+	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuC64;
+	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuDisk;
 	Wp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

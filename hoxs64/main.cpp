@@ -250,14 +250,26 @@ HWND hWndDebuggerMdiClient = 0;
 
 			if (!m_pWinAppWindow->m_pMDIDebugger.expired())
 			{
+				HWND hWndDebug = 0;
+				HWND hWndDebugCpuC64 = 0;
+				HWND hWndDebugCpuDisk = 0;
 				shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();
+				
+				hWndDebug =  pWinDebugger->GetHwnd();
+				shared_ptr<CDisassemblyFrame> pWinDebugCpuC64 = pWinDebugger->m_pWinDebugCpuC64.lock();
+				if (pWinDebugCpuC64)
+					hWndDebugCpuC64 = pWinDebugCpuC64->GetHwnd();
+				shared_ptr<CDisassemblyFrame> pWinDebugCpuDisk = pWinDebugger->m_pWinDebugCpuDisk.lock();
+				if (pWinDebugCpuDisk)
+					hWndDebugCpuDisk = pWinDebugCpuDisk->GetHwnd();
 				HWND hWndDefaultAccelerator = GetActiveWindow();
-				if (hWndDefaultAccelerator == NULL || 
+
+				if (hWndDefaultAccelerator == 0 || 
 					(
 						hWndDefaultAccelerator != m_pWinAppWindow->GetHwnd() 
-						&& hWndDefaultAccelerator != pWinDebugger->GetHwnd() 
-						&& hWndDefaultAccelerator != pWinDebugger->m_pWinDebugCpuC64->GetHwnd()
-						&& hWndDefaultAccelerator != pWinDebugger->m_pWinDebugCpuDisk->GetHwnd()
+						&& hWndDefaultAccelerator != hWndDebug 
+						&& hWndDefaultAccelerator != hWndDebugCpuC64
+						&& hWndDefaultAccelerator != hWndDebugCpuDisk
 					))
 				{
 					hWndDefaultAccelerator =pWinDebugger->GetHwnd();
