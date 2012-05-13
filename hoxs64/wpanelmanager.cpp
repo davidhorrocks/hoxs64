@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
+#include <exception>
 #include "boost2005.h"
 #include "defines.h"
 #include "mlist.h"
@@ -26,14 +27,14 @@ WPanelManager::~WPanelManager()
 {
 }
 
-HRESULT WPanelManager::Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND hWndRebar)
+HRESULT WPanelManager::Init(HINSTANCE hInstance, Wp_CVirWindow pWinParentWindow, HWND hWndRebar)
 {
 	m_bIsRootRectValid = false;
 	m_oldy = -4;
 	m_fMoved = FALSE;
 	m_fDragMode = FALSE;
 
-	m_pParentWindow = pParentWindow;
+	m_pWinParentWindow = pWinParentWindow;
 	m_hWndRebar = hWndRebar;
 	m_hInstance = hInstance;
 
@@ -42,36 +43,42 @@ HRESULT WPanelManager::Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND
 	return S_OK;
 }
 
-HRESULT WPanelManager::CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, LPTSTR pszTitle, CVirWindow *pChildWin)
+HRESULT WPanelManager::CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, LPTSTR pszTitle, Sp_CVirWindow pChildWin)
 {
-	HWND hWndPanel = NULL;
-	WPanel *pwp = new WPanel();
-	HRESULT hr = pwp->Init(this, pChildWin);
-	if (SUCCEEDED(hr))
+HRESULT hr = E_FAIL;
+	try
 	{
-		CVirWindow *pWin = this->Get_ParentWindow();
-		HWND hWndPanel = pwp->Create(m_hInstance, pWin->GetHwnd(), pszTitle, 0, 0, 200, 100, (HMENU) 1001);
-		if (hWndPanel)
-		{
-			hr = this->m_WpList.Append(pwp);
-			if (SUCCEEDED(hr))
-			{
-				return S_OK;
-			}
-		}
-		else
+		shared_ptr<WPanel> pwp = shared_ptr<WPanel>(new WPanel());
+		if (pwp == NULL)
+			return E_OUTOFMEMORY;
+		hr = pwp->Init(this, pChildWin);
+		if (SUCCEEDED(hr))
 		{
 			hr = E_FAIL;
+			Sp_CVirWindow pWin = this->Get_ParentWindow();
+			if (pWin != 0)
+			{
+				HWND hWndPanel = pwp->Create(m_hInstance, pWin->GetHwnd(), pszTitle, 0, 0, 200, 100, (HMENU) 1001);
+				if (hWndPanel)
+				{
+					try
+					{
+						this->m_WpList.push_back(pwp);
+						hr = S_OK;
+					}
+					catch(...)
+					{
+						hr = E_FAIL;
+						DestroyWindow(hWndPanel);
+						throw;
+					}
+				}
+			}
 		}
 	}
-
-	if (hWndPanel)
+	catch(std::exception &)
 	{
-		DestroyWindow(hWndPanel);
-	}
-	else if (pwp)
-	{
-		delete pwp;
+		hr = E_FAIL;
 	}
 	return hr;
 }
@@ -119,11 +126,10 @@ RECT rcMdiClient;
 	int mins = GetMinWindowHeight();
 	int iMinHeightMdiClient = mins;
 	int iMinHeightPanel = mins;
-	for (WpElement *p = m_WpList.Head(); p!=NULL ; p = p->Next())
+
+	for (std::list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; it++)
 	{
-		if (p->m_data == NULL)
-			continue;
-		WPanel *pwp = p->m_data;
+		Sp_WPanel pwp = *it;
 		if (pwp == NULL)
 			continue;
 		SIZE szPref;
@@ -163,7 +169,7 @@ RECT rcMdiClient;
 			SetRect(&rcPanel, rcRootInner.left, rcRootInner.top, rcRootInner.right, rcRootInner.bottom);
 		}
 		pwp->UpdateSizerRegion(rcPanel);
-		HWND hWndPanel = p->m_data->GetHwnd();
+		HWND hWndPanel = pwp->GetHwnd();
 		if (hWndPanel)
 		{
 			if (rcPanel.right - rcPanel.left > 0 && rcPanel.bottom - rcPanel.top > 0)
@@ -173,9 +179,10 @@ RECT rcMdiClient;
 		}
 	}
 
-	if (m_pParentWindow)
+	Sp_CVirWindow pWin = Get_ParentWindow();
+	if (pWin != 0)
 	{
-		HWND hWndMDIClient = m_pParentWindow->Get_MDIClientWindow();
+		HWND hWndMDIClient = pWin->Get_MDIClientWindow();
 		if (hWndMDIClient)
 		{
 			if (rcMdiClient.right - rcMdiClient.left > 0 && rcMdiClient.bottom - rcMdiClient.top > 0)
@@ -186,24 +193,21 @@ RECT rcMdiClient;
 	}
 }
 
-CVirWindow *WPanelManager::Get_ParentWindow()
+Sp_CVirWindow WPanelManager::Get_ParentWindow()
 {
-	return m_pParentWindow;
+	return  m_pWinParentWindow.lock();	
 }
 
-
-WPanel *WPanelManager::GetPanelSizerFromClientPos(int x, int y, LPRECT prcSizerBar)
+Sp_WPanel WPanelManager::GetPanelSizerFromClientPos(int x, int y, LPRECT prcSizerBar)
 {
 POINT pt;
 
 	pt.x = x;
 	pt.y = y;
 
-	for (WpElement *p = m_WpList.Head(); p!=NULL ; p = p->Next())
+	for (std::list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; it++)
 	{
-		if (p->m_data == NULL)
-			continue;
-		WPanel *pwp = p->m_data;
+		Sp_WPanel pwp = *it;
 		if (pwp == NULL)
 			continue;
 		HRGN rgn = pwp->m_hrgSizerTop;
@@ -250,18 +254,18 @@ void WPanelManager::DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 	DeleteObject(hbm);
 }
 
-void WPanelManager::OnDestroyWPanel(WPanel *pwp)
+void WPanelManager::OnDestroyWPanel(Sp_WPanel pwp)
 {
-	WpElement *n = NULL;
-	for (WpElement *p = m_WpList.Head(); p!=NULL ; p = n)
+	for (std::list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; )
 	{
-		n = p->Next();
-		if (p->m_data!=NULL)
+		if (*it!=NULL && *it == pwp)
 		{
-			if (p->m_data == pwp)
-			{
-				m_WpList.Remove(p);
-			}
+			it = m_WpList.erase(it);
+			continue;
+		}
+		else
+		{
+			++it;
 		}		
 	}
 }
@@ -322,7 +326,7 @@ bool WPanelManager::Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, 
 	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
 	pt.y = (short)HIWORD(lParam);
 
-	WPanel *pwp = GetPanelSizerFromClientPos(pt.x, pt.y, &m_rcSizer);
+	Sp_WPanel pwp = GetPanelSizerFromClientPos(pt.x, pt.y, &m_rcSizer);
 	if (pwp == NULL)
 		return false;
 	m_pPanelToSize = pwp;
@@ -373,7 +377,6 @@ bool WPanelManager::Splitter_OnMouseMove(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 bool WPanelManager::Splitter_OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	HDC hdc;
-	//RECT rect;
 
 	POINT pt;
 	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
@@ -428,7 +431,7 @@ bool WPanelManager::Splitter_OnSetCursor(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	if (!ScreenToClient(hwnd, &pt))
 		return false;
 
-	WPanel *pwp = GetPanelSizerFromClientPos(pt.x, pt.y, NULL);
+	Sp_WPanel pwp = GetPanelSizerFromClientPos(pt.x, pt.y, NULL);
 	if (pwp == NULL)
 		return false;
 	

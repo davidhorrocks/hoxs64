@@ -110,9 +110,8 @@ public:
 		int m_iShowCaretCount;
 		HWND m_hWndParent;
 	};
-	CDisassemblyReg(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand);
+	CDisassemblyReg(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont);
 	virtual ~CDisassemblyReg();
-	HRESULT Init(CVirWindow *parent, HFONT hFont);
 
 	static TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);

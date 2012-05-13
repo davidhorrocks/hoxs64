@@ -1,16 +1,16 @@
 #ifndef __WPANELMANAGER_H__
 #define __WPANELMANAGER_H__
 
-typedef MListElement<WPanel *> WpElement;
-typedef MList<WPanel *> WpList;
+//typedef MListElement<WPanel *> WpElement;
+//typedef MList<WPanel *> WpList;
 
 class WPanelManager : IWPanelManager
 {
 public:
 	WPanelManager();
 	~WPanelManager();
-	HRESULT Init(HINSTANCE hInstance, CVirWindow *pParentWindow, HWND hWndRebar);
-	HRESULT CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, LPTSTR pszTitle, CVirWindow *pChildWin);
+	HRESULT Init(HINSTANCE hInstance, Wp_CVirWindow pParentWindow, HWND hWndRebar);
+	HRESULT CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, LPTSTR pszTitle, Sp_CVirWindow pChildWin);
 	void SizePanels(HWND hWnd, int x, int y, int w, int h);
 
 	bool Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -20,18 +20,18 @@ public:
 
 private:
 	//IWPanelManager
-	virtual CVirWindow *Get_ParentWindow();
-	virtual void OnDestroyWPanel(WPanel *pwp);
+	virtual Sp_CVirWindow Get_ParentWindow();
+	virtual void OnDestroyWPanel(Sp_WPanel pwp);
 	virtual int Get_SizerGap();
 	virtual void Get_RootRect(RECT *prc);
 	//
 
 	int GetMinWindowHeight();
-	WPanel *GetPanelSizerFromClientPos(int x, int y, LPRECT prcSizerBar);
+	Sp_WPanel GetPanelSizerFromClientPos(int x, int y, LPRECT prcSizerBar);
 	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height);
 	void ClipPointToRect(const RECT &rc, POINT *pt);
 	void ClipPointToValidPanelSizer(POINT *pt);
-	WPanel *m_pPanelToSize;
+	Sp_WPanel m_pPanelToSize;
 	bool m_bIsRootRectValid;
 	RECT m_rcRoot;
 	RECT  m_rcSizer;
@@ -41,11 +41,11 @@ private:
 	BOOL m_fDragMode;
 	int m_iSplitterPos;
 
-	CVirWindow *m_pParentWindow;
+	Wp_CVirWindow m_pWinParentWindow;
 	HWND m_hWndRebar;
 
 	HINSTANCE m_hInstance;
-	WpList m_WpList;
+	std::list<Sp_WPanel> m_WpList;
 	CDPI m_dpi;
 	int m_iSizerGap;
 };

@@ -61,7 +61,7 @@ public:
 	// IMonitorCommand
 
 	
-	CAppWindow appWindow;
+	shared_ptr<CAppWindow> m_pWinAppWindow;
 	
 
 	//IC64Event

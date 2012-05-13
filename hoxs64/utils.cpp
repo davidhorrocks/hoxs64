@@ -40,6 +40,8 @@ LRESULT CALLBACK WindowProc(
 	WPARAM wParam,
 	LPARAM lParam)
 {
+LRESULT lr;
+LRESULT br;
 	// Get a pointer to the window class object.
 	CVirWindow* pWin = (CVirWindow*) (LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
@@ -62,22 +64,28 @@ LRESULT CALLBACK WindowProc(
 		#pragma warning(disable:4244)
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pWin);
 		#pragma warning(default:4244)
-		break;
 
-	case WM_DESTROY:
+		br = (BOOL)pWin->WindowProc(hWnd, uMsg, wParam, lParam);
+		if (br)
+		{
+			pWin->m_pKeepAlive = pWin->shared_from_this();
+			return br;
+		}
+		else
+		{
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
+			return FALSE;
+		}
+		break;
+	case WM_NCDESTROY:
 		// This is our signal to destroy the window object.
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
 		if (pWin)
 		{
-			EventArgs e;
-			pWin->EsOnDestroy.Raise(pWin, e);
-			LRESULT lr = pWin->WindowProc(hWnd, uMsg, wParam, lParam);
+			lr = pWin->WindowProc(hWnd, uMsg, wParam, lParam);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
 			pWin->m_hWnd = 0;
-			if (pWin->m_AutoDelete)
-			{
-				delete pWin;
-			}
-			pWin = NULL;
+			pWin->m_pKeepAlive.reset();
+			pWin = 0;
 			return lr;
 		}
 		break;
@@ -281,19 +289,20 @@ INT_PTR CALLBACK DialogProc(
 		}
 		else
 		{
+			SetWindowLongPtr(hWndDlg, GWLP_USERDATA, 0);
 			return FALSE;
 		}
 		// Set the USERDATA to point to the class object.
 		break;
 	case WM_NCDESTROY:
 		// This is our signal to destroy the window object.
-		SetWindowLongPtr(hWndDlg, GWLP_USERDATA, 0);
 		if (pdlg)
 		{
 			LRESULT lr = pdlg->DialogProc(hWndDlg, uMsg, wParam, lParam);
+			SetWindowLongPtr(hWndDlg, GWLP_USERDATA, 0);
 			pdlg->m_hWnd = 0;
 			pdlg->m_pKeepAlive.reset();
-			pdlg = NULL;
+			pdlg = 0;
 			return lr;
 		}
 		break;
@@ -312,6 +321,8 @@ INT_PTR CALLBACK DialogProc(
 CVirDialog::CVirDialog()
 {
 	m_bIsModeless = false;
+	m_hInst = NULL;
+	m_hWnd = NULL;
 }
 
 /*M+M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M
@@ -465,12 +476,10 @@ BOOL CTabPageDialog::DialogProc(HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lPar
 
 CTabDialog::CTabDialog()
 {
-	//m_pagecount=0;
 	m_hwndDisplay=0;
 	m_hWnd=0;
 	m_hInst=0;
 	m_hwndTab=0;
-	//m_pages=NULL;
 	m_tabctl_id=0;
 	m_current_page_index = -1;
 }
@@ -483,12 +492,6 @@ CTabDialog::~CTabDialog()
 void CTabDialog::FreePages()
 {
 	m_vecpages.clear();
-	//if (m_pages)
-	//{
-	//	delete [] m_pages;
-	//	m_pages = NULL;
-	//	m_pagecount = 0;
-	//}
 }
 
 INT_PTR CTabDialog::ShowDialog(HINSTANCE hInst,	LPTSTR lpszTemplate, HWND hWndOwner)
@@ -521,7 +524,6 @@ HRESULT hr;
 	m_vecpages.reserve(pagecount);
 	if (m_vecpages.capacity()==0)
 		return E_OUTOFMEMORY;
-	//m_pagecount = pagecount;
 
 	for (i=0 ; i<pagecount ; i++)
 	{
@@ -1040,47 +1042,6 @@ RECT rcButton;
 		rcButton.top, 0, 0, 
 		SWP_NOSIZE | SWP_NOZORDER); 
 }
-
-/*
-BOOL G::IsWindowEnabled(HWND hWnd, bool &bResult)
-{
-WINDOWINFO wi;
-	memset(&wi, 0, sizeof(WINDOWINFO));
-	wi.cbSize = sizeof(WINDOWINFO);
-	BOOL r = GetWindowInfo(hWnd, &wi);
-	if (r)
-	{
-		bResult = (wi.dwStyle & WS_DISABLED)==0;
-	}
-	return r;
-}
-VS_FIXEDFILEINFO *G::GetVersion_Res_Old()
-{
-void *pv=NULL;
-HRSRC v=0;
-HGLOBAL hv=NULL;
-UINT l=0;
-VS_FIXEDFILEINFO *p_vinfo=NULL;
-	v=FindResource(NULL,MAKEINTRESOURCE(VS_VERSION_INFO),RT_VERSION);
-	if (v)
-	{
-		hv=LoadResource(NULL,v);
-		if (hv)
-		{
-			pv=LockResource(hv);
-			if (pv)
-			{
-				//l=sizeof(VS_FIXEDFILEINFO);
-				if (VerQueryValue(pv,TEXT("\\"),(void **) &p_vinfo, &l))
-				{
-					return p_vinfo;
-				}
-			}
-		}
-	}
-	return NULL;
-}
-*/
 
 LPGETMONITORINFO G::s_pFnGetMonitorInfo = NULL;
 LPMONITORFROMRECT G::s_pFnMonitorFromRect = NULL;
@@ -2183,4 +2144,31 @@ int G::CalcListViewMinWidth(HWND hWnd, ...)
 	}
 	va_end(vl);
 	return k;
+}
+
+HFONT G::CreateMonitorFont()
+{
+CDPI dpi;
+	HFONT f = 0;
+	LPTSTR lstFontName[] = { TEXT("Consolas"), TEXT("Lucida"), TEXT("Courier"), TEXT("")};
+	
+	for (int i =0; f == 0 && i < _countof(lstFontName); i++)
+	{
+		f = CreateFont(
+			dpi.ScaleY(dpi.PointsToPixels(12)),
+			0,
+			0,
+			0,
+			FW_NORMAL,
+			FALSE,
+			FALSE,
+			FALSE,
+			ANSI_CHARSET,
+			OUT_TT_ONLY_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			CLEARTYPE_QUALITY,
+			FIXED_PITCH | FF_DONTCARE,
+			lstFontName[i]);
+	}
+	return f;
 }

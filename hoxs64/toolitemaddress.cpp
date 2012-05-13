@@ -19,20 +19,15 @@
 
 const TCHAR CToolItemAddress::ClassName[] = WNDCLASS_DFREBARCHILD;
 
-CToolItemAddress::CToolItemAddress()
+CToolItemAddress::CToolItemAddress(HFONT hFont)
 {
+	m_hFont = hFont;
 	m_pIEnterGotoAddress = NULL;
 }
 
 CToolItemAddress::~CToolItemAddress()
 {
 	Cleanup();
-}
-
-HRESULT CToolItemAddress::Init(HFONT hFont)
-{
-	m_hFont = hFont;
-	return S_OK;
 }
 
 void CToolItemAddress::Cleanup()

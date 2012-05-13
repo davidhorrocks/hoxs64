@@ -93,10 +93,9 @@ public:
 		bool IsEqual(AssemblyLineBuffer& other);
 	};
 
-	CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand);
+	CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont);
 	virtual ~CDisassemblyEditChild();
 	static TCHAR ClassName[];
-	HRESULT Init(CVirWindow *parent, HFONT hFont);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 
@@ -120,7 +119,6 @@ public:
 	static const int BUFFER_WIDTH = 50;
 	static const int MAX_BUFFER_HEIGHT = 200;
 private:
-	CVirWindow *m_pParent;
 	IMonitorCommand *m_pMonitorCommand;
 	CDPI m_dpi;
 	HFONT m_hFont;
@@ -147,6 +145,7 @@ private:
 	AssemblyLineBuffer *m_pFrontTextBuffer;
 	AssemblyLineBuffer *m_pBackTextBuffer;
 
+	HRESULT Init();
 	void Cleanup();
 	HWND CreateAsmEdit(HWND hWndParent);
 	HRESULT AllocTextBuffer();

@@ -83,13 +83,20 @@ CAppWindow::CAppWindow()
 {
 	cfg = NULL;
 	appStatus = NULL;
+	dx = NULL;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
 	m_pMonitorCommand = NULL;
-	dx = NULL;
-	hCursorBusy = LoadCursor(0L, IDC_WAIT);
-	hOldCursor = NULL;
-	m_pMDIDebugger = NULL;
+	m_hCursorBusy = LoadCursor(0L, IDC_WAIT);
+	m_hOldCursor = NULL;
+	m_pWinEmuWin = shared_ptr<CEmuWindow>(new CEmuWindow());
+	if (m_pWinEmuWin == 0)
+		throw std::bad_alloc();
+}
+
+CAppWindow::~CAppWindow()
+{
+	int i =0;
 }
 
 HRESULT CAppWindow::Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
@@ -100,14 +107,14 @@ HRESULT hr;
 		return E_POINTER;
 
 	this->dx = dx;
-	this->m_pMonitorCommand = monitorCommand;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
+	this->m_pMonitorCommand = monitorCommand;
 
 	appStatus->m_bWindowed = TRUE;
 	
-	hr = emuWin.Init(dx, cfg, appStatus, c64);
+	hr = m_pWinEmuWin->Init(dx, cfg, appStatus, c64);
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Unable to initialise the emulation window."), appStatus->GetAppName(), MB_ICONWARNING);
@@ -143,7 +150,7 @@ WNDCLASSEX  wc;
 
 void CAppWindow::SetColours()
 {
-	emuWin.SetColours();
+	m_pWinEmuWin->SetColours();
 }
 
 void CAppWindow::SetMainWindowSize(bool bDoubleSizedWindow)
@@ -207,8 +214,8 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	{
 	case WM_CREATE:
 		bOK = false;
-		emuWin.GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, cfg->m_bDoubleSizedWindow, &w, &h);
-		if (emuWin.Create(m_hInst, m_hWnd, NULL, 0, 0, w, h, (HMENU) LongToPtr(IDC_MAIN_WINEMULATION)) == 0)
+		m_pWinEmuWin->GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, cfg->m_bDoubleSizedWindow, &w, &h);
+		if (m_pWinEmuWin->Create(m_hInst, m_hWnd, NULL, 0, 0, w, h, (HMENU) LongToPtr(IDC_MAIN_WINEMULATION)) == 0)
 			return -1;
 		/*
 		HLOCAL hloc;
@@ -397,28 +404,34 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			break;
 		case IDM_HELP_ABOUT:
 			appStatus->SoundHalt();
-			pDiagAbout = shared_ptr<CDiagAbout>(new CDiagAbout());
-			if (pDiagAbout!=0)
+			try
 			{
-				hr = pDiagAbout->Init(appStatus->GetVersionInfo());
-				if (SUCCEEDED(hr))
+				pDiagAbout = shared_ptr<CDiagAbout>(new CDiagAbout());
+				if (pDiagAbout!=0)
 				{
-					pDiagAbout->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_ABOUT), hWnd);
+					hr = pDiagAbout->Init(appStatus->GetVersionInfo());
+					if (SUCCEEDED(hr))
+					{
+						pDiagAbout->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_ABOUT), hWnd);
+					}
 				}
+			}
+			catch(...)
+			{
 			}
 			appStatus->SoundResume();
 			break;
 		case IDM_SETTING_RESTOREDEFAULT:
 			appStatus->SoundHalt();
 			appStatus->RestoreDefaultSettings();
-			this->emuWin.UpdateC64Window();
+			this->m_pWinEmuWin->UpdateC64Window();
 			MessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			break;
 		case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
 			appStatus->SoundHalt();
 			appStatus->RestoreUserSettings();
-			this->emuWin.UpdateC64Window();
+			this->m_pWinEmuWin->UpdateC64Window();
 			MessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			break;
@@ -430,80 +443,98 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			break;
 		case IDM_SETTING_EMULATION2:
 			appStatus->SoundHalt();
-			appStatus->GetUserConfig(tCfg);
-			pDiagEmulationSettingsTab = shared_ptr<CDiagEmulationSettingsTab>(new CDiagEmulationSettingsTab());
-			if (pDiagEmulationSettingsTab!=0)
+			try
 			{
-				hr = pDiagEmulationSettingsTab->Init(dx, &tCfg);
-				if (SUCCEEDED(hr))
+				appStatus->GetUserConfig(tCfg);
+				pDiagEmulationSettingsTab = shared_ptr<CDiagEmulationSettingsTab>(new CDiagEmulationSettingsTab());
+				if (pDiagEmulationSettingsTab!=0)
 				{
-					pDiagEmulationSettingsTab->SetTabID(IDC_SETTINGTAB);
-					hr = pDiagEmulationSettingsTab->SetPages(5, &m_tabPagesSetting[0]);
+					hr = pDiagEmulationSettingsTab->Init(dx, &tCfg);
 					if (SUCCEEDED(hr))
 					{
-						r = pDiagEmulationSettingsTab->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_SETTING2), hWnd);
-						if (LOWORD(r) == IDOK)
+						pDiagEmulationSettingsTab->SetTabID(IDC_SETTINGTAB);
+						hr = pDiagEmulationSettingsTab->SetPages(5, &m_tabPagesSetting[0]);
+						if (SUCCEEDED(hr))
 						{
-							tCfg = pDiagEmulationSettingsTab->NewCfg;
-							appStatus->SetUserConfig(tCfg);
-							appStatus->ApplyConfig(tCfg);
+							r = pDiagEmulationSettingsTab->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_SETTING2), hWnd);
+							if (LOWORD(r) == IDOK)
+							{
+								tCfg = pDiagEmulationSettingsTab->NewCfg;
+								appStatus->SetUserConfig(tCfg);
+								appStatus->ApplyConfig(tCfg);
+							}
+							pDiagEmulationSettingsTab->FreePages();
 						}
-						pDiagEmulationSettingsTab->FreePages();
 					}
+					else
+						pDiagEmulationSettingsTab->DisplayError(hWnd, appStatus->GetAppName());
 				}
-				else
-					pDiagEmulationSettingsTab->DisplayError(hWnd, appStatus->GetAppName());
+			}
+			catch(...)
+			{
 			}
 			appStatus->SoundResume();
 			break;
 		case IDM_SETTING_KEYBOARD:
 			appStatus->SoundHalt();
-			appStatus->GetUserConfig(tCfg);
-			pDiagKeyboard = shared_ptr<CDiagKeyboard>(new CDiagKeyboard());
-			if (pDiagKeyboard!=0)
+			try
 			{
-				hr = pDiagKeyboard->Init(dx, &tCfg);
-				if (SUCCEEDED(hr))
+				appStatus->GetUserConfig(tCfg);
+				pDiagKeyboard = shared_ptr<CDiagKeyboard>(new CDiagKeyboard());
+				if (pDiagKeyboard!=0)
 				{
-					pDiagKeyboard->SetTabID(IDC_KEYBOARDTAB);
-					pDiagKeyboard->SetPages(4, &m_tabPagesKeyboard[0]);
-			 
-					r = pDiagKeyboard->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_KEYBOARD),hWnd);
-					if (LOWORD(r) == IDOK)
+					hr = pDiagKeyboard->Init(dx, &tCfg);
+					if (SUCCEEDED(hr))
 					{
-						tCfg = pDiagKeyboard->newCfg;
-						appStatus->SetUserConfig(tCfg);
-						appStatus->ApplyConfig(tCfg);
-					}
+						pDiagKeyboard->SetTabID(IDC_KEYBOARDTAB);
+						pDiagKeyboard->SetPages(4, &m_tabPagesKeyboard[0]);
+			 
+						r = pDiagKeyboard->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_KEYBOARD),hWnd);
+						if (LOWORD(r) == IDOK)
+						{
+							tCfg = pDiagKeyboard->newCfg;
+							appStatus->SetUserConfig(tCfg);
+							appStatus->ApplyConfig(tCfg);
+						}
 
-					pDiagKeyboard->FreePages();
+						pDiagKeyboard->FreePages();
+					}
+					else
+						pDiagKeyboard->DisplayError(hWnd, appStatus->GetAppName());
 				}
-				else
-					pDiagKeyboard->DisplayError(hWnd, appStatus->GetAppName());
+				dx->pKeyboard->Unacquire();
+				dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY); 
 			}
-			dx->pKeyboard->Unacquire();
-			dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY); 
+			catch(...)
+			{
+			}
 			appStatus->SoundResume();
 			break;
 		case IDM_SETTING_JOYSTICK:
 			appStatus->SoundHalt();
-			appStatus->GetUserConfig(tCfg);
-			pDiagJoystick = shared_ptr<CDiagJoystick>(new CDiagJoystick());
-			if (pDiagJoystick!=0)
+			try
 			{
-				hr = pDiagJoystick->Init(dx, &tCfg);
-				if (SUCCEEDED(hr))
+				appStatus->GetUserConfig(tCfg);
+				pDiagJoystick = shared_ptr<CDiagJoystick>(new CDiagJoystick());
+				if (pDiagJoystick!=0)
 				{
-					r = pDiagJoystick->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
-					if (LOWORD(r) == IDOK)
+					hr = pDiagJoystick->Init(dx, &tCfg);
+					if (SUCCEEDED(hr))
 					{
-						tCfg = pDiagJoystick->newCfg;
-						appStatus->SetUserConfig(tCfg);
-						appStatus->ApplyConfig(tCfg);
+						r = pDiagJoystick->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
+						if (LOWORD(r) == IDOK)
+						{
+							tCfg = pDiagJoystick->newCfg;
+							appStatus->SetUserConfig(tCfg);
+							appStatus->ApplyConfig(tCfg);
+						}
 					}
+					else
+						pDiagJoystick->DisplayError(hWnd, appStatus->GetAppName());
 				}
-				else
-					pDiagJoystick->DisplayError(hWnd, appStatus->GetAppName());
+			}
+			catch(...)
+			{
 			}
 			appStatus->SoundResume();
 			break;
@@ -546,20 +577,26 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			break;
 		case IDM_DISK_INSERT_NEWBLANKDISK:
 			appStatus->SoundHalt();
-			pDiagNewBlankDisk = shared_ptr<CDiagNewBlankDisk>(new CDiagNewBlankDisk());
-			if (pDiagNewBlankDisk!=0)
+			try
 			{
-				hr = pDiagNewBlankDisk->Init();
-				if (SUCCEEDED(hr))
+				pDiagNewBlankDisk = shared_ptr<CDiagNewBlankDisk>(new CDiagNewBlankDisk());
+				if (pDiagNewBlankDisk!=0)
 				{
-					r = pDiagNewBlankDisk->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_NEWDISK), hWnd);
-					if (LOWORD(r) == IDOK)
+					hr = pDiagNewBlankDisk->Init();
+					if (SUCCEEDED(hr))
 					{
-						c64->InsertNewDiskImage(pDiagNewBlankDisk->diskname, pDiagNewBlankDisk->id1, pDiagNewBlankDisk->id2, pDiagNewBlankDisk->bAlignTracks, pDiagNewBlankDisk->numberOfTracks);
-					}	
+						r = pDiagNewBlankDisk->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_NEWDISK), hWnd);
+						if (LOWORD(r) == IDOK)
+						{
+							c64->InsertNewDiskImage(pDiagNewBlankDisk->diskname, pDiagNewBlankDisk->id1, pDiagNewBlankDisk->id2, pDiagNewBlankDisk->bAlignTracks, pDiagNewBlankDisk->numberOfTracks);
+						}	
+					}
+					else
+						pDiagNewBlankDisk->DisplayError(hWnd, appStatus->GetAppName());
 				}
-				else
-					pDiagNewBlankDisk->DisplayError(hWnd, appStatus->GetAppName());
+			}
+			catch(...)
+			{
 			}
 			appStatus->SoundResume();
 			break;
@@ -595,15 +632,15 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	case WM_CLOSE:
 		appStatus->SoundHalt();
 		appStatus->m_bClosing = true;
-		if (this->m_pMDIDebugger != NULL)
+		if (!this->m_pMDIDebugger.expired())
 		{
-			hWndDebuggerFrame = this->m_pMDIDebugger->GetHwnd();
-			if (hWndDebuggerFrame != 0)
+			shared_ptr<CMDIDebuggerFrame> pwin = m_pMDIDebugger.lock();
+			hWndDebuggerFrame = pwin->GetHwnd();
+			if (IsWindow(hWndDebuggerFrame))
 			{
 				lr = SendMessage(hWndDebuggerFrame, WM_CLOSE, 0, 0);
 			}
 		}
-
 		if (!appStatus->m_bWindowed)
 		{
 			if (SUCCEEDED(ToggleFullScreen()))
@@ -690,7 +727,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		{
 			if (appStatus->m_bBusy)
 			{
-				SetCursor(hCursorBusy);
+				SetCursor(m_hCursorBusy);
 				return TRUE;
 			}
 			else
@@ -897,7 +934,7 @@ LONG_PTR lp;
 		if (cfg->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
 			appStatus->m_fskip = 1;
 
-		this->emuWin.UpdateC64Window();
+		this->m_pWinEmuWin->UpdateC64Window();
 	}
 	appStatus->m_bFixWindowSize = TRUE;
 	appStatus->m_lastAudioVBLCatchUpCounter = 0;
@@ -956,13 +993,13 @@ D3DTEXTUREFILTERTYPE filter;
 
 	if (bWindowed)
 	{
-		emuWin.GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-		SetWindowPos(emuWin.GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+		m_pWinEmuWin->GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+		SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
 
 		GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 		SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 		
-		hRet = dx->InitD3D(emuWin.GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, cfg->m_borderSize, cfg->m_bShowFloppyLed, bUseBlitStretch, cfg->m_fullscreenStretch, filter, cfg->m_syncMode, cfg->m_fullscreenAdapterNumber, cfg->m_fullscreenAdapterId, displayModeRequested);
+		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, cfg->m_borderSize, cfg->m_bShowFloppyLed, bUseBlitStretch, cfg->m_fullscreenStretch, filter, cfg->m_syncMode, cfg->m_fullscreenAdapterNumber, cfg->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
 			return SetError(hRet, TEXT("InitD3D failed."));
@@ -996,7 +1033,7 @@ D3DTEXTUREFILTERTYPE filter;
 
 void CAppWindow::ClearSurfaces()
 {
-	emuWin.ClearSurfaces();
+	m_pWinEmuWin->ClearSurfaces();
 }
 
 void CAppWindow::UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed)
@@ -1091,22 +1128,22 @@ struct tabpageitem CAppWindow::m_tabPagesSetting[5]=
 HWND CAppWindow::ShowDevelopment()
 {
 HWND hWnd = NULL;
-CMDIDebuggerFrame *pwin = NULL;
+shared_ptr<CMDIDebuggerFrame> pwin;
 HRESULT hr;
 bool bCreated = false;
 bool ok = false;
+
 	appStatus->SoundHalt();
 	c64->SynchroniseDevicesWithVIC();
 	appStatus->m_bRunning = FALSE;
 	appStatus->m_bDebug = TRUE;
-	if (m_pMDIDebugger == NULL)
+
+	try
 	{
-		pwin = new CMDIDebuggerFrame(this->c64, this->m_pMonitorCommand, this->cfg, this->appStatus);
-		if (pwin != NULL)
+		if (m_pMDIDebugger.expired())
 		{
-			pwin->m_AutoDelete = true;
-			hr = pwin->Init();
-			if (SUCCEEDED(hr))
+			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->m_pMonitorCommand, this->cfg, this->appStatus));
+			if (pwin != NULL)
 			{
 				int x,y,w,h;
 				x = CW_USEDEFAULT;
@@ -1123,56 +1160,43 @@ bool ok = false;
 					w = size.cx;
 					h = size.cy;
 				}
-				HSink hs = pwin->EsOnDestroy.Advise((DebuggerFrame_EventSink_OnDestroy *)this);
-				if (hs)
+				hWnd = pwin->Create(m_hInst, 0, TEXT("C64 Monitor"), x, y, w, h, NULL);
+				if (hWnd != 0)
 				{
-					hWnd = pwin->Create(m_hInst, 0, TEXT("C64 Monitor"), x, y, w, h, NULL);
-					if (hWnd != 0)
-					{
-						bCreated = true;
-						m_pMDIDebugger = pwin;
-						pwin = NULL;
-						G::EnsureWindowPosition(hWnd);
-					}
+					bCreated = true;
+					m_pMDIDebugger = pwin;
+					G::EnsureWindowPosition(hWnd);
+					ok = true;
 				}
-			}
-			else
-			{
-				MessageBox(0L, TEXT("Unable to initialise the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
 			}
 		}
 		else
 		{
-			MessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
+			pwin = m_pMDIDebugger.lock();
+			hWnd = pwin->GetHwnd();
+			ok = true;
 		}
 	}
-	else
+	catch (std::exception &ex)
 	{
-		hWnd = m_pMDIDebugger->GetHwnd();
 	}
 
-	if (hWnd)
+	if (ok)
 	{
 		::ShowWindow(hWnd, SW_SHOW);
 		::SetForegroundWindow(hWnd);
 		if (bCreated)
 		{
-			m_pMDIDebugger->ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
-			m_pMDIDebugger->ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
+			pwin->ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
+			pwin->ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		}
 		this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
-		this->emuWin.UpdateC64Window();
+		this->m_pWinEmuWin->UpdateC64Window();
 	}
-	if (pwin)
-		delete pwin;
-	if (!hWnd)
+	else
 	{
+		MessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
 		m_pMonitorCommand->Resume();
 	}
 	return hWnd;
-}
-
-void CAppWindow::OnDestroy_DebuggerFrame(void *sender, EventArgs& e)
-{
-	m_pMDIDebugger = NULL;
 }

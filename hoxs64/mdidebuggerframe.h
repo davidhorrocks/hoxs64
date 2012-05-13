@@ -50,7 +50,6 @@ public:
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-	HRESULT Init();
 	HWND Show(CVirWindow *pParentWindow);
 
 	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
@@ -58,8 +57,8 @@ public:
 	bool IsWinDlgModelessBreakpointVicRaster();
 
 	virtual void GetMinWindowSize(int &w, int &h);
-	CDisassemblyFrame m_debugCpuC64;
-	CDisassemblyFrame m_debugCpuDisk;
+	shared_ptr<CDisassemblyFrame> m_pWinDebugCpuC64;
+	shared_ptr<CDisassemblyFrame> m_pWinDebugCpuDisk;
 	Sp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -92,6 +91,8 @@ private:
 	CConfig *cfg;
 	IMonitorCommand *m_pMonitorCommand;
 	bool m_bIsCreated;
+
+	HRESULT Init();
 
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);

@@ -32,13 +32,13 @@ TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
 
 
-CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand) 
+CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont) 
 	: DefaultCpu(cpuid, c64)
 {
+HRESULT hr;
 	WIDTH_LEFTBAR2 = 0;
 	LINE_HEIGHT = 0;
 	m_hFont = NULL;
-	m_pParent = NULL;
 	m_FirstAddress = 0;
 	m_NumLines = 0;
 	m_MinSizeDone = false;
@@ -56,6 +56,11 @@ CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorComman
 	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));
 
 	m_pMonitorCommand = pMonitorCommand;
+	m_hFont = hFont;
+
+	hr = Init();
+	if (FAILED(hr))
+		throw std::runtime_error("CDisassemblyEditChild::Init() failed");
 }
 
 CDisassemblyEditChild::~CDisassemblyEditChild()
@@ -81,16 +86,15 @@ void CDisassemblyEditChild::Cleanup()
 	}
 }
 
-HRESULT CDisassemblyEditChild::Init(CVirWindow *parent, HFONT hFont)
+HRESULT CDisassemblyEditChild::Init()
 {
 HRESULT hr;
 HSink hs;
 	Cleanup();
-
-	m_pParent = parent;
-	m_hFont = hFont;
-
+	
 	hr = AllocTextBuffer();
+	if (FAILED(hr))
+		return hr;
 	m_FirstAddress = GetNearestTopAddress(0);
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
@@ -1335,7 +1339,7 @@ bool isUndoc = false;
 
 typedef std::vector<bit16> VecAddress;
 
-bit16 CDisassemblyEditChild::GetNthAddress(bit16 startaddress, int linenumber)
+bit16 CDisassemblyEditChild::GetNthAddress(bit16 startaddress, int linenumber) throw(...)
 {
 bool isUndoc = false;
 
@@ -1385,43 +1389,12 @@ bool isUndoc = false;
 
 bit16 CDisassemblyEditChild::GetNextAddress()
 {
-bool isUndoc = false;
-bit16 currentAddress = m_FirstAddress;
-bit16 nextAddress;
-	int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
-	if (instructionLength<=0)
-	{
-		nextAddress = currentAddress+1;
-	}
-	else
-	{
-		nextAddress = currentAddress + instructionLength;
-	}
-	return nextAddress;
+	return GetNthAddress(m_FirstAddress, 1);
 }
 
 bit16 CDisassemblyEditChild::GetPrevAddress()
 {
-bool isUndoc = false;
-bit16 currentAddress = m_FirstAddress - INSTRUCTION_LOOKBACK;
-bit16 nextAddress;
-	while((bit16s)(currentAddress-m_FirstAddress) < 0)
-	{
-		int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
-		if (instructionLength<=0)
-		{
-			nextAddress = currentAddress+1;
-		}
-		else
-		{
-			nextAddress = currentAddress + instructionLength;
-		}
-		if ((bit16s)(nextAddress - m_FirstAddress) >= 0)
-			return currentAddress;
-
-		currentAddress=nextAddress;			
-	}
-	return currentAddress;
+	return GetNthAddress(m_FirstAddress, -1);
 }
 
 void CDisassemblyEditChild::GetMinWindowSize(int &w, int &h)

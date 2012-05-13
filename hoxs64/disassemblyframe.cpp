@@ -56,12 +56,11 @@ const ButtonInfo CDisassemblyFrame::TB_ButtonsAddress[] =
 
 CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, LPCTSTR pszCaption)
 	: 
-	DefaultCpu(cpuid, c64),
-	m_DisassemblyChild(cpuid, c64, pMonitorCommand),
-	m_DisassemblyReg(cpuid, c64, pMonitorCommand)
+	DefaultCpu(cpuid, c64)
 {
+HRESULT hr;
+
 	m_hBmpRebarNotSized = NULL;
-	//m_hBmpRebarSized = NULL;
 	m_hWndRebar = NULL;
 	m_hWndTooBarStep = NULL;
 	m_hWndTooBarAddress = NULL;
@@ -73,6 +72,22 @@ CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMoni
 	m_pszCaption = pszCaption;
 	m_hWndToolItemAddress = NULL;
 	m_wheel_current = 0;
+	m_monitor_font = 0;
+
+	hr = InitFonts();
+	if (FAILED(hr))
+		throw std::runtime_error("CDisassemblyFrame::InitFonts() Failed");
+
+	m_pWinDisassemblyChild = shared_ptr<CDisassemblyChild>(new CDisassemblyChild(cpuid, c64, pMonitorCommand, m_monitor_font));
+	if (m_pWinDisassemblyChild == 0)
+		throw std::bad_alloc();
+	m_pWinDisassemblyReg = shared_ptr<CDisassemblyReg>(new CDisassemblyReg(cpuid, c64, pMonitorCommand, m_monitor_font));
+	if (m_pWinDisassemblyReg == 0)
+		throw std::bad_alloc();
+
+	hr = Init();
+	if (FAILED(hr))
+		throw std::runtime_error("CDisassemblyFrame::Init() Failed");
 }
 
 CDisassemblyFrame::~CDisassemblyFrame()
@@ -80,22 +95,9 @@ CDisassemblyFrame::~CDisassemblyFrame()
 	Cleanup();
 }
 
-HRESULT CDisassemblyFrame::Init(CVirWindow *parent)
+HRESULT CDisassemblyFrame::Init()
 {
-HRESULT hr;
-	m_pParentWindow = parent;
-
-	hr = InitFonts();
-	if (FAILED(hr))
-		return hr;
-	hr = m_DisassemblyChild.Init(this, this->m_monitor_font);
-	if (FAILED(hr))
-		return hr;
-
-	hr = m_DisassemblyReg.Init(this, this->m_monitor_font);
-	if (FAILED(hr))
-		return hr;
-	
+HRESULT hr;	
 	hr = AdviseEvents();
 	if (FAILED(hr))
 		return hr;
@@ -208,25 +210,7 @@ void CDisassemblyFrame::UnadviseEvents()
 HRESULT CDisassemblyFrame::InitFonts()
 {
 	CloseFonts();
-	LPTSTR lstFontName[] = { TEXT("Consolas"), TEXT("Lucida"), TEXT("Courier"), TEXT("")};
-	for (int i =0; m_monitor_font == 0 && i < _countof(lstFontName); i++)
-	{
-		m_monitor_font = CreateFont(
-			m_dpi.ScaleY(m_dpi.PointsToPixels(12)),
-			0,
-			0,
-			0,
-			FW_NORMAL,
-			FALSE,
-			FALSE,
-			FALSE,
-			ANSI_CHARSET,
-			OUT_TT_ONLY_PRECIS,
-			CLIP_DEFAULT_PRECIS,
-			CLEARTYPE_QUALITY,
-			FIXED_PITCH | FF_DONTCARE,
-			lstFontName[i]);
-	}
+	m_monitor_font = G::CreateMonitorFont();
 	if (m_monitor_font == 0)
 	{
 		return SetError(E_FAIL, TEXT("Cannot open a fixed pitch true type font."));
@@ -279,21 +263,18 @@ HIMAGELIST CDisassemblyFrame::CreateImageListStepNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-HRESULT CDisassemblyFrame::Show()
+HRESULT CDisassemblyFrame::Show(Sp_CVirWindow pWinParent)
 {
 WINDOWPLACEMENT wp;
 int x,y,w,h;
 BOOL br;
 HWND hWnd;
-
-	if (this->m_pParentWindow == NULL)
-		return E_FAIL;
 	
 	hWnd = this->GetHwnd();
 	if (hWnd == NULL)
 	{
-		HWND hWndParent = m_pParentWindow->GetHwnd();
-		HINSTANCE hInstance = m_pParentWindow->GetHinstance();	
+		HWND hWndParent = pWinParent->GetHwnd();
+		HINSTANCE hInstance = this->GetHinstance();	
 
 		ZeroMemory(&wp, sizeof(wp));
 		wp.length = sizeof(wp);
@@ -364,11 +345,11 @@ void CDisassemblyFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	int h = HIWORD(lParam);
 	OnSizeToolBar(m_hWndRebar, w, h);
 
-	HWND hWndDisassemblyChild = this->m_DisassemblyChild.GetHwnd();
+	HWND hWndDisassemblyChild = this->m_pWinDisassemblyChild->GetHwnd();
 	if (hWndDisassemblyChild!=NULL)
 		OnSizeDisassembly(hWndDisassemblyChild, w, h);
 
-	HWND hWndReg = this->m_DisassemblyReg.GetHwnd();
+	HWND hWndReg = this->m_pWinDisassemblyReg->GetHwnd();
 	if (hWndReg!=NULL)
 		OnSizeRegisters(hWndReg, w, h);
 
@@ -381,8 +362,6 @@ MINMAXINFO *pMinMax = (MINMAXINFO *)lParam;
 	this->GetMinWindowSize(w, h);
 	pMinMax->ptMinTrackSize.x = w;
 	pMinMax->ptMinTrackSize.y = h;
-	//pMinMax->ptMaxTrackSize.x = GetSystemMetrics(SM_CXFULLSCREEN);
-	//pMinMax->ptMaxTrackSize.y = GetSystemMetrics(SM_CYFULLSCREEN);
 }
 
 void CDisassemblyFrame::OnSizeToolBar(HWND hWnd, int widthParent, int heightParent)
@@ -436,7 +415,7 @@ RECT rcReg;
 	if (br == FALSE)
 		return E_FAIL;
 
-	HWND hWndReg = m_DisassemblyReg.GetHwnd();
+	HWND hWndReg = m_pWinDisassemblyReg->GetHwnd();
 	if (hWndReg==NULL)
 		return E_FAIL;
 	br = GetWindowRect(hWndReg, &rcReg);
@@ -484,7 +463,7 @@ RECT rcFrameClient;
 		heightRebar = 0;
 
 	int minwidth_reg, minheight_reg;
-	m_DisassemblyReg.GetMinWindowSize(minwidth_reg, minheight_reg);
+	m_pWinDisassemblyReg->GetMinWindowSize(minwidth_reg, minheight_reg);
 
 	LONG x,y,w,h;
 	x = rcFrameClient.left;
@@ -542,79 +521,86 @@ HRESULT hr;
 ButtonInfo l_TB_ButtonsAddress[_countof(TB_ButtonsAddress)];
 RECT rcToolItem;
 	
-	HDC hdc = GetDC(hWnd);
-	if (!hdc)
-		return E_FAIL;
-
-	DcHelper dch(hdc);
-
-	memcpy(l_TB_ButtonsAddress, TB_ButtonsAddress, sizeof(l_TB_ButtonsAddress));
-
-	m_hBmpRebarNotSized = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));
-
-	m_hImageListToolBarNormal = CreateImageListStepNormal(hWnd);
-	if (m_hImageListToolBarNormal == NULL)
-		return E_FAIL;
-	m_hWndTooBarStep = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, TB_ButtonsStep, _countof(TB_ButtonsStep), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
-	if (m_hWndTooBarStep == NULL)
-		return E_FAIL;
-
-	m_pToolItemAddress = CreateToolItemAddress(hWnd);
-	if (!m_pToolItemAddress)
-		return E_FAIL;
-	m_hWndToolItemAddress = m_pToolItemAddress->GetHwnd();
-	m_pToolItemAddress->SetInterface(this);
-	GetWindowRect(m_hWndToolItemAddress, &rcToolItem);
-	l_TB_ButtonsAddress[0].ImageIndex = rcToolItem.right - rcToolItem.left;
-	l_TB_ButtonsAddress[0].Style = BTNS_SEP;
-
-	m_hWndTooBarAddress = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, l_TB_ButtonsAddress, _countof(l_TB_ButtonsAddress), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
-	if (m_hWndTooBarAddress == NULL)
-		return E_FAIL;
-	
-	SetParent(m_hWndToolItemAddress, m_hWndTooBarAddress);
-
-	m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBarStep, ID_RERBAR);
-	if (m_hWndRebar == NULL)
-		return E_FAIL;
-
-	hr = RebarAddAddressBar(m_hWndRebar, m_hWndTooBarAddress);
-	if (FAILED(hr))
-		return hr;
-
-	if (m_hBmpRebarNotSized)
+	try
 	{
-		int iCountBands = (int)SendMessage(m_hWndRebar, RB_GETBANDCOUNT, 0, 0);		
-		for (int iBandNext = 0; iBandNext < iCountBands; iBandNext++)
+		HDC hdc = GetDC(hWnd);
+		if (!hdc)
+			return E_FAIL;
+
+		DcHelper dch(hdc);
+
+		memcpy(l_TB_ButtonsAddress, TB_ButtonsAddress, sizeof(l_TB_ButtonsAddress));
+
+		m_hBmpRebarNotSized = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));
+
+		m_hImageListToolBarNormal = CreateImageListStepNormal(hWnd);
+		if (m_hImageListToolBarNormal == NULL)
+			return E_FAIL;
+		m_hWndTooBarStep = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, TB_ButtonsStep, _countof(TB_ButtonsStep), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
+		if (m_hWndTooBarStep == NULL)
+			return E_FAIL;
+
+		m_pWinToolItemAddress = CreateToolItemAddress(hWnd);
+		if (m_pWinToolItemAddress == 0)
+			return E_FAIL;
+		m_hWndToolItemAddress = m_pWinToolItemAddress->GetHwnd();
+		m_pWinToolItemAddress->SetInterface(this);
+		GetWindowRect(m_hWndToolItemAddress, &rcToolItem);
+		l_TB_ButtonsAddress[0].ImageIndex = rcToolItem.right - rcToolItem.left;
+		l_TB_ButtonsAddress[0].Style = BTNS_SEP;
+
+		m_hWndTooBarAddress = G::CreateToolBar(m_hInst, hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, l_TB_ButtonsAddress, _countof(l_TB_ButtonsAddress), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
+		if (m_hWndTooBarAddress == NULL)
+			return E_FAIL;
+	
+		SetParent(m_hWndToolItemAddress, m_hWndTooBarAddress);
+
+		m_hWndRebar = G::CreateRebar(m_hInst, hWnd, m_hWndTooBarStep, ID_RERBAR);
+		if (m_hWndRebar == NULL)
+			return E_FAIL;
+
+		hr = RebarAddAddressBar(m_hWndRebar, m_hWndTooBarAddress);
+		if (FAILED(hr))
+			return hr;
+
+		if (m_hBmpRebarNotSized)
 		{
-			int heightBand = (int)SendMessage(m_hWndRebar, RB_GETROWHEIGHT, iBandNext, 0);
-			HBITMAP hBmpSz = G::CreateResizedBitmap(hdc, m_hBmpRebarNotSized, iBandNext, heightBand, false, true);
-			if (hBmpSz)
+			int iCountBands = (int)SendMessage(m_hWndRebar, RB_GETBANDCOUNT, 0, 0);		
+			for (int iBandNext = 0; iBandNext < iCountBands; iBandNext++)
 			{
-				m_vec_hBmpRebarSized.push_back(hBmpSz);
-				G::SetRebarBandBitmap(m_hWndRebar, iBandNext, hBmpSz);
+				int heightBand = (int)SendMessage(m_hWndRebar, RB_GETROWHEIGHT, iBandNext, 0);
+				HBITMAP hBmpSz = G::CreateResizedBitmap(hdc, m_hBmpRebarNotSized, iBandNext, heightBand, false, true);
+				if (hBmpSz)
+				{
+					m_vec_hBmpRebarSized.push_back(hBmpSz);
+					G::SetRebarBandBitmap(m_hWndRebar, iBandNext, hBmpSz);
+				}
 			}
 		}
+
+		RECT rc;
+		GetClientRect(hWnd, &rc);
+
+		HWND hWndReg = CreateDisassemblyReg(0, 0, 0, 0);
+		if (hWndReg == NULL)
+			return E_FAIL;
+
+		HWND hWndDis = CreateDisassemblyChild(0, 0, 0, 0);
+		if (hWndDis == NULL)
+			return E_FAIL;
+
+		SetHome();
+
+		LONG w = rc.right - rc.left;
+		LONG h = rc.bottom - rc.top;
+		OnSizeRegisters(hWndReg, w, h);
+		OnSizeDisassembly(hWndDis, w, h);
+		return S_OK;
 	}
-
-	RECT rc;
-	GetClientRect(hWnd, &rc);
-
-	HWND hWndReg = CreateDisassemblyReg(0, 0, 0, 0);
-	if (hWndReg == NULL)
+	catch(...)
+	{
 		return E_FAIL;
-
-	HWND hWndDis = CreateDisassemblyChild(0, 0, 0, 0);
-	if (hWndDis == NULL)
-		return E_FAIL;
-
-	SetHome();
-
-	LONG w = rc.right - rc.left;
-	LONG h = rc.bottom - rc.top;
-	OnSizeRegisters(hWndReg, w, h);
-	OnSizeDisassembly(hWndDis, w, h);
-	return S_OK;
+	}
 }
 
 HRESULT CDisassemblyFrame::RebarAddAddressBar(HWND hWndRebar, HWND hWndToolbar)
@@ -651,50 +637,49 @@ DWORD_PTR dwBtnSize;
 	return S_OK;
 }
 
-CToolItemAddress *CDisassemblyFrame::CreateToolItemAddress(HWND hWndParent)
+shared_ptr<CToolItemAddress> CDisassemblyFrame::CreateToolItemAddress(HWND hWndParent)
 {
 HRESULT hr;
 SIZE sizeText;
 
-	CToolItemAddress *p = new CToolItemAddress();
-	if (!p)
-		return NULL;
-	hr = p->Init(this->m_monitor_font);
-	if (FAILED(hr))
+	shared_ptr<CToolItemAddress> p;
+	try
 	{
-		delete p;
-		return NULL;
+		p = shared_ptr<CToolItemAddress>(new CToolItemAddress(m_monitor_font));
+		if (!p)
+			return NULL;
 	}
+	catch(...)
+	{
+	}
+
 	hr = p->GetDefaultTextBoxSize(hWndParent, sizeText);
 	if (FAILED(hr))
 	{
-		delete p;
 		return NULL;
 	}
 	HWND hwnd = p->Create(m_hInst, hWndParent, NULL, 0, 0, sizeText.cx, sizeText.cy, (HMENU)IDC_TOI_GOTOADDRESS);
 	if (!hwnd)
 	{
-		delete p;
 		return NULL;
 	}
-	p->m_AutoDelete = true;
 	return p;
 }
 
 void CDisassemblyFrame::SetHome()
 {
-	this->m_DisassemblyChild.SetHome();
+	this->m_pWinDisassemblyChild->SetHome();
 }
 
 HWND CDisassemblyFrame::CreateDisassemblyReg(int x, int y, int w, int h)
 {	
-	HWND hWnd = m_DisassemblyReg.Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEYREG);
+	HWND hWnd = m_pWinDisassemblyReg->Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEYREG);
 	return hWnd;
 }
 
 HWND CDisassemblyFrame::CreateDisassemblyChild(int x, int y, int w, int h)
 {	
-	HWND hWnd = m_DisassemblyChild.Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEY);
+	HWND hWnd = m_pWinDisassemblyChild->Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyFrame::ID_DISASSEMBLEY);
 	return hWnd;
 }
 
@@ -703,16 +688,16 @@ bool CDisassemblyFrame::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	switch (wParam)
 	{
 	case VK_UP: 
-		SendMessage(m_DisassemblyChild.GetHwnd(), WM_VSCROLL, SB_LINEUP, 0L);
+		SendMessage(m_pWinDisassemblyChild->GetHwnd(), WM_VSCROLL, SB_LINEUP, 0L);
 		break; 
 	case VK_DOWN: 
-		SendMessage(m_DisassemblyChild.GetHwnd(), WM_VSCROLL, SB_LINEDOWN, 0L);
+		SendMessage(m_pWinDisassemblyChild->GetHwnd(), WM_VSCROLL, SB_LINEDOWN, 0L);
 		break; 
 	case VK_NEXT: 
-		SendMessage(m_DisassemblyChild.GetHwnd(), WM_VSCROLL, SB_PAGEDOWN, 0L);
+		SendMessage(m_pWinDisassemblyChild->GetHwnd(), WM_VSCROLL, SB_PAGEDOWN, 0L);
 		break; 
 	case VK_PRIOR: 
-		SendMessage(m_DisassemblyChild.GetHwnd(), WM_VSCROLL, SB_PAGEUP, 0L);
+		SendMessage(m_pWinDisassemblyChild->GetHwnd(), WM_VSCROLL, SB_PAGEUP, 0L);
 		break; 
 	case VK_HOME:
 		SetHome();
@@ -728,15 +713,15 @@ void CDisassemblyFrame::UpdateDisplay(DBGSYM::SetDisassemblyAddress::Disassembly
 {
 	if (IsWindow(m_hWnd))
 	{
-		this->m_DisassemblyReg.UpdateDisplay();
-		this->m_DisassemblyChild.UpdateDisplay(pcmode, address);
+		this->m_pWinDisassemblyReg->UpdateDisplay();
+		this->m_pWinDisassemblyChild->UpdateDisplay(pcmode, address);
 	}
 }
 
 void CDisassemblyFrame::CancelEditing()
 {
-	m_DisassemblyChild.CancelEditing();
-	m_DisassemblyReg.CancelEditing();
+	m_pWinDisassemblyChild->CancelEditing();
+	m_pWinDisassemblyReg->CancelEditing();
 }
 
 void CDisassemblyFrame::OnResume(void *sender, EventArgs& e)
@@ -748,8 +733,8 @@ void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
 {
 	if (IsWindow(this->m_hWnd))
 	{
-		m_DisassemblyReg.InvalidateBuffer();
-		m_DisassemblyChild.InvalidateBuffer();
+		m_pWinDisassemblyReg->InvalidateBuffer();
+		m_pWinDisassemblyChild->InvalidateBuffer();
 		this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 		SetMenuState();
 	}
@@ -929,10 +914,10 @@ HRESULT hr;
 
 	if (!m_hWnd)
 		return;
-	HWND hWndReg = m_DisassemblyReg.GetHwnd();
+	HWND hWndReg = m_pWinDisassemblyReg->GetHwnd();
 	if (hWndReg == NULL)
 		return;
-	HWND hWndDis = m_DisassemblyChild.GetHwnd();
+	HWND hWndDis = m_pWinDisassemblyChild->GetHwnd();
 	if (hWndDis == NULL)
 		return;
 
@@ -1043,34 +1028,32 @@ int wmId, wmEvent;
 bool CDisassemblyFrame::OnEnterGotoAddress()
 {
 	m_tempAddressBuffer[0] = 0;
-	m_pToolItemAddress->GetAddressText(0, &m_tempAddressBuffer[0], _countof(m_tempAddressBuffer));
+	m_pWinToolItemAddress->GetAddressText(0, &m_tempAddressBuffer[0], _countof(m_tempAddressBuffer));
 	return OnEnterGotoAddress(m_tempAddressBuffer);
 }
 
 void CDisassemblyFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (this->m_pParentWindow)
-	{
-		HWND hWndParent = m_pParentWindow->GetHwnd();
-		if (hWndParent)
-		{
-			::SetForegroundWindow(hWndParent);
-		}
-	}
 }
 
 void CDisassemblyFrame::OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-	m_wheel_current += zDelta;
-	if (abs(m_wheel_current) < WHEEL_DELTA)
-		return;
-	int amount = m_wheel_current / WHEEL_DELTA;
-	bit16 address = m_DisassemblyChild.GetTopAddress();
-	address = m_DisassemblyChild.GetNthAddress(address, - amount);
-	m_DisassemblyChild.CancelEditing();
-	m_DisassemblyChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::SetTopAddress, address);
-	m_wheel_current = m_wheel_current - amount * WHEEL_DELTA;
+	try
+	{
+		short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		m_wheel_current += zDelta;
+		if (abs(m_wheel_current) < WHEEL_DELTA)
+			return;
+		int amount = m_wheel_current / WHEEL_DELTA;
+		bit16 address = m_pWinDisassemblyChild->GetTopAddress();
+		address = m_pWinDisassemblyChild->GetNthAddress(address, - amount);
+		m_pWinDisassemblyChild->CancelEditing();
+		m_pWinDisassemblyChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::SetTopAddress, address);
+		m_wheel_current = m_wheel_current - amount * WHEEL_DELTA;
+	}
+	catch(...)
+	{
+	}
 }
 
 LRESULT CDisassemblyFrame::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -1085,7 +1068,7 @@ HRESULT hr;
 		return 0;
 	case WM_CLOSE:
 		OnClose(hWnd, uMsg, wParam, lParam);
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_SIZE:
 		OnSize(hWnd, uMsg, wParam, lParam);
 		return 0;
@@ -1134,8 +1117,8 @@ void CDisassemblyFrame::GetMinWindowSize(int &w, int &h)
 	w = GetSystemMetrics(SM_CXSIZEFRAME) * 2;
 	h = GetSystemMetrics(SM_CYSIZEFRAME) * 2 + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYMENU);
 	
-	m_DisassemblyReg.GetMinWindowSize(w1, h1);
-	m_DisassemblyChild.GetMinWindowSize(w2, h2);
+	m_pWinDisassemblyReg->GetMinWindowSize(w1, h1);
+	m_pWinDisassemblyChild->GetMinWindowSize(w2, h2);
 	UINT heightRebar = 0;
 	if (m_hWndRebar)
 	{

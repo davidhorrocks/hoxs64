@@ -17,14 +17,20 @@
 
 TCHAR CDisassemblyChild::ClassName[] = TEXT("Hoxs64DisassemblyChild");
 
-CDisassemblyChild::CDisassemblyChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand) 
+CDisassemblyChild::CDisassemblyChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont) 
 	: 
-	DefaultCpu(cpuid, c64),
-	m_DisassemblyEditChild(cpuid, c64, pMonitorCommand)
+	DefaultCpu(cpuid, c64)
 {
-	m_pParent = NULL;
+HRESULT hr;
+
 	m_hWndScroll = NULL;
 	m_pMonitorCommand = pMonitorCommand;
+	m_pWinDisassemblyEditChild = shared_ptr<CDisassemblyEditChild>(new CDisassemblyEditChild(cpuid, c64, pMonitorCommand, hFont));
+	if (m_pWinDisassemblyEditChild == NULL)
+		throw std::bad_alloc();
+	hr = Init();
+	if (FAILED(hr))
+		throw std::runtime_error("CDisassemblyChild::Init() failed");
 }
 
 CDisassemblyChild::~CDisassemblyChild()
@@ -37,14 +43,9 @@ void CDisassemblyChild::Cleanup()
 	UnadviseEvents();
 }
 
-HRESULT CDisassemblyChild::Init(CVirWindow *parent, HFONT hFont)
+HRESULT CDisassemblyChild::Init()
 {
 HRESULT hr;
-	m_pParent = parent;
-	hr = m_DisassemblyEditChild.Init(parent, hFont);
-	if (FAILED(hr))
-		return hr;
-
 	hr = AdviseEvents();
 	if (FAILED(hr))
 		return hr;
@@ -126,28 +127,35 @@ RECT rcChild;
 
 HWND CDisassemblyChild::CreateEditWindow(int x, int y, int w, int h)
 {
-	HWND hWnd = m_DisassemblyEditChild.Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyChild::ID_DISASSEMBLY);
+	HWND hWnd = m_pWinDisassemblyEditChild->Create(m_hInst, m_hWnd, NULL, x, y, w, h, (HMENU)(INT_PTR)CDisassemblyChild::ID_DISASSEMBLY);
 	return hWnd;
 }
 
 HRESULT CDisassemblyChild::OnCreate(HWND hWnd)
 {
 HRESULT hr;
-	m_hWndScroll = CreateScrollBar(); 
-	if (m_hWndScroll == NULL)
-		return E_FAIL;
+	try
+	{
+		m_hWndScroll = CreateScrollBar(); 
+		if (m_hWndScroll == NULL)
+			return E_FAIL;
 
-	RECT rc;
-	ZeroMemory(&rc, sizeof(rc));
-	hr = GetSizeRectEditWindow(rc);
-	if (FAILED(hr))
-		return hr;
-	HWND hWndDisAsm = CreateEditWindow(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top);
-	if (hWndDisAsm == NULL)
-		return E_FAIL;	
+		RECT rc;
+		ZeroMemory(&rc, sizeof(rc));
+		hr = GetSizeRectEditWindow(rc);
+		if (FAILED(hr))
+			return hr;
+		HWND hWndDisAsm = CreateEditWindow(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top);
+		if (hWndDisAsm == NULL)
+			return E_FAIL;	
 
-	ShowScrollBar(m_hWndScroll, SB_CTL, TRUE);
-	return S_OK;
+		ShowScrollBar(m_hWndScroll, SB_CTL, TRUE);
+		return S_OK;
+	}
+	catch(std::exception&)
+	{
+	}
+	return E_FAIL;
 }
 
 void CDisassemblyChild::OnSizeDisassembly(HWND hWnd, int widthParent, int heightParent)
@@ -197,18 +205,18 @@ void CDisassemblyChild::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	int h = HIWORD(lParam);
 	OnSizeScrollBar(m_hWndScroll, w, h);
 
-	HWND hWndDisassemblyEditChild = this->m_DisassemblyEditChild.GetHwnd();
+	HWND hWndDisassemblyEditChild = this->m_pWinDisassemblyEditChild->GetHwnd();
 	if (hWndDisassemblyEditChild!=NULL)
 		OnSizeDisassembly(hWndDisassemblyEditChild, w, h);
 
-	bit16 address = this->m_DisassemblyEditChild.GetTopAddress();
+	bit16 address = this->m_pWinDisassemblyEditChild->GetTopAddress();
 	this->SetAddressScrollPos(address);
 }
 
 void CDisassemblyChild::SetAddressScrollPos(int pos)
 {
-	bit16 topAddress = m_DisassemblyEditChild.GetTopAddress();
-	bit16 bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
+	bit16 topAddress = m_pWinDisassemblyEditChild->GetTopAddress();
+	bit16 bottomAddress = m_pWinDisassemblyEditChild->GetBottomAddress(-1);
 	int page = abs((int)(bit16s)(bottomAddress - topAddress));
 	if (page <=0)
 		page = 1;
@@ -231,7 +239,7 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 
 int CDisassemblyChild::GetNumberOfLines()
 {
-	return m_DisassemblyEditChild.GetNumberOfLines();
+	return m_pWinDisassemblyEditChild->GetNumberOfLines();
 }
 
 void CDisassemblyChild::SetHome()
@@ -243,17 +251,17 @@ void CDisassemblyChild::SetHome()
 
 bit16 CDisassemblyChild::GetTopAddress()
 {
-	return m_DisassemblyEditChild.GetTopAddress();
+	return m_pWinDisassemblyEditChild->GetTopAddress();
 }
 
 bit16 CDisassemblyChild::GetNthAddress(bit16 startaddress, int linenumber)
 {
-	return m_DisassemblyEditChild.GetNthAddress(startaddress, linenumber);
+	return m_pWinDisassemblyEditChild->GetNthAddress(startaddress, linenumber);
 }
 
 void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
 {
-	m_DisassemblyEditChild.SetTopAddress(address);
+	m_pWinDisassemblyEditChild->SetTopAddress(address);
 	if (bSetScrollBarPage)
 		SetAddressScrollPos((int)address);
 }
@@ -261,20 +269,20 @@ void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
 void CDisassemblyChild::UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 	if (pcmode == DBGSYM::SetDisassemblyAddress::SetTopAddress)
-		m_DisassemblyEditChild.SetTopAddress(address);
-	m_DisassemblyEditChild.UpdateDisplay(pcmode, address);
-	bit16 currentaddress = m_DisassemblyEditChild.GetTopAddress();
+		m_pWinDisassemblyEditChild->SetTopAddress(address);
+	m_pWinDisassemblyEditChild->UpdateDisplay(pcmode, address);
+	bit16 currentaddress = m_pWinDisassemblyEditChild->GetTopAddress();
 	SetAddressScrollPos((int)currentaddress);
 }
 
 void CDisassemblyChild::InvalidateBuffer()
 {
-	m_DisassemblyEditChild.InvalidateBuffer();
+	m_pWinDisassemblyEditChild->InvalidateBuffer();
 }
 
 void CDisassemblyChild::CancelEditing()
 {
-	m_DisassemblyEditChild.CancelAsmEditing();
+	m_pWinDisassemblyEditChild->CancelAsmEditing();
 }
 
 void CDisassemblyChild::OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -285,116 +293,127 @@ bit16 address, nearestAdress, bottomAddress;
 int page;
 int pos;
 
-	address = m_DisassemblyEditChild.GetTopAddress();
-	switch(LOWORD (wParam)) 
+	try
 	{
-	case SB_TOP:
-		address = 0;
-		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress, true);
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);		
-		break;
-	case SB_BOTTOM:
-		address=0xffc0;
-		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress, true);
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
-		break;
-	case SB_PAGEUP:
-		page = this->GetNumberOfLines();
-		page -= 2;
-		if (page < 0)
-			page = 1;
-		address = this->GetTopAddress();
-		address = this->GetNthAddress(address, - page);
-		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress, true);
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
-		break;
-	case SB_PAGEDOWN:
-		bottomAddress = m_DisassemblyEditChild.GetBottomAddress(-1);
-		SetTopAddress(bottomAddress, true);		
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
-		break;
-	case SB_LINEUP:
-		address = m_DisassemblyEditChild.GetPrevAddress();
-		SetTopAddress(address, true);
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
-		break;
-	case SB_LINEDOWN:
-		address = m_DisassemblyEditChild.GetNextAddress();
-		SetTopAddress(address, true);
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
-		break;
-	case SB_THUMBPOSITION:
-		ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
-		scrollinfo.cbSize=sizeof(SCROLLINFO);
-		scrollinfo.fMask  = SIF_ALL;
-		br = GetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo);
-		if (!br)
+		address = m_pWinDisassemblyEditChild->GetTopAddress();
+		switch(LOWORD (wParam)) 
+		{
+		case SB_TOP:
+			address = 0;
+			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
+			SetTopAddress(nearestAdress, true);
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);		
+			break;
+		case SB_BOTTOM:
+			address=0xffc0;
+			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
+			SetTopAddress(nearestAdress, true);
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+			break;
+		case SB_PAGEUP:
+			page = this->GetNumberOfLines();
+			page -= 2;
+			if (page < 0)
+				page = 1;
+			address = this->GetTopAddress();
+			address = this->GetNthAddress(address, - page);
+			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
+			SetTopAddress(nearestAdress, true);
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+			break;
+		case SB_PAGEDOWN:
+			bottomAddress = m_pWinDisassemblyEditChild->GetBottomAddress(-1);
+			SetTopAddress(bottomAddress, true);		
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+			break;
+		case SB_LINEUP:
+			address = m_pWinDisassemblyEditChild->GetPrevAddress();
+			SetTopAddress(address, true);
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+			break;
+		case SB_LINEDOWN:
+			address = m_pWinDisassemblyEditChild->GetNextAddress();
+			SetTopAddress(address, true);
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+			break;
+		case SB_THUMBPOSITION:
+			ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
+			scrollinfo.cbSize=sizeof(SCROLLINFO);
+			scrollinfo.fMask  = SIF_ALL;
+			br = GetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo);
+			if (!br)
+				return;
+			pos = scrollinfo.nTrackPos;
+			address = (bit16)((unsigned int)pos & 0xffff);
+			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
+			SetTopAddress(nearestAdress, true);
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+			break;
+		case SB_THUMBTRACK:
+			ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
+			scrollinfo.cbSize=sizeof(SCROLLINFO);
+			scrollinfo.fMask  = SIF_ALL;
+			br = GetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo);
+			if (!br)
+				return;
+			pos = scrollinfo.nTrackPos;
+			address = (bit16)((unsigned int)pos & 0xffff);
+			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
+			SetTopAddress(nearestAdress, false);
+			CancelEditing();
+			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+			break;
+		default:
 			return;
-		pos = scrollinfo.nTrackPos;
-		address = (bit16)((unsigned int)pos & 0xffff);
-		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress, true);
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
-		break;
-	case SB_THUMBTRACK:
-		ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
-		scrollinfo.cbSize=sizeof(SCROLLINFO);
-		scrollinfo.fMask  = SIF_ALL;
-		br = GetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo);
-		if (!br)
-			return;
-		pos = scrollinfo.nTrackPos;
-		address = (bit16)((unsigned int)pos & 0xffff);
-		nearestAdress = m_DisassemblyEditChild.GetNearestTopAddress(address);
-		SetTopAddress(nearestAdress, false);
-		CancelEditing();
-		m_DisassemblyEditChild.UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
-		break;
-	default:
-		return;
+		}
+	}
+	catch(...)
+	{
 	}
 }
 
 bool CDisassemblyChild::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//::SetFocus(hWnd);
 	return false;
 }
 
 bool CDisassemblyChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	switch (wParam)
+	try
 	{
-	case VK_UP: 
-		SendMessage(hWnd, WM_VSCROLL, SB_LINEUP, 0L);
-		break; 
-	case VK_DOWN: 
-		SendMessage(hWnd, WM_VSCROLL, SB_LINEDOWN, 0L);
-		break; 
-	case VK_NEXT: 
-		SendMessage(hWnd, WM_VSCROLL, SB_PAGEDOWN, 0L);
-		break; 
-	case VK_PRIOR: 
-		SendMessage(hWnd, WM_VSCROLL, SB_PAGEUP, 0L);
-		break; 
-	case VK_HOME:
-		SetHome();
-		UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
-		break; 
-	default:
-		return false;
+		switch (wParam)
+		{
+		case VK_UP: 
+			SendMessage(hWnd, WM_VSCROLL, SB_LINEUP, 0L);
+			break; 
+		case VK_DOWN: 
+			SendMessage(hWnd, WM_VSCROLL, SB_LINEDOWN, 0L);
+			break; 
+		case VK_NEXT: 
+			SendMessage(hWnd, WM_VSCROLL, SB_PAGEDOWN, 0L);
+			break; 
+		case VK_PRIOR: 
+			SendMessage(hWnd, WM_VSCROLL, SB_PAGEUP, 0L);
+			break; 
+		case VK_HOME:
+			SetHome();
+			UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
+			break; 
+		default:
+			return false;
+		}
+		return true;
 	}
-	return true;
+	catch(std::exception&)
+	{
+	}
 }
 
 bool CDisassemblyChild::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -425,35 +444,26 @@ HRESULT hr;
 	case WM_SIZE:
 		OnSize(hWnd, uMsg, wParam, lParam);
 		return 0;
-	case WM_HSCROLL:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_VSCROLL:
 		OnVScroll(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_KEYDOWN:
-		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		else
+		if (OnKeyDown(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_LBUTTONDOWN:
-		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		else
+		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_COMMAND:
-		if (!OnCommand(hWnd, uMsg, wParam, lParam))
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-		else
+		if (OnCommand(hWnd, uMsg, wParam, lParam))
 			return 0;
+		break;
 	case WM_NOTIFY:
-		OnNotify(hWnd, uMsg, wParam, lParam);
-		return 0;
-	case WM_CLOSE:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	default:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		if (OnNotify(hWnd, uMsg, wParam, lParam))
+			return 0;
 	}
-	return 0;
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 void CDisassemblyChild::GetMinWindowSize(int &w, int &h)
@@ -463,7 +473,7 @@ void CDisassemblyChild::GetMinWindowSize(int &w, int &h)
 	w = GetSystemMetrics(SM_CXVSCROLL);
 	h = 0;
 
-	m_DisassemblyEditChild.GetMinWindowSize(w2, h2);
+	m_pWinDisassemblyEditChild->GetMinWindowSize(w2, h2);
 
 	w += w2;
 	h += h2;

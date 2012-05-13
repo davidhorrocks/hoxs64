@@ -119,8 +119,7 @@ public:
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];	
 
-	HRESULT Init(CVirWindow *parent);
-	HRESULT Show();
+	HRESULT Show(Sp_CVirWindow pWinParent);
 	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -142,18 +141,18 @@ private:
 	std::vector<HBITMAP> m_vec_hBmpRebarSized;
 	HIMAGELIST m_hImageListToolBarNormal;
 	HFONT m_monitor_font;
-	CVirWindow *m_pParentWindow;
-	CDisassemblyChild m_DisassemblyChild;
-	CDisassemblyReg m_DisassemblyReg;
-	CToolItemAddress *m_pToolItemAddress;
+	shared_ptr<CDisassemblyChild> m_pWinDisassemblyChild;
+	shared_ptr<CDisassemblyReg> m_pWinDisassemblyReg;
+	shared_ptr<CToolItemAddress> m_pWinToolItemAddress;
 	HWND m_hWndToolItemAddress;
 	TCHAR m_tempAddressBuffer[MAX_EDIT_GOTO_ADDRESS_CHARS + 1];
 	int m_wheel_current;
 
+	HRESULT Init();
 	HIMAGELIST CreateImageListStepNormal(HWND hWnd);
 	HWND CreateDisassemblyChild(int x, int y, int w, int h);
 	HWND CreateDisassemblyReg(int x, int y, int w, int h);
-	CToolItemAddress *CreateToolItemAddress(HWND hWndParent);
+	shared_ptr<CToolItemAddress> CreateToolItemAddress(HWND hWndParent);
 	HRESULT RebarAddAddressBar(HWND hWndRebar, HWND hWndToolbar);
 
 	HRESULT InitFonts();

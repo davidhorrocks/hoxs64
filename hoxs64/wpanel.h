@@ -7,8 +7,8 @@ class WPanelManager;
 class IWPanelManager
 {
 public:
-	virtual CVirWindow *Get_ParentWindow() = 0;
-	virtual void OnDestroyWPanel(WPanel *pwp) = 0;
+	virtual Sp_CVirWindow Get_ParentWindow() = 0;
+	virtual void OnDestroyWPanel(shared_ptr<WPanel> pwp) = 0;
 	virtual int Get_SizerGap() = 0;
 	virtual void Get_RootRect(RECT *prc) = 0;
 };
@@ -38,10 +38,10 @@ public:
 	void GetParentRect(RECT *rcParent);
 protected:
 	IWPanelManager *m_pIWPanelManager;
-	CVirWindow *m_pChildWin;
+	Sp_CVirWindow m_pChildWin;
 
 	WPanel();
-	HRESULT Init(IWPanelManager *pIWPanelManager, CVirWindow *pChildWin);
+	HRESULT Init(IWPanelManager *pIWPanelManager, Sp_CVirWindow pChildWin);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 
 	LRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -57,5 +57,7 @@ private:
 	HRGN m_hrgSizerTop;
 	HWND m_hWndPChild;
 };
+
+typedef shared_ptr<WPanel> Sp_WPanel;
 
 #endif

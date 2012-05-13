@@ -3,32 +3,16 @@
 
 class CEmuWindow;
 
-class DebuggerFrame_EventSink_OnDestroy : protected EventSink<EventArgs>
-{
-protected:
-	virtual int Sink(void *sender, EventArgs& e)
-	{
-		OnDestroy_DebuggerFrame(sender, e);
-		return 0;
-	}
-	virtual void OnDestroy_DebuggerFrame(void *sender, EventArgs& e)=0;
-};
-
-class CAppWindow_EventSink : 
-	public DebuggerFrame_EventSink_OnDestroy
-{
-};
-
-class CAppWindow : public CVirWindow, CAppWindow_EventSink, public ErrorMsg
+class CAppWindow : public CVirWindow, public ErrorMsg
 {
 public:
 	CAppWindow();
+	~CAppWindow();
 	HRESULT Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *, CAppStatus *, C64 *);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	CAppStatus *appStatus;
 	CConfig *cfg;
-	CEmuWindow emuWin;
 	RECT m_rcMainWindow;				// Saves the window size & pos while in windowed mode.
 	int spareFillCounter;
 	HWND m_hWndStatusBar;
@@ -48,17 +32,18 @@ public:
 	HRESULT SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch);
 	void UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed);
 	HWND ShowDevelopment();
-	CMDIDebuggerFrame *m_pMDIDebugger;
+
+	shared_ptr<CEmuWindow> m_pWinEmuWin;
+	weak_ptr<CMDIDebuggerFrame> m_pMDIDebugger;
 
 protected:
 	const static LPTSTR lpszClassName;
 	const static LPTSTR lpszMenuName;
-	virtual void OnDestroy_DebuggerFrame(void *sender, EventArgs& e);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 private:
 
-	HCURSOR hCursorBusy;
-	HCURSOR hOldCursor;
+	HCURSOR m_hCursorBusy;
+	HCURSOR m_hOldCursor;
 	static struct tabpageitem m_tabPagesKeyboard[4];
 	static struct tabpageitem m_tabPagesSetting[5];
 	IMonitorCommand *m_pMonitorCommand;

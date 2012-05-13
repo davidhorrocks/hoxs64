@@ -164,6 +164,7 @@ BOOL bRet;
 HWND hWndMainEmulationFrame = 0;
 HWND hWndDebuggerMdiClient = 0;	
 
+	m_hInstance=hInstance;
 	CCommandArgArray *pArgs = NULL;
 	CParseCommandArg::ParseCommandLine(lpCmdLine, &pArgs);
 
@@ -202,7 +203,7 @@ HWND hWndDebuggerMdiClient = 0;
 		pArgs = NULL;
 	}
 
-	hWndMainEmulationFrame = appWindow.GetHwnd();
+	hWndMainEmulationFrame = m_pWinAppWindow->GetHwnd();
 
     SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
     SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &m_StartupToggleKeys, 0);
@@ -247,22 +248,22 @@ HWND hWndDebuggerMdiClient = 0;
 			if (bRet==-1 || bRet==0)
 				goto finish;
 
-			if (appWindow.m_pMDIDebugger != NULL)
+			if (!m_pWinAppWindow->m_pMDIDebugger.expired())
 			{
+				shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();
 				HWND hWndDefaultAccelerator = GetActiveWindow();
 				if (hWndDefaultAccelerator == NULL || 
 					(
-						hWndDefaultAccelerator != appWindow.GetHwnd() 
-						&& hWndDefaultAccelerator != appWindow.m_pMDIDebugger->GetHwnd() 
-						&& hWndDefaultAccelerator != appWindow.m_pMDIDebugger->m_debugCpuC64.GetHwnd()
-						&& hWndDefaultAccelerator != appWindow.m_pMDIDebugger->m_debugCpuDisk.GetHwnd()
+						hWndDefaultAccelerator != m_pWinAppWindow->GetHwnd() 
+						&& hWndDefaultAccelerator != pWinDebugger->GetHwnd() 
+						&& hWndDefaultAccelerator != pWinDebugger->m_pWinDebugCpuC64->GetHwnd()
+						&& hWndDefaultAccelerator != pWinDebugger->m_pWinDebugCpuDisk->GetHwnd()
 					))
 				{
-					hWndDefaultAccelerator = appWindow.m_pMDIDebugger->GetHwnd();
+					hWndDefaultAccelerator =pWinDebugger->GetHwnd();
 				}
-				hWndDebuggerMdiClient = appWindow.m_pMDIDebugger->Get_MDIClientWindow();
+				hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();
 				if (
-					//(!appWindow.m_pMDIDebugger->IsWinDlgModelessBreakpointVicRaster() || !IsDialogMessage(appWindow.m_pMDIDebugger->m_pdlgModelessBreakpointVicRaster->GetHwnd(), &msg))
 					 (!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) 
 					&& !TranslateAccelerator(hWndDefaultAccelerator, app.m_hAccelTable, &msg))
 				{
@@ -271,7 +272,7 @@ HWND hWndDebuggerMdiClient = 0;
 				}
 				continue;
 			}
-			if (!TranslateAccelerator(appWindow.GetHwnd(), app.m_hAccelTable, &msg))
+			if (!TranslateAccelerator(m_pWinAppWindow->GetHwnd(), app.m_hAccelTable, &msg))
 			{
 				TranslateMessage(&msg); 
 				DispatchMessage(&msg);
@@ -288,7 +289,7 @@ HWND hWndDebuggerMdiClient = 0;
 				frameCount = FRAMEUPDATEFREQ;
 				QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
 				emulationSpeed =(ULONG) (((ULONGLONG)100) * (frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ) / (end_counter.QuadPart - start_counter.QuadPart));
-				appWindow.UpdateWindowTitle(m_szTitle, emulationSpeed);
+				m_pWinAppWindow->UpdateWindowTitle(m_szTitle, emulationSpeed);
 				QueryPerformanceCounter((PLARGE_INTEGER)&start_counter);
 				c64.PreventClockOverflow();
 			}
@@ -372,7 +373,7 @@ HWND hWndDebuggerMdiClient = 0;
 
 			if (bDrawThisFrame)
 			{
-				appWindow.emuWin.UpdateC64Window();
+				m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
 
 			}				
 			//Handle frame skip
@@ -394,12 +395,12 @@ HWND hWndDebuggerMdiClient = 0;
 				{
 					if (SUCCEEDED(dx.Reset()))
 					{
-						appWindow.SetColours();
+						m_pWinAppWindow->SetColours();
 						m_bReady = true;
 					}
 					else
 					{
-						if (SUCCEEDED(hRet = appWindow.ResetDirect3D()))
+						if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
 							m_bReady = true;
 					}					
 				}
@@ -416,7 +417,7 @@ HWND hWndDebuggerMdiClient = 0;
 			{
 				if (m_bPaused && m_bWindowed && !m_bClosing)
 				{
-					appWindow.UpdateWindowTitle(m_szTitle, -1);
+					m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 				}
 				if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 					WaitMessage();
@@ -456,8 +457,6 @@ HRESULT CApp::RegisterKeyPressWindow(HINSTANCE hInstance)
 HRESULT CApp::InitApplication(HINSTANCE hInstance)
 {
 HRESULT hr;
-	m_hInstance=hInstance;
-
 	hr = CAppWindow::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
@@ -648,13 +647,25 @@ TCHAR ext[_MAX_EXT];
 
 	m_hAccelTable = LoadAccelerators (m_hInstance, m_szAppName);
 
-	hr = appWindow.Init(&dx, this, this, this, &c64);
+	try
+	{
+		m_pWinAppWindow = shared_ptr<CAppWindow>(new CAppWindow());
+	}
+	catch (...)
+	{
+	}
+	if (m_pWinAppWindow == 0)
+	{
+		MessageBox(0L, TEXT("Out of memory."), m_szAppName, MB_ICONWARNING);
+		return E_OUTOFMEMORY;
+	}
+	hr = m_pWinAppWindow->Init(&dx, this, this, this, &c64);
 	if (FAILED(hr))
 	{
-		return SetError(appWindow);
+		return SetError(*m_pWinAppWindow);
 	}
 
-	appWindow.GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &w, &h);
+	m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &w, &h);
 
 	POINT winpos = {0,0};
 	hr = mainCfg.LoadWindowSetting(winpos);
@@ -672,7 +683,7 @@ TCHAR ext[_MAX_EXT];
 		winpos.y = max(0, (rcWorkArea.bottom - rcWorkArea.top - h) / 2);
 	}
 
-	hWndMain = appWindow.Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, w, h, NULL);
+	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, w, h, NULL);
 	if (!hWndMain)
 	{
 		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
@@ -716,10 +727,10 @@ TCHAR ext[_MAX_EXT];
 
 	//Make the application start in windowed mode.
 	m_bWindowed = TRUE;
-	hr = appWindow.SetWindowedMode(m_bWindowed, m_bDoubleSizedWindow, m_bUseBlitStretch);
+	hr = m_pWinAppWindow->SetWindowedMode(m_bWindowed, m_bDoubleSizedWindow, m_bUseBlitStretch);
 	if (S_OK != hr) 
 	{
-		appWindow.DisplayError(appWindow.GetHwnd(), m_szAppName);
+		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
 		return E_FAIL;
 	}
 
@@ -1105,14 +1116,15 @@ void CApp::SetUserConfig(const CConfig& newcfg)
 
 void CApp::ApplyConfig(const CConfig& newcfg)
 {	
-HWND hWnd;
+HWND hWnd = 0;
 CConfig &cfg= *(static_cast<CConfig *>(this));
 CAppStatus &status= *(static_cast<CAppStatus *>(this));
 HRESULT hRet;
 bool bNeedDisplayReset = false;
 bool bNeedSoundFilterInit = false;
 
-	hWnd = appWindow.GetHwnd();
+	if (m_pWinAppWindow!=0 && m_pWinAppWindow->GetHwnd() != 0 && IsWindow(m_pWinAppWindow->GetHwnd()))
+		hWnd = m_pWinAppWindow->GetHwnd();
 
 	c64.cia1.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
 	c64.cia2.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
@@ -1146,8 +1158,7 @@ bool bNeedSoundFilterInit = false;
 	{
 		if (hWnd)
 		{
-			if (IsWindow(hWnd))
-				hRet = appWindow.SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, newcfg.m_bUseBlitStretch);
+			hRet = m_pWinAppWindow->SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, newcfg.m_bUseBlitStretch);
 		}
 	}
 
@@ -1177,7 +1188,7 @@ bool bNeedSoundFilterInit = false;
 	}
 
 	if (hWnd)
-		appWindow.UpdateWindowTitle(m_szTitle, -1);
+		m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 }
 
 void CApp::SetBusy(bool bBusy)
@@ -1185,7 +1196,7 @@ void CApp::SetBusy(bool bBusy)
 	if (bBusy)
 	{
 		this->m_bBusy = true;
-		UpdateWindow(appWindow.GetHwnd());
+		UpdateWindow(m_pWinAppWindow->GetHwnd());
 		if (hOldCursor == NULL)
 			hOldCursor = SetCursor(hCursorBusy);
 	}
@@ -1201,7 +1212,7 @@ void CApp::SetBusy(bool bBusy)
 void CApp::BreakExecuteCpu64()
 {
 HWND hWnd;
-	hWnd = appWindow.GetHwnd();
+	hWnd = m_pWinAppWindow->GetHwnd();
 	if (hWnd != 0)
 	{
 		m_bBreak = TRUE;
@@ -1213,7 +1224,7 @@ HWND hWnd;
 void CApp::BreakExecuteCpuDisk()
 {
 HWND hWnd;
-	hWnd = appWindow.GetHwnd();
+	hWnd = m_pWinAppWindow->GetHwnd();
 	if (hWnd != 0)
 	{
 		m_bBreak = TRUE;
@@ -1225,7 +1236,7 @@ HWND hWnd;
 void CApp::BreakVicRasterCompare()
 {
 HWND hWnd;
-	hWnd = appWindow.GetHwnd();
+	hWnd = m_pWinAppWindow->GetHwnd();
 	if (hWnd != 0)
 	{
 		m_bBreak = TRUE;
@@ -1257,7 +1268,7 @@ void CApp::DiskWriteLed(bool bOn)
 
 void CApp::ShowErrorBox(LPCTSTR title, LPCTSTR message)
 {
-	HWND hWnd = appWindow.GetHwnd();
+	HWND hWnd = m_pWinAppWindow->GetHwnd();
 	MessageBox(hWnd, message, title, MB_OK | MB_ICONEXCLAMATION);
 }
 
@@ -1271,7 +1282,7 @@ EventArgs e;
 	m_bPaused = FALSE;
 	if (!m_bClosing)
 	{
-		hWnd = appWindow.GetHwnd();
+		hWnd = m_pWinAppWindow->GetHwnd();
 		if (hWnd)
 			SetForegroundWindow(hWnd);
 		SoundResume();
@@ -1283,12 +1294,12 @@ void CApp::Trace()
 {
 HWND hWnd;
 EventArgs e;
-	hWnd = appWindow.GetHwnd();
+	hWnd = m_pWinAppWindow->GetHwnd();
 	m_bDebug = TRUE;
 	m_bBreak = FALSE;
 	m_bRunning = TRUE;
 	m_bPaused = FALSE;
-	appWindow.UpdateWindowTitle(m_szTitle, -1);
+	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 	if (hWnd)
 		SetForegroundWindow(hWnd);
 	SoundResume();
@@ -1338,7 +1349,7 @@ EventArgs e;
 void CApp::UpdateApplication()
 {
 EventArgs e;
-	appWindow.emuWin.UpdateC64Window();
+	m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
 	EsUpdateApplication.Raise(this, e);
 }
 
@@ -1360,27 +1371,28 @@ void CApp::SoundOn()
 void CApp::ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 HWND hWndMdiDebugger = NULL;
-	if (!appWindow.m_pMDIDebugger)
-		hWndMdiDebugger = appWindow.ShowDevelopment();
-	if (!appWindow.m_pMDIDebugger)
+	if (m_pWinAppWindow->m_pMDIDebugger.expired())
+		hWndMdiDebugger = m_pWinAppWindow->ShowDevelopment();
+	if (m_pWinAppWindow->m_pMDIDebugger.expired())
 		return;
 
+	shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();
 	if (cpuid == CPUID_MAIN)
-		appWindow.m_pMDIDebugger->ShowDebugCpuC64(pcmode, address);
+		pWinDebugger->ShowDebugCpuC64(pcmode, address);
 	else if (cpuid == CPUID_DISK)
-		appWindow.m_pMDIDebugger->ShowDebugCpuDisk(pcmode, address);
+		pWinDebugger->ShowDebugCpuDisk(pcmode, address);
 }
 
 HWND CApp::GetMainFrameWindow()
 {
-	return this->appWindow.GetHwnd();
+	return this->m_pWinAppWindow->GetHwnd();
 }
 
 void CApp::TogglePause()
 {
 	MessageBeep(MB_ICONASTERISK);
 	m_bPaused = !m_bPaused;
-	appWindow.UpdateWindowTitle(m_szTitle, -1);
+	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 }
 
 void CApp::ToggleSoundMute()
@@ -1390,7 +1402,7 @@ void CApp::ToggleSoundMute()
 		c64.sid.MasterVolume = 0.0;
 	else
 		c64.sid.MasterVolume = 1.0;
-	appWindow.UpdateWindowTitle(m_szTitle, -1);
+	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 }
 
 HWND CApp::ShowDevelopment()
@@ -1398,7 +1410,7 @@ HWND CApp::ShowDevelopment()
 EventArgs e;
 HWND hWnd = NULL;
 
-	hWnd = appWindow.ShowDevelopment();
+	hWnd = m_pWinAppWindow->ShowDevelopment();
 	if (hWnd)
 	{
 		EsShowDevelopment.Raise(this, e);

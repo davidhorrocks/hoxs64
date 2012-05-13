@@ -43,11 +43,10 @@ WPanel::~WPanel()
 			DeleteObject(m_hrgSizerTop);
 			m_hrgSizerTop = NULL;
 		}
-		m_pIWPanelManager->OnDestroyWPanel(this);
 	}
 }
 
-HRESULT WPanel::Init(IWPanelManager *pIWPanelManager, CVirWindow *pChildWin)
+HRESULT WPanel::Init(IWPanelManager *pIWPanelManager, Sp_CVirWindow pChildWin)
 {
 	m_pIWPanelManager = pIWPanelManager;
 	m_pChildWin = pChildWin;
@@ -204,9 +203,9 @@ LRESULT WPanel::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SYSCOMMAND:
 		return OnSysCommand(m_hWnd, uMsg, wParam, lParam);
 	case WM_DESTROY:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-	default:
-		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		Sp_WPanel p= Sp_WPanel(this, null_deleter());
+		//m_pIWPanelManager->OnDestroyWPanel(p);
+		break;
 	}
-	return 0;
+	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 }

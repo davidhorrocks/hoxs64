@@ -55,9 +55,7 @@ const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] =
 
 CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand, CConfig *cfg, CAppStatus *appStatus)
 	:
-	c64(c64),
-	m_debugCpuC64(CPUID_MAIN, c64, pMonitorCommand, TEXT("C64 - cpu")),
-	m_debugCpuDisk(CPUID_DISK, c64, pMonitorCommand, TEXT("Disk - cpu"))
+	c64(c64)
 {
 	m_hWndMDIClient = NULL;
 	m_hWndRebar = NULL;
@@ -68,6 +66,17 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand,
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->m_pMonitorCommand = pMonitorCommand;
+
+	m_pWinDebugCpuC64 = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, pMonitorCommand, TEXT("C64 - cpu")));
+	if (m_pWinDebugCpuC64 == 0)
+		throw std::bad_alloc();
+	m_pWinDebugCpuDisk = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, pMonitorCommand, TEXT("Disk - cpu")));
+	if (m_pWinDebugCpuDisk == 0)
+		throw std::bad_alloc();
+	
+	HRESULT hr = Init();
+	if (FAILED(hr))
+		throw new std::runtime_error("CMDIDebuggerFrame::Init() Failed");
 }
 
 CMDIDebuggerFrame::~CMDIDebuggerFrame()
@@ -81,14 +90,6 @@ HRESULT hr;
 
 	do
 	{
-		hr = m_debugCpuC64.Init(this);
-		if (FAILED(hr))
-			break;
-
-		hr = m_debugCpuDisk.Init(this);
-		if (FAILED(hr))
-			break;
-
 		hr = AdviseEvents();
 		if (FAILED(hr))
 			break;
@@ -229,43 +230,41 @@ HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR
 
 HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-HRESULT hr;
+HRESULT hr = E_FAIL;
 
-	HDC hdc = GetDC(m_hWnd);
-	if (!hdc)
-		return E_FAIL;
-	DcHelper dch(hdc);
-
-	m_hBmpRebarNotSized = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));
-
-	hr = CreateMDIToolBars(hdc);
-	if (FAILED(hr))
-		return hr;
-	HWND hWndMdiClient = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD);
-	if (hWndMdiClient==NULL)
-		return E_FAIL;
-
-	hr = m_WPanelManager.Init(this->GetHinstance(), this, m_hWndRebar);
-	if (FAILED(hr))
-		return hr;
-
-	WpcBreakpoint *pWin = new WpcBreakpoint(c64, m_pMonitorCommand);	
-	hr = pWin->Init();
-	if (SUCCEEDED(hr))
+	try
 	{
+		HDC hdc = GetDC(m_hWnd);
+		if (!hdc)
+			return E_FAIL;
+		DcHelper dch(hdc);
+
+		m_hBmpRebarNotSized = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));
+
+		hr = CreateMDIToolBars(hdc);
+		if (FAILED(hr))
+			return hr;
+		HWND hWndMdiClient = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD);
+		if (hWndMdiClient==NULL)
+			return E_FAIL;
+
+		hr = m_WPanelManager.Init(this->GetHinstance(), this->shared_from_this(), m_hWndRebar);
+		if (FAILED(hr))
+			return hr;
+
+		shared_ptr<WpcBreakpoint> pWin = shared_ptr<WpcBreakpoint>(new WpcBreakpoint(c64, m_pMonitorCommand));
+		if (!pWin)
+			throw std::bad_alloc();
 		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, TEXT("Breakpoints"), pWin);
 		if (SUCCEEDED(hr))
 		{
-			pWin->m_AutoDelete = true;
-			pWin = NULL;
+			m_bIsCreated = true;
 		}
 	}
-	if (pWin)
+	catch(std::exception&)
 	{
-		delete pWin;
-		pWin = NULL;
+		 hr = E_FAIL;
 	}
-	m_bIsCreated = SUCCEEDED(hr);
 	return hr;
 }
 
@@ -326,7 +325,7 @@ void CMDIDebuggerFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	this->m_WPanelManager.SizePanels(hWnd, rcRootPanel.left, rcRootPanel.top, rcRootPanel.right - rcRootPanel.left, rcRootPanel.bottom - rcRootPanel.top);
 }
 
-HRESULT CMDIDebuggerFrame::CreateMDIToolBars(HDC hdc)
+HRESULT CMDIDebuggerFrame::CreateMDIToolBars(HDC hdc) throw(...)
 {
 	if (m_hImageListToolBarNormal == NULL)
 	{
@@ -369,19 +368,19 @@ HIMAGELIST CMDIDebuggerFrame::CreateImageListNormal(HWND hWnd)
 
 void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	HRESULT hr = m_debugCpuC64.Show();
+	HRESULT hr = m_pWinDebugCpuC64->Show(this->shared_from_this());
 	if (SUCCEEDED(hr))
 	{
-		m_debugCpuC64.UpdateDisplay(pcmode, address);
+		m_pWinDebugCpuC64->UpdateDisplay(pcmode, address);
 	}
 }
 
 void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
-	HRESULT hr = m_debugCpuDisk.Show();
+	HRESULT hr = m_pWinDebugCpuDisk->Show(this->shared_from_this());
 	if (SUCCEEDED(hr))
 	{
-		m_debugCpuDisk.UpdateDisplay(pcmode, address);
+		m_pWinDebugCpuDisk->UpdateDisplay(pcmode, address);
 	}
 }
 

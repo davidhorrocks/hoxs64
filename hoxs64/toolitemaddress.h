@@ -12,10 +12,8 @@ public:
 class CToolItemAddress : public CVirWindow
 {
 public:
-	CToolItemAddress();
+	CToolItemAddress(HFONT hFont);
 	virtual ~CToolItemAddress();
-
-	HRESULT Init(HFONT hFont);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);

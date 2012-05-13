@@ -223,6 +223,7 @@ public:
 	static int CalcListViewMinWidth(HWND hWnd, ...);
 	static HBITMAP CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight, bool bAllowShrink, bool bAllowStretch);
 	static HRESULT SetRebarBandBitmap(HWND hWndRB, int iBandIndex, HBITMAP hBmpSrc);
+	static HFONT CreateMonitorFont();
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);
@@ -263,7 +264,7 @@ protected:
             ~CVirWindow:
               Destructor.
 C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
-class CVirWindow
+class CVirWindow : public std::enable_shared_from_this<CVirWindow>
 {
 public:
 	CVirWindow()
@@ -271,12 +272,8 @@ public:
 	m_hInst = NULL;
 	m_hWnd = NULL;
 	m_hWndMDIClient = NULL;
-	m_AutoDelete = false;
 	};
 	virtual ~CVirWindow(){};
-
-	bool m_AutoDelete;
-	EventSource<EventArgs> EsOnDestroy;
 
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
 	virtual int SetSize(int w, int h);
@@ -290,6 +287,8 @@ public:
 	}
 	HINSTANCE GetHinstance(void)
 	{
+		if (m_hInst == 0)
+			m_hInst = GetModuleHandle(NULL);
 		return(m_hInst);
 	}
 
@@ -310,6 +309,7 @@ protected:
 	// Handle of this window.
 	HWND m_hWnd;
 	HWND m_hWndMDIClient;
+	std::shared_ptr<CVirWindow> m_pKeepAlive;
 
 	WNDPROC SubclassChildWindow(HWND hWnd);
 	WNDPROC SubclassChildWindow(HWND hWnd, WNDPROC proc);
@@ -333,6 +333,8 @@ private:
 	friend LRESULT CALLBACK ::GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
+typedef shared_ptr<CVirWindow> Sp_CVirWindow;
+typedef weak_ptr<CVirWindow> Wp_CVirWindow;
 
 /*C+C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C
   Class:    CVirDialog
@@ -387,6 +389,13 @@ public:
 
 	HWND GetHwnd();
 
+	HINSTANCE GetHinstance(void)
+	{
+		if (m_hInst == 0)
+			m_hInst = GetModuleHandle(NULL);
+		return(m_hInst);
+	}
+
 
 protected:
   HINSTANCE m_hInst;
@@ -402,6 +411,7 @@ protected:
                            LPARAM lParam);
 };
 
+typedef shared_ptr<CVirDialog> Sp_CVirDialog;
 
 typedef struct {
     WORD dlgVer;

@@ -16,28 +16,20 @@
 
 TCHAR CDisassemblyReg::ClassName[] = TEXT("Hoxs64DisassemblyReg");
 
-CDisassemblyReg::CDisassemblyReg(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand) 
+CDisassemblyReg::CDisassemblyReg(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont) 
 	: DefaultCpu(cpuid, c64)
 {
-	m_pParent = NULL; 
 	m_hFont = NULL;
 	m_MinSizeDone = false;
 	m_hdc = NULL;
-
 	m_pMonitorCommand = pMonitorCommand;
+
+	m_hFont = hFont;
 }
 
 CDisassemblyReg::~CDisassemblyReg()
 {
 	Cleanup();
-}
-
-HRESULT CDisassemblyReg::Init(CVirWindow *parent, HFONT hFont)
-{
-	Cleanup();
-	m_pParent = parent;
-	m_hFont = hFont;
-	return S_OK;
 }
 
 void CDisassemblyReg::Cleanup()

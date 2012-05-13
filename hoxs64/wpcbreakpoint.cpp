@@ -22,11 +22,15 @@ const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 
 WpcBreakpoint::WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand)
 {
+HRESULT hr;
 	m_bSuppressThisBreakpointEvent = false;
 	m_hLvBreak = NULL;
 	m_hMenuBreakPoint = NULL;
 	this->c64 = c64;
 	this->m_pMonitorCommand = pMonitorCommand;
+	hr = Init();
+	if (FAILED(hr))
+		throw std::runtime_error("WpcBreakpoint::Init() failed");
 }
 
 WpcBreakpoint::~WpcBreakpoint()
@@ -42,7 +46,7 @@ HRESULT WpcBreakpoint::Init()
 {
 HSink hs;
 
-	m_hMenuBreakPoint = LoadMenu(this->m_hInst, TEXT("MENU_BREAKPOINT"));
+	m_hMenuBreakPoint = LoadMenu(this->GetHinstance(), TEXT("MENU_BREAKPOINT"));
 	if (!m_hMenuBreakPoint)
 		return E_FAIL;
 
@@ -235,21 +239,31 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 
 HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 {
-	m_lstBreak.clear();
-	
-	Sp_BreakpointItem v;
-	
-	IEnumBreakpointItem *pEnumBpMain = c64->mon.BM_CreateEnumBreakpointItem();
-	if (pEnumBpMain)
+HRESULT hr = E_FAIL;
+bool ok = false;
+	try
 	{
-		while (pEnumBpMain->GetNext(v))
+		m_lstBreak.clear();
+	
+		Sp_BreakpointItem v;
+	
+		IEnumBreakpointItem *pEnumBpMain = c64->mon.BM_CreateEnumBreakpointItem();
+		if (pEnumBpMain)
 		{
-			m_lstBreak.push_back(v);
+			while (pEnumBpMain->GetNext(v))
+			{
+				m_lstBreak.push_back(v);
+			}
+			delete pEnumBpMain;
 		}
-		delete pEnumBpMain;
+		ListView_SetItemCountEx(hWndListView, m_lstBreak.size(), 0);
+		ok = true;
 	}
-	ListView_SetItemCountEx(hWndListView, m_lstBreak.size(), 0);
-	return S_OK;
+	catch(...)
+	{
+		ok = false;
+	}
+	return ok ? S_OK : E_FAIL;
 }
 
 LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -566,26 +580,31 @@ void WpcBreakpoint::DisableBreakpoint(Sp_BreakpointKey bp)
 
 void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 {
-	int selcount = ListView_GetSelectedCount(m_hLvBreak);
-	std::vector<Sp_BreakpointItem> vecDelete;
-	vecDelete.reserve(selcount);
-	
-	for (int c = 0, i = -1 ; c==0 || (i>=0 && c<selcount) ; c++)
+	try
 	{
-		i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
-		if (i>=0)
+		int selcount = ListView_GetSelectedCount(m_hLvBreak);
+		std::vector<Sp_BreakpointItem> vecDelete;
+		vecDelete.reserve(selcount);
+	
+		for (int c = 0, i = -1 ; c==0 || (i>=0 && c<selcount) ; c++)
 		{
-			Sp_BreakpointItem bp;
-			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
+			i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
+			if (i>=0)
 			{
-				vecDelete.push_back(bp);
-				//c64->mon.BM_DeleteBreakpoint(bp);
+				Sp_BreakpointItem bp;
+				if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
+				{
+					vecDelete.push_back(bp);
+				}
 			}
 		}
+		for (std::vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
+		{
+			c64->mon.BM_DeleteBreakpoint(*it);
+		}
 	}
-	for (std::vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
+	catch(...)
 	{
-		c64->mon.BM_DeleteBreakpoint(*it);
 	}
 }
 

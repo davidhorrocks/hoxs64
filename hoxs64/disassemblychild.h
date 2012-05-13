@@ -20,14 +20,12 @@ class CDisassemblyChild_EventSink :
 class CDisassemblyChild : public CVirWindow, public CDisassemblyChild_EventSink, public DefaultCpu
 {
 public:
-	CDisassemblyChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand);
+	CDisassemblyChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont);
 	virtual ~CDisassemblyChild();
 
 	static const int ID_SCROLLBAR = 2000;
 	static const int ID_DISASSEMBLY = 2001;
 	static TCHAR ClassName[];
-
-	HRESULT Init(CVirWindow *parent, HFONT hFont);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
@@ -43,9 +41,9 @@ private:
 	HWND m_hWndScroll;
 	IMonitorCommand *m_pMonitorCommand;
 
-	CVirWindow *m_pParent;
-	CDisassemblyEditChild m_DisassemblyEditChild;
+	shared_ptr<CDisassemblyEditChild> m_pWinDisassemblyEditChild;
 
+	HRESULT Init();
 	virtual void OnCpuRegPCChanged(void *sender, EventArgs& e);
 
 	HRESULT AdviseEvents();
