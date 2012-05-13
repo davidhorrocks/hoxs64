@@ -126,11 +126,14 @@ class LvBreakColumnIndex
 	void OnDeleteSelectedBreakpoint();
 	void OnEnableSelectedBreakpoint();
 	void OnDisableSelectedBreakpoint();
+	void OnToggleHexadecimal();
 
 	bool m_bSuppressThisBreakpointEvent;
 	CDPI m_dpi;
 	C64 *c64;
 	IMonitorCommand *m_pMonitorCommand;
+
+	bool m_bHexDisplay;
 };
 
 #endif

@@ -1150,8 +1150,8 @@ bool ok = false;
 				y = CW_USEDEFAULT;
 				w = CW_USEDEFAULT;
 				h = CW_USEDEFAULT;
-				POINT pos = {0,0};
-				SIZE size= {0,0};
+				POINT pos = {x,y};
+				SIZE size= {w,h};
 				hr = CConfig::LoadMDIWindowSetting(pos, size);
 				if (SUCCEEDED(hr))
 				{

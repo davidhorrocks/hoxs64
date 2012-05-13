@@ -31,6 +31,7 @@ HRESULT hr;
 	hr = Init();
 	if (FAILED(hr))
 		throw std::runtime_error("WpcBreakpoint::Init() failed");
+	m_bHexDisplay = true;
 }
 
 WpcBreakpoint::~WpcBreakpoint()
@@ -256,7 +257,7 @@ bool ok = false;
 			}
 			delete pEnumBpMain;
 		}
-		ListView_SetItemCountEx(hWndListView, m_lstBreak.size(), 0);
+		ListView_SetItemCount(hWndListView, m_lstBreak.size());
 		ok = true;
 	}
 	catch(...)
@@ -328,23 +329,47 @@ TCHAR sIntBuffer[20];
 	case LvBreakColumnIndex::Address:
 		if (bp->bptype == DBGSYM::BreakpointType::Execute)
 		{
-			HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
-			_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
-			_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
+			if (m_bHexDisplay)
+			{
+				HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
+				_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
+				_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
+			}
+			else
+			{
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->address);
+				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+			}
 		}
 		break;
 	case LvBreakColumnIndex::Line:
 		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
 		{
-			_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_line);
-			_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+			if (m_bHexDisplay)
+			{
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%03X"), bp->vic_line);
+				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+			}
+			else
+			{
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_line);
+				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+			}
 		}
 		break;
 	case LvBreakColumnIndex::Cycle:
 		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
 		{
-			_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_cycle);
-			_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+			if (m_bHexDisplay)
+			{
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%02X"), bp->vic_cycle);
+				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+			}
+			else
+			{
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_cycle);
+				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+			}
 		}
 		break;
 	}
@@ -433,6 +458,10 @@ HMENU hMenu;
 	hMenu = GetSubMenu(m_hMenuBreakPoint, 0);
 	if (hMenu)
 	{
+		if (m_bHexDisplay)
+			CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
+		else
+			CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
 		TrackPopupMenuEx(hMenu, TPM_LEFTALIGN, rcWin.left, rcWin.top, m_hWnd, NULL);
 	}
 	return false;
@@ -642,6 +671,14 @@ void WpcBreakpoint::OnDisableSelectedBreakpoint()
 	}
 }
 
+void WpcBreakpoint::OnToggleHexadecimal()
+{
+	this->m_bHexDisplay = !this->m_bHexDisplay;
+	int i = ListView_GetItemCount(m_hLvBreak);
+	if (i > 0)
+		ListView_RedrawItems (this->m_hLvBreak, 0, i - 1);
+}
+
 LRESULT WpcBreakpoint::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 LPNMHDR pnmh;
@@ -684,7 +721,14 @@ int wmId, wmEvent;
 		case IDM_BREAKPOINTOPTIONS_DISABLEBREAKPOINT:
 			OnDisableSelectedBreakpoint();
 			return 0;
+		case IDM_BREAKPOINTOPTIONS_HEXADECIMAL:
+			OnToggleHexadecimal();
+			return 0;
 		}
+		break;
+	case WM_INITMENU:
+		break;
+	case WM_INITMENUPOPUP:
 		break;
 	}
 	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);;

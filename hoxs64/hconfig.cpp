@@ -785,9 +785,12 @@ ULONG tempLenValue,lenValue;
 			size.cy = max(min(_ttol(szValue), max_y), min_y);
 		}
 		
+		return S_OK;
 	}
-
-	return S_OK;
+	else
+	{
+		return E_FAIL;
+	}
 }
 
 HRESULT CConfig::SaveCurrentSetting()
