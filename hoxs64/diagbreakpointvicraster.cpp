@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>
+#include "dx_version.h"
 #include <tchar.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -9,21 +10,22 @@
 #include <tchar.h>
 #include <assert.h>
 #include "defines.h"
+#include "C64.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "errormsg.h"
 #include "assembler.h"
 #include "resource.h"
 #include "diagbreakpointvicraster.h"
 
 
-CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(INotify *pINotify)
+CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IMonitorCommand *pIMonitorCommand, C64 *c64)
 {
 	m_iLine = 0;
 	m_iCycle = 1;
-	m_pINotify = pINotify;
+	m_pIMonitorCommand = pIMonitorCommand;
+	this->c64 = c64;
 }
 
 CDiagBreakpointVicRaster::~CDiagBreakpointVicRaster()
@@ -128,8 +130,9 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			{
 				if (m_bIsModeless)
 				{
-					if (m_pINotify)
-						m_pINotify->OnAccept(this);					
+					this->c64->mon.GetVic()->SetBreakpointRasterCompare(this->GetRasterLine(), this->GetRasterCycle(), true, 0, 0);
+					this->m_pIMonitorCommand->ShowDevelopment();
+					DestroyWindow(hWndDlg);
 				}
 				else
 				{
@@ -140,8 +143,8 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 		case IDCANCEL:
 			if (m_bIsModeless)
 			{
-				if (m_pINotify)
-					m_pINotify->OnCancel(this);
+				this->m_pIMonitorCommand->ShowDevelopment();
+				DestroyWindow(hWndDlg);
 			}
 			else
 			{
@@ -166,10 +169,6 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			break;
 		}
 		break;
-	case WM_DESTROY:
-		if (m_pINotify)
-			m_pINotify->OnDestory(this);
-		return TRUE;
 	}
 	return FALSE;
 }

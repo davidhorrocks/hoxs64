@@ -171,7 +171,8 @@ WNDCLASSEX wc;
 
 bool CMDIDebuggerFrame::IsWinDlgModelessBreakpointVicRaster()
 {
-	return m_pdlgModelessBreakpointVicRaster != NULL && IsWindow(m_pdlgModelessBreakpointVicRaster->GetHwnd());
+	Sp_CDiagBreakpointVicRaster pdlg = m_pdlgModelessBreakpointVicRaster.lock();
+	return pdlg != NULL && IsWindow(pdlg->GetHwnd());
 }
 
 void CMDIDebuggerFrame::OnTrace(void *sender, EventArgs& e)
@@ -278,7 +279,8 @@ void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 {
 	if (this->IsWinDlgModelessBreakpointVicRaster())
 	{
-		DestroyWindow(this->m_pdlgModelessBreakpointVicRaster->GetHwnd());
+		Sp_CDiagBreakpointVicRaster pdlg = m_pdlgModelessBreakpointVicRaster.lock();
+		DestroyWindow(pdlg->GetHwnd());
 	}
 	if (::IsWindow(m_hWnd))
 	{
@@ -460,21 +462,17 @@ int wmId, wmEvent;
 
 void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 {
-	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(NULL));	
+	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pMonitorCommand, this->c64));	
 	if (pdlg == 0)
 		return;
-	INT_PTR r = pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
-	if (LOWORD(r) == IDOK)
-	{
-		this->c64->mon.GetVic()->SetBreakpointRasterCompare(pdlg->GetRasterLine(), pdlg->GetRasterCycle(), true, 0, 0);
-	}
+	pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
 }
 
 void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 {
 	if (!this->IsWinDlgModelessBreakpointVicRaster())
 	{
-		Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this));	
+		Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pMonitorCommand, this->c64));	
 		if (pdlg == 0)
 			return;
 		HWND hWndOwner;
@@ -490,26 +488,14 @@ void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 	}
 	else
 	{
-		HWND hwnd = m_pdlgModelessBreakpointVicRaster->GetHwnd();
-		ShowWindow(hwnd, SW_SHOW);
-		SetForegroundWindow(hwnd);
+		Sp_CDiagBreakpointVicRaster pdlg = m_pdlgModelessBreakpointVicRaster.lock();
+		if (pdlg)
+		{
+			HWND hwnd = pdlg->GetHwnd();
+			ShowWindow(hwnd, SW_SHOW);
+			SetForegroundWindow(hwnd);
+		}
 	}
-}
-
-void CMDIDebuggerFrame::OnAccept(CDiagBreakpointVicRaster *p)
-{
-	DestroyWindow(p->GetHwnd());
-}
-
-void CMDIDebuggerFrame::OnCancel(CDiagBreakpointVicRaster *p)
-{
-	DestroyWindow(p->GetHwnd());
-}
-
-void CMDIDebuggerFrame::OnDestory(CDiagBreakpointVicRaster *p)
-{
-	int i=0;
-	m_pdlgModelessBreakpointVicRaster.reset();
 }
 
 bool CMDIDebuggerFrame::OnSetCursor(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

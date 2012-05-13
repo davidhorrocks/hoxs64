@@ -1177,8 +1177,9 @@ bool ok = false;
 			ok = true;
 		}
 	}
-	catch (std::exception &ex)
+	catch (std::exception&)
 	{
+		ok = false;
 	}
 
 	if (ok)

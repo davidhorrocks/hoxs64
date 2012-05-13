@@ -5,28 +5,24 @@
 class CDiagBreakpointVicRaster : public CVirDialog , public ErrorMsg
 {
 public:
-
-	class INotify
-	{
-	public:
-		virtual void OnDestory(CDiagBreakpointVicRaster *p) = 0;
-		virtual void OnAccept(CDiagBreakpointVicRaster *p) = 0;
-		virtual void OnCancel(CDiagBreakpointVicRaster *p) = 0;
-	};
-	CDiagBreakpointVicRaster(INotify *p);
+	CDiagBreakpointVicRaster(IMonitorCommand *pIMonitorCommand, C64 *c64);
 	virtual ~CDiagBreakpointVicRaster();
 
 	int GetRasterLine();
 	int GetRasterCycle();
 private:
-	INotify *m_pINotify;
 	int m_iLine;
 	int m_iCycle;
+
+	IMonitorCommand *m_pIMonitorCommand;
+	C64 *c64;
+
 	void InitControls(HWND hWndDlg);
 	bool SaveUI();
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 typedef shared_ptr<CDiagBreakpointVicRaster> Sp_CDiagBreakpointVicRaster;
+typedef weak_ptr<CDiagBreakpointVicRaster> Wp_CDiagBreakpointVicRaster;
 
 #endif

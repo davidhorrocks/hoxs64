@@ -11,6 +11,7 @@
 #include "carray.h"
 #include "cevent.h"
 
+#include "errormsg.h"
 #include "bits.h"
 #include "util.h"
 #include "register.h"
@@ -35,6 +36,7 @@
 #include "via2.h"
 #include "diskinterface.h"
 #include "t64.h"
+#include "c64file.h"
 #include "monitor.h"
 
 class SIDLoader;

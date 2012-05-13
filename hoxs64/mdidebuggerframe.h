@@ -31,7 +31,7 @@ class CMDIDebuggerFrame_EventSink :
 };
 
 
-class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink, CDiagBreakpointVicRaster::INotify
+class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink
 {
 public:
 	static const int ID_RERBAR = 2000;
@@ -59,7 +59,7 @@ public:
 	virtual void GetMinWindowSize(int &w, int &h);
 	shared_ptr<CDisassemblyFrame> m_pWinDebugCpuC64;
 	shared_ptr<CDisassemblyFrame> m_pWinDebugCpuDisk;
-	Sp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
+	Wp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual HRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -96,10 +96,6 @@ private:
 
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);
-
-	virtual void INotify::OnAccept(CDiagBreakpointVicRaster *p);
-	virtual void INotify::OnCancel(CDiagBreakpointVicRaster *p);
-	virtual void INotify::OnDestory(CDiagBreakpointVicRaster *p);
 
 	void ShowDlgBreakpointVicRaster();
 	void ShowModelessDlgBreakpointVicRaster();

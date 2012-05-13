@@ -392,28 +392,26 @@ bool CDisassemblyChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		{
 		case VK_UP: 
 			SendMessage(hWnd, WM_VSCROLL, SB_LINEUP, 0L);
-			break; 
+			return true; 
 		case VK_DOWN: 
 			SendMessage(hWnd, WM_VSCROLL, SB_LINEDOWN, 0L);
-			break; 
+			return true;
 		case VK_NEXT: 
 			SendMessage(hWnd, WM_VSCROLL, SB_PAGEDOWN, 0L);
-			break; 
+			return true;
 		case VK_PRIOR: 
 			SendMessage(hWnd, WM_VSCROLL, SB_PAGEUP, 0L);
-			break; 
+			return true;
 		case VK_HOME:
 			SetHome();
 			UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
-			break; 
-		default:
-			return false;
+			return true;
 		}
-		return true;
 	}
 	catch(std::exception&)
 	{
 	}
+	return false;
 }
 
 bool CDisassemblyChild::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
