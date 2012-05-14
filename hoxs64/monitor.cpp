@@ -11,6 +11,13 @@
 #include "hexconv.h"
 #include "c64.h"
 
+
+VicCursorMoveEventArgs::VicCursorMoveEventArgs(int cycle, int line)
+{
+	this->Cycle = cycle;
+	this->Line = line;
+}
+
 BreakpointC64ExecuteChangedEventArgs::BreakpointC64ExecuteChangedEventArgs(MEM_TYPE memorymap, bit16 address, int count)
 {
 	this->Memorymap = memorymap;

@@ -286,7 +286,7 @@ DWORD SID64::GetSoundBufferLockSize(HCFG::EMUFPS fps)
 	}
 	else
 	{
-		return (DWORD)ceil((double)(dx->SoundBytesPerSecond) / ((double)PALCLOCKSPERSECOND / ((double)PALLINESPERFRAME * (double)PALCLOCKSPERLINE)));
+		return (DWORD)ceil((double)(dx->SoundBytesPerSecond) / ((double)PALCLOCKSPERSECOND / ((double)PAL_LINES_PER_FRAME * (double)PAL_CLOCKS_PER_LINE)));
 	}
 }
 

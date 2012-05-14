@@ -1181,7 +1181,7 @@ bool bNeedSoundFilterInit = false;
 		if (cfg.m_fps == HCFG::EMUFPS_50)
 			status.m_framefrequency.QuadPart = frequency.QuadPart / PAL50FRAMESPERSECOND;
 		else 
-			status.m_framefrequency.QuadPart = (ULONGLONG)(((double)frequency.QuadPart / ((double)PALCLOCKSPERSECOND/((double)PALLINESPERFRAME * (double)PALCLOCKSPERLINE))));
+			status.m_framefrequency.QuadPart = (ULONGLONG)(((double)frequency.QuadPart / ((double)PALCLOCKSPERSECOND/((double)PAL_LINES_PER_FRAME * (double)PAL_CLOCKS_PER_LINE))));
 
 	}
 	CopyMemory(&c64.cia1.c64KeyMap[0], &newcfg.m_KeyMap[0], sizeof(c64.cia1.c64KeyMap));
@@ -1397,7 +1397,30 @@ HWND hWndMdiDebugger = NULL;
 
 HWND CApp::GetMainFrameWindow()
 {
+	if (m_pWinAppWindow == 0)
+		return NULL;
 	return this->m_pWinAppWindow->GetHwnd();
+}
+
+void CApp::DisplayVicCursor(bool bEnabled)
+{
+	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+		return;
+	m_pWinAppWindow->m_pWinEmuWin->DisplayVicCursor(bEnabled);
+}
+
+void CApp::SetVicCursorPos(int iCycle, int iLine)
+{
+	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+		return;
+	m_pWinAppWindow->m_pWinEmuWin->SetVicCursorPos(iCycle, iLine);
+}
+
+void CApp::GetVicCursorPos(int *piCycle, int *piLine)
+{
+	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+		return;
+	m_pWinAppWindow->m_pWinEmuWin->GetVicCursorPos(piCycle, piLine);
 }
 
 void CApp::TogglePause()

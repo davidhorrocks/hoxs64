@@ -58,6 +58,9 @@ public:
 	virtual void IAppCommand::SoundOn();
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	virtual HWND GetMainFrameWindow();
+	virtual void DisplayVicCursor(bool bEnabled);
+	virtual void SetVicCursorPos(int iCycle, int iLine);
+	virtual void GetVicCursorPos(int *piCycle, int *piLine);
 	// IAppCommand
 
 	

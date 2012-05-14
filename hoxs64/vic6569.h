@@ -1,9 +1,7 @@
 #ifndef __VIC6569_H__
 #define __VIC6569_H__
 
-#define PAL_MAX_LINE (311)
 #define NUM_SCREEN_COLUMNS (40)
-#define PAL_CLOCKS_PER_LINE (63)
 #define GACCESS_COL1_CYCLE (16)
 #define SPRITE_DISPLAY_CHECK_XPOS (0x164)
 

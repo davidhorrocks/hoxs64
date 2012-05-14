@@ -83,19 +83,33 @@ public:
 	IDirect3DSurface9       *m_pSysMemSurface;
 	SIZE m_sizeSmallSurface;
 	int	m_iIndexSmallSurface;
-	RECT m_rcTargetRect;//Use the destination rectangle for a blit from m_pSmallSurface to a target.
 
+	//The rectangle (in device pixels) of the C64 display with in the scaled dx backbuffer.
+	//This is used for a blit from the dx small surface to the dx backbuffer.
+	RECT m_rcTargetRect;
+
+	//The first C64 raster line to be displayed [0-311] at the top most edge of the display window.
 	unsigned int m_displayFirstVicRaster;
+
+	//The last C64 raster line to be displayed [0-311] at the bottom most edge of the display window.
 	unsigned int m_displayLastVicRaster;
-	unsigned int m_displayXPos;
-	unsigned int m_displayYPos;
+
+	//The width of the display in C64 pixels.
 	unsigned int m_displayWidth;
+
+	//The height of the display in C64 pixels.
 	unsigned int m_displayHeight;
+
+	//The first C64 X pixel position (zero based) that is at the left most edge of the display window.
 	unsigned int m_displayStart;
 
+	//Atmost four clearing rectangles to be blanked out.
 	D3DRECT m_drcEraseRects[4];
+
+	//The number of clearing rectangles [0 - 4] to be blanked out
 	DWORD m_iEraseCount;
 
+	//Status bar dimensions
 	D3DRECT m_drcStatusBar;
 
 private:

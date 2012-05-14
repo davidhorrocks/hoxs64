@@ -266,12 +266,6 @@ POINT pt;
 
 void WPanelManager::DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 {
-	static WORD _dotPatternBmp[8] = 
-	{ 
-		0x00aa, 0x0055, 0x00aa, 0x0055, 
-		0x00aa, 0x0055, 0x00aa, 0x0055
-	};
-
 	HBRUSH  hbrushOld;
 
 	if (m_hbrSizerBar && m_hbrSizerBar)

@@ -43,6 +43,7 @@
 #include "t64.h"
 #include "C64.h"
 #include "emuwin.h"
+#include "dchelper.h"
 #include "resource.h"
 
 
@@ -52,6 +53,10 @@ const LPTSTR CEmuWindow::lpszClassName = HOXS_EMULATION_WND_CLASS;
 CEmuWindow::CEmuWindow()
 {
 	m_dwSolidColourFill=0;
+	m_bDrawCycleCursor = false;
+	m_iVicCycleCursor = 1;
+	m_iVicLineCursor = 0;
+
 }
 
 HRESULT CEmuWindow::Init(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
@@ -139,26 +144,114 @@ void CEmuWindow::SetColours()
 	}
 }
 
+void CEmuWindow::GetVicRasterPositionFromClientPosition(int x, int y, int& cycle, int& line)
+{
+	int s = dx->m_displayStart;
+	int st = dx->m_displayFirstVicRaster;
+	int sb = dx->m_displayLastVicRaster;
+	int wc = dx->m_displayWidth;
+	int hc = dx->m_displayHeight;
+	int wp = dx->m_rcTargetRect.right - dx->m_rcTargetRect.left;
+	int hp = dx->m_rcTargetRect.bottom - dx->m_rcTargetRect.top;
+
+	cycle = (s + ((x * wc) / wp)) & ~7;
+	cycle -= 8;
+	cycle = cycle / 8;
+	cycle += 1;
+	if (cycle < 1)
+		cycle = 1;
+	if (cycle > PAL_CLOCKS_PER_LINE)
+		cycle = PAL_CLOCKS_PER_LINE;
+
+	line = st + ((y * hc) / hp);
+	line -= 1;		
+
+	if (line < 0)
+		line = 0;
+	if (line > PAL_MAX_LINE)
+		line = PAL_MAX_LINE;
+}
+
+void CEmuWindow::GetVicCycleRectFromClientPosition(int x, int y, RECT& rcVicCycle)
+{
+	int cycle;
+	int line;
+	GetVicRasterPositionFromClientPosition(x, y, cycle, line);
+	SetRect(&rcVicCycle, (cycle - 1) * 8, line, (cycle) * 8, line + 1);
+}
+
+void CEmuWindow::GetDisplayRectFromVicRec(const RECT rcVicCycle, RECT& rcDisplay)
+{
+	int s = dx->m_displayStart;
+	int st = dx->m_displayFirstVicRaster;
+	int sb = dx->m_displayLastVicRaster;
+	int wc = dx->m_displayWidth;
+	int hc = dx->m_displayHeight;
+	int wp = dx->m_rcTargetRect.right - dx->m_rcTargetRect.left;
+	int hp = dx->m_rcTargetRect.bottom - dx->m_rcTargetRect.top;
+		
+	rcDisplay.left = (rcVicCycle.left - s) * wp / wc;
+	rcDisplay.right = (rcVicCycle.right - s) * wp / wc;
+
+	rcDisplay.top = (rcVicCycle.top - st) * hp / hc;
+	rcDisplay.bottom = (rcVicCycle.bottom - st) * hp / hc;
+
+	OffsetRect(&rcDisplay, dx->m_rcTargetRect.left, dx->m_rcTargetRect.top);
+}
+
+
+void CEmuWindow::DisplayVicCursor(bool bEnabled)
+{
+	m_bDrawCycleCursor = bEnabled;
+}
+
+void CEmuWindow::SetVicCursorPos(int iCycle, int iLine)
+{
+	m_iVicCycleCursor = iCycle;
+	m_iVicLineCursor = iLine;
+}
+
+void CEmuWindow::GetVicCursorPos(int *piCycle, int *piLine)
+{
+	if (piCycle)
+		*piCycle = m_iVicCycleCursor;
+	if (piLine)
+		*piLine = m_iVicLineCursor;
+}
+
 bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {	
-	int x = GET_X_LPARAM(lParam);
-	int y = GET_Y_LPARAM(lParam);
-
-	HDC hdc = GetDC(hWnd);
-	if (hdc)
+	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
 	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
 
-		ReleaseDC(hWnd, hdc);
+		RECT rcVicCycle;
+
+		GetVicRasterPositionFromClientPosition(x, y, m_iVicCycleCursor, m_iVicLineCursor);
+		SetRect(&rcVicCycle, (m_iVicCycleCursor - 1) * 8, m_iVicLineCursor, (m_iVicCycleCursor) * 8, m_iVicLineCursor + 1);
+		GetDisplayRectFromVicRec(rcVicCycle, m_rcCycleCursor);
+
+		this->UpdateC64Window();
+		HDC hdc = GetDC(hWnd);
+		if (hdc)
+		{
+			{
+				DcHelper dch(hdc);
+				BOOL br = FillRect(hdc, &m_rcCycleCursor, (HBRUSH) (COLOR_WINDOW+1));
+				br = br;
+			}
+			ReleaseDC(hWnd, hdc);
+		}
+
+		m_iLastX = x;
+		m_iLastY = y;
 	}
-
-	m_iLastX = x;
-	m_iLastY = y;
 	return true;
 }
 
 LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-HRESULT hr;
 //HDC hdc;
 //PAINTSTRUCT ps;
 //RECT rc;
@@ -167,10 +260,9 @@ HRESULT hr;
 		case WM_CREATE:
 			return 0;
 		case WM_PAINT:
-			hr = E_FAIL;
 			if (appStatus->m_bWindowed)
 			{
-				hr = UpdateC64Window();
+				UpdateC64Window();
 				//if (GetUpdateRect(hWnd, &rc, FALSE)!=0)
 				//{
 				//	hdc = BeginPaint (hWnd, &ps);
@@ -185,9 +277,6 @@ HRESULT hr;
 			return 0;
 		case WM_MOUSEMOVE:
 			OnMouseMove(hWnd, uMsg, wParam, lParam);
-			if (appStatus->m_bWindowed)
-			{
-			}
 			return 0;
 		case WM_ERASEBKGND:
 			return 1;
@@ -243,7 +332,7 @@ HRESULT hr = E_FAIL;
 	hr = this->c64->vic.UpdateBackBuffer();
 	if (SUCCEEDED(hr))
 	{
-		//CEmuWindow::RenderWindow from the dx small surface to the dx backbuffer.
+		//CEmuWindow::RenderWindow Stretch-blits from the dx small surface to the dx backbuffer.
 		hr = RenderWindow();
 		if (SUCCEEDED(hr))
 		{

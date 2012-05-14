@@ -45,8 +45,6 @@ int i;
 
 	m_displayFirstVicRaster = 0;
 	m_displayLastVicRaster = 0;
-	m_displayXPos = 0;
-	m_displayYPos = 0;
 	m_displayWidth = 0;
 	m_displayHeight = 0;
 	m_displayStart = 0;
@@ -421,7 +419,7 @@ GUID empty;
 		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;//D3DSWAPEFFECT_COPY;//D3DSWAPEFFECT_FLIP;//D3DSWAPEFFECT_DISCARD;
 		d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
 		d3dpp.hDeviceWindow = hWndDevice;
-		d3dpp.Flags = 0;D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+		d3dpp.Flags = 0;//D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 		if (syncMode == HCFG::FSSM_VBL)
 			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 		else
@@ -745,8 +743,6 @@ C64WindowDimensions  dims;
 	FreeSysMemSurface();
 
 	dims.SetBorder(borderSize);
-	m_displayXPos = 0;
-	m_displayYPos = 0;
 	m_displayWidth = dims.Width;
 	m_displayHeight = dims.Height;
 	m_displayFirstVicRaster = dims.FirstRasterLine;
@@ -2085,18 +2081,6 @@ DSBUFFERDESC dsbdesc;
 	dsbdesc.lpwfxFormat = &m_wfx;
 
 	SoundBytesPerSecond = (m_wfx.nSamplesPerSec * m_wfx.nBlockAlign);
-
-	//if (fps == HCFG::EMUFPS_50)
-	//{
-	//	SoundBytesPerFrame = (DWORD)ceil((double)(SoundBytesPerSecond) / (double)PAL50FRAMESPERSECOND);
-	//}
-	//else
-	//{
-	//	SoundBytesPerFrame = (DWORD)ceil((double)(SoundBytesPerSecond) / ((double)PALCLOCKSPERSECOND / ((double)PALLINESPERFRAME * (double)PALCLOCKSPERLINE)));
-	//}
-		
-	//Hack to use a sound lock buffer big enough for either EMUFPS_50 or EMUFPS_50_12
-	//SoundBytesPerFrame = (DWORD)ceil((double)(SoundBytesPerSecond) / (double)PAL50FRAMESPERSECOND);
 
 	BufferLockSize = SoundBytesPerFrame;
 	

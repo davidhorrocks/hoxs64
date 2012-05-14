@@ -436,19 +436,21 @@ void EdLn::Refresh()
 	HDC hdc = GetDC(m_hWnd);
 	if (hdc)
 	{
-		DcHelper dch(hdc);
-		dch.UseMapMode(MM_TEXT);
-		dch.UseFont(m_hFont);
+		{
+			DcHelper dch(hdc);
+			dch.UseMapMode(MM_TEXT);
+			dch.UseFont(m_hFont);
 
-		if (IsFocused)
-		{
-			HideCaret(m_hWnd);
-			UpdateCaretPosition(hdc);
-		}
-		Draw(hdc);
-		if (IsFocused)
-		{
-			ShowCaret(m_hWnd);
+			if (IsFocused)
+			{
+				HideCaret(m_hWnd);
+				UpdateCaretPosition(hdc);
+			}
+			Draw(hdc);
+			if (IsFocused)
+			{
+				ShowCaret(m_hWnd);
+			}
 		}
 
 		ReleaseDC(m_hWnd, hdc);

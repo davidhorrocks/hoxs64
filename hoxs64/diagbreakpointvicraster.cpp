@@ -58,7 +58,7 @@ HRESULT hr;
 		hr = Assembler::TryParseAddress16(&buffer[0], &line);
 		if (SUCCEEDED(hr))
 		{
-			if (line >= 0 && line < PALLINESPERFRAME)
+			if (line >= 0 && line < PAL_LINES_PER_FRAME)
 			{
 				m_iLine = line;
 				bLineOK = true;
@@ -67,7 +67,7 @@ HRESULT hr;
 	}
 	if (!bLineOK)
 	{
-		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Line"), TEXT("Raster line must be in the range %d - %d"), 0, PALLINESPERFRAME - 1);
+		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Line"), TEXT("Raster line must be in the range %d - %d"), 0, PAL_LINES_PER_FRAME - 1);
 		SetFocus(GetDlgItem(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE));
 		return false;
 	}
@@ -78,7 +78,7 @@ HRESULT hr;
 		hr = Assembler::TryParseAddress16(&buffer[0], &cycle);
 		if (SUCCEEDED(hr))
 		{
-			if (cycle >= 1 && cycle <= PALCLOCKSPERLINE)
+			if (cycle >= 1 && cycle <= PAL_CLOCKS_PER_LINE)
 			{
 				m_iCycle = cycle;
 				bCycleOK = true;
@@ -87,7 +87,7 @@ HRESULT hr;
 	}
 	if (!bCycleOK)
 	{
-		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Cycle"), TEXT("Raster cycle must be in the range %d - %d"), 0, PALCLOCKSPERLINE);
+		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Cycle"), TEXT("Raster cycle must be in the range %d - %d"), 0, PAL_CLOCKS_PER_LINE);
 		SetFocus(GetDlgItem(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERCYCLE));
 		return false;
 	}
@@ -112,6 +112,7 @@ HWND hWndEdit;
 		SendMessage(hWndEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessage(hWndEdit, EM_SETSEL, 0, -1);
 	}
+	this->m_pIAppCommand->DisplayVicCursor(true);
 }
 
 BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -168,6 +169,9 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			}
 			break;
 		}
+		break;
+	case WM_DESTROY:
+		this->m_pIAppCommand->DisplayVicCursor(false);
 		break;
 	}
 	return FALSE;
