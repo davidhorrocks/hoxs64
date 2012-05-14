@@ -4,7 +4,6 @@
 class DcHelper
 {
 public:
-	DcHelper();
 	DcHelper(HDC hdc);
 	virtual ~DcHelper();
 
@@ -13,6 +12,7 @@ public:
 	void Restore();
 	HDC m_hdc;
 private:
+	DcHelper();
 	void InitVars(HDC hdc);
 
 	int iSavedDC;

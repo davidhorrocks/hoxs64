@@ -6,14 +6,10 @@
 
 #include "dchelper.h"
 
-DcHelper::DcHelper()
-{
-	InitVars(NULL);
-}
-
 DcHelper::DcHelper(HDC hdc)
 {
-	InitVars(hdc);
+	iSavedDC = 0;
+	m_hdc = 0;
 }
 
 void DcHelper::InitVars(HDC hdc)
@@ -45,6 +41,10 @@ int DcHelper::UseMapMode(int mode)
 
 void DcHelper::Restore()
 {
-	::RestoreDC(m_hdc, iSavedDC);
+	if (m_hdc !=0 && iSavedDC!=0)
+	{
+		::RestoreDC(m_hdc, iSavedDC);
+		iSavedDC = 0;
+	}
 }
 
