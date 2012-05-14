@@ -53,7 +53,7 @@ const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] =
 	{2, TEXT("Stop"), TEXT("Stop tracing"), BTNS_BUTTON, IDM_STEP_STOP}
 };
 
-CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand, CConfig *cfg, CAppStatus *appStatus)
+CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus)
 	:
 	c64(c64)
 {
@@ -65,7 +65,7 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IMonitorCommand *pMonitorCommand,
 	m_bIsCreated = false;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
-	this->m_pMonitorCommand = pMonitorCommand;
+	this->m_pAppCommand = pAppCommand;
 
 	HRESULT hr = Init();
 	if (FAILED(hr))
@@ -180,7 +180,7 @@ void CMDIDebuggerFrame::OnShowDevelopment(void *sender, EventArgs& e)
 
 void CMDIDebuggerFrame::SetMenuState()
 {
-	if (!m_pMonitorCommand)
+	if (!m_pAppCommand)
 		return ;
 	if (!m_hWnd)
 		return ;
@@ -191,7 +191,7 @@ void CMDIDebuggerFrame::SetMenuState()
 	UINT stateOpp;
 	UINT stateTb;
 	UINT stateTbOpp;
-	if (m_pMonitorCommand->IsRunning())
+	if (m_pAppCommand->IsRunning())
 	{
 		state = MF_DISABLED | MF_GRAYED;
 		stateOpp = MF_ENABLED;
@@ -246,7 +246,7 @@ HRESULT hr = E_FAIL;
 		if (FAILED(hr))
 			return hr;
 
-		shared_ptr<WpcBreakpoint> pWin = shared_ptr<WpcBreakpoint>(new WpcBreakpoint(c64, m_pMonitorCommand));
+		shared_ptr<WpcBreakpoint> pWin = shared_ptr<WpcBreakpoint>(new WpcBreakpoint(c64, m_pAppCommand));
 		if (!pWin)
 			throw std::bad_alloc();
 		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, TEXT("Breakpoints"), pWin);
@@ -264,8 +264,8 @@ HRESULT hr = E_FAIL;
 
 void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (m_pMonitorCommand)
-		m_pMonitorCommand->Resume();
+	if (m_pAppCommand)
+		m_pAppCommand->Resume();
 }
 
 void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -369,7 +369,7 @@ HRESULT hr;
 		shared_ptr<CDisassemblyFrame> pwin = m_pWinDebugCpuC64.lock();
 		if (pwin == NULL)
 		{
-			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, m_pMonitorCommand, TEXT("C64 - cpu")));
+			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, m_pAppCommand, TEXT("C64 - cpu")));
 			m_pWinDebugCpuC64 = pwin;
 		}
 		if (pwin != NULL)
@@ -394,7 +394,7 @@ HRESULT hr;
 		shared_ptr<CDisassemblyFrame> pwin = m_pWinDebugCpuDisk.lock();
 		if (pwin == NULL)
 		{
-			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, m_pMonitorCommand, TEXT("Disk - cpu")));		
+			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, m_pAppCommand, TEXT("Disk - cpu")));		
 			m_pWinDebugCpuDisk = pwin;
 		}
 		if (pwin != NULL)
@@ -449,23 +449,23 @@ int wmId, wmEvent;
 		ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::None, 0);
 		return true;
 	case IDM_STEP_TRACEFRAME:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return false;
-		if (m_pMonitorCommand->IsRunning())
+		if (m_pAppCommand->IsRunning())
 			return false;
-		m_pMonitorCommand->TraceFrame();
-		m_pMonitorCommand->UpdateApplication();
+		m_pAppCommand->TraceFrame();
+		m_pAppCommand->UpdateApplication();
 		return true;
 	case IDM_STEP_TRACE:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return false;
-		this->m_pMonitorCommand->Trace();
+		this->m_pAppCommand->Trace();
 		return true;
 	case IDM_FILE_MONITOR:
 	case IDM_STEP_STOP:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return false;
-		this->m_pMonitorCommand->ShowDevelopment();
+		this->m_pAppCommand->ShowDevelopment();
 		return true;
 	case IDM_BREAKPOINT_DELETEALLBREAKPOINTS:
 		c64->mon.BM_DeleteAllBreakpoints();
@@ -487,7 +487,7 @@ int wmId, wmEvent;
 
 void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 {
-	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pMonitorCommand, this->c64));	
+	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pAppCommand, this->c64));	
 	if (pdlg == 0)
 		return;
 	pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
@@ -497,12 +497,12 @@ void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 {
 	if (!this->IsWinDlgModelessBreakpointVicRaster())
 	{
-		Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pMonitorCommand, this->c64));	
+		Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pAppCommand, this->c64));	
 		if (pdlg == 0)
 			return;
 		HWND hWndOwner;
 		//hWndOwner = this->m_hWnd;
-		hWndOwner = this->m_pMonitorCommand->GetMainFrameWindow();
+		hWndOwner = this->m_pAppCommand->GetMainFrameWindow();
 
 		HWND hwnd = pdlg->ShowModelessDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), hWndOwner);
 		if (hwnd)
@@ -598,16 +598,16 @@ HRESULT hr;
 		OnBreakVic(m_hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_ENTERMENULOOP:
-		m_pMonitorCommand->SoundOff();
+		m_pAppCommand->SoundOff();
 		return 0;
 	case WM_EXITMENULOOP:
-		m_pMonitorCommand->SoundOn();
+		m_pAppCommand->SoundOn();
 		return 0;
 	case WM_ENTERSIZEMOVE:
-		m_pMonitorCommand->SoundOff();
+		m_pAppCommand->SoundOff();
 		return 0;
 	case WM_EXITSIZEMOVE:
-		m_pMonitorCommand->SoundOn();
+		m_pAppCommand->SoundOn();
 		return 0;
 	}
 	return ::DefFrameProc(m_hWnd, this->m_hWndMDIClient, uMsg, wParam, lParam);
@@ -636,13 +636,13 @@ HRESULT CMDIDebuggerFrame::AdviseEvents()
 	do
 	{
 
-		hs = m_pMonitorCommand->EsShowDevelopment.Advise((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this);
+		hs = m_pAppCommand->EsShowDevelopment.Advise((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsTrace.Advise((CMDIDebuggerFrame_EventSink_OnTrace *)this);
+		hs = m_pAppCommand->EsTrace.Advise((CMDIDebuggerFrame_EventSink_OnTrace *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;

@@ -8,7 +8,7 @@ class CAppWindow : public CVirWindow, public ErrorMsg
 public:
 	CAppWindow();
 	~CAppWindow();
-	HRESULT Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *, CAppStatus *, C64 *);
+	HRESULT Init(CDX9 *dx, IAppCommand *pAppCommand, CConfig *, CAppStatus *, C64 *);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	CAppStatus *appStatus;
@@ -46,7 +46,7 @@ private:
 	HCURSOR m_hOldCursor;
 	static struct tabpageitem m_tabPagesKeyboard[4];
 	static struct tabpageitem m_tabPagesSetting[5];
-	IMonitorCommand *m_pMonitorCommand;
+	IAppCommand *m_pAppCommand;
 	CDX9 *dx;
 	C64 *c64;
 	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SYSMENU;

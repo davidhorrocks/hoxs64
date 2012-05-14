@@ -32,7 +32,7 @@ TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
 
 
-CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont) 
+CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
 	: DefaultCpu(cpuid, c64)
 {
 HRESULT hr;
@@ -55,7 +55,7 @@ HRESULT hr;
 	m_CurrentEditLineBuffer = NULL;
 	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));
 
-	m_pMonitorCommand = pMonitorCommand;
+	m_pAppCommand = pAppCommand;
 	m_hFont = hFont;
 
 	hr = Init();
@@ -99,7 +99,7 @@ HSink hs;
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
 
-	hs = m_pMonitorCommand->EsBreakpointChanged.Advise(this);
+	hs = m_pAppCommand->EsBreakpointChanged.Advise(this);
 	if (!hs)
 		return E_FAIL;
 	return S_OK;
@@ -641,7 +641,7 @@ bool bHasPrevAddress;
 
 	m_bMouseDownOnFocusedAddress = false;
 
-	if (m_pMonitorCommand->IsRunning())
+	if (m_pAppCommand->IsRunning())
 		return false;
 	bool bWasWindowFocused = (hWnd == GetFocus());
 	if (hWnd)
@@ -719,7 +719,7 @@ bool CDisassemblyEditChild::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	RECT rcClient;
 	RECT rcEdit;
 
-	if (m_pMonitorCommand->IsRunning())
+	if (m_pAppCommand->IsRunning())
 		return false;
 	if (::GetFocus() != hWnd)
 		return true;
@@ -988,7 +988,7 @@ TEXTMETRIC tm;
 		}
 	}
 
-	bool bUnavailable = m_pMonitorCommand->IsRunning();
+	bool bUnavailable = m_pAppCommand->IsRunning();
 
 	br = GetTextMetrics(hdc, &tm);
 	if (br)

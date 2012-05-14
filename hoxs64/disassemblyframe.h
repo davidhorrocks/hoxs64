@@ -104,7 +104,7 @@ class CDisassemblyFrame_EventSink :
 class CDisassemblyFrame : public CVirWindow, public CDisassemblyFrame_EventSink, public DefaultCpu, public ErrorMsg, IEnterGotoAddress
 {
 public:
-	CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, LPCTSTR pszCaption);
+	CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption);
 	virtual ~CDisassemblyFrame();
 	static const int ID_RERBAR = 2000;
 	static const int ID_TOOLBAR = 2001;
@@ -132,7 +132,7 @@ public:
 private:
 	CDPI m_dpi;
 	int m_iCurrentControlIndex;
-	IMonitorCommand *m_pMonitorCommand;
+	IAppCommand *m_pAppCommand;
 	LPCTSTR m_pszCaption;
 	HWND m_hWndRebar;
 	HWND m_hWndTooBarStep;

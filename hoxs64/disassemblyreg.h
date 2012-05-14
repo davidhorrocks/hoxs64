@@ -110,7 +110,7 @@ public:
 		int m_iShowCaretCount;
 		HWND m_hWndParent;
 	};
-	CDisassemblyReg(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont);
+	CDisassemblyReg(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont);
 	virtual ~CDisassemblyReg();
 
 	static TCHAR ClassName[];
@@ -127,7 +127,7 @@ private:
 	bool m_MinSizeDone;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	IMonitorCommand *m_pMonitorCommand;
+	IAppCommand *m_pAppCommand;
 
 	RegLineBuffer m_RegBuffer;
 

@@ -5,7 +5,7 @@
 class CDiagBreakpointVicRaster : public CVirDialog , public ErrorMsg
 {
 public:
-	CDiagBreakpointVicRaster(IMonitorCommand *pIMonitorCommand, C64 *c64);
+	CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, C64 *c64);
 	virtual ~CDiagBreakpointVicRaster();
 
 	int GetRasterLine();
@@ -14,7 +14,7 @@ private:
 	int m_iLine;
 	int m_iCycle;
 
-	IMonitorCommand *m_pIMonitorCommand;
+	IAppCommand *m_pIAppCommand;
 	C64 *c64;
 
 	void InitControls(HWND hWndDlg);

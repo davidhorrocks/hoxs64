@@ -16,13 +16,13 @@
 
 TCHAR CDisassemblyReg::ClassName[] = TEXT("Hoxs64DisassemblyReg");
 
-CDisassemblyReg::CDisassemblyReg(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont) 
+CDisassemblyReg::CDisassemblyReg(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
 	: DefaultCpu(cpuid, c64)
 {
 	m_hFont = NULL;
 	m_MinSizeDone = false;
 	m_hdc = NULL;
-	m_pMonitorCommand = pMonitorCommand;
+	m_pAppCommand = pAppCommand;
 
 	m_hFont = hFont;
 }
@@ -154,7 +154,7 @@ HRESULT hr;
 
 bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (m_pMonitorCommand->IsRunning())
+	if (m_pAppCommand->IsRunning())
 		return true;
 	m_RegBuffer.ProcessLButtonDown(wParam, lParam);
 	if (hWnd != ::GetFocus())
@@ -166,14 +166,14 @@ bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 bool CDisassemblyReg::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (m_pMonitorCommand->IsRunning())
+	if (m_pAppCommand->IsRunning())
 		return true;
 	return m_RegBuffer.ProcessChar(wParam, lParam);
 }
 
 bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (m_pMonitorCommand->IsRunning())
+	if (m_pAppCommand->IsRunning())
 		return true;
 	EdLn *p = m_RegBuffer.GetFocusedControl();
 	if (p != NULL)
@@ -344,7 +344,7 @@ int slen;
 	{
 		if (tm.tmHeight > 0 && rc.bottom > rc.top)
 		{
-			if (!m_pMonitorCommand->IsRunning())
+			if (!m_pAppCommand->IsRunning())
 			{
 				::HideCaret(hWnd);
 				UpdateBuffer(m_RegBuffer);
@@ -935,11 +935,11 @@ bit8 dataByte;
 			this->GetCpu()->SetPC(address);
 			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
 			{
-				this->m_pMonitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
+				this->m_pAppCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
 			else
 			{
-				this->m_pMonitorCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
+				this->m_pAppCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
 		}
 	}
@@ -998,11 +998,11 @@ bit8 dataByte;
 			EventArgs regPCChangedEventArgs;
 			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
 			{
-				this->m_pMonitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
+				this->m_pAppCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
 			else
 			{
-				this->m_pMonitorCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
+				this->m_pAppCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
 		}
 	}
@@ -1016,11 +1016,11 @@ bit8 dataByte;
 			EventArgs regPCChangedEventArgs;
 			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
 			{
-				this->m_pMonitorCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
+				this->m_pAppCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
 			else
 			{
-				this->m_pMonitorCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
+				this->m_pAppCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
 			}
 		}
 	}

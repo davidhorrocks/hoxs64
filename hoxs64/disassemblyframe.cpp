@@ -54,7 +54,7 @@ const ButtonInfo CDisassemblyFrame::TB_ButtonsAddress[] =
 	{6, TEXT("Find Address"), TEXT("Find address"), BTNS_BUTTON, IDM_VIEW_ADDRESS}
 };
 
-CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, LPCTSTR pszCaption)
+CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption)
 	: 
 	DefaultCpu(cpuid, c64)
 {
@@ -68,7 +68,7 @@ HRESULT hr;
 	m_iCurrentControlIndex = 0;
 
 	m_pszCaption = TEXT("Cpu");
-	m_pMonitorCommand = pMonitorCommand;
+	m_pAppCommand = pAppCommand;
 	m_pszCaption = pszCaption;
 	m_hWndToolItemAddress = NULL;
 	m_wheel_current = 0;
@@ -78,10 +78,10 @@ HRESULT hr;
 	if (FAILED(hr))
 		throw std::runtime_error("CDisassemblyFrame::InitFonts() Failed");
 
-	m_pWinDisassemblyChild = shared_ptr<CDisassemblyChild>(new CDisassemblyChild(cpuid, c64, pMonitorCommand, m_monitor_font));
+	m_pWinDisassemblyChild = shared_ptr<CDisassemblyChild>(new CDisassemblyChild(cpuid, c64, pAppCommand, m_monitor_font));
 	if (m_pWinDisassemblyChild == 0)
 		throw std::bad_alloc();
-	m_pWinDisassemblyReg = shared_ptr<CDisassemblyReg>(new CDisassemblyReg(cpuid, c64, pMonitorCommand, m_monitor_font));
+	m_pWinDisassemblyReg = shared_ptr<CDisassemblyReg>(new CDisassemblyReg(cpuid, c64, pAppCommand, m_monitor_font));
 	if (m_pWinDisassemblyReg == 0)
 		throw std::bad_alloc();
 
@@ -139,49 +139,49 @@ HRESULT CDisassemblyFrame::AdviseEvents()
 	hr = S_OK;
 	do
 	{
-		hs = m_pMonitorCommand->EsResume.Advise((CDisassemblyFrame_EventSink_OnResume *)this);
+		hs = m_pAppCommand->EsResume.Advise((CDisassemblyFrame_EventSink_OnResume *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsTrace.Advise((CDisassemblyFrame_EventSink_OnTrace *)this);
+		hs = m_pAppCommand->EsTrace.Advise((CDisassemblyFrame_EventSink_OnTrace *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsTraceFrame.Advise((CDisassemblyFrame_EventSink_OnTraceFrame *)this);
+		hs = m_pAppCommand->EsTraceFrame.Advise((CDisassemblyFrame_EventSink_OnTraceFrame *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsExecuteC64Clock.Advise((CDisassemblyFrame_EventSink_OnExecuteC64Clock *)this);
+		hs = m_pAppCommand->EsExecuteC64Clock.Advise((CDisassemblyFrame_EventSink_OnExecuteC64Clock *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsExecuteDiskClock.Advise((CDisassemblyFrame_EventSink_OnExecuteDiskClock *)this);
+		hs = m_pAppCommand->EsExecuteDiskClock.Advise((CDisassemblyFrame_EventSink_OnExecuteDiskClock *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsExecuteC64Instruction.Advise((CDisassemblyFrame_EventSink_OnExecuteC64Instruction *)this);
+		hs = m_pAppCommand->EsExecuteC64Instruction.Advise((CDisassemblyFrame_EventSink_OnExecuteC64Instruction *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsExecuteDiskInstruction.Advise((CDisassemblyFrame_EventSink_OnExecuteDiskInstruction *)this);
+		hs = m_pAppCommand->EsExecuteDiskInstruction.Advise((CDisassemblyFrame_EventSink_OnExecuteDiskInstruction *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hs = m_pMonitorCommand->EsShowDevelopment.Advise((CDisassemblyFrame_EventSink_OnShowDevelopment *)this);
+		hs = m_pAppCommand->EsShowDevelopment.Advise((CDisassemblyFrame_EventSink_OnShowDevelopment *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
@@ -787,7 +787,7 @@ bool CDisassemblyFrame::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 void CDisassemblyFrame::SetMenuState()
 {
-	if (!m_pMonitorCommand)
+	if (!m_pAppCommand)
 		return ;
 	if (!m_hWnd)
 		return ;
@@ -798,7 +798,7 @@ void CDisassemblyFrame::SetMenuState()
 	UINT stateOpp;
 	UINT stateTb;
 	UINT stateTbOpp;
-	bool bIsRunning = m_pMonitorCommand->IsRunning();
+	bool bIsRunning = m_pAppCommand->IsRunning();
 	if (bIsRunning)
 	{
 		state = MF_DISABLED | MF_GRAYED;
@@ -959,64 +959,64 @@ int wmId, wmEvent;
 	switch (wmId) 
 	{
 	case IDM_STEP_ONECLOCK:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return true;
-		if (m_pMonitorCommand->IsRunning())
+		if (m_pAppCommand->IsRunning())
 			return true;
 		CancelEditing();
 		if (this->GetCpuId() == CPUID_MAIN)
-			m_pMonitorCommand->ExecuteC64Clock();
+			m_pAppCommand->ExecuteC64Clock();
 		else
-			m_pMonitorCommand->ExecuteDiskClock();
-		m_pMonitorCommand->UpdateApplication();
+			m_pAppCommand->ExecuteDiskClock();
+		m_pAppCommand->UpdateApplication();
 		return true;
 	case IDM_STEP_ONEINSTRUCTION:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return true;
-		if (m_pMonitorCommand->IsRunning())
+		if (m_pAppCommand->IsRunning())
 			return true;
 		CancelEditing();
 		if (this->GetCpuId() == CPUID_MAIN)
-			m_pMonitorCommand->ExecuteC64Instruction();
+			m_pAppCommand->ExecuteC64Instruction();
 		else
-			m_pMonitorCommand->ExecuteDiskInstruction();
-		m_pMonitorCommand->UpdateApplication();
+			m_pAppCommand->ExecuteDiskInstruction();
+		m_pAppCommand->UpdateApplication();
 		return true;
 	case IDM_STEP_TRACEFRAME:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return true;
-		if (m_pMonitorCommand->IsRunning())
+		if (m_pAppCommand->IsRunning())
 			return true;
 		CancelEditing();
-		m_pMonitorCommand->TraceFrame();
-		m_pMonitorCommand->UpdateApplication();
+		m_pAppCommand->TraceFrame();
+		m_pAppCommand->UpdateApplication();
 		return true;
 	case IDM_STEP_TRACE:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return true;
-		if (m_pMonitorCommand->IsRunning())
+		if (m_pAppCommand->IsRunning())
 			return true;
 		CancelEditing();
-		m_pMonitorCommand->Trace();
+		m_pAppCommand->Trace();
 		return true;
 	case IDM_STEP_TRACEINTERRUPTTAKEN:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return true;
-		if (m_pMonitorCommand->IsRunning())
+		if (m_pAppCommand->IsRunning())
 			return true;
 		this->GetCpu()->SetBreakOnInterruptTaken();
-		m_pMonitorCommand->Trace();
+		m_pAppCommand->Trace();
 		return true;
 	case IDM_FILE_MONITOR:
 	case IDM_STEP_STOP:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return true;
 		CancelEditing();
-		m_pMonitorCommand->ShowDevelopment();
+		m_pAppCommand->ShowDevelopment();
 		::SetForegroundWindow(m_hWnd);
 		return true;
 	case IDM_VIEW_ADDRESS:
-		if (!m_pMonitorCommand)
+		if (!m_pAppCommand)
 			return true;		
 		OnEnterGotoAddress();
 		return true;
@@ -1095,16 +1095,16 @@ HRESULT hr;
 		OnMouseWheel(hWnd, uMsg, wParam, lParam);
 		return 0;
 	case WM_ENTERMENULOOP:
-		m_pMonitorCommand->SoundOff();
+		m_pAppCommand->SoundOff();
 		return 0;
 	case WM_EXITMENULOOP:
-		m_pMonitorCommand->SoundOn();
+		m_pAppCommand->SoundOn();
 		return 0;
 	case WM_ENTERSIZEMOVE:
-		m_pMonitorCommand->SoundOff();
+		m_pAppCommand->SoundOff();
 		return 0;
 	case WM_EXITSIZEMOVE:
-		m_pMonitorCommand->SoundOn();
+		m_pAppCommand->SoundOn();
 		return 0;
 	}
 	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);

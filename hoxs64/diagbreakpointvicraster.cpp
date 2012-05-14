@@ -20,11 +20,11 @@
 #include "diagbreakpointvicraster.h"
 
 
-CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IMonitorCommand *pIMonitorCommand, C64 *c64)
+CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, C64 *c64)
 {
 	m_iLine = 0;
 	m_iCycle = 1;
-	m_pIMonitorCommand = pIMonitorCommand;
+	m_pIAppCommand = pIAppCommand;
 	this->c64 = c64;
 }
 
@@ -131,7 +131,7 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 				if (m_bIsModeless)
 				{
 					this->c64->mon.GetVic()->SetBreakpointRasterCompare(this->GetRasterLine(), this->GetRasterCycle(), true, 0, 0);
-					this->m_pIMonitorCommand->ShowDevelopment();
+					this->m_pIAppCommand->ShowDevelopment();
 					DestroyWindow(hWndDlg);
 				}
 				else
@@ -143,7 +143,7 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 		case IDCANCEL:
 			if (m_bIsModeless)
 			{
-				this->m_pIMonitorCommand->ShowDevelopment();
+				this->m_pIAppCommand->ShowDevelopment();
 				DestroyWindow(hWndDlg);
 			}
 			else

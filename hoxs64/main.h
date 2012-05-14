@@ -1,7 +1,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-class CApp : public CConfig, public CAppStatus, public IMonitorCommand, public IC64Event, public ErrorMsg
+class CApp : public CConfig, public CAppStatus, public IAppCommand, public IC64Event, public ErrorMsg
 {
 public:
 	CApp();
@@ -43,22 +43,22 @@ public:
 	virtual void CAppStatus::ApplyConfig(const CConfig& newcfg);
 	// CAppStatus
 
-	// IMonitorCommand
-	virtual void IMonitorCommand::Resume();
-	virtual void IMonitorCommand::Trace();
-	virtual void IMonitorCommand::TraceFrame();
-	virtual void IMonitorCommand::ExecuteC64Clock();
-	virtual void IMonitorCommand::ExecuteDiskClock();
-	virtual void IMonitorCommand::ExecuteC64Instruction();
-	virtual void IMonitorCommand::ExecuteDiskInstruction();
-	virtual void IMonitorCommand::UpdateApplication();
-	virtual HWND IMonitorCommand::ShowDevelopment();
-	virtual bool IMonitorCommand::IsRunning();
-	virtual void IMonitorCommand::SoundOff();
-	virtual void IMonitorCommand::SoundOn();
+	// IAppCommand
+	virtual void IAppCommand::Resume();
+	virtual void IAppCommand::Trace();
+	virtual void IAppCommand::TraceFrame();
+	virtual void IAppCommand::ExecuteC64Clock();
+	virtual void IAppCommand::ExecuteDiskClock();
+	virtual void IAppCommand::ExecuteC64Instruction();
+	virtual void IAppCommand::ExecuteDiskInstruction();
+	virtual void IAppCommand::UpdateApplication();
+	virtual HWND IAppCommand::ShowDevelopment();
+	virtual bool IAppCommand::IsRunning();
+	virtual void IAppCommand::SoundOff();
+	virtual void IAppCommand::SoundOn();
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	virtual HWND GetMainFrameWindow();
-	// IMonitorCommand
+	// IAppCommand
 
 	
 	shared_ptr<CAppWindow> m_pWinAppWindow;

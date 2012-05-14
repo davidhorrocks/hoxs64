@@ -45,7 +45,7 @@ public:
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];
 
-	CMDIDebuggerFrame(C64 *c64, IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus);
+	CMDIDebuggerFrame(C64 *c64, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus);
 	virtual ~CMDIDebuggerFrame();
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -89,7 +89,7 @@ private:
 	C64 *c64;
 	CAppStatus *appStatus;
 	CConfig *cfg;
-	IMonitorCommand *m_pMonitorCommand;
+	IAppCommand *m_pAppCommand;
 	bool m_bIsCreated;
 
 	HRESULT Init();

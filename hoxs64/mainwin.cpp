@@ -86,7 +86,7 @@ CAppWindow::CAppWindow()
 	dx = NULL;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
-	m_pMonitorCommand = NULL;
+	m_pAppCommand = NULL;
 	m_hCursorBusy = LoadCursor(0L, IDC_WAIT);
 	m_hOldCursor = NULL;
 	m_pWinEmuWin = shared_ptr<CEmuWindow>(new CEmuWindow());
@@ -99,18 +99,18 @@ CAppWindow::~CAppWindow()
 	int i =0;
 }
 
-HRESULT CAppWindow::Init(CDX9 *dx, IMonitorCommand *monitorCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
+HRESULT CAppWindow::Init(CDX9 *dx, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
 {
 HRESULT hr;
 
-	if (dx == NULL || monitorCommand == NULL || cfg == NULL || appStatus == NULL || c64 == NULL)
+	if (dx == NULL || pAppCommand == NULL || cfg == NULL || appStatus == NULL || c64 == NULL)
 		return E_POINTER;
 
 	this->dx = dx;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
-	this->m_pMonitorCommand = monitorCommand;
+	this->m_pAppCommand = pAppCommand;
 
 	appStatus->m_bWindowed = TRUE;
 	
@@ -391,7 +391,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			break;
 		case IDM_FILE_MONITOR:
 			if (appStatus->m_bWindowed)
-				m_pMonitorCommand->ShowDevelopment();
+				m_pAppCommand->ShowDevelopment();
 			break;
 		case IDM_FILE_PAUSE:
 			appStatus->TogglePause();
@@ -762,7 +762,7 @@ void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 {
 	appStatus->SoundHalt();
 	MessageBox(hWnd, TEXT("A C64 CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
+	HWND hWndMon = m_pAppCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -773,7 +773,7 @@ void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 {
 	appStatus->SoundHalt();
 	MessageBox(hWnd, TEXT("A disk CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
+	HWND hWndMon = m_pAppCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -784,7 +784,7 @@ void CAppWindow::OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	appStatus->SoundHalt();
 	MessageBox(hWnd, TEXT("A VIC raster compare breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_pMonitorCommand->ShowDevelopment();
+	HWND hWndMon = m_pAppCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -1142,7 +1142,7 @@ bool ok = false;
 	{
 		if (m_pMDIDebugger.expired())
 		{
-			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->m_pMonitorCommand, this->cfg, this->appStatus));
+			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->m_pAppCommand, this->cfg, this->appStatus));
 			if (pwin != NULL)
 			{
 				int x,y,w,h;
@@ -1197,7 +1197,7 @@ bool ok = false;
 	else
 	{
 		MessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
-		m_pMonitorCommand->Resume();
+		m_pAppCommand->Resume();
 	}
 	return hWnd;
 }

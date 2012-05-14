@@ -27,7 +27,7 @@ class BreakpointChangedEventArgs : public EventArgs
 {
 };
 
-class IMonitorCommand
+class IAppCommand
 {
 public:
 	virtual void Resume()=0;

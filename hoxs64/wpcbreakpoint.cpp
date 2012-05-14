@@ -20,14 +20,14 @@
 
 const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 
-WpcBreakpoint::WpcBreakpoint(C64 *c64, IMonitorCommand *pMonitorCommand)
+WpcBreakpoint::WpcBreakpoint(C64 *c64, IAppCommand *pAppCommand)
 {
 HRESULT hr;
 	m_bSuppressThisBreakpointEvent = false;
 	m_hLvBreak = NULL;
 	m_hMenuBreakPoint = NULL;
 	this->c64 = c64;
-	this->m_pMonitorCommand = pMonitorCommand;
+	this->m_pAppCommand = pAppCommand;
 	hr = Init();
 	if (FAILED(hr))
 		throw std::runtime_error("WpcBreakpoint::Init() failed");
@@ -51,7 +51,7 @@ HSink hs;
 	if (!m_hMenuBreakPoint)
 		return E_FAIL;
 
-	hs = m_pMonitorCommand->EsBreakpointChanged.Advise(this);
+	hs = m_pAppCommand->EsBreakpointChanged.Advise(this);
 	if (!hs)
 		return E_FAIL;
 	return S_OK;
@@ -573,10 +573,10 @@ void WpcBreakpoint::OnShowAssembly()
 			switch(bp->machineident)
 			{
 			case DBGSYM::MachineIdent::MainCpu:
-				this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
+				this->m_pAppCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
 				break;
 			case DBGSYM::MachineIdent::DiskCpu:
-				this->m_pMonitorCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
+				this->m_pAppCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
 				break;
 			}
 		}

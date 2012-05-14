@@ -93,7 +93,7 @@ public:
 		bool IsEqual(AssemblyLineBuffer& other);
 	};
 
-	CDisassemblyEditChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont);
+	CDisassemblyEditChild(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont);
 	virtual ~CDisassemblyEditChild();
 	static TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -119,7 +119,7 @@ public:
 	static const int BUFFER_WIDTH = 50;
 	static const int MAX_BUFFER_HEIGHT = 200;
 private:
-	IMonitorCommand *m_pMonitorCommand;
+	IAppCommand *m_pAppCommand;
 	CDPI m_dpi;
 	HFONT m_hFont;
 	bit16 m_FirstAddress;

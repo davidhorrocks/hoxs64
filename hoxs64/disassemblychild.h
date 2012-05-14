@@ -20,7 +20,7 @@ class CDisassemblyChild_EventSink :
 class CDisassemblyChild : public CVirWindow, public CDisassemblyChild_EventSink, public DefaultCpu
 {
 public:
-	CDisassemblyChild(int cpuid, C64 *c64, IMonitorCommand *pMonitorCommand, HFONT hFont);
+	CDisassemblyChild(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont);
 	virtual ~CDisassemblyChild();
 
 	static const int ID_SCROLLBAR = 2000;
@@ -39,7 +39,7 @@ public:
 	void CancelEditing();
 private:
 	HWND m_hWndScroll;
-	IMonitorCommand *m_pMonitorCommand;
+	IAppCommand *m_pAppCommand;
 
 	shared_ptr<CDisassemblyEditChild> m_pWinDisassemblyEditChild;
 
