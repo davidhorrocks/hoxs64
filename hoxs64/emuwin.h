@@ -24,6 +24,10 @@ private:
 	C64 *c64;
 	const static LPTSTR lpszClassName;
 	DWORD m_dwSolidColourFill;
+
+	int m_iLastX;
+	int m_iLastY;
+	bool OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 #endif

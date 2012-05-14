@@ -31,6 +31,8 @@ private:
 	void DrawXorBar(HDC hdc, int x1, int y1, int width, int height);
 	void ClipPointToRect(const RECT &rc, POINT *pt);
 	void ClipPointToValidPanelSizer(POINT *pt);
+	void CleanUp();
+
 	Sp_WPanel m_pPanelToSize;
 	bool m_bIsRootRectValid;
 	RECT m_rcRoot;
@@ -40,6 +42,8 @@ private:
 	BOOL m_fMoved;
 	BOOL m_fDragMode;
 	int m_iSplitterPos;
+	HBITMAP m_hbmSizerBar;
+	HBRUSH  m_hbrSizerBar;
 
 	Wp_CVirWindow m_pWinParentWindow;
 	HWND m_hWndRebar;

@@ -139,6 +139,23 @@ void CEmuWindow::SetColours()
 	}
 }
 
+bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{	
+	int x = GET_X_LPARAM(lParam);
+	int y = GET_Y_LPARAM(lParam);
+
+	HDC hdc = GetDC(hWnd);
+	if (hdc)
+	{
+
+		ReleaseDC(hWnd, hdc);
+	}
+
+	m_iLastX = x;
+	m_iLastY = y;
+	return true;
+}
+
 LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr;
@@ -166,14 +183,24 @@ HRESULT hr;
 			}
 			ValidateRect(hWnd, NULL);
 			return 0;
+		case WM_MOUSEMOVE:
+			OnMouseMove(hWnd, uMsg, wParam, lParam);
+			if (appStatus->m_bWindowed)
+			{
+			}
+			return 0;
 		case WM_ERASEBKGND:
 			return 1;
-		default:
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}	
-	return 0;
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+/*
+Function: UpdateC64Window
+Description:
+Draws the small dx surface to the dx back buffer.
+Draws the drive sprites to the dx back buffer.
+*/
 HRESULT CEmuWindow::RenderWindow()
 {
 HRESULT hr;
@@ -182,9 +209,11 @@ HRESULT hr;
 	if (!dx->m_pd3dDevice)
 		return E_FAIL;	
 
+	//Blank out any regions that are outside of the C64 display area.
 	dx->ClearTargets(m_dwSolidColourFill);
 	if(SUCCEEDED(hr = dx->m_pd3dDevice->BeginScene()))
 	{
+		//Draw from the dx small surface to the dx backbuffer
 		hr = dx->UpdateBackbuffer((D3DTEXTUREFILTERTYPE)appStatus->m_blitFilter);
 		if (cfg->m_bShowFloppyLed)
 			DrawDriveSprites();
@@ -193,6 +222,15 @@ HRESULT hr;
 	return hr;
 }
 
+/*
+Function: UpdateC64Window
+Description:
+Draws a full C64 screen to the current DirectX backbuffer and presents the display. 
+The display consists of two parts separated by the current VIC output cursor position. 
+Pixels from the top of the display to the current VIC output cursor position are from 
+the current C64 frame. Pixels from beyond the current VIC output cursor position to 
+the bottom of the display are from the previous C64 frame.
+*/
 HRESULT CEmuWindow::UpdateC64Window()
 {
 HRESULT hr = E_FAIL;
@@ -201,9 +239,11 @@ HRESULT hr = E_FAIL;
 		return E_FAIL;
 	if (!dx->m_pd3dDevice)
 		return E_FAIL;
+	//VIC6569::UpdateBackBuffer() draws pixels that have been buffered by the VIC class to the dx small surface.
 	hr = this->c64->vic.UpdateBackBuffer();
 	if (SUCCEEDED(hr))
 	{
+		//CEmuWindow::RenderWindow from the dx small surface to the dx backbuffer.
 		hr = RenderWindow();
 		if (SUCCEEDED(hr))
 		{

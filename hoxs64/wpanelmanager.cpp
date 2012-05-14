@@ -21,14 +21,18 @@
 
 WPanelManager::WPanelManager()
 {
+	m_hbmSizerBar = NULL;
+	m_hbrSizerBar = NULL;
 }
 
 WPanelManager::~WPanelManager()
 {
+	CleanUp();
 }
 
 HRESULT WPanelManager::Init(HINSTANCE hInstance, Wp_CVirWindow pWinParentWindow, HWND hWndRebar)
 {
+	CleanUp();
 	m_bIsRootRectValid = false;
 	m_oldy = -4;
 	m_fMoved = FALSE;
@@ -40,7 +44,38 @@ HRESULT WPanelManager::Init(HINSTANCE hInstance, Wp_CVirWindow pWinParentWindow,
 
 	m_iSizerGap = m_dpi.ScaleX(WPANELSIZEGAP);
 
-	return S_OK;
+
+	static WORD _dotPatternBmp[8] = 
+	{ 
+		0x00aa, 0x0055, 0x00aa, 0x0055, 
+		0x00aa, 0x0055, 0x00aa, 0x0055
+	};
+	
+
+	m_hbmSizerBar = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
+	if (m_hbmSizerBar)
+	{
+		m_hbrSizerBar = CreatePatternBrush(m_hbmSizerBar);
+		if (m_hbrSizerBar)
+		{
+			return S_OK;
+		}
+	}
+	return E_FAIL;
+}
+
+void WPanelManager::CleanUp()
+{
+	if (m_hbrSizerBar)
+	{
+		DeleteObject(m_hbrSizerBar);
+		m_hbrSizerBar = NULL;
+	}
+	if (m_hbmSizerBar)
+	{
+		DeleteObject(m_hbmSizerBar);
+		m_hbmSizerBar = NULL;
+	}
 }
 
 HRESULT WPanelManager::CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, LPTSTR pszTitle, Sp_CVirWindow pChildWin)
@@ -237,21 +272,19 @@ void WPanelManager::DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 		0x00aa, 0x0055, 0x00aa, 0x0055
 	};
 
-	HBITMAP hbm;
-	HBRUSH  hbr, hbrushOld;
+	HBRUSH  hbrushOld;
 
-	hbm = CreateBitmap(8, 8, 1, 1, _dotPatternBmp);
-	hbr = CreatePatternBrush(hbm);
+	if (m_hbrSizerBar && m_hbrSizerBar)
+	{
+		SetBrushOrgEx(hdc, x1, y1, 0);
+		hbrushOld = (HBRUSH)SelectObject(hdc, m_hbrSizerBar);
+		if (hbrushOld)
+		{
+			PatBlt(hdc, x1, y1, width, height, PATINVERT);
 	
-	SetBrushOrgEx(hdc, x1, y1, 0);
-	hbrushOld = (HBRUSH)SelectObject(hdc, hbr);
-	
-	PatBlt(hdc, x1, y1, width, height, PATINVERT);
-	
-	SelectObject(hdc, hbrushOld);
-	
-	DeleteObject(hbr);
-	DeleteObject(hbm);
+			SelectObject(hdc, hbrushOld);	
+		}
+	}
 }
 
 void WPanelManager::OnDestroyWPanel(Sp_WPanel pwp)
