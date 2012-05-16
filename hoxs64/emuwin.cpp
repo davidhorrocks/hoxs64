@@ -10,40 +10,11 @@
 #include <dsound.h>
 #include <stdio.h>
 #include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
 #include "CDPI.h"
-#include "bits.h"
-#include "util.h"
+#include "dchelper.h"
 #include "utils.h"
-#include "errormsg.h"
-#include "hconfig.h"
-#include "appstatus.h"
-#include "dxstuff9.h"
-#include "register.h"
-#include "c6502.h"
-#include "ram64.h"
-#include "cpu6510.h"
-#include "cia6526.h"
-#include "cia1.h"
-#include "cia2.h"
-#include "vic6569.h"
-#include "tap.h"
-#include "filter.h"
-#include "sid.h"
-#include "sidfile.h"
-#include "d64.h"
-#include "d1541.h"
-#include "via6522.h"
-#include "via1.h"
-#include "via2.h"
-#include "diskinterface.h"
-#include "t64.h"
 #include "C64.h"
 #include "emuwin.h"
-#include "dchelper.h"
 #include "resource.h"
 
 
@@ -153,7 +124,7 @@ void CEmuWindow::SetNotify(INotify *pINotify)
 
 void CEmuWindow::GetVicRasterPositionFromClientPosition(int x, int y, int& cycle, int& line)
 {
-	int s = dx->m_displayStart;
+	int s = dx->m_displayStart + DISPLAY_START;
 	int st = dx->m_displayFirstVicRaster;
 	int sb = dx->m_displayLastVicRaster;
 	int wc = dx->m_displayWidth;
@@ -188,7 +159,7 @@ void CEmuWindow::GetVicCycleRectFromClientPosition(int x, int y, RECT& rcVicCycl
 
 void CEmuWindow::GetDisplayRectFromVicRect(const RECT rcVicCycle, RECT& rcDisplay)
 {
-	int s = dx->m_displayStart;
+	int s = dx->m_displayStart + DISPLAY_START;
 	int st = dx->m_displayFirstVicRaster;
 	int sb = dx->m_displayLastVicRaster;
 	int wc = dx->m_displayWidth;
@@ -310,8 +281,7 @@ RECT rcVicCycle;
 	{
 		{
 			DcHelper dch(hdc);
-			BOOL br = FillRect(hdc, &m_rcCycleCursor, (HBRUSH) (COLOR_WINDOW+1));
-			br = br;
+			FillRect(hdc, &m_rcCycleCursor, (HBRUSH) (COLOR_WINDOW+1));
 		}
 		ReleaseDC(hWnd, hdc);
 	}

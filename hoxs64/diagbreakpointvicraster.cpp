@@ -104,7 +104,7 @@ bool bCycleOK = false;
 		SetFocus(GetDlgItem(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE));
 		return false;
 	}
-	bCycleOK = TryGetLine(m_iCycle);
+	bCycleOK = TryGetCycle(m_iCycle);
 	if (!bCycleOK)
 	{
 		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Cycle"), TEXT("Raster cycle must be in the range %d - %d"), 0, PAL_CLOCKS_PER_LINE);
@@ -146,6 +146,9 @@ TCHAR buffer[30];
 
 	_stprintf_s(buffer, _countof(buffer), TEXT("%d"), (int)e.Line);
 	::SetDlgItemText(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE, buffer);
+
+	UpdateWindow(::GetDlgItem(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERCYCLE));
+	UpdateWindow(::GetDlgItem(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE));
 	m_bInOnVicCursorChange = false;
 }
 

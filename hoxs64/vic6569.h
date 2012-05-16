@@ -1,6 +1,8 @@
 #ifndef __VIC6569_H__
 #define __VIC6569_H__
 
+#define DISPLAY_START (76)
+
 #define NUM_SCREEN_COLUMNS (40)
 #define GACCESS_COL1_CYCLE (16)
 #define SPRITE_DISPLAY_CHECK_XPOS (0x164)
@@ -207,8 +209,10 @@ public:
 	bit8 vicBankChangeByte;
 
 	//IMonitorVic
-	virtual bit16 GetRasterLine();
-	virtual bit8 GetRasterCycle();
+	virtual bit16 GetCompletedRasterLine();
+	virtual bit8 GetCompletedRasterCycle();
+	virtual bit16 GetNextRasterLine();
+	virtual bit8 GetNextRasterCycle();
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint);
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount); 
 	virtual int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt);

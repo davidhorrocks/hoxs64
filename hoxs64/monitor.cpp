@@ -54,8 +54,8 @@ void Monitor::GetVicRegisters(TCHAR *pLine_Text, int cchLine_Text, TCHAR *pCycle
 {
 TCHAR szWord[5];
 
-	bit16 line = m_pMonitorVic->GetRasterLine();
-	bit8 cycle = m_pMonitorVic->GetRasterCycle();
+	bit16 line = m_pMonitorVic->GetNextRasterLine();
+	bit8 cycle = m_pMonitorVic->GetNextRasterCycle();
 
 	if (pLine_Text != NULL && cchLine_Text > 0)
 	{

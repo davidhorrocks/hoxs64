@@ -463,7 +463,7 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 		cia2.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
-		if (vic.CheckBreakpointRasterCompare(vic.GetRasterLine(), vic.GetRasterCycle(), true) == 0)
+		if (vic.CheckBreakpointRasterCompare(vic.GetNextRasterLine(), vic.GetNextRasterCycle(), true) == 0)
 		{
 			bBreakVic = true;
 		}

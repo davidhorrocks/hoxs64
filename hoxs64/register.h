@@ -193,8 +193,10 @@ public:
 class IMonitorVic
 {
 public:
-	virtual bit16 GetRasterLine()=0;
-	virtual bit8 GetRasterCycle()=0;
+	virtual bit16 GetCompletedRasterLine()=0;
+	virtual bit8 GetCompletedRasterCycle()=0;
+	virtual bit16 GetNextRasterLine()=0;
+	virtual bit8 GetNextRasterCycle()=0;
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint) = 0;
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) = 0; 
 	virtual int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt) = 0;

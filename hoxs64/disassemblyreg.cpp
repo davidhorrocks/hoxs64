@@ -433,8 +433,8 @@ void CDisassemblyReg::UpdateBuffer(RegLineBuffer& b)
 		b.Ddr.SetValue(state.PortDdr);
 		b.Data.SetValue(state.PortDataStored);
 
-		bit16 line = this->c64->mon.GetVic()->GetRasterLine();
-		bit8 cycle = this->c64->mon.GetVic()->GetRasterCycle();
+		bit16 line = this->c64->mon.GetVic()->GetNextRasterLine();
+		bit8 cycle = this->c64->mon.GetVic()->GetNextRasterCycle();
 		
 		b.VicLine.SetValue(line);
 		b.VicCycle.SetValue(cycle);

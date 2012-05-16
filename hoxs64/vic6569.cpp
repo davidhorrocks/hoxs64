@@ -44,8 +44,6 @@
 
 #define MAX_SPRITE_WIDTH (0x30) 
 #define LEFT_BORDER_WIDTH (0x30) 
-#define DISPLAY_START (76)
-#define DISPLAY_START_A 76
 #define BACKCOLORINDEX0 (0x80)
 #define BACKCOLORINDEX1 (0x81)
 #define BACKCOLORINDEX2 (0x82)
@@ -1762,7 +1760,7 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	vicRASTER_compare=0;
 	bVicRasterMatch = false;
 	vic_raster_line = initial_raster_line;
-	vic_raster_cycle = 63;
+	vic_raster_cycle = PAL_CLOCKS_PER_LINE;
 
 	//INTERRUPT
 	vicINTERRUPT_STATUS=0;
@@ -2460,7 +2458,7 @@ bit8 data8;
 	{
 		CurrentClock++;
 		cyclePrev = vic_raster_cycle++;
-		if (vic_raster_cycle > 63)
+		if (vic_raster_cycle > PAL_CLOCKS_PER_LINE)
 			vic_raster_cycle = 1;
 		cycle = vic_raster_cycle;
 	
@@ -3363,7 +3361,7 @@ void VIC6569::CheckRasterCompare(bit8 cycle)
 	//Edge triggered raster IRQ noticed in Octopus In Red Wine demo.
 	if (vic_check_irq_in_cycle2 == 0)
 	{
-		if (cycle != 63)
+		if (cycle != PAL_CLOCKS_PER_LINE)
 		{
 			if (vic_raster_line == vicRASTER_compare)
 			{
@@ -3603,7 +3601,7 @@ bit8 modeOld;
 			vic_bottom_compare = 0xfb;
 		}
 
-		if (vic_raster_line == vic_top_compare && cycle!=63)
+		if (vic_raster_line == vic_top_compare && cycle!=PAL_CLOCKS_PER_LINE)
 		{
 			//The game Elven Warrior used to require this to display properly?!
 			if (bRSELChanging && vicDEN!=0)
@@ -3613,7 +3611,7 @@ bit8 modeOld;
 			}
 		}
 
-		if (vic_raster_line == vic_bottom_compare && cycle!=63)
+		if (vic_raster_line == vic_bottom_compare && cycle!=PAL_CLOCKS_PER_LINE)
 		{//memories demo
 			if (bRSELChanging)
 			{
@@ -3628,7 +3626,7 @@ bit8 modeOld;
 
 		if (vic_raster_line==0x30)
 			vic_latchDEN|=vicDEN;
-		if (vic_raster_line>=0x30 && vic_raster_line<=0xf7 && ((vic_raster_line & 7)==vicYSCROLL) && vic_latchDEN!=0 && cycle !=63)
+		if (vic_raster_line>=0x30 && vic_raster_line<=0xf7 && ((vic_raster_line & 7)==vicYSCROLL) && vic_latchDEN!=0 && cycle !=PAL_CLOCKS_PER_LINE)
 		{			
 			if (vicIDLE != 0)
 			{
@@ -4729,7 +4727,7 @@ unsigned short h;
 }
 
 
-bit16 VIC6569::GetRasterLine()
+bit16 VIC6569::GetCompletedRasterLine()
 {
 	if (vic_check_irq_in_cycle2)
 		return 0;
@@ -4737,9 +4735,24 @@ bit16 VIC6569::GetRasterLine()
 		return (bit16)this->vic_raster_line;
 }
 
-bit8 VIC6569::GetRasterCycle()
+bit8 VIC6569::GetCompletedRasterCycle()
 {
 	return this->vic_raster_cycle;
+}
+
+bit16 VIC6569::GetNextRasterLine()
+{
+	if (vic_raster_cycle < PAL_CLOCKS_PER_LINE)
+		return (bit16)vic_raster_line;
+	else if (vic_raster_line < PAL_MAX_LINE)
+		return (bit16)(vic_raster_line + 1);
+	else
+		return 0;
+}
+
+bit8 VIC6569::GetNextRasterCycle()
+{
+	return (bit16)((vic_raster_cycle < PAL_CLOCKS_PER_LINE) ? vic_raster_cycle + 1 : 1);
 }
 
 bool VIC6569::SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
