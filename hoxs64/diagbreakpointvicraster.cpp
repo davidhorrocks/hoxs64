@@ -201,9 +201,6 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 		case IDC_TXT_BREAKPOINTRASTERLINE:
 			switch(HIWORD(wParam))
 			{
-			case EN_SETFOCUS:
-				PostMessage(GetDlgItem(hWndDlg, IDC_TXT_BREAKPOINTRASTERLINE), EM_SETSEL, 0, -1);
-				break;
 			case EN_CHANGE:
 				DisplayVicCursor();
 				break;
@@ -212,9 +209,6 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 		case IDC_TXT_BREAKPOINTRASTERCYCLE:
 			switch(HIWORD(wParam))
 			{
-			case EN_SETFOCUS:
-				PostMessage(GetDlgItem(hWndDlg, IDC_TXT_BREAKPOINTRASTERCYCLE), EM_SETSEL, 0, -1);
-				break;
 			case EN_CHANGE:
 				DisplayVicCursor();
 				break;
@@ -223,7 +217,7 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 		}
 		break;
 	case WM_DESTROY:
-		((CDiagBreakpointVicRaster_EventSink_OnVicCursorChange *)this)->UnadviseAll();
+		CDiagBreakpointVicRaster_EventSink_OnVicCursorChange::UnadviseAll();
 		this->m_pIAppCommand->DisplayVicCursor(false);
 		break;
 	}

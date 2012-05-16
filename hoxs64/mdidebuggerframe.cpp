@@ -507,6 +507,25 @@ void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 		HWND hwnd = pdlg->ShowModelessDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), hWndOwner);
 		if (hwnd)
 		{
+			int x = 0, y = 0;
+			RECT rcMain, rcDlg;
+			bool bAutoPos = false;
+			if (GetWindowRect(hWndOwner, &rcMain))
+			{
+				if (GetWindowRect(hwnd, &rcDlg))
+				{
+					OffsetRect(&rcDlg, -(rcDlg.left - rcMain.left) - (rcDlg.right-rcDlg.left), 0);
+					if (rcDlg.left < 0)
+					{
+						OffsetRect(&rcDlg, -rcDlg.left, 0);
+					}
+					bAutoPos = true;
+					x = rcDlg.left;
+					y = rcDlg.top;
+					SetWindowPos(hwnd, HWND_TOP, x, y, 0, 0, SWP_NOSIZE);
+				}
+			}
+
 			ShowWindow(hwnd, SW_SHOW);
 			this->m_pdlgModelessBreakpointVicRaster = pdlg;
 		}
