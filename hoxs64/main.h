@@ -1,7 +1,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-class CApp : public CConfig, public CAppStatus, public IAppCommand, public IC64Event, public ErrorMsg
+class CApp : CConfig, CAppStatus, IAppCommand, IC64Event, CEmuWindow::INotify, public ErrorMsg
 {
 public:
 	CApp();
@@ -56,11 +56,11 @@ public:
 	virtual bool IAppCommand::IsRunning();
 	virtual void IAppCommand::SoundOff();
 	virtual void IAppCommand::SoundOn();
-	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
-	virtual HWND GetMainFrameWindow();
-	virtual void DisplayVicCursor(bool bEnabled);
-	virtual void SetVicCursorPos(int iCycle, int iLine);
-	virtual void GetVicCursorPos(int *piCycle, int *piLine);
+	virtual void IAppCommand::ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
+	virtual HWND IAppCommand::GetMainFrameWindow();
+	virtual void IAppCommand::DisplayVicCursor(bool bEnabled);
+	virtual void IAppCommand::SetVicCursorPos(int iCycle, int iLine);
+	virtual void IAppCommand::GetVicCursorPos(int *piCycle, int *piLine);
 	// IAppCommand
 
 	
@@ -77,6 +77,9 @@ public:
 	virtual void DiskDriveLed(bool bOn);
 	virtual void DiskWriteLed(bool bOn);
 	virtual void ShowErrorBox(LPCTSTR title, LPCTSTR message);
+
+	//CEmuWindow::INotify
+	virtual void CEmuWindow::INotify::VicCursorMove(int cycle, int line);
 
 	C64 c64;
 

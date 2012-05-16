@@ -79,32 +79,11 @@ const LPTSTR CAppWindow::lpszMenuName = APPMENUNAME;
 
 
 
-CAppWindow::CAppWindow()
+CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
 {
-	cfg = NULL;
-	appStatus = NULL;
-	dx = NULL;
+	m_hOldCursor = NULL;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
-	m_pAppCommand = NULL;
-	m_hCursorBusy = LoadCursor(0L, IDC_WAIT);
-	m_hOldCursor = NULL;
-	m_pWinEmuWin = shared_ptr<CEmuWindow>(new CEmuWindow());
-	if (m_pWinEmuWin == 0)
-		throw std::bad_alloc();
-}
-
-CAppWindow::~CAppWindow()
-{
-	int i =0;
-}
-
-HRESULT CAppWindow::Init(CDX9 *dx, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
-{
-HRESULT hr;
-
-	if (dx == NULL || pAppCommand == NULL || cfg == NULL || appStatus == NULL || c64 == NULL)
-		return E_POINTER;
 
 	this->dx = dx;
 	this->cfg = cfg;
@@ -113,14 +92,18 @@ HRESULT hr;
 	this->m_pAppCommand = pAppCommand;
 
 	appStatus->m_bWindowed = TRUE;
-	
-	hr = m_pWinEmuWin->Init(dx, cfg, appStatus, c64);
-	if (FAILED(hr))
-	{
-		MessageBox(0L, TEXT("Unable to initialise the emulation window."), appStatus->GetAppName(), MB_ICONWARNING);
-		return hr;
-	}
-	return S_OK;
+
+	m_hCursorBusy = LoadCursor(0L, IDC_WAIT);
+	if (!m_hCursorBusy)
+		throw std::runtime_error("LoadCursor failed.");
+	m_pWinEmuWin = shared_ptr<CEmuWindow>(new CEmuWindow(dx, cfg, appStatus, c64));
+	if (m_pWinEmuWin == 0)
+		throw std::bad_alloc();
+}
+
+CAppWindow::~CAppWindow()
+{
+	int i =0;
 }
 
 HRESULT CAppWindow::RegisterClass(HINSTANCE hInstance)

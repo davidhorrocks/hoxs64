@@ -661,21 +661,14 @@ TCHAR ext[_MAX_EXT];
 
 	try
 	{
-		m_pWinAppWindow = shared_ptr<CAppWindow>(new CAppWindow());
+		m_pWinAppWindow = shared_ptr<CAppWindow>(new CAppWindow(&dx, this, this, this, &c64));
 	}
 	catch (...)
 	{
+		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
+		return E_FAIL;
 	}
-	if (m_pWinAppWindow == 0)
-	{
-		MessageBox(0L, TEXT("Out of memory."), m_szAppName, MB_ICONWARNING);
-		return E_OUTOFMEMORY;
-	}
-	hr = m_pWinAppWindow->Init(&dx, this, this, this, &c64);
-	if (FAILED(hr))
-	{
-		return SetError(*m_pWinAppWindow);
-	}
+	m_pWinAppWindow->m_pWinEmuWin->SetNotify(this);
 
 	m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &w, &h);
 
@@ -1561,4 +1554,9 @@ void CApp::AllowAccessibilityShortcutKeys( bool bAllowKeys )
             SystemParametersInfo(SPI_SETFILTERKEYS, sizeof(FILTERKEYS), &fkOff, 0);
         }
     }
+}
+
+void CApp::VicCursorMove(int cycle, int line)
+{
+	this->EsVicCursorMove.Raise(this, VicCursorMoveEventArgs(cycle, line));
 }

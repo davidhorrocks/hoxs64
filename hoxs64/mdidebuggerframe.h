@@ -30,7 +30,6 @@ class CMDIDebuggerFrame_EventSink :
 {
 };
 
-
 class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink
 {
 public:

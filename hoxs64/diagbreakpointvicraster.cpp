@@ -26,6 +26,7 @@ CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, C6
 	m_iCycle = 1;
 	m_pIAppCommand = pIAppCommand;
 	this->c64 = c64;
+	m_bInOnVicCursorChange = false;
 }
 
 CDiagBreakpointVicRaster::~CDiagBreakpointVicRaster()
@@ -44,34 +45,14 @@ int CDiagBreakpointVicRaster::GetRasterCycle()
 	return m_iCycle;
 }
 
-bool CDiagBreakpointVicRaster::SaveUI()
+bool CDiagBreakpointVicRaster::TryGetCycle(int& v)
 {
 TCHAR buffer[30];
 int c;
-bit16 line, cycle;
-bool bLineOK = false;
-bool bCycleOK = false;
+bit16 cycle;
 HRESULT hr;
-	c = ::GetDlgItemText(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE, &buffer[0], _countof(buffer));
-	if (c > 0)
-	{
-		hr = Assembler::TryParseAddress16(&buffer[0], &line);
-		if (SUCCEEDED(hr))
-		{
-			if (line >= 0 && line < PAL_LINES_PER_FRAME)
-			{
-				m_iLine = line;
-				bLineOK = true;
-			}
-		}
-	}
-	if (!bLineOK)
-	{
-		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Line"), TEXT("Raster line must be in the range %d - %d"), 0, PAL_LINES_PER_FRAME - 1);
-		SetFocus(GetDlgItem(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE));
-		return false;
-	}
 
+	v = 1;
 	c = ::GetDlgItemText(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERCYCLE, &buffer[0], _countof(buffer));
 	if (c > 0)
 	{
@@ -80,11 +61,50 @@ HRESULT hr;
 		{
 			if (cycle >= 1 && cycle <= PAL_CLOCKS_PER_LINE)
 			{
-				m_iCycle = cycle;
-				bCycleOK = true;
+				v = cycle;
+				return true;
 			}
 		}
 	}
+	return false;
+}
+
+bool CDiagBreakpointVicRaster::TryGetLine(int& v)
+{
+TCHAR buffer[30];
+int c;
+bit16 line;
+HRESULT hr;
+
+	c = ::GetDlgItemText(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE, &buffer[0], _countof(buffer));
+	if (c > 0)
+	{
+		hr = Assembler::TryParseAddress16(&buffer[0], &line);
+		if (SUCCEEDED(hr))
+		{
+			if (line >= 0 && line < PAL_LINES_PER_FRAME)
+			{
+				v = line;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool CDiagBreakpointVicRaster::SaveUI()
+{
+bool bLineOK = false;
+bool bCycleOK = false;
+
+	bLineOK = TryGetLine(m_iLine);
+	if (!bLineOK)
+	{
+		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Line"), TEXT("Raster line must be in the range %d - %d"), 0, PAL_LINES_PER_FRAME - 1);
+		SetFocus(GetDlgItem(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE));
+		return false;
+	}
+	bCycleOK = TryGetLine(m_iCycle);
 	if (!bCycleOK)
 	{
 		this->ShowMessage(this->m_hWnd, MB_OK | MB_ICONWARNING, TEXT("Invalid Raster Cycle"), TEXT("Raster cycle must be in the range %d - %d"), 0, PAL_CLOCKS_PER_LINE);
@@ -113,6 +133,29 @@ HWND hWndEdit;
 		SendMessage(hWndEdit, EM_SETSEL, 0, -1);
 	}
 	this->m_pIAppCommand->DisplayVicCursor(true);
+	this->m_pIAppCommand->EsVicCursorMove.Advise((CDiagBreakpointVicRaster_EventSink_OnVicCursorChange *)this);
+	
+}
+
+void CDiagBreakpointVicRaster::OnVicCursorChange(void *sender, VicCursorMoveEventArgs& e)
+{
+TCHAR buffer[30];
+	m_bInOnVicCursorChange = true;
+	_stprintf_s(buffer, _countof(buffer), TEXT("%d"), (int)e.Cycle);
+	::SetDlgItemText(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERCYCLE, buffer);
+
+	_stprintf_s(buffer, _countof(buffer), TEXT("%d"), (int)e.Line);
+	::SetDlgItemText(this->m_hWnd, IDC_TXT_BREAKPOINTRASTERLINE, buffer);
+	m_bInOnVicCursorChange = false;
+}
+
+void CDiagBreakpointVicRaster::DisplayVicCursor()
+{
+	if (m_bInOnVicCursorChange)
+		return;
+	TryGetLine(m_iLine);
+	TryGetCycle(m_iCycle);
+	m_pIAppCommand->SetVicCursorPos(m_iCycle, m_iLine);
 }
 
 BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -158,6 +201,9 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			case EN_SETFOCUS:
 				PostMessage(GetDlgItem(hWndDlg, IDC_TXT_BREAKPOINTRASTERLINE), EM_SETSEL, 0, -1);
 				break;
+			case EN_CHANGE:
+				DisplayVicCursor();
+				break;
 			}
 			break;
 		case IDC_TXT_BREAKPOINTRASTERCYCLE:
@@ -166,11 +212,15 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			case EN_SETFOCUS:
 				PostMessage(GetDlgItem(hWndDlg, IDC_TXT_BREAKPOINTRASTERCYCLE), EM_SETSEL, 0, -1);
 				break;
+			case EN_CHANGE:
+				DisplayVicCursor();
+				break;
 			}
 			break;
 		}
 		break;
 	case WM_DESTROY:
+		((CDiagBreakpointVicRaster_EventSink_OnVicCursorChange *)this)->UnadviseAll();
 		this->m_pIAppCommand->DisplayVicCursor(false);
 		break;
 	}

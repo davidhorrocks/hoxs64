@@ -47,26 +47,28 @@
 #include "resource.h"
 
 
-
 const LPTSTR CEmuWindow::lpszClassName = HOXS_EMULATION_WND_CLASS;
 
-CEmuWindow::CEmuWindow()
+CEmuWindow::CEmuWindow(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
 {
 	m_dwSolidColourFill=0;
 	m_bDrawCycleCursor = false;
 	m_iVicCycleCursor = 1;
 	m_iVicLineCursor = 0;
+	m_pINotify = 0;
+	m_bDragMode = false;
 
-}
-
-HRESULT CEmuWindow::Init(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
-{
 	this->dx = dx;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
-	return S_OK;
 }
+
+CEmuWindow::~CEmuWindow()
+{
+	int i=0;
+}
+
 HRESULT CEmuWindow::RegisterClass(HINSTANCE hInstance)
 {
 WNDCLASSEX  wc;
@@ -144,6 +146,11 @@ void CEmuWindow::SetColours()
 	}
 }
 
+void CEmuWindow::SetNotify(INotify *pINotify)
+{
+	m_pINotify = pINotify;
+}
+
 void CEmuWindow::GetVicRasterPositionFromClientPosition(int x, int y, int& cycle, int& line)
 {
 	int s = dx->m_displayStart;
@@ -155,7 +162,6 @@ void CEmuWindow::GetVicRasterPositionFromClientPosition(int x, int y, int& cycle
 	int hp = dx->m_rcTargetRect.bottom - dx->m_rcTargetRect.top;
 
 	cycle = (s + ((x * wc) / wp)) & ~7;
-	cycle -= 8;
 	cycle = cycle / 8;
 	cycle += 1;
 	if (cycle < 1)
@@ -180,7 +186,7 @@ void CEmuWindow::GetVicCycleRectFromClientPosition(int x, int y, RECT& rcVicCycl
 	SetRect(&rcVicCycle, (cycle - 1) * 8, line, (cycle) * 8, line + 1);
 }
 
-void CEmuWindow::GetDisplayRectFromVicRec(const RECT rcVicCycle, RECT& rcDisplay)
+void CEmuWindow::GetDisplayRectFromVicRect(const RECT rcVicCycle, RECT& rcDisplay)
 {
 	int s = dx->m_displayStart;
 	int st = dx->m_displayFirstVicRaster;
@@ -209,6 +215,10 @@ void CEmuWindow::SetVicCursorPos(int iCycle, int iLine)
 {
 	m_iVicCycleCursor = iCycle;
 	m_iVicLineCursor = iLine;
+	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
+	{
+		DrawCursorAtVicPosition(iCycle, iLine);
+	}
 }
 
 void CEmuWindow::GetVicCursorPos(int *piCycle, int *piLine)
@@ -219,35 +229,92 @@ void CEmuWindow::GetVicCursorPos(int *piCycle, int *piLine)
 		*piLine = m_iVicLineCursor;
 }
 
-bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{	
+void CEmuWindow::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
 	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
 	{
 		int x = GET_X_LPARAM(lParam);
 		int y = GET_Y_LPARAM(lParam);
 
-		RECT rcVicCycle;
-
-		GetVicRasterPositionFromClientPosition(x, y, m_iVicCycleCursor, m_iVicLineCursor);
-		SetRect(&rcVicCycle, (m_iVicCycleCursor - 1) * 8, m_iVicLineCursor, (m_iVicCycleCursor) * 8, m_iVicLineCursor + 1);
-		GetDisplayRectFromVicRec(rcVicCycle, m_rcCycleCursor);
-
-		this->UpdateC64Window();
-		HDC hdc = GetDC(hWnd);
-		if (hdc)
-		{
-			{
-				DcHelper dch(hdc);
-				BOOL br = FillRect(hdc, &m_rcCycleCursor, (HBRUSH) (COLOR_WINDOW+1));
-				br = br;
-			}
-			ReleaseDC(hWnd, hdc);
-		}
+		m_bDragMode = true;
+		SetCapture(hWnd);
+		DrawCursorAtClientPosition(x, y);
+		if (m_pINotify)
+			m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
 
 		m_iLastX = x;
 		m_iLastY = y;
 	}
+}
+
+void CEmuWindow::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		ReleaseCapture();
+		if (m_bDragMode)
+		{
+			DrawCursorAtClientPosition(x, y);
+			if (m_pINotify)
+				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+
+			m_iLastX = x;
+			m_iLastY = y;
+		}
+		m_bDragMode = false;
+	}
+}
+
+bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{	
+	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
+	{
+		if (m_bDragMode)
+		{
+			int x = GET_X_LPARAM(lParam);
+			int y = GET_Y_LPARAM(lParam);
+
+			DrawCursorAtClientPosition(x, y);
+			if (m_pINotify)
+				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+
+			m_iLastX = x;
+			m_iLastY = y;
+		}
+
+	}
 	return true;
+}
+
+void CEmuWindow::DrawCursorAtClientPosition(int x, int y)
+{
+	GetVicRasterPositionFromClientPosition(x, y, m_iVicCycleCursor, m_iVicLineCursor);
+
+	DrawCursorAtVicPosition(m_iVicCycleCursor, m_iVicLineCursor);
+}
+
+void CEmuWindow::DrawCursorAtVicPosition(int cycle, int line)
+{
+RECT rcVicCycle;
+
+	this->UpdateC64Window();
+
+	HWND hWnd = this->GetHwnd();
+	SetRect(&rcVicCycle, (cycle - 1) * 8, line, (cycle) * 8, line + 1);
+	GetDisplayRectFromVicRect(rcVicCycle, m_rcCycleCursor);
+
+	HDC hdc = GetDC(hWnd);
+	if (hdc)
+	{
+		{
+			DcHelper dch(hdc);
+			BOOL br = FillRect(hdc, &m_rcCycleCursor, (HBRUSH) (COLOR_WINDOW+1));
+			br = br;
+		}
+		ReleaseDC(hWnd, hdc);
+	}
 }
 
 LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -275,8 +342,14 @@ LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 			}
 			ValidateRect(hWnd, NULL);
 			return 0;
+		case WM_LBUTTONDOWN:
+			OnLButtonDown(hWnd, uMsg, wParam, lParam);
+			return 0;
 		case WM_MOUSEMOVE:
 			OnMouseMove(hWnd, uMsg, wParam, lParam);
+			return 0;
+		case WM_LBUTTONUP:
+			OnLButtonUp(hWnd, uMsg, wParam, lParam);
 			return 0;
 		case WM_ERASEBKGND:
 			return 1;

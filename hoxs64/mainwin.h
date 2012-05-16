@@ -6,9 +6,8 @@ class CEmuWindow;
 class CAppWindow : public CVirWindow, public ErrorMsg
 {
 public:
-	CAppWindow();
+	CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *, CAppStatus *, C64 *);
 	~CAppWindow();
-	HRESULT Init(CDX9 *dx, IAppCommand *pAppCommand, CConfig *, CAppStatus *, C64 *);
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	CAppStatus *appStatus;

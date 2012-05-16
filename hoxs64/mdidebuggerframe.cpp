@@ -635,7 +635,6 @@ HRESULT CMDIDebuggerFrame::AdviseEvents()
 	hr = S_OK;
 	do
 	{
-
 		hs = m_pAppCommand->EsShowDevelopment.Advise((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this);
 		if (hs == NULL)
 		{
