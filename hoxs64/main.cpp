@@ -253,6 +253,7 @@ HWND hWndDebuggerMdiClient = 0;
 				HWND hWndDebug = 0;
 				HWND hWndDebugCpuC64 = 0;
 				HWND hWndDebugCpuDisk = 0;
+				HWND hWndDlgVicRaster = 0;
 				shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();
 				
 				hWndDebug =  pWinDebugger->GetHwnd();
@@ -262,6 +263,11 @@ HWND hWndDebuggerMdiClient = 0;
 				shared_ptr<CDisassemblyFrame> pWinDebugCpuDisk = pWinDebugger->m_pWinDebugCpuDisk.lock();
 				if (pWinDebugCpuDisk)
 					hWndDebugCpuDisk = pWinDebugCpuDisk->GetHwnd();
+
+				Sp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster = pWinDebugger->m_pdlgModelessBreakpointVicRaster.lock();
+				if (m_pdlgModelessBreakpointVicRaster!=0)
+					hWndDlgVicRaster = m_pdlgModelessBreakpointVicRaster->GetHwnd();
+
 				HWND hWndDefaultAccelerator = GetActiveWindow();
 
 				if (hWndDefaultAccelerator == 0 || 
@@ -276,8 +282,9 @@ HWND hWndDebuggerMdiClient = 0;
 				}
 				hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();
 				if (
-					 (!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) 
-					&& !TranslateAccelerator(hWndDefaultAccelerator, app.m_hAccelTable, &msg))
+					(!IsWindow(hWndDlgVicRaster) || !IsDialogMessage(hWndDlgVicRaster, &msg)) &&
+					(!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) &&
+					(!TranslateAccelerator(hWndDefaultAccelerator, app.m_hAccelTable, &msg)))
 				{
 					TranslateMessage(&msg); 
 					DispatchMessage(&msg);
@@ -1252,6 +1259,7 @@ HWND hWnd;
 
 void CApp::BreakpointChanged()
 {
+	this->UpdateEmulationDisplay();
 	BreakpointChangedEventArgs e;
 	this->EsBreakpointChanged.Raise(NULL, e);	
 }
@@ -1354,8 +1362,15 @@ EventArgs e;
 void CApp::UpdateApplication()
 {
 EventArgs e;
-	m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
+	UpdateEmulationDisplay();
 	EsUpdateApplication.Raise(this, e);
+}
+
+void CApp::UpdateEmulationDisplay()
+{
+	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+		return;
+	m_pWinAppWindow->m_pWinEmuWin->UpdateC64WindowWithObjects();
 }
 
 bool CApp::IsRunning()
@@ -1400,6 +1415,13 @@ void CApp::DisplayVicCursor(bool bEnabled)
 	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
 		return;
 	m_pWinAppWindow->m_pWinEmuWin->DisplayVicCursor(bEnabled);
+}
+
+void CApp::DisplayVicRasterBreakpoints(bool bEnabled)
+{
+	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+		return;
+	m_pWinAppWindow->m_pWinEmuWin->DisplayVicRasterBreakpoints(bEnabled);
 }
 
 void CApp::SetVicCursorPos(int iCycle, int iLine)

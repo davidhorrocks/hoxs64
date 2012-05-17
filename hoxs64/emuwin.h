@@ -16,15 +16,16 @@ public:
 	};
 
 	static void GetRequiredWindowSize(HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, BOOL bDoubleSizedWindow, int *w, int *h);
-	HRESULT UpdateC64Window();
-	HRESULT RenderWindow();
-	void DrawDriveSprites();
 	void SetColours();
 	void ClearSurfaces();
+	HRESULT UpdateC64Window();
+	void UpdateC64WindowWithObjects();
+
 
 	void SetNotify(INotify *pINotify);
 
 	void DisplayVicCursor(bool bEnabled);
+	void DisplayVicRasterBreakpoints(bool bEnabled);
 	void SetVicCursorPos(int iCycle, int iLine);
 	void GetVicCursorPos(int *piCycle, int *piLine);
 protected:
@@ -39,7 +40,7 @@ private:
 
 	bool m_bDragMode;
 	bool m_bDrawCycleCursor;
-	RECT m_rcCycleCursor;
+	bool m_bDrawVicRasterBreakpoints;
 	int m_iVicCycleCursor;
 	int m_iVicLineCursor;
 
@@ -47,12 +48,19 @@ private:
 	int m_iLastY;
 	INotify *m_pINotify;
 
+	HBRUSH m_hBrushBrkInner;
+	HBRUSH m_hBrushBrkOuter;
+
+	HRESULT RenderWindow();
+	void DrawDriveSprites();
+
 	void OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	void DrawCursorAtClientPosition(int x, int y);
-	void DrawCursorAtVicPosition(int cycle, int line);
+	void SetCursorAtClientPosition(int x, int y);
+	void DrawCursorAtVicPosition(HDC hdc, int cycle, int line);
+	void DrawAllCursors(HDC hdc);
 
 	void GetVicRasterPositionFromClientPosition(int x, int y, int& cycle, int& line);
 	void GetVicCycleRectFromClientPosition(int x, int y, RECT& rcVicCycle);

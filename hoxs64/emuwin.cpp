@@ -24,20 +24,35 @@ CEmuWindow::CEmuWindow(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
 {
 	m_dwSolidColourFill=0;
 	m_bDrawCycleCursor = false;
+	m_bDrawVicRasterBreakpoints = false;
 	m_iVicCycleCursor = 1;
 	m_iVicLineCursor = 0;
 	m_pINotify = 0;
 	m_bDragMode = false;
+	m_hBrushBrkInner = NULL;
+	m_hBrushBrkOuter = NULL;
 
 	this->dx = dx;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
+
+	m_hBrushBrkInner = CreateSolidBrush(RGB(255, 220, 220));
+	m_hBrushBrkOuter = CreateSolidBrush(RGB(10, 40, 40));
 }
 
 CEmuWindow::~CEmuWindow()
 {
-	int i=0;
+	if (m_hBrushBrkInner)
+	{
+		DeleteObject(m_hBrushBrkInner);
+		m_hBrushBrkInner = NULL;
+	}
+	if (m_hBrushBrkOuter)
+	{
+		DeleteObject(m_hBrushBrkOuter);
+		m_hBrushBrkOuter = NULL;
+	}
 }
 
 HRESULT CEmuWindow::RegisterClass(HINSTANCE hInstance)
@@ -182,14 +197,15 @@ void CEmuWindow::DisplayVicCursor(bool bEnabled)
 	m_bDrawCycleCursor = bEnabled;
 }
 
+void CEmuWindow::DisplayVicRasterBreakpoints(bool bEnabled)
+{
+	m_bDrawVicRasterBreakpoints = bEnabled;
+}
+
 void CEmuWindow::SetVicCursorPos(int iCycle, int iLine)
 {
 	m_iVicCycleCursor = iCycle;
 	m_iVicLineCursor = iLine;
-	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
-	{
-		DrawCursorAtVicPosition(iCycle, iLine);
-	}
 }
 
 void CEmuWindow::GetVicCursorPos(int *piCycle, int *piLine)
@@ -209,7 +225,8 @@ void CEmuWindow::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 		m_bDragMode = true;
 		SetCapture(hWnd);
-		DrawCursorAtClientPosition(x, y);
+		SetCursorAtClientPosition(x, y);
+		UpdateC64WindowWithObjects();
 		if (m_pINotify)
 			m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
 
@@ -227,7 +244,8 @@ void CEmuWindow::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		ReleaseCapture();
 		if (m_bDragMode)
 		{
-			DrawCursorAtClientPosition(x, y);
+			SetCursorAtClientPosition(x, y);
+			UpdateC64WindowWithObjects();
 			if (m_pINotify)
 				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
 
@@ -246,8 +264,8 @@ bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			int x = GET_X_LPARAM(lParam);
 			int y = GET_Y_LPARAM(lParam);
-
-			DrawCursorAtClientPosition(x, y);
+			SetCursorAtClientPosition(x, y);
+			UpdateC64WindowWithObjects();
 			if (m_pINotify)
 				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
 
@@ -259,31 +277,70 @@ bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return true;
 }
 
-void CEmuWindow::DrawCursorAtClientPosition(int x, int y)
+void CEmuWindow::SetCursorAtClientPosition(int x, int y)
 {
-	GetVicRasterPositionFromClientPosition(x, y, m_iVicCycleCursor, m_iVicLineCursor);
-
-	DrawCursorAtVicPosition(m_iVicCycleCursor, m_iVicLineCursor);
+int cycle, line;
+	GetVicRasterPositionFromClientPosition(x, y, cycle, line);
+	this->SetVicCursorPos(cycle, line);
 }
 
-void CEmuWindow::DrawCursorAtVicPosition(int cycle, int line)
+void CEmuWindow::UpdateC64WindowWithObjects()
+{
+	this->UpdateC64Window();
+	if (appStatus->m_bWindowed && appStatus->m_bDebug && !appStatus->m_bRunning && m_bDrawVicRasterBreakpoints)
+	{
+		HWND hWnd = this->GetHwnd();
+		HDC hdc = GetDC(hWnd);
+		if (hdc)
+		{
+			DrawAllCursors(hdc);
+			ReleaseDC(hWnd, hdc);
+		}
+	}
+}
+
+void CEmuWindow::DrawCursorAtVicPosition(HDC hdc, int cycle, int line)
 {
 RECT rcVicCycle;
+RECT rcDisplay;
+RECT rcDisplay2;
 
-	this->UpdateC64Window();
-
-	HWND hWnd = this->GetHwnd();
 	SetRect(&rcVicCycle, (cycle - 1) * 8, line, (cycle) * 8, line + 1);
-	GetDisplayRectFromVicRect(rcVicCycle, m_rcCycleCursor);
+	GetDisplayRectFromVicRect(rcVicCycle, rcDisplay);
+	CopyRect(&rcDisplay2, &rcDisplay);
+	int p = (rcDisplay.bottom - rcDisplay.top);
+	int dx = p;
+	int dy = p;
+	InflateRect(&rcDisplay2, dx, dy);
+	HBRUSH hOuter = m_hBrushBrkOuter;
+	HBRUSH hInner = m_hBrushBrkInner;
+	if (!hInner)
+		hInner = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	if (!hOuter)
+		hOuter = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
+	 
+	FillRect(hdc, &rcDisplay2, (HBRUSH) hOuter);
+	FillRect(hdc, &rcDisplay, (HBRUSH) hInner);
+}
 
-	HDC hdc = GetDC(hWnd);
-	if (hdc)
+void CEmuWindow::DrawAllCursors(HDC hdc)
+{
+	DcHelper dch(hdc);
+	if (m_bDrawCycleCursor)
 	{
+		DrawCursorAtVicPosition(hdc, m_iVicCycleCursor, m_iVicLineCursor);
+	}
+	IEnumBreakpointItem *p = c64->mon.BM_CreateEnumBreakpointItem();
+	if (p)
+	{
+		Sp_BreakpointItem v;
+		while (p->GetNext(v))
 		{
-			DcHelper dch(hdc);
-			FillRect(hdc, &m_rcCycleCursor, (HBRUSH) (COLOR_WINDOW+1));
+			if (v->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+			{
+				DrawCursorAtVicPosition(hdc, v->vic_cycle, v->vic_line);
+			}
 		}
-		ReleaseDC(hWnd, hdc);
 	}
 }
 

@@ -133,8 +133,9 @@ HWND hWndEdit;
 		SendMessage(hWndEdit, EM_SETSEL, 0, -1);
 	}
 	this->m_pIAppCommand->DisplayVicCursor(true);
+	this->m_pIAppCommand->DisplayVicRasterBreakpoints(true);
+	this->m_pIAppCommand->UpdateEmulationDisplay();
 	this->m_pIAppCommand->EsVicCursorMove.Advise((CDiagBreakpointVicRaster_EventSink_OnVicCursorChange *)this);
-	
 }
 
 void CDiagBreakpointVicRaster::OnVicCursorChange(void *sender, VicCursorMoveEventArgs& e)
@@ -152,13 +153,14 @@ TCHAR buffer[30];
 	m_bInOnVicCursorChange = false;
 }
 
-void CDiagBreakpointVicRaster::DisplayVicCursor()
+void CDiagBreakpointVicRaster::SetVicCursor()
 {
 	if (m_bInOnVicCursorChange)
 		return;
 	TryGetLine(m_iLine);
 	TryGetCycle(m_iCycle);
 	m_pIAppCommand->SetVicCursorPos(m_iCycle, m_iLine);
+	m_pIAppCommand->UpdateEmulationDisplay();
 }
 
 BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -168,6 +170,7 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 	case WM_INITDIALOG:
 		G::ArrangeOKCancel(hWndDlg);
 		InitControls(hWndDlg);
+		this->m_pIAppCommand->UpdateEmulationDisplay();
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
@@ -202,7 +205,7 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			switch(HIWORD(wParam))
 			{
 			case EN_CHANGE:
-				DisplayVicCursor();
+				SetVicCursor();
 				break;
 			}
 			break;
@@ -210,7 +213,7 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			switch(HIWORD(wParam))
 			{
 			case EN_CHANGE:
-				DisplayVicCursor();
+				SetVicCursor();
 				break;
 			}
 			break;
@@ -219,6 +222,8 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 	case WM_DESTROY:
 		CDiagBreakpointVicRaster_EventSink_OnVicCursorChange::UnadviseAll();
 		this->m_pIAppCommand->DisplayVicCursor(false);
+		this->m_pIAppCommand->DisplayVicRasterBreakpoints(false);
+		this->m_pIAppCommand->UpdateEmulationDisplay();
 		break;
 	}
 	return FALSE;

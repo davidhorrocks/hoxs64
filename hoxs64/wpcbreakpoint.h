@@ -99,8 +99,8 @@ class LvBreakColumnIndex
 		enum tagEnumBreakColumnIndex
 		{
 			Cpu = 0,
-			Address = 1,
-			Type = 2,
+			Type = 1,
+			Address = 2,
 			Line = 3,
 			Cycle = 4
 		};

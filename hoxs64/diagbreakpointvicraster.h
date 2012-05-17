@@ -36,7 +36,7 @@ private:
 	bool SaveUI();
 	bool TryGetCycle(int& v);
 	bool TryGetLine(int& v);
-	void DisplayVicCursor();
+	void SetVicCursor();
 	virtual void OnVicCursorChange(void *sender, VicCursorMoveEventArgs& e);
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

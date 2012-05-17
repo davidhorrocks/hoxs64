@@ -47,6 +47,7 @@ public:
 	virtual void ExecuteC64Instruction()=0;
 	virtual void ExecuteDiskInstruction()=0;
 	virtual void UpdateApplication()=0;
+	virtual void UpdateEmulationDisplay() = 0;
 	virtual HWND ShowDevelopment() = 0;
 	virtual bool IsRunning()=0;
 	virtual void SoundOff()=0;
@@ -54,6 +55,7 @@ public:
 	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
 	virtual HWND GetMainFrameWindow() = 0;
 	virtual void DisplayVicCursor(bool bEnabled) = 0;
+	virtual void DisplayVicRasterBreakpoints(bool bEnabled) = 0;
 	virtual void SetVicCursorPos(int iCycle, int iLine) = 0;
 	virtual void GetVicCursorPos(int *piCycle, int *piLine) = 0;
 

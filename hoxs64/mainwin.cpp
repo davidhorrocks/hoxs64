@@ -1123,7 +1123,7 @@ bool ok = false;
 
 	try
 	{
-		if (m_pMDIDebugger.expired())
+		if (m_pMDIDebugger.expired() || m_pMDIDebugger.lock()->GetHwnd() == 0)
 		{
 			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->m_pAppCommand, this->cfg, this->appStatus));
 			if (pwin != NULL)
@@ -1175,7 +1175,7 @@ bool ok = false;
 			pwin->ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		}
 		this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
-		this->m_pWinEmuWin->UpdateC64Window();
+		this->m_pWinEmuWin->UpdateC64WindowWithObjects();
 	}
 	else
 	{

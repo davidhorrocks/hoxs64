@@ -211,7 +211,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Address;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Address");
-	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$00000"), NULL) + WidthPaddingSubItem;
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$CCCCC"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -221,7 +221,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Line;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Line");
-	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("0000"), NULL) + WidthPaddingSubItem;
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$CCCC"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Line, &lvc);
 	if (r == -1)
 		return E_FAIL;
@@ -231,7 +231,7 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.iSubItem = (int)LvBreakColumnIndex::Cycle;
 	lvc.fmt = LVCFMT_RIGHT;
 	lvc.pszText = TEXT("Cycle");
-	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("0000"), NULL) + WidthPaddingSubItem;
+	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$CCCCC"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cycle, &lvc);
 	if (r == -1)
 		return E_FAIL;

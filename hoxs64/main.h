@@ -52,6 +52,7 @@ public:
 	virtual void IAppCommand::ExecuteC64Instruction();
 	virtual void IAppCommand::ExecuteDiskInstruction();
 	virtual void IAppCommand::UpdateApplication();
+	virtual void IAppCommand::UpdateEmulationDisplay();
 	virtual HWND IAppCommand::ShowDevelopment();
 	virtual bool IAppCommand::IsRunning();
 	virtual void IAppCommand::SoundOff();
@@ -59,6 +60,7 @@ public:
 	virtual void IAppCommand::ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	virtual HWND IAppCommand::GetMainFrameWindow();
 	virtual void IAppCommand::DisplayVicCursor(bool bEnabled);
+	virtual void IAppCommand::DisplayVicRasterBreakpoints(bool bEnabled);
 	virtual void IAppCommand::SetVicCursorPos(int iCycle, int iLine);
 	virtual void IAppCommand::GetVicCursorPos(int *piCycle, int *piLine);
 	// IAppCommand
