@@ -117,6 +117,7 @@ CApp::CApp()
 	_tcsncpy_s(m_szMonitorWndClsName, _countof(m_szMonitorWndClsName), HOXS_MONITOR_WND_CLASS, _TRUNCATE);
 	_tcsncpy_s(m_szMonitorDisassembleWndClsName, _countof(m_szMonitorDisassembleWndClsName), HOXS_MONITOR_DISS_WND_CLASS, _TRUNCATE);
 
+	m_bStartFullScreen = false;
 	m_bShowSpeed = TRUE;
 	m_bLimitSpeed = TRUE;
 	m_bSkipFrames = TRUE;
@@ -161,12 +162,8 @@ DWORD emulationSpeed = FRAMEUPDATEFREQ * 100;
 ULARGE_INTEGER start_counter,end_counter;
 WORD frameCount = 1;
 BOOL bRet;
-HWND hWndMainEmulationFrame = 0;
-HWND hWndDebuggerMdiClient = 0;	
 
-	m_hInstance=hInstance;
-	CCommandArgArray *pArgs = NULL;
-	CParseCommandArg::ParseCommandLine(lpCmdLine, &pArgs);
+	m_hInstance = hInstance;
 
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
 	{
@@ -175,45 +172,31 @@ HWND hWndDebuggerMdiClient = 0;
 	}
 	else
 	{
-		if (m_systemfrequency.QuadPart < 100)
+		if (m_systemfrequency.QuadPart < 60)
 		{
-			G::InitFail(0,0,TEXT("The system does not support a high performance timer."));
+			G::InitFail(0, 0, TEXT("The system does not support a high performance timer."));
 			return FALSE;
 		}
 	}
+	frequency.QuadPart = m_framefrequency.QuadPart;
+	QueryPerformanceCounter((PLARGE_INTEGER)&last_counter);
+	QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
+	start_counter.QuadPart = end_counter.QuadPart - frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ;
 
-	if (!hPrevInstance) 
-	{
-		// Perform instance Initialisation:
-		if (S_OK != InitApplication(hInstance)) 
-		{
-			return (FALSE);
-		}
-	}
-
-	// Perform application Initialisation:
-	if (S_OK != InitInstance(nCmdShow, pArgs)) 
+	if (FAILED(RegisterWindowClasses(hInstance)))
 	{
 		return (FALSE);
 	}
 
-	if (pArgs)
 	{
-		delete pArgs;
-		pArgs = NULL;
+		CParseCommandArg cmdArgs(lpCmdLine);
+		if (FAILED(InitInstance(nCmdShow, cmdArgs)))
+		{
+			G::InitFail(0, 0, TEXT("InitInstance() failed."));
+			return (FALSE);
+		}
 	}
-
-	hWndMainEmulationFrame = m_pWinAppWindow->GetHwnd();
-
-    SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
-    SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &m_StartupToggleKeys, 0);
-    SystemParametersInfo(SPI_GETFILTERKEYS, sizeof(FILTERKEYS), &m_StartupFilterKeys, 0);
-
-	if (G::IsDwmApiOk() && m_bDisableDwmFullscreen)
-	{
-		if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&m_oldDwm)))
-			m_bGotOldDwm = true;
-	}
+	
 
 #if _WIN32_WINNT >= 0x400
 	m_hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,  ::LowLevelKeyboardProc, GetModuleHandle(NULL), 0 );
@@ -221,25 +204,14 @@ HWND hWndDebuggerMdiClient = 0;
 	m_hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD,  ::KeyboardProc, GetModuleHandle(NULL), 0 );
 #endif
 	AllowAccessibilityShortcutKeys(false);
-
-	if (dx.pSecondarySoundBuffer)
-	{
-		dx.RestoreSoundBuffers();
-		SoundHalt();
-		dx.pSecondarySoundBuffer->SetCurrentPosition(0);
-	}
-
+	
+	m_bReady = TRUE;
 	m_bRunning=1;
 	m_bPaused=0;
+	m_bInitDone = true;
     //-------------------------------------------------------------------------
     //                          The Message Pump
     //-------------------------------------------------------------------------
-
-	frequency.QuadPart = m_framefrequency.QuadPart;
-	QueryPerformanceCounter((PLARGE_INTEGER)&last_counter);
-	QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
-	start_counter.QuadPart = end_counter.QuadPart - frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ;
-	m_bInitDone = true;
 	while (true)
 	{
 		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
@@ -280,7 +252,7 @@ HWND hWndDebuggerMdiClient = 0;
 				{
 					hWndDefaultAccelerator =pWinDebugger->GetHwnd();
 				}
-				hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();
+				HWND hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();
 				if (
 					(!IsWindow(hWndDlgVicRaster) || !IsDialogMessage(hWndDlgVicRaster, &msg)) &&
 					(!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) &&
@@ -473,7 +445,7 @@ HRESULT CApp::RegisterKeyPressWindow(HINSTANCE hInstance)
 	return S_OK;
 }
 
-HRESULT CApp::InitApplication(HINSTANCE hInstance)
+HRESULT CApp::RegisterWindowClasses(HINSTANCE hInstance)
 {
 HRESULT hr;
 	hr = CAppWindow::RegisterClass(hInstance);
@@ -569,7 +541,7 @@ VS_FIXEDFILEINFO *CApp::GetVersionInfo()
 	return &m_Vinfo;
 }
 
-HRESULT CApp::InitInstance(int nCmdShow, const CCommandArgArray *pArgs)
+HRESULT CApp::InitInstance(int nCmdShow, const CParseCommandArg& cmdArgs)
 {
 int w,h;
 BOOL br;
@@ -591,6 +563,16 @@ TCHAR ext[_MAX_EXT];
 	{
 		G::ShowLastError(NULL);
 		return E_FAIL;
+	}
+
+	//Process command line arguments.
+	CommandArg *caAutoLoad = cmdArgs.FindOption(TEXT("-AutoLoad"));
+	CommandArg *caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
+	CommandArg *caAlignD64Tracks= cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
+	CommandArg *caStartFullscreen = cmdArgs.FindOption(TEXT("-Fullscreen"));
+	if (caStartFullscreen)
+	{
+		this->m_bStartFullScreen = true;
 	}
 
 	//Save application directory path name
@@ -663,7 +645,6 @@ TCHAR ext[_MAX_EXT];
 	//Apply the users settings.
 	ApplyConfig(mainCfg);
 
-
 	m_hAccelTable = LoadAccelerators (m_hInstance, m_szAppName);
 
 	try
@@ -701,7 +682,7 @@ TCHAR ext[_MAX_EXT];
 		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
 		return E_FAIL;
 	}
-
+	m_bWindowed = true;
 	G::EnsureWindowPosition(hWndMain);
 
 	//Initialise directx
@@ -709,6 +690,7 @@ TCHAR ext[_MAX_EXT];
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Initialisation failed for direct 3D."), m_szAppName, MB_ICONWARNING);
+		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
 
@@ -716,6 +698,7 @@ TCHAR ext[_MAX_EXT];
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Initialisation failed for direct input."), m_szAppName, MB_ICONEXCLAMATION);
+		DestroyWindow(hWndMain);
 		return hr;
 	}
 
@@ -734,15 +717,14 @@ TCHAR ext[_MAX_EXT];
 	if (S_OK != c64.Init(thisCfg, thisAppStatus, thisC64Event, &dx, m_szAppDirectory)) 
 	{
 		c64.DisplayError(0, m_szAppName);
+		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
-
-	//Make the application start in windowed mode.
-	m_bWindowed = TRUE;
-	hr = m_pWinAppWindow->SetWindowedMode(m_bWindowed, m_bDoubleSizedWindow, m_bUseBlitStretch);
+	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, m_bUseBlitStretch);
 	if (S_OK != hr) 
 	{
 		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
+		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
 
@@ -752,32 +734,43 @@ TCHAR ext[_MAX_EXT];
 	//Reset the C64
 	c64.Reset(0);
 
-	//Process command line arguments.
-	if (pArgs)
+	int directoryIndex = -1; //default to a LOAD"*",8,1 for disk files
+	TCHAR *fileName = NULL;
+	
+	if (caAutoLoad)
 	{
-		int directoryIndex = -1; //default to a LOAD"*",8,1 for disk files
-		TCHAR *fileName = NULL;
-		CommandArg *caAutoLoad = CParseCommandArg::FindOption(pArgs, TEXT("-AutoLoad"));
-		CommandArg *caQuickLoad = CParseCommandArg::FindOption(pArgs, TEXT("-QuickLoad"));
-		CommandArg *caAlignD64Tracks= CParseCommandArg::FindOption(pArgs, TEXT("-AlignD64Tracks"));
-		if (caAutoLoad)
+		if (caAutoLoad->ParamCount >= 1)
 		{
-			if (caAutoLoad->ParamCount >= 1)
+			if (caAutoLoad->ParamCount >= 2)
 			{
-				if (caAutoLoad->ParamCount >= 2)
-				{
-					directoryIndex = _tstoi(&caAutoLoad->pParam[1][0]);
-					if (directoryIndex < 0)
-						directoryIndex = -1;
-					else if	(directoryIndex > C64Directory::D64MAXDIRECTORYITEMCOUNT)
-						directoryIndex = C64Directory::D64MAXDIRECTORYITEMCOUNT;
-				}
-				c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, true, NULL, caQuickLoad != NULL, caAlignD64Tracks != NULL);
+				directoryIndex = _tstoi(&caAutoLoad->pParam[1][0]);
+				if (directoryIndex < 0)
+					directoryIndex = -1;
+				else if	(directoryIndex > C64Directory::D64MAXDIRECTORYITEMCOUNT)
+					directoryIndex = C64Directory::D64MAXDIRECTORYITEMCOUNT;
 			}
+			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, true, NULL, caQuickLoad != NULL, caAlignD64Tracks != NULL);
 		}
 	}
 
-	m_bReady = TRUE;
+    SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
+    SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &m_StartupToggleKeys, 0);
+    SystemParametersInfo(SPI_GETFILTERKEYS, sizeof(FILTERKEYS), &m_StartupFilterKeys, 0);
+
+
+	if (G::IsDwmApiOk() && m_bDisableDwmFullscreen)
+	{
+		if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&m_oldDwm)))
+			m_bGotOldDwm = true;
+	}
+
+	if (dx.pSecondarySoundBuffer)
+	{
+		dx.RestoreSoundBuffers();
+		SoundHalt();
+		dx.pSecondarySoundBuffer->SetCurrentPosition(0);
+	}
+
 	ShowWindow(hWndMain, nCmdShow);
 	UpdateWindow(hWndMain);
 	return (S_OK);

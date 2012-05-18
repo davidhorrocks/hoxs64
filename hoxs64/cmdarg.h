@@ -22,31 +22,34 @@ typedef class CArray<CommandArg> CCommandArgArray;
 
 class CParseCommandArg
 {
-private:
-	CParseCommandArg();
 public:
-	static HRESULT ParseCommandLine(const TCHAR *sCmdLine, CCommandArgArray **args);
-	static CommandArg *FindOption(const CCommandArgArray *args, const TCHAR *sOption);
+	CParseCommandArg(const TCHAR *sCmdLine);
+	~CParseCommandArg();
+
+	HRESULT ParseCommandLine(const TCHAR *sCmdLine);
+	CommandArg *FindOption(const TCHAR *sOption) const;
 
 	
 private:
-	HRESULT Parse(const TCHAR *sCmdLine, CCommandArgArray *args);
-	HRESULT ReadChar(TCHAR& ch);
-	void UndoChar();
-	HRESULT ReadWord(int &count, bool& bGotWord);
+	CCommandArgArray *pArgs;
 	int mLen;
 	const TCHAR *mpsCmdLine;
 	int mIndex;
 	TCHAR mWordBuffer[300];
+	
+	void Init();
+	void CleanUp();
+
+	HRESULT Parse(const TCHAR *sCmdLine, CCommandArgArray *args);
+	HRESULT ReadChar(TCHAR& ch);
+	void UndoChar();
+	HRESULT ReadWord(int &count, bool& bGotWord);
 	bool IsEOF();
 	bool IsWhiteSpace(TCHAR ch);
 
 	static int GetParamCount(const CListElementTString *p);
 	static HRESULT LoadCommandOption(CListElementTString **ppElement, CommandArg *commandArg);
 
-
-public:
-	CCommandArgArray CommandArgArray;
 };
 
 #endif

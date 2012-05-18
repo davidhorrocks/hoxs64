@@ -249,8 +249,6 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		// Pause if minimized
 		bIsWindowActive = !((BOOL)HIWORD(wParam)) && ((LOWORD(wParam) == WA_ACTIVE) || (LOWORD(wParam) == WA_CLICKACTIVE));
 		bIsWindowMinimised = !((BOOL)HIWORD(wParam));
-		//appStatus->m_bActive = !((BOOL)HIWORD(wParam));
-		//appStatus->m_bActive = (LOWORD(wParam) == WA_ACTIVE) || (LOWORD(wParam) == WA_CLICKACTIVE);
 		appStatus->m_bActive = bIsWindowMinimised;
 
 		if (!appStatus->m_bWindowed && bIsWindowMinimised)
@@ -274,13 +272,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		{
 			c64->cia1.ResetKeyboard();
 		}
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	case WM_CHAR:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	case WM_KEYDOWN:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	case WM_KEYUP:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_SIZE:
         // Check to see if we are losing our window...
         if (SIZE_MAXHIDE==wParam || SIZE_MINIMIZED==wParam)
@@ -329,7 +321,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		{
 			appStatus->m_bReady=FALSE;
 		}
-		return (DefWindowProc(m_hWnd, uMsg, wParam, lParam));
+		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam); // Remember, these are...
 		wmEvent = HIWORD(wParam); // ...different for Win32!
@@ -341,50 +333,50 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SoundHalt();
 			appStatus->InsertTape(hWnd);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_TAPE_PLAY:
 			c64->TapePressPlay();
-			break;
+			return 0;
 		case IDM_TAPE_STOP:
 			c64->TapePressStop();
-			break;
+			return 0;
 		case IDM_TAPE_REWIND:
 			c64->TapeRewind();
-			break;
+			return 0;
 		case IDM_TAPE_LOADIMAGE:
 			appStatus->SoundHalt();
 			appStatus->LoadC64Image(hWnd);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_TAPE_LOADT64:
 			appStatus->SoundHalt();
 			appStatus->LoadT64(hWnd);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_FILE_AUTOLOAD:
 			appStatus->SoundHalt();
 			appStatus->AutoLoad(hWnd);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_FILE_HARDRESET:
 			c64->HardReset(true);
-			break;
+			return 0;
 		case IDM_FILE_SOFTRESET:
 			c64->SoftReset(true);
-			break;
+			return 0;
 		case IDM_FILE_MONITOR:
 			if (appStatus->m_bWindowed)
 				m_pAppCommand->ShowDevelopment();
-			break;
+			return 0;
 		case IDM_FILE_PAUSE:
 			appStatus->TogglePause();
-			break;
+			return 0;
 		case IDM_SETTING_MUTESOUND:
 			appStatus->ToggleSoundMute();			
-			break;
+			return 0;
 		case IDM_EXIT:
 			PostMessage(hWnd, WM_CLOSE, 0, 0);
-			break;
+			return 0;
 		case IDM_HELP_ABOUT:
 			appStatus->SoundHalt();
 			try
@@ -403,27 +395,27 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			{
 			}
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_RESTOREDEFAULT:
 			appStatus->SoundHalt();
 			appStatus->RestoreDefaultSettings();
 			this->m_pWinEmuWin->UpdateC64Window();
 			MessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
 			appStatus->SoundHalt();
 			appStatus->RestoreUserSettings();
 			this->m_pWinEmuWin->UpdateC64Window();
 			MessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_SAVE:
 			appStatus->SoundHalt();
 			appStatus->SaveCurrentSetting();
 			MessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_EMULATION2:
 			appStatus->SoundHalt();
 			try
@@ -457,7 +449,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			{
 			}
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_KEYBOARD:
 			appStatus->SoundHalt();
 			try
@@ -492,7 +484,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			{
 			}
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_JOYSTICK:
 			appStatus->SoundHalt();
 			try
@@ -520,7 +512,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			{
 			}
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_DOUBLESIZEDWINDOW:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
@@ -528,7 +520,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SetUserConfig(tCfg);
 			appStatus->ApplyConfig(tCfg);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_SWAPJOYSTICKS:
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
@@ -537,27 +529,27 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->ApplyConfig(tCfg);
 			MessageBeep(MB_ICONASTERISK);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_SETTING_MAXSPEED:
 			appStatus->SoundHalt();
 			appStatus->ToggleMaxSpeed();
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_DISK_INSERT_EXISTINGDISK:
 			appStatus->SoundHalt();
 			appStatus->InsertDiskImage(hWnd);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_DISK_SAVEDISK_D64:
 			appStatus->SoundHalt();
 			appStatus->SaveD64Image(hWnd);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_DISK_SAVEDISK_FDI:
 			appStatus->SoundHalt();
 			appStatus->SaveFDIImage(hWnd);
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_DISK_INSERT_NEWBLANKDISK:
 			appStatus->SoundHalt();
 			try
@@ -582,21 +574,21 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			{
 			}
 			appStatus->SoundResume();
-			break;
+			return 0;
 		case IDM_DISK_REMOVEDISK:
 			c64->RemoveDisk();
-			break;
+			return 0;
 		case IDM_DISK_WRITEPROTECT_ON:     
 			c64->diskdrive.D64_DiskProtect(TRUE);
 			UpdateMenu();
-			break;
+			return 0;
 		case IDM_DISK_WRITEPROTECT_OFF:        
 			c64->diskdrive.D64_DiskProtect(FALSE);
 			UpdateMenu();
-			break;
+			return 0;
 		case IDM_DISK_RESETDRIVE:
 			c64->diskdrive.Reset(c64->cpu.CurrentClock);
-			break;
+			return 0;
 		case IDM_TOGGLEFULLSCREEN:
 			appStatus->SoundHalt();
             if (appStatus->m_bActive && appStatus->m_bReady && !appStatus->m_bDebug)
@@ -608,8 +600,6 @@ shared_ptr<CDiagAbout> pDiagAbout;
 					DisplayError(hWnd, appStatus->GetAppName());
             }
 			break;
-		default:
-			return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 		}
 		break;
 	case WM_CLOSE:
@@ -632,17 +622,15 @@ shared_ptr<CDiagAbout> pDiagAbout;
 				PostMessage(hWnd, WM_CLOSE, 0, 0);
 				return 0;
 			}
-			else
-				return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 		}
 		else
 		{
 			cfg->SaveWindowSetting(hWnd);
-			return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 		}
+		break;
 	case WM_SYSCOMMAND:
 		if (!appStatus->m_bActive)
-			return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+			break;
 		else if (appStatus->m_bWindowed)
 		{
 			switch (wParam & 0xfff0)
@@ -658,7 +646,6 @@ shared_ptr<CDiagAbout> pDiagAbout;
 					appStatus->SoundHalt();
 					break;
 			}
-			return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 		}
 		else
 		{
@@ -679,12 +666,12 @@ shared_ptr<CDiagAbout> pDiagAbout;
 				return 0;
 
 			}
-			return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 		}
+		break;
 	case WM_ERASEBKGND:
 		return 1;
 	case WM_QUERYNEWPALETTE:
-		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+		break;
 	case WM_PALETTECHANGED:
 		if (appStatus->m_bWindowed)
 		{
@@ -694,7 +681,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 				InvalidateRect(hWnd, NULL, FALSE);
 			}
 		}
-		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+		break;
 	case WM_NCPAINT:
 		if (appStatus->m_bWindowed)
 			return (DefWindowProc(hWnd, uMsg, wParam, lParam));
@@ -718,13 +705,13 @@ shared_ptr<CDiagAbout> pDiagAbout;
 				return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 			}
 		}
-		break;
+		return 0;
 	case WM_DESTROY:
 		appStatus->m_bReady = FALSE;
 		appStatus->FreeDirectX();
-		if (appStatus->m_bInitDone)
-			PostQuitMessage(0);
-		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+		//if (appStatus->m_bInitDone)
+		PostQuitMessage(0);
+		return 0;
 	case WM_MONITOR_BREAK_CPU64:
 		OnBreakCpu64(hWnd, uMsg, wParam, lParam);
 		return 0;
@@ -734,10 +721,8 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	case WM_MONITOR_BREAK_VICRASTER:
 		OnBreakVic(hWnd, uMsg, wParam, lParam);
 		return 0;
-	default:
-		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 	}
-	return (0);
+	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 
 }
 

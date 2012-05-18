@@ -45,11 +45,32 @@ void CommandArg::cleanup()
 	ParamCount = 0;
 }
 
-CParseCommandArg::CParseCommandArg()
+CParseCommandArg::CParseCommandArg(const TCHAR *sCmdLine)
+{
+	Init();
+	CParseCommandArg::ParseCommandLine(sCmdLine);
+}
+
+CParseCommandArg::~CParseCommandArg()
+{
+	CleanUp();
+}
+
+void CParseCommandArg::Init()
 {
 	mLen = 0;
 	mIndex = 0;
 	mpsCmdLine = NULL;
+	pArgs = NULL;
+}
+
+void CParseCommandArg::CleanUp()
+{
+	if (pArgs)
+	{
+		delete pArgs;
+		pArgs = 0;
+	}
 }
 
 bool CParseCommandArg::IsEOF()
@@ -328,12 +349,15 @@ CommandArg ca, caDefault;
 	return S_OK;
 }
 
-HRESULT CParseCommandArg::ParseCommandLine(const TCHAR *sCmdLine, CCommandArgArray **args)
+HRESULT CParseCommandArg::ParseCommandLine(const TCHAR *sCmdLine)
 {
 HRESULT hr;
-CParseCommandArg caa;
 
-	*args = NULL;
+	if (pArgs)
+	{
+		delete pArgs;
+		pArgs = NULL;
+	}
 
 	if (sCmdLine == NULL)
 		return E_FAIL;
@@ -349,10 +373,10 @@ CParseCommandArg caa;
 		return E_OUTOFMEMORY;
 	}
 
-	hr = caa.Parse(sCmdLine, pArr);
+	hr = Parse(sCmdLine, pArr);
 	if (SUCCEEDED(hr))
 	{
-		*args = pArr;
+		pArgs = pArr;
 		return S_OK;
 	}
 	else
@@ -362,18 +386,20 @@ CParseCommandArg caa;
 	}	
 }
 
-
-CommandArg *CParseCommandArg::FindOption(const CCommandArgArray *args, const TCHAR *sOption)
+CommandArg *CParseCommandArg::FindOption(const TCHAR *sOption) const
 {
 unsigned long i;
-	for(i=0; i<args->Count(); i++)
+	if (!pArgs)
+		return NULL;
+
+	for(i=0; i<pArgs->Count(); i++)
 	{
 		TCHAR *opt;
-		opt = (*args)[i].pOption;
+		opt = (*pArgs)[i].pOption;
 		if (opt != NULL)
 		{
-			if (_tcsicmp((*args)[i].pOption, sOption) == 0)
-				return &(*args)[i];
+			if (_tcsicmp((*pArgs)[i].pOption, sOption) == 0)
+				return &(*pArgs)[i];
 		}
 	}
 	return NULL;

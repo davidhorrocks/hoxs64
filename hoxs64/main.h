@@ -7,8 +7,8 @@ public:
 	CApp();
 	~CApp();
 	int Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow);
-	HRESULT InitApplication(HINSTANCE hInstance);
-	HRESULT InitInstance(int nCmdShow, const CCommandArgArray *pArgs);
+	HRESULT RegisterWindowClasses(HINSTANCE hInstance);
+	HRESULT InitInstance(int nCmdShow, const CParseCommandArg& cmdArgs);
 	HRESULT RegisterKeyPressWindow(HINSTANCE hInstance);
 #if _WIN32_WINNT >= 0x400
 	LRESULT LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam );
@@ -110,7 +110,7 @@ public:
 	TCHAR m_szAppFullPath[MAX_PATH+1];
 	TCHAR m_szAppDirectory[MAX_PATH+1];
 	VS_FIXEDFILEINFO m_Vinfo;
-
+	bool m_bStartFullScreen;
 	CDX9 dx;
 };
 
