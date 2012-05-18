@@ -346,9 +346,6 @@ void CEmuWindow::DrawAllCursors(HDC hdc)
 
 LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-//HDC hdc;
-//PAINTSTRUCT ps;
-//RECT rc;
 	switch (uMsg) 
 	{
 		case WM_CREATE:
@@ -356,16 +353,7 @@ LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		case WM_PAINT:
 			if (appStatus->m_bWindowed)
 			{
-				UpdateC64Window();
-				//if (GetUpdateRect(hWnd, &rc, FALSE)!=0)
-				//{
-				//	hdc = BeginPaint (hWnd, &ps);
-				//	if (hdc)
-				//	{
-				//		BOOL br = FillRect(hdc, &rc, (HBRUSH) (COLOR_WINDOW+1));
-				//	}
-				//	EndPaint(hWnd, &ps);
-				//}
+				UpdateC64WindowWithObjects();
 			}
 			ValidateRect(hWnd, NULL);
 			return 0;
