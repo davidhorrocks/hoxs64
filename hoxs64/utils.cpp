@@ -107,17 +107,37 @@ CVirWindow* pWin = NULL;
 	{
 		pWin = (CVirWindow*) (LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 		if (NULL != pWin)
-			return (pWin->SubclassWindowProc(hWnd, uMsg, wParam, lParam));
-		
-		//HWND hWndParent = GetParent(hWnd);
-		//if (hWndParent)
-		//{
-		//	pWin = (CVirWindow*) (LONG_PTR)GetWindowLongPtr(hWndParent, GWLP_USERDATA);
-		//	if (NULL != pWin)
-		//		return (pWin->SubclassWindowProc(hWnd, uMsg, wParam, lParam));
-		//}
+			return (pWin->SubclassWindowProc(hWnd, uMsg, wParam, lParam));		
 	}
 	return 0;
+}
+
+WNDPROC CBaseVirWindow::SubclassChildWindow(HWND hWnd)
+{
+	#pragma warning(disable:4244)
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) this);
+	WNDPROC pOldProc = (WNDPROC) (LONG_PTR)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) ::GlobalSubClassWindowProc);
+	#pragma warning(default:4244)
+	return pOldProc;
+}
+
+WNDPROC CBaseVirWindow::SubclassChildWindow(HWND hWnd, WNDPROC proc)
+{
+	#pragma warning(disable:4244)
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) this);
+	WNDPROC pOldProc = (WNDPROC) (LONG_PTR)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) proc);
+	#pragma warning(default:4244)
+	return pOldProc;
+}
+
+LRESULT CBaseVirWindow::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return 0;
+}
+
+int CBaseVirWindow::SetSize(int w, int h)
+{
+	return (int)SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 /*M+M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M+++M
@@ -207,34 +227,6 @@ CLIENTCREATESTRUCT ccs;
 		WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL, 
 		0, 0, 0, 0, m_hWnd, (HMENU) LongToPtr(clientId), m_hInst, (LPSTR) &ccs); 
 	return m_hWndMDIClient;
-}
-
-WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd)
-{
-	#pragma warning(disable:4244)
-	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) this);
-	WNDPROC pOldProc = (WNDPROC) (LONG_PTR)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) ::GlobalSubClassWindowProc);
-	#pragma warning(default:4244)
-	return pOldProc;
-}
-
-WNDPROC CVirWindow::SubclassChildWindow(HWND hWnd, WNDPROC proc)
-{
-	#pragma warning(disable:4244)
-	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) this);
-	WNDPROC pOldProc = (WNDPROC) (LONG_PTR)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR) proc);
-	#pragma warning(default:4244)
-	return pOldProc;
-}
-
-LRESULT CVirWindow::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	return 0;
-}
-
-int CVirWindow::SetSize(int w, int h)
-{
-	return (int)SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
@@ -411,11 +403,6 @@ HWND CVirDialog::ShowModelessDialogIndirect(
 				(LPARAM)this);
 
 	return (iResult);
-}
-
-HWND CVirDialog::GetHwnd()
-{
-	return m_hWnd;
 }
 
 /**************************************************************************/

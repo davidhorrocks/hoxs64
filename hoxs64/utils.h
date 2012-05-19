@@ -241,6 +241,43 @@ protected:
 	virtual void OnDestroy(void *sender, EventArgs& e) =0;
 };
 
+class CBaseVirWindow : public std::enable_shared_from_this<CBaseVirWindow>
+{
+public:
+	CBaseVirWindow()
+	{
+		m_hInst = NULL;
+		m_hWnd = NULL;
+	};
+	virtual ~CBaseVirWindow(){};
+
+	HWND GetHwnd(void)
+	{
+		return(m_hWnd);
+	}
+	HINSTANCE GetHinstance(void)
+	{
+		if (m_hInst == 0)
+			m_hInst = GetModuleHandle(NULL);
+		return(m_hInst);
+	}
+
+	virtual int SetSize(int w, int h);
+	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+protected:
+	// Application instance handle.
+	HINSTANCE m_hInst;
+	// Handle of this window.
+	HWND m_hWnd;
+	// Application instance handle.
+
+	std::shared_ptr<CBaseVirWindow> m_pKeepAlive;
+	WNDPROC SubclassChildWindow(HWND hWnd);
+	WNDPROC SubclassChildWindow(HWND hWnd, WNDPROC proc);
+private:
+	friend LRESULT CALLBACK ::GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+};
 
 /*C+C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C+++C
   Class:    CVirWindow
@@ -264,55 +301,33 @@ protected:
             ~CVirWindow:
               Destructor.
 C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
-class CVirWindow : public std::enable_shared_from_this<CVirWindow>
+class CVirWindow : public CBaseVirWindow
 {
 public:
 	CVirWindow()
 	{
-	m_hInst = NULL;
-	m_hWnd = NULL;
-	m_hWndMDIClient = NULL;
+		m_hWndMDIClient = NULL;
 	};
 	virtual ~CVirWindow(){};
-
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
-	virtual int SetSize(int w, int h);
 	virtual void GetMinWindowSize(int &w, int &h);
 
 	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
 	// Get the protected handle of this window.
-	HWND GetHwnd(void)
-	{
-		return(m_hWnd);
-	}
-	HINSTANCE GetHinstance(void)
-	{
-		if (m_hInst == 0)
-			m_hInst = GetModuleHandle(NULL);
-		return(m_hInst);
-	}
 
 	HWND Get_MDIClientWindow()
 	{
 		return m_hWndMDIClient;
 	}
 
-	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	// WindowProc is a pure virtual member function and MUST be over-ridden
-	// in any derived classes.
-	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
-
+	shared_ptr<CVirWindow> shared_from_this()
+	{
+		return std::static_pointer_cast<CVirWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+	}
 protected:
-	// Application instance handle.
-	HINSTANCE m_hInst;
-	// Handle of this window.
-	HWND m_hWnd;
-	HWND m_hWndMDIClient;
-	std::shared_ptr<CVirWindow> m_pKeepAlive;
+	HWND m_hWndMDIClient;	
 
-	WNDPROC SubclassChildWindow(HWND hWnd);
-	WNDPROC SubclassChildWindow(HWND hWnd, WNDPROC proc);
 	// Envelopes the Windows' CreateWindow function call.
 	HWND CreateVirWindow(
 			DWORD dwExStyle,
@@ -326,11 +341,11 @@ protected:
 			HWND hWndParent,        // Handle of parent or owner window
 			HMENU hmenu,            // Handle of menu, or child window identifier
 			HINSTANCE hinst);       // Handle of application instance
-	
-
+	// WindowProc is a pure virtual member function and MUST be over-ridden
+	// in any derived classes.
+	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
 private:
 	friend LRESULT CALLBACK ::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	friend LRESULT CALLBACK ::GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 typedef shared_ptr<CVirWindow> Sp_CVirWindow;
@@ -356,7 +371,7 @@ typedef weak_ptr<CVirWindow> Wp_CVirWindow;
             ~CVirDialog:
               Destructor
 C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
-class CVirDialog : public std::enable_shared_from_this<CVirDialog>
+class CVirDialog : public CBaseVirWindow
 {
 public:	
 	CVirDialog();
@@ -387,21 +402,8 @@ public:
 		WPARAM wParam,
 		LPARAM lParam) = 0;
 
-	HWND GetHwnd();
-
-	HINSTANCE GetHinstance(void)
-	{
-		if (m_hInst == 0)
-			m_hInst = GetModuleHandle(NULL);
-		return(m_hInst);
-	}
-
-
 protected:
-  HINSTANCE m_hInst;
-  HWND m_hWnd;
   bool m_bIsModeless;
-  std::shared_ptr<CVirDialog> m_pKeepAlive;
   // Tell the compiler that the outside DialogProc callback is a friend
   // of this class and can get at its protected data members.
   friend INT_PTR CALLBACK ::DialogProc(
