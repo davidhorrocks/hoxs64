@@ -188,13 +188,10 @@ BOOL bRet;
 		return (FALSE);
 	}
 
+	if (FAILED(InitInstance(nCmdShow, lpCmdLine)))
 	{
-		CParseCommandArg cmdArgs(lpCmdLine);
-		if (FAILED(InitInstance(nCmdShow, cmdArgs)))
-		{
-			G::InitFail(0, 0, TEXT("InitInstance() failed."));
-			return (FALSE);
-		}
+		G::InitFail(0, 0, TEXT("InitInstance() failed."));
+		return (FALSE);
 	}
 	
 
@@ -541,7 +538,7 @@ VS_FIXEDFILEINFO *CApp::GetVersionInfo()
 	return &m_Vinfo;
 }
 
-HRESULT CApp::InitInstance(int nCmdShow, const CParseCommandArg& cmdArgs)
+HRESULT CApp::InitInstance(int nCmdShow, LPTSTR lpCmdLine)
 {
 int w,h;
 BOOL br;
@@ -566,6 +563,7 @@ TCHAR ext[_MAX_EXT];
 	}
 
 	//Process command line arguments.
+	CParseCommandArg cmdArgs(lpCmdLine);
 	CommandArg *caAutoLoad = cmdArgs.FindOption(TEXT("-AutoLoad"));
 	CommandArg *caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
 	CommandArg *caAlignD64Tracks= cmdArgs.FindOption(TEXT("-AlignD64Tracks"));

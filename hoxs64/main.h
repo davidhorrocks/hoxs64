@@ -8,7 +8,7 @@ public:
 	~CApp();
 	int Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow);
 	HRESULT RegisterWindowClasses(HINSTANCE hInstance);
-	HRESULT InitInstance(int nCmdShow, const CParseCommandArg& cmdArgs);
+	HRESULT InitInstance(int nCmdShow, LPTSTR lpCmdLine);
 	HRESULT RegisterKeyPressWindow(HINSTANCE hInstance);
 #if _WIN32_WINNT >= 0x400
 	LRESULT LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam );
