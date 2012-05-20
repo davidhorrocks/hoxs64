@@ -228,6 +228,8 @@ public:
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);
 extern LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
+extern LRESULT CALLBACK MdiChildWindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
+extern LRESULT CALLBACK MdiFrameWindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
 extern LRESULT CALLBACK GlobalSubClassWindowProc(HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam);
 
 class CVirWindow_EventSink_OnDestroy : public EventSink<EventArgs>
@@ -306,28 +308,16 @@ class CVirWindow : public CBaseVirWindow
 public:
 	CVirWindow()
 	{
-		m_hWndMDIClient = NULL;
 	};
 	virtual ~CVirWindow(){};
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) = 0;
 	virtual void GetMinWindowSize(int &w, int &h);
-
-	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
-	// Get the protected handle of this window.
-
-	HWND Get_MDIClientWindow()
-	{
-		return m_hWndMDIClient;
-	}
-
 
 	shared_ptr<CVirWindow> shared_from_this()
 	{
 		return std::static_pointer_cast<CVirWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
 	}
 protected:
-	HWND m_hWndMDIClient;	
-
 	// Envelopes the Windows' CreateWindow function call.
 	HWND CreateVirWindow(
 			DWORD dwExStyle,
@@ -402,6 +392,10 @@ public:
 		WPARAM wParam,
 		LPARAM lParam) = 0;
 
+	shared_ptr<CVirDialog> shared_from_this()
+	{
+		return std::static_pointer_cast<CVirDialog, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+	}
 protected:
   bool m_bIsModeless;
   // Tell the compiler that the outside DialogProc callback is a friend
@@ -414,6 +408,80 @@ protected:
 };
 
 typedef shared_ptr<CVirDialog> Sp_CVirDialog;
+
+class CVirMdiFrameWindow : public CVirWindow
+{
+public:	
+	
+	CVirMdiFrameWindow()
+	{
+		m_hWndMDIClient = NULL;
+	}
+
+	// Destructor
+	virtual ~CVirMdiFrameWindow(){};
+
+
+	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
+	// Get the protected handle of this window.
+
+	HWND Get_MDIClientWindow()
+	{
+		return m_hWndMDIClient;
+	}
+
+	shared_ptr<CVirMdiFrameWindow> shared_from_this()
+	{
+		return std::static_pointer_cast<CVirMdiFrameWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+	}
+protected:
+	virtual LRESULT MdiFrameWindowProc(
+		HWND hWnd,
+		HWND hWndMDIClient,
+		UINT uMsg,
+		WPARAM wParam,
+		LPARAM lParam) = 0;
+
+	HWND m_hWndMDIClient;
+private:
+	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		return 0;
+	}
+
+  friend LRESULT CALLBACK ::MdiFrameWindowProc(
+                           HWND hWnd,
+                           UINT uMsg,
+                           WPARAM wParam,
+                           LPARAM lParam);
+};
+
+typedef shared_ptr<CVirMdiFrameWindow> Sp_CVirMdiFrameWindow;
+typedef weak_ptr<CVirMdiFrameWindow> Wp_CVirMdiFrameWindow;
+
+class CVirMdiChildWindow : public CBaseVirWindow
+{
+public:	
+	// Destructor
+	virtual ~CVirMdiChildWindow(){};
+
+	virtual LRESULT MdiChildWindowProc(
+		HWND hWnd,
+		UINT uMsg,
+		WPARAM wParam,
+		LPARAM lParam) = 0;
+
+	shared_ptr<CVirMdiChildWindow> shared_from_this()
+	{
+		return std::static_pointer_cast<CVirMdiChildWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+	}
+protected:
+  friend LRESULT CALLBACK ::MdiChildWindowProc(
+                           HWND hWnd,
+                           UINT uMsg,
+                           WPARAM wParam,
+                           LPARAM lParam);
+};
 
 typedef struct {
     WORD dlgVer;

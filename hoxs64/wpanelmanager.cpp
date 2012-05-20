@@ -30,7 +30,7 @@ WPanelManager::~WPanelManager()
 	CleanUp();
 }
 
-HRESULT WPanelManager::Init(HINSTANCE hInstance, Wp_CVirWindow pWinParentWindow, HWND hWndRebar)
+HRESULT WPanelManager::Init(HINSTANCE hInstance, Sp_CVirMdiFrameWindow pMdiFrameWindow, HWND hWndRebar)
 {
 	CleanUp();
 	m_bIsRootRectValid = false;
@@ -38,7 +38,7 @@ HRESULT WPanelManager::Init(HINSTANCE hInstance, Wp_CVirWindow pWinParentWindow,
 	m_fMoved = FALSE;
 	m_fDragMode = FALSE;
 
-	m_pWinParentWindow = pWinParentWindow;
+	m_pWinMdiFrameWindow = pMdiFrameWindow;
 	m_hWndRebar = hWndRebar;
 	m_hInstance = hInstance;
 
@@ -90,9 +90,10 @@ HRESULT hr = E_FAIL;
 		if (SUCCEEDED(hr))
 		{
 			hr = E_FAIL;
-			Sp_CVirWindow pWin = this->Get_ParentWindow();
+			Sp_CVirMdiFrameWindow pWin = this->Get_MdiFrameWindow();
 			if (pWin != 0)
 			{
+				//FIXME hardcoded id
 				HWND hWndPanel = pwp->Create(m_hInstance, pWin->GetHwnd(), pszTitle, 0, 0, 200, 100, (HMENU) 1001);
 				if (hWndPanel)
 				{
@@ -214,7 +215,7 @@ RECT rcMdiClient;
 		}
 	}
 
-	Sp_CVirWindow pWin = Get_ParentWindow();
+	Sp_CVirMdiFrameWindow pWin = Get_MdiFrameWindow();
 	if (pWin != 0)
 	{
 		HWND hWndMDIClient = pWin->Get_MDIClientWindow();
@@ -228,9 +229,9 @@ RECT rcMdiClient;
 	}
 }
 
-Sp_CVirWindow WPanelManager::Get_ParentWindow()
+Sp_CVirMdiFrameWindow WPanelManager::Get_MdiFrameWindow()
 {
-	return  m_pWinParentWindow.lock();	
+	return  m_pWinMdiFrameWindow.lock();	
 }
 
 Sp_WPanel WPanelManager::GetPanelSizerFromClientPos(int x, int y, LPRECT prcSizerBar)

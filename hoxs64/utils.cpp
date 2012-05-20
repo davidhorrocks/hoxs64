@@ -100,6 +100,150 @@ LRESULT br;
 		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
+LRESULT CALLBACK MdiFrameWindowProc(
+	HWND hWnd,
+	UINT uMsg,
+	WPARAM wParam,
+	LPARAM lParam)
+{
+LRESULT lr;
+LRESULT br;
+	// Get a pointer to the window class object.
+	CVirMdiFrameWindow* pWin = (CVirMdiFrameWindow*) (LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+	switch (uMsg)
+	{
+	case WM_NCCREATE:
+		// Since this is the first time that we can get ahold of
+		// a pointer to the window class object, all messages that might
+		// have been sent before this are never seen by the Windows object
+		// and only get passed on to the DefWindowProc
+
+		// Get the initial creation pointer to the window object
+		pWin = (CVirMdiFrameWindow *) ((CREATESTRUCT *)lParam)->lpCreateParams;
+
+		// Set it's protected m_hWnd member variable to ensure that
+		// member functions have access to the correct window handle.
+		pWin->m_hWnd = hWnd;
+
+		// Set its USERDATA to point to the window object
+		#pragma warning(disable:4244)
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pWin);
+		#pragma warning(default:4244)
+
+		br = (BOOL)pWin->MdiFrameWindowProc(hWnd, pWin->m_hWndMDIClient, uMsg, wParam, lParam);
+		if (br)
+		{
+			pWin->m_pKeepAlive = pWin->shared_from_this();
+			return br;
+		}
+		else
+		{
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
+			return FALSE;
+		}
+		break;
+	case WM_DESTROY:
+		if (pWin)
+		{
+			lr = pWin->MdiFrameWindowProc(hWnd, pWin->m_hWndMDIClient, uMsg, wParam, lParam);
+			pWin->m_hWndMDIClient = 0;
+			return lr;
+		}
+		break;
+	case WM_NCDESTROY:
+		// This is our signal to destroy the window object.
+		if (pWin)
+		{
+			lr = pWin->MdiFrameWindowProc(hWnd, pWin->m_hWndMDIClient, uMsg, wParam, lParam);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
+			pWin->m_hWnd = 0;
+			pWin->m_pKeepAlive.reset();
+			pWin = 0;
+			return lr;
+		}
+		break;
+	default:
+		break;
+	}
+
+	// Call its message proc method.
+	if (NULL != pWin)
+		return (pWin->MdiFrameWindowProc(hWnd, pWin->m_hWndMDIClient, uMsg, wParam, lParam));
+	else
+		return (DefFrameProc(hWnd, 0, uMsg, wParam, lParam));
+}
+
+
+LRESULT CALLBACK MdiChildWindowProc(
+	HWND hWnd,
+	UINT uMsg,
+	WPARAM wParam,
+	LPARAM lParam)
+{
+LRESULT lr;
+LRESULT br;
+MDICREATESTRUCT *pMdiCreateStruct;
+	// Get a pointer to the window class object.
+	CVirMdiChildWindow* pWin = (CVirMdiChildWindow*) (LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+	switch (uMsg)
+	{
+	case WM_NCCREATE:
+		// Since this is the first time that we can get ahold of
+		// a pointer to the window class object, all messages that might
+		// have been sent before this are never seen by the Windows object
+		// and only get passed on to the DefWindowProc
+
+		// Get the initial creation pointer to the window object
+		pMdiCreateStruct = (MDICREATESTRUCT  *) ((CREATESTRUCT *)lParam)->lpCreateParams;
+		pWin = (CVirMdiChildWindow *) pMdiCreateStruct->lParam;
+		
+
+		// Set it's protected m_hWnd member variable to ensure that
+		// member functions have access to the correct window handle.
+		pWin->m_hWnd = hWnd;
+
+		// Set its USERDATA to point to the window object
+		#pragma warning(disable:4244)
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pWin);
+		#pragma warning(default:4244)
+
+		br = (BOOL)pWin->MdiChildWindowProc(hWnd, uMsg, wParam, lParam);
+		if (br)
+		{
+			pWin->m_pKeepAlive = pWin->shared_from_this();
+			return br;
+		}
+		else
+		{
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
+			return FALSE;
+		}
+		break;
+	case WM_NCDESTROY:
+		// This is our signal to destroy the window object.
+		if (pWin)
+		{
+			lr = pWin->MdiChildWindowProc(hWnd, uMsg, wParam, lParam);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
+			pWin->m_hWnd = 0;
+			pWin->m_pKeepAlive.reset();
+			pWin = 0;
+			return lr;
+		}
+		break;
+	default:
+		break;
+	}
+
+	// Call its message proc method.
+	if (NULL != pWin)
+		return (pWin->MdiChildWindowProc(hWnd, uMsg, wParam, lParam));
+	else
+		return (DefMDIChildProc(hWnd, uMsg, wParam, lParam));
+}
+
 LRESULT CALLBACK GlobalSubClassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 CVirWindow* pWin = NULL;
@@ -212,7 +356,7 @@ void CVirWindow::GetMinWindowSize(int &w, int &h)
 	h=0;
 }
 
-HWND CVirWindow::CreateMDIClientWindow(UINT clientId,  UINT firstChildId)
+HWND CVirMdiFrameWindow::CreateMDIClientWindow(UINT clientId,  UINT firstChildId)
 {
 CLIENTCREATESTRUCT ccs; 
 	// Retrieve the handle to the window menu and assign the 

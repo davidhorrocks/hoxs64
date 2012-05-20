@@ -57,7 +57,6 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IAppCommand *pAppCommand, CConfig
 	:
 	c64(c64)
 {
-	m_hWndMDIClient = NULL;
 	m_hWndRebar = NULL;
 	m_hWndTooBar = NULL;
 	m_hImageListToolBarNormal = NULL;
@@ -135,7 +134,7 @@ WNDCLASSEX wc;
 	wc.cbSize = sizeof(WNDCLASSEX);
 
     wc.style         = 0; 
-    wc.lpfnWndProc   = (WNDPROC)::WindowProc; 
+    wc.lpfnWndProc   = (WNDPROC)::MdiFrameWindowProc; 
     wc.cbClsExtra    = 0; 
     wc.cbWndExtra    = sizeof(CMDIDebuggerFrame *); 
     wc.hInstance     = hInstance; 
@@ -563,7 +562,7 @@ bool CMDIDebuggerFrame::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 }
 
 
-LRESULT CMDIDebuggerFrame::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CMDIDebuggerFrame::MdiFrameWindowProc(HWND hWnd, HWND hWndMDIClient, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr;
 
@@ -573,7 +572,7 @@ HRESULT hr;
 		hr = OnCreate(uMsg, wParam, lParam);
 		if (FAILED(hr))
 			return -1;
-		ShowWindow(m_hWndMDIClient, SW_SHOW); 
+		ShowWindow(hWndMDIClient, SW_SHOW); 
 		return 0;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
@@ -629,7 +628,7 @@ HRESULT hr;
 		m_pAppCommand->SoundOn();
 		return 0;
 	}
-	return ::DefFrameProc(m_hWnd, this->m_hWndMDIClient, uMsg, wParam, lParam);
+	return ::DefFrameProc(m_hWnd, hWndMDIClient, uMsg, wParam, lParam);
 }
 
 void CMDIDebuggerFrame::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

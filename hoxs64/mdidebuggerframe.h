@@ -30,7 +30,7 @@ class CMDIDebuggerFrame_EventSink :
 {
 };
 
-class CMDIDebuggerFrame : public CVirWindow, CMDIDebuggerFrame_EventSink
+class CMDIDebuggerFrame : public CVirMdiFrameWindow, CMDIDebuggerFrame_EventSink
 {
 public:
 	static const int ID_RERBAR = 2000;
@@ -60,7 +60,7 @@ public:
 	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuDisk;
 	Wp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
 protected:
-	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	virtual LRESULT MdiFrameWindowProc(HWND hWnd, HWND hWndMDIClient, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual HRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual void OnMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

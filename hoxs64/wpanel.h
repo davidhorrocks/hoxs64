@@ -7,7 +7,7 @@ class WPanelManager;
 class IWPanelManager
 {
 public:
-	virtual Sp_CVirWindow Get_ParentWindow() = 0;
+	virtual Sp_CVirMdiFrameWindow Get_MdiFrameWindow() = 0;
 	virtual void OnDestroyWPanel(shared_ptr<WPanel> pwp) = 0;
 	virtual int Get_SizerGap() = 0;
 	virtual void Get_RootRect(RECT *prc) = 0;
