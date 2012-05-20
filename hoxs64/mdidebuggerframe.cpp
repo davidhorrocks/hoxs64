@@ -5,13 +5,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
-#include <vector>
-#include <list>
 #include <assert.h>
 #include "CDPI.h"
-#include "utils.h"
-
-#include "errormsg.h"
 
 #include "C64.h"
 
@@ -26,6 +21,7 @@
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
+#include "mdichildcli.h"
 #include "mdidebuggerframe.h"
 #include "dchelper.h"
 #include "resource.h"
@@ -139,23 +135,12 @@ WNDCLASSEX wc;
     wc.cbWndExtra    = sizeof(CMDIDebuggerFrame *); 
     wc.hInstance     = hInstance; 
     wc.hIcon         = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_CHIP1)); 
-	//wc.hIconSm       = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON_SMALL)); 
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW); 
     wc.hbrBackground = (HBRUSH) (COLOR_APPWORKSPACE + 1); 
     wc.lpszMenuName  = MenuName; 
     wc.lpszClassName = ClassName; 
     if (!RegisterClassEx(&wc) ) 
         return E_FAIL; 
- 
-    //// Register the MDI child window class.  
-    //wc.lpfnWndProc   = (WNDPROC) MPMDIChildWndProc; 
-    //wc.hIcon         = LoadIcon(hInst, IDNOTE); 
-    //wc.lpszMenuName  = (LPCTSTR) NULL; 
-    //wc.cbWndExtra    = CBWNDEXTRA; 
-    //wc.lpszClassName = ChildClassName; 
- 
-    //if (!RegisterClassEx(&wc)) 
-    //    return FALSE; 
  
     return S_OK; 
 
@@ -218,9 +203,12 @@ void CMDIDebuggerFrame::SetMenuState()
 
 HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);
+	//return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);
+	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPEDWINDOW, x, y, w, h, hWndParent, hMenu, hInstance);
+	//
 }
 
+#define WINDOWMENU (3)
 HRESULT CMDIDebuggerFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr = E_FAIL;
@@ -237,7 +225,7 @@ HRESULT hr = E_FAIL;
 		hr = CreateMDIToolBars(hdc);
 		if (FAILED(hr))
 			return hr;
-		HWND hWndMdiClient = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD);
+		HWND hWndMdiClient = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD, WINDOWMENU);
 		if (hWndMdiClient==NULL)
 			return E_FAIL;
 
@@ -249,10 +237,10 @@ HRESULT hr = E_FAIL;
 		if (!pWin)
 			throw std::bad_alloc();
 		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, TEXT("Breakpoints"), pWin);
-		if (SUCCEEDED(hr))
-		{
-			m_bIsCreated = true;
-		}
+		if (FAILED(hr))
+			return hr;
+
+		m_bIsCreated = true;
 	}
 	catch(std::exception&)
 	{
@@ -434,6 +422,21 @@ void CMDIDebuggerFrame::GetMinWindowSize(int &w, int &h)
 	h += heightRebar;
 }
 
+void CMDIDebuggerFrame::OpenNewCli()
+{
+	try
+	{
+		shared_ptr<CMDIChildCli> pWinMdiChild = shared_ptr<CMDIChildCli>(new CMDIChildCli());
+		if (pWinMdiChild == 0)
+			throw std::bad_alloc();
+		HWND hWndMdiChildCli = pWinMdiChild->Create(this->shared_from_this());
+		::ShowWindow(hWndMdiChildCli, SW_SHOW);
+		::UpdateWindow(hWndMdiChildCli);
+	}
+	catch(...)
+	{
+	}
+}
 bool CMDIDebuggerFrame::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 int wmId, wmEvent;
@@ -441,6 +444,9 @@ int wmId, wmEvent;
 	wmEvent = HIWORD(wParam);
 	switch (wmId) 
 	{
+	case IDM_FILE_NEWCLI:
+		OpenNewCli();
+		return true;
 	case IDM_DEBUG_CPUC64:
 		ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::None, 0);
 		return true;
@@ -572,7 +578,6 @@ HRESULT hr;
 		hr = OnCreate(uMsg, wParam, lParam);
 		if (FAILED(hr))
 			return -1;
-		ShowWindow(hWndMDIClient, SW_SHOW); 
 		return 0;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))

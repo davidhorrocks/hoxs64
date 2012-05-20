@@ -523,6 +523,7 @@
     <ClCompile Include="assembler.cpp" />
     <ClCompile Include="bpenum.cpp" />
     <ClCompile Include="diagbreakpointvicraster.cpp" />
+    <ClCompile Include="mdichildcli.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />
     <ClCompile Include="wpcbreakpoint.cpp" />
     <ClCompile Include="break_point.cpp">
@@ -825,6 +826,7 @@
     <ClInclude Include="bits.h" />
     <ClInclude Include="bpenum.h" />
     <ClInclude Include="diagbreakpointvicraster.h" />
+    <ClInclude Include="mdichildcli.h" />
     <ClInclude Include="toolitemaddress.h" />
     <ClInclude Include="wpcbreakpoint.h" />
     <ClInclude Include="CDPI.h" />

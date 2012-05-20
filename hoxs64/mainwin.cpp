@@ -67,6 +67,7 @@
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
+#include "mdichildcli.h"
 #include "mdidebuggerframe.h"
 
 #include "monitor.h"
@@ -1156,6 +1157,7 @@ bool ok = false;
 		::SetForegroundWindow(hWnd);
 		if (bCreated)
 		{
+			pwin->OpenNewCli();
 			pwin->ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 			pwin->ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		}

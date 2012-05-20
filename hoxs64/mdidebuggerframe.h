@@ -54,6 +54,7 @@ public:
 	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	bool IsWinDlgModelessBreakpointVicRaster();
+	void OpenNewCli();
 
 	virtual void GetMinWindowSize(int &w, int &h);
 	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuC64;

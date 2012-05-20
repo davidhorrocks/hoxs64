@@ -153,6 +153,10 @@ END
 
 MENU_MDI_DEBUGGER MENU
 BEGIN
+    POPUP "File"
+    BEGIN
+        MENUITEM "New CLI",                     IDM_FILE_NEWCLI
+    END
     POPUP "Step"
     BEGIN
         MENUITEM "Trace\tF5",                   IDM_STEP_TRACE

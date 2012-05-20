@@ -209,7 +209,7 @@ MDICREATESTRUCT *pMdiCreateStruct;
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pWin);
 		#pragma warning(default:4244)
 
-		br = (BOOL)pWin->MdiChildWindowProc(hWnd, uMsg, wParam, lParam);
+		br = (BOOL)pWin->WindowProc(hWnd, uMsg, wParam, lParam);
 		if (br)
 		{
 			pWin->m_pKeepAlive = pWin->shared_from_this();
@@ -225,7 +225,7 @@ MDICREATESTRUCT *pMdiCreateStruct;
 		// This is our signal to destroy the window object.
 		if (pWin)
 		{
-			lr = pWin->MdiChildWindowProc(hWnd, uMsg, wParam, lParam);
+			lr = pWin->WindowProc(hWnd, uMsg, wParam, lParam);
 			SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
 			pWin->m_hWnd = 0;
 			pWin->m_pKeepAlive.reset();
@@ -239,7 +239,7 @@ MDICREATESTRUCT *pMdiCreateStruct;
 
 	// Call its message proc method.
 	if (NULL != pWin)
-		return (pWin->MdiChildWindowProc(hWnd, uMsg, wParam, lParam));
+		return (pWin->WindowProc(hWnd, uMsg, wParam, lParam));
 	else
 		return (DefMDIChildProc(hWnd, uMsg, wParam, lParam));
 }
@@ -356,19 +356,19 @@ void CVirWindow::GetMinWindowSize(int &w, int &h)
 	h=0;
 }
 
-HWND CVirMdiFrameWindow::CreateMDIClientWindow(UINT clientId,  UINT firstChildId)
+HWND CVirMdiFrameWindow::CreateMDIClientWindow(UINT clientId,  UINT firstChildId, int iWindowMenuIndex)
 {
 CLIENTCREATESTRUCT ccs; 
 	// Retrieve the handle to the window menu and assign the 
 	// first child window identifier. 
 	ZeroMemory(&ccs , sizeof(ccs));
 
-	ccs.hWindowMenu = GetSubMenu(GetMenu(m_hWnd), 1); //WINDOWMENU
+	ccs.hWindowMenu = GetSubMenu(GetMenu(m_hWnd), iWindowMenuIndex);
 	ccs.idFirstChild = firstChildId; 
 
 	// Create the MDI client window. 
 	m_hWndMDIClient = ::CreateWindowEx(0, TEXT("MDICLIENT"), (LPCTSTR) NULL, 
-		WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL, 
+		WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL | WS_VISIBLE, 
 		0, 0, 0, 0, m_hWnd, (HMENU) LongToPtr(clientId), m_hInst, (LPSTR) &ccs); 
 	return m_hWndMDIClient;
 }

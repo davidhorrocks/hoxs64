@@ -336,6 +336,7 @@ protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
 private:
 	friend LRESULT CALLBACK ::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	friend LRESULT CALLBACK ::MdiChildWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
 typedef shared_ptr<CVirWindow> Sp_CVirWindow;
@@ -422,7 +423,7 @@ public:
 	virtual ~CVirMdiFrameWindow(){};
 
 
-	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId);
+	HWND CreateMDIClientWindow(UINT clientId,  UINT firstChildId, int iWindowMenuIndex);
 	// Get the protected handle of this window.
 
 	HWND Get_MDIClientWindow()
@@ -465,18 +466,13 @@ public:
 	// Destructor
 	virtual ~CVirMdiChildWindow(){};
 
-	virtual LRESULT MdiChildWindowProc(
-		HWND hWnd,
-		UINT uMsg,
-		WPARAM wParam,
-		LPARAM lParam) = 0;
-
 	shared_ptr<CVirMdiChildWindow> shared_from_this()
 	{
 		return std::static_pointer_cast<CVirMdiChildWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
 	}
 protected:
-  friend LRESULT CALLBACK ::MdiChildWindowProc(
+	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
+	friend LRESULT CALLBACK ::MdiChildWindowProc(
                            HWND hWnd,
                            UINT uMsg,
                            WPARAM wParam,

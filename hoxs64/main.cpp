@@ -83,6 +83,7 @@
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
+#include "mdichildcli.h"
 #include "mdidebuggerframe.h"
 
 #include "emuwin.h"
@@ -470,6 +471,12 @@ HRESULT hr;
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Failed to register CMDIDebuggerFrame class."), m_szAppName, MB_ICONEXCLAMATION);
+		return hr;
+	}
+	hr = CMDIChildCli::RegisterClass(hInstance);
+	if (FAILED(hr))
+	{
+		MessageBox(0L, TEXT("Failed to register CMDIChildCli class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CToolItemAddress::RegisterClass(hInstance);
