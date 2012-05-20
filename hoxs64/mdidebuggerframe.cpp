@@ -21,6 +21,7 @@
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
+#include "wpccli.h"
 #include "mdichildcli.h"
 #include "mdidebuggerframe.h"
 #include "dchelper.h"
@@ -203,9 +204,7 @@ void CMDIDebuggerFrame::SetMenuState()
 
 HWND CMDIDebuggerFrame::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
-	//return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPED | WS_SIZEBOX | WS_SYSMENU, x, y, w, h, hWndParent, hMenu, hInstance);
 	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_OVERLAPPEDWINDOW, x, y, w, h, hWndParent, hMenu, hInstance);
-	//
 }
 
 #define WINDOWMENU (3)
@@ -426,7 +425,7 @@ void CMDIDebuggerFrame::OpenNewCli()
 {
 	try
 	{
-		shared_ptr<CMDIChildCli> pWinMdiChild = shared_ptr<CMDIChildCli>(new CMDIChildCli());
+		shared_ptr<CMDIChildCli> pWinMdiChild = shared_ptr<CMDIChildCli>(new CMDIChildCli(c64, m_pAppCommand));
 		if (pWinMdiChild == 0)
 			throw std::bad_alloc();
 		HWND hWndMdiChildCli = pWinMdiChild->Create(this->shared_from_this());

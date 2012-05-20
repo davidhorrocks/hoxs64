@@ -67,6 +67,7 @@
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
+#include "wpccli.h"
 #include "mdichildcli.h"
 #include "mdidebuggerframe.h"
 

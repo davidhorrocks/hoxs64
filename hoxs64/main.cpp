@@ -83,6 +83,7 @@
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "disassemblyframe.h"
+#include "wpccli.h"
 #include "mdichildcli.h"
 #include "mdidebuggerframe.h"
 
@@ -471,6 +472,12 @@ HRESULT hr;
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Failed to register CMDIDebuggerFrame class."), m_szAppName, MB_ICONEXCLAMATION);
+		return hr;
+	}
+	hr = WpcCli::RegisterClass(hInstance);
+	if (FAILED(hr))
+	{
+		MessageBox(0L, TEXT("Failed to register WpcCli class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CMDIChildCli::RegisterClass(hInstance);

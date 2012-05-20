@@ -201,6 +201,9 @@
     <ClCompile Include="mdichildcli.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="wpccli.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -414,6 +417,9 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="mdichildcli.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="wpccli.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>

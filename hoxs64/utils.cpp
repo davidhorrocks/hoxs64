@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <RichEdit.h>
 #include <tchar.h>
 #include <winuser.h>
 #include <commctrl.h>

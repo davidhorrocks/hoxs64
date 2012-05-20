@@ -4,16 +4,20 @@
 class CMDIChildCli : public CVirMdiChildWindow
 {
 public:
-
+	CMDIChildCli(C64 *c64, IAppCommand *pIAppCommand);
 	static const TCHAR ClassName[];
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(shared_ptr<CVirMdiFrameWindow> pWinMdiFrame);
 
 protected:
+	shared_ptr<CVirMdiFrameWindow> m_pWinMdiFrame;
+	weak_ptr<WpcCli> m_pWinWpcCli; 
+	C64 *c64;
+	IAppCommand *m_pIAppCommand;
 
-	shared_ptr<CVirMdiFrameWindow> m_pWinMdiFrame; 
-
+	HRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 

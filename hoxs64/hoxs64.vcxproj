@@ -820,6 +820,7 @@
     </ClCompile>
     <ClCompile Include="wpanel.cpp" />
     <ClCompile Include="wpanelmanager.cpp" />
+    <ClCompile Include="wpccli.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler.h" />
@@ -893,6 +894,7 @@
     <ClInclude Include="vic6569.h" />
     <ClInclude Include="wpanel.h" />
     <ClInclude Include="wpanelmanager.h" />
+    <ClInclude Include="wpccli.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="siddrv.asm">

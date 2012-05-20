@@ -1,0 +1,139 @@
+#include <windows.h>
+#include <RichEdit.h>
+#include "dx_version.h"
+#include <commctrl.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <tchar.h>
+#include <assert.h>
+#include "CDPI.h"
+//include "hexconv.h"
+#include "C64.h"
+
+#include "utils.h"
+
+#include "wpanel.h"
+#include "wpanelmanager.h"
+#include "wpccli.h"
+#include "resource.h"
+
+const TCHAR WpcCli::ClassName[] = TEXT("WPCCLI");
+
+WpcCli::WpcCli(C64 *c64, IAppCommand *pIAppCommand)
+{
+	m_hinstRiched = NULL;
+	m_hWndEdit = NULL;
+	this->c64 = c64;
+	this->m_pIAppCommand = pIAppCommand;
+}
+
+WpcCli::~WpcCli()
+{
+}
+
+HRESULT WpcCli::RegisterClass(HINSTANCE hInstance)
+{
+WNDCLASSEX  wc;
+
+	ZeroMemory(&wc, sizeof(wc));
+	wc.cbSize        = sizeof(WNDCLASSEX);
+	//wc.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc   = (WNDPROC)::WindowProc;
+	wc.cbClsExtra    = 0;
+	wc.cbWndExtra    = sizeof(WPanel *);
+	wc.hInstance     = hInstance;
+	wc.hIcon         = LoadIcon (hInstance, MAKEINTRESOURCE(IDI_ICON_SMALL));
+	wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);//
+	wc.lpszMenuName  = NULL;
+    wc.lpszClassName = ClassName;
+	wc.hIconSm       = NULL;
+	if (RegisterClassEx(&wc)==0)
+		return E_FAIL;
+	return S_OK;	
+}
+
+HWND WpcCli::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
+{
+	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
+}
+
+void WpcCli::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (wParam == SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
+		return;	
+	if (wParam == SIZE_MINIMIZED)
+		return;
+
+	int w = LOWORD(lParam);
+	int h = HIWORD(lParam);
+
+	if (w < 0)
+		w = 0;
+	if (h < 0)
+		h = 0;
+	if (m_hWndEdit)
+		SetWindowPos(m_hWndEdit, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER);	
+}
+
+HRESULT WpcCli::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	RECT rcClient;
+
+	m_hinstRiched = LoadLibrary(TEXT("Riched20.dll"));
+	if (m_hinstRiched)
+	{
+		if (GetClientRect(hWnd, &rcClient))
+		{
+			m_hWndEdit = CreateWindowEx(0, RICHEDIT_CLASS, NULL, WS_CHILD | WS_VISIBLE, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, hWnd, (HMENU)1000, this->GetHinstance(), 0);
+		}
+	}
+	
+	return S_OK;
+}
+
+LRESULT WpcCli::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled)
+{
+	handled = false;
+	return 0;
+}
+
+LRESULT WpcCli::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+LPNMHDR pnmh;
+LRESULT lr;
+bool bHandled;
+int wmId, wmEvent;
+
+	switch (uMsg)
+	{
+	case WM_CREATE:
+		if (SUCCEEDED(OnCreate(hWnd, uMsg, wParam, lParam)))
+			return 0;
+		else
+			return -1;
+	case WM_SIZE:
+		OnSize(hWnd, uMsg, wParam, lParam);
+		return 0;
+	case WM_NOTIFY:
+		pnmh = (LPNMHDR)lParam;
+		if (pnmh != NULL)
+		{
+			lr = OnNotify(hWnd, (int)wParam, pnmh, bHandled);
+			if (bHandled)
+				return lr;
+		}
+		break;
+	case WM_COMMAND:
+		wmId    = LOWORD(wParam); // Remember, these are...
+		wmEvent = HIWORD(wParam); // ...different for Win32!
+		//switch (wmId) 
+		//{
+		//case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
+		//	return 0;
+		//}
+		break;
+	}
+	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);;
+}
+
