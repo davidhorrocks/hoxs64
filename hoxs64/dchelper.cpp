@@ -10,6 +10,7 @@ DcHelper::DcHelper(HDC hdc)
 {
 	iSavedDC = 0;
 	m_hdc = 0;
+	InitVars(hdc);
 }
 
 void DcHelper::InitVars(HDC hdc)
