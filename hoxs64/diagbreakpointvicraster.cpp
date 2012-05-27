@@ -157,8 +157,10 @@ void CDiagBreakpointVicRaster::SetVicCursor()
 {
 	if (m_bInOnVicCursorChange)
 		return;
-	TryGetLine(m_iLine);
-	TryGetCycle(m_iCycle);
+	if (!TryGetLine(m_iLine))
+		m_iLine = 0;
+	if (!TryGetCycle(m_iCycle))
+		m_iCycle = 1;
 	m_pIAppCommand->SetVicCursorPos(m_iCycle, m_iLine);
 	m_pIAppCommand->UpdateEmulationDisplay();
 }
