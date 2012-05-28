@@ -1,5 +1,5 @@
 #include <windows.h>
-#include <RichEdit.h>
+#include <INITGUID.H>
 #include "dx_version.h"
 #include <commctrl.h>
 #include <stdio.h>
@@ -23,6 +23,9 @@ WpcCli::WpcCli(C64 *c64, IAppCommand *pIAppCommand)
 {
 	m_hinstRiched = NULL;
 	m_hWndEdit = NULL;
+	m_wpOrigEditProc = NULL;
+	m_pIRichEditOle = NULL;
+	m_pITextDocument = NULL;
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;
 }
@@ -78,6 +81,8 @@ void WpcCli::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 HRESULT WpcCli::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+LRESULT lr;
+HRESULT hr;
 	RECT rcClient;
 
 	m_hinstRiched = LoadLibrary(TEXT("Riched20.dll"));
@@ -85,17 +90,61 @@ HRESULT WpcCli::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (GetClientRect(hWnd, &rcClient))
 		{
-			m_hWndEdit = CreateWindowEx(0, RICHEDIT_CLASS, NULL, WS_CHILD | WS_VISIBLE, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, hWnd, (HMENU)1000, this->GetHinstance(), 0);
+			m_hWndEdit = CreateWindowEx(0, RICHEDIT_CLASS, NULL, WS_CHILD | WS_VISIBLE | ES_MULTILINE, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, hWnd, (HMENU)1000, this->GetHinstance(), 0);
+			if (m_hWndEdit)
+			{
+				lr = SendMessage(m_hWndEdit, EM_GETOLEINTERFACE, 0, (LPARAM)&m_pIRichEditOle);
+				if (lr)
+				{
+					hr = m_pIRichEditOle->QueryInterface(IID_ITextDocument, (void**)&m_pITextDocument);
+					if (SUCCEEDED(hr))
+					{
+						m_wpOrigEditProc = this->SubclassChildWindow(m_hWndEdit);
+						return S_OK;
+					}
+				}
+			}
 		}
 	}
-	
-	return S_OK;
+	if (m_pITextDocument)
+	{
+		m_pITextDocument->Release();
+		m_pITextDocument = 0;
+	}
+	if (m_pIRichEditOle)
+	{
+		m_pIRichEditOle->Release();
+		m_pIRichEditOle = 0;
+	}
+	return E_FAIL;	
 }
 
 LRESULT WpcCli::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled)
 {
 	handled = false;
 	return 0;
+}
+
+void WpcCli::OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (m_hWndEdit)
+	{
+		if (m_wpOrigEditProc!=NULL)
+		{
+			SubclassChildWindow(m_hWndEdit, m_wpOrigEditProc);
+			m_wpOrigEditProc= NULL;
+		}
+	}
+	if (m_pITextDocument)
+	{
+		m_pITextDocument->Release();
+		m_pITextDocument = 0;
+	}
+	if (m_pIRichEditOle)
+	{
+		m_pIRichEditOle->Release();
+		m_pIRichEditOle = 0;
+	}
 }
 
 LRESULT WpcCli::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -125,15 +174,76 @@ int wmId, wmEvent;
 		}
 		break;
 	case WM_COMMAND:
-		wmId    = LOWORD(wParam); // Remember, these are...
-		wmEvent = HIWORD(wParam); // ...different for Win32!
+		wmId    = LOWORD(wParam);
+		wmEvent = HIWORD(wParam);
 		//switch (wmId) 
 		//{
 		//case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
 		//	return 0;
 		//}
 		break;
+	case WM_DESTROY:
+		OnDestory(m_hWnd, uMsg, wParam, lParam);
+		break;
 	}
-	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);;
+	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 }
 
+
+LRESULT WpcCli::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (hWnd == m_hWndEdit)
+	{
+		switch(uMsg)
+		{
+		//case WM_CHAR:
+		//	if (wParam == VK_ESCAPE)
+		//	{				
+		//		return 0;
+		//	}
+		//	else if (wParam == VK_RETURN)
+		//	{				
+		//		return 0;
+		//	}
+		//	break;
+		case WM_KEYDOWN:
+			if (wParam == VK_RETURN)
+			{
+				OnCommandEnterKey();
+			}
+			break;
+		}
+	}
+	if (m_wpOrigEditProc)
+	{
+		return ::CallWindowProc(m_wpOrigEditProc, hWnd, uMsg, wParam, lParam);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void WpcCli::OnCommandEnterKey()
+{
+	GetCurrentParagraphText();
+}
+
+void WpcCli::GetCurrentParagraphText()
+{
+ITextSelection *pSel;
+ITextPara *pPara;
+ITextPara *pParaRange;
+long iStart = 0;
+long iEnd = 0;
+	if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
+	{
+		if (SUCCEEDED(pSel->GetIndex(tomParagraph, &iStart)))
+		{
+		}
+		if (SUCCEEDED(pSel->GetIndex(tomParagraph, &iEnd)))
+		{
+		}
+		pSel->Release();
+	}
+}
