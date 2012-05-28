@@ -192,6 +192,7 @@ int wmId, wmEvent;
 
 LRESULT WpcCli::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+short nVirtKey;
 	if (hWnd == m_hWndEdit)
 	{
 		switch(uMsg)
@@ -209,7 +210,11 @@ LRESULT WpcCli::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		case WM_KEYDOWN:
 			if (wParam == VK_RETURN)
 			{
-				OnCommandEnterKey();
+				nVirtKey = GetKeyState(VK_SHIFT); 
+				if (nVirtKey>=0)
+				{
+					OnCommandEnterKey();
+				}
 			}
 			break;
 		}
@@ -232,12 +237,16 @@ void WpcCli::OnCommandEnterKey()
 void WpcCli::GetCurrentParagraphText()
 {
 ITextSelection *pSel;
+ITextSelection *pSel;
 ITextPara *pPara;
 ITextPara *pParaRange;
 long iStart = 0;
 long iEnd = 0;
 	if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
 	{
+
+		pSel->MoveStart(tomParagraph, -1, NULL);
+		pSel->MoveEnd(tomParagraph, 1, NULL);
 		if (SUCCEEDED(pSel->GetIndex(tomParagraph, &iStart)))
 		{
 		}
