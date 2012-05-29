@@ -1328,7 +1328,7 @@ HRESULT G::InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError, ...)
 
 	va_start(vl, szError);
 	_vsntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, szError, vl);
-	szBuff[299]=0;
+	szBuff[_countof(szBuff)-1]=0;
 	MessageBox(hWnd, szBuff, APPNAME, MB_OK | MB_ICONEXCLAMATION);
 	va_end(vl);
 	return hRet;

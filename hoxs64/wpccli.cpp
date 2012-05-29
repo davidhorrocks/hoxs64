@@ -214,6 +214,7 @@ short nVirtKey;
 				if (nVirtKey>=0)
 				{
 					OnCommandEnterKey();
+					return 0;
 				}
 			}
 			break;
@@ -231,28 +232,78 @@ short nVirtKey;
 
 void WpcCli::OnCommandEnterKey()
 {
-	GetCurrentParagraphText();
+long cb;
+LPTSTR ps = NULL;
+	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb)))
+	{
+		ps = (LPTSTR)malloc(cb);
+		if (ps)
+		{
+			if (SUCCEEDED(GetCurrentParagraphText(ps, &cb)))
+			{
+				MessageBox(GetHwnd(), ps, TEXT("test"), MB_OK);
+				SetFocus(m_hWndEdit);
+			}
+
+			free(ps);
+			ps = NULL;
+		}
+	}
 }
 
-void WpcCli::GetCurrentParagraphText()
+HRESULT WpcCli::GetCurrentParagraphText(LPTSTR psBuffer, long *pcch)
 {
 ITextSelection *pSel;
-ITextSelection *pSel;
-ITextPara *pPara;
-ITextPara *pParaRange;
+ITextRange *pRange;
 long iStart = 0;
 long iEnd = 0;
+long cb;
+HRESULT hrRet = E_FAIL;
+long k;
 	if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
 	{
-
-		pSel->MoveStart(tomParagraph, -1, NULL);
-		pSel->MoveEnd(tomParagraph, 1, NULL);
-		if (SUCCEEDED(pSel->GetIndex(tomParagraph, &iStart)))
-		{
-		}
-		if (SUCCEEDED(pSel->GetIndex(tomParagraph, &iEnd)))
-		{
+		if (SUCCEEDED(pSel->GetDuplicate(&pRange)))
+		{		
+			bool ok;
+			for (ok = false; !ok ; ok = true)
+			{
+				if (FAILED(pRange->Move(tomParagraph, -1, &k)))
+					break;
+				if (FAILED(pRange->MoveEnd(tomParagraph, 1, &k)))
+					break;
+			}
+			if (ok)
+			{
+				if (SUCCEEDED(pRange->GetStart(&iStart)))
+				{
+					if (SUCCEEDED(pRange->GetEnd(&iEnd)))
+					{
+						cb = (iEnd - iStart + 1) * sizeof(TCHAR);
+						if (psBuffer)
+						{
+							TEXTRANGE tr;
+							ZeroMemory(&tr, sizeof(tr));
+							tr.chrg.cpMin = iStart;
+							tr.chrg.cpMax = iEnd;
+							tr.lpstrText = psBuffer;
+							long c = (long)SendMessage(this->m_hWndEdit, EM_GETTEXTRANGE, 0, (LPARAM)&tr);
+							if (pcch)
+								*pcch = c;
+							if (c<=0)
+								psBuffer[0] = 0;
+						}
+						else
+						{
+							if (pcch)
+								*pcch = cb;
+						}
+						hrRet = S_OK;
+					}
+				}
+			}
+			pRange->Release();
 		}
 		pSel->Release();
 	}
+	return hrRet;
 }

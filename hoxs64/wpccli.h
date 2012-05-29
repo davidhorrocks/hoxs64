@@ -35,7 +35,7 @@ private:
 	WNDPROC m_wpOrigEditProc;
 	IRichEditOle *m_pIRichEditOle;
 	ITextDocument *m_pITextDocument;
-	void GetCurrentParagraphText();
+	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcch);
 };
 
 #endif
