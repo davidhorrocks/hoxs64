@@ -31,10 +31,11 @@
 const TCHAR CMDIChildCli::ClassName[] = TEXT("CMDIChildCli");
 
 
-CMDIChildCli::CMDIChildCli(C64 *c64, IAppCommand *pIAppCommand)
+CMDIChildCli::CMDIChildCli(C64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 {
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;
+	this->m_hFont = hFont;
 }
 
 HRESULT CMDIChildCli::RegisterClass(HINSTANCE hInstance)
@@ -73,7 +74,7 @@ HRESULT CMDIChildCli::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 shared_ptr<WpcCli> pWpcCli;
 	try
 	{
-		pWpcCli = shared_ptr<WpcCli>(new WpcCli(c64, m_pIAppCommand));
+		pWpcCli = shared_ptr<WpcCli>(new WpcCli(c64, m_pIAppCommand, m_hFont));
 		if (pWpcCli == NULL)
 			throw std::bad_alloc();
 	}

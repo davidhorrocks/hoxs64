@@ -14,7 +14,6 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
-#include "defines.h"
 #include "mlist.h"
 #include "carray.h"
 #include "resource.h"

@@ -1,6 +1,8 @@
 #ifndef __CDX9_H__
 #define __CDX9_H__
 
+#include "oldos_multimon.h"
+
 #undef USESYSMEMSURFACE
 #define DISPLAYMODELISTSIZE (100)
 

@@ -10,7 +10,7 @@ DEFINE_GUID(IID_ITextDocument,0x8CC497C0,0xA1DF,0x11CE,0x80,0x98, 0x00,0xAA,0x00
 class WpcCli : public CVirWindow
 {
 public:
-	WpcCli(C64 *c64, IAppCommand *pIAppCommand);
+	WpcCli(C64 *c64, IAppCommand *pIAppCommand, HFONT hFont);
 	virtual ~WpcCli();
 
 	static const TCHAR ClassName[];
@@ -35,7 +35,13 @@ private:
 	WNDPROC m_wpOrigEditProc;
 	IRichEditOle *m_pIRichEditOle;
 	ITextDocument *m_pITextDocument;
-	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcch);
+	HFONT m_hFont;
+	BSTR m_bstrFontName;
+
+	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcchBuffer, long *piStartCharIndex, long *piEndCharIndex);
+	HRESULT SetCharInsertionPoint(long iCharIndex);
+	HRESULT WriteCommandResponse(long iCharIndex, LPCTSTR pText);
+	HRESULT WriteCommandResponse(ITextRange *pRange, LPCTSTR pText);	
 };
 
 #endif

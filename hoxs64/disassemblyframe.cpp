@@ -54,7 +54,7 @@ const ButtonInfo CDisassemblyFrame::TB_ButtonsAddress[] =
 	{6, TEXT("Find Address"), TEXT("Find address"), BTNS_BUTTON, IDM_VIEW_ADDRESS}
 };
 
-CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption)
+CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption, HFONT hFont)
 	: 
 	DefaultCpu(cpuid, c64)
 {
@@ -72,16 +72,12 @@ HRESULT hr;
 	m_pszCaption = pszCaption;
 	m_hWndToolItemAddress = NULL;
 	m_wheel_current = 0;
-	m_monitor_font = 0;
 
-	hr = InitFonts();
-	if (FAILED(hr))
-		throw std::runtime_error("CDisassemblyFrame::InitFonts() Failed");
-
-	m_pWinDisassemblyChild = shared_ptr<CDisassemblyChild>(new CDisassemblyChild(cpuid, c64, pAppCommand, m_monitor_font));
+	m_hFont = hFont;
+	m_pWinDisassemblyChild = shared_ptr<CDisassemblyChild>(new CDisassemblyChild(cpuid, c64, pAppCommand, m_hFont));
 	if (m_pWinDisassemblyChild == 0)
 		throw std::bad_alloc();
-	m_pWinDisassemblyReg = shared_ptr<CDisassemblyReg>(new CDisassemblyReg(cpuid, c64, pAppCommand, m_monitor_font));
+	m_pWinDisassemblyReg = shared_ptr<CDisassemblyReg>(new CDisassemblyReg(cpuid, c64, pAppCommand, m_hFont));
 	if (m_pWinDisassemblyReg == 0)
 		throw std::bad_alloc();
 
@@ -204,29 +200,6 @@ void CDisassemblyFrame::UnadviseEvents()
 	((CDisassemblyFrame_EventSink_OnShowDevelopment *)this)->UnadviseAll();
 
 }
-#ifndef CLEARTYPE_QUALITY
-#define CLEARTYPE_QUALITY (0)
-#endif
-HRESULT CDisassemblyFrame::InitFonts()
-{
-	CloseFonts();
-	m_monitor_font = G::CreateMonitorFont();
-	if (m_monitor_font == 0)
-	{
-		return SetError(E_FAIL, TEXT("Cannot open a fixed pitch true type font."));
-	}
-	return S_OK;
-}
-
-void CDisassemblyFrame::CloseFonts()
-{
-	if (m_monitor_font)
-	{
-		DeleteObject((HGDIOBJ) m_monitor_font);
-		m_monitor_font=0;
-	}
-}
-
 
 HRESULT CDisassemblyFrame::RegisterClass(HINSTANCE hInstance)
 {
@@ -645,7 +618,7 @@ SIZE sizeText;
 	shared_ptr<CToolItemAddress> p;
 	try
 	{
-		p = shared_ptr<CToolItemAddress>(new CToolItemAddress(m_monitor_font));
+		p = shared_ptr<CToolItemAddress>(new CToolItemAddress(m_hFont));
 		if (!p)
 			return NULL;
 	}

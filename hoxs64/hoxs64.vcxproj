@@ -828,6 +828,7 @@
     <ClInclude Include="bpenum.h" />
     <ClInclude Include="diagbreakpointvicraster.h" />
     <ClInclude Include="mdichildcli.h" />
+    <ClInclude Include="oldos_multimon.h" />
     <ClInclude Include="toolitemaddress.h" />
     <ClInclude Include="wpcbreakpoint.h" />
     <ClInclude Include="CDPI.h" />

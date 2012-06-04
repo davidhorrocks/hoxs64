@@ -79,6 +79,11 @@ HRESULT hr;
 
 	do
 	{
+
+		hr = InitFonts();
+		if (FAILED(hr))
+			break;
+
 		hr = AdviseEvents();
 		if (FAILED(hr))
 			break;
@@ -120,6 +125,7 @@ void CMDIDebuggerFrame::Cleanup()
 		DeleteObject(m_hBmpRebarNotSized);
 		m_hBmpRebarNotSized = NULL;
 	}
+	CloseFonts();
 }
 
 HRESULT CMDIDebuggerFrame::RegisterClass(HINSTANCE hInstance)
@@ -355,7 +361,7 @@ HRESULT hr;
 		shared_ptr<CDisassemblyFrame> pwin = m_pWinDebugCpuC64.lock();
 		if (pwin == NULL)
 		{
-			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, m_pAppCommand, TEXT("C64 - cpu")));
+			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, m_pAppCommand, TEXT("C64 - cpu"), m_hFont));
 			m_pWinDebugCpuC64 = pwin;
 		}
 		if (pwin != NULL)
@@ -380,7 +386,7 @@ HRESULT hr;
 		shared_ptr<CDisassemblyFrame> pwin = m_pWinDebugCpuDisk.lock();
 		if (pwin == NULL)
 		{
-			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, m_pAppCommand, TEXT("Disk - cpu")));		
+			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, m_pAppCommand, TEXT("Disk - cpu"), m_hFont));		
 			m_pWinDebugCpuDisk = pwin;
 		}
 		if (pwin != NULL)
@@ -425,7 +431,7 @@ void CMDIDebuggerFrame::OpenNewCli()
 {
 	try
 	{
-		shared_ptr<CMDIChildCli> pWinMdiChild = shared_ptr<CMDIChildCli>(new CMDIChildCli(c64, m_pAppCommand));
+		shared_ptr<CMDIChildCli> pWinMdiChild = shared_ptr<CMDIChildCli>(new CMDIChildCli(c64, m_pAppCommand, m_hFont));
 		if (pWinMdiChild == 0)
 			throw std::bad_alloc();
 		HWND hWndMdiChildCli = pWinMdiChild->Create(this->shared_from_this());
@@ -678,4 +684,23 @@ void CMDIDebuggerFrame::UnadviseEvents()
 {
 	((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this)->UnadviseAll();
 	((CMDIDebuggerFrame_EventSink_OnTrace *)this)->UnadviseAll();
+}
+
+
+HRESULT CMDIDebuggerFrame::InitFonts()
+{
+	CloseFonts();
+	m_hFont = G::CreateMonitorFont();
+	if (m_hFont == 0)
+		return E_FAIL;
+	return S_OK;
+}
+
+void CMDIDebuggerFrame::CloseFonts()
+{
+	if (m_hFont)
+	{
+		DeleteObject((HGDIOBJ) m_hFont);
+		m_hFont=0;
+	}
 }

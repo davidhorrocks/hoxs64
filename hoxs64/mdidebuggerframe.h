@@ -91,9 +91,11 @@ private:
 	CConfig *cfg;
 	IAppCommand *m_pAppCommand;
 	bool m_bIsCreated;
+	HFONT m_hFont;
 
 	HRESULT Init();
-
+	HRESULT InitFonts();
+	void CloseFonts();
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);
 

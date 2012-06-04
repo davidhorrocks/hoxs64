@@ -1758,7 +1758,8 @@ int lenName;
 
 	int lenUcBuffer = 0;
 	name[0] = L'\0';
-	if (SUCCEEDED(G::AnsiToUcRequiredBufferLength(adapter.Description, 0, lenUcBuffer)))
+	//if (SUCCEEDED(G::AnsiToUcRequiredBufferLength(adapter.Description, 0, lenUcBuffer)))
+	if (SUCCEEDED(G::AnsiToUc(adapter.Description, NULL, 0, lenUcBuffer)))
 	{
 		WCHAR *pTempUcBuffer = (WCHAR *)malloc(lenUcBuffer * sizeof(TCHAR));
 		if (pTempUcBuffer!=NULL)

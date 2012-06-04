@@ -104,7 +104,7 @@ class CDisassemblyFrame_EventSink :
 class CDisassemblyFrame : public CVirWindow, public CDisassemblyFrame_EventSink, public DefaultCpu, public ErrorMsg, IEnterGotoAddress
 {
 public:
-	CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption);
+	CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption, HFONT hFont);
 	virtual ~CDisassemblyFrame();
 	static const int ID_RERBAR = 2000;
 	static const int ID_TOOLBAR = 2001;
@@ -140,7 +140,7 @@ private:
 	HBITMAP m_hBmpRebarNotSized;
 	std::vector<HBITMAP> m_vec_hBmpRebarSized;
 	HIMAGELIST m_hImageListToolBarNormal;
-	HFONT m_monitor_font;
+	HFONT m_hFont;
 	shared_ptr<CDisassemblyChild> m_pWinDisassemblyChild;
 	shared_ptr<CDisassemblyReg> m_pWinDisassemblyReg;
 	shared_ptr<CToolItemAddress> m_pWinToolItemAddress;
@@ -155,8 +155,6 @@ private:
 	shared_ptr<CToolItemAddress> CreateToolItemAddress(HWND hWndParent);
 	HRESULT RebarAddAddressBar(HWND hWndRebar, HWND hWndToolbar);
 
-	HRESULT InitFonts();
-	void CloseFonts();
 	HRESULT GetSizeRectReg(RECT &rc);
 	HRESULT GetSizeRectDisassembly(RECT &rc);
 	HRESULT GetSizeRectToolBar(RECT &rc);

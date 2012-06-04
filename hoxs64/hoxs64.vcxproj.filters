@@ -422,6 +422,9 @@
     <ClInclude Include="wpccli.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
+    <ClInclude Include="oldos_multimon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="c64def.asm">

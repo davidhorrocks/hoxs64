@@ -114,6 +114,8 @@ public:
 	virtual void IBreakpointManager::BM_DeleteAllBreakpoints();
 	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
 
+	HRESULT ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults);
+
 private:
 	IMonitorCpu *m_pMonitorMainCpu;
 	IMonitorCpu *m_pMonitorDiskCpu;

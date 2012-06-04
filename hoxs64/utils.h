@@ -2,12 +2,17 @@
 #define __UTILS_H__
 
 #include <assert.h>
+#include "oldos_multimon.h"
 #include "boost2005.h"
 #include "mlist.h"
 #include "carray.h"
 #include "cevent.h"
 
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
+
+#ifndef CLEARTYPE_QUALITY
+#define CLEARTYPE_QUALITY (5)
+#endif
 
 //struct NM_COMMAND
 
@@ -82,6 +87,12 @@ typedef LPOPENFILENAME_500EXA LPOPENFILENAME_400EX;
 
 // pragma pack ()
 
+#if (WINVER < 0x0600)
+#define DWM_EC_DISABLECOMPOSITION		0
+#define DWM_EC_ENABLECOMPOSITION		1
+#define WM_DWMCOMPOSITIONCHANGED		0x031E
+#endif
+
 struct ImageInfo
 {
 	int BitmapImageResourceId;
@@ -97,66 +108,6 @@ struct ButtonInfo
 	BYTE Style;
 	int CommandId;
 };
-
-#if !defined(HMONITOR_DECLARED) && (WINVER < 0x0500)
-    #define HMONITOR_DECLARED
-    DECLARE_HANDLE(HMONITOR);
-#endif
-
-#if (WINVER < 0x0500)
-
-//--------------------------------------------------------------------------------------
-// Multimon handling to support OSes with or without multimon API support.  
-// Purposely avoiding the use of multimon.h so DXUT.lib doesn't require 
-// COMPILE_MULTIMON_STUBS and cause complication with MFC or other users of multimon.h
-//--------------------------------------------------------------------------------------
-
-#define MONITORINFOF_PRIMARY        0x00000001
-#define MONITOR_DEFAULTTONULL       0x00000000
-#define MONITOR_DEFAULTTOPRIMARY    0x00000001
-#define MONITOR_DEFAULTTONEAREST    0x00000002
-typedef struct tagMONITORINFO
-{
-    DWORD   cbSize;
-    RECT    rcMonitor;
-    RECT    rcWork;
-    DWORD   dwFlags;
-} MONITORINFO, *LPMONITORINFO;
-typedef struct tagMONITORINFOEXA : public tagMONITORINFO
-{
-    CHAR        szDevice[CCHDEVICENAME];
-} MONITORINFOEXA, *LPMONITORINFOEXA;
-typedef struct tagMONITORINFOEXW : public tagMONITORINFO
-{
-    WCHAR       szDevice[CCHDEVICENAME];
-} MONITORINFOEXW, *LPMONITORINFOEXW;
-
-#ifdef UNICODE
-typedef MONITORINFOEXW MONITORINFOEX;
-typedef LPMONITORINFOEXW LPMONITORINFOEX;
-#else
-typedef MONITORINFOEXA MONITORINFOEX;
-typedef LPMONITORINFOEXA LPMONITORINFOEX;
-#endif // UNICODE
-
-#endif
-
-//--------------------------------------------------------------------------------------
-// Multimon API handling for OSes with or without multimon API support
-//--------------------------------------------------------------------------------------
-#define DXUT_PRIMARY_MONITOR ((HMONITOR)0x12340042)
-typedef HMONITOR     (WINAPI* LPMONITORFROMWINDOW)(HWND, DWORD);
-typedef BOOL         (WINAPI* LPGETMONITORINFO)(HMONITOR, LPMONITORINFO);
-typedef HMONITOR     (WINAPI* LPMONITORFROMRECT)(LPCRECT, DWORD);
-
-typedef HRESULT (WINAPI *LPDWMISCOMPOSITIONENABLED)(__out BOOL *);
-typedef HRESULT (WINAPI *LPDWMENABLECOMPOSITION)(UINT);
-
-#if (WINVER < 0x0600)
-#define DWM_EC_DISABLECOMPOSITION		0
-#define DWM_EC_ENABLECOMPOSITION		1
-#define WM_DWMCOMPOSITIONCHANGED		0x031E
-#endif
 
 class G
 {
@@ -179,10 +130,12 @@ public:
 	static BOOL WaitMessageTimeout(DWORD dwTimeout);
 	static HRESULT GetVersion_Res(LPTSTR filename, VS_FIXEDFILEINFO *p_vinfo);
 	static HRESULT AnsiToUc(LPCSTR pszAnsi, LPWSTR pwszUc, int cAnsiCharsToConvert);
-	static HRESULT AnsiToUc(LPCSTR pszAnsi, LPWSTR pwszUc, int cAnsiCharsToConvert, int& chOut);
-	static HRESULT AnsiToUcRequiredBufferLength(LPCSTR pszAnsi, int cAnsiCharsToConvert, int &cOut);
+	static HRESULT AnsiToUc(LPCSTR pszAnsi, LPWSTR pwszUc, int cAnsiCharsToConvert, int& cchOut);
+	static HRESULT AnsiToUcRequiredBufferLength(LPCSTR pszAnsi, int cAnsiCharsToConvert, int &cchOut);
 	static HRESULT UcToAnsi(LPCWSTR pwszUc, LPSTR pszAnsi, int cWideCharsToConvert);
-	static HRESULT UcToAnsiRequiredBufferLength(LPCWSTR pwszUc, int cWideCharsToConvert, int &cOut);
+	static HRESULT UcToAnsi(LPCWSTR pwszUc, LPSTR pszAnsi, int cWideCharsToConvert, int& cchOut);
+	static HRESULT UcToAnsiRequiredBufferLength(LPCWSTR pwszUc, int cWideCharsToConvert, int &cchOut);
+	static BSTR AllocBStr(LPCTSTR pszString);
 	static DLGTEMPLATE * WINAPI DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName);
 	static void ShowLastError(HWND);
 	static TCHAR *GetLastWin32ErrorString();

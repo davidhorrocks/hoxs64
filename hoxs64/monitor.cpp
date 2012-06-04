@@ -434,3 +434,12 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 	BpEnum *r= new BpEnum(&this->MapBpExecute);
 	return r;
 }
+
+HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
+{
+	if (ppszResults)
+	{
+		*ppszResults = TEXT("TEST Results1\rTEST Results2\r");
+	}
+	return S_OK;
+}

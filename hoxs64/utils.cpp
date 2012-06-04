@@ -694,7 +694,7 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	RECT rcTab,rcTemp; 
 	HWND hwndButton; 
 	RECT rcButton; 
-	int i; 
+	size_t i;
 	BOOL bResult=FALSE;
 	// Create the tab control. 
 	InitCommonControls(); 
@@ -708,7 +708,7 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	}
 	else
 		return FALSE;
-
+	
 	SetRectEmpty(&rcTemp);
 	rcTemp.right=1;
 	rcTemp.bottom=1;
@@ -717,12 +717,15 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	int cyMargin = abs(rcTemp.bottom - rcTemp.top);
 
 	// Add a tab for each of the three child dialog boxes. 
-	for (i = (int)m_vecpages.size() -1; i >= 0; i--) 
-	{ 
-		tie.mask = TCIF_TEXT | TCIF_IMAGE; 
-		tie.iImage = -1; 
-		tie.pszText = m_vecpages[i]->m_pagetext; 
-		TabCtrl_InsertItem(m_hwndTab, 0, &tie); 
+	if (m_vecpages.size() > 0)
+	{
+		for (i = m_vecpages.size(); i > 0; i--) 
+		{ 
+			tie.mask = TCIF_TEXT | TCIF_IMAGE; 
+			tie.iImage = -1; 
+			tie.pszText = m_vecpages[i-1]->m_pagetext; 
+			TabCtrl_InsertItem(m_hwndTab, 0, &tie); 
+		}
 	}
  
 	// Lock the resources for the three child dialog boxes. 
@@ -801,7 +804,7 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 
 BOOL CTabDialog::OnSelChanged(HWND hwndDlg) 
 { 
-int iSel;
+size_t iSel;
 	// Destroy the current child dialog box, if any. 
 	if (IsWindow(m_hwndDisplay)) 
 	{
@@ -811,9 +814,6 @@ int iSel;
 	m_hwndDisplay=NULL;
 
 	iSel = m_current_page_index = TabCtrl_GetCurSel(m_hwndTab); 
-
-	if (iSel<0)
-		return FALSE;
 
 	if (iSel >= m_vecpages.size())
 		return FALSE;
@@ -864,10 +864,10 @@ shared_ptr<CTabPageDialog> CTabDialog::GetPage(int i)
 
 HRESULT CTabDialog::CreateAllPages()
 {
-int i;
+size_t i;
 HRESULT hr = S_OK;
 HWND hWnd;
-	for (i=0 ; i<m_vecpages.size() ; i++)
+	for (i=0 ; i < m_vecpages.size() ; i++)
 	{
 		if (!m_vecpages[i]->m_bIsCreated)
 		{
@@ -918,70 +918,43 @@ HRESULT G::AnsiToUc(
 			LPCSTR pszAnsi,
 			LPWSTR pwszUc,
 			int cAnsiCharsToConvert,
-			int& chOut)
+			int& cchOut)
 {
-HRESULT hr = E_POINTER;
 int cSize;
-int cOut;
+int r;
 int cch;
 
-	chOut = 0;
-	if (NULL != pszAnsi && NULL != pwszUc)
+	cchOut = 0;
+	if (pszAnsi == NULL)
+		return E_POINTER;
+	if (0 == cAnsiCharsToConvert)
+		cch = -1;
+	else
+		cch = cAnsiCharsToConvert;
+
+	cSize = MultiByteToWideChar(CP_ACP, 0, pszAnsi, cch, NULL, 0);
+	if (cSize == 0)
+		return E_FAIL;
+	if (NULL == pwszUc)
 	{
-		if (0 == cAnsiCharsToConvert)
-			cch = -1;
-		else
-			cch = cAnsiCharsToConvert;
-
-		cSize = MultiByteToWideChar(CP_ACP, 0, pszAnsi, cch, NULL, 0);
-
-		if (0 != cSize)
-		{
-			cOut = MultiByteToWideChar(CP_ACP, 0, pszAnsi, cch, pwszUc, cSize);
-
-			if (0 == cOut)
-				hr = E_FAIL;
-			else
-			{
-				hr = NOERROR;
-				chOut = cOut;
-			}
-		}
-		else
-			hr = E_FAIL;
+		cchOut = cSize;
+		return S_OK;
 	}
-
-	return hr;
+	r = MultiByteToWideChar(CP_ACP, 0, pszAnsi, cch, pwszUc, cSize);
+	if (0 == r)
+		return  E_FAIL;
+	cchOut = r;
+		
+	return S_OK;
 }
 
 HRESULT G::AnsiToUcRequiredBufferLength(
 			LPCSTR pszAnsi,
 			int cAnsiCharsToConvert,
-			int &cOut
+			int &cchOut
 			)
 {
-HRESULT hr = E_POINTER;
-int cSize;
-int cch;
-	if (NULL != pszAnsi)
-	{
-		if (0 == cAnsiCharsToConvert)
-			cch = -1;
-		else
-			cch = cAnsiCharsToConvert;
-
-		cSize = MultiByteToWideChar(CP_ACP, 0, pszAnsi, cch, NULL, 0);
-		if (0 != cSize)
-		{
-			cOut = cSize;
-			return S_OK;
-		}
-		else
-		{
-			return E_FAIL;
-		}
-	}
-	return hr;
+	return AnsiToUc(pszAnsi, NULL, cAnsiCharsToConvert, cchOut);
 }
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
@@ -1003,59 +976,75 @@ F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F-F*/
 HRESULT G::UcToAnsi(
 			LPCWSTR pwszUc,
 			LPSTR pszAnsi,
-			int cWideCharsToConvert)
+			int cWideCharsToConvert,
+			int& cchOut)
 {
-HRESULT hr = E_POINTER;
 int cSize;
-int cOut;
+int r;
 int cch;
-	if (NULL != pszAnsi && NULL != pwszUc)
+
+
+	cchOut = 0;
+	if (pwszUc == NULL)
+		return E_POINTER;
+	if (0 == cWideCharsToConvert)
+		cch = -1;
+	else
+		cch = cWideCharsToConvert;
+
+	cSize = WideCharToMultiByte(CP_ACP, 0, pwszUc, cch, NULL, NULL, NULL, NULL);
+	if (cSize == 0)
+		return E_FAIL;
+	if (NULL == pszAnsi)
 	{
-
-		if (0 == cWideCharsToConvert)
-			cch = -1;
-		else
-			cch = cWideCharsToConvert;
-
-		cSize = WideCharToMultiByte(CP_ACP,0,pwszUc,cch,NULL,0,NULL,NULL);
-
-		if (0 != cSize)
-		{
-			cOut = WideCharToMultiByte(CP_ACP,0,pwszUc,-1,pszAnsi,cSize,NULL,NULL);
-			if (0 != cOut)
-				hr = NOERROR;
-		}
-		else
-			hr = E_FAIL;
+		cchOut = cSize;
+		return S_OK;
 	}
-	return hr;
+	r = WideCharToMultiByte(CP_ACP, 0, pwszUc, cch, pszAnsi, cSize, NULL, NULL);
+	if (0 == r)
+		return  E_FAIL;
+	cchOut = r;
+		
+	return S_OK;
 }
 
-HRESULT G::UcToAnsiRequiredBufferLength(LPCWSTR pwszUc, int cWideCharsToConvert, int &cOut)
+HRESULT G::UcToAnsi(
+			LPCWSTR pwszUc,
+			LPSTR pszAnsi,
+			int cWideCharsToConvert)
 {
-HRESULT hr = E_POINTER;
-int cSize;
-int cch;
+	int cchOut = 0;
+	return UcToAnsi(pwszUc, pszAnsi, cWideCharsToConvert, cchOut);
+}
 
-	if (NULL != pwszUc)
-	{
+HRESULT G::UcToAnsiRequiredBufferLength(LPCWSTR pwszUc, int cWideCharsToConvert, int &cchOut)
+{
+	return UcToAnsi(pwszUc, NULL, cWideCharsToConvert, cchOut);
+}
 
-		if (0 == cWideCharsToConvert)
-			cch = -1;
-		else
-			cch = cWideCharsToConvert;
-
-		cSize = WideCharToMultiByte(CP_ACP,0,pwszUc,cch,NULL,0,NULL,NULL);
-
-		if (0 != cSize)
+BSTR G::AllocBStr(LPCTSTR pszString)
+{
+BSTR bstr = 0;
+int ich = 0;
+#ifdef UNICODE
+	bstr = SysAllocString(pszString);
+#else
+LPWSTR pwstr;
+		if (SUCCEEDED(G::AnsiToUc(pszString, NULL, 0, ich)))
 		{
-			cOut = cSize;
-			hr = S_OK;
+			pwstr = (LPWSTR)malloc(ich * sizeof(wchar_t));
+			if (pwstr)
+			{
+				if (SUCCEEDED(G::AnsiToUc(pszString, pwstr, 0, ich)))
+				{
+					bstr = SysAllocString(pwstr);
+				}
+			}
+			free(pwstr);
 		}
-		else
-			hr = E_FAIL;
-	}
-	return hr;
+#endif
+	return bstr;
+
 }
 
 DLGTEMPLATE * WINAPI G::DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName) 
@@ -2035,8 +2024,12 @@ HIMAGELIST hOldImageList = NULL;
 	int ok=0;
 	for (; ok==0; ok++)
 	{
+		DWORD exStyle  = 0;
+		#if (_WIN32_WINNT >= _WIN32_WINNT_WINXP)
+			exStyle |= TBSTYLE_EX_MIXEDBUTTONS;
+		#endif
 		hwndTB = ::CreateWindowEx(0, TOOLBARCLASSNAME, 	(LPTSTR) NULL, 
-			WS_CLIPCHILDREN | WS_CLIPSIBLINGS |	WS_CHILD | 	TBSTYLE_FLAT | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_TOOLTIPS | CCS_NORESIZE | CCS_NODIVIDER // | CCS_ADJUSTABLE
+			WS_CLIPCHILDREN | WS_CLIPSIBLINGS |	WS_CHILD | TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | exStyle | CCS_NORESIZE | CCS_NODIVIDER // | CCS_ADJUSTABLE
 			, 0, 0, 0, 0, 
 			hWnd, 
 			(HMENU) LongToPtr(toolbarid), 
@@ -2284,6 +2277,10 @@ CDPI dpi;
 	HFONT f = 0;
 	LPTSTR lstFontName[] = { TEXT("Consolas"), TEXT("Lucida"), TEXT("Courier"), TEXT("")};
 	
+	DWORD fdwQuality  = 0;
+	//(_WIN32_WINNT >= _WIN32_WINNT_WINXP)
+	fdwQuality |= CLEARTYPE_QUALITY;
+
 	for (int i =0; f == 0 && i < _countof(lstFontName); i++)
 	{
 		f = CreateFont(
@@ -2298,7 +2295,7 @@ CDPI dpi;
 			ANSI_CHARSET,
 			OUT_TT_ONLY_PRECIS,
 			CLIP_DEFAULT_PRECIS,
-			CLEARTYPE_QUALITY,
+			fdwQuality,
 			FIXED_PITCH | FF_DONTCARE,
 			lstFontName[i]);
 	}
