@@ -271,6 +271,7 @@ LPTSTR psResult = NULL;
 long iStart = 0;
 long iEnd = 0;
 long iLen = 0;
+long p1,p2;
 	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb, NULL, NULL)))
 	{
 		ps = (LPTSTR)malloc(cb);
@@ -282,23 +283,38 @@ long iLen = 0;
 				{
 					if (SUCCEEDED(c64->mon.ExecuteCommandLine(ps, &psResult)))
 					{
-						ITextRange *pRange = 0;
-						if (SUCCEEDED(m_pITextDocument->Range(iStart, iEnd, &pRange)))
+						ITextSelection *pSel = 0;
+						if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
 						{
-							pRange->GetStoryLength(&iLen);
-							pRange->Collapse(tomEnd);
-							//if (ps[cb - 1] != TEXT('\r'))
-							//{
-							//}
-							WriteCommandResponse(pRange, TEXT("\r"));
-							pRange->Collapse(tomEnd);
-							WriteCommandResponse(pRange, psResult);
-							pRange->Collapse(tomEnd);
-							WriteCommandResponse(pRange, TEXT("\r"));
-							pRange->Collapse(tomStart);
-							pRange->Select();
-							pRange->Release();
-							pRange = 0;
+							ITextRange *pRange = 0;
+							if (SUCCEEDED(m_pITextDocument->Range(iStart, iEnd, &pRange)))
+							{
+								pRange->GetStoryLength(&iLen);
+								
+								if (iEnd>=iLen)
+								{
+									pRange->Collapse(tomEnd);
+									WriteCommandResponse(pRange, TEXT("\r"));
+									pRange->Collapse(tomEnd);
+									WriteCommandResponse(pRange, psResult);
+									pRange->Collapse(tomEnd);
+								}
+								else
+								{
+									pRange->Collapse(tomEnd);
+									WriteCommandResponse(pRange, psResult);
+									pRange->Collapse(tomEnd);
+									WriteCommandResponse(pRange, TEXT("\r"));
+									pRange->Collapse(tomStart);
+								}
+								long tsflags = 0;
+								pSel->GetFlags(&tsflags);
+								pSel->SetFlags((tsflags & (tomSelOvertype | tomSelReplace)) | tomSelStartActive);//tomSelAtEOL
+								pRange->Select();
+								pRange->Release();
+								pRange = 0;
+							}
+							pSel->Release();
 						}
 					}
 				}
