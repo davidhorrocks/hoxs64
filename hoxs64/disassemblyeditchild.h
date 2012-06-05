@@ -89,7 +89,6 @@ public:
 		AssemblyLineBuffer();
 		bool GetIsReadOnly();
 		void Clear();
-		void WriteDisassemblyString(TCHAR *pszBuffer, int cchBuffer);
 		bool IsEqual(AssemblyLineBuffer& other);
 	};
 
@@ -122,6 +121,7 @@ private:
 	IAppCommand *m_pAppCommand;
 	CDPI m_dpi;
 	HFONT m_hFont;
+	HFONT m_hOldFont;
 	bit16 m_FirstAddress;
 	int m_NumLines;
 	bool m_MinSizeDone;

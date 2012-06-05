@@ -53,6 +53,7 @@ HRESULT hr;
 	m_hWndEditText = NULL;
 	m_wpOrigEditProc = NULL;
 	m_CurrentEditLineBuffer = NULL;
+	m_hOldFont = 0;
 	ZeroMemory(&m_rcLastDrawText, sizeof(m_rcLastDrawText));
 
 	m_pAppCommand = pAppCommand;
@@ -335,7 +336,7 @@ HDC hdc = GetDC(m_hWnd);
 DcHelper dch(hdc);
 HRESULT hr;
 	dch.UseMapMode(MM_TEXT);
-	dch.UseFont(m_hFont);
+	m_hOldFont = dch.UseFont(m_hFont);
 	//prevent dc restore
 	dch.m_hdc = NULL;
 	m_bIsFocused = false;
@@ -350,6 +351,15 @@ HRESULT hr;
 
 void CDisassemblyEditChild::OnDestroy(HWND hWnd)
 {
+	if (m_hOldFont)
+	{
+		HDC hdc = GetDC(m_hWnd);
+		if (hdc)
+		{
+			SelectObject(hdc, m_hOldFont);
+		}
+		m_hOldFont = 0;
+	}
 	if (m_wpOrigEditProc!=NULL && m_hWndEditText!=NULL)
 	{
 		SubclassChildWindow(m_hWndEditText, m_wpOrigEditProc);
@@ -499,8 +509,8 @@ HBRUSH bshWhite;
 		prevMapMode = SetMapMode(hdc, MM_TEXT);
 		if (prevMapMode)
 		{
-			prevFont = (HFONT)SelectObject(hdc, m_hFont);		
-			if (prevFont)
+			//prevFont = (HFONT)SelectObject(hdc, m_hFont);		
+			//if (prevFont)
 			{				
 				prevBrush = (HBRUSH)SelectObject(hdc, bshWhite);		
 				if (prevBrush)
@@ -1478,34 +1488,4 @@ bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& othe
 bool CDisassemblyEditChild::AssemblyLineBuffer::GetIsReadOnly()
 {
 	return (AddressReadAccessType == MT_KERNAL || AddressReadAccessType == MT_BASIC || AddressReadAccessType == MT_CHARGEN || AddressReadAccessType == MT_NOTCONNECTED);
-}
-
-
-void CDisassemblyEditChild::AssemblyLineBuffer::WriteDisassemblyString(TCHAR *pszBuffer, int cchBuffer)
-{
-////TCHAR szSpace[]=TEXT("         ");
-//	if (pszBuffer!=NULL || cchBuffer <=0)
-//		return;
-//	TCHAR *p = pszBuffer;
-//	p[0] = 0;
-//	int len;
-//	int sizeRemaining = cchBuffer;
-//
-//	if (sizeRemaining < 1)
-//		return;
-//	_tcsncpy_s(p, sizeRemaining, this->AddressText, _TRUNCATE);
-//	len = _tcslen(p);
-//	sizeRemaining = sizeRemaining - len;
-//	p+=len;
-//
-//	if (sizeRemaining < 1)
-//		return;
-//	_tcsncpy_s(p, sizeRemaining, this->BytesText, _TRUNCATE);
-//	len = _tcslen(p);
-//	sizeRemaining = sizeRemaining - len;
-//	p+=len;
-//
-//	if (sizeRemaining < 1)
-//		return;
-//	int lenSpace = 
 }
