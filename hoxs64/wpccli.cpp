@@ -271,7 +271,6 @@ LPTSTR psResult = NULL;
 long iStart = 0;
 long iEnd = 0;
 long iLen = 0;
-long p1,p2;
 	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb, NULL, NULL)))
 	{
 		ps = (LPTSTR)malloc(cb);
@@ -315,6 +314,11 @@ long p1,p2;
 								pRange = 0;
 							}
 							pSel->Release();
+						}
+						if (psResult)
+						{
+							free(psResult);
+							psResult = 0;
 						}
 					}
 				}

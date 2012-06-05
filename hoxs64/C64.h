@@ -38,6 +38,7 @@
 #include "t64.h"
 #include "c64file.h"
 #include "monitor.h"
+#include "assembler.h"
 
 class SIDLoader;
 

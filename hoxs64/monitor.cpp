@@ -437,10 +437,46 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 
 HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 {
-	if (ppszResults)
+	Assembler as;
+	CommandResult *pcr = 0;
+	HRESULT hr = E_FAIL;
+	LPTSTR ps = 0;
+	try
 	{
-		//*ppszResults = TEXT("TEST Results1\rTEST Results2\r");
-		*ppszResults = TEXT("Prompt? ");
+		hr = as.StartCommand(pszCommandLine, &pcr);
+		if (FAILED(hr))
+		{
+			ps = _tcsdup(TEXT("Command failed.\r"));
+		}
+		else
+		{	
+			std::basic_string<TCHAR> s;
+
+			LPCTSTR pline = 0;
+			while(pcr->GetNextLine(&pline) == S_OK)
+			{
+				s.append(pline);
+			}
+			ps = _tcsdup(s.c_str());
+		}
+		if (!ps)
+			hr = E_FAIL;
+		else
+			hr = S_FALSE;
+		if (ppszResults)
+		{
+			*ppszResults = ps;
+			ps = NULL;
+		}
 	}
-	return S_OK;
+	catch(...)
+	{
+		hr = E_FAIL;
+	}
+	if (pcr)
+	{
+		delete pcr;
+		pcr = 0;
+	}
+	return hr;
 }

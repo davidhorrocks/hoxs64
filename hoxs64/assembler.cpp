@@ -823,3 +823,100 @@ HRESULT Assembler::GetNextChar()
 	return S_OK;
 }
 
+
+HRESULT Assembler::StartCommand(LPCTSTR pszText, CommandResult **ppmdr)
+{
+HRESULT hr;
+AssemblyToken tk;
+CommandResult *pcr = NULL;
+	try
+	{
+		hr = InitParser(pszText);
+		if (FAILED(hr))
+			return hr;
+
+		if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
+		{
+			tk = m_CurrentToken;
+			if (_tcsicmp(tk.IdentifierText, TEXT("D")) == 0)
+			{
+				pcr = new CommandResultDissassbly();
+				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				{
+					pcr->isParseOk = true;
+				}
+			}
+			else
+			{
+				pcr = new CommandResult();
+				pcr->a_lines.push_back(TEXT("Unrecognised command.\r"));
+			}
+		}
+		else
+		{
+			pcr = new CommandResult();
+			pcr->a_lines.push_back(TEXT("Unrecognised command.\r"));
+		}
+		if (ppmdr)
+			*ppmdr = pcr;
+		return S_OK;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		return E_FAIL;
+	}
+}
+
+CommandResult::CommandResult()
+{
+	cmd = DBGSYM::CliCommand::Unknown;
+	line = 0;
+	isParseOk = false;
+}
+
+
+HRESULT CommandResult::GetNextLine(LPCTSTR *ppszLine)
+{
+	if (line < a_lines.size())
+	{
+		if (ppszLine)
+			*ppszLine = a_lines[line];
+		line++;
+		return S_OK;
+	}
+	else
+	{
+		if (ppszLine)
+			*ppszLine = NULL;
+		return S_FALSE;
+	}
+}
+
+void CommandResult::Reset()
+{
+	line = 0;
+}
+
+CommandResultDissassbly::CommandResultDissassbly()	
+{
+	cmd  = DBGSYM::CliCommand::Disassemble;
+}
+
+HRESULT CommandResultDissassbly::GetNextLine(LPCTSTR *ppszLine)
+{
+	if (line == 0)
+	{
+		if (ppszLine)
+			*ppszLine = TEXT("DBGSYM::CliCommand::Disassemble\r");
+		line++;
+		return S_OK;
+	}
+	else
+	{
+		if (ppszLine)
+			*ppszLine = NULL;
+		return S_FALSE;
+	}
+}

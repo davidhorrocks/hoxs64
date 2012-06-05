@@ -156,6 +156,19 @@ namespace DBGSYM
 			VicRasterCompare = 3,
 		};
 	};
+
+	namespace CliCommand
+	{
+		enum CliCommand
+		{
+			ClearScreen,
+			Disassemble,
+			Assemble,
+			Memory,
+			Error,
+			Unknown,
+		};
+	};
 };
 
 #endif

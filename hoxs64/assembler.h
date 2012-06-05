@@ -24,11 +24,14 @@ struct AssemblyToken
 	static void SetError(AssemblyToken* t);
 };
 
+class CommandResult;
+
 class Assembler
 {
 public:
 	HRESULT AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 	HRESULT ParseAddress16(LPCTSTR pszText, bit16 *piAddress);
+	HRESULT StartCommand(LPCTSTR pszText, CommandResult **ppcmdr);
 
 	static HRESULT TryParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 private:
@@ -96,6 +99,34 @@ private:
 	HRESULT AssembleIndirectY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 
 	HRESULT AssembleRelative(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+};
+
+
+class CommandResult
+{
+public:
+	CommandResult();
+	DBGSYM::CliCommand::CliCommand cmd;
+	bool isParseOk;
+	virtual void Reset();
+	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
+protected:
+	size_t line;
+	std::vector<LPTSTR> a_lines;
+	friend Assembler;
+};
+
+
+class CommandResultDissassbly : CommandResult
+{
+public:
+	CommandResultDissassbly();
+	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
+protected:
+	bit16 address;
+	bit16 startaddress;
+	bit16 finishaddress;
+	friend Assembler;
 };
 
 #endif
