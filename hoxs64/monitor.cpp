@@ -455,6 +455,8 @@ HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 			LPCTSTR pline = 0;
 			while(pcr->GetNextLine(&pline) == S_OK)
 			{
+				if (!pline)
+					break;
 				s.append(pline);
 			}
 			ps = _tcsdup(s.c_str());

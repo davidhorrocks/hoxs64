@@ -99,6 +99,9 @@ private:
 	HRESULT AssembleIndirectY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 
 	HRESULT AssembleRelative(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
+	HRESULT _ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress);
+	HRESULT _ParseAddress(bit16 *piAddress);
 };
 
 
@@ -106,21 +109,29 @@ class CommandResult
 {
 public:
 	CommandResult();
+	CommandResult(LPCTSTR pszLine);
+	virtual ~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	bool isParseOk;
+	void AddLine(LPCTSTR pszLine);
 	virtual void Reset();
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
 protected:
 	size_t line;
 	std::vector<LPTSTR> a_lines;
-	friend Assembler;
 };
 
 
-class CommandResultDissassbly : CommandResult
+class CommandResultHelp : public CommandResult
 {
 public:
-	CommandResultDissassbly();
+	CommandResultHelp();
+};
+
+class CommandResultDisassembly : CommandResult
+{
+public:
+	CommandResultDisassembly(bit16 startaddress, bit16 finishaddress);
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
 protected:
 	bit16 address;

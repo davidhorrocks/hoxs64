@@ -204,6 +204,12 @@
     <ClCompile Include="wpccli.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="commandresultdisassembly.cpp">
+      <Filter>Header Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="commandresulthelp.cpp">
+      <Filter>Header Files\debugger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">

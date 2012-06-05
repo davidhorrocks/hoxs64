@@ -684,7 +684,7 @@ TCHAR ch;
 				GetNextChar();
 				break;
 			}
-			else if (ch == _T('#') || ch == _T('(') || ch == _T(')') || ch == _T(','))
+			else if (ch == _T('#') || ch == _T('(') || ch == _T(')') || ch == _T(',') || ch == _T('-') || ch == _T('?'))
 			{
 				m_NextToken = AssemblyToken();
 				m_NextToken.TokenType = AssemblyToken::Symbol;
@@ -823,6 +823,44 @@ HRESULT Assembler::GetNextChar()
 	return S_OK;
 }
 
+HRESULT Assembler::_ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress)
+{
+	if SUCCEEDED(_ParseAddress(piStartAddress))
+	{
+		if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
+		{
+			GetNextToken();
+		}
+		if SUCCEEDED(_ParseAddress(piEndAddress))
+		{
+			return S_OK;
+		}
+	}
+	return E_FAIL;
+}
+
+HRESULT Assembler::_ParseAddress(bit16 *piAddress)
+{
+	if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+	{
+		if (piAddress)
+			*piAddress = m_CurrentToken.Value8;
+		GetNextToken();
+		return S_OK;
+	}
+	else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
+	{
+		if (piAddress)
+			*piAddress = m_CurrentToken.Value16;
+		GetNextToken();
+		return S_OK;
+	}
+	else
+	{
+		*piAddress = 0;
+		return E_FAIL;
+	}
+}
 
 HRESULT Assembler::StartCommand(LPCTSTR pszText, CommandResult **ppmdr)
 {
@@ -835,27 +873,50 @@ CommandResult *pcr = NULL;
 		if (FAILED(hr))
 			return hr;
 
-		if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
+		if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 		{
 			tk = m_CurrentToken;
-			if (_tcsicmp(tk.IdentifierText, TEXT("D")) == 0)
+			if (tk.SymbolChar==TEXT('?'))
 			{
-				pcr = new CommandResultDissassbly();
-				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
-				{
-					pcr->isParseOk = true;
-				}
-			}
-			else
-			{
-				pcr = new CommandResult();
-				pcr->a_lines.push_back(TEXT("Unrecognised command.\r"));
+					pcr = new CommandResultHelp();
+					if (pcr == 0)
+						throw std::bad_alloc();
 			}
 		}
-		else
+		else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 		{
-			pcr = new CommandResult();
-			pcr->a_lines.push_back(TEXT("Unrecognised command.\r"));
+			tk = m_CurrentToken;
+			if (_tcsicmp(tk.IdentifierText, TEXT("?")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("help")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("man")) == 0)
+			{
+					pcr = new CommandResultHelp();
+					if (pcr == 0)
+						throw std::bad_alloc();
+			}
+			else if (_tcsicmp(tk.IdentifierText, TEXT("D")) == 0)
+			{
+				GetNextToken();
+				bit16 startaddress, endaddress;
+				hr = _ParseAddressRange(&startaddress, &endaddress);
+				if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				{
+					pcr = new CommandResultDisassembly(startaddress, endaddress);
+					if (pcr == 0)
+						throw std::bad_alloc();
+				}
+				else
+				{
+					pcr = new CommandResult(TEXT("Unrecognised address range.\r"));
+					if (pcr == 0)
+						throw std::bad_alloc();
+				}
+
+			}
+		}
+		if (pcr==NULL)
+		{
+			pcr = new CommandResult(TEXT("Unrecognised command.\r"));
+			if (pcr == 0)
+				throw std::bad_alloc();
 		}
 		if (ppmdr)
 			*ppmdr = pcr;
@@ -876,6 +937,33 @@ CommandResult::CommandResult()
 	isParseOk = false;
 }
 
+CommandResult::CommandResult(LPCTSTR pszLine)
+{
+	cmd = DBGSYM::CliCommand::Unknown;
+	line = 0;
+	isParseOk = false;
+	AddLine(pszLine);
+}
+
+CommandResult::~CommandResult()
+{
+	for (std::vector<LPTSTR>::iterator it = a_lines.begin(); it!=a_lines.end(); it++)
+	{
+		LPTSTR s = *it;
+		if(s)
+			free(s);
+	}
+	a_lines.clear();
+}
+
+void CommandResult::AddLine(LPCTSTR pszLine)
+{
+	LPTSTR s = 0;
+	if (pszLine)
+		s = _tcsdup(pszLine);
+	if (s)
+		a_lines.push_back(s);
+}
 
 HRESULT CommandResult::GetNextLine(LPCTSTR *ppszLine)
 {
@@ -897,26 +985,4 @@ HRESULT CommandResult::GetNextLine(LPCTSTR *ppszLine)
 void CommandResult::Reset()
 {
 	line = 0;
-}
-
-CommandResultDissassbly::CommandResultDissassbly()	
-{
-	cmd  = DBGSYM::CliCommand::Disassemble;
-}
-
-HRESULT CommandResultDissassbly::GetNextLine(LPCTSTR *ppszLine)
-{
-	if (line == 0)
-	{
-		if (ppszLine)
-			*ppszLine = TEXT("DBGSYM::CliCommand::Disassemble\r");
-		line++;
-		return S_OK;
-	}
-	else
-	{
-		if (ppszLine)
-			*ppszLine = NULL;
-		return S_FALSE;
-	}
 }

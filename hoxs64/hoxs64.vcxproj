@@ -522,6 +522,8 @@
     <ClCompile Include="appstatus.cpp" />
     <ClCompile Include="assembler.cpp" />
     <ClCompile Include="bpenum.cpp" />
+    <ClCompile Include="commandresultdisassembly.cpp" />
+    <ClCompile Include="commandresulthelp.cpp" />
     <ClCompile Include="diagbreakpointvicraster.cpp" />
     <ClCompile Include="mdichildcli.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />
