@@ -10,7 +10,7 @@ DEFINE_GUID(IID_ITextDocument,0x8CC497C0,0xA1DF,0x11CE,0x80,0x98, 0x00,0xAA,0x00
 class WpcCli : public CVirWindow
 {
 public:
-	WpcCli(C64 *c64, IAppCommand *pIAppCommand, HFONT hFont);
+	WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont);
 	virtual ~WpcCli();
 
 	static const TCHAR ClassName[];
@@ -27,7 +27,7 @@ protected:
 	void OnCommandEnterKey();
 private:
 	CDPI m_dpi;
-	C64 *c64;
+	IC64 *c64;
 	IAppCommand *m_pIAppCommand;
 	bool m_bHexDisplay;
 	HMODULE m_hinstRiched;

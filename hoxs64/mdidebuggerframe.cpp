@@ -8,9 +8,10 @@
 #include <assert.h>
 #include "CDPI.h"
 
-#include "C64.h"
+#include "IC64.h"
 
 #include "utils.h"
+
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -50,7 +51,7 @@ const ButtonInfo CMDIDebuggerFrame::TB_StepButtons[] =
 	{2, TEXT("Stop"), TEXT("Stop tracing"), BTNS_BUTTON, IDM_STEP_STOP}
 };
 
-CMDIDebuggerFrame::CMDIDebuggerFrame(C64 *c64, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus)
+CMDIDebuggerFrame::CMDIDebuggerFrame(IC64 *c64, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus)
 	:
 	c64(c64)
 {
@@ -478,13 +479,13 @@ int wmId, wmEvent;
 		this->m_pAppCommand->ShowDevelopment();
 		return true;
 	case IDM_BREAKPOINT_DELETEALLBREAKPOINTS:
-		c64->mon.BM_DeleteAllBreakpoints();
+		c64->GetMon()->BM_DeleteAllBreakpoints();
 		return true;
 	case IDM_BREAKPOINT_ENABLEALLBREAKPOINTS:
-		c64->mon.BM_EnableAllBreakpoints();
+		c64->GetMon()->BM_EnableAllBreakpoints();
 		return true;
 	case IDM_BREAKPOINT_DISABLEALLBREAKPOINTS:
-		c64->mon.BM_DisableAllBreakpoints();
+		c64->GetMon()->BM_DisableAllBreakpoints();
 		return true;
 	case IDM_BREAKPOINT_VICRASTER:
 		//ShowDlgBreakpointVicRaster();

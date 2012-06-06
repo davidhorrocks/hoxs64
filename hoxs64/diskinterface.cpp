@@ -501,7 +501,7 @@ int i;
 	m_pIndexedD1541_rom=NULL;
 }
 
-void DiskInterface::D64_DiskProtect(BOOL bOn)
+void DiskInterface::D64_DiskProtect(bool bOn)
 {
 	if (bOn)
 	{

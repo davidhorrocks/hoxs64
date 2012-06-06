@@ -74,18 +74,14 @@ public:
 	void EnterDebugRun(bool bWithSound);
 	void FinishDebugRun();
 
-	void ResetKeyboard();
 	void SetBasicProgramEndAddress(bit16 last_byte);
-	void SynchroniseDevicesWithVIC();
 
 	HRESULT AutoLoad(TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks);
 
-	void RemoveDisk();
 	HRESULT LoadImageFile(TCHAR *filename, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadT64ImageFile(TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadTAPFile(TCHAR *filename);
 	HRESULT InsertDiskImageFile(TCHAR *filename, bool bAlignD64Tracks);
-	HRESULT InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks);
 	HRESULT LoadD64FromFile(TCHAR *filename, bool bAlignD64Tracks);
 	HRESULT LoadG64FromFile(TCHAR *filename);
 	HRESULT LoadFDIFromFile(TCHAR *filename);
@@ -93,10 +89,6 @@ public:
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
 	HRESULT SaveFDIToFile(TCHAR *filename);
 
-	void TapePressPlay();
-	void TapePressStop();
-	void TapePressEject();
-	void TapeRewind();
 
 	//IAutoLoad
 	void AutoLoadHandler(ICLK sysclock);
@@ -106,10 +98,24 @@ public:
 	void EndOfTape(ICLK sysclock);
 	
 	//IC64
-	void HardReset(bool bCancelAutoload);
-	void SoftReset(bool bCancelAutoload);
-	void PostHardReset(bool bCancelAutoload);
-	void PostSoftReset(bool bCancelAutoload);
+	virtual void HardReset(bool bCancelAutoload);
+	virtual void SoftReset(bool bCancelAutoload);
+	virtual void PostHardReset(bool bCancelAutoload);
+	virtual void PostSoftReset(bool bCancelAutoload);
+	virtual void ResetKeyboard();
+	virtual void TapePressPlay();
+	virtual void TapePressStop();
+	virtual void TapePressRewind();
+	virtual void TapePressEject();
+	virtual HRESULT InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks);
+	virtual void RemoveDisk();
+	virtual void Set_DiskProtect(bool bOn);
+	virtual bool Get_DiskProtect();
+	virtual void DiskReset();
+	virtual IMonitor *GetMon();
+	virtual void SetupColorTables(unsigned int d3dFormat);
+	virtual HRESULT UpdateBackBuffer();
+	virtual void SynchroniseDevicesWithVIC();
 
 	IMonitorCpu *GetCpu(int cpuid);
 
@@ -196,18 +202,5 @@ private:
 	bool m_bLastPostedDriveWriteLed;
 	ICLK m_iClockOverflowCheckCounter;
 };
-
-class DefaultCpu : IDefaultCpu
-{
-public:
-	//DefaultCpu();
-	DefaultCpu(int cpuid, C64 *c64);
-	int GetCpuId();
-	IMonitorCpu *GetCpu();
-protected:
-	int cpuid;
-	C64 *c64;
-};
-
 
 #endif

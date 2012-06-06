@@ -104,7 +104,7 @@ class CDisassemblyFrame_EventSink :
 class CDisassemblyFrame : public CVirWindow, public CDisassemblyFrame_EventSink, public DefaultCpu, public ErrorMsg, IEnterGotoAddress
 {
 public:
-	CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption, HFONT hFont);
+	CDisassemblyFrame(int cpuid, IC64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption, HFONT hFont);
 	virtual ~CDisassemblyFrame();
 	static const int ID_RERBAR = 2000;
 	static const int ID_TOOLBAR = 2001;

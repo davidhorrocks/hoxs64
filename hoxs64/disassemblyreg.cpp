@@ -8,15 +8,14 @@
 #include <assert.h>
 #include "CDPI.h"
 #include "utils.h"
-#include "errormsg.h"
-#include "C64.h"
+#include "IC64.h"
 #include "edln.h"
 #include "disassemblyreg.h"
 #include "resource.h"
 
 TCHAR CDisassemblyReg::ClassName[] = TEXT("Hoxs64DisassemblyReg");
 
-CDisassemblyReg::CDisassemblyReg(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
+CDisassemblyReg::CDisassemblyReg(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
 	: DefaultCpu(cpuid, c64)
 {
 	m_hFont = NULL;
@@ -433,15 +432,15 @@ void CDisassemblyReg::UpdateBuffer(RegLineBuffer& b)
 		b.Ddr.SetValue(state.PortDdr);
 		b.Data.SetValue(state.PortDataStored);
 
-		bit16 line = this->c64->mon.GetVic()->GetNextRasterLine();
-		bit8 cycle = this->c64->mon.GetVic()->GetNextRasterCycle();
+		bit16 line = this->c64->GetMon()->GetVic()->GetNextRasterLine();
+		bit8 cycle = this->c64->GetMon()->GetVic()->GetNextRasterCycle();
 		
 		b.VicLine.SetValue(line);
 		b.VicCycle.SetValue(cycle);
 	}
 	else if (this->GetCpuId() == CPUID_DISK)
 	{
-		b.DiskTrack.SetValue(this->c64->mon.GetDisk()->GetHalfTrackIndex());
+		b.DiskTrack.SetValue(this->c64->GetMon()->GetDisk()->GetHalfTrackIndex());
 	}
 }
 

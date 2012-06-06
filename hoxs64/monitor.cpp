@@ -57,6 +57,14 @@ HRESULT Monitor::Init(IC64Event *pIC64Event, IMonitorCpu *pMonitorMainCpu, IMoni
 	return S_OK;
 }
 
+void Monitor::MonitorEventsOn()
+{
+}
+
+void Monitor::MonitorEventsOff()
+{
+}
+
 void Monitor::GetVicRegisters(TCHAR *pLine_Text, int cchLine_Text, TCHAR *pCycle_Text, int cchCycle_Text)
 {
 TCHAR szWord[5];
@@ -295,7 +303,7 @@ bit8 operand1;
 	return instruction_size;
 }
 
-int Monitor::DisassembleBytes(IMonitorCpu *pMonitorCpu, unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer)
+int Monitor::DisassembleBytes(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer)
 {
 TCHAR *s;
 unsigned char b;

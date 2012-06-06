@@ -7,14 +7,10 @@
 #include <math.h>
 #include <tchar.h>
 #include <assert.h>
-#include "defines.h"
 #include "CDPI.h"
-#include "util.h"
 #include "utils.h"
-#include "errormsg.h"
-#include "C64.h"
+#include "IC64.h"
 #include "dchelper.h"
-#include "assembler.h"
 #include "disassemblyeditchild.h"
 #include "resource.h"
 
@@ -32,7 +28,7 @@ TCHAR CDisassemblyEditChild::ClassName[] = TEXT("Hoxs64DisassemblyEditChild");
 
 
 
-CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
+CDisassemblyEditChild::CDisassemblyEditChild(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
 	: DefaultCpu(cpuid, c64)
 {
 HRESULT hr;
@@ -1282,7 +1278,7 @@ CPUState cpustate;
 			}
 		}
 
-		int instructionSize = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
+		int instructionSize = c64->GetMon()->DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, buffer.AddressText, _countof(buffer.AddressText), buffer.BytesText, _countof(buffer.BytesText), buffer.MnemonicText, _countof(buffer.MnemonicText), buffer.IsUnDoc);
 		buffer.AddressReadAccessType = this->GetCpu()->GetCpuMmuReadMemoryType(currentAddress, -1);
 		buffer.Address = currentAddress;
 		buffer.InstructionSize = (bit8)instructionSize;
@@ -1300,7 +1296,7 @@ bit16 currentAddress = address - INSTRUCTION_LOOKBACK;
 bit16 nextAddress;
 	while((bit16s)(currentAddress - address) < 0)
 	{
-		int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+		int instructionLength = c64->GetMon()->DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 		if (instructionLength<=0)
 		{
 			nextAddress = currentAddress+1;
@@ -1358,7 +1354,7 @@ bool isUndoc = false;
 		bit16 currentAddress = startaddress;
 		for (int i=0 ; i<linenumber ; i++)
 		{
-			int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+			int instructionLength = c64->GetMon()->DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 			currentAddress += instructionLength;
 		}
 		return currentAddress;
@@ -1372,7 +1368,7 @@ bool isUndoc = false;
 		while((bit16s)(currentAddress - startaddress) < 0)
 		{
 			vecAddress.push_back(currentAddress);
-			int instructionLength = c64->mon.DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
+			int instructionLength = c64->GetMon()->DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 			if (instructionLength <= 0)
 			{
 				nextAddress = currentAddress + 1;

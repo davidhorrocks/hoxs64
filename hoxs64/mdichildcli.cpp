@@ -9,7 +9,7 @@
 #include "CDPI.h"
 #include "dchelper.h"
 
-#include "C64.h"
+#include "IC64.h"
 
 #include "utils.h"
 #include "edln.h"
@@ -31,7 +31,7 @@
 const TCHAR CMDIChildCli::ClassName[] = TEXT("CMDIChildCli");
 
 
-CMDIChildCli::CMDIChildCli(C64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
+CMDIChildCli::CMDIChildCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 {
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;

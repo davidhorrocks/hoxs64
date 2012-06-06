@@ -7,7 +7,7 @@
 #include <tchar.h>
 #include <assert.h>
 #include "CDPI.h"
-#include "C64.h"
+#include "IC64.h"
 #include "utils.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -16,7 +16,7 @@
 
 const TCHAR WpcCli::ClassName[] = TEXT("WPCCLI");
 
-WpcCli::WpcCli(C64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
+WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 {
 	m_hinstRiched = NULL;
 	m_hWndEdit = NULL;
@@ -277,7 +277,7 @@ long iLen = 0;
 			{
 				if (cb > 0 && iEnd-iStart > 0)
 				{
-					if (SUCCEEDED(c64->mon.ExecuteCommandLine(ps, &psResult)))
+					if (SUCCEEDED(c64->GetMon()->ExecuteCommandLine(ps, &psResult)))
 					{
 						ITextSelection *pSel = 0;
 						if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))

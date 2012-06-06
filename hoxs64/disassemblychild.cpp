@@ -9,15 +9,14 @@
 #include <assert.h>
 #include "CDPI.h"
 #include "utils.h"
-#include "errormsg.h"
-#include "C64.h"
+#include "IC64.h"
 #include "disassemblyeditchild.h"
 #include "disassemblychild.h"
 #include "resource.h"
 
 TCHAR CDisassemblyChild::ClassName[] = TEXT("Hoxs64DisassemblyChild");
 
-CDisassemblyChild::CDisassemblyChild(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
+CDisassemblyChild::CDisassemblyChild(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont) 
 	: 
 	DefaultCpu(cpuid, c64)
 {

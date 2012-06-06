@@ -9,18 +9,14 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include <assert.h>
-#include "defines.h"
-#include "C64.h"
+#include "IC64.h"
 #include "CDPI.h"
-#include "bits.h"
-#include "util.h"
 #include "utils.h"
-#include "assembler.h"
 #include "resource.h"
 #include "diagbreakpointvicraster.h"
 
 
-CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, C64 *c64)
+CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, IC64 *c64)
 {
 	m_iLine = 0;
 	m_iCycle = 1;
@@ -182,7 +178,7 @@ BOOL CDiagBreakpointVicRaster::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam
 			{
 				if (m_bIsModeless)
 				{
-					this->c64->mon.GetVic()->SetBreakpointRasterCompare(this->GetRasterLine(), this->GetRasterCycle(), true, 0, 0);
+					this->c64->GetMon()->GetVic()->SetBreakpointRasterCompare(this->GetRasterLine(), this->GetRasterCycle(), true, 0, 0);
 					this->m_pIAppCommand->ShowDevelopment();
 					DestroyWindow(hWndDlg);
 				}

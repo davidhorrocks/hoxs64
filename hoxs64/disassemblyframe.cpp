@@ -7,10 +7,8 @@
 #include <assert.h>
 #include "CDPI.h"
 #include "utils.h"
-#include "errormsg.h"
-#include "C64.h"
+#include "IC64.h"
 #include "edln.h"
-#include "assembler.h"
 #include "toolitemaddress.h"
 #include "disassemblyreg.h"
 #include "disassemblyeditchild.h"
@@ -54,7 +52,7 @@ const ButtonInfo CDisassemblyFrame::TB_ButtonsAddress[] =
 	{6, TEXT("Find Address"), TEXT("Find address"), BTNS_BUTTON, IDM_VIEW_ADDRESS}
 };
 
-CDisassemblyFrame::CDisassemblyFrame(int cpuid, C64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption, HFONT hFont)
+CDisassemblyFrame::CDisassemblyFrame(int cpuid, IC64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption, HFONT hFont)
 	: 
 	DefaultCpu(cpuid, c64)
 {

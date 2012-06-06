@@ -110,7 +110,7 @@ public:
 		int m_iShowCaretCount;
 		HWND m_hWndParent;
 	};
-	CDisassemblyReg(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont);
+	CDisassemblyReg(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont);
 	virtual ~CDisassemblyReg();
 
 	static TCHAR ClassName[];

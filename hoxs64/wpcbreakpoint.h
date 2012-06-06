@@ -62,7 +62,7 @@ class WpcBreakpoint : public CVirWindow, protected WpcBreakpoint_EventSink
 {
 public:
 	typedef std::vector<Sp_BreakpointItem> LstBrk;
-	WpcBreakpoint(C64 *c64, IAppCommand *pAppCommand);
+	WpcBreakpoint(IC64 *c64, IAppCommand *pAppCommand);
 	virtual ~WpcBreakpoint();
 
 	static const TCHAR ClassName[];
@@ -130,7 +130,7 @@ class LvBreakColumnIndex
 
 	bool m_bSuppressThisBreakpointEvent;
 	CDPI m_dpi;
-	C64 *c64;
+	IC64 *c64;
 	IAppCommand *m_pAppCommand;
 
 	bool m_bHexDisplay;

@@ -92,7 +92,7 @@ public:
 		bool IsEqual(AssemblyLineBuffer& other);
 	};
 
-	CDisassemblyEditChild(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont);
+	CDisassemblyEditChild(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont);
 	virtual ~CDisassemblyEditChild();
 	static TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);

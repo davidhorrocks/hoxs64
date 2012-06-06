@@ -44,7 +44,7 @@ public:
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];
 
-	CMDIDebuggerFrame(C64 *c64, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus);
+	CMDIDebuggerFrame(IC64 *c64, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus);
 	virtual ~CMDIDebuggerFrame();
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -86,7 +86,7 @@ private:
 	CDPI m_dpi;
 	WPanelManager m_WPanelManager;
 
-	C64 *c64;
+	IC64 *c64;
 	CAppStatus *appStatus;
 	CConfig *cfg;
 	IAppCommand *m_pAppCommand;

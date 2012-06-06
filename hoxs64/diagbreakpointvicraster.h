@@ -20,7 +20,7 @@ class CDiagBreakpointVicRaster_EventSink :
 class CDiagBreakpointVicRaster : public CVirDialog, CDiagBreakpointVicRaster_EventSink , public ErrorMsg
 {
 public:
-	CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, C64 *c64);
+	CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, IC64 *c64);
 	virtual ~CDiagBreakpointVicRaster();
 
 	int GetRasterLine();
@@ -30,7 +30,7 @@ private:
 	int m_iCycle;
 	bool m_bInOnVicCursorChange;
 	IAppCommand *m_pIAppCommand;
-	C64 *c64;
+	IC64 *c64;
 
 	void InitControls(HWND hWndDlg);
 	bool SaveUI();

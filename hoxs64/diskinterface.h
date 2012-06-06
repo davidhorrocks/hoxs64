@@ -48,7 +48,7 @@ public:
 	void StepHeadAuto();
 	void D64_serial_write(bit8 c64_serialbus);
 	void D64_Attention_Change();
-	void D64_DiskProtect(BOOL);
+	void D64_DiskProtect(bool bOn);
 
 	void C64SerialBusChange(ICLK palclock, bit8 c64_serialbus);
 	bit8 GetC64SerialBusDiskView(ICLK diskclock);

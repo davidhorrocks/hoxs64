@@ -20,7 +20,7 @@ class CDisassemblyChild_EventSink :
 class CDisassemblyChild : public CVirWindow, public CDisassemblyChild_EventSink, public DefaultCpu
 {
 public:
-	CDisassemblyChild(int cpuid, C64 *c64, IAppCommand *pAppCommand, HFONT hFont);
+	CDisassemblyChild(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont);
 	virtual ~CDisassemblyChild();
 
 	static const int ID_SCROLLBAR = 2000;

@@ -4,7 +4,7 @@
 class CEmuWindow : public CVirWindow , public ErrorMsg
 {
 public:
-	CEmuWindow(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, C64 *c64);
+	CEmuWindow(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, IC64 *c64);
 	~CEmuWindow();
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND parentWindow, const TCHAR title[], int x,int y, int w, int h, HMENU controlID);
@@ -34,7 +34,7 @@ private:
 	CAppStatus *appStatus;
 	CConfig *cfg;
 	CDX9 *dx;
-	C64 *c64;
+	IC64 *c64;
 	const static LPTSTR lpszClassName;
 	DWORD m_dwSolidColourFill;
 

@@ -9,9 +9,8 @@
 #include <assert.h>
 #include "CDPI.h"
 #include "utils.h"
-#include "errormsg.h"
 #include "hexconv.h"
-#include "C64.h"
+#include "IC64.h"
 
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -20,7 +19,7 @@
 
 const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 
-WpcBreakpoint::WpcBreakpoint(C64 *c64, IAppCommand *pAppCommand)
+WpcBreakpoint::WpcBreakpoint(IC64 *c64, IAppCommand *pAppCommand)
 {
 HRESULT hr;
 	m_bSuppressThisBreakpointEvent = false;
@@ -248,7 +247,7 @@ bool ok = false;
 	
 		Sp_BreakpointItem v;
 	
-		IEnumBreakpointItem *pEnumBpMain = c64->mon.BM_CreateEnumBreakpointItem();
+		IEnumBreakpointItem *pEnumBpMain = c64->GetMon()->BM_CreateEnumBreakpointItem();
 		if (pEnumBpMain)
 		{
 			while (pEnumBpMain->GetNext(v))
@@ -587,7 +586,7 @@ void WpcBreakpoint::DeleteBreakpoint(Sp_BreakpointKey bp)
 {
 	if(bp!=0)
 	{
-		this->c64->mon.BM_DeleteBreakpoint(bp);
+		this->c64->GetMon()->BM_DeleteBreakpoint(bp);
 	}
 }
 
@@ -595,7 +594,7 @@ void WpcBreakpoint::EnableBreakpoint(Sp_BreakpointKey bp)
 {
 	if(bp!=0)
 	{
-		this->c64->mon.BM_EnableBreakpoint(bp);
+		this->c64->GetMon()->BM_EnableBreakpoint(bp);
 	}
 }
 
@@ -603,7 +602,7 @@ void WpcBreakpoint::DisableBreakpoint(Sp_BreakpointKey bp)
 {
 	if(bp!=0)
 	{
-		this->c64->mon.BM_DisableBreakpoint(bp);
+		this->c64->GetMon()->BM_DisableBreakpoint(bp);
 	}
 }
 
@@ -629,7 +628,7 @@ void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 		}
 		for (std::vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
 		{
-			c64->mon.BM_DeleteBreakpoint(*it);
+			c64->GetMon()->BM_DeleteBreakpoint(*it);
 		}
 	}
 	catch(...)
@@ -648,7 +647,7 @@ void WpcBreakpoint::OnEnableSelectedBreakpoint()
 			Sp_BreakpointItem bp;
 			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 			{
-				c64->mon.BM_EnableBreakpoint(bp);
+				c64->GetMon()->BM_EnableBreakpoint(bp);
 			}
 		}
 	}
@@ -665,7 +664,7 @@ void WpcBreakpoint::OnDisableSelectedBreakpoint()
 			Sp_BreakpointItem bp;
 			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 			{
-				c64->mon.BM_DisableBreakpoint(bp);
+				c64->GetMon()->BM_DisableBreakpoint(bp);
 			}
 		}
 	}
@@ -710,7 +709,7 @@ int wmId, wmEvent;
 			OnShowAssembly();
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEALLBREAKPOINTS:
-			c64->mon.BM_DeleteAllBreakpoints();
+			c64->GetMon()->BM_DeleteAllBreakpoints();
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_DELETEBREAKPOINT:
 			OnDeleteSelectedBreakpoint();

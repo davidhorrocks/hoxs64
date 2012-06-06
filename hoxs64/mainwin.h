@@ -6,7 +6,7 @@ class CEmuWindow;
 class CAppWindow : public CVirWindow, public ErrorMsg
 {
 public:
-	CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *, CAppStatus *, C64 *);
+	CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *, CAppStatus *, IC64 *);
 	~CAppWindow();
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
@@ -47,7 +47,7 @@ private:
 	static struct tabpageitem m_tabPagesSetting[5];
 	IAppCommand *m_pAppCommand;
 	CDX9 *dx;
-	C64 *c64;
+	IC64 *c64;
 	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SYSMENU;
 	static const DWORD StylesNonWindowed = WS_POPUP | WS_SYSMENU;
 

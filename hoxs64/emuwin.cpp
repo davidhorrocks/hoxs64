@@ -13,6 +13,7 @@
 #include "CDPI.h"
 #include "dchelper.h"
 #include "utils.h"
+
 #include "C64.h"
 #include "emuwin.h"
 #include "resource.h"
@@ -20,7 +21,7 @@
 
 const LPTSTR CEmuWindow::lpszClassName = HOXS_EMULATION_WND_CLASS;
 
-CEmuWindow::CEmuWindow(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
+CEmuWindow::CEmuWindow(CDX9 *dx, CConfig *cfg, CAppStatus *appStatus, IC64 *c64)
 {
 	m_dwSolidColourFill=0;
 	m_bDrawCycleCursor = false;
@@ -108,7 +109,7 @@ void CEmuWindow::SetColours()
 			appStatus->m_ScreenDepth = CDX9::GetBitsPerPixel(currentDisplayMode.Format);
 
 			if (c64!=NULL)
-				c64->vic.setup_color_tables(currentDisplayMode.Format);
+				c64->SetupColorTables(currentDisplayMode.Format);
 
 			switch(appStatus->m_ScreenDepth)
 			{
@@ -330,7 +331,7 @@ void CEmuWindow::DrawAllCursors(HDC hdc)
 	{
 		DrawCursorAtVicPosition(hdc, m_iVicCycleCursor, m_iVicLineCursor);
 	}
-	IEnumBreakpointItem *p = c64->mon.BM_CreateEnumBreakpointItem();
+	IEnumBreakpointItem *p = c64->GetMon()->BM_CreateEnumBreakpointItem();
 	if (p)
 	{
 		Sp_BreakpointItem v;
@@ -417,7 +418,7 @@ HRESULT hr = E_FAIL;
 	if (!dx->m_pd3dDevice)
 		return E_FAIL;
 	//VIC6569::UpdateBackBuffer() draws pixels that have been buffered by the VIC class to the dx small surface.
-	hr = this->c64->vic.UpdateBackBuffer();
+	hr = this->c64->UpdateBackBuffer();
 	if (SUCCEEDED(hr))
 	{
 		//CEmuWindow::RenderWindow Stretch-blits from the dx small surface to the dx backbuffer.

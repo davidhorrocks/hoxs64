@@ -70,7 +70,6 @@ public:
 	HRESULT GetC64FileType(TCHAR filename[],enum eC64FileType &filetype);
 	void ClearDirectory();
 	HRESULT LoadDirectory(TCHAR filename[], int maxcount, int &count, bool bPrgFilesOnly, HANDLE hevtQuit);
-	//HRESULT LoadFileImage(TCHAR filename[], int originalDirectoryIndex, int &size);
 	HRESULT LoadFileImage(TCHAR filename[], const bit8 c64FileName[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit16* pFileSize);
 	enum eC64FileType GetFileType();
 	int GetFileCount();

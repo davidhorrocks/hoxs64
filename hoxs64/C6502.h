@@ -624,7 +624,6 @@ private:
 	unsigned long _datalong;
 	bit8 axa_byte;
 	bool m_bBreakOnInterruptTaken;
-	//BpMap MapBpExecute;
 	IBreakpointManager *m_pIBreakpointManager;
 };
 

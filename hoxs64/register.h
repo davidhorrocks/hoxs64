@@ -34,6 +34,10 @@ struct BreakpointItem : public BreakpointKey
 typedef shared_ptr<BreakpointKey> Sp_BreakpointKey;
 typedef shared_ptr<BreakpointItem> Sp_BreakpointItem;
 
+struct LessBreakpointKey
+{
+	bool operator()(const Sp_BreakpointKey x, const Sp_BreakpointKey y) const;
+};
 
 typedef enum tagMemoryType : int
 {
@@ -103,34 +107,6 @@ public:
 	virtual IEnumBreakpointItem *BM_CreateEnumBreakpointItem() = 0;
 };
 
-class IC64BreakEvent
-{
-public:
-	virtual void BreakExecuteCpu64()=0;
-	virtual void BreakExecuteCpuDisk()=0;
-	virtual void BreakVicRasterCompare()=0;
-	virtual void BreakpointChanged()=0;
-};
-
-class IC64Event : public IC64BreakEvent
-{
-public:
-	virtual void SetBusy(bool bBusy)=0;
-	virtual void DiskMotorLed(bool bOn)=0;
-	virtual void DiskDriveLed(bool bOn)=0;
-	virtual void DiskWriteLed(bool bOn)=0;
-	virtual void ShowErrorBox(LPCTSTR title, LPCTSTR message)=0;
-};
-
-class IC64
-{
-public:
-	virtual void HardReset(bool bCancelAutoload)=0;
-	virtual void SoftReset(bool bCancelAutoload)=0;
-	virtual void PostHardReset(bool bCancelAutoload)=0;
-	virtual void PostSoftReset(bool bCancelAutoload)=0;
-};
-
 struct CPUState
 {
 	bit8 A;
@@ -149,11 +125,6 @@ struct CPUState
 	int opcode;
 	int cycle;
 	bool IsInterruptInstruction;
-};
-
-struct LessBreakpointKey
-{
-	bool operator()(const Sp_BreakpointKey x, const Sp_BreakpointKey y) const;
 };
 
 class IMonitorCpu
@@ -213,6 +184,89 @@ class IDefaultCpu
 public:
 	virtual int GetCpuId()=0;
 	virtual IMonitorCpu *GetCpu()=0;
+};
+
+
+class IC64BreakEvent
+{
+public:
+	virtual void BreakExecuteCpu64()=0;
+	virtual void BreakExecuteCpuDisk()=0;
+	virtual void BreakVicRasterCompare()=0;
+	virtual void BreakpointChanged()=0;
+};
+
+typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
+typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterator BpIter;
+
+class IMonitor : public IBreakpointManager
+{
+public:
+	virtual bool IBreakpointManager::BM_SetBreakpoint(Sp_BreakpointItem bp) = 0;
+	virtual bool IBreakpointManager::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp) = 0;
+	virtual void IBreakpointManager::BM_DeleteBreakpoint(Sp_BreakpointKey k) = 0;
+	virtual void IBreakpointManager::BM_EnableBreakpoint(Sp_BreakpointKey k) = 0;
+	virtual void IBreakpointManager::BM_DisableBreakpoint(Sp_BreakpointKey k) = 0;
+	virtual void IBreakpointManager::BM_EnableAllBreakpoints() = 0;
+	virtual void IBreakpointManager::BM_DisableAllBreakpoints() = 0;
+	virtual void IBreakpointManager::BM_DeleteAllBreakpoints() = 0;
+	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem() = 0;
+	virtual void MonitorEventsOn() = 0;
+	virtual void MonitorEventsOff() = 0;
+	virtual int DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc) = 0;
+	virtual int DisassembleBytes(IMonitorCpu *pMonitorCpu, unsigned short address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer) = 0;
+	virtual void GetCpuRegisters(IMonitorCpu *pMonitorCpu, TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDdr_Text, int cchDdr_Text, TCHAR *pData_Text, int cchData_Text) = 0;
+	virtual void GetVicRegisters(TCHAR *pLine_Text, int cchLine_Text, TCHAR *pCycle_Text, int cchCycle_Text) = 0;
+	virtual IMonitorCpu *GetMainCpu() = 0;
+	virtual IMonitorCpu *GetDiskCpu() = 0;
+	virtual IMonitorVic *GetVic() = 0;
+	virtual IMonitorDisk *GetDisk() = 0;
+	virtual HRESULT ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults) = 0;
+};
+
+class IC64Event : public IC64BreakEvent
+{
+public:
+	virtual void SetBusy(bool bBusy)=0;
+	virtual void DiskMotorLed(bool bOn)=0;
+	virtual void DiskDriveLed(bool bOn)=0;
+	virtual void DiskWriteLed(bool bOn)=0;
+	virtual void ShowErrorBox(LPCTSTR title, LPCTSTR message)=0;
+};
+
+class IC64
+{
+public:
+	virtual void HardReset(bool bCancelAutoload)=0;
+	virtual void SoftReset(bool bCancelAutoload)=0;
+	virtual void PostHardReset(bool bCancelAutoload)=0;
+	virtual void PostSoftReset(bool bCancelAutoload)=0;
+
+	virtual void ResetKeyboard()=0;
+	virtual void TapePressPlay()=0;
+	virtual void TapePressStop()=0;
+	virtual void TapePressRewind()=0;
+	virtual HRESULT InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks)=0;
+	virtual void RemoveDisk()=0;
+	virtual void Set_DiskProtect(bool bOn)=0;
+	virtual bool Get_DiskProtect()=0;
+	virtual void DiskReset()=0;
+	virtual IMonitor *GetMon()=0;
+	virtual void SetupColorTables(unsigned int d3dFormat)=0;
+	virtual HRESULT UpdateBackBuffer()=0;
+	virtual void SynchroniseDevicesWithVIC()=0;
+};
+
+class DefaultCpu : IDefaultCpu
+{
+public:
+	//DefaultCpu();
+	DefaultCpu(int cpuid, IC64 *c64);
+	int GetCpuId();
+	IMonitorCpu *GetCpu();
+protected:
+	int cpuid;
+	IC64 *c64;
 };
 
 #endif

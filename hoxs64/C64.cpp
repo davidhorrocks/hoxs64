@@ -904,11 +904,41 @@ void C64::TapePressEject()
 	cia1.SetWakeUpClock();
 }
 
-void C64::TapeRewind()
+void C64::TapePressRewind()
 {
 	TapePressStop();
 	tape64.Rewind();
 	cia1.SetWakeUpClock();
+}
+
+void C64::Set_DiskProtect(bool bOn)
+{
+	diskdrive.D64_DiskProtect(bOn);
+}
+
+bool C64::Get_DiskProtect()
+{
+	return diskdrive.m_d64_protectOff == 0;
+}
+
+void C64::DiskReset()
+{
+	diskdrive.Reset(cpu.CurrentClock);
+}
+
+void C64::SetupColorTables(unsigned int d3dFormat)
+{
+	this->vic.setup_color_tables((D3DFORMAT)d3dFormat);
+}
+
+HRESULT C64::UpdateBackBuffer()
+{
+	return this->vic.UpdateBackBuffer();
+}
+
+IMonitor *C64::GetMon()
+{
+	return &mon;
 }
 
 //ITapeEvent
@@ -1414,7 +1444,7 @@ IMonitorCpu *C64::GetCpu(int cpuid)
 		return NULL;
 }
 
-DefaultCpu::DefaultCpu(int cpuid, C64 *c64)
+DefaultCpu::DefaultCpu(int cpuid, IC64 *c64)
 {
 	this->cpuid = cpuid;
 	this->c64 = c64;
@@ -1428,9 +1458,9 @@ int DefaultCpu::GetCpuId()
 IMonitorCpu *DefaultCpu::GetCpu()
 {
 	if (cpuid == CPUID_MAIN)
-		return &c64->cpu;
+		return c64->GetMon()->GetMainCpu();
 	else if (cpuid == CPUID_DISK)
-		return &c64->diskdrive.cpu;
+		return c64->GetMon()->GetDiskCpu();
 	else
 		return NULL;
 }

@@ -4,7 +4,7 @@
 class CMDIChildCli : public CVirMdiChildWindow
 {
 public:
-	CMDIChildCli(C64 *c64, IAppCommand *pIAppCommand, HFONT hFont);
+	CMDIChildCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont);
 	static const TCHAR ClassName[];
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -13,7 +13,7 @@ public:
 protected:
 	shared_ptr<CVirMdiFrameWindow> m_pWinMdiFrame;
 	weak_ptr<WpcCli> m_pWinWpcCli; 
-	C64 *c64;
+	IC64 *c64;
 	IAppCommand *m_pIAppCommand;
 	HFONT m_hFont;
 

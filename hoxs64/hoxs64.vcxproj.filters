@@ -437,6 +437,9 @@
     <ClInclude Include="commandresult.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
+    <ClInclude Include="IC64.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="c64def.asm">

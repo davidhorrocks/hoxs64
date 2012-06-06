@@ -10,45 +10,17 @@
 #include <dinput.h>
 #include <dsound.h>
 #include <stdio.h>
-#include <vector>
-#include <list>
 #include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
+#include "IC64.h"
 #include "CDPI.h"
-#include "user_message.h"
-#include "bits.h"
-#include "util.h"
 #include "utils.h"
-#include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
-#include "register.h"
-#include "c6502.h"
-#include "ram64.h"
-#include "cpu6510.h"
-#include "cia6526.h"
-#include "cia1.h"
-#include "cia2.h"
-#include "vic6569.h"
-#include "tap.h"
-#include "filter.h"
-#include "sid.h"
 #include "sidfile.h"
 #include "d64.h"
-#include "d1541.h"
-#include "via6522.h"
-#include "via1.h"
-#include "via2.h"
-#include "diskinterface.h"
 #include "t64.h"
-#include "C64.h"
 #include "c64file.h"
-#include "monitor.h"
 #include "prgbrowse.h"
 #include "diagkeyboard.h"
 #include "diagjoystick.h"
@@ -71,7 +43,6 @@
 #include "mdichildcli.h"
 #include "mdidebuggerframe.h"
 
-#include "monitor.h"
 #include "emuwin.h"
 #include "mainwin.h"
 #include "resource.h"
@@ -81,7 +52,7 @@ const LPTSTR CAppWindow::lpszMenuName = APPMENUNAME;
 
 
 
-CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus, C64 *c64)
+CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus, IC64 *c64)
 {
 	m_hOldCursor = NULL;
 	m_hWndStatusBar = 0;
@@ -272,7 +243,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 
 		if (appStatus->m_bReady)
 		{
-			c64->cia1.ResetKeyboard();
+			c64->ResetKeyboard();
 		}
 		break;
 	case WM_SIZE:
@@ -343,7 +314,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			c64->TapePressStop();
 			return 0;
 		case IDM_TAPE_REWIND:
-			c64->TapeRewind();
+			c64->TapePressRewind();
 			return 0;
 		case IDM_TAPE_LOADIMAGE:
 			appStatus->SoundHalt();
@@ -581,15 +552,15 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			c64->RemoveDisk();
 			return 0;
 		case IDM_DISK_WRITEPROTECT_ON:     
-			c64->diskdrive.D64_DiskProtect(TRUE);
+			c64->Set_DiskProtect(true);
 			UpdateMenu();
 			return 0;
 		case IDM_DISK_WRITEPROTECT_OFF:        
-			c64->diskdrive.D64_DiskProtect(FALSE);
+			c64->Set_DiskProtect(false);
 			UpdateMenu();
 			return 0;
 		case IDM_DISK_RESETDRIVE:
-			c64->diskdrive.Reset(c64->cpu.CurrentClock);
+			c64->DiskReset();
 			return 0;
 		case IDM_TOGGLEFULLSCREEN:
 			appStatus->SoundHalt();
@@ -711,7 +682,6 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	case WM_DESTROY:
 		appStatus->m_bReady = FALSE;
 		appStatus->FreeDirectX();
-		//if (appStatus->m_bInitDone)
 		PostQuitMessage(0);
 		return 0;
 	case WM_MONITOR_BREAK_CPU64:
@@ -767,7 +737,7 @@ HMENU hMenu;
 	hMenu = GetMenu(m_hWnd);
 	if (hMenu)
 	{
-		if (c64->diskdrive.m_d64_protectOff==0)
+		if (c64->Get_DiskProtect())
 		{
 			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_ON, MF_BYCOMMAND | MF_CHECKED);
 			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_OFF, MF_BYCOMMAND | MF_UNCHECKED);
