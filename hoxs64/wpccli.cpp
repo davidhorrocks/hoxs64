@@ -7,11 +7,8 @@
 #include <tchar.h>
 #include <assert.h>
 #include "CDPI.h"
-//include "hexconv.h"
 #include "C64.h"
-
 #include "utils.h"
-
 #include "wpanel.h"
 #include "wpanelmanager.h"
 #include "wpccli.h"

@@ -7,10 +7,6 @@
 #include <assert.h>
 #include "CDPI.h"
 #include "utils.h"
-#include "errormsg.h"
-#include "C64.h"
-#include "edln.h"
-#include "assembler.h"
 #include "toolitemaddress.h"
 #include "dchelper.h"
 #include "resource.h"

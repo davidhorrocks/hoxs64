@@ -1,15 +1,6 @@
 #ifndef __D1541_H__
 #define __D1541_H__
 
-
-//extern BOOL gD1541_skip_cycle;
-
-//extern bit8 D1541_IRQ_VIA1;
-//extern bit8 D1541_IRQ_VIA2;
-//extern bit8 *m_pD1541_ram;
-//extern bit8 *m_pD1541_rom;
-//extern bit8 *m_pIndexedD1541_rom;
-
 class DiskInterface;
 
 class CPUDisk : public CPU6502

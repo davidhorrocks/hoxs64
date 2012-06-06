@@ -9,7 +9,14 @@
 #include "utils.h"
 #include "errormsg.h"
 #include "hexconv.h"
-#include "c64.h"
+
+#include "bits.h"
+#include "util.h"
+#include "register.h"
+#include "c6502.h"
+#include "commandresult.h"
+#include "assembler.h"
+#include "monitor.h"
 
 
 VicCursorMoveEventArgs::VicCursorMoveEventArgs(int cycle, int line)

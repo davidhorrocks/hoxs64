@@ -40,8 +40,6 @@
 #include "t64.h"
 #include "tap.h"
 #include "diskinterface.h"
-#include "C64.h"
-
 
 VIA1::VIA1()
 {
