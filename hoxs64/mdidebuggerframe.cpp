@@ -80,7 +80,6 @@ HRESULT hr;
 
 	do
 	{
-
 		hr = InitFonts();
 		if (FAILED(hr))
 			break;

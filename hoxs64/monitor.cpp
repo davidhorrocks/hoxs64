@@ -471,10 +471,14 @@ HRESULT Monitor::CreateCliCommandResult(CommandToken *pCommandTToken, CommandRes
 			pcr = new CommandResult(TEXT("Unknown command."));
 			break;
 		}
-		if (!pcr)
-			hr = E_FAIL;
-		else
-			hr = S_OK;
+		hr = E_FAIL;
+		if (ppCommandResult)
+		{
+			if (pcr)
+				hr = S_OK;
+			*ppCommandResult = pcr;
+			pcr = NULL;
+		}
 	}
 	catch(...)
 	{
@@ -515,12 +519,11 @@ HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 				ps = _tcsdup(s.c_str());
 			}
 		}
-		if (!ps)
-			hr = E_FAIL;
-		else
-			hr = S_FALSE;
+		hr = E_FAIL;
 		if (ppszResults)
 		{
+			if (ps)
+				hr = S_OK;
 			*ppszResults = ps;
 			ps = NULL;
 		}

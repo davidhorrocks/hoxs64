@@ -943,5 +943,6 @@ CommandTokenDisassembly::CommandTokenDisassembly(bit16 startaddress, bit16 finis
 
 CommandTokenError::CommandTokenError(LPCTSTR pszErrortext)
 {
+	cmd = DBGSYM::CliCommand::Error;
 	text.append(pszErrortext);
 }
