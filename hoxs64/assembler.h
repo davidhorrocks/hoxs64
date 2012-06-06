@@ -24,14 +24,14 @@ struct AssemblyToken
 	static void SetError(AssemblyToken* t);
 };
 
-class CommandResult;
+class CommandToken;
 
 class Assembler
 {
 public:
 	HRESULT AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 	HRESULT ParseAddress16(LPCTSTR pszText, bit16 *piAddress);
-	HRESULT StartCommand(LPCTSTR pszText, CommandResult **ppcmdr);
+	HRESULT CreateCliCommandToken(LPCTSTR pszText, CommandToken **ppcmdr);
 
 	static HRESULT TryParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 private:
@@ -104,40 +104,39 @@ private:
 	HRESULT _ParseAddress(bit16 *piAddress);
 };
 
-
-class CommandResult
+class CommandToken
 {
 public:
-	CommandResult();
-	CommandResult(LPCTSTR pszLine);
-	virtual ~CommandResult();
+	CommandToken()
+	{
+		cmd = DBGSYM::CliCommand::Unknown;
+		startaddress = 0;
+		finishaddress = 0;
+	}
 	DBGSYM::CliCommand::CliCommand cmd;
-	bool isParseOk;
-	void AddLine(LPCTSTR pszLine);
-	virtual void Reset();
-	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
-protected:
-	size_t line;
-	std::vector<LPTSTR> a_lines;
-};
-
-
-class CommandResultHelp : public CommandResult
-{
-public:
-	CommandResultHelp();
-};
-
-class CommandResultDisassembly : CommandResult
-{
-public:
-	CommandResultDisassembly(bit16 startaddress, bit16 finishaddress);
-	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
-protected:
-	bit16 address;
 	bit16 startaddress;
 	bit16 finishaddress;
-	friend Assembler;
+	std::basic_string<TCHAR> text;
+};
+
+
+class CommandTokenHelp : public CommandToken
+{
+public:
+	CommandTokenHelp();
+};
+
+
+class CommandTokenError : public CommandToken
+{
+public:
+	CommandTokenError(LPCTSTR pszErrortext);
+};
+
+class CommandTokenDisassembly : public CommandToken
+{
+public:
+	CommandTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 };
 
 #endif

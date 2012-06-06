@@ -16,7 +16,7 @@
 #include "register.h"
 
 #include "c6502.h"
-#include "assembler.h"
+#include "commandresult.h"
 
 CommandResultHelp::CommandResultHelp()
 {

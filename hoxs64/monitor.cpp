@@ -435,31 +435,70 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 	return r;
 }
 
+HRESULT Monitor::CreateCliCommandResult(CommandToken *pCommandTToken, CommandResult **ppCommandResult)
+{
+	HRESULT hr = E_FAIL;
+	CommandResult *pcr = 0;
+	try
+	{
+		switch(pCommandTToken->cmd)
+		{
+		case DBGSYM::CliCommand::Help:
+			pcr = new CommandResultHelp();
+			break;
+		case DBGSYM::CliCommand::Disassemble:
+			pcr = new CommandResultDisassembly(pCommandTToken->startaddress, pCommandTToken->finishaddress);
+			break;
+		case DBGSYM::CliCommand::Error:
+			pcr = new CommandResult(pCommandTToken->text.c_str());
+			break;
+		default:
+			pcr = new CommandResult(TEXT("Unknown command."));
+			break;
+		}
+		if (!pcr)
+			hr = E_FAIL;
+		else
+			hr = S_OK;
+	}
+	catch(...)
+	{
+		hr = E_FAIL;
+	}
+	if (pcr)
+	{
+		delete pcr;
+		pcr = 0;
+	}
+	return hr;
+}
+
 HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 {
 	Assembler as;
-	CommandResult *pcr = 0;
+	CommandToken *pcmdt = 0;
 	HRESULT hr = E_FAIL;
 	LPTSTR ps = 0;
+	CommandResult *pcr;
 	try
 	{
-		hr = as.StartCommand(pszCommandLine, &pcr);
-		if (FAILED(hr))
+		hr = as.CreateCliCommandToken(pszCommandLine, &pcmdt);
+		if (SUCCEEDED(hr))
 		{
-			ps = _tcsdup(TEXT("Command failed.\r"));
-		}
-		else
-		{	
-			std::basic_string<TCHAR> s;
-
-			LPCTSTR pline = 0;
-			while(pcr->GetNextLine(&pline) == S_OK)
+			hr =  CreateCliCommandResult(pcmdt, &pcr);
+			if (SUCCEEDED(hr))
 			{
-				if (!pline)
-					break;
-				s.append(pline);
+				std::basic_string<TCHAR> s;
+
+				LPCTSTR pline = 0;
+				while(pcr->GetNextLine(&pline) == S_OK)
+				{
+					if (!pline)
+						break;
+					s.append(pline);
+				}
+				ps = _tcsdup(s.c_str());
 			}
-			ps = _tcsdup(s.c_str());
 		}
 		if (!ps)
 			hr = E_FAIL;
@@ -479,6 +518,11 @@ HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 	{
 		delete pcr;
 		pcr = 0;
+	}
+	if (pcmdt)
+	{
+		delete pcmdt;
+		pcmdt = 0;
 	}
 	return hr;
 }

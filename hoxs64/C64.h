@@ -37,8 +37,9 @@
 #include "diskinterface.h"
 #include "t64.h"
 #include "c64file.h"
-#include "monitor.h"
+#include "commandresult.h"
 #include "assembler.h"
+#include "monitor.h"
 
 class SIDLoader;
 

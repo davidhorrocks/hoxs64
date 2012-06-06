@@ -16,6 +16,7 @@
 #include "register.h"
 
 #include "c6502.h"
+#include "commandresult.h"
 #include "assembler.h"
 
 AssemblyToken::AssemblyToken()
@@ -862,11 +863,11 @@ HRESULT Assembler::_ParseAddress(bit16 *piAddress)
 	}
 }
 
-HRESULT Assembler::StartCommand(LPCTSTR pszText, CommandResult **ppmdr)
+HRESULT Assembler::CreateCliCommandToken(LPCTSTR pszText, CommandToken **ppmdr)
 {
 HRESULT hr;
 AssemblyToken tk;
-CommandResult *pcr = NULL;
+CommandToken *pcr = NULL;
 	try
 	{
 		hr = InitParser(pszText);
@@ -878,7 +879,7 @@ CommandResult *pcr = NULL;
 			tk = m_CurrentToken;
 			if (tk.SymbolChar==TEXT('?'))
 			{
-					pcr = new CommandResultHelp();
+					pcr = new CommandTokenHelp();
 					if (pcr == 0)
 						throw std::bad_alloc();
 			}
@@ -888,7 +889,7 @@ CommandResult *pcr = NULL;
 			tk = m_CurrentToken;
 			if (_tcsicmp(tk.IdentifierText, TEXT("?")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("help")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("man")) == 0)
 			{
-					pcr = new CommandResultHelp();
+					pcr = new CommandTokenHelp();
 					if (pcr == 0)
 						throw std::bad_alloc();
 			}
@@ -899,13 +900,13 @@ CommandResult *pcr = NULL;
 				hr = _ParseAddressRange(&startaddress, &endaddress);
 				if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 				{
-					pcr = new CommandResultDisassembly(startaddress, endaddress);
+					pcr = new CommandTokenDisassembly(startaddress, endaddress);
 					if (pcr == 0)
 						throw std::bad_alloc();
 				}
 				else
 				{
-					pcr = new CommandResult(TEXT("Unrecognised address range.\r"));
+					pcr = new CommandTokenError(TEXT("Unrecognised address range.\r"));
 					if (pcr == 0)
 						throw std::bad_alloc();
 				}
@@ -914,7 +915,7 @@ CommandResult *pcr = NULL;
 		}
 		if (pcr==NULL)
 		{
-			pcr = new CommandResult(TEXT("Unrecognised command.\r"));
+			pcr = new CommandTokenError(TEXT("Unrecognised command.\r"));
 			if (pcr == 0)
 				throw std::bad_alloc();
 		}
@@ -930,59 +931,17 @@ CommandResult *pcr = NULL;
 	}
 }
 
-CommandResult::CommandResult()
+CommandTokenHelp::CommandTokenHelp()
 {
-	cmd = DBGSYM::CliCommand::Unknown;
-	line = 0;
-	isParseOk = false;
+	cmd = DBGSYM::CliCommand::Help;
 }
 
-CommandResult::CommandResult(LPCTSTR pszLine)
+CommandTokenDisassembly::CommandTokenDisassembly(bit16 startaddress, bit16 finishaddress)
 {
-	cmd = DBGSYM::CliCommand::Unknown;
-	line = 0;
-	isParseOk = false;
-	AddLine(pszLine);
+	cmd = DBGSYM::CliCommand::Disassemble;
 }
 
-CommandResult::~CommandResult()
+CommandTokenError::CommandTokenError(LPCTSTR pszErrortext)
 {
-	for (std::vector<LPTSTR>::iterator it = a_lines.begin(); it!=a_lines.end(); it++)
-	{
-		LPTSTR s = *it;
-		if(s)
-			free(s);
-	}
-	a_lines.clear();
-}
-
-void CommandResult::AddLine(LPCTSTR pszLine)
-{
-	LPTSTR s = 0;
-	if (pszLine)
-		s = _tcsdup(pszLine);
-	if (s)
-		a_lines.push_back(s);
-}
-
-HRESULT CommandResult::GetNextLine(LPCTSTR *ppszLine)
-{
-	if (line < a_lines.size())
-	{
-		if (ppszLine)
-			*ppszLine = a_lines[line];
-		line++;
-		return S_OK;
-	}
-	else
-	{
-		if (ppszLine)
-			*ppszLine = NULL;
-		return S_FALSE;
-	}
-}
-
-void CommandResult::Reset()
-{
-	line = 0;
+	text.append(pszErrortext);
 }

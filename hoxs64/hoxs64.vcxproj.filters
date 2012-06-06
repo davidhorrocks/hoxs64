@@ -204,11 +204,14 @@
     <ClCompile Include="wpccli.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="commandresultdisassembly.cpp">
-      <Filter>Header Files\debugger</Filter>
-    </ClCompile>
     <ClCompile Include="commandresulthelp.cpp">
-      <Filter>Header Files\debugger</Filter>
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="commandresultdisassembly.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="commandresult.cpp">
+      <Filter>Source Files\debugger</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -430,6 +433,9 @@
     </ClInclude>
     <ClInclude Include="oldos_multimon.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="commandresult.h">
+      <Filter>Header Files\debugger</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

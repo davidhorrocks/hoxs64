@@ -164,6 +164,7 @@ namespace DBGSYM
 			ClearScreen,
 			Disassemble,
 			Assemble,
+			Help,
 			Memory,
 			Error,
 			Unknown,
