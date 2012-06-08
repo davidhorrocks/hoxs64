@@ -1900,7 +1900,7 @@ FDIStreamsHeader fdiStreamsHeader;
 	if (FAILED(hr))
 		return hr;
 
-
+	//Check the Minimum stream. Not used by Hoxs64.
 	if (fdiStreamsHeader.minSize)
 	{
 		//Min
@@ -1919,6 +1919,7 @@ FDIStreamsHeader fdiStreamsHeader;
 		if (FAILED(hr))
 			return hr;
 
+		//Check the Maximum stream. Not used by Hoxs64.
 		if (fdiStreamsHeader.maxSize)
 		{
 			//Max
@@ -1939,10 +1940,11 @@ FDIStreamsHeader fdiStreamsHeader;
 		}
 	}
 
-	//Index
+	//Check the Index stream. We use the Index stream to determine if a pulse is weak or strong. Pulse times always index from the last strong pulse.
 	unsigned int maxPulseStrength = 0;
 	if (fdiStreamsHeader.idxSize)
 	{
+		//Index
 		i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize + fdiStreamsHeader.maxSize;
 		r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
 		if (r == INVALID_SET_FILE_POINTER)
@@ -1969,34 +1971,41 @@ FDIStreamsHeader fdiStreamsHeader;
 		}
 	}
 
+	unsigned int pulseStrength=0;
 	bool bIsStrongPulse;
-	unsigned __int64 totalTime;
-	unsigned __int64 pulseTime;
-	unsigned __int64 sumPulseTime;
-	unsigned __int64 sumStrongPulseTime;
+	bool bIsNoticablePulse;
+	unsigned __int64 totalTime;//Total FDI track length.
+	unsigned __int64 pulseTime;//FDI distance from last strong pulse.
+	unsigned __int64 sumPulseTime;//FDI distance of current pulse from start of track.
+	unsigned __int64 sumStrongPulseTime;//FDI distance of last strong pulse from start of track.
 	double clockTime;
 	double totalClockTime;
 	bit8 delayIndex;
 
 	totalTime=0;
+	//Loop through the aveData to total up the track length.
 	for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
 	{
 		if (IsEventQuitSignalled())
 			return E_FAIL;
+		//Determine if this pulse is strong.
 		if (fdiStreamsHeader.idxSize)
 		{
+			//idxData is used describe the strength of a pulse.
 			unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
 			unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
-			unsigned int pulseStrength = index1state + index0state;
+			pulseStrength = index1state + index0state;
 			bIsStrongPulse = (pulseStrength == maxPulseStrength);
+			bIsNoticablePulse = (pulseStrength >= maxPulseStrength/2);
 		}
 		else
 		{
+			//Assume all pulses are strong if the idxSize is not present.
 			bIsStrongPulse = true;
+			bIsNoticablePulse = true;
 		}
 		//Only strong pulse times are used to sum the total track time.
 		bool bIsLastPulse = (i == fdiStreamsHeader.numPulses - 1);
-		//if (bIsStrongPulse || bIsLastPulse)
 		if (bIsStrongPulse)
 			totalTime += fdiStreamsHeader.aveData[i];
 	}
@@ -2007,6 +2016,7 @@ FDIStreamsHeader fdiStreamsHeader;
 	sumPulseTime=0;
 	sumStrongPulseTime = 0;
 	bit32 trackIndex;
+	//Loop through aveData a second time to write the pulses to the emulated disk via PutDisk16
 	for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
 	{
 		if (IsEventQuitSignalled())
@@ -2015,17 +2025,23 @@ FDIStreamsHeader fdiStreamsHeader;
 		//Determine if this pulse is strong.
 		if (fdiStreamsHeader.idxSize)
 		{
+			//idxData is used describe the strength of a pulse.
 			unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
 			unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
-			unsigned int pulseStrength = index1state + index0state;
+			pulseStrength = index1state + index0state;
 			bIsStrongPulse = (pulseStrength == maxPulseStrength);
+			bIsNoticablePulse = (pulseStrength >= maxPulseStrength/4);
 		}
 		else
 		{
+			//Assume all pulses are strong if the idxSize is not present.
 			bIsStrongPulse = true;
+			bIsNoticablePulse = true;
 		}
 
+		//pulseTime should be greater than zero.
 		pulseTime = (unsigned __int64)fdiStreamsHeader.aveData[i];
+		//Skip zero pulse times.
 		if (pulseTime == 0)
 			continue;
 		if (pulseTime < 0)
@@ -2033,17 +2049,23 @@ FDIStreamsHeader fdiStreamsHeader;
 
 		if (bIsStrongPulse)
 		{
+			//Count strong pulse times as part of the total track time.
 			sumStrongPulseTime += pulseTime;
 			sumPulseTime = sumStrongPulseTime;
 		}
 		else
 		{
+			//The weak pulse is indexed from the last strong pulse.
+			//We are not going to write out this weak pulse. We take note only for debug purposes.
 			sumPulseTime = sumStrongPulseTime + pulseTime;
 		}
 
+		//Do not write out weak pulses to the emulated disk.
 		if (!bIsStrongPulse)
 			continue;
 
+		//DISK_RAW_TRACK_SIZE is 200000. This is the number of cells or arc's of track in an emulated track.
+		//Take the current fdi distance from start of track (sumPulseTime) and re-scale it into our emulated track at arc trackIndex [0-199999] with the pulse position with in the that arc to be stored in delayIndex [1-16]
 		clockTime = (double)sumPulseTime / (double)totalTime * (double)(DISK_RAW_TRACK_SIZE * 16);
 		trackIndex = ((bit32)floor(clockTime)) / 16L;
 		trackIndex = trackIndex % DISK_RAW_TRACK_SIZE;
@@ -2051,6 +2073,7 @@ FDIStreamsHeader fdiStreamsHeader;
 
 		assert(trackIndex < DISK_RAW_TRACK_SIZE);
 
+		//Write the pulse to the enumlated disk.
 		PutDisk16(trackNumber, trackIndex, delayIndex);
 	}
 
