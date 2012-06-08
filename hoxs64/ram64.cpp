@@ -29,8 +29,6 @@
 #include "vic6569.h"
 #include "tap.h"
 
-//bit8 vic_de00_byte;
-
 
 RAM64::RAM64()
 {
@@ -99,14 +97,12 @@ int i;
 					mMemory[i] = 0x99;
 				else
 					mMemory[i] = 0x66;
-				//mMemory[i] = 0xFF;
 			break;
 		case 5:
 			if ((i & 0x8000) == 0)
 				mMemory[i] = 0x99;
 			else
 				mMemory[i] = 0x66;
-			//mMemory[i] = 0x00;
 			break;
 		case 6:
 			if ((i & 127) == 0)
@@ -118,14 +114,12 @@ int i;
 				mMemory[i] = 0x99;
 			else
 				mMemory[i] = 0x66;
-				//mMemory[i] = 0xFF;
 			break;
 		case 7:
 			if ((i & 0x8000) == 0)
 				mMemory[i] = 0x99;
 			else
 				mMemory[i] = 0x66;
-			//mMemory[i] = 0x00;
 			break;
 		}
 	}
@@ -236,7 +230,7 @@ bool r=S_OK;
 		return S_OK;
 	}
 	Free64Memory();
-	return SetError(E_FAIL, TEXT("Memory allocation failed"));;
+	return SetError(E_FAIL, TEXT("Allocate64Memory() failed"));
 }
 
 void RAM64::Free64Memory(){
