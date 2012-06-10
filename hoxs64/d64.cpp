@@ -2073,7 +2073,7 @@ FDIStreamsHeader fdiStreamsHeader;
 
 		assert(trackIndex < DISK_RAW_TRACK_SIZE);
 
-		//Write the pulse to the enumlated disk.
+		//Write the pulse to the emulated disk.
 		PutDisk16(trackNumber, trackIndex, delayIndex);
 	}
 
