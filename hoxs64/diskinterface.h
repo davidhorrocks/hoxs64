@@ -5,6 +5,8 @@
 #define DISKCHANGE2 20
 #define DISKCHANGE1 10
 
+#define DISKHEADFILTERWIDTH (40)
+
 class CIA2;
 
 class DiskInterface : public IRegister, public IMonitorDisk, public ErrorMsg
@@ -108,6 +110,9 @@ public:
 	bit16 m_extraClock;
 	bit32 m_lastOne;
 	bit32 m_lastGap;
+	bit32 m_counterStartPulseFilter;
+	bool m_bLastPulseRisingEdge;
+	bool m_bCurrentPulseRisingEdge;
 
 	bit8 *m_rawTrackData[G64_MAX_TRACKS];
 

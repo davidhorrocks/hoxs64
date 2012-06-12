@@ -70,6 +70,9 @@ int i;
 	m_extraClock = 0;
 	m_lastOne = 0;
 	m_lastGap = 0;
+	m_bCurrentPulseRisingEdge = false;
+	m_bLastPulseRisingEdge = false;
+	m_counterStartPulseFilter = 0;
 
 	m_d64_soe_enable = 1;
 	m_d64_write_enable = 0;
@@ -138,6 +141,9 @@ void DiskInterface::Reset(ICLK sysclock)
 	m_extraClock = 0;
 	m_lastOne = 0;
 	m_lastGap = 0;
+	m_bCurrentPulseRisingEdge = false;
+	m_bLastPulseRisingEdge = false;
+	m_counterStartPulseFilter = 0;
 
 	m_d64_soe_enable = 1;
 	m_d64_write_enable = 0;
@@ -634,6 +640,7 @@ bit8 writeClock;
 //Works for hostage
 static const bit16 WEAKBITDIVIDER = 781;
 static const bit32 WEAKBITLIMIT = 1280;
+
 bool bQB_rising;
 
 	if (clocks==0)
@@ -641,12 +648,21 @@ bool bQB_rising;
 	prevClockDivider1 = m_clockDivider1;
 	m_lastOne +=clocks;
 	m_extraClock+=clocks;
+	m_counterStartPulseFilter += clocks;
 
-	//Works for hostage
-	if (m_extraClock > WEAKBITDIVIDER)
+	////Works for hostage
+	//if (m_extraClock > WEAKBITDIVIDER)
+	//{
+	//	m_extraClock = m_extraClock - WEAKBITDIVIDER;
+	//	if (m_lastOne > WEAKBITLIMIT && m_d64_write_enable == 0)
+	//	{
+	//		m_clockDivider1 = speed;
+	//		m_clockDivider2 = 0;			
+	//	}
+	//}
+	if (m_lastOne > 300 && m_d64_write_enable == 0)
 	{
-		m_extraClock = m_extraClock - WEAKBITDIVIDER;
-		if (m_lastOne > WEAKBITLIMIT && m_d64_write_enable == 0)
+		if (rand() < 5000)
 		{
 			m_clockDivider1 = speed;
 			m_clockDivider2 = 0;			
@@ -780,6 +796,8 @@ bit8 bitTime;
 ICLKS clocks;
 bit8 speed;
 bit8 bMotorRun = m_bDiskMotorOn;
+bool bCurrentPulseRisingEdge = m_bCurrentPulseRisingEdge;
+bool bLastPulseRisingEdge = m_bLastPulseRisingEdge;
 
 	speed = m_clockDividerReload;
 	bitTime = 0;
@@ -805,8 +823,22 @@ bit8 bMotorRun = m_bDiskMotorOn;
 				if (m_diskLoaded)
 				{
 					bitTime = GetDisk16(m_currentTrackNumber, m_currentHeadIndex);					
+					//if (bitTime != 0)
+					//{
+					//	bCurrentPulseRisingEdge = !bCurrentPulseRisingEdge;
+					//	if (m_counterStartPulseFilter + bitTime < DISKHEADFILTERWIDTH)
+					//	{
+					//		bitTime = 0;
+					//		m_counterStartPulseFilter = 0;
+					//	}
+					//}
+					//else if (m_counterStartPulseFilter + bitTime >= DISKHEADFILTERWIDTH && bLastPulseRisingEdge != bCurrentPulseRisingEdge)
+					//{
+					//	bitTime = 1;
+					//}
 				}
-				if (bitTime !=0)
+								
+				if (bitTime != 0)
 				{
 					bitTime--;
 					ClockDividerAdd(bitTime, speed);
@@ -814,10 +846,13 @@ bit8 bMotorRun = m_bDiskMotorOn;
 					//Reset the clockdividers because a disk pulse has occurred.
 					m_lastGap = m_lastOne;
 					m_lastOne = 0;
+					m_counterStartPulseFilter = 0;
 					m_clockDivider1 = speed;
 					m_clockDivider2 = 0;
 
 					ClockDividerAdd(16-bitTime, speed);
+
+					bLastPulseRisingEdge = bCurrentPulseRisingEdge;
 				}
 				else
 				{
@@ -837,6 +872,8 @@ bit8 bMotorRun = m_bDiskMotorOn;
 			ClockDividerAdd(16, speed);
 		}
 	}
+	m_bCurrentPulseRisingEdge = bCurrentPulseRisingEdge;
+	m_bLastPulseRisingEdge = bLastPulseRisingEdge;
 }
 
 bit8 DiskInterface::GetDisk16(bit8 trackNumber, bit32 headIndex)
@@ -998,6 +1035,9 @@ void DiskInterface::PreventClockOverflow()
 
 	if ((ICLKS)(CurrentClock - m_driveWriteChangeClock) >= CLOCKSYNCBAND_FAR)
 		m_driveWriteChangeClock = ClockBehindNear;
+
+	if (m_counterStartPulseFilter > CLOCKSYNCBAND_FAR)
+		m_counterStartPulseFilter = DISKHEADFILTERWIDTH;
 	cpu.PreventClockOverflow();
 }
 
