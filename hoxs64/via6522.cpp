@@ -33,9 +33,13 @@ void VIA::Reset(ICLK sysclock)
 	acr=0;
 	pcr=0;
 	ca1_in=0;
+	ca1_in_prev=0;
 	ca2_in=0;
+	ca2_in_prev=0;
 	cb1_in=0;
+	cb1_in_prev=0;
 	cb2_in=0;
+	cb2_in_prev=0;
 	ca2_out=0;
 	cb2_out=0;
 	shift=0;
@@ -186,6 +190,18 @@ ICLKS clocks;
 				cb2_out = 1;
 				SetCB2Output(1);
 			}
+		}
+
+		if (delay & VIATrans1)
+		{
+			if (delay & VIACA1Trans1)
+				TransitionCA1();
+			if (delay & VIACA2Trans1)
+				TransitionCA2();
+			if (delay & VIACB1Trans1)
+				TransitionCB1();
+			if (delay & VIACB2Trans1)
+				TransitionCB2();
 		}
 
 		ifr |= new_ifr;
@@ -812,6 +828,121 @@ bit8 VIA::PortBOutput()
 	return (orb & ddrb & ~bPB7TimerMode) | (bPB7TimerOut & ddrb & bPB7TimerMode) | (~ddrb);
 }
 
+void VIA::OnTransitionCA1Low()
+{
+}
+
+void VIA::TransitionCA1()
+{
+	if (pcr & 1)
+	{
+	//CA1 positive active edge
+		if (ca1_in_prev == 0)
+		{
+			ActiveTransitionCA1();
+		}
+	}
+	else
+	{
+	//CA1 negative active edge
+		if (ca1_in_prev != 0)
+		{
+			ActiveTransitionCA1();
+		}
+	}
+	if (ca1_in_prev != 0)
+	{
+		OnTransitionCA1Low();
+	}
+	ca1_in_prev = !ca1_in_prev;
+}
+
+void VIA::TransitionCA2()
+{
+	switch ((pcr >> 1) & 7)
+	{
+	case 0://CA2 negative active edge	
+		if (ca2_in_prev != 0)
+		{
+			ActiveTransitionCA2();
+		}
+		break;
+	case 1://CA2 independent interrupt negative active edge
+		if (ca2_in_prev != 0)
+		{
+			ActiveTransitionCA2();
+		}
+	case 2://CA2 positive active edge	
+		if (ca2_in_prev == 0)
+		{
+			ActiveTransitionCA2();
+		}
+		break;
+	case 3://CA2 independent interrupt positive active edge
+		if (ca2_in_prev == 0)
+		{
+			ActiveTransitionCA2();
+		}
+		break;
+	}
+	//ca2_in = !ca2_in;
+	ca2_in_prev = !ca2_in_prev;
+}
+
+void VIA::TransitionCB1()
+{
+	if (pcr & 0x10)
+	{
+	//CB1 positive active edge
+		if (cb1_in_prev == 0)
+		{
+			ActiveTransitionCB1();
+		}
+	}
+	else
+	{
+	//CB1 negative active edge
+		if (cb1_in_prev != 0)
+		{
+			ActiveTransitionCB1();
+		}
+	}
+	cb1_in_prev = !cb1_in_prev;
+	//cb1_in = !cb1_in;
+}
+
+void VIA::TransitionCB2()
+{
+	switch ((pcr >> 5) & 7)
+	{
+	case 0://CB2 negative active edge	
+		if (cb2_in_prev != 0)
+		{
+			ActiveTransitionCB2();
+		}
+		break;
+	case 1://CB2 independant interrupt negative active edge
+		if (cb2_in_prev != 0)
+		{
+			ActiveTransitionCB2();
+		}
+		break;
+	case 2://CB2 positive active edge	
+		if (cb2_in_prev == 0)
+		{
+			ActiveTransitionCB2();
+		}
+		break;
+	case 3://CB2 independant interrupt positive active edge
+		if (cb2_in_prev == 0)
+		{
+			ActiveTransitionCB2();
+		}
+		break;
+	}
+	cb2_in_prev = !cb2_in_prev;
+	//cb2_in = !cb2_in;
+}
 
 void VIA::ActiveTransitionCA1()
 {
@@ -897,106 +1028,83 @@ void VIA::ActiveTransitionCB2()
 	}
 }
 
-void VIA::SetCA1Input(bit8 value)
+void VIA::SetCA1Input(bit8 value, int phase)
 {
-	if (pcr & 1)
-	{
-	//CA1 positive active edge
-		if (ca1_in == 0 && value !=0)
-		{
-			ActiveTransitionCA1();
-		}
-	}
-	else
-	{
-	//CA1 negative active edge
-		if (ca1_in != 0 && value ==0)
-		{
-			ActiveTransitionCA1();
-		}
-	}
 	ca1_in = value;
-}
-
-void VIA::SetCA2Input(bit8 value)
-{
-	switch ((pcr >> 1) & 7)
+	if (phase == 0)
 	{
-	case 0://CA2 negative active edge	
-		if (ca2_in != 0 && value ==0)
-		{
-			ActiveTransitionCA2();
-		}
-		break;
-	case 1://CA2 independant interrupt negative active edge
-		if (ca2_in != 0 && value ==0)
-		{
-			ActiveTransitionCA2();
-		}
-	case 2://CA2 positive active edge	
-		if (ca2_in == 0 && value !=0)
-		{
-			ActiveTransitionCA2();
-		}
-		break;
-	case 3://CA2 independant interrupt positive active edge
-		if (ca2_in == 0 && value != 0)
-		{
-			ActiveTransitionCA2();
-		}
-		break;
-	}
-	ca2_in = value;
-}
-
-void VIA::SetCB1Input(bit8 value)
-{
-	if (pcr & 0x10)
-	{
-	//CB1 positive active edge
-		if (cb1_in == 0 && value !=0)
-		{
-			ActiveTransitionCB1();
-		}
+		if (ca1_in_prev != value)
+			delay = (delay) | VIACA1Trans1;
+		else
+			delay = delay & ~(VIACA1Trans1);
 	}
 	else
 	{
-	//CB1 negative active edge
-		if (cb1_in != 0 && value ==0)
-		{
-			ActiveTransitionCB1();
-		}
+		bit8 next_in = (delay & VIACA1Trans1) ? !ca1_in_prev : ca1_in_prev;
+		if (next_in != value)
+			delay|=VIACA1Trans0;
+		else
+			delay&=~VIACA1Trans0;
 	}
-	cb1_in = value;
+WakeUp();
 }
 
-void VIA::SetCB2Input(bit8 value)
+void VIA::SetCA2Input(bit8 value, int phase)
 {
-	switch ((pcr >> 5) & 7)
+	ca2_in = value;
+	if (phase == 0)
 	{
-	case 0://CB2 negative active edge	
-		if (cb2_in != 0 && value == 0)
-		{
-			ActiveTransitionCB2();
-		}
-		break;
-	case 1://CB2 independant interrupt negative active edge
-		if (cb2_in != 0 && value == 0)
-		{
-			ActiveTransitionCB2();
-		}
-	case 2://CB2 positive active edge	
-		if (cb2_in == 0 && value != 0)
-		{
-			ActiveTransitionCB2();
-		}
-		break;
-	case 3://CB2 independant interrupt positive active edge
-		if (cb2_in == 0 && value != 0)
-		{
-			ActiveTransitionCB2();
-		}
-		break;
+		if (ca2_in_prev != value)
+			delay = (delay & ~(VIACA2Trans0 | VIACA2Trans1)) | VIACA2Trans1;
+		else
+			delay&=~VIACA2Trans1;
 	}
+	else
+	{
+		bit8 next_in = (delay & VIACA2Trans1) ? !ca2_in_prev : ca2_in_prev;
+		if (next_in != value)
+			delay|=VIACA2Trans0;
+		else
+			delay&=~VIACA2Trans0;
+	}
+}
+
+void VIA::SetCB1Input(bit8 value, int phase)
+{
+	cb1_in = value;
+	if (phase == 0)
+	{
+		if (cb1_in_prev != value)
+			delay = (delay & ~(VIACB1Trans0 | VIACB1Trans1)) | VIACB1Trans1;
+		else
+			delay&=~VIACB1Trans1;
+	}
+	else
+	{
+		bit8 next_in = (delay & VIACB1Trans1) ? !cb1_in_prev : cb1_in_prev;
+		if (next_in != value)
+			delay|=VIACB1Trans0;
+		else
+			delay&=~VIACB1Trans0;
+	}
+}
+
+void VIA::SetCB2Input(bit8 value, int phase)
+{
 	cb2_in = value;
+	if (phase == 0)
+	{
+		if (cb2_in_prev != value)
+			delay = (delay & ~(VIACB2Trans0 | VIACB2Trans1)) | VIACB2Trans1;
+		else
+			delay&=~VIACB2Trans1;
+	}
+	else
+	{
+		bit8 next_in = (delay & VIACB2Trans1) ? !cb2_in_prev : cb2_in_prev;
+		if (next_in != value)
+			delay|=VIACB2Trans0;
+		else
+			delay&=~VIACB2Trans0;
+	}
 }

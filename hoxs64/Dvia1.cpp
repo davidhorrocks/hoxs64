@@ -49,8 +49,9 @@ VIA1::VIA1()
 	disk=0;
 }
 
-HRESULT VIA1::Init(CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
+HRESULT VIA1::Init(int ID, CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
 {
+	this->ID = ID;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->cpu = cpu;

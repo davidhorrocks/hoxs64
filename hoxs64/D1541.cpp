@@ -77,8 +77,9 @@ void CPUDisk::check_interrupts0()
 
 void CPUDisk::SyncVFlag()
 {
-	disk->SpinDisk(CurrentClock);
-	if (SOTrigger && SOTriggerClock != CurrentClock)
+	//disk->SpinDisk(CurrentClock);
+	via2->ExecuteCycle(CurrentClock);
+	if (SOTrigger &&  ((ICLKS)(CurrentClock - SOTriggerClock)>0))
 	{
 		SOTrigger = false;
 		fOVERFLOW = 1;

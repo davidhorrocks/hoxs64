@@ -50,8 +50,9 @@ VIA2::VIA2()
 	disk=0;
 	oldDiskControl=0;
 }
-HRESULT VIA2::Init(CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
+HRESULT VIA2::Init(int ID, CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
 {
+	this->ID = ID;
 	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->cpu = cpu;
@@ -92,7 +93,7 @@ bit8 oldWE;
 		if (value)
 		{
 			//Read mode
-			disk->m_d64_sync = ((disk->m_d64_write_enable==0) && ((disk->m_shifterReader & 0x3ff) == 0x3ff)) || (disk->m_d64_forcesync!=0);
+			disk->m_d64_sync = ((disk->m_d64_write_enable==0) && ((disk->m_shifterReader_UD2 & 0x3ff) == 0x3ff)) || (disk->m_d64_forcesync!=0);
 		}
 		else
 		{
@@ -103,13 +104,25 @@ bit8 oldWE;
 	}
 }
 
+void VIA2::OnTransitionCA1Low()
+{
+	int a = 0;
+	if (!cpu->SOTrigger)
+	{
+		cpu->SOTrigger = true;
+		cpu->SOTriggerClock = CurrentClock;
+	}
+}
+
 bit8 VIA2::ReadPinsPortA()
 {
 	disk->SpinDisk(CurrentClock);
 	if (disk->m_d64_write_enable)
 		return 0;
 	else
-		return (bit8)disk->m_shifterReader;
+	{
+		return disk->GetBusDataByte();
+	}
 }
 
 bit8 VIA2::ReadPinsPortB()
@@ -149,7 +162,7 @@ bit8 oldPin = oldDiskControl;
 	if (((oldPin ^ newPin) & 0x6c) !=0)
 	{
 		disk->m_bDiskMotorOn = bMotor;
-		disk->m_clockDividerReload = (newPin >> 5) & 3;
+		disk->m_clockDivider1_UE7_Reload = (newPin >> 5) & 3;
 		disk->m_bDriveLedOn = ((newPin & 8) != 0);
 	}
 
@@ -158,7 +171,7 @@ bit8 oldPin = oldDiskControl;
 		if ((newPin & 0x80) == 0)
 		{
 			disk->m_d64_forcesync = 1;
-			disk->m_frameCounter = 0;
+			disk->m_frameCounter_UC3 = 0;
 		}
 		else
 		{
@@ -168,11 +181,7 @@ bit8 oldPin = oldDiskControl;
 
 	if (!bMotor && bOldMotor)
 	{
-		// Allow motor to running for a short time after it is turned off.
-		//orig
-		//disk->m_motorOffClock = 175000;
-		//disk->m_motorOffClock = 292000;
-		//disk->m_motorOffClock = 135000;
+		//Allow motor to run for a short time after it is turned off.
 		disk->m_motorOffClock = 135000;
 	}
 	else if (bMotor)

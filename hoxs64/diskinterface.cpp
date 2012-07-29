@@ -55,24 +55,26 @@ int i;
 	m_currentTrackNumber = 0;
 	m_lastHeadStepDir = 0;
 	m_lastHeadStepPosition = 0;
-	m_shifterWriter = 0;
-	m_shifterReader = 0;
-	m_frameCounter = 0;
+	m_shifterWriter_UD3 = 0;
+	m_shifterReader_UD2 = 0;	
+	m_busByteReadyPreviousData = 0;
+	m_busByteReadySignal = 1;
+	m_busDataUpdateClock = 0;
+	m_frameCounter_UC3 = 0;
 	m_debugFrameCounter = 0;
-	m_clockDivider1 = 0;
-	m_clockDivider2 = 0;
+	m_clockDivider1_UE7 = 0;
+	m_clockDivider2_UF4 = 0;
 	m_bDiskMotorOn = false;
 	m_bDriveWriteWasOn = false;
 	m_bDriveLedOn = false;
 	m_driveWriteChangeClock = 0;
 	m_writeStream = 0;
 	m_diskLoaded = 0;
-	m_extraClock = 0;
-	m_lastOne = 0;
-	m_lastGap = 0;
-	m_bCurrentPulseRisingEdge = false;
-	m_bLastPulseRisingEdge = false;
-	m_counterStartPulseFilter = 0;
+	m_totalclocks_UE7 = 0;
+	m_lastPulseTime = 0;
+	//m_bCurrentPulseRisingEdge = false;
+	//m_bLastPulseRisingEdge = false;
+	//m_counterStartPulseFilter = 0;
 
 	m_d64_soe_enable = 1;
 	m_d64_write_enable = 0;
@@ -127,23 +129,25 @@ void DiskInterface::Reset(ICLK sysclock)
 	m_diskd64clk_xf = -Disk64clk_dy2 / 2;
 
 	m_currentHeadIndex = 0;
-	m_shifterWriter = 0;
-	m_shifterReader = 0;
-	m_frameCounter = 0;
+	m_shifterWriter_UD3 = 0;
+	m_shifterReader_UD2 = 0;
+	m_busByteReadyPreviousData = 0;
+	m_busByteReadySignal = 1;
+	m_busDataUpdateClock = sysclock;
+	m_frameCounter_UC3 = 0;
 	m_debugFrameCounter = 0;
-	m_clockDivider1 = 0;
-	m_clockDivider2 = 0;
+	m_clockDivider1_UE7 = 0;
+	m_clockDivider2_UF4 = 0;
 	m_bDiskMotorOn = false;
 	m_bDriveWriteWasOn = false;
 	m_bDriveLedOn = false;
 	m_driveWriteChangeClock = sysclock;
 	m_writeStream = 0;
-	m_extraClock = 0;
-	m_lastOne = 0;
-	m_lastGap = 0;
-	m_bCurrentPulseRisingEdge = false;
-	m_bLastPulseRisingEdge = false;
-	m_counterStartPulseFilter = 0;
+	m_totalclocks_UE7 = 0;
+	m_lastPulseTime = 0;
+	//m_bCurrentPulseRisingEdge = false;
+	//m_bLastPulseRisingEdge = false;
+	//m_counterStartPulseFilter = 0;
 
 	m_d64_soe_enable = 1;
 	m_d64_write_enable = 0;
@@ -260,8 +264,8 @@ HRESULT hr;
 		}
 	}
 	
-	via1.Init(cfg, appStatus, &cpu, this);
-	via2.Init(cfg, appStatus, &cpu, this);
+	via1.Init(1, cfg, appStatus, &cpu, this);
+	via2.Init(2, cfg, appStatus, &cpu, this);
 	cpu.Init(pIC64Event, CPUID_DISK, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom, pIBreakpointManager);
 
 	m_d64_protectOff=1;//1=no protect;0=protected;
@@ -568,7 +572,7 @@ bit8 ATN;
 			|((t & 0x8)<< 3);//CLOCK OUT
 	}
 
-	via1.SetCA1Input(ATN!=0);
+	via1.SetCA1Input(ATN!=0, 1);//1
 }
 
 
@@ -631,163 +635,204 @@ void DiskInterface::StepHeadAuto()
 	}
 }
 
-void DiskInterface::ClockDividerAdd(bit8 clocks, bit8 speed)
+bit8 DiskInterface::GetBusDataByte()
 {
-bit8 prevClockDivider1;
+	if ((ICLKS)(CurrentClock - m_busDataUpdateClock) >= 0)
+	{
+		return (bit8)m_shifterReader_UD2;
+	}
+	else
+	{
+		return (bit8)m_busByteReadyPreviousData;
+	}
+}
+
+void DiskInterface::ClockDividerAdd(bit8 clocks, bit8 speed, bool bStartWithPulse)
+{
+bit8 clockDivider1_UE7;
+bit8 clockDivider2_UF4;
 bit8 prevClockDivider2;
 bit8 byteReady;
 bit8 writeClock;
-//Works for hostage
-static const bit16 WEAKBITDIVIDER = 781;
-static const bit32 WEAKBITLIMIT = 1280;
-
-bool bQB_rising;
+bool bUF4_QB_rising;
+bit8 bandpos;
 
 	if (clocks==0)
-		return;
-	prevClockDivider1 = m_clockDivider1;
-	m_lastOne +=clocks;
-	m_extraClock+=clocks;
-	m_counterStartPulseFilter += clocks;
+		return;	
+	clockDivider1_UE7 = m_clockDivider1_UE7;
+	clockDivider2_UF4 = m_clockDivider2_UF4;
+	bandpos = m_totalclocks_UE7 & 0xf;
+	writeClock = bandpos;
+	m_lastPulseTime +=clocks;
+	m_totalclocks_UE7+=clocks;
+	//m_counterStartPulseFilter += clocks;
 
-	////Works for hostage
-	//if (m_extraClock > WEAKBITDIVIDER)
-	//{
-	//	m_extraClock = m_extraClock - WEAKBITDIVIDER;
-	//	if (m_lastOne > WEAKBITLIMIT && m_d64_write_enable == 0)
-	//	{
-	//		m_clockDivider1 = speed;
-	//		m_clockDivider2 = 0;			
-	//	}
-	//}
-	if (m_lastOne > 300 && m_d64_write_enable == 0)
+	if (bStartWithPulse)
+	{
+		//Reset the clockdividers because a disk pulse has occurred.
+		m_lastPulseTime = 0;
+		clockDivider1_UE7 = speed;
+		clockDivider2_UF4 = 0;
+		//m_counterStartPulseFilter = 0;
+
+		byteReady=1;
+		if ((m_frameCounter_UC3 & 7) == 7)
+		{
+			if (m_d64_soe_enable!=0)
+			{
+				byteReady = 0;
+			}
+			if (m_busByteReadySignal != byteReady)
+			{
+				m_busByteReadySignal = byteReady;
+				if (writeClock < 7 || m_lastPulseTime==clocks)//7
+				{
+					via2.ExecuteCycle(CurrentClock - 1);//
+					via2.SetCA1Input(byteReady, 0);//0
+				}
+				else
+				{
+					via2.ExecuteCycle(CurrentClock - 1);//
+					via2.SetCA1Input(byteReady, 1);//1
+				}
+			}
+		}
+	}
+
+	if (m_lastPulseTime > 300 && m_d64_write_enable == 0)
 	{
 		if (rand() < 5000)
 		{
-			m_clockDivider1 = speed;
-			m_clockDivider2 = 0;			
+			clockDivider1_UE7 = speed;
+			clockDivider2_UF4 = 0;			
 		}
 	}
 
 	m_writeStream = 0;
-	m_clockDivider1 += clocks;
+	clockDivider1_UE7 += clocks;
 
-	if (m_clockDivider1 >= 16)
+	for (int c=0 ; c==0 || clockDivider1_UE7 >= 16 ; c++)
 	{
-		//About writeClock
-		//The write position is not aligned with the read position. 
-		//This is a quick fix that gives a consistent 16Mhz positioned write clock with the assumption that QB can only
-		//ever rise once during this function call. The function during write mode is always called at the start of a 
-		//16Mhz disk band arc.
-		//The function argument "clocks" will always have the value 16 during write mode.
-		writeClock = 31 - m_clockDivider1;
-loop:
-		m_clockDivider1 = m_clockDivider1 + speed  - 16;
-
-
-		prevClockDivider2 = m_clockDivider2;
-
-		m_clockDivider2 =  (m_clockDivider2 + 1) & 0xf;
-		
-		bQB_rising =  ((m_clockDivider2 & 2) != 0 && (prevClockDivider2 & 2) == 0);
-
-		if (bQB_rising)
+		if (clockDivider1_UE7 >= 16)
 		{
-			//rising QB
+			if (c==0)
+				writeClock = (bandpos + 15 + clocks - clockDivider1_UE7) & 0xf;
+			else
+				writeClock = (writeClock - speed) & 0xf;
 
-			if ((signed char)m_shifterWriter < 0)
-			{//writing a 1
-				m_writeStream = writeClock + 1;
-			}
-			m_shifterWriter <<= 1;
-
-			m_shifterReader <<= 1;
-			if ((m_clockDivider2 & 0xc) == 0)
-			{//reading a 1
-				if (m_headStepClock==0)
+			clockDivider1_UE7 = clockDivider1_UE7 + speed - 16;
+			prevClockDivider2 = clockDivider2_UF4;
+			clockDivider2_UF4 =  (clockDivider2_UF4 + 1) & 0xf;
+	
+			bUF4_QB_rising =  ((clockDivider2_UF4 & 2) != 0 && (prevClockDivider2 & 2) == 0);
+			if (bUF4_QB_rising)
+			{
+				//rising QB
+				if ((via2.delay & (VIACA1Trans0 | VIACA1Trans1)))//Make sure pending transitions of the byte ready signal to via2.ca1 have been seen before updating the bus byte.
+					via2.ExecuteCycle(CurrentClock - 1);
+				m_busByteReadyPreviousData = m_shifterReader_UD2;				
+				if (writeClock < 14)//test
 				{
-					m_shifterReader |= 1;
+					m_busDataUpdateClock = CurrentClock;
+				}
+				else
+				{
+					m_busDataUpdateClock = CurrentClock + 1;
+				}
+
+				if ((signed char)m_shifterWriter_UD3 < 0)
+				{//writing a 1
+					m_writeStream = writeClock + 1;
+				}
+				m_shifterWriter_UD3 <<= 1;
+				
+				m_shifterReader_UD2 <<= 1;
+				if ((clockDivider2_UF4 & 0xc) == 0)
+				{//reading a 1
+					if (m_headStepClock==0)
+					{
+						m_shifterReader_UD2 |= 1;
+					}
+				}
+				if (!m_d64_sync)
+				{
+					m_frameCounter_UC3 =  (m_frameCounter_UC3 + 1) & 0xf;
+				}
+
+				m_debugFrameCounter = (m_debugFrameCounter + 1) & 0xf;
+				bit8 oldSync = m_d64_sync;
+
+				m_d64_sync = ((m_d64_write_enable==0) && ((m_shifterReader_UD2 & 0x3ff) == 0x3ff)) || (m_d64_forcesync!=0);
+
+				if (m_d64_sync)
+					m_frameCounter_UC3 = 0;
+				
+	#ifdef DEBUG_DISKPULSES
+				if (!m_d64_sync && oldSync!=0)
+				{
+					m_debugFrameCounter = 0;
+				}
+	#endif
+			}
+		}
+
+		byteReady=1;
+		if ((m_frameCounter_UC3 & 7) == 7)
+		{
+			if ((clockDivider2_UF4 & 3) == 3)
+			{
+				m_shifterWriter_UD3 = m_d64_diskwritebyte;
+			}
+			if ((m_d64_soe_enable!=0) && (clockDivider2_UF4 & 2)==0)
+			{
+				byteReady = 0;
+			}
+		}
+
+		#ifdef DEBUG_DISKPULSES
+		static bool allowCapture = true;
+		static bool printDebug = false;
+		if ((m_debugFrameCounter & 7) == 7 )
+		{
+			if ((clockDivider2_UF4 & 2)==0 && allowCapture)
+			{
+				allowCapture = false;
+				TCHAR sDebug[50];
+				static int linePrintCount = 0;
+				int dataByte = (int)(m_shifterReader_UD2 & 0xff);
+				_stprintf_s(sDebug, _countof(sDebug), TEXT("%2X "), dataByte);		
+				if (printDebug)
+				{
+					OutputDebugString(sDebug);
+					linePrintCount ++;
+					if (linePrintCount>=16)
+					{
+						linePrintCount = 0;
+						OutputDebugString(TEXT("\n"));
+					}
 				}
 			}
-			if (!m_d64_sync)
-			{
-				m_frameCounter =  (m_frameCounter + 1) & 0xf;
-			}
-
-			m_debugFrameCounter = (m_debugFrameCounter + 1) & 0xf;
-			bit8 oldSync = m_d64_sync;
-
-
-			m_d64_sync = ((m_d64_write_enable==0) && ((m_shifterReader & 0x3ff) == 0x3ff)) || (m_d64_forcesync!=0);
-
-			if (m_d64_sync)
-				m_frameCounter = 0;
-
-#ifdef DEBUG_DISKPULSES
-			if (!m_d64_sync && oldSync!=0)
-			{
-				m_debugFrameCounter = 0;
-			}
-#endif
 		}
-	}
-
-	byteReady=1;
-	if ((m_frameCounter & 7) == 7)
-	{
-		if ((m_clockDivider2 & 3)==3)
+		else
+			allowCapture = true;
+		#endif
+		if (m_busByteReadySignal != byteReady)
 		{
-			m_shifterWriter = m_d64_diskwritebyte;
-		}
-		if ((m_d64_soe_enable!=0) && (m_clockDivider2 & 2)==0)
-		{
-			byteReady = 0;
-			if (via2.ca1_in != 0)
+			m_busByteReadySignal = byteReady;
+			if (writeClock < 7)//7
 			{
-				cpu.SOTrigger = true;
-				cpu.SOTriggerClock = CurrentClock;
+				via2.ExecuteCycle(CurrentClock - 1);//
+				via2.SetCA1Input(byteReady, 0);//0
 			}
-		}
-	}
-
-#ifdef DEBUG_DISKPULSES
-	static bool allowCapture = true;
-	static bool printDebug = false;
-	if ((m_debugFrameCounter & 7) == 7 )
-	{
-		if ((m_clockDivider2 & 2)==0 && allowCapture)
-		{
-			allowCapture = false;
-			TCHAR sDebug[50];
-			static int linePrintCount = 0;
-			int dataByte = (int)(m_shifterReader & 0xff);
-			_stprintf_s(sDebug, _countof(sDebug), TEXT("%2X "), dataByte);		
-			if (printDebug)
+			else
 			{
-				OutputDebugString(sDebug);
-				linePrintCount ++;
-				if (linePrintCount>=16)
-				{
-					linePrintCount = 0;
-					OutputDebugString(TEXT("\n"));
-				}
+				via2.ExecuteCycle(CurrentClock - 1);//
+				via2.SetCA1Input(byteReady, 1);//1
 			}
-		}
-	}
-	else
-		allowCapture = true;
-#endif
-
-	if (via2.ca1_in!=byteReady)
-	{
-		via2.ExecuteCycle(CurrentClock - 1);
-		via2.SetCA1Input(byteReady);
-	}
-	if (m_clockDivider1 >= 16)
-	{
-		prevClockDivider1 = speed;
-		goto loop;
-	}
+		}	
+	} 
+	m_clockDivider1_UE7 = clockDivider1_UE7;
+	m_clockDivider2_UF4 = clockDivider2_UF4;
 }
 
 void DiskInterface::SpinDisk(ICLK sysclock)
@@ -796,16 +841,15 @@ bit8 bitTime;
 ICLKS clocks;
 bit8 speed;
 bit8 bMotorRun = m_bDiskMotorOn;
-bool bCurrentPulseRisingEdge = m_bCurrentPulseRisingEdge;
-bool bLastPulseRisingEdge = m_bLastPulseRisingEdge;
+//bool bCurrentPulseRisingEdge = m_bCurrentPulseRisingEdge;
+//bool bLastPulseRisingEdge = m_bLastPulseRisingEdge;
 
-	speed = m_clockDividerReload;
+	speed = m_clockDivider1_UE7_Reload;
 	bitTime = 0;
 	clocks = (ICLKS)(sysclock - CurrentClock);
 	while (clocks-- > 0)
 	{
 		CurrentClock++;
-
 		if (m_motorOffClock)
 		{
 			m_motorOffClock--;
@@ -841,27 +885,20 @@ bool bLastPulseRisingEdge = m_bLastPulseRisingEdge;
 				if (bitTime != 0)
 				{
 					bitTime--;
-					ClockDividerAdd(bitTime, speed);
+					ClockDividerAdd(bitTime, speed, false);
 
-					//Reset the clockdividers because a disk pulse has occurred.
-					m_lastGap = m_lastOne;
-					m_lastOne = 0;
-					m_counterStartPulseFilter = 0;
-					m_clockDivider1 = speed;
-					m_clockDivider2 = 0;
+					ClockDividerAdd(16-bitTime, speed, true);
 
-					ClockDividerAdd(16-bitTime, speed);
-
-					bLastPulseRisingEdge = bCurrentPulseRisingEdge;
+					//bLastPulseRisingEdge = bCurrentPulseRisingEdge;
 				}
 				else
 				{
-					ClockDividerAdd(16, speed);
+					ClockDividerAdd(16, speed, false);
 				}
 			}
 			else
 			{
-				ClockDividerAdd(16, speed);
+				ClockDividerAdd(16, speed, false);
 				if (m_d64_protectOff!=0 && m_diskLoaded)
 					PutDisk16(m_currentTrackNumber, m_currentHeadIndex, m_writeStream);
 			}
@@ -869,11 +906,11 @@ bool bLastPulseRisingEdge = m_bLastPulseRisingEdge;
 		}
 		else
 		{
-			ClockDividerAdd(16, speed);
+			ClockDividerAdd(16, speed, false);
 		}
 	}
-	m_bCurrentPulseRisingEdge = bCurrentPulseRisingEdge;
-	m_bLastPulseRisingEdge = bLastPulseRisingEdge;
+	//m_bCurrentPulseRisingEdge = bCurrentPulseRisingEdge;
+	//m_bLastPulseRisingEdge = bLastPulseRisingEdge;
 }
 
 bit8 DiskInterface::GetDisk16(bit8 trackNumber, bit32 headIndex)
@@ -1036,8 +1073,11 @@ void DiskInterface::PreventClockOverflow()
 	if ((ICLKS)(CurrentClock - m_driveWriteChangeClock) >= CLOCKSYNCBAND_FAR)
 		m_driveWriteChangeClock = ClockBehindNear;
 
-	if (m_counterStartPulseFilter > CLOCKSYNCBAND_FAR)
-		m_counterStartPulseFilter = DISKHEADFILTERWIDTH;
+	if ((ICLKS)(CurrentClock - m_busDataUpdateClock) >= CLOCKSYNCBAND_FAR)
+		m_busDataUpdateClock = ClockBehindNear;
+	
+	//if (m_counterStartPulseFilter > CLOCKSYNCBAND_FAR)
+	//	m_counterStartPulseFilter = DISKHEADFILTERWIDTH;
 	cpu.PreventClockOverflow();
 }
 

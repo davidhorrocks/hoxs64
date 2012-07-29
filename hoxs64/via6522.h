@@ -21,33 +21,47 @@
 #define VIA_INT_IRQ	128
 
 
-#define VIACountA0         0x00000001
-#define VIACountA1         0x00000002
-#define VIACountA2         0x00000004
-#define VIACountA3         0x00000008
-#define VIACountB0         0x00000010
-#define VIACountB1         0x00000020
-#define VIACountB2         0x00000040
-#define VIACountB3         0x00000080
-#define VIALoadA0          0x00000100
-#define VIALoadA1          0x00000200
-#define VIALoadA2          0x00000400
-#define VIALoadB0          0x00000800
-#define VIALoadB1          0x00001000
-#define VIALoadB2          0x00002000
-#define VIACA2Low0         0x00004000
-#define VIACA2Low1         0x00008000
-#define VIACB2Low0         0x00010000
-#define VIACB2Low1         0x00020000
-#define VIAPB7Low0         0x00040000
-#define VIAPB7Low1         0x00080000
-#define VIAInterrupt0      0x00100000
-#define VIAInterrupt1      0x00200000
-#define VIAOneShotA0       0x00400000
-#define VIAOneShotB0       0x00800000
-#define VIAPostOneShotA0   0x01000000
-#define VIAPostOneShotB0   0x02000000
-#define VIADelayMask     ~(0x04000000 | VIACountA0 | VIACountB0 | VIALoadA0 | VIALoadB0 | VIACA2Low0 | VIACB2Low0 | VIAPB7Low0 | VIAInterrupt0 | VIAOneShotA0 | VIAOneShotB0 | VIAPostOneShotA0 | VIAPostOneShotB0)
+#define VIACountA0         0x000000001ULL
+#define VIACountA1         0x000000002ULL
+#define VIACountA2         0x000000004ULL
+#define VIACountA3         0x000000008ULL
+#define VIACountB0         0x000000010ULL
+#define VIACountB1         0x000000020ULL
+#define VIACountB2         0x000000040ULL
+#define VIACountB3         0x000000080ULL
+#define VIALoadA0          0x000000100ULL
+#define VIALoadA1          0x000000200ULL
+#define VIALoadA2          0x000000400ULL
+#define VIALoadB0          0x000000800ULL
+#define VIALoadB1          0x000001000ULL
+#define VIALoadB2          0x000002000ULL
+#define VIACA2Low0         0x000004000ULL
+#define VIACA2Low1         0x000008000ULL
+#define VIACB2Low0         0x000010000ULL
+#define VIACB2Low1         0x000020000ULL
+#define VIAPB7Low0         0x000040000ULL
+#define VIAPB7Low1         0x000080000ULL
+#define VIAInterrupt0      0x000100000ULL
+#define VIAInterrupt1      0x000200000ULL
+#define VIAOneShotA0       0x000400000ULL
+#define VIAOneShotB0       0x000800000ULL
+#define VIAPostOneShotA0   0x001000000ULL
+#define VIAPostOneShotB0   0x002000000ULL
+
+#define VIACA1Trans0 (1ULL << 26)
+#define VIACA1Trans1 (1ULL << 27)
+#define VIACA2Trans0 (1ULL << 28)
+#define VIACA2Trans1 (1ULL << 29)
+#define VIACB1Trans0 (1ULL << 30)
+#define VIACB1Trans1 (1ULL << 31)
+#define VIACB2Trans0 (1ULL << 32)
+#define VIACB2Trans1 (1ULL << 33)
+
+#define VIAMaskMSB         (1ULL << 34)
+
+#define VIADelayMask     ~(VIAMaskMSB | VIACountA0 | VIACountB0 | VIALoadA0 | VIALoadB0 | VIACA2Low0 | VIACB2Low0 | VIAPB7Low0 | VIAInterrupt0 | VIAOneShotA0 | VIAOneShotB0 | VIAPostOneShotA0 | VIAPostOneShotB0 | VIACA1Trans0 | VIACA2Trans0 | VIACB1Trans0 | VIACB2Trans0)
+
+#define VIATrans1 (VIACA1Trans1 | VIACA2Trans1 | VIACB1Trans1 | VIACB2Trans1)
 
 #define VIA_NO_CHANGE_TO_IDLE 4
 #define VIA_MINIMUM_STAY_IDLE 3
@@ -72,24 +86,24 @@ public:
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
 
-	ICLK DevicesClock;
 	virtual void ExecuteDevices(ICLK sysclock)=0;
 
 	bit8 PortAOutput();
 	bit8 PortBOutput();
-	void SetCA1Input(bit8);
-	void SetCA2Input(bit8);
-	void SetCB1Input(bit8);
-	void SetCB2Input(bit8);
+	void SetCA1Input(bit8, int phase);
+	void SetCA2Input(bit8, int phase);
+	void SetCB1Input(bit8, int phase);
+	void SetCB2Input(bit8, int phase);
 	void WakeUp();
 	void SetPortA();
 	void SetPortB();
 
+protected:
+	virtual void OnTransitionCA1Low();
 
-	void ActiveTransitionCA1();
-	void ActiveTransitionCA2();
-	void ActiveTransitionCB1();
-	void ActiveTransitionCB2();
+public:
+	int ID;
+	ICLK DevicesClock;
 	
 	bool bLatchA;
 	bool bLatchB;
@@ -107,22 +121,24 @@ public:
 	bit8 acr;
 	bit8 pcr;
 	bit8 ca1_in;
+	bit8 ca1_in_prev;
 	bit8 ca2_in;
+	bit8 ca2_in_prev;
 	bit8 cb1_in;
+	bit8 cb1_in_prev;
 	bit8 cb2_in;
+	bit8 cb2_in_prev;
 	bit8 ca2_out;
 	bit8 cb2_out;
 	bit8 shift;
 	bit8 ifr;
 	bit8 ier;
-	//bit8 sequence_t1;
-	//bit8 sequence_t2;
 	bit8 serial_active;
 	bit8 serial_mode;
-	bit32 delay;
-	bit32 feed;
-	bit32 old_delay;
-	bit32 old_feed;
+	unsigned __int64 delay;
+	unsigned __int64 feed;
+	unsigned __int64 old_delay;
+	unsigned __int64 old_feed;
 	bit8 modulo;
 	bit8 Interrupt;
 
@@ -133,6 +149,18 @@ public:
 	bit8 no_change_count;
 	bit16 dec_2;
 	bit8 idle;
+
+private:
+	void ActiveTransitionCA1();
+	void ActiveTransitionCA2();
+	void ActiveTransitionCB1();
+	void ActiveTransitionCB2();
+	
+	void TransitionCA1();
+	void TransitionCA2();
+	void TransitionCB1();
+	void TransitionCB2();
+
 };
 
 

@@ -58,15 +58,17 @@ public:
 
 	bit8 GetProtectSensorState();
 
-	void ClockDividerAdd(bit8 clocks, bit8 speed);
+	void ClockDividerAdd(bit8 clocks, bit8 speed, bool bStartWithPulse);
 	void SpinDisk(ICLK sysclock);
 
 	void ExecutePALClock(ICLK palclock);
 	void ExecuteOnePendingDiskCpuClock();
 	void AccumulatePendingDiskCpuClocksToPalClock(ICLK palclock);
 	void ExecuteAllPendingDiskCpuClocks();
-
 	void SetRamPattern();
+
+	bit8 GetBusDataByte();
+
 	volatile bit8 m_d64_serialbus;
 	bit8 m_d64_dipswitch;
 	bit8 m_d64_protectOff;
@@ -98,21 +100,23 @@ public:
 	bit8 m_currentTrackNumber;
 	char m_lastHeadStepDir;
 	bit8 m_lastHeadStepPosition;
-	bit8 m_shifterWriter; //74LS165 UD3
-	bit16 m_shifterReader; //74LS164 UD2 2 flops make the shifter effectively 10bits. Only lower 8 bits are read by the VIA
-	bit8 m_frameCounter; //74LS191 UC3
+	bit8 m_shifterWriter_UD3; //74LS165 UD3
+	bit16 m_shifterReader_UD2; //74LS164 UD2 Two flops make the shifter effectively 10 bits. The lower 8 bits are read by VIA2 port A.
+	ICLK m_busDataUpdateClock;
+	bit16 m_busByteReadyPreviousData;
+	bit8 m_busByteReadySignal;
+	bit8 m_frameCounter_UC3; //74LS191 UC3
 	bit8 m_debugFrameCounter;
-	bit8 m_clockDividerReload;
-	bit8 m_clockDivider1; //74LS193 UE7 16MHz
-	bit8 m_clockDivider2; //74LS193 UF4
+	bit8 m_clockDivider1_UE7_Reload;
+	bit8 m_clockDivider1_UE7; //74LS193 UE7 16MHz
+	bit8 m_clockDivider2_UF4; //74LS193 UF4
 
 	bit8 m_writeStream;
-	bit16 m_extraClock;
-	bit32 m_lastOne;
-	bit32 m_lastGap;
-	bit32 m_counterStartPulseFilter;
-	bool m_bLastPulseRisingEdge;
-	bool m_bCurrentPulseRisingEdge;
+	unsigned int m_totalclocks_UE7;
+	unsigned int m_lastPulseTime;
+	//bit32 m_counterStartPulseFilter;
+	//bool m_bLastPulseRisingEdge;
+	//bool m_bCurrentPulseRisingEdge;
 
 	bit8 *m_rawTrackData[G64_MAX_TRACKS];
 
