@@ -465,10 +465,10 @@ HRESULT Monitor::CreateCliCommandResult(CommandToken *pCommandTToken, CommandRes
 			pcr = new CommandResultDisassembly(pCommandTToken->startaddress, pCommandTToken->finishaddress);
 			break;
 		case DBGSYM::CliCommand::Error:
-			pcr = new CommandResult(pCommandTToken->text.c_str());
+			pcr = new CommandResultText(pCommandTToken->text.c_str());
 			break;
 		default:
-			pcr = new CommandResult(TEXT("Unknown command."));
+			pcr = new CommandResultText(TEXT("Unknown command."));
 			break;
 		}
 		hr = E_FAIL;
@@ -499,6 +499,7 @@ HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 	HRESULT hr = E_FAIL;
 	LPTSTR ps = 0;
 	CommandResult *pcr;
+	DWORD dwWaitResult;
 	try
 	{
 		hr = as.CreateCliCommandToken(pszCommandLine, &pcmdt);
@@ -507,16 +508,27 @@ HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 			hr =  CreateCliCommandResult(pcmdt, &pcr);
 			if (SUCCEEDED(hr))
 			{
-				std::basic_string<TCHAR> s;
-
-				LPCTSTR pline = 0;
-				while(pcr->GetNextLine(&pline) == S_OK)
+				hr = pcr->Start(NULL);
+				if (SUCCEEDED(hr))
 				{
-					if (!pline)
-						break;
-					s.append(pline);
+					dwWaitResult = pcr->WaitComplete(10000);
+					if (dwWaitResult == WAIT_OBJECT_0)
+					{
+						std::basic_string<TCHAR> s;
+						LPCTSTR pline = 0;
+						while(pcr->GetNextLine(&pline) == S_OK)
+						{
+							if (!pline)
+								break;
+							s.append(pline);
+						}
+						ps = _tcsdup(s.c_str());
+					}
+					else
+					{
+						ps = _tcsdup(TEXT("Command timeout."));
+					}
 				}
-				ps = _tcsdup(s.c_str());
 			}
 		}
 		hr = E_FAIL;
@@ -534,6 +546,7 @@ HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 	}
 	if (pcr)
 	{
+		pcr->Stop();
 		delete pcr;
 		pcr = 0;
 	}

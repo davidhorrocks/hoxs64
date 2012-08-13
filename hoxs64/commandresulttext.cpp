@@ -18,16 +18,13 @@
 #include "c6502.h"
 #include "commandresult.h"
 
-CommandResultDisassembly::CommandResultDisassembly(bit16 startaddress, bit16 finishaddress)
+CommandResultText::CommandResultText(LPCTSTR pText)
 {
-	this->cmd  = DBGSYM::CliCommand::Disassemble;
-	this->startaddress = startaddress;
-	this->finishaddress = finishaddress;
-
-	this->address = startaddress;
+	this->m_bUseThread = false;
+	this->AddLine(pText);
 }
 
-void CommandResultDisassembly::Run()
+void CommandResultText::Run()
 {
-	AddLine(TEXT("DBGSYM::CliCommand::Disassemble\r"));
+	
 }

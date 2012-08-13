@@ -525,6 +525,7 @@
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="commandresultdisassembly.cpp" />
     <ClCompile Include="commandresulthelp.cpp" />
+    <ClCompile Include="commandresulttext.cpp" />
     <ClCompile Include="diagbreakpointvicraster.cpp" />
     <ClCompile Include="mdichildcli.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />

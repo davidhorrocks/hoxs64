@@ -21,5 +21,10 @@
 CommandResultHelp::CommandResultHelp()
 {
 	this->cmd  = DBGSYM::CliCommand::Unknown;
-	this->AddLine(TEXT("Command Help\rD\t- Disassemble memory.\r\r"));
+}
+
+
+void CommandResultHelp::Run()
+{
+	this->AddLine(TEXT("Command Help\rd\t- Disassemble memory.\r\r"));
 }
