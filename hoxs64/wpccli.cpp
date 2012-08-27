@@ -25,6 +25,7 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_pITextDocument = NULL;
 	m_hFont = NULL;
 	m_bstrFontName = NULL;
+	m_commandstate = Idle;
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;
 
@@ -258,6 +259,15 @@ short nVirtKey;
 	{
 		return 0;
 	}
+}
+
+void WpcCli::StartCommand(LPCTSTR pszCommand)
+{
+
+}
+
+void WpcCli::StopCommand()
+{
 }
 
 void WpcCli::OnCommandEnterKey()

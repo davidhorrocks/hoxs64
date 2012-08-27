@@ -5,7 +5,19 @@
 #define WM_COMMANDRESULT_COMPLETED (WM_USER + 1)
 #define WM_COMMANDRESULT_LINEREADY (WM_USER + 2)
 
-class CommandResult
+
+class ICommandResult
+{
+public:
+	virtual HRESULT Start(HWND hWnd)=0;
+	virtual HRESULT Stop()=0;
+	virtual DWORD WaitComplete(DWORD timeout)=0;
+	virtual HRESULT GetNextLine(LPCTSTR *ppszLine)=0;
+	virtual void Reset()=0;
+
+};
+
+class CommandResult : public ICommandResult
 {
 public:
 	CommandResult();
@@ -13,9 +25,11 @@ public:
 	virtual ~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	void AddLine(LPCTSTR pszLine);
-	HRESULT Start(HWND hWNd);
-	HRESULT Stop();
-	DWORD WaitComplete(DWORD timeout);
+
+	//ICommandResult
+	virtual HRESULT Start(HWND hWnd);
+	virtual HRESULT Stop();
+	virtual DWORD WaitComplete(DWORD timeout);
 	virtual void Reset();
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
 protected:

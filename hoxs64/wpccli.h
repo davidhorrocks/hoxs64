@@ -26,6 +26,13 @@ protected:
 	LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnCommandEnterKey();
 private:
+	enum CommandState
+	{
+		Idle,
+		Busy
+	};
+	CommandState m_commandstate;
+	int m_iCommandNumber;
 	CDPI m_dpi;
 	IC64 *c64;
 	IAppCommand *m_pIAppCommand;
@@ -38,6 +45,8 @@ private:
 	HFONT m_hFont;
 	BSTR m_bstrFontName;
 
+	void StartCommand(LPCTSTR pszCommand);
+	void StopCommand();
 	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcchBuffer, long *piStartCharIndex, long *piEndCharIndex);
 	HRESULT SetCharInsertionPoint(long iCharIndex);
 	HRESULT WriteCommandResponse(long iCharIndex, LPCTSTR pText);
