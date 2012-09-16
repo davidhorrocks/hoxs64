@@ -18,6 +18,10 @@ const TCHAR WpcCli::ClassName[] = TEXT("WPCCLI");
 
 WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 {
+	m_bIsTimerActive = true;
+	m_bClosing = false;
+	m_iCommandNumber = 0;
+	m_pICommandResult = NULL;
 	m_hinstRiched = NULL;
 	m_hWndEdit = NULL;
 	m_wpOrigEditProc = NULL;
@@ -156,8 +160,64 @@ LRESULT WpcCli::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled)
 	return 0;
 }
 
+void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (m_bClosing)
+		return;
+	if (!m_pICommandResult)
+		return;
+	if (!lParam)
+		return;
+	if (m_pICommandResult != (ICommandResult *)lParam)
+		return;
+	if (m_pICommandResult->GetId() != (int)wParam)
+		return;
+	if (m_pICommandResult->GetStatus() == DBGSYM::CliCommandStatus::CompletedOK)
+	{
+		UINT_PTR t = SetTimer(hWnd, m_pICommandResult->GetId(), 60, NULL);
+		if (t)
+		{
+			m_bIsTimerActive = true;
+		}
+	}
+	else
+	{
+		StopCommand();
+	}
+}
+
+
+void WpcCli::OnTimer(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+HRESULT hr;
+	if (m_bClosing)
+		return;
+	if (!m_pICommandResult)
+		return;
+	if (m_pICommandResult->GetId() != (int)wParam)
+		return;
+	LPCTSTR pline = 0;
+	hr = m_pICommandResult->GetNextLine(&pline);
+	if (SUCCEEDED(hr))
+	{
+		WriteLineAtCursor(pline);
+		if (hr == S_FALSE)
+			StopCommand();
+	}
+	else
+	{
+		StopCommand();
+	}
+}
+
+void WpcCli::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	m_bClosing = true;
+}
+
 void WpcCli::OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	StopCommand();
 	if (m_hWndEdit)
 	{
 		if (m_wpOrigEditProc!=NULL)
@@ -213,6 +273,15 @@ int wmId, wmEvent;
 		//	return 0;
 		//}
 		break;
+	case WM_TIMER:
+		OnTimer(m_hWnd, uMsg, wParam, lParam);
+		return 0;
+	case WM_COMMANDRESULT_COMPLETED:
+		OnCommandResultCompleted(m_hWnd, uMsg, wParam, lParam);
+		return 0;
+	case WM_CLOSE:
+		OnClose(m_hWnd, uMsg, wParam, lParam);
+		break;
 	case WM_DESTROY:
 		OnDestory(m_hWnd, uMsg, wParam, lParam);
 		break;
@@ -261,13 +330,38 @@ short nVirtKey;
 	}
 }
 
+
 void WpcCli::StartCommand(LPCTSTR pszCommand)
 {
-
+HRESULT hr;
+ICommandResult *pcr = NULL;
+	StopCommand();
+	m_iCommandNumber++;
+	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, &m_pICommandResult);
+	if (SUCCEEDED(hr))
+	{		
+		m_commandstate = Busy;
+	}
+	else
+	{
+		m_commandstate = Idle;
+	}
 }
 
 void WpcCli::StopCommand()
 {
+	if (m_pICommandResult)
+	{
+		if (m_bIsTimerActive)
+		{
+			KillTimer(GetHwnd(), m_pICommandResult->GetId());
+			m_bIsTimerActive = false;
+		}
+		m_pICommandResult->Stop();
+		delete m_pICommandResult;
+		m_pICommandResult = NULL;
+		m_commandstate = Idle;
+	}
 }
 
 void WpcCli::OnCommandEnterKey()
@@ -278,6 +372,8 @@ LPTSTR psResult = NULL;
 long iStart = 0;
 long iEnd = 0;
 long iLen = 0;
+	if (m_commandstate != Idle || m_pICommandResult!=NULL)
+		return;
 	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb, NULL, NULL)))
 	{
 		ps = (LPTSTR)malloc(cb);
@@ -287,52 +383,68 @@ long iLen = 0;
 			{
 				if (cb > 0 && iEnd-iStart > 0)
 				{
-					if (SUCCEEDED(c64->GetMon()->ExecuteCommandLine(this->GetHwnd(), ps, &psResult)))
+					this->m_iCommandNumber++;
+					//if (SUCCEEDED(c64->GetMon()->ExecuteCommandLine(this->GetHwnd(), ps, m_iCommandNumber, &psResult)))
+					if (SUCCEEDED(c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), ps, m_iCommandNumber, &m_pICommandResult)))
 					{
-						ITextSelection *pSel = 0;
-						if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
-						{
-							ITextRange *pRange = 0;
-							if (SUCCEEDED(m_pITextDocument->Range(iStart, iEnd, &pRange)))
-							{
-								pRange->GetStoryLength(&iLen);
-								
-								if (iEnd>=iLen)
-								{
-									pRange->Collapse(tomEnd);
-									WriteCommandResponse(pRange, TEXT("\r"));
-									pRange->Collapse(tomEnd);
-									WriteCommandResponse(pRange, psResult);
-									pRange->Collapse(tomEnd);
-								}
-								else
-								{
-									pRange->Collapse(tomEnd);
-									WriteCommandResponse(pRange, psResult);
-									pRange->Collapse(tomEnd);
-									WriteCommandResponse(pRange, TEXT("\r"));
-									pRange->Collapse(tomStart);
-								}
-								long tsflags = 0;
-								pSel->GetFlags(&tsflags);
-								pSel->SetFlags((tsflags & (tomSelOvertype | tomSelReplace)) | tomSelStartActive);//tomSelAtEOL
-								pRange->Select();
-								pRange->Release();
-								pRange = 0;
-							}
-							pSel->Release();
-						}
-						if (psResult)
-						{
-							free(psResult);
-							psResult = 0;
-						}
+
+						//WriteLineAtCursor(psResult);
+						//if (psResult)
+						//{
+						//	free(psResult);
+						//	psResult = 0;
+						//}
 					}
 				}
 			}
 
 			free(ps);
 			ps = NULL;
+		}
+	}
+}
+
+void WpcCli::WriteLineAtCursor(LPCTSTR pszLine)
+{
+LPTSTR ps = NULL;
+long iStart = 0;
+long iEnd = 0;
+long iLen = 0;
+
+	if (SUCCEEDED(GetCurrentParagraphText(NULL, NULL, &iStart, &iEnd)))
+	{
+		ITextSelection *pSel = 0;
+		if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
+		{
+			ITextRange *pRange = 0;
+			if (SUCCEEDED(m_pITextDocument->Range(iStart, iEnd, &pRange)))
+			{
+				pRange->GetStoryLength(&iLen);
+								
+				if (iEnd>=iLen)
+				{
+					pRange->Collapse(tomEnd);
+					WriteCommandResponse(pRange, TEXT("\r"));
+					pRange->Collapse(tomEnd);
+					WriteCommandResponse(pRange, pszLine);
+					pRange->Collapse(tomEnd);
+				}
+				else
+				{
+					pRange->Collapse(tomEnd);
+					WriteCommandResponse(pRange, pszLine);
+					pRange->Collapse(tomEnd);
+					WriteCommandResponse(pRange, TEXT("\r"));
+					pRange->Collapse(tomStart);
+				}
+				long tsflags = 0;
+				pSel->GetFlags(&tsflags);
+				pSel->SetFlags((tsflags & (tomSelOvertype | tomSelReplace)) | tomSelStartActive);//tomSelAtEOL
+				pRange->Select();
+				pRange->Release();
+				pRange = 0;
+			}
+			pSel->Release();
 		}
 	}
 }

@@ -114,8 +114,8 @@ public:
 	virtual void IBreakpointManager::BM_DeleteAllBreakpoints();
 	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
 
-	HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *ppszResults);
-	HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, ICommandResult **pICommandResult);
+	HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, LPTSTR *ppszResults);
+	HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, ICommandResult **pICommandResult);
 	HRESULT EndExecuteCommandLine(ICommandResult *pICommandResult);
 
 private:

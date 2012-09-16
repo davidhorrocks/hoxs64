@@ -450,14 +450,14 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 	return r;
 }
 
-HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, ICommandResult **pICommandResult)
+HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, ICommandResult **pICommandResult)
 {
 	HRESULT hr;
 	*pICommandResult = NULL;
 	try
 	{
 		CommandResult *pCommandResult = new CommandResult();
-		hr = pCommandResult->Start(hwnd, pszCommandLine);
+		hr = pCommandResult->Start(hwnd, pszCommandLine, id);
 		if (SUCCEEDED(hr))
 		{
 			*pICommandResult = pCommandResult;
@@ -494,7 +494,7 @@ HRESULT Monitor::EndExecuteCommandLine(ICommandResult *pICommandResult)
 	return hr;	
 }	
 
-HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *ppszResults)
+HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, LPTSTR *ppszResults)
 {
 	Assembler as;
 	CommandToken *pcmdt = 0;
@@ -504,7 +504,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *p
 	DWORD dwWaitResult;
 	try
 	{
-		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, &pcr);
+		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, &pcr);
 		if (SUCCEEDED(hr))
 		{
 			dwWaitResult = pcr->WaitComplete(10000);
@@ -515,7 +515,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *p
 				{
 					std::basic_string<TCHAR> s;
 					LPCTSTR pline = 0;
-					while(pcr->GetNextLine(&pline) == S_OK)
+					while(SUCCEEDED(pcr->GetNextLine(&pline)))
 					{
 						if (!pline)
 							break;

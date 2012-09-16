@@ -178,13 +178,16 @@ DWORD r;
 				if (ppszLine)
 					*ppszLine = a_lines[line];
 				line++;
-				return S_OK;
+				if (line < a_lines.size())
+					return S_OK;
+				else
+					return S_FALSE;
 			}
 			else
 			{
 				if (ppszLine)
 					*ppszLine = NULL;
-				return S_FALSE;
+				return E_FAIL;
 			}
 		}
 		catch(...)
@@ -213,7 +216,7 @@ DWORD r;
 }
 
 
-HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString)
+HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString, int id)
 {
 	HRESULT r = E_FAIL;
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
@@ -226,6 +229,7 @@ HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString)
 			m_sCommandLine.append(pszCommandString);
 			m_bIsComplete = false;
 			m_hWnd = hWnd;
+			m_id = id;
 			m_hThread = CreateThread(NULL, 0, CommandResult::ThreadProc, this, 0, &m_dwThreadId);
 			if (m_hThread)
 				r = S_OK;
@@ -258,6 +262,18 @@ DBGSYM::CliCommandStatus::CliCommandStatus CommandResult::GetStatus()
 	if (rm == WAIT_OBJECT_0)
 	{
 		s =  m_status;
+		ReleaseMutex(m_mux);
+	}
+	return s;
+}
+
+int CommandResult::GetId()
+{
+	int s=0;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		s =  m_id;
 		ReleaseMutex(m_mux);
 	}
 	return s;
@@ -324,13 +340,13 @@ DWORD r = 0;
 	return S_OK;
 }
 
-void CommandResult::PostComplete(int status)
+void CommandResult::PostComplete()
 {
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
 		if (m_hWnd)
-			PostMessage(m_hWnd, WM_COMMANDRESULT_COMPLETED, status, 0);
+			PostMessage(m_hWnd, WM_COMMANDRESULT_COMPLETED, m_id, (LPARAM)this);
 		ReleaseMutex(m_mux);
 	}
 }
@@ -341,17 +357,22 @@ DWORD WINAPI CommandResult::ThreadProc(LPVOID lpThreadParameter)
 	HRESULT hr;
 	p->SetStatus(DBGSYM::CliCommandStatus::Running);
 	hr = p->Run();
-	if (SUCCEEDED(hr))
+	DWORD rm = WaitForSingleObject(p->m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
 	{
-		p->SetStatus(DBGSYM::CliCommandStatus::CompletedOK);
-		p->SetComplete();
-		p->PostComplete(1);
-	}
-	else
-	{
-		p->SetStatus(DBGSYM::CliCommandStatus::Failed);
-		p->SetComplete();
-		p->PostComplete(0);
+		if (SUCCEEDED(hr))
+		{
+			p->SetStatus(DBGSYM::CliCommandStatus::CompletedOK);
+			p->SetComplete();
+			p->PostComplete();
+		}
+		else
+		{
+			p->SetStatus(DBGSYM::CliCommandStatus::Failed);
+			p->SetComplete();
+			p->PostComplete();
+		}
+		ReleaseMutex(p->m_mux);
 	}
 	return 0;
 }

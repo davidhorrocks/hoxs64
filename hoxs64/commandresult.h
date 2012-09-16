@@ -5,28 +5,6 @@
 #define WM_COMMANDRESULT_COMPLETED (WM_USER + 1)
 #define WM_COMMANDRESULT_LINEREADY (WM_USER + 2)
 
-
-class ICommandResult
-{
-public:
-	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString)=0;
-	virtual HRESULT Stop()=0;
-	virtual bool IsComplete() = 0;
-	virtual DWORD WaitComplete(DWORD timeout)=0;
-	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
-	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)=0;
-	virtual HRESULT GetNextLine(LPCTSTR *ppszLine)=0;
-	virtual void Reset()=0;
-	virtual ~ICommandResult(){};
-};
-
-
-class IRunCommand
-{
-public:
-	virtual HRESULT Run() = 0;
-};
-
 class CommandResult : public ICommandResult
 {
 public:
@@ -37,7 +15,7 @@ public:
 	void AddLine(LPCTSTR pszLine);
 
 	//ICommandResult
-	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString);
+	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id);
 	virtual HRESULT Stop();
 	virtual bool IsComplete();
 	virtual DWORD WaitComplete(DWORD timeout);
@@ -45,11 +23,12 @@ public:
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
 	virtual void Reset();
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
+	virtual int GetId();
 protected:
 	HRESULT CreateCliCommandResult(CommandToken *pCommandTToken, IRunCommand **ppRunCommand);
 	virtual HRESULT Run();
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
-	void PostComplete(int status);
+	void PostComplete();
 	void SetComplete();
 	size_t line;
 	std::vector<LPTSTR> a_lines;
@@ -58,6 +37,7 @@ protected:
 	HANDLE m_hevtQuit;
 	HANDLE m_mux;
 	DWORD m_dwThreadId;
+	int m_id;
 private:
 	std::basic_string<TCHAR> m_sCommandLine;
 	bool m_bIsComplete;

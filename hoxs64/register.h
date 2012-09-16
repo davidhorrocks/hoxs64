@@ -199,6 +199,28 @@ public:
 typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
 typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterator BpIter;
 
+class ICommandResult
+{
+public:
+	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id)=0;
+	virtual HRESULT Stop()=0;
+	virtual bool IsComplete() = 0;
+	virtual DWORD WaitComplete(DWORD timeout)=0;
+	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
+	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)=0;
+	virtual HRESULT GetNextLine(LPCTSTR *ppszLine)=0;
+	virtual void Reset()=0;
+	virtual int GetId()=0;
+	virtual ~ICommandResult(){};
+};
+
+
+class IRunCommand
+{
+public:
+	virtual HRESULT Run() = 0;
+};
+
 class IMonitor : public IBreakpointManager
 {
 public:
@@ -221,7 +243,9 @@ public:
 	virtual IMonitorCpu *GetDiskCpu() = 0;
 	virtual IMonitorVic *GetVic() = 0;
 	virtual IMonitorDisk *GetDisk() = 0;
-	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *ppszResults) = 0;
+	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, LPTSTR *ppszResults) = 0;
+	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, ICommandResult **pICommandResult) = 0;
+	virtual HRESULT EndExecuteCommandLine(ICommandResult *pICommandResult) = 0;
 };
 
 class IC64Event : public IC64BreakEvent

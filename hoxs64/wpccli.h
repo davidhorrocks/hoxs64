@@ -17,12 +17,15 @@ public:
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 protected:
-
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	HRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled);
 	void OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnTimer(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	
 	LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnCommandEnterKey();
 private:
@@ -31,8 +34,11 @@ private:
 		Idle,
 		Busy
 	};
+	bool m_bClosing;
 	CommandState m_commandstate;
 	int m_iCommandNumber;
+	ICommandResult *m_pICommandResult;
+	bool m_bIsTimerActive;
 	CDPI m_dpi;
 	IC64 *c64;
 	IAppCommand *m_pIAppCommand;
@@ -45,6 +51,7 @@ private:
 	HFONT m_hFont;
 	BSTR m_bstrFontName;
 
+	void WriteLineAtCursor(LPCTSTR pszLine);
 	void StartCommand(LPCTSTR pszCommand);
 	void StopCommand();
 	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcchBuffer, long *piStartCharIndex, long *piEndCharIndex);
