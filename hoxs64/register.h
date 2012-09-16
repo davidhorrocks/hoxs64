@@ -221,7 +221,7 @@ public:
 	virtual IMonitorCpu *GetDiskCpu() = 0;
 	virtual IMonitorVic *GetVic() = 0;
 	virtual IMonitorDisk *GetDisk() = 0;
-	virtual HRESULT ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults) = 0;
+	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *ppszResults) = 0;
 };
 
 class IC64Event : public IC64BreakEvent

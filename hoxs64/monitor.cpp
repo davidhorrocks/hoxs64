@@ -14,8 +14,8 @@
 #include "util.h"
 #include "register.h"
 #include "c6502.h"
-#include "commandresult.h"
 #include "assembler.h"
+#include "commandresult.h"
 #include "monitor.h"
 
 
@@ -450,85 +450,83 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 	return r;
 }
 
-HRESULT Monitor::CreateCliCommandResult(CommandToken *pCommandTToken, CommandResult **ppCommandResult)
+HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, ICommandResult **pICommandResult)
 {
-	HRESULT hr = E_FAIL;
-	CommandResult *pcr = 0;
+	HRESULT hr;
+	*pICommandResult = NULL;
 	try
 	{
-		switch(pCommandTToken->cmd)
+		CommandResult *pCommandResult = new CommandResult();
+		hr = pCommandResult->Start(hwnd, pszCommandLine);
+		if (SUCCEEDED(hr))
 		{
-		case DBGSYM::CliCommand::Help:
-			pcr = new CommandResultHelp();
-			break;
-		case DBGSYM::CliCommand::Disassemble:
-			pcr = new CommandResultDisassembly(pCommandTToken->startaddress, pCommandTToken->finishaddress);
-			break;
-		case DBGSYM::CliCommand::Error:
-			pcr = new CommandResultText(pCommandTToken->text.c_str());
-			break;
-		default:
-			pcr = new CommandResultText(TEXT("Unknown command."));
-			break;
-		}
-		hr = E_FAIL;
-		if (ppCommandResult)
-		{
-			if (pcr)
-				hr = S_OK;
-			*ppCommandResult = pcr;
-			pcr = NULL;
+			*pICommandResult = pCommandResult;
+			hr = S_OK;
 		}
 	}
 	catch(...)
 	{
 		hr = E_FAIL;
-	}
-	if (pcr)
-	{
-		delete pcr;
-		pcr = 0;
+		if (*pICommandResult)
+		{
+			delete *pICommandResult;
+			*pICommandResult = NULL;
+		}
 	}
 	return hr;
 }
 
-HRESULT Monitor::ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults)
+HRESULT Monitor::EndExecuteCommandLine(ICommandResult *pICommandResult)
+{
+	HRESULT hr;
+	try
+	{
+		DWORD r = pICommandResult->WaitComplete(INFINITE);
+		if (r == WAIT_OBJECT_0)
+			hr = S_OK;
+		else
+			hr = E_FAIL;
+	}
+	catch(...)
+	{
+		hr = E_FAIL;
+	}
+	return hr;	
+}	
+
+HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *ppszResults)
 {
 	Assembler as;
 	CommandToken *pcmdt = 0;
 	HRESULT hr = E_FAIL;
 	LPTSTR ps = 0;
-	CommandResult *pcr;
+	ICommandResult *pcr = NULL;
 	DWORD dwWaitResult;
 	try
 	{
-		hr = as.CreateCliCommandToken(pszCommandLine, &pcmdt);
+		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, &pcr);
 		if (SUCCEEDED(hr))
 		{
-			hr =  CreateCliCommandResult(pcmdt, &pcr);
-			if (SUCCEEDED(hr))
+			dwWaitResult = pcr->WaitComplete(10000);
+			if (dwWaitResult == WAIT_OBJECT_0)
 			{
-				hr = pcr->Start(NULL);
+				hr =  this->EndExecuteCommandLine(pcr);
 				if (SUCCEEDED(hr))
 				{
-					dwWaitResult = pcr->WaitComplete(10000);
-					if (dwWaitResult == WAIT_OBJECT_0)
+					std::basic_string<TCHAR> s;
+					LPCTSTR pline = 0;
+					while(pcr->GetNextLine(&pline) == S_OK)
 					{
-						std::basic_string<TCHAR> s;
-						LPCTSTR pline = 0;
-						while(pcr->GetNextLine(&pline) == S_OK)
-						{
-							if (!pline)
-								break;
-							s.append(pline);
-						}
-						ps = _tcsdup(s.c_str());
+						if (!pline)
+							break;
+						s.append(pline);
 					}
-					else
-					{
-						ps = _tcsdup(TEXT("Command timeout."));
-					}
+					ps = _tcsdup(s.c_str());
 				}
+			}
+			else
+			{
+				ps = _tcsdup(TEXT("Command timeout."));
 			}
 		}
 		hr = E_FAIL;

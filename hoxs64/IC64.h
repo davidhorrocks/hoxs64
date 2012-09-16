@@ -16,8 +16,8 @@
 #include "bits.h"
 #include "util.h"
 #include "register.h"
-#include "commandresult.h"
 #include "assembler.h"
+#include "commandresult.h"
 #include "monitor.h"
 
 #include "hconfig.h"

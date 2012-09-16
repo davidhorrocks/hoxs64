@@ -16,18 +16,19 @@
 #include "register.h"
 
 #include "c6502.h"
+#include "assembler.h"
 #include "commandresult.h"
 
-CommandResultDisassembly::CommandResultDisassembly(bit16 startaddress, bit16 finishaddress)
+CommandResultDisassembly::CommandResultDisassembly(CommandResult *pCommandResult, bit16 startaddress, bit16 finishaddress)
 {
-	this->cmd  = DBGSYM::CliCommand::Disassemble;
+	this->m_pCommandResult  = pCommandResult;
 	this->startaddress = startaddress;
 	this->finishaddress = finishaddress;
-
 	this->address = startaddress;
 }
 
-void CommandResultDisassembly::Run()
+HRESULT CommandResultDisassembly::Run()
 {
-	AddLine(TEXT("DBGSYM::CliCommand::Disassemble\r"));
+	m_pCommandResult->AddLine(TEXT("DBGSYM::CliCommand::Disassemble\r"));
+	return S_OK;
 }

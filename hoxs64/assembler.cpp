@@ -16,7 +16,6 @@
 #include "register.h"
 
 #include "c6502.h"
-#include "commandresult.h"
 #include "assembler.h"
 
 AssemblyToken::AssemblyToken()

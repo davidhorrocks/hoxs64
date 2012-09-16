@@ -170,6 +170,15 @@ namespace DBGSYM
 			Unknown,
 		};
 	};
+	namespace CliCommandStatus
+	{
+		enum CliCommandStatus
+		{
+			CompletedOK = 0,
+			Running,
+			Failed,
+		};
+	};
 };
 
 #endif

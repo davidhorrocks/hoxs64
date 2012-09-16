@@ -114,7 +114,9 @@ public:
 	virtual void IBreakpointManager::BM_DeleteAllBreakpoints();
 	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
 
-	HRESULT ExecuteCommandLine(LPCTSTR pszCommandLine, LPTSTR *ppszResults);
+	HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, LPTSTR *ppszResults);
+	HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, ICommandResult **pICommandResult);
+	HRESULT EndExecuteCommandLine(ICommandResult *pICommandResult);
 
 private:
 	IMonitorCpu *m_pMonitorMainCpu;
@@ -126,7 +128,5 @@ private:
 	BpMap MapBpExecute;
 	bool m_bMonitorEvents;
 	IC64Event *m_pIC64Event;
-	HRESULT CreateCliCommandResult(CommandToken *pCommandToken, CommandResult **ppCommandResult);
-
 };
 #endif

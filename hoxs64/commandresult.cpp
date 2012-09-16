@@ -16,6 +16,7 @@
 #include "register.h"
 
 #include "c6502.h"
+#include "assembler.h"
 #include "commandresult.h"
 
 
@@ -25,8 +26,9 @@ void CommandResult::InitVars()
 	m_hThread = 0;
 	m_hWnd = 0;
 	cmd = DBGSYM::CliCommand::Unknown;
+	m_status = DBGSYM::CliCommandStatus::Failed;
 	line = 0;
-	m_bUseThread = true;
+	m_mux = 0;
 }
 
 CommandResult::CommandResult()
@@ -73,6 +75,74 @@ void CommandResult::Cleanup()
 	}
 	a_lines.clear();
 }
+
+HRESULT CommandResult::Run()
+{
+	Assembler as;
+	CommandToken *pcmdt = 0;
+	HRESULT hr = E_FAIL;
+	IRunCommand *pcr;
+	try
+	{
+		hr = as.CreateCliCommandToken(m_sCommandLine.data(), &pcmdt);
+		if (SUCCEEDED(hr))
+		{
+			hr = CreateCliCommandResult(pcmdt, &pcr);
+			if (SUCCEEDED(hr))
+			{
+				hr = pcr->Run();
+			}
+		}
+	}
+	catch(...)
+	{
+		hr = E_FAIL;
+	}
+	return hr;
+}
+
+HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandTToken, IRunCommand **ppRunCommand)
+{
+	HRESULT hr = E_FAIL;
+	IRunCommand *pcr = 0;
+	try
+	{
+		switch(pCommandTToken->cmd)
+		{
+		case DBGSYM::CliCommand::Help:
+			pcr = new CommandResultHelp(this);
+			break;
+		case DBGSYM::CliCommand::Disassemble:
+			pcr = new CommandResultDisassembly(this, pCommandTToken->startaddress, pCommandTToken->finishaddress);
+			break;
+		case DBGSYM::CliCommand::Error:
+			pcr = new CommandResultText(this, pCommandTToken->text.c_str());
+			break;
+		default:
+			pcr = new CommandResultText(this, TEXT("Unknown command."));
+			break;
+		}
+		hr = E_FAIL;
+		if (ppRunCommand)
+		{
+			if (pcr)
+				hr = S_OK;
+			*ppRunCommand = pcr;
+			pcr = NULL;
+		}
+	}
+	catch(...)
+	{
+		hr = E_FAIL;
+	}
+	if (pcr)
+	{
+		delete pcr;
+		pcr = 0;
+	}
+	return hr;
+}
+
 
 void CommandResult::AddLine(LPCTSTR pszLine)
 {
@@ -143,38 +213,85 @@ DWORD r;
 }
 
 
-HRESULT CommandResult::Start(HWND hWnd)
+HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString)
 {
-	if (m_bUseThread)
+	HRESULT r = E_FAIL;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
 	{
 		Stop();
-		m_hWnd = hWnd;
-		m_hThread = CreateThread(NULL, 0, CommandResult::ThreadProc, this, 0, &m_dwThreadId);
-		if (m_hThread)
-			return S_OK;
-		else 
-			return E_FAIL;
-	}
-	else
-	{
-		bool bOk = false;
-		try{
-			Run();
-			bOk = true;
+		try
+		{
+			m_sCommandLine.clear();
+			m_sCommandLine.append(pszCommandString);
+			m_bIsComplete = false;
+			m_hWnd = hWnd;
+			m_hThread = CreateThread(NULL, 0, CommandResult::ThreadProc, this, 0, &m_dwThreadId);
+			if (m_hThread)
+				r = S_OK;
+			else 
+				r = E_FAIL;
 		}
 		catch(...)
 		{
+			r = E_FAIL;
 		}
-		return 0;
+		ReleaseMutex(m_mux);
+	}
+	return r;
+}
+
+void CommandResult::SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		m_status = status;
+		ReleaseMutex(m_mux);
+	}
+}
+
+DBGSYM::CliCommandStatus::CliCommandStatus CommandResult::GetStatus()
+{
+	DBGSYM::CliCommandStatus::CliCommandStatus s= DBGSYM::CliCommandStatus::Failed;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		s =  m_status;
+		ReleaseMutex(m_mux);
+	}
+	return s;
+}
+
+bool CommandResult::IsComplete()
+{
+	bool s= false;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		s =  m_bIsComplete;
+		ReleaseMutex(m_mux);
+	}
+	return s;
+}
+
+void CommandResult::SetComplete()
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		m_bIsComplete = true;
+		ReleaseMutex(m_mux);
 	}
 }
 
 DWORD CommandResult::WaitComplete(DWORD timeout)
 {
 DWORD r = 0;
-	if (m_bUseThread && m_hThread)
+	if (m_hThread)
 	{
-		return WaitForSingleObject(m_hThread, timeout);
+		r =  WaitForSingleObject(m_hThread, timeout);
+		return r;
 	}
 	else
 	{
@@ -185,7 +302,7 @@ DWORD r = 0;
 HRESULT CommandResult::Stop()
 {
 DWORD r = 0;
-	if (m_bUseThread && m_hThread && m_hevtQuit)
+	if (m_hThread)
 	{
 		SetEvent(m_hevtQuit);
 		r = MsgWaitForMultipleObjects(1, &m_hThread, TRUE, INFINITE, QS_ALLINPUT);
@@ -209,19 +326,31 @@ DWORD r = 0;
 
 void CommandResult::PostComplete(int status)
 {
-	if (m_hWnd)
-		PostMessage(m_hWnd, WM_COMMANDRESULT_COMPLETED, status, 0);
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		if (m_hWnd)
+			PostMessage(m_hWnd, WM_COMMANDRESULT_COMPLETED, status, 0);
+		ReleaseMutex(m_mux);
+	}
 }
 
 DWORD WINAPI CommandResult::ThreadProc(LPVOID lpThreadParameter)
 {
 	CommandResult *p = (CommandResult *)lpThreadParameter;
-	try{
-		p->Run();
+	HRESULT hr;
+	p->SetStatus(DBGSYM::CliCommandStatus::Running);
+	hr = p->Run();
+	if (SUCCEEDED(hr))
+	{
+		p->SetStatus(DBGSYM::CliCommandStatus::CompletedOK);
+		p->SetComplete();
 		p->PostComplete(1);
 	}
-	catch(...)
+	else
 	{
+		p->SetStatus(DBGSYM::CliCommandStatus::Failed);
+		p->SetComplete();
 		p->PostComplete(0);
 	}
 	return 0;

@@ -287,7 +287,7 @@ long iLen = 0;
 			{
 				if (cb > 0 && iEnd-iStart > 0)
 				{
-					if (SUCCEEDED(c64->GetMon()->ExecuteCommandLine(ps, &psResult)))
+					if (SUCCEEDED(c64->GetMon()->ExecuteCommandLine(this->GetHwnd(), ps, &psResult)))
 					{
 						ITextSelection *pSel = 0;
 						if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))

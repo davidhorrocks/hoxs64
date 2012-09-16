@@ -9,34 +9,48 @@
 class ICommandResult
 {
 public:
-	virtual HRESULT Start(HWND hWnd)=0;
+	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString)=0;
 	virtual HRESULT Stop()=0;
+	virtual bool IsComplete() = 0;
 	virtual DWORD WaitComplete(DWORD timeout)=0;
+	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
+	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)=0;
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine)=0;
 	virtual void Reset()=0;
+	virtual ~ICommandResult(){};
+};
 
+
+class IRunCommand
+{
+public:
+	virtual HRESULT Run() = 0;
 };
 
 class CommandResult : public ICommandResult
 {
 public:
 	CommandResult();
-	CommandResult(LPCTSTR pText);
 	virtual ~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
+	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
 	void AddLine(LPCTSTR pszLine);
 
 	//ICommandResult
-	virtual HRESULT Start(HWND hWnd);
+	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString);
 	virtual HRESULT Stop();
+	virtual bool IsComplete();
 	virtual DWORD WaitComplete(DWORD timeout);
+	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
+	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
 	virtual void Reset();
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
 protected:
-	virtual void Run()=0;
+	HRESULT CreateCliCommandResult(CommandToken *pCommandTToken, IRunCommand **ppRunCommand);
+	virtual HRESULT Run();
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
 	void PostComplete(int status);
-
+	void SetComplete();
 	size_t line;
 	std::vector<LPTSTR> a_lines;
 	HWND m_hWnd;
@@ -44,39 +58,46 @@ protected:
 	HANDLE m_hevtQuit;
 	HANDLE m_mux;
 	DWORD m_dwThreadId;
-	bool m_bUseThread;
 private:
+	std::basic_string<TCHAR> m_sCommandLine;
+	bool m_bIsComplete;
 	void InitVars();
 	void Cleanup();
 };
 
-class CommandResultHelp : public CommandResult
+class CommandResultHelp : public IRunCommand
 {
 public:
-	CommandResultHelp();
+	CommandResultHelp(CommandResult *pCommandResult);
 protected:
-	virtual void Run();
+	virtual HRESULT Run();
+private:
+	CommandResult *m_pCommandResult;
 };
 
-class CommandResultDisassembly : public CommandResult
+class CommandResultDisassembly : public IRunCommand
 {
 public:
-	CommandResultDisassembly(bit16 startaddress, bit16 finishaddress);
+	CommandResultDisassembly(CommandResult *pCommandResult, bit16 startaddress, bit16 finishaddress);
 protected:
-	virtual void Run();
+	virtual HRESULT Run();
 
 	bit16 address;
 	bit16 startaddress;
 	bit16 finishaddress;
+private:
+	CommandResult *m_pCommandResult;
 };
 
 
-class CommandResultText : public CommandResult
+class CommandResultText : public IRunCommand
 {
 public:
-	CommandResultText(LPCTSTR pText);
+	CommandResultText(CommandResult *pCommandResult, LPCTSTR pText);
 protected:
-	virtual void Run();
+	virtual HRESULT Run();
+private:
+	CommandResult *m_pCommandResult;
 };
 
 #endif

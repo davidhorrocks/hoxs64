@@ -16,15 +16,17 @@
 #include "register.h"
 
 #include "c6502.h"
+#include "assembler.h"
 #include "commandresult.h"
 
-CommandResultHelp::CommandResultHelp()
+CommandResultHelp::CommandResultHelp(CommandResult *pCommandResult)
 {
-	this->cmd  = DBGSYM::CliCommand::Unknown;
+	this->m_pCommandResult  = pCommandResult;
 }
 
 
-void CommandResultHelp::Run()
+HRESULT CommandResultHelp::Run()
 {
-	this->AddLine(TEXT("Command Help\rd\t- Disassemble memory.\r\r"));
+	this->m_pCommandResult->AddLine(TEXT("Command Help\rd\t- Disassemble memory.\r\r"));
+	return S_OK;
 }
