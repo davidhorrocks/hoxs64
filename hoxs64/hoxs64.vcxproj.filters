@@ -443,6 +443,9 @@
     <ClInclude Include="IC64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="runcommand.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="c64def.asm">

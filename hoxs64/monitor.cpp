@@ -9,12 +9,13 @@
 #include "utils.h"
 #include "errormsg.h"
 #include "hexconv.h"
-
+#include "cevent.h"
 #include "bits.h"
 #include "util.h"
 #include "register.h"
 #include "c6502.h"
 #include "assembler.h"
+#include "runcommand.h"
 #include "commandresult.h"
 #include "monitor.h"
 
@@ -456,7 +457,7 @@ HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int 
 	*pICommandResult = NULL;
 	try
 	{
-		CommandResult *pCommandResult = new CommandResult();
+		CommandResult *pCommandResult = new CommandResult(this);
 		hr = pCommandResult->Start(hwnd, pszCommandLine, id);
 		if (SUCCEEDED(hr))
 		{

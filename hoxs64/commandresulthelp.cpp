@@ -17,9 +17,10 @@
 
 #include "c6502.h"
 #include "assembler.h"
+#include "runcommand.h"
 #include "commandresult.h"
 
-CommandResultHelp::CommandResultHelp(CommandResult *pCommandResult)
+CommandResultHelp::CommandResultHelp(ICommandResult *pCommandResult)
 {
 	this->m_pCommandResult  = pCommandResult;
 }

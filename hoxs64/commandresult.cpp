@@ -17,6 +17,7 @@
 
 #include "c6502.h"
 #include "assembler.h"
+#include "runcommand.h"
 #include "commandresult.h"
 
 
@@ -29,9 +30,10 @@ void CommandResult::InitVars()
 	m_status = DBGSYM::CliCommandStatus::Failed;
 	line = 0;
 	m_mux = 0;
+	m_pIMonitor = 0;
 }
 
-CommandResult::CommandResult()
+CommandResult::CommandResult(IMonitor *pIMonitor)
 {
 	InitVars();
 	try
@@ -42,6 +44,7 @@ CommandResult::CommandResult()
 		m_mux = CreateMutex(NULL, FALSE, NULL);
 		if (m_mux==NULL)
 			throw std::runtime_error("CreateMutex failed in CommandResult::CommandResult()");
+		m_pIMonitor = pIMonitor;
 	}
 	catch(...)
 	{
@@ -274,6 +277,18 @@ int CommandResult::GetId()
 	if (rm == WAIT_OBJECT_0)
 	{
 		s =  m_id;
+		ReleaseMutex(m_mux);
+	}
+	return s;
+}
+
+IMonitor *CommandResult::GetMonitor()
+{
+	IMonitor *s=0;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		s =  m_pIMonitor;
 		ReleaseMutex(m_mux);
 	}
 	return s;

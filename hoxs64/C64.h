@@ -38,6 +38,7 @@
 #include "t64.h"
 #include "c64file.h"
 #include "assembler.h"
+#include "runcommand.h"
 #include "commandresult.h"
 #include "monitor.h"
 

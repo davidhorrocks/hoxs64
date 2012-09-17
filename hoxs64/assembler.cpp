@@ -938,6 +938,8 @@ CommandTokenHelp::CommandTokenHelp()
 CommandTokenDisassembly::CommandTokenDisassembly(bit16 startaddress, bit16 finishaddress)
 {
 	cmd = DBGSYM::CliCommand::Disassemble;
+	this->startaddress = startaddress;
+	this->finishaddress = finishaddress;
 }
 
 CommandTokenError::CommandTokenError(LPCTSTR pszErrortext)

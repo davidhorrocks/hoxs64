@@ -8,11 +8,10 @@
 class CommandResult : public ICommandResult
 {
 public:
-	CommandResult();
+	CommandResult(IMonitor *pIMonitor);
 	virtual ~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
-	void AddLine(LPCTSTR pszLine);
 
 	//ICommandResult
 	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id);
@@ -22,8 +21,10 @@ public:
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
 	virtual void Reset();
+	virtual void AddLine(LPCTSTR pszLine);
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
 	virtual int GetId();
+	virtual IMonitor* GetMonitor();
 protected:
 	HRESULT CreateCliCommandResult(CommandToken *pCommandTToken, IRunCommand **ppRunCommand);
 	virtual HRESULT Run();
@@ -38,46 +39,12 @@ protected:
 	HANDLE m_mux;
 	DWORD m_dwThreadId;
 	int m_id;
+	IMonitor *m_pIMonitor;
 private:
 	std::basic_string<TCHAR> m_sCommandLine;
 	bool m_bIsComplete;
 	void InitVars();
 	void Cleanup();
-};
-
-class CommandResultHelp : public IRunCommand
-{
-public:
-	CommandResultHelp(CommandResult *pCommandResult);
-protected:
-	virtual HRESULT Run();
-private:
-	CommandResult *m_pCommandResult;
-};
-
-class CommandResultDisassembly : public IRunCommand
-{
-public:
-	CommandResultDisassembly(CommandResult *pCommandResult, bit16 startaddress, bit16 finishaddress);
-protected:
-	virtual HRESULT Run();
-
-	bit16 address;
-	bit16 startaddress;
-	bit16 finishaddress;
-private:
-	CommandResult *m_pCommandResult;
-};
-
-
-class CommandResultText : public IRunCommand
-{
-public:
-	CommandResultText(CommandResult *pCommandResult, LPCTSTR pText);
-protected:
-	virtual HRESULT Run();
-private:
-	CommandResult *m_pCommandResult;
 };
 
 #endif

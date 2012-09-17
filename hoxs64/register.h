@@ -199,6 +199,8 @@ public:
 typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
 typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterator BpIter;
 
+class IMonitor;
+
 class ICommandResult
 {
 public:
@@ -208,9 +210,11 @@ public:
 	virtual DWORD WaitComplete(DWORD timeout)=0;
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)=0;
+	virtual void AddLine(LPCTSTR pszLine)=0;
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine)=0;
 	virtual void Reset()=0;
 	virtual int GetId()=0;
+	virtual IMonitor* GetMonitor()=0;
 	virtual ~ICommandResult(){};
 };
 

@@ -17,9 +17,10 @@
 
 #include "c6502.h"
 #include "assembler.h"
+#include "runcommand.h"
 #include "commandresult.h"
 
-CommandResultText::CommandResultText(CommandResult *pCommandResult, LPCTSTR pText)
+CommandResultText::CommandResultText(ICommandResult *pCommandResult, LPCTSTR pText)
 {
 	this->m_pCommandResult  = pCommandResult;	
 	this->m_pCommandResult->AddLine(pText);
