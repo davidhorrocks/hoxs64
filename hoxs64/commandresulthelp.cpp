@@ -28,7 +28,7 @@ CommandResultHelp::CommandResultHelp(ICommandResult *pCommandResult)
 
 HRESULT CommandResultHelp::Run()
 {
-	this->m_pCommandResult->AddLine(TEXT("Command Help"));
-	this->m_pCommandResult->AddLine(TEXT("d\t- Disassemble memory.\r\r"));
+	this->m_pCommandResult->AddLine(TEXT("Command Help\r"));
+	this->m_pCommandResult->AddLine(TEXT("d\t- Disassemble memory.\r"));
 	return S_OK;
 }

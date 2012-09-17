@@ -40,7 +40,7 @@ HRESULT CommandResultDisassembly::Run()
 	IMonitor *pMon = m_pCommandResult->GetMonitor();
 	IMonitorCpu *pCpu = pMon->GetMainCpu();
 	bit16 currentAddress = m_startaddress;
-	while ((bit16s)(currentAddress - m_finishaddress)<=0)
+	while (true)
 	{
 		m_sLineBuffer.erase();
 		int instructionSize = pMon->DisassembleOneInstruction(pCpu, currentAddress, -1, AddressText, _countof(AddressText), BytesText, _countof(BytesText), MnemonicText, _countof(MnemonicText), bIsUndoc);
@@ -55,9 +55,17 @@ HRESULT CommandResultDisassembly::Run()
 		
 		m_sLineBuffer.append(TEXT(" "));
 		m_sLineBuffer.append(MnemonicText);
+		m_sLineBuffer.append(TEXT("\r"));
 		m_pCommandResult->AddLine(m_sLineBuffer.data());
-		currentAddress+=instructionSize;
+
+		for (int i = 1; i<instructionSize && currentAddress != m_finishaddress; i++)
+		{
+			currentAddress = (currentAddress + 1) & 0xffff;
+		}
+		if (currentAddress == m_finishaddress)
+			break;
+		currentAddress++;
 	}
-	m_pCommandResult->AddLine(TEXT("\r"));
+	//m_pCommandResult->AddLine(TEXT(""));
 	return S_OK;
 }

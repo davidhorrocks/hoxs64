@@ -48,11 +48,11 @@ private:
 	WNDPROC m_wpOrigEditProc;
 	IRichEditOle *m_pIRichEditOle;
 	ITextDocument *m_pITextDocument;
+	ITextRange *m_pRange;
 	HFONT m_hFont;
 	BSTR m_bstrFontName;
 
-	void WriteLineAtCursor(LPCTSTR pszLine);
-	void StartCommand(LPCTSTR pszCommand);
+	HRESULT StartCommand(LPCTSTR pszCommand);
 	void StopCommand();
 	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcchBuffer, long *piStartCharIndex, long *piEndCharIndex);
 	HRESULT SetCharInsertionPoint(long iCharIndex);
