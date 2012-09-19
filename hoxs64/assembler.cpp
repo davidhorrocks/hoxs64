@@ -619,7 +619,7 @@ bit8 v[2];
 
 bool Assembler::IsWhiteSpace(TCHAR ch)
 {
-	return (ch == _T(' ') || ch == _T('\n') || ch == _T('\r') || ch == _T('\t'));
+	return (ch == _T(' ') || ch == _T('\n') || ch == _T('\r') || ch == _T('\t') || ch == _T('\b') || ch == _T('\v')  || ch == _T('\f'));
 }
 
 bool Assembler::IsLetter(TCHAR ch)
@@ -921,35 +921,41 @@ CommandToken *pcr = NULL;
 			}
 			else if (_tcsicmp(tk.IdentifierText, TEXT("cpu")) == 0)
 			{
-				GetNextToken();
-				bit16 num;
-				hr = _ParseNumber16(&num);
-				if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				do
 				{
-					DBGSYM::CliCpuMode::CliCpuMode cpumode = (DBGSYM::CliCpuMode::CliCpuMode)num;
-					switch (cpumode)
+					GetNextToken();
+					bit16 num;
+					hr = _ParseNumber16(&num);
+					if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 					{
-					case DBGSYM::CliCpuMode::C64:
-					case DBGSYM::CliCpuMode::Disk:
-						pcr = new CommandToken();
-						if (pcr == 0)
-							throw std::bad_alloc();
-						pcr->SetTokenSelectCpu((DBGSYM::CliCpuMode::CliCpuMode)num);
-						break;
-					default:
-						pcr = new CommandToken();
-						if (pcr == 0)
-							throw std::bad_alloc();
-						pcr->SetTokenError(TEXT("Usage: cpu {0|1}\r"));
+						DBGSYM::CliCpuMode::CliCpuMode cpumode = (DBGSYM::CliCpuMode::CliCpuMode)num;
+						switch (cpumode)
+						{
+						case DBGSYM::CliCpuMode::C64:
+						case DBGSYM::CliCpuMode::Disk:
+							pcr = new CommandToken();
+							if (pcr == 0)
+								throw std::bad_alloc();
+							pcr->SetTokenSelectCpu((DBGSYM::CliCpuMode::CliCpuMode)num);
+							break;
+						}
 					}
-				}
-				else
+				} while (false);
+				if (!pcr)
 				{
 					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
 					pcr->SetTokenError(TEXT("Usage: cpu {0|1}\r"));
 				}
+			}
+			else if (_tcsicmp(tk.IdentifierText, TEXT("cls")) == 0)
+			{
+				GetNextToken();
+				pcr = new CommandToken();
+				if (pcr == 0)
+					throw std::bad_alloc();
+				pcr->SetTokenClearScreen();
 			}
 		}
 		if (pcr==NULL)
@@ -970,6 +976,8 @@ CommandToken *pcr = NULL;
 		return E_FAIL;
 	}
 }
+
+
 
 CommandToken::CommandToken()
 {
@@ -998,4 +1006,9 @@ void CommandToken::SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode)
 {
 	cmd = DBGSYM::CliCommand::SelectCpu;
 	this->cpumode = cpumode;
+}
+
+void CommandToken::SetTokenClearScreen()
+{
+	cmd = DBGSYM::CliCommand::ClearScreen;
 }

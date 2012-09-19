@@ -144,6 +144,9 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 			}
 			pcr = new CommandResultText(this, pCommandToken->text.c_str());
 			break;
+		case DBGSYM::CliCommand::ClearScreen:
+			pcr = new CommandResultText(this, NULL);
+			break;
 		default:
 			pcr = new CommandResultText(this, TEXT("Unknown command."));
 			break;

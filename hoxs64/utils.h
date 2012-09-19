@@ -177,6 +177,8 @@ public:
 	static HBITMAP CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight, bool bAllowShrink, bool bAllowStretch);
 	static HRESULT SetRebarBandBitmap(HWND hWndRB, int iBandIndex, HBITMAP hBmpSrc);
 	static HFONT CreateMonitorFont();
+	static bool IsStringBlank(LPCTSTR ps);
+	static bool IsWhiteSpace(TCHAR ch);
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);

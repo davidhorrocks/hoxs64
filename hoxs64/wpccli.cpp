@@ -194,6 +194,9 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 						break;
 				}
 				break;
+			case DBGSYM::CliCommand::ClearScreen:
+				this->m_pITextDocument->New();
+				break;
 			}
 		}
 		UINT_PTR t = SetTimer(hWnd, m_pICommandResult->GetId(), 30, NULL);
@@ -425,7 +428,7 @@ long iLen = 0;
 		ps = (LPTSTR)malloc(cb);
 		if (ps)
 		{
-			if (SUCCEEDED(GetCurrentParagraphText(ps, &cb, &iStart, &iEnd)))
+			if (SUCCEEDED(GetCurrentParagraphText(ps, NULL, &iStart, &iEnd)))
 			{
 				if (cb > 0 && iEnd-iStart > 0)
 				{
@@ -445,19 +448,26 @@ long iLen = 0;
 						{
 							m_pRange->Collapse(tomEnd);
 							m_pRange->GetStoryLength(&iLen);
-							if (SUCCEEDED(StartCommand(ps)))
+							if (iEnd>=iLen)
 							{
-								if (iEnd>=iLen)
+								WriteCommandResponse(m_pRange, TEXT("\r"));
+								m_pRange->Collapse(tomEnd);
+							}
+							else
+							{
+								WriteCommandResponse(m_pRange, TEXT("\r"));
+								m_pRange->Collapse(tomStart);
+							}
+							m_pRange->Select();
+
+							if (!G::IsStringBlank(ps))
+							{
+								if (FAILED(StartCommand(ps)))
 								{
-									WriteCommandResponse(m_pRange, TEXT("\r"));
+									WriteCommandResponse(m_pRange, TEXT("Command failed to start."));
 									m_pRange->Collapse(tomEnd);
+									m_pRange->Select();
 								}
-								else
-								{
-									WriteCommandResponse(m_pRange, TEXT("\r"));
-									m_pRange->Collapse(tomStart);
-								}
-								m_pRange->Select();
 							}
 						}
 						pSel->Release();

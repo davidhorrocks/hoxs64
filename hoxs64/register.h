@@ -206,6 +206,7 @@ class CommandToken
 public:
 	CommandToken();
 
+	void SetTokenClearScreen();
 	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode);
 	void SetTokenHelp();
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);

@@ -2301,3 +2301,21 @@ CDPI dpi;
 	}
 	return f;
 }
+
+bool G::IsWhiteSpace(TCHAR ch)
+{
+	return (ch == _T(' ') || ch == _T('\n') || ch == _T('\r') || ch == _T('\t') || ch == _T('\b') || ch == _T('\v')  || ch == _T('\f'));
+}
+
+bool G::IsStringBlank(LPCTSTR ps)
+{
+	if (ps)
+	{
+		for (int i=0; ps[i] != 0; i++)
+		{
+			if (!G::IsWhiteSpace(ps[i]))
+				return false;
+		}
+	}
+	return true;
+}
