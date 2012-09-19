@@ -22,9 +22,10 @@
 #include "commandresult.h"
 #include "monitor.h"
 
-CommandResultDisassembly::CommandResultDisassembly(ICommandResult *pCommandResult, bit16 startaddress, bit16 finishaddress)
+CommandResultDisassembly::CommandResultDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress)
 {
 	this->m_pCommandResult  = pCommandResult;
+	this->m_cpumode = cpumode;
 	this->m_startaddress = startaddress;
 	this->m_finishaddress = finishaddress;
 	this->m_address = startaddress;
@@ -38,7 +39,11 @@ HRESULT CommandResultDisassembly::Run()
 	TCHAR MnemonicText[Monitor::BUFSIZEMNEMONICTEXT];
 	bool bIsUndoc;
 	IMonitor *pMon = m_pCommandResult->GetMonitor();
-	IMonitorCpu *pCpu = pMon->GetMainCpu();
+	IMonitorCpu *pCpu;
+	if (m_cpumode == DBGSYM::CliCpuMode::C64)
+		pCpu = pMon->GetMainCpu();
+	else
+		pCpu = pMon->GetDiskCpu();
 	bit16 currentAddress = m_startaddress;
 	while (true)
 	{

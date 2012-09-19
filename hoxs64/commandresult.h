@@ -8,7 +8,7 @@
 class CommandResult : public ICommandResult
 {
 public:
-	CommandResult(IMonitor *pIMonitor);
+	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode);
 	virtual ~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
@@ -25,8 +25,9 @@ public:
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
 	virtual int GetId();
 	virtual IMonitor* GetMonitor();
+	virtual CommandToken* GetToken();
 protected:
-	HRESULT CreateCliCommandResult(CommandToken *pCommandTToken, IRunCommand **ppRunCommand);
+	HRESULT CreateCliCommandResult(CommandToken *pCommandToken, IRunCommand **ppRunCommand);
 	virtual HRESULT Run();
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
 	void PostComplete();
@@ -40,6 +41,8 @@ protected:
 	DWORD m_dwThreadId;
 	int m_id;
 	IMonitor *m_pIMonitor;
+	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	CommandToken *m_pCommandToken;
 private:
 	std::basic_string<TCHAR> m_sCommandLine;
 	bool m_bIsComplete;

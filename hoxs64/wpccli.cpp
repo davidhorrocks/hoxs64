@@ -31,6 +31,7 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_hFont = NULL;
 	m_bstrFontName = NULL;
 	m_commandstate = Idle;
+	m_cpumode = DBGSYM::CliCpuMode::C64;
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;
 
@@ -175,7 +176,27 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		return;
 	if (m_pICommandResult->GetStatus() == DBGSYM::CliCommandStatus::CompletedOK)
 	{
-		UINT_PTR t = SetTimer(hWnd, m_pICommandResult->GetId(), 60, NULL);
+		CommandToken *pToken = m_pICommandResult->GetToken();
+		if (pToken)
+		{
+			switch(pToken->cmd)
+			{
+			case DBGSYM::CliCommand::SelectCpu:
+				switch (pToken->cpumode)
+				{
+					case DBGSYM::CliCpuMode::C64:
+						this->m_cpumode = pToken->cpumode;
+						m_pICommandResult->AddLine(TEXT("C64\r"));
+						break;
+					case DBGSYM::CliCpuMode::Disk:
+						this->m_cpumode = pToken->cpumode;
+						m_pICommandResult->AddLine(TEXT("Disk\r"));
+						break;
+				}
+				break;
+			}
+		}
+		UINT_PTR t = SetTimer(hWnd, m_pICommandResult->GetId(), 30, NULL);
 		if (t)
 		{
 			m_bIsTimerActive = true;
@@ -362,7 +383,7 @@ HRESULT WpcCli::StartCommand(LPCTSTR pszCommand)
 HRESULT hr;
 	StopCommand();
 	m_iCommandNumber++;
-	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, &m_pICommandResult);
+	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, &m_pICommandResult);
 	if (SUCCEEDED(hr))
 	{		
 		m_commandstate = Busy;

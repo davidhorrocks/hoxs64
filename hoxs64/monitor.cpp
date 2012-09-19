@@ -451,13 +451,13 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 	return r;
 }
 
-HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, ICommandResult **pICommandResult)
+HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, ICommandResult **pICommandResult)
 {
 	HRESULT hr;
 	*pICommandResult = NULL;
 	try
 	{
-		CommandResult *pCommandResult = new CommandResult(this);
+		CommandResult *pCommandResult = new CommandResult(this, cpumode);
 		hr = pCommandResult->Start(hwnd, pszCommandLine, id);
 		if (SUCCEEDED(hr))
 		{
@@ -495,7 +495,7 @@ HRESULT Monitor::EndExecuteCommandLine(ICommandResult *pICommandResult)
 	return hr;	
 }	
 
-HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, LPTSTR *ppszResults)
+HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults)
 {
 	Assembler as;
 	CommandToken *pcmdt = 0;
@@ -505,7 +505,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, L
 	DWORD dwWaitResult;
 	try
 	{
-		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, &pcr);
+		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, cpumode, &pcr);
 		if (SUCCEEDED(hr))
 		{
 			dwWaitResult = pcr->WaitComplete(10000);

@@ -23,7 +23,8 @@
 CommandResultText::CommandResultText(ICommandResult *pCommandResult, LPCTSTR pText)
 {
 	this->m_pCommandResult  = pCommandResult;	
-	this->m_pCommandResult->AddLine(pText);
+	if (pText)
+		this->m_pCommandResult->AddLine(pText);
 }
 
 HRESULT CommandResultText::Run()

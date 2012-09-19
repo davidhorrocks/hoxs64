@@ -168,6 +168,7 @@ namespace DBGSYM
 			Memory,
 			Error,
 			Unknown,
+			SelectCpu,
 		};
 	};
 	namespace CliCommandStatus
@@ -177,6 +178,14 @@ namespace DBGSYM
 			CompletedOK = 0,
 			Running,
 			Failed,
+		};
+	};
+	namespace CliCpuMode
+	{
+		enum CliCpuMode
+		{
+			C64 = 0,
+			Disk,
 		};
 	};
 };

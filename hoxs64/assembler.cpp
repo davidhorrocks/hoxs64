@@ -841,23 +841,28 @@ HRESULT Assembler::_ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress
 
 HRESULT Assembler::_ParseAddress(bit16 *piAddress)
 {
+	return _ParseNumber16(piAddress);
+}
+
+HRESULT Assembler::_ParseNumber16(bit16 *piNumber)
+{
 	if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 	{
-		if (piAddress)
-			*piAddress = m_CurrentToken.Value8;
+		if (piNumber)
+			*piNumber = m_CurrentToken.Value8;
 		GetNextToken();
 		return S_OK;
 	}
 	else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
 	{
-		if (piAddress)
-			*piAddress = m_CurrentToken.Value16;
+		if (piNumber)
+			*piNumber = m_CurrentToken.Value16;
 		GetNextToken();
 		return S_OK;
 	}
 	else
 	{
-		*piAddress = 0;
+		*piNumber = 0;
 		return E_FAIL;
 	}
 }
@@ -878,9 +883,10 @@ CommandToken *pcr = NULL;
 			tk = m_CurrentToken;
 			if (tk.SymbolChar==TEXT('?'))
 			{
-					pcr = new CommandTokenHelp();
+					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
+					pcr->SetTokenHelp();
 			}
 		}
 		else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
@@ -888,9 +894,10 @@ CommandToken *pcr = NULL;
 			tk = m_CurrentToken;
 			if (_tcsicmp(tk.IdentifierText, TEXT("?")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("help")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("man")) == 0)
 			{
-					pcr = new CommandTokenHelp();
+					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
+					pcr->SetTokenHelp();
 			}
 			else if (_tcsicmp(tk.IdentifierText, TEXT("D")) == 0)
 			{
@@ -899,24 +906,58 @@ CommandToken *pcr = NULL;
 				hr = _ParseAddressRange(&startaddress, &endaddress);
 				if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 				{
-					pcr = new CommandTokenDisassembly(startaddress, endaddress);
+					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
+					pcr->SetTokenDisassembly(startaddress, endaddress);
 				}
 				else
 				{
-					pcr = new CommandTokenError(TEXT("Unrecognised address range.\r"));
+					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
+					pcr->SetTokenError(TEXT("Usage: d <start address> <end address>.\r"));
 				}
-
+			}
+			else if (_tcsicmp(tk.IdentifierText, TEXT("cpu")) == 0)
+			{
+				GetNextToken();
+				bit16 num;
+				hr = _ParseNumber16(&num);
+				if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				{
+					DBGSYM::CliCpuMode::CliCpuMode cpumode = (DBGSYM::CliCpuMode::CliCpuMode)num;
+					switch (cpumode)
+					{
+					case DBGSYM::CliCpuMode::C64:
+					case DBGSYM::CliCpuMode::Disk:
+						pcr = new CommandToken();
+						if (pcr == 0)
+							throw std::bad_alloc();
+						pcr->SetTokenSelectCpu((DBGSYM::CliCpuMode::CliCpuMode)num);
+						break;
+					default:
+						pcr = new CommandToken();
+						if (pcr == 0)
+							throw std::bad_alloc();
+						pcr->SetTokenError(TEXT("Usage: cpu {0|1}\r"));
+					}
+				}
+				else
+				{
+					pcr = new CommandToken();
+					if (pcr == 0)
+						throw std::bad_alloc();
+					pcr->SetTokenError(TEXT("Usage: cpu {0|1}\r"));
+				}
 			}
 		}
 		if (pcr==NULL)
 		{
-			pcr = new CommandTokenError(TEXT("Unrecognised command.\r"));
+			pcr = new CommandToken();
 			if (pcr == 0)
 				throw std::bad_alloc();
+			pcr->SetTokenError(TEXT("Unrecognised command. Type 'help'\r"));
 		}
 		if (ppmdr)
 			*ppmdr = pcr;
@@ -930,20 +971,31 @@ CommandToken *pcr = NULL;
 	}
 }
 
-CommandTokenHelp::CommandTokenHelp()
+CommandToken::CommandToken()
+{
+	cmd = DBGSYM::CliCommand::Unknown;
+}
+
+void CommandToken::SetTokenHelp()
 {
 	cmd = DBGSYM::CliCommand::Help;
 }
 
-CommandTokenDisassembly::CommandTokenDisassembly(bit16 startaddress, bit16 finishaddress)
+void CommandToken::SetTokenDisassembly(bit16 startaddress, bit16 finishaddress)
 {
 	cmd = DBGSYM::CliCommand::Disassemble;
 	this->startaddress = startaddress;
 	this->finishaddress = finishaddress;
 }
 
-CommandTokenError::CommandTokenError(LPCTSTR pszErrortext)
+void CommandToken::SetTokenError(LPCTSTR pszErrortext)
 {
 	cmd = DBGSYM::CliCommand::Error;
 	text.append(pszErrortext);
+}
+
+void CommandToken::SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode)
+{
+	cmd = DBGSYM::CliCommand::SelectCpu;
+	this->cpumode = cpumode;
 }

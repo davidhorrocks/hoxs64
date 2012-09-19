@@ -31,9 +31,10 @@ void CommandResult::InitVars()
 	line = 0;
 	m_mux = 0;
 	m_pIMonitor = 0;
+	m_pCommandToken = 0;
 }
 
-CommandResult::CommandResult(IMonitor *pIMonitor)
+CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode)
 {
 	InitVars();
 	try
@@ -45,6 +46,7 @@ CommandResult::CommandResult(IMonitor *pIMonitor)
 		if (m_mux==NULL)
 			throw std::runtime_error("CreateMutex failed in CommandResult::CommandResult()");
 		m_pIMonitor = pIMonitor;
+		m_cpumode = cpumode;
 	}
 	catch(...)
 	{
@@ -77,20 +79,29 @@ void CommandResult::Cleanup()
 			free(s);
 	}
 	a_lines.clear();
+	if (m_pCommandToken)
+	{
+		delete m_pCommandToken;
+		m_pCommandToken = 0;
+	}
 }
 
 HRESULT CommandResult::Run()
 {
 	Assembler as;
-	CommandToken *pcmdt = 0;
 	HRESULT hr = E_FAIL;
 	IRunCommand *pcr;
 	try
 	{
-		hr = as.CreateCliCommandToken(m_sCommandLine.data(), &pcmdt);
+		if (m_pCommandToken)
+		{
+			delete m_pCommandToken;
+			m_pCommandToken = 0;
+		}
+		hr = as.CreateCliCommandToken(m_sCommandLine.data(), &m_pCommandToken);
 		if (SUCCEEDED(hr))
 		{
-			hr = CreateCliCommandResult(pcmdt, &pcr);
+			hr = CreateCliCommandResult(m_pCommandToken, &pcr);
 			if (SUCCEEDED(hr))
 			{
 				hr = pcr->Run();
@@ -104,22 +115,34 @@ HRESULT CommandResult::Run()
 	return hr;
 }
 
-HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandTToken, IRunCommand **ppRunCommand)
+HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunCommand **ppRunCommand)
 {
 	HRESULT hr = E_FAIL;
 	IRunCommand *pcr = 0;
 	try
 	{
-		switch(pCommandTToken->cmd)
+		switch(pCommandToken->cmd)
 		{
 		case DBGSYM::CliCommand::Help:
 			pcr = new CommandResultHelp(this);
 			break;
 		case DBGSYM::CliCommand::Disassemble:
-			pcr = new CommandResultDisassembly(this, pCommandTToken->startaddress, pCommandTToken->finishaddress);
+			pcr = new CommandResultDisassembly(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
 			break;
 		case DBGSYM::CliCommand::Error:
-			pcr = new CommandResultText(this, pCommandTToken->text.c_str());
+			pcr = new CommandResultText(this, pCommandToken->text.c_str());
+			break;
+		case DBGSYM::CliCommand::SelectCpu:
+			switch(pCommandToken->cpumode)
+			{
+			case DBGSYM::CliCpuMode::C64:
+				pcr = new CommandResultText(this, NULL);
+				break;
+			case DBGSYM::CliCpuMode::Disk:
+				pcr = new CommandResultText(this, NULL);
+				break;
+			}
+			pcr = new CommandResultText(this, pCommandToken->text.c_str());
 			break;
 		default:
 			pcr = new CommandResultText(this, TEXT("Unknown command."));
@@ -289,6 +312,18 @@ IMonitor *CommandResult::GetMonitor()
 	if (rm == WAIT_OBJECT_0)
 	{
 		s =  m_pIMonitor;
+		ReleaseMutex(m_mux);
+	}
+	return s;
+}
+
+CommandToken *CommandResult::GetToken()
+{
+	CommandToken *s=0;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		s =  this->m_pCommandToken;;
 		ReleaseMutex(m_mux);
 	}
 	return s;

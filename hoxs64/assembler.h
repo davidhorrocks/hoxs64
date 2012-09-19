@@ -102,41 +102,7 @@ private:
 
 	HRESULT _ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress);
 	HRESULT _ParseAddress(bit16 *piAddress);
-};
-
-class CommandToken
-{
-public:
-	CommandToken()
-	{
-		cmd = DBGSYM::CliCommand::Unknown;
-		startaddress = 0;
-		finishaddress = 0;
-	}
-	DBGSYM::CliCommand::CliCommand cmd;
-	bit16 startaddress;
-	bit16 finishaddress;
-	std::basic_string<TCHAR> text;
-};
-
-
-class CommandTokenHelp : public CommandToken
-{
-public:
-	CommandTokenHelp();
-};
-
-
-class CommandTokenError : public CommandToken
-{
-public:
-	CommandTokenError(LPCTSTR pszErrortext);
-};
-
-class CommandTokenDisassembly : public CommandToken
-{
-public:
-	CommandTokenDisassembly(bit16 startaddress, bit16 finishaddress);
+	HRESULT _ParseNumber16(bit16 *piNumber);
 };
 
 #endif

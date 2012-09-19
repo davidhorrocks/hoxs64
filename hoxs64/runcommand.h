@@ -14,11 +14,12 @@ private:
 class CommandResultDisassembly : public IRunCommand
 {
 public:
-	CommandResultDisassembly(ICommandResult *pCommandResult, bit16 startaddress, bit16 finishaddress);
+	CommandResultDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress);
 protected:
 	virtual HRESULT Run();
 
 	bit16 m_address;
+	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	bit16 m_startaddress;
 	bit16 m_finishaddress;
 	std::basic_string<TCHAR> m_sLineBuffer;

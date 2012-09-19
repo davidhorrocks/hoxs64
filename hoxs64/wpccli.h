@@ -36,6 +36,7 @@ private:
 	};
 	bool m_bClosing;
 	CommandState m_commandstate;
+	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	int m_iCommandNumber;
 	ICommandResult *m_pICommandResult;
 	bool m_bIsTimerActive;

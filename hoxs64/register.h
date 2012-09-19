@@ -201,6 +201,23 @@ typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterat
 
 class IMonitor;
 
+class CommandToken
+{
+public:
+	CommandToken();
+
+	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode);
+	void SetTokenHelp();
+	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
+	void SetTokenError(LPCTSTR pszErrortext);
+
+	DBGSYM::CliCommand::CliCommand cmd;
+	bit16 startaddress;
+	bit16 finishaddress;
+	std::basic_string<TCHAR> text;
+	DBGSYM::CliCpuMode::CliCpuMode cpumode;
+};
+
 class ICommandResult
 {
 public:
@@ -215,6 +232,7 @@ public:
 	virtual void Reset()=0;
 	virtual int GetId()=0;
 	virtual IMonitor* GetMonitor()=0;
+	virtual CommandToken* GetToken()=0;
 	virtual ~ICommandResult(){};
 };
 
@@ -247,8 +265,8 @@ public:
 	virtual IMonitorCpu *GetDiskCpu() = 0;
 	virtual IMonitorVic *GetVic() = 0;
 	virtual IMonitorDisk *GetDisk() = 0;
-	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, LPTSTR *ppszResults) = 0;
-	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, ICommandResult **pICommandResult) = 0;
+	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults) = 0;
+	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, ICommandResult **pICommandResult) = 0;
 	virtual HRESULT EndExecuteCommandLine(ICommandResult *pICommandResult) = 0;
 };
 
