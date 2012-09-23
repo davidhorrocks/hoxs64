@@ -140,17 +140,30 @@ unsigned int iValue = 0;
 	}
 	else if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 	{
-		bit8 v[256];
-		int i;
-		for (i=0; i <_countof(v) && m_CurrentToken.TokenType == AssemblyToken::Number8; i++)
+		int i = 0;
+		bit8 *p = pCode;
+		for (i=0; m_CurrentToken.TokenType == AssemblyToken::Number8; i++)
 		{
-			v[i] = m_CurrentToken.Value8;
+			if (p != NULL && i < iBuffersize)
+				p[i] = m_CurrentToken.Value8;
 			GetNextToken();
 		}
-		int w = instcopy(pCode, iBuffersize, v, i);
-		if (piBytesWritten!=NULL)
-			*piBytesWritten = w;
-		return S_OK;
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+		{
+			if (piBytesWritten != NULL)
+				*piBytesWritten = i;
+			if (pCode != NULL && iBuffersize < i)
+				return E_FAIL;
+			return S_OK;
+		}
+		else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
+		{
+			return AssembleOneInstruction(address, pCode, iBuffersize, piBytesWritten);
+		}
+		else
+		{
+			return E_FAIL;
+		}
 	}
 	else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 	{
@@ -349,16 +362,24 @@ unsigned int iValue = 0;
 	return E_FAIL;
 }
 
-int Assembler::instcopy(bit8 *pDest, int iSizeDest, bit8 *pSrc, int iSizeSrc)
+HRESULT Assembler::instcopy(bit8 *pDest, int iSizeDest, bit8 *pSrc, int iSizeSrc, int *piBytesWritten)
 {
 int i;
-	if (pDest==NULL || pSrc==NULL)
-		return iSizeSrc;
+	if (pSrc==NULL)
+		return E_POINTER;
+	if (piBytesWritten)
+		*piBytesWritten = iSizeSrc;
+	if (pDest != NULL && iSizeDest < iSizeSrc)
+		return E_FAIL;
+	if (pDest==NULL)
+		return S_OK;
 	for (i = 0; i < iSizeSrc && i < iSizeDest; i++)
 	{
 		pDest[i] = pSrc[i];
 	}
-	return i;
+	if (piBytesWritten)
+		*piBytesWritten = i;
+	return S_OK;
 }
 
 HRESULT Assembler::AssembleImplied(LPCTSTR pszMnemonic, bit8 *pCode, int iBuffersize, int *piBytesWritten)
@@ -371,10 +392,7 @@ bit8 v[1];
 		if (inf.address_mode == amIMPLIED && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0 && inf.undoc == 0)
 		{
 			v[0] = inf.opcode;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	for(int i=0; i <= 0xff; i++)
@@ -383,10 +401,7 @@ bit8 v[1];
 		if (inf.address_mode == amIMPLIED && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
 		{
 			v[0] = inf.opcode;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -403,10 +418,7 @@ bit8 v[2];
 		{
 			v[0] = inf.opcode;
 			v[1] = arg;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -423,10 +435,7 @@ bit8 v[2];
 		{
 			v[0] = inf.opcode;
 			v[1] = arg;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -443,10 +452,7 @@ bit8 v[2];
 		{
 			v[0] = inf.opcode;
 			v[1] = arg;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -463,10 +469,7 @@ bit8 v[2];
 		{
 			v[0] = inf.opcode;
 			v[1] = arg;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -484,10 +487,7 @@ bit8 v[3];
 			v[0] = inf.opcode;
 			v[1] = arg & 0xff;
 			v[2] = (arg >> 8) & 0xff;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -505,10 +505,7 @@ bit8 v[3];
 			v[0] = inf.opcode;
 			v[1] = arg & 0xff;
 			v[2] = (arg >> 8) & 0xff;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -527,10 +524,7 @@ bit8 v[3];
 			v[0] = inf.opcode;
 			v[1] = arg & 0xff;
 			v[2] = (arg >> 8) & 0xff;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -548,10 +542,7 @@ bit8 v[3];
 			v[0] = inf.opcode;
 			v[1] = arg & 0xff;
 			v[2] = (arg >> 8) & 0xff;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -568,10 +559,7 @@ bit8 v[2];
 		{
 			v[0] = inf.opcode;
 			v[1] = arg;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -588,10 +576,7 @@ bit8 v[2];
 		{
 			v[0] = inf.opcode;
 			v[1] = arg;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -608,10 +593,7 @@ bit8 v[2];
 		{
 			v[0] = inf.opcode;
 			v[1] = arg;
-			int w = instcopy(pCode, iBuffersize, v, _countof(v));
-			if (piBytesWritten)
-				*piBytesWritten = w;
-			return S_OK;
+			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
 	return E_FAIL;
@@ -899,6 +881,10 @@ CommandToken *pcr = NULL;
 						throw std::bad_alloc();
 					pcr->SetTokenHelp();
 			}
+			else if (_tcsicmp(tk.IdentifierText, TEXT("A")) == 0)
+			{
+				pcr = GetCommandTokenAssembleLine();
+			}
 			else if (_tcsicmp(tk.IdentifierText, TEXT("D")) == 0)
 			{
 				GetNextToken();
@@ -977,11 +963,60 @@ CommandToken *pcr = NULL;
 	}
 }
 
-
+CommandToken *Assembler::GetCommandTokenAssembleLine()
+{
+HRESULT hr;
+bit16 address;
+bit8 v[256];
+int w;
+	CommandToken *pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+			throw std::bad_alloc();
+		GetNextToken();
+		hr = _ParseNumber16(&address);
+		if (SUCCEEDED(hr))
+		{
+			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+			{
+				pcr->SetTokenAssemble(address, v, 0);
+			}
+			else
+			{
+				hr = this->AssembleOneInstruction(address, v, _countof(v), &w);
+				if (SUCCEEDED(hr))
+				{
+					pcr->SetTokenAssemble(address, v, w);
+				}
+				else
+				{
+					pcr->SetTokenError(TEXT("Assemble failed.\r"));
+				}
+			}
+		}
+		else 
+		{
+			pcr->SetTokenError(TEXT("Invalid address.\r"));
+		}
+		return pcr;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		throw;
+	}
+}
 
 CommandToken::CommandToken()
 {
 	cmd = DBGSYM::CliCommand::Unknown;
+}
+
+CommandToken::~CommandToken()
+{
 }
 
 void CommandToken::SetTokenHelp()
@@ -1011,4 +1046,19 @@ void CommandToken::SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode)
 void CommandToken::SetTokenClearScreen()
 {
 	cmd = DBGSYM::CliCommand::ClearScreen;
+}
+
+
+void CommandToken::SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize)
+{
+	cmd = DBGSYM::CliCommand::Assemble;
+	dataLength = bufferSize;
+	startaddress = address;
+	if (dataLength > _countof(buffer))
+	{
+		//FIXME allow unlimited buffer.
+		dataLength = _countof(buffer);
+	}
+	finishaddress = address + dataLength - 1;
+	memcpy(buffer, pData, dataLength);
 }

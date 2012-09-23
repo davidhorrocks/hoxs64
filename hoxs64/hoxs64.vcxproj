@@ -523,6 +523,7 @@
     <ClCompile Include="assembler.cpp" />
     <ClCompile Include="bpenum.cpp" />
     <ClCompile Include="commandresult.cpp" />
+    <ClCompile Include="commandresultassemble.cpp" />
     <ClCompile Include="commandresultdisassembly.cpp" />
     <ClCompile Include="commandresulthelp.cpp" />
     <ClCompile Include="commandresulttext.cpp" />

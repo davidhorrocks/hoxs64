@@ -205,18 +205,22 @@ class CommandToken
 {
 public:
 	CommandToken();
+	~CommandToken();
 
 	void SetTokenClearScreen();
 	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode);
 	void SetTokenHelp();
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);
+	void SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize);
 
 	DBGSYM::CliCommand::CliCommand cmd;
 	bit16 startaddress;
 	bit16 finishaddress;
 	std::basic_string<TCHAR> text;
 	DBGSYM::CliCpuMode::CliCpuMode cpumode;
+	bit8 buffer[256];
+	int dataLength;
 };
 
 class ICommandResult

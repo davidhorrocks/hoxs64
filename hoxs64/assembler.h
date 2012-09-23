@@ -32,6 +32,7 @@ public:
 	HRESULT AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 	HRESULT ParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 	HRESULT CreateCliCommandToken(LPCTSTR pszText, CommandToken **ppcmdr);
+	CommandToken *GetCommandTokenAssembleLine();
 
 	static HRESULT TryParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 private:
@@ -73,7 +74,7 @@ private:
 	bool IsHexDigit(TCHAR ch);
 
 	bool AppendToIdentifierString(TCHAR ch);
-	int instcopy(bit8 *pDest, int iSizeDest, bit8 *pSrc, int iSizeSrc);
+	HRESULT instcopy(bit8 *pDest, int iSizeDest, bit8 *pSrc, int iSizeSrc, int *piBytesWritten);
 	HRESULT AssembleOneInstruction(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 
 	HRESULT AssembleImplied(LPCTSTR pszMnemonic, bit8 *pCode, int iBuffersize, int *piBytesWritten);

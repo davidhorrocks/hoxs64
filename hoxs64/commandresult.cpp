@@ -129,6 +129,9 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 		case DBGSYM::CliCommand::Disassemble:
 			pcr = new CommandResultDisassembly(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
 			break;
+		case DBGSYM::CliCommand::Assemble:
+			pcr = new CommandResultAssemble(this, m_cpumode, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);
+			break;
 		case DBGSYM::CliCommand::Error:
 			pcr = new CommandResultText(this, pCommandToken->text.c_str());
 			break;
@@ -148,7 +151,7 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 			pcr = new CommandResultText(this, NULL);
 			break;
 		default:
-			pcr = new CommandResultText(this, TEXT("Unknown command."));
+			pcr = new CommandResultText(this, TEXT("Unknown command.\r"));
 			break;
 		}
 		hr = E_FAIL;

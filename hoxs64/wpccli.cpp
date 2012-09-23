@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
+#include "hexconv.h"
 #include "CDPI.h"
 #include "IC64.h"
 #include "utils.h"
@@ -210,7 +211,6 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		StopCommand();
 	}
 }
-
 
 void WpcCli::OnTimer(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {

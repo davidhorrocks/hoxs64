@@ -27,6 +27,24 @@ private:
 	ICommandResult *m_pCommandResult;
 };
 
+class CommandResultAssemble : public IRunCommand
+{
+public:
+	CommandResultAssemble(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit8 *data, int dataLength);
+protected:
+	virtual HRESULT Run();
+
+	bit16 m_address;
+	bit8 *m_data;
+	int m_dataLength;
+	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	bit16 m_startaddress;
+	std::basic_string<TCHAR> m_sLineBuffer;
+private:
+	ICommandResult *m_pCommandResult;
+
+	void WriteBytesToMemory(bit16 startaddress, bit8 *buffer, int dataLength);
+};
 
 class CommandResultText : public IRunCommand
 {
