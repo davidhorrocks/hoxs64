@@ -19,7 +19,7 @@ const TCHAR WpcCli::ClassName[] = TEXT("WPCCLI");
 
 WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 {
-	m_bIsTimerActive = true;
+	m_bIsTimerActive = false;
 	m_bClosing = false;
 	m_iCommandNumber = 0;
 	m_pICommandResult = NULL;

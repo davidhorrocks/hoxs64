@@ -112,10 +112,13 @@ void CMDIChildCli::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		h = 0;
 
 	shared_ptr<WpcCli> pWinWpcCli =  m_pWinWpcCli.lock();
-	HWND hWndCli = pWinWpcCli->GetHwnd();
-	if (pWinWpcCli!=0 && hWndCli !=0)
+	if (pWinWpcCli)
 	{
-		SetWindowPos(hWndCli, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER);
+		HWND hWndCli = pWinWpcCli->GetHwnd();
+		if (pWinWpcCli!=0 && hWndCli !=0)
+		{
+			SetWindowPos(hWndCli, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER);
+		}
 	}
 }
 
