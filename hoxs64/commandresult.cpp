@@ -374,26 +374,31 @@ DWORD r = 0;
 HRESULT CommandResult::Stop()
 {
 DWORD r = 0;
-	if (m_hThread)
+HRESULT hr = E_FAIL;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
 	{
-		SetEvent(m_hevtQuit);
-		r = MsgWaitForMultipleObjects(1, &m_hThread, TRUE, INFINITE, QS_ALLINPUT);
 		if (m_hThread)
 		{
-			CloseHandle(m_hThread);
-			m_hThread = NULL;
-		}
-		if (r == WAIT_OBJECT_0)
-		{
-			return S_OK;
+			SetEvent(m_hevtQuit);
+			r = MsgWaitForMultipleObjects(1, &m_hThread, TRUE, INFINITE, QS_ALLINPUT);
+			if (m_hThread)
+			{
+				CloseHandle(m_hThread);
+				m_hThread = NULL;
+			}
+			if (r == WAIT_OBJECT_0)
+			{
+				hr = S_OK;
+			}
 		}
 		else
 		{
-			return E_FAIL;
+			hr = S_OK;
 		}
-
+		ReleaseMutex(m_mux);
 	}
-	return S_OK;
+	return hr;
 }
 
 void CommandResult::PostComplete()
