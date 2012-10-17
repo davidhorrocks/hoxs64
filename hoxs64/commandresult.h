@@ -15,9 +15,10 @@ public:
 
 	//ICommandResult
 	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id);
-	virtual HRESULT Stop();
-	virtual bool IsComplete();
-	virtual DWORD WaitComplete(DWORD timeout);
+	virtual HRESULT Quit();
+	virtual bool IsSucceeded();
+	virtual bool IsQuit();
+	virtual DWORD WaitFinished(DWORD timeout);
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
 	virtual void Reset();
@@ -48,7 +49,8 @@ private:
     CommandResult & operator=(CommandResult const &);
 
 	std::basic_string<TCHAR> m_sCommandLine;
-	bool m_bIsComplete;
+	bool m_bIsSucceeded;
+	bool m_bIsQuit;
 	void InitVars();
 	void Cleanup();
 };

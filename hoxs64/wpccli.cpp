@@ -220,33 +220,60 @@ HRESULT hr;
 		return;
 	if (m_pICommandResult->GetId() != (int)wParam)
 		return;
-	LPCTSTR pline = 0;
-	hr = m_pICommandResult->GetNextLine(&pline);
-	if (SUCCEEDED(hr))
+
+	bool bTextOK = false;
+	ITextSelection *pSel = 0;
+	if (m_pRange)
 	{
-		if (m_pRange)
+		if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
 		{
-			ITextSelection *pSel = 0;
-			if (SUCCEEDED(m_pITextDocument->GetSelection(&pSel)))
-			{
-				long tsflags = 0;
-				pSel->GetFlags(&tsflags);
-				pSel->SetFlags((tsflags & (tomSelOvertype | tomSelReplace)) | tomSelStartActive);//tomSelAtEOL
-				WriteCommandResponse(m_pRange, pline);
-				m_pRange->Collapse(tomEnd);
-				m_pRange->Select();
-				pSel->Release();
-				pSel = 0;
-			}
+			long tsflags = 0;
+			pSel->GetFlags(&tsflags);
+			pSel->SetFlags((tsflags & (tomSelOvertype | tomSelReplace)) | tomSelStartActive);//tomSelAtEOL
+			bTextOK = true;
 		}
-		if (hr == S_FALSE)
+		else
 		{
-			StopCommand();
+			pSel = 0;
 		}
+	}
+
+	LPCTSTR pline = 0;
+	if (m_pICommandResult->IsQuit())
+	{
+		WriteCommandResponse(m_pRange, TEXT("Quit\r"));
+		m_pRange->Collapse(tomEnd);
+		m_pRange->Select();
+		StopCommand();
 	}
 	else
 	{
-		StopCommand();
+		hr = m_pICommandResult->GetNextLine(&pline);
+		if (SUCCEEDED(hr))
+		{
+			if (m_pRange)
+			{
+				WriteCommandResponse(m_pRange, pline);
+				m_pRange->Collapse(tomEnd);
+				m_pRange->Select();
+			}
+			if (hr == S_FALSE)
+			{
+				//This was the last line.
+				StopCommand();
+			}
+		}
+		else
+		{
+			//No more lines
+			StopCommand();
+		}
+	}
+	if (pSel)
+	{
+		pSel->ScrollIntoView(tomEnd);
+		pSel->Release();
+		pSel = 0;
 	}
 }
 
@@ -406,7 +433,7 @@ void WpcCli::StopCommand()
 			KillTimer(GetHwnd(), m_pICommandResult->GetId());
 			m_bIsTimerActive = false;
 		}
-		m_pICommandResult->Stop();
+		m_pICommandResult->Quit();
 		m_pICommandResult.reset();
 		m_commandstate = Idle;
 	}
@@ -462,7 +489,7 @@ long iLen = 0;
 							{
 								if (FAILED(StartCommand(ps)))
 								{
-									WriteCommandResponse(m_pRange, TEXT("Command failed to start."));
+									WriteCommandResponse(m_pRange, TEXT("Command failed to start.\r"));
 									m_pRange->Collapse(tomEnd);
 									m_pRange->Select();
 								}

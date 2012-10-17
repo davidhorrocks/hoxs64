@@ -1266,6 +1266,7 @@ void CApp::Resume()
 {
 HWND hWnd;
 EventArgs e;
+	c64.GetMon()->QuitCommands();
 	m_bDebug = FALSE;
 	m_bBreak = FALSE;
 	m_bRunning = TRUE;
@@ -1284,6 +1285,7 @@ void CApp::Trace()
 {
 HWND hWnd;
 EventArgs e;
+	c64.GetMon()->QuitCommands();
 	hWnd = m_pWinAppWindow->GetHwnd();
 	m_bDebug = TRUE;
 	m_bBreak = FALSE;
@@ -1299,6 +1301,7 @@ EventArgs e;
 void CApp::TraceFrame()
 {
 EventArgs e;
+	c64.GetMon()->QuitCommands();
 	m_fskip = -1;
 	c64.ExecuteDebugFrame();
 	EsTraceFrame.Raise(this, e);
@@ -1307,6 +1310,7 @@ EventArgs e;
 void CApp::ExecuteC64Clock()
 {
 EventArgs e;
+	c64.GetMon()->QuitCommands();
 	m_fskip = -1;
 	c64.ExecuteC64Clock();
 	EsExecuteC64Clock.Raise(this, e);
@@ -1315,6 +1319,7 @@ EventArgs e;
 void CApp::ExecuteC64Instruction()
 {
 EventArgs e;
+	c64.GetMon()->QuitCommands();
 	m_fskip = -1;
 	c64.ExecuteC64Instruction();
 	EsExecuteC64Instruction.Raise(this, e);
@@ -1323,6 +1328,7 @@ EventArgs e;
 void CApp::ExecuteDiskClock()
 {
 EventArgs e;
+	c64.GetMon()->QuitCommands();
 	m_fskip = -1;
 	c64.ExecuteDiskClock();
 	EsExecuteDiskClock.Raise(this, e);
@@ -1331,6 +1337,7 @@ EventArgs e;
 void CApp::ExecuteDiskInstruction()
 {
 EventArgs e;
+	c64.GetMon()->QuitCommands();
 	m_fskip = -1;
 	c64.ExecuteDiskInstruction();
 	EsExecuteDiskInstruction.Raise(this, e);

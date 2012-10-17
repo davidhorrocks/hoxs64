@@ -58,7 +58,7 @@ private:
 	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcchBuffer, long *piStartCharIndex, long *piEndCharIndex);
 	HRESULT SetCharInsertionPoint(long iCharIndex);
 	HRESULT WriteCommandResponse(long iCharIndex, LPCTSTR pText);
-	HRESULT WriteCommandResponse(ITextRange *pRange, LPCTSTR pText);	
+	HRESULT WriteCommandResponse(ITextRange *pRange, LPCTSTR pText);		
 };
 
 #endif

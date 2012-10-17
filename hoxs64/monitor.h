@@ -92,17 +92,18 @@ public:
 	static const int BUFSIZEMMUTEXT = 20;
 
 	Monitor();
+	~Monitor();
 	HRESULT Init(IC64Event *pIC64Event, IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk);
-	void MonitorEventsOn();
-	void MonitorEventsOff();
-	int DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc);
-	int DisassembleBytes(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer);
-	void GetCpuRegisters(IMonitorCpu *pMonitorCpu, TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDdr_Text, int cchDdr_Text, TCHAR *pData_Text, int cchData_Text);
-	void GetVicRegisters(TCHAR *pLine_Text, int cchLine_Text, TCHAR *pCycle_Text, int cchCycle_Text);
-	IMonitorCpu *GetMainCpu();
-	IMonitorCpu *GetDiskCpu();
-	IMonitorVic *GetVic();
-	IMonitorDisk *GetDisk();
+	virtual void MonitorEventsOn();
+	virtual void MonitorEventsOff();
+	virtual int DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc);
+	virtual int DisassembleBytes(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, int count, TCHAR *pBuffer, int cchBuffer);
+	virtual void GetCpuRegisters(IMonitorCpu *pMonitorCpu, TCHAR *pPC_Text, int cchPC_Text, TCHAR *pA_Text, int cchA_Text, TCHAR *pX_Text, int cchX_Text, TCHAR *pY_Text, int cchY_Text, TCHAR *pSR_Text, int cchSR_Text, TCHAR *pSP_Text, int cchSP_Text, TCHAR *pDdr_Text, int cchDdr_Text, TCHAR *pData_Text, int cchData_Text);
+	virtual void GetVicRegisters(TCHAR *pLine_Text, int cchLine_Text, TCHAR *pCycle_Text, int cchCycle_Text);
+	virtual IMonitorCpu *GetMainCpu();
+	virtual IMonitorCpu *GetDiskCpu();
+	virtual IMonitorVic *GetVic();
+	virtual IMonitorDisk *GetDisk();
 
 	virtual bool IBreakpointManager::BM_SetBreakpoint(Sp_BreakpointItem bp);
 	virtual bool IBreakpointManager::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp);
@@ -114,9 +115,10 @@ public:
 	virtual void IBreakpointManager::BM_DeleteAllBreakpoints();
 	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
 
-	HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults);
-	HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult);
-	HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult);
+	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults);
+	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult);
+	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult);
+	virtual void QuitCommands();
 
 private:
 	IMonitorCpu *m_pMonitorMainCpu;
@@ -128,5 +130,8 @@ private:
 	BpMap MapBpExecute;
 	bool m_bMonitorEvents;
 	IC64Event *m_pIC64Event;
+
+	std::list<shared_ptr<ICommandResult>> m_lstCommandResult;
+	HANDLE m_mux;
 };
 #endif

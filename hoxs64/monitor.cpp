@@ -45,16 +45,39 @@ Monitor::Monitor()
 	m_pMonitorDiskCpu = NULL;
 	m_pMonitorVic = NULL;
 	m_pMonitorDisk = NULL;
+	m_mux = NULL;
+}
+
+Monitor::~Monitor()
+{
+	if (m_mux)
+	{
+		CloseHandle(m_mux);
+		m_mux = NULL;
+	}
 }
 
 HRESULT Monitor::Init(IC64Event *pIC64Event, IMonitorCpu *pMonitorMainCpu, IMonitorCpu *pMonitorDiskCpu, IMonitorVic *pMonitorVic, IMonitorDisk *pMonitorDisk)
 {
-	this->m_pIC64Event = pIC64Event;
-	this->m_pMonitorMainCpu = pMonitorMainCpu;
-	this->m_pMonitorDiskCpu = pMonitorDiskCpu;
-	this->m_pMonitorVic = pMonitorVic;
-	this->m_pMonitorDisk = pMonitorDisk;
-	return S_OK;
+HRESULT hr = E_FAIL;
+	try
+	{
+		this->m_pIC64Event = pIC64Event;
+		this->m_pMonitorMainCpu = pMonitorMainCpu;
+		this->m_pMonitorDiskCpu = pMonitorDiskCpu;
+		this->m_pMonitorVic = pMonitorVic;
+		this->m_pMonitorDisk = pMonitorDisk;
+
+		m_mux = CreateMutex(NULL, FALSE, NULL);
+		if (m_mux==NULL)
+			throw std::runtime_error("CreateMutex failed in Monitor::Init()");
+		hr = S_OK;
+	}
+	catch(...)
+	{
+		hr = E_FAIL;
+	}
+	return hr;
 }
 
 void Monitor::MonitorEventsOn()
@@ -452,48 +475,77 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 
 HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult)
 {
-	HRESULT hr;
+	HRESULT hr = E_FAIL;
 	shared_ptr<ICommandResult> p;
-	try
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
 	{
-		p = shared_ptr<ICommandResult>(new CommandResult(this, cpumode));
-		if (!p)
-			throw std::bad_alloc();
-		hr = p->Start(hwnd, pszCommandLine, id);
-		if (SUCCEEDED(hr))
+		try
 		{
-			*pICommandResult = p;
-			hr = S_OK;
+			p = shared_ptr<ICommandResult>(new CommandResult(this, cpumode));
+			if (!p)
+				throw std::bad_alloc();
+			m_lstCommandResult.push_back(p);
+			try
+			{
+				hr = p->Start(hwnd, pszCommandLine, id);
+				if (SUCCEEDED(hr))
+				{
+					*pICommandResult = p;
+					hr = S_OK;
+				}
+			}
+			catch(...)
+			{
+				m_lstCommandResult.remove(p);
+				throw;
+			}
 		}
-	}
-	catch(...)
-	{
-		hr = E_FAIL;
-		if (p)
+		catch(...)
 		{
-			p.reset();
+			hr = E_FAIL;
+			if (p)
+			{
+				p.reset();
+			}
 		}
+		ReleaseMutex(m_mux);
 	}
 	return hr;
 }
 
 HRESULT Monitor::EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult)
 {
-	HRESULT hr;
+	HRESULT hr = E_FAIL;
 	try
 	{
-		DWORD r = pICommandResult->WaitComplete(INFINITE);
+		DWORD r = pICommandResult->WaitFinished(INFINITE);
 		if (r == WAIT_OBJECT_0)
 			hr = S_OK;
 		else
 			hr = E_FAIL;
+		DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+		if (rm == WAIT_OBJECT_0)
+		{
+			m_lstCommandResult.remove(pICommandResult);
+			ReleaseMutex(m_mux);
+		}
 	}
 	catch(...)
 	{
 		hr = E_FAIL;
 	}
 	return hr;	
-}	
+}
+
+void Monitor::QuitCommands()
+{
+	for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+	{
+		(*it)->Quit();
+	}
+	m_lstCommandResult.clear();
+}
 
 HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults)
 {
@@ -508,7 +560,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, cpumode, &pcr);
 		if (SUCCEEDED(hr))
 		{
-			dwWaitResult = pcr->WaitComplete(10000);
+			dwWaitResult = pcr->WaitFinished(10000);
 			if (dwWaitResult == WAIT_OBJECT_0)
 			{
 				hr =  this->EndExecuteCommandLine(pcr);
@@ -545,7 +597,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 	}
 	if (pcr)
 	{
-		pcr->Stop();
+		pcr->Quit();
 		//delete pcr;
 		//pcr = 0;
 		pcr.reset();

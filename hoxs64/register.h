@@ -227,9 +227,10 @@ class ICommandResult
 {
 public:
 	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id)=0;
-	virtual HRESULT Stop()=0;
-	virtual bool IsComplete() = 0;
-	virtual DWORD WaitComplete(DWORD timeout)=0;
+	virtual HRESULT Quit()=0;
+	virtual bool IsSucceeded() = 0;
+	virtual bool IsQuit() = 0;
+	virtual DWORD WaitFinished(DWORD timeout)=0;
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)=0;
 	virtual void AddLine(LPCTSTR pszLine)=0;
@@ -274,6 +275,7 @@ public:
 	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults) = 0;
 	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult) = 0;
 	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult) = 0;
+	virtual void QuitCommands() = 0;
 };
 
 class IC64Event : public IC64BreakEvent

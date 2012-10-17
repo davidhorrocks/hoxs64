@@ -32,6 +32,8 @@ void CommandResult::InitVars()
 	m_mux = 0;
 	m_pIMonitor = 0;
 	m_pCommandToken = 0;
+	m_bIsSucceeded = false;
+	m_bIsQuit = false;
 }
 
 CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode)
@@ -62,6 +64,7 @@ CommandResult::~CommandResult()
 
 void CommandResult::Cleanup()
 {
+	Quit();
 	if (m_hevtQuit)
 	{
 		CloseHandle(m_hevtQuit);
@@ -254,12 +257,13 @@ HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString, int id)
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		Stop();
+		Quit();
 		try
 		{
 			m_sCommandLine.clear();
 			m_sCommandLine.append(pszCommandString);
-			m_bIsComplete = false;
+			m_bIsSucceeded = false;
+			m_bIsQuit = false;
 			m_hWnd = hWnd;
 			m_id = id;
 			m_hThread = CreateThread(NULL, 0, CommandResult::ThreadProc, this, 0, &m_dwThreadId);
@@ -335,13 +339,25 @@ CommandToken *CommandResult::GetToken()
 	return s;
 }
 
-bool CommandResult::IsComplete()
+bool CommandResult::IsSucceeded()
 {
 	bool s= false;
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		s =  m_bIsComplete;
+		s =  m_bIsSucceeded;
+		ReleaseMutex(m_mux);
+	}
+	return s;
+}
+
+bool CommandResult::IsQuit()
+{
+	bool s= false;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		s =  m_bIsQuit;
 		ReleaseMutex(m_mux);
 	}
 	return s;
@@ -352,17 +368,18 @@ void CommandResult::SetComplete()
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		m_bIsComplete = true;
+		m_bIsSucceeded = true;
 		ReleaseMutex(m_mux);
 	}
 }
 
-DWORD CommandResult::WaitComplete(DWORD timeout)
+DWORD CommandResult::WaitFinished(DWORD timeout)
 {
 DWORD r = 0;
 	if (m_hThread)
 	{
-		r =  WaitForSingleObject(m_hThread, timeout);
+		//r = MsgWaitForMultipleObjects(2, &m_hThread, FALSE, timeout, QS_ALLINPUT);
+		r = WaitForSingleObject(&m_hThread, timeout);
 		return r;
 	}
 	else
@@ -371,32 +388,41 @@ DWORD r = 0;
 	}
 }
 
-HRESULT CommandResult::Stop()
+HRESULT CommandResult::Quit()
 {
 DWORD r = 0;
 HRESULT hr = E_FAIL;
+HANDLE hThread = 0;
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
+		m_bIsQuit = true;
 		if (m_hThread)
 		{
+			hThread = m_hThread;
+			m_hThread = 0;
 			SetEvent(m_hevtQuit);
-			r = MsgWaitForMultipleObjects(1, &m_hThread, TRUE, INFINITE, QS_ALLINPUT);
-			if (m_hThread)
-			{
-				CloseHandle(m_hThread);
-				m_hThread = NULL;
-			}
+			ReleaseMutex(m_mux);
+			//HANDLE wh[] = {m_hThread, m_hevtQuit};
+			//r = MsgWaitForMultipleObjects(2, &m_hThread, TRUE, INFINITE, QS_ALLINPUT);
+			//r = WaitForMultipleObjects(2, &m_hThread, TRUE, INFINITE);
+			WaitForSingleObject(&hThread, INFINITE);
+			//if (r >= WAIT_OBJECT_0 && r < WAIT_OBJECT_0 + _countof(wh))
 			if (r == WAIT_OBJECT_0)
 			{
+				if (hThread)
+				{
+					CloseHandle(hThread);
+					hThread = NULL;
+				}
 				hr = S_OK;
 			}
 		}
 		else
 		{
+			ReleaseMutex(m_mux);
 			hr = S_OK;
-		}
-		ReleaseMutex(m_mux);
+		}		
 	}
 	return hr;
 }
