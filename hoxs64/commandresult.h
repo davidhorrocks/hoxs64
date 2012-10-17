@@ -16,7 +16,7 @@ public:
 	//ICommandResult
 	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id);
 	virtual HRESULT Quit();
-	virtual bool IsSucceeded();
+	virtual bool IsFinished();
 	virtual bool IsQuit();
 	virtual DWORD WaitFinished(DWORD timeout);
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
@@ -31,8 +31,8 @@ protected:
 	HRESULT CreateCliCommandResult(CommandToken *pCommandToken, IRunCommand **ppRunCommand);
 	virtual HRESULT Run();
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
-	void PostComplete();
-	void SetComplete();
+	void PostFinished();
+	void SetFinished();
 	size_t line;
 	std::vector<LPTSTR> a_lines;
 	HWND m_hWnd;
@@ -49,7 +49,7 @@ private:
     CommandResult & operator=(CommandResult const &);
 
 	std::basic_string<TCHAR> m_sCommandLine;
-	bool m_bIsSucceeded;
+	bool m_bIsFinished;
 	bool m_bIsQuit;
 	void InitVars();
 	void Cleanup();

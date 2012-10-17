@@ -32,7 +32,7 @@ void CommandResult::InitVars()
 	m_mux = 0;
 	m_pIMonitor = 0;
 	m_pCommandToken = 0;
-	m_bIsSucceeded = false;
+	m_bIsFinished = false;
 	m_bIsQuit = false;
 }
 
@@ -262,15 +262,21 @@ HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString, int id)
 		{
 			m_sCommandLine.clear();
 			m_sCommandLine.append(pszCommandString);
-			m_bIsSucceeded = false;
+			m_bIsFinished = false;
 			m_bIsQuit = false;
 			m_hWnd = hWnd;
 			m_id = id;
+			this->SetStatus(DBGSYM::CliCommandStatus::Running);
 			m_hThread = CreateThread(NULL, 0, CommandResult::ThreadProc, this, 0, &m_dwThreadId);
 			if (m_hThread)
+			{
 				r = S_OK;
-			else 
+			}
+			else
+			{
+				this->SetStatus(DBGSYM::CliCommandStatus::Failed);
 				r = E_FAIL;
+			}
 		}
 		catch(...)
 		{
@@ -339,13 +345,13 @@ CommandToken *CommandResult::GetToken()
 	return s;
 }
 
-bool CommandResult::IsSucceeded()
+bool CommandResult::IsFinished()
 {
 	bool s= false;
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		s =  m_bIsSucceeded;
+		s =  m_bIsFinished;
 		ReleaseMutex(m_mux);
 	}
 	return s;
@@ -363,12 +369,12 @@ bool CommandResult::IsQuit()
 	return s;
 }
 
-void CommandResult::SetComplete()
+void CommandResult::SetFinished()
 {
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		m_bIsSucceeded = true;
+		m_bIsFinished = true;
 		ReleaseMutex(m_mux);
 	}
 }
@@ -427,7 +433,7 @@ HANDLE hThread = 0;
 	return hr;
 }
 
-void CommandResult::PostComplete()
+void CommandResult::PostFinished()
 {
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
@@ -450,14 +456,14 @@ DWORD WINAPI CommandResult::ThreadProc(LPVOID lpThreadParameter)
 		if (SUCCEEDED(hr))
 		{
 			p->SetStatus(DBGSYM::CliCommandStatus::CompletedOK);
-			p->SetComplete();
-			p->PostComplete();
+			p->SetFinished();
+			p->PostFinished();
 		}
 		else
 		{
 			p->SetStatus(DBGSYM::CliCommandStatus::Failed);
-			p->SetComplete();
-			p->PostComplete();
+			p->SetFinished();
+			p->PostFinished();
 		}
 		ReleaseMutex(p->m_mux);
 	}

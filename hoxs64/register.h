@@ -228,7 +228,7 @@ class ICommandResult
 public:
 	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id)=0;
 	virtual HRESULT Quit()=0;
-	virtual bool IsSucceeded() = 0;
+	virtual bool IsFinished() = 0;
 	virtual bool IsQuit() = 0;
 	virtual DWORD WaitFinished(DWORD timeout)=0;
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
