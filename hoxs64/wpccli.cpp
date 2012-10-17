@@ -22,7 +22,6 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_bIsTimerActive = false;
 	m_bClosing = false;
 	m_iCommandNumber = 0;
-	m_pICommandResult = NULL;
 	m_hinstRiched = NULL;
 	m_hWndEdit = NULL;
 	m_wpOrigEditProc = NULL;
@@ -171,7 +170,7 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		return;
 	if (!lParam)
 		return;
-	if (m_pICommandResult != (ICommandResult *)lParam)
+	if (m_pICommandResult.get() != (ICommandResult *)lParam)
 		return;
 	if (m_pICommandResult->GetId() != (int)wParam)
 		return;
@@ -408,8 +407,7 @@ void WpcCli::StopCommand()
 			m_bIsTimerActive = false;
 		}
 		m_pICommandResult->Stop();
-		delete m_pICommandResult;
-		m_pICommandResult = NULL;
+		m_pICommandResult.reset();
 		m_commandstate = Idle;
 	}
 }
@@ -421,7 +419,7 @@ LPTSTR ps = NULL;
 long iStart = 0;
 long iEnd = 0;
 long iLen = 0;
-	if (m_commandstate != Idle || m_pICommandResult!=NULL)
+	if (m_commandstate != Idle || m_pICommandResult)
 		return;
 	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb, NULL, NULL)))
 	{

@@ -9,7 +9,7 @@ class CommandResult : public ICommandResult
 {
 public:
 	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode);
-	virtual ~CommandResult();
+	~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
 
@@ -44,6 +44,9 @@ protected:
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	CommandToken *m_pCommandToken;
 private:
+    CommandResult(CommandResult const &);
+    CommandResult & operator=(CommandResult const &);
+
 	std::basic_string<TCHAR> m_sCommandLine;
 	bool m_bIsComplete;
 	void InitVars();

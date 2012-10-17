@@ -19,7 +19,6 @@
 #include "commandresult.h"
 #include "monitor.h"
 
-
 VicCursorMoveEventArgs::VicCursorMoveEventArgs(int cycle, int line)
 {
 	this->Cycle = cycle;
@@ -451,33 +450,34 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 	return r;
 }
 
-HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, ICommandResult **pICommandResult)
+HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult)
 {
 	HRESULT hr;
-	*pICommandResult = NULL;
+	shared_ptr<ICommandResult> p;
 	try
 	{
-		CommandResult *pCommandResult = new CommandResult(this, cpumode);
-		hr = pCommandResult->Start(hwnd, pszCommandLine, id);
+		p = shared_ptr<ICommandResult>(new CommandResult(this, cpumode));
+		if (!p)
+			throw std::bad_alloc();
+		hr = p->Start(hwnd, pszCommandLine, id);
 		if (SUCCEEDED(hr))
 		{
-			*pICommandResult = pCommandResult;
+			*pICommandResult = p;
 			hr = S_OK;
 		}
 	}
 	catch(...)
 	{
 		hr = E_FAIL;
-		if (*pICommandResult)
+		if (p)
 		{
-			delete *pICommandResult;
-			*pICommandResult = NULL;
+			p.reset();
 		}
 	}
 	return hr;
 }
 
-HRESULT Monitor::EndExecuteCommandLine(ICommandResult *pICommandResult)
+HRESULT Monitor::EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult)
 {
 	HRESULT hr;
 	try
@@ -501,7 +501,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 	CommandToken *pcmdt = 0;
 	HRESULT hr = E_FAIL;
 	LPTSTR ps = 0;
-	ICommandResult *pcr = NULL;
+	shared_ptr<ICommandResult> pcr;
 	DWORD dwWaitResult;
 	try
 	{
@@ -546,8 +546,9 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 	if (pcr)
 	{
 		pcr->Stop();
-		delete pcr;
-		pcr = 0;
+		//delete pcr;
+		//pcr = 0;
+		pcr.reset();
 	}
 	if (pcmdt)
 	{

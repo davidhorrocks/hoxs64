@@ -115,8 +115,8 @@ public:
 	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
 
 	HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults);
-	HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, ICommandResult **pICommandResult);
-	HRESULT EndExecuteCommandLine(ICommandResult *pICommandResult);
+	HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult);
+	HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult);
 
 private:
 	IMonitorCpu *m_pMonitorMainCpu;

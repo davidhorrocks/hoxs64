@@ -238,7 +238,8 @@ public:
 	virtual int GetId()=0;
 	virtual IMonitor* GetMonitor()=0;
 	virtual CommandToken* GetToken()=0;
-	virtual ~ICommandResult(){};
+protected:
+	virtual ~ICommandResult() {};
 };
 
 
@@ -271,8 +272,8 @@ public:
 	virtual IMonitorVic *GetVic() = 0;
 	virtual IMonitorDisk *GetDisk() = 0;
 	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults) = 0;
-	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, ICommandResult **pICommandResult) = 0;
-	virtual HRESULT EndExecuteCommandLine(ICommandResult *pICommandResult) = 0;
+	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult) = 0;
+	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult) = 0;
 };
 
 class IC64Event : public IC64BreakEvent

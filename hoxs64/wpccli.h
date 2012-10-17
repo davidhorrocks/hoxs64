@@ -38,7 +38,7 @@ private:
 	CommandState m_commandstate;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	int m_iCommandNumber;
-	ICommandResult *m_pICommandResult;
+	shared_ptr<ICommandResult> m_pICommandResult;
 	bool m_bIsTimerActive;
 	CDPI m_dpi;
 	IC64 *c64;
