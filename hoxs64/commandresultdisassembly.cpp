@@ -64,6 +64,12 @@ HRESULT CommandResultDisassembly::Run()
 		m_sLineBuffer.append(MnemonicText);
 		m_sLineBuffer.append(TEXT("\r"));
 		
+		if (m_pCommandResult->CountUnreadLines() > 0)
+		{
+			m_pCommandResult->WaitLinesTakenOrQuit(INFINITE);
+			if (m_pCommandResult->IsQuit())
+				break;
+		}
 		m_pCommandResult->AddLine(m_sLineBuffer.data());
 		
 		for (int i = 1; i<instructionSize && currentAddress != m_finishaddress; i++)
@@ -74,6 +80,5 @@ HRESULT CommandResultDisassembly::Run()
 			break;
 		currentAddress++;
 	}
-	//m_pCommandResult->AddLine(TEXT(""));
 	return S_OK;
 }

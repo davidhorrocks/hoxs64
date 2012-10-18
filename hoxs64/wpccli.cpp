@@ -20,6 +20,7 @@ const TCHAR WpcCli::ClassName[] = TEXT("WPCCLI");
 WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 {
 	m_bIsTimerActive = false;
+	m_bCommandFinished = true;
 	m_bClosing = false;
 	m_iCommandNumber = 0;
 	m_hinstRiched = NULL;
@@ -199,11 +200,13 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 				break;
 			}
 		}
-		UINT_PTR t = SetTimer(hWnd, m_pICommandResult->GetId(), 30, NULL);
-		if (t)
-		{
-			m_bIsTimerActive = true;
-		}
+		m_bCommandFinished = true;
+
+		//UINT_PTR t = SetTimer(hWnd, m_pICommandResult->GetId(), 30, NULL);
+		//if (t)
+		//{
+		//	m_bIsTimerActive = true;
+		//}
 	}
 	else
 	{
@@ -243,6 +246,7 @@ HRESULT hr;
 	{
 		WriteCommandResponse(m_pRange, TEXT("Quit\r"));
 		m_pRange->Collapse(tomEnd);
+		m_pRange->ScrollIntoView(tomEnd);
 		m_pRange->Select();
 		StopCommand();
 	}
@@ -255,23 +259,19 @@ HRESULT hr;
 			{
 				WriteCommandResponse(m_pRange, pline);
 				m_pRange->Collapse(tomEnd);
+				m_pRange->ScrollIntoView(tomEnd);
 				m_pRange->Select();
-			}
-			if (hr == S_FALSE)
-			{
-				//This was the last line.
-				StopCommand();
 			}
 		}
 		else
 		{
 			//No more lines
-			StopCommand();
+			if (m_bCommandFinished)
+				StopCommand();
 		}
 	}
 	if (pSel)
 	{
-		pSel->ScrollIntoView(tomEnd);
 		pSel->Release();
 		pSel = 0;
 	}
@@ -416,6 +416,12 @@ HRESULT hr;
 	if (SUCCEEDED(hr))
 	{		
 		m_commandstate = Busy;
+		m_bCommandFinished = false;
+		UINT_PTR t = SetTimer(m_hWnd, m_pICommandResult->GetId(), 30, NULL);
+		if (t)
+		{
+			m_bIsTimerActive = true;
+		}	
 	}
 	else
 	{
@@ -426,6 +432,7 @@ HRESULT hr;
 
 void WpcCli::StopCommand()
 {
+	m_bCommandFinished = true;
 	if (m_pICommandResult)
 	{
 		if (m_bIsTimerActive)

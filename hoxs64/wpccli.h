@@ -40,6 +40,7 @@ private:
 	int m_iCommandNumber;
 	shared_ptr<ICommandResult> m_pICommandResult;
 	bool m_bIsTimerActive;
+	bool m_bCommandFinished;
 	CDPI m_dpi;
 	IC64 *c64;
 	IAppCommand *m_pIAppCommand;

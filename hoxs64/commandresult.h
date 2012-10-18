@@ -18,12 +18,14 @@ public:
 	virtual HRESULT Quit();
 	virtual bool IsFinished();
 	virtual bool IsQuit();
+	virtual DWORD WaitLinesTakenOrQuit(DWORD timeout);
 	virtual DWORD WaitFinished(DWORD timeout);
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
 	virtual void Reset();
 	virtual void AddLine(LPCTSTR pszLine);
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
+	virtual size_t CountUnreadLines();
 	virtual int GetId();
 	virtual IMonitor* GetMonitor();
 	virtual CommandToken* GetToken();
@@ -38,6 +40,7 @@ protected:
 	HWND m_hWnd;
 	HANDLE m_hThread;
 	HANDLE m_hevtQuit;
+	HANDLE m_hevtLineTaken;
 	HANDLE m_mux;
 	DWORD m_dwThreadId;
 	int m_id;

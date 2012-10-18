@@ -230,11 +230,13 @@ public:
 	virtual HRESULT Quit()=0;
 	virtual bool IsFinished() = 0;
 	virtual bool IsQuit() = 0;
+	virtual DWORD WaitLinesTakenOrQuit(DWORD timeout)=0;
 	virtual DWORD WaitFinished(DWORD timeout)=0;
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)=0;
 	virtual void AddLine(LPCTSTR pszLine)=0;
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine)=0;
+	virtual size_t CountUnreadLines()=0;
 	virtual void Reset()=0;
 	virtual int GetId()=0;
 	virtual IMonitor* GetMonitor()=0;

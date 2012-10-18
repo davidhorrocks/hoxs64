@@ -37,7 +37,6 @@ CommandResultAssemble::CommandResultAssemble(ICommandResult *pCommandResult, DBG
 HRESULT CommandResultAssemble::Run()
 {
 	WriteBytesToMemory(m_startaddress, m_data, m_dataLength);
-	//m_pCommandResult->AddLine(TEXT(""));
 	return S_OK;
 }
 

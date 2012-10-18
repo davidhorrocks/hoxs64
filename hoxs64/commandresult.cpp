@@ -24,6 +24,7 @@
 void CommandResult::InitVars()
 {
 	m_hevtQuit = 0;
+	m_hevtLineTaken = 0;
 	m_hThread = 0;
 	m_hWnd = 0;
 	cmd = DBGSYM::CliCommand::Unknown;
@@ -38,15 +39,19 @@ void CommandResult::InitVars()
 
 CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode)
 {
+	const char *S_EVENTCREATEERROR = "CreateEvent failed in CommandResult::CommandResult()";
 	InitVars();
 	try
 	{
 		m_hevtQuit = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtQuit==NULL)
-			throw std::runtime_error("CreateEvent failed in CommandResult::CommandResult()");
+			throw std::runtime_error(S_EVENTCREATEERROR);
+		m_hevtLineTaken = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (m_hevtLineTaken==NULL)
+			throw std::runtime_error(S_EVENTCREATEERROR);
 		m_mux = CreateMutex(NULL, FALSE, NULL);
 		if (m_mux==NULL)
-			throw std::runtime_error("CreateMutex failed in CommandResult::CommandResult()");
+			throw std::runtime_error(S_EVENTCREATEERROR);
 		m_pIMonitor = pIMonitor;
 		m_cpumode = cpumode;
 	}
@@ -70,6 +75,12 @@ void CommandResult::Cleanup()
 		CloseHandle(m_hevtQuit);
 		m_hevtQuit = NULL;
 	}
+	if (m_hevtLineTaken)
+	{
+		CloseHandle(m_hevtLineTaken);
+		m_hevtLineTaken = NULL;
+	}
+	//
 	if (m_mux)
 	{
 		CloseHandle(m_mux);
@@ -179,6 +190,19 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 }
 
 
+size_t CommandResult::CountUnreadLines()
+{
+size_t i = 0;
+DWORD rm;
+	rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		i = a_lines.size() - line; 
+		ReleaseMutex(m_mux);
+	}
+	return i;
+}
+
 void CommandResult::AddLine(LPCTSTR pszLine)
 {
 DWORD r;
@@ -191,7 +215,10 @@ DWORD r;
 			if (pszLine)
 				s = _tcsdup(pszLine);
 			if (s)
+			{
 				a_lines.push_back(s);
+				ResetEvent(this->m_hevtLineTaken);
+			}
 		}
 		catch(...)
 		{
@@ -203,6 +230,7 @@ DWORD r;
 HRESULT CommandResult::GetNextLine(LPCTSTR *ppszLine)
 {
 DWORD r;
+HRESULT hr = E_FAIL;
 	r = WaitForSingleObject(m_mux, INFINITE);
 	if (r == WAIT_OBJECT_0)
 	{
@@ -214,15 +242,21 @@ DWORD r;
 					*ppszLine = a_lines[line];
 				line++;
 				if (line < a_lines.size())
-					return S_OK;
+				{
+					hr = S_OK;
+				}
 				else
-					return S_FALSE;
+				{
+					SetEvent(m_hevtLineTaken);
+					hr = S_FALSE;
+				}
 			}
 			else
 			{
+				SetEvent(m_hevtLineTaken);
 				if (ppszLine)
 					*ppszLine = NULL;
-				return E_FAIL;
+				hr = E_FAIL;
 			}
 		}
 		catch(...)
@@ -230,7 +264,7 @@ DWORD r;
 		}
 		ReleaseMutex(m_mux);
 	}
-	return E_FAIL;
+	return hr;
 }
 
 void CommandResult::Reset()
@@ -382,9 +416,8 @@ void CommandResult::SetFinished()
 DWORD CommandResult::WaitFinished(DWORD timeout)
 {
 DWORD r = 0;
-	if (m_hThread)
+	if (GetStatus() == DBGSYM::CliCommandStatus::Running)
 	{
-		//r = MsgWaitForMultipleObjects(2, &m_hThread, FALSE, timeout, QS_ALLINPUT);
 		r = WaitForSingleObject(&m_hThread, timeout);
 		return r;
 	}
@@ -392,6 +425,14 @@ DWORD r = 0;
 	{
 		return WAIT_OBJECT_0;
 	}
+}
+
+DWORD CommandResult::WaitLinesTakenOrQuit(DWORD timeout)
+{
+DWORD r;
+	HANDLE wh[] = {m_hevtLineTaken, m_hevtQuit};
+	r = WaitForMultipleObjects(2, &wh[0], FALSE, timeout);
+	return r;
 }
 
 HRESULT CommandResult::Quit()
