@@ -223,8 +223,6 @@ HRESULT hr;
 		return;
 	if (m_pICommandResult->GetId() != (int)wParam)
 		return;
-
-	bool bTextOK = false;
 	ITextSelection *pSel = 0;
 	if (m_pRange)
 	{
@@ -233,7 +231,6 @@ HRESULT hr;
 			long tsflags = 0;
 			pSel->GetFlags(&tsflags);
 			pSel->SetFlags((tsflags & (tomSelOvertype | tomSelReplace)) | tomSelStartActive);//tomSelAtEOL
-			bTextOK = true;
 		}
 		else
 		{
@@ -244,7 +241,7 @@ HRESULT hr;
 	LPCTSTR pline = 0;
 	if (m_pICommandResult->IsQuit())
 	{
-		WriteCommandResponse(m_pRange, TEXT("Quit\r"));
+		WriteCommandResponse(m_pRange, TEXT("*break*\r"));
 		m_pRange->Collapse(tomEnd);
 		m_pRange->ScrollIntoView(tomEnd);
 		m_pRange->Select();
@@ -389,7 +386,10 @@ short nVirtKey;
 			{
 				if (this->m_commandstate == Busy)
 				{
-					this->StopCommand();
+					if (this->m_pICommandResult)
+					{
+						this->m_pICommandResult->Quit();
+					}
 					return 0;
 				}
 			}
