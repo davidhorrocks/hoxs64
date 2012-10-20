@@ -23,7 +23,7 @@
 #include "commandresult.h"
 #include "monitor.h"
 
-CommandResultAssemble::CommandResultAssemble(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit8 *data, int dataLength)
+RunCommandAssemble::RunCommandAssemble(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit8 *data, int dataLength)
 {
 	this->m_pCommandResult  = pCommandResult;
 	this->m_cpumode = cpumode;
@@ -34,13 +34,13 @@ CommandResultAssemble::CommandResultAssemble(ICommandResult *pCommandResult, DBG
 	this->m_sLineBuffer.reserve(50);
 }
 
-HRESULT CommandResultAssemble::Run()
+HRESULT RunCommandAssemble::Run()
 {
 	WriteBytesToMemory(m_startaddress, m_data, m_dataLength);
 	return S_OK;
 }
 
-void CommandResultAssemble::WriteBytesToMemory(bit16 startaddress, bit8 *buffer, int dataLength)
+void RunCommandAssemble::WriteBytesToMemory(bit16 startaddress, bit8 *buffer, int dataLength)
 {
 TCHAR addressText[5];
 std::basic_string<TCHAR> s;

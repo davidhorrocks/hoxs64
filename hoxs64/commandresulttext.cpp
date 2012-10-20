@@ -20,14 +20,14 @@
 #include "runcommand.h"
 #include "commandresult.h"
 
-CommandResultText::CommandResultText(ICommandResult *pCommandResult, LPCTSTR pText)
+RunCommandText::RunCommandText(ICommandResult *pCommandResult, LPCTSTR pText)
 {
 	this->m_pCommandResult  = pCommandResult;	
 	if (pText)
 		this->m_pCommandResult->AddLine(pText);
 }
 
-HRESULT CommandResultText::Run()
+HRESULT RunCommandText::Run()
 {
 	return S_OK;
 }

@@ -138,34 +138,34 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 		switch(pCommandToken->cmd)
 		{
 		case DBGSYM::CliCommand::Help:
-			pcr = new CommandResultHelp(this);
+			pcr = new RunCommandHelp(this);
 			break;
 		case DBGSYM::CliCommand::Disassemble:
-			pcr = new CommandResultDisassembly(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
+			pcr = new RunCommandDisassembly(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
 			break;
 		case DBGSYM::CliCommand::Assemble:
-			pcr = new CommandResultAssemble(this, m_cpumode, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);
+			pcr = new RunCommandAssemble(this, m_cpumode, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);
 			break;
 		case DBGSYM::CliCommand::Error:
-			pcr = new CommandResultText(this, pCommandToken->text.c_str());
+			pcr = new RunCommandText(this, pCommandToken->text.c_str());
 			break;
 		case DBGSYM::CliCommand::SelectCpu:
 			switch(pCommandToken->cpumode)
 			{
 			case DBGSYM::CliCpuMode::C64:
-				pcr = new CommandResultText(this, NULL);
+				pcr = new RunCommandText(this, NULL);
 				break;
 			case DBGSYM::CliCpuMode::Disk:
-				pcr = new CommandResultText(this, NULL);
+				pcr = new RunCommandText(this, NULL);
 				break;
 			}
-			pcr = new CommandResultText(this, pCommandToken->text.c_str());
+			pcr = new RunCommandText(this, pCommandToken->text.c_str());
 			break;
 		case DBGSYM::CliCommand::ClearScreen:
-			pcr = new CommandResultText(this, NULL);
+			pcr = new RunCommandText(this, NULL);
 			break;
 		default:
-			pcr = new CommandResultText(this, TEXT("Unknown command.\r"));
+			pcr = new RunCommandText(this, TEXT("Unknown command.\r"));
 			break;
 		}
 		hr = E_FAIL;

@@ -22,7 +22,7 @@
 #include "commandresult.h"
 #include "monitor.h"
 
-CommandResultDisassembly::CommandResultDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress)
+RunCommandDisassembly::RunCommandDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress)
 {
 	this->m_pCommandResult  = pCommandResult;
 	this->m_cpumode = cpumode;
@@ -32,7 +32,7 @@ CommandResultDisassembly::CommandResultDisassembly(ICommandResult *pCommandResul
 	this->m_sLineBuffer.reserve(50);
 }
 
-HRESULT CommandResultDisassembly::Run()
+HRESULT RunCommandDisassembly::Run()
 {
 	TCHAR AddressText[Monitor::BUFSIZEADDRESSTEXT];
 	TCHAR BytesText[Monitor::BUFSIZEINSTRUCTIONBYTESTEXT];

@@ -20,13 +20,13 @@
 #include "runcommand.h"
 #include "commandresult.h"
 
-CommandResultHelp::CommandResultHelp(ICommandResult *pCommandResult)
+RunCommandHelp::RunCommandHelp(ICommandResult *pCommandResult)
 {
 	this->m_pCommandResult  = pCommandResult;
 }
 
 
-HRESULT CommandResultHelp::Run()
+HRESULT RunCommandHelp::Run()
 {
 	this->m_pCommandResult->AddLine(TEXT("Command Help\r"));
 	this->m_pCommandResult->AddLine(TEXT("a\t- Assemble.\r"));
