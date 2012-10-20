@@ -523,10 +523,10 @@
     <ClCompile Include="assembler.cpp" />
     <ClCompile Include="bpenum.cpp" />
     <ClCompile Include="commandresult.cpp" />
-    <ClCompile Include="commandresultassemble.cpp" />
-    <ClCompile Include="commandresultdisassembly.cpp" />
-    <ClCompile Include="commandresulthelp.cpp" />
-    <ClCompile Include="commandresulttext.cpp" />
+    <ClCompile Include="runcommandassemble.cpp" />
+    <ClCompile Include="runcommanddisassembly.cpp" />
+    <ClCompile Include="runcommandhelp.cpp" />
+    <ClCompile Include="runcommandtext.cpp" />
     <ClCompile Include="diagbreakpointvicraster.cpp" />
     <ClCompile Include="mdichildcli.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />

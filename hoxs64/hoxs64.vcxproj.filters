@@ -204,19 +204,19 @@
     <ClCompile Include="wpccli.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="commandresulthelp.cpp">
-      <Filter>Source Files\debugger</Filter>
-    </ClCompile>
-    <ClCompile Include="commandresultdisassembly.cpp">
-      <Filter>Source Files\debugger</Filter>
-    </ClCompile>
     <ClCompile Include="commandresult.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="commandresulttext.cpp">
+    <ClCompile Include="runcommandassemble.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="commandresultassemble.cpp">
+    <ClCompile Include="runcommanddisassembly.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="runcommandhelp.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="runcommandtext.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
   </ItemGroup>
