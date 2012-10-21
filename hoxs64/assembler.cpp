@@ -127,6 +127,35 @@ HRESULT hr;
 	return S_OK;
 }
 
+HRESULT Assembler::AssembleBytes(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+{
+unsigned int iValue = 0;
+
+	if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+	{
+		int i = 0;
+		bit8 *p = pCode;
+		for (i = 0; m_CurrentToken.TokenType == AssemblyToken::Number8; i++)
+		{
+			if (p != NULL)
+			{
+				if (i < iBuffersize)
+					p[i] = m_CurrentToken.Value8;
+				else
+					return E_FAIL;
+			}
+			GetNextToken();
+		}
+		if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+			return E_FAIL;
+
+		if (piBytesWritten != NULL)
+			*piBytesWritten = i;
+		return S_OK;
+	}
+	return E_FAIL;
+}
+
 HRESULT Assembler::AssembleOneInstruction(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten)
 {
 HRESULT hr;
@@ -881,6 +910,10 @@ CommandToken *pcr = NULL;
 						throw std::bad_alloc();
 					pcr->SetTokenHelp();
 			}
+			else if (_tcsicmp(tk.IdentifierText, TEXT("M")) == 0)
+			{
+				pcr = GetCommandTokenReadMemory();
+			}
 			else if (_tcsicmp(tk.IdentifierText, TEXT("A")) == 0)
 			{
 				pcr = GetCommandTokenAssembleLine();
@@ -902,7 +935,7 @@ CommandToken *pcr = NULL;
 					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
-					pcr->SetTokenError(TEXT("Usage: d <start address> <end address>.\r"));
+					pcr->SetTokenError(TEXT("Usage: d start-address end-address.\r"));
 				}
 			}
 			else if (_tcsicmp(tk.IdentifierText, TEXT("cpu")) == 0)
@@ -976,23 +1009,138 @@ int w;
 		if (pcr == 0)
 			throw std::bad_alloc();
 		GetNextToken();
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+		{
+			pcr->SetTokenError(TEXT("Usage: a address \"assembly code\"\r"));
+		}
+		else
+		{
+			hr = _ParseNumber16(&address);
+			if (SUCCEEDED(hr))
+			{
+				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				{
+					pcr->SetTokenAssemble(address, v, 0);
+				}
+				else
+				{
+					hr = this->AssembleOneInstruction(address, v, _countof(v), &w);
+					if (SUCCEEDED(hr))
+					{
+						pcr->SetTokenAssemble(address, v, w);
+					}
+					else
+					{
+						pcr->SetTokenError(TEXT("Assemble failed.\r"));
+					}
+				}
+			}
+			else 
+			{
+				pcr->SetTokenError(TEXT("Invalid address.\r"));
+			}
+		}
+		return pcr;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		throw;
+	}
+}
+
+CommandToken *Assembler::GetCommandTokenReadMemory()
+{
+HRESULT hr;
+bit16 startaddress;
+bit16 finishaddress;
+
+	CommandToken *pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+			throw std::bad_alloc();
+		GetNextToken();
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+		{
+			pcr->SetTokenError(TEXT("Usage: m start-address [end-address].\r"));
+		}
+		else
+		{
+			hr = _ParseNumber16(&startaddress);
+			if (SUCCEEDED(hr))
+			{
+				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				{
+					pcr->SetTokenReadMemory(startaddress, (startaddress + 0xff) & 0xffff);
+				}
+				else
+				{
+					hr = _ParseNumber16(&finishaddress);
+					if (SUCCEEDED(hr))
+					{
+						if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+						{
+							pcr->SetTokenReadMemory(startaddress, finishaddress);
+						}
+						else
+						{
+							pcr->SetTokenError(TEXT("Read memory failed.\r"));
+						}
+					}
+					else 
+					{
+						pcr->SetTokenError(TEXT("Invalid finish-address.\r"));
+					}
+				}
+			}
+			else 
+			{
+				pcr->SetTokenError(TEXT("Invalid start-address.\r"));
+			}
+		}
+		return pcr;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		throw;
+	}
+}
+
+CommandToken *Assembler::GetCommandTokenWriteMemory()
+{
+HRESULT hr;
+bit16 address;
+bit8 v[256];
+int w;
+	CommandToken *pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+			throw std::bad_alloc();
+		GetNextToken();
 		hr = _ParseNumber16(&address);
 		if (SUCCEEDED(hr))
 		{
 			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 			{
-				pcr->SetTokenAssemble(address, v, 0);
+				pcr->SetTokenWriteMemory(address, v, 0);
 			}
 			else
 			{
-				hr = this->AssembleOneInstruction(address, v, _countof(v), &w);
+				hr = this->AssembleBytes(address, v, _countof(v), &w);
 				if (SUCCEEDED(hr))
 				{
-					pcr->SetTokenAssemble(address, v, w);
+					pcr->SetTokenWriteMemory(address, v, w);
 				}
 				else
 				{
-					pcr->SetTokenError(TEXT("Assemble failed.\r"));
+					pcr->SetTokenError(TEXT("Write memory failed.\r"));
 				}
 			}
 		}
@@ -1048,6 +1196,26 @@ void CommandToken::SetTokenClearScreen()
 	cmd = DBGSYM::CliCommand::ClearScreen;
 }
 
+void CommandToken::SetTokenReadMemory(bit16 startaddress, bit16 finishaddress)
+{
+	cmd = DBGSYM::CliCommand::ReadMemory;
+	this->startaddress = startaddress;
+	this->finishaddress = finishaddress;
+}
+
+void CommandToken::SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSize)
+{
+	cmd = DBGSYM::CliCommand::WriteMemory;
+	dataLength = bufferSize;
+	startaddress = address;
+	if (dataLength > _countof(buffer))
+	{
+		//FIXME allow unlimited buffer.
+		dataLength = _countof(buffer);
+	}
+	finishaddress = address + dataLength - 1;
+	memcpy(buffer, pData, dataLength);
+}
 
 void CommandToken::SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize)
 {

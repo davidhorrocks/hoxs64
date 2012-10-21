@@ -33,6 +33,8 @@ public:
 	HRESULT ParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 	HRESULT CreateCliCommandToken(LPCTSTR pszText, CommandToken **ppcmdr);
 	CommandToken *GetCommandTokenAssembleLine();
+	CommandToken *GetCommandTokenReadMemory();
+	CommandToken *GetCommandTokenWriteMemory();
 
 	static HRESULT TryParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 private:
@@ -75,6 +77,9 @@ private:
 
 	bool AppendToIdentifierString(TCHAR ch);
 	HRESULT instcopy(bit8 *pDest, int iSizeDest, bit8 *pSrc, int iSizeSrc, int *piBytesWritten);
+
+	HRESULT AssembleBytes(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten);
+
 	HRESULT AssembleOneInstruction(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten);
 
 	HRESULT AssembleImplied(LPCTSTR pszMnemonic, bit8 *pCode, int iBuffersize, int *piBytesWritten);

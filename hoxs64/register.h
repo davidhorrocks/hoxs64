@@ -213,6 +213,8 @@ public:
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);
 	void SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize);
+	void SetTokenReadMemory(bit16 startaddress, bit16 finishaddress);
+	void SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSize);
 
 	DBGSYM::CliCommand::CliCommand cmd;
 	bit16 startaddress;

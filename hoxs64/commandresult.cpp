@@ -143,6 +143,9 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 		case DBGSYM::CliCommand::Disassemble:
 			pcr = new RunCommandDisassembly(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
 			break;
+		case DBGSYM::CliCommand::ReadMemory:
+			pcr = new RunCommandReadMemory(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
+			break;
 		case DBGSYM::CliCommand::Assemble:
 			pcr = new RunCommandAssemble(this, m_cpumode, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);
 			break;

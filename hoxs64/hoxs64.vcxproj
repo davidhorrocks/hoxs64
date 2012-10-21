@@ -526,6 +526,7 @@
     <ClCompile Include="runcommandassemble.cpp" />
     <ClCompile Include="runcommanddisassembly.cpp" />
     <ClCompile Include="runcommandhelp.cpp" />
+    <ClCompile Include="runcommandreadmemory.cpp" />
     <ClCompile Include="runcommandtext.cpp" />
     <ClCompile Include="diagbreakpointvicraster.cpp" />
     <ClCompile Include="mdichildcli.cpp" />

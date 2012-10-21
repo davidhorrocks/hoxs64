@@ -11,6 +11,22 @@ private:
 	ICommandResult *m_pCommandResult;
 };
 
+class RunCommandReadMemory : public IRunCommand
+{
+public:
+	RunCommandReadMemory(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress);
+protected:
+	virtual HRESULT Run();
+
+	bit16 m_address;
+	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	bit16 m_startaddress;
+	bit16 m_finishaddress;
+	std::basic_string<TCHAR> m_sLineBuffer;
+private:
+	ICommandResult *m_pCommandResult;
+};
+
 class RunCommandDisassembly : public IRunCommand
 {
 public:

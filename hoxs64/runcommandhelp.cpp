@@ -33,5 +33,6 @@ HRESULT RunCommandHelp::Run()
 	this->m_pCommandResult->AddLine(TEXT("cls\t- Clear screen.\r"));
 	this->m_pCommandResult->AddLine(TEXT("cpu\t- Select CPU.\r"));
 	this->m_pCommandResult->AddLine(TEXT("d\t- Disassemble memory.\r"));
+	this->m_pCommandResult->AddLine(TEXT("m\t- Read memory.\r"));
 	return S_OK;
 }
