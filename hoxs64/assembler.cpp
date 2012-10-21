@@ -1011,7 +1011,7 @@ int w;
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
-			pcr->SetTokenError(TEXT("Usage: a address \"assembly code\"\r"));
+			pcr->SetTokenError(TEXT("Usage: a address assembly-code\r"));
 		}
 		else
 		{
