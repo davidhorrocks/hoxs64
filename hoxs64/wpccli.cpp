@@ -10,6 +10,7 @@
 #include "CDPI.h"
 #include "IC64.h"
 #include "utils.h"
+#include "dchelper.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
 #include "wpccli.h"
@@ -31,6 +32,7 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_pRange = NULL;
 	m_hFont = NULL;
 	m_bstrFontName = NULL;
+	m_nCliFontHeight = 0;
 	m_commandstate = Idle;
 	m_cpumode = DBGSYM::CliCpuMode::C64;
 	this->c64 = c64;
@@ -49,11 +51,7 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 			if (br)
 			{
 				m_bstrFontName = G::AllocBStr(fontname);
-			}
-			if (hOldFont)
-			{
-				SelectObject(hdc, hOldFont);
-			}
+			}			
 			DeleteDC(hdc);
 		}
 	}
@@ -118,6 +116,7 @@ HRESULT WpcCli::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 LRESULT lr;
 HRESULT hr;
 	RECT rcClient;
+	ZeroMemory(&m_textmetric, sizeof(m_textmetric));
 
 	m_hinstRiched = LoadLibrary(TEXT("Riched20.dll"));
 	if (m_hinstRiched)
@@ -136,6 +135,22 @@ HRESULT hr;
 					if (SUCCEEDED(hr))
 					{
 						SendMessage(m_hWndEdit, WM_SETFONT, (WPARAM)m_hFont, (LPARAM)TRUE);
+
+						HDC hdc = ::CreateCompatibleDC(NULL);
+						if (hdc)
+						{
+							DcHelper dch(hdc);
+							dch.UseFont(m_hFont);
+							dch.UseMapMode(MM_TEXT);
+							BOOL br = GetTextMetrics(hdc, &m_textmetric);
+							if (br)
+							{
+								m_nCliFontHeight = m_textmetric.tmHeight;
+							}
+							dch.Restore();
+							dch.m_hdc = 0;
+							DeleteDC(hdc);
+						}
 
 						m_wpOrigEditProc = this->SubclassChildWindow(m_hWndEdit);
 						return S_OK;
@@ -243,8 +258,9 @@ HRESULT hr;
 	{
 		WriteCommandResponse(m_pRange, TEXT("*break*\r"));
 		m_pRange->Collapse(tomEnd);
-		m_pRange->ScrollIntoView(tomEnd);
 		m_pRange->Select();
+		if (!isRangeInView(m_pRange))
+			m_pRange->ScrollIntoView(tomEnd);
 		StopCommand();
 	}
 	else
@@ -256,8 +272,10 @@ HRESULT hr;
 			{
 				WriteCommandResponse(m_pRange, pline);
 				m_pRange->Collapse(tomEnd);
-				m_pRange->ScrollIntoView(tomEnd);
 				m_pRange->Select();
+				if (!isRangeInView(m_pRange))
+					m_pRange->ScrollIntoView(tomEnd);
+				
 			}
 		}
 		else
@@ -272,6 +290,30 @@ HRESULT hr;
 		pSel->Release();
 		pSel = 0;
 	}
+}
+
+bool WpcCli::isRangeInView(ITextRange *pIRange)
+{
+	if (m_nCliFontHeight <= 0 || pIRange == NULL)
+		return false;
+	long nCurrentLine;
+	long nTotalLines;
+	long nFirstLine;
+	long nLastLine;
+	RECT rcTxt;
+	nTotalLines = SendMessage(this->m_hWndEdit, EM_GETLINECOUNT, 0, 0);
+	nFirstLine = SendMessage(this->m_hWndEdit, EM_GETFIRSTVISIBLELINE, 0, 0);
+	SendMessage(this->m_hWndEdit, EM_GETRECT, 0, (LPARAM)&rcTxt);
+	nLastLine = nFirstLine + (rcTxt.bottom - rcTxt.top) / m_nCliFontHeight - 1;	
+	if (nLastLine >= 0)
+	{
+		if (SUCCEEDED(m_pRange->GetIndex(tomLine, &nCurrentLine)))
+		{
+			if (nCurrentLine >= nFirstLine && nCurrentLine <= nLastLine)
+				return true;
+		}
+	}
+	return false;
 }
 
 void WpcCli::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

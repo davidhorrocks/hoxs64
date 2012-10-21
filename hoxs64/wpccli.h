@@ -52,6 +52,8 @@ private:
 	ITextDocument *m_pITextDocument;
 	ITextRange *m_pRange;
 	HFONT m_hFont;
+	TEXTMETRIC m_textmetric;
+	LONG m_nCliFontHeight;
 	BSTR m_bstrFontName;
 
 	HRESULT StartCommand(LPCTSTR pszCommand);
@@ -59,7 +61,8 @@ private:
 	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcchBuffer, long *piStartCharIndex, long *piEndCharIndex);
 	HRESULT SetCharInsertionPoint(long iCharIndex);
 	HRESULT WriteCommandResponse(long iCharIndex, LPCTSTR pText);
-	HRESULT WriteCommandResponse(ITextRange *pRange, LPCTSTR pText);		
+	HRESULT WriteCommandResponse(ITextRange *pRange, LPCTSTR pText);
+	bool isRangeInView(ITextRange *pIRange);
 };
 
 #endif
