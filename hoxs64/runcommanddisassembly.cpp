@@ -57,7 +57,7 @@ HRESULT RunCommandDisassembly::Run()
 		m_sLineBuffer.append(AddressText);
 		m_sLineBuffer.append(TEXT(" "));
 		m_sLineBuffer.append(BytesText);
-		for (int k=0; k<(8-_tcslen(BytesText)); k++)
+		for (size_t k=0; k<(8-_tcslen(BytesText)); k++)
 			m_sLineBuffer.append(TEXT(" "));
 		
 		m_sLineBuffer.append(TEXT(" "));
