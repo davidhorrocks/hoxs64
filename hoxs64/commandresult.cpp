@@ -112,7 +112,7 @@ HRESULT CommandResult::Run()
 			delete m_pCommandToken;
 			m_pCommandToken = 0;
 		}
-		hr = as.CreateCliCommandToken(m_sCommandLine.data(), &m_pCommandToken);
+		hr = as.CreateCliCommandToken(m_sCommandLine.c_str(), &m_pCommandToken);
 		if (SUCCEEDED(hr))
 		{
 			hr = CreateCliCommandResult(m_pCommandToken, &pcr);

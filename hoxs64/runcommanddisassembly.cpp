@@ -70,7 +70,7 @@ HRESULT RunCommandDisassembly::Run()
 			if (m_pCommandResult->IsQuit())
 				break;
 		}
-		m_pCommandResult->AddLine(m_sLineBuffer.data());
+		m_pCommandResult->AddLine(m_sLineBuffer.c_str());
 		
 		for (int i = 1; i<instructionSize && currentAddress != m_finishaddress; i++)
 		{

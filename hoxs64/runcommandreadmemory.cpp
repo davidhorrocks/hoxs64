@@ -73,7 +73,7 @@ TCHAR byteText[3];
 			if (m_pCommandResult->IsQuit())
 				break;
 		}
-		m_pCommandResult->AddLine(m_sLineBuffer.data());
+		m_pCommandResult->AddLine(m_sLineBuffer.c_str());
 		
 		if (bHitFinish)
 			break;

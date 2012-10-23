@@ -62,7 +62,7 @@ std::basic_string<TCHAR> s;
 		HexConv::long_to_hex((bit16)(startaddress + dataLength), addressText, 4);
 		s.append(addressText);
 		s.append(TEXT(" "));
-		m_pCommandResult->AddLine(s.data());
+		m_pCommandResult->AddLine(s.c_str());
 	}
 }
 
