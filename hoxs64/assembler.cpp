@@ -1077,7 +1077,67 @@ int w;
 
 CommandToken *Assembler::GetCommandTokenMapMemory()
 {
-	return NULL;
+//HRESULT hr;
+
+	CommandToken *pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+			throw std::bad_alloc();
+		DBGSYM::CliMapMemory::CliMapMemory map = DBGSYM::CliMapMemory::CURRENT;
+		while (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+		{
+			GetNextToken();
+			if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("RAM")) == 0)
+			{
+				map = (DBGSYM::CliMapMemory::CliMapMemory)((int)map | (int)DBGSYM::CliMapMemory::RAM);
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("BASIC")) == 0)
+			{
+				map = (DBGSYM::CliMapMemory::CliMapMemory)((int)map | (int)DBGSYM::CliMapMemory::BASIC);
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("CHARGEN")) == 0)
+			{
+				map = (DBGSYM::CliMapMemory::CliMapMemory)((int)map | (int)DBGSYM::CliMapMemory::CHARGEN);
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("IO")) == 0)
+			{
+				map = (DBGSYM::CliMapMemory::CliMapMemory)((int)map | (int)DBGSYM::CliMapMemory::IO);
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("KERNAL")) == 0 || _tcsicmp(m_CurrentToken.IdentifierText, TEXT("KERNEL")) == 0))
+			{
+				map = (DBGSYM::CliMapMemory::CliMapMemory)((int)map | (int)DBGSYM::CliMapMemory::KERNAL);
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("ROMH")) == 0)
+			{
+				map = (DBGSYM::CliMapMemory::CliMapMemory)((int)map | (int)DBGSYM::CliMapMemory::ROMH);
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("ROML")) == 0)
+			{
+				map = (DBGSYM::CliMapMemory::CliMapMemory)((int)map | (int)DBGSYM::CliMapMemory::ROML);
+			}
+			else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("CURRENT")) == 0)
+			{
+			}
+			else
+			{
+				pcr->SetTokenError(TEXT("Invalid map.\r"));
+				break;
+			}
+		}
+		if (pcr->cmd != DBGSYM::CliCommand::Error)
+		{
+			pcr->SetTokenMapMemory(map);
+		}
+		return pcr;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		throw;
+	}
 }
 
 CommandToken *Assembler::GetCommandTokenReadMemory()

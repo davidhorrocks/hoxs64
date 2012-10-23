@@ -201,15 +201,16 @@ namespace DBGSYM
 	};
 	namespace CliMapMemory
 	{
-		enum CliMapMemory
+		enum CliMapMemory : int
 		{
-			RAM = 0,
+			CURRENT = 0,
 			BASIC = 1,
 			KERNAL = 2,
 			IO = 4,
 			CHARGEN = 8,
 			ROML = 16,
 			ROMH = 32,
+			RAM = 64,
 		};
 	};
 };
