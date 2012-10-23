@@ -301,8 +301,9 @@ bool WpcCli::isRangeInView(ITextRange *pIRange)
 	long nFirstLine;
 	long nLastLine;
 	RECT rcTxt;
-	nTotalLines = SendMessage(this->m_hWndEdit, EM_GETLINECOUNT, 0, 0);
-	nFirstLine = SendMessage(this->m_hWndEdit, EM_GETFIRSTVISIBLELINE, 0, 0);
+	
+	nTotalLines = (long)SendMessage(this->m_hWndEdit, EM_GETLINECOUNT, 0, 0);
+	nFirstLine = (long)SendMessage(this->m_hWndEdit, EM_GETFIRSTVISIBLELINE, 0, 0);
 	SendMessage(this->m_hWndEdit, EM_GETRECT, 0, (LPARAM)&rcTxt);
 	nLastLine = nFirstLine + (rcTxt.bottom - rcTxt.top) / m_nCliFontHeight - 1;	
 	if (nLastLine >= 0)

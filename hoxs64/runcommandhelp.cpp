@@ -28,11 +28,44 @@ RunCommandHelp::RunCommandHelp(ICommandResult *pCommandResult)
 
 HRESULT RunCommandHelp::Run()
 {
-	this->m_pCommandResult->AddLine(TEXT("Command Help\r"));
-	this->m_pCommandResult->AddLine(TEXT("a\t- Assemble.\r"));
-	this->m_pCommandResult->AddLine(TEXT("cls\t- Clear screen.\r"));
-	this->m_pCommandResult->AddLine(TEXT("cpu\t- Select CPU.\r"));
-	this->m_pCommandResult->AddLine(TEXT("d\t- Disassemble memory.\r"));
-	this->m_pCommandResult->AddLine(TEXT("m\t- Read memory.\r"));
+	if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("a")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("Assemble.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: a address assembly-code\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: a $C000 lda #$ff\r"));
+	}
+	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("cls")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("Clear screen.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: cls\r"));
+	}
+	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("cpu")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("Select CPU.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: cpu {0|1}\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: cpu 0\r"));
+	}
+	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("d")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("Disassemble memory.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: d start-address end-address.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: d $C000 $C010\r"));
+	}
+	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("m")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("Read memory.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: m start-address [end-address].\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: m $C000 $C010\r"));
+	}
+	else
+	{	
+		this->m_pCommandResult->AddLine(TEXT("Command Summary\r"));
+		this->m_pCommandResult->AddLine(TEXT("?\t Help.\r"));
+		this->m_pCommandResult->AddLine(TEXT("a\t- Assemble.\r"));
+		this->m_pCommandResult->AddLine(TEXT("cls\t- Clear screen.\r"));
+		this->m_pCommandResult->AddLine(TEXT("cpu\t- Select CPU.\r"));
+		this->m_pCommandResult->AddLine(TEXT("d\t- Disassemble memory.\r"));
+		this->m_pCommandResult->AddLine(TEXT("m\t- Read memory.\r"));
+	}
 	return S_OK;
 }

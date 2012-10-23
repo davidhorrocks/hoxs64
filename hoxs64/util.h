@@ -167,9 +167,19 @@ namespace DBGSYM
 			Help,
 			ReadMemory,
 			WriteMemory,
+			SelectCpu,
+			MapMemory,
+			ShowCpu,
+			ShowCpu64,
+			ShowCpuDisk,
+			ShowVic,
+			ShowCia1,
+			ShowCia2,
+			ShowSid,
+			ShowVia1,
+			ShowVia2,
 			Error,
 			Unknown,
-			SelectCpu,
 		};
 	};
 	namespace CliCommandStatus
@@ -187,6 +197,19 @@ namespace DBGSYM
 		{
 			C64 = 0,
 			Disk,
+		};
+	};
+	namespace CliMapMemory
+	{
+		enum CliMapMemory
+		{
+			RAM = 0,
+			BASIC = 1,
+			KERNAL = 2,
+			IO = 4,
+			CHARGEN = 8,
+			ROML = 16,
+			ROMH = 32,
 		};
 	};
 };

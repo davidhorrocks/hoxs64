@@ -881,7 +881,6 @@ HRESULT Assembler::_ParseNumber16(bit16 *piNumber)
 HRESULT Assembler::CreateCliCommandToken(LPCTSTR pszText, CommandToken **ppmdr)
 {
 HRESULT hr;
-AssemblyToken tk;
 CommandToken *pcr = NULL;
 	try
 	{
@@ -889,36 +888,36 @@ CommandToken *pcr = NULL;
 		if (FAILED(hr))
 			return hr;
 
-		if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
+		if ((m_CurrentToken.TokenType == AssemblyToken::Symbol && m_CurrentToken.SymbolChar==TEXT('?')) || (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("?")) == 0 || _tcsicmp(m_CurrentToken.IdentifierText, TEXT("help")) == 0 || _tcsicmp(m_CurrentToken.IdentifierText, TEXT("man")) == 0)))
 		{
-			tk = m_CurrentToken;
-			if (tk.SymbolChar==TEXT('?'))
+			pcr = new CommandToken();
+			if (pcr == 0)
+				throw std::bad_alloc();
+			GetNextToken();
+			if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 			{
-					pcr = new CommandToken();
-					if (pcr == 0)
-						throw std::bad_alloc();
-					pcr->SetTokenHelp();
+				pcr->SetTokenHelp(m_CurrentToken.IdentifierText);
+			}
+			else
+			{
+				pcr->SetTokenHelp(NULL);
 			}
 		}
 		else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 		{
-			tk = m_CurrentToken;
-			if (_tcsicmp(tk.IdentifierText, TEXT("?")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("help")) == 0 || _tcsicmp(tk.IdentifierText, TEXT("man")) == 0)
+			if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("MAP")) == 0 && false)
 			{
-					pcr = new CommandToken();
-					if (pcr == 0)
-						throw std::bad_alloc();
-					pcr->SetTokenHelp();
+				pcr = GetCommandTokenMapMemory();
 			}
-			else if (_tcsicmp(tk.IdentifierText, TEXT("M")) == 0)
+			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("M")) == 0)
 			{
 				pcr = GetCommandTokenReadMemory();
 			}
-			else if (_tcsicmp(tk.IdentifierText, TEXT("A")) == 0)
+			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("A")) == 0)
 			{
 				pcr = GetCommandTokenAssembleLine();
 			}
-			else if (_tcsicmp(tk.IdentifierText, TEXT("D")) == 0)
+			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("D")) == 0)
 			{
 				GetNextToken();
 				bit16 startaddress, endaddress;
@@ -935,10 +934,10 @@ CommandToken *pcr = NULL;
 					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
-					pcr->SetTokenError(TEXT("Usage: d start-address end-address.\r"));
+					pcr->SetTokenError(TEXT("Invalid address.\r"));
 				}
 			}
-			else if (_tcsicmp(tk.IdentifierText, TEXT("cpu")) == 0)
+			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cpu")) == 0)
 			{
 				do
 				{
@@ -965,10 +964,10 @@ CommandToken *pcr = NULL;
 					pcr = new CommandToken();
 					if (pcr == 0)
 						throw std::bad_alloc();
-					pcr->SetTokenError(TEXT("Usage: cpu {0|1}\r"));
+					pcr->SetTokenHelp(TEXT("cpu"));
 				}
 			}
-			else if (_tcsicmp(tk.IdentifierText, TEXT("cls")) == 0)
+			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cls")) == 0)
 			{
 				GetNextToken();
 				pcr = new CommandToken();
@@ -1048,6 +1047,11 @@ int w;
 			delete pcr;
 		throw;
 	}
+}
+
+CommandToken *Assembler::GetCommandTokenMapMemory()
+{
+	return NULL;
 }
 
 CommandToken *Assembler::GetCommandTokenReadMemory()
@@ -1167,9 +1171,13 @@ CommandToken::~CommandToken()
 {
 }
 
-void CommandToken::SetTokenHelp()
+void CommandToken::SetTokenHelp(LPCTSTR name)
 {
 	cmd = DBGSYM::CliCommand::Help;
+	if (name != NULL)
+		this->text.assign(name);
+	else
+		this->text.clear();
 }
 
 void CommandToken::SetTokenDisassembly(bit16 startaddress, bit16 finishaddress)
@@ -1189,6 +1197,57 @@ void CommandToken::SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode)
 {
 	cmd = DBGSYM::CliCommand::SelectCpu;
 	this->cpumode = cpumode;
+}
+
+void CommandToken::SetTokenMapMemory(DBGSYM::CliMapMemory::CliMapMemory mapmemory)
+{
+	cmd = DBGSYM::CliCommand::MapMemory;
+	this->mapmemory = mapmemory;
+}
+
+void CommandToken::SetTokenShowCpuRegisters()
+{
+	cmd = DBGSYM::CliCommand::ShowCpu;
+}
+
+void CommandToken::SetTokenShowCpu64Registers()
+{
+	cmd = DBGSYM::CliCommand::ShowCpu64;
+}
+
+void CommandToken::SetTokenShowCpuDiskRegisters()
+{
+	cmd = DBGSYM::CliCommand::ShowCpuDisk;
+}
+
+void CommandToken::SetTokenShowVicRegisters()
+{
+	cmd = DBGSYM::CliCommand::ShowVic;
+}
+
+void CommandToken::SetTokenShowCia1Registers()
+{
+	cmd = DBGSYM::CliCommand::ShowCia1;
+}
+
+void CommandToken::SetTokenShowCia2Registers()
+{
+	cmd = DBGSYM::CliCommand::ShowCia2;
+}
+
+void CommandToken::SetTokenShowSidRegisters()
+{
+	cmd = DBGSYM::CliCommand::ShowSid;
+}
+
+void CommandToken::SetTokenShowVia1Registers()
+{
+	cmd = DBGSYM::CliCommand::ShowVia1;
+}
+
+void CommandToken::SetTokenShowVia2Registers()
+{
+	cmd = DBGSYM::CliCommand::ShowVia2;
 }
 
 void CommandToken::SetTokenClearScreen()

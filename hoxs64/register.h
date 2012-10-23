@@ -209,18 +209,30 @@ public:
 
 	void SetTokenClearScreen();
 	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode);
-	void SetTokenHelp();
+	void SetTokenHelp(LPCTSTR name);
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);
 	void SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize);
 	void SetTokenReadMemory(bit16 startaddress, bit16 finishaddress);
 	void SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSize);
+	void SetTokenMapMemory(DBGSYM::CliMapMemory::CliMapMemory);
+	void SetTokenShowCpuRegisters();
+	void SetTokenShowCpu64Registers();
+	void SetTokenShowCpuDiskRegisters();
+	void SetTokenShowVicRegisters();
+	void SetTokenShowCia1Registers();
+	void SetTokenShowCia2Registers();
+	void SetTokenShowSidRegisters();
+	void SetTokenShowVia1Registers();
+	void SetTokenShowVia2Registers();
 
 	DBGSYM::CliCommand::CliCommand cmd;
+
 	bit16 startaddress;
 	bit16 finishaddress;
 	std::basic_string<TCHAR> text;
 	DBGSYM::CliCpuMode::CliCpuMode cpumode;
+	DBGSYM::CliMapMemory::CliMapMemory mapmemory;
 	bit8 buffer[256];
 	int dataLength;
 };
