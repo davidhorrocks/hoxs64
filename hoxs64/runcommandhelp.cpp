@@ -48,13 +48,13 @@ HRESULT RunCommandHelp::Run()
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("d")) == 0)
 	{
 		this->m_pCommandResult->AddLine(TEXT("Disassemble memory.\r"));
-		this->m_pCommandResult->AddLine(TEXT("Usage: d start-address end-address.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: d start-address [end-address]\r"));
 		this->m_pCommandResult->AddLine(TEXT("Example: d $C000 $C010\r"));
 	}
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("m")) == 0)
 	{
 		this->m_pCommandResult->AddLine(TEXT("Read memory.\r"));
-		this->m_pCommandResult->AddLine(TEXT("Usage: m start-address [end-address].\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: m start-address [end-address]\r"));
 		this->m_pCommandResult->AddLine(TEXT("Example: m $C000 $C010\r"));
 	}
 	else

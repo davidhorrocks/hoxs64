@@ -919,22 +919,48 @@ CommandToken *pcr = NULL;
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("D")) == 0)
 			{
+				pcr = new CommandToken();
+				if (pcr == 0)
+					throw std::bad_alloc();
 				GetNextToken();
-				bit16 startaddress, endaddress;
-				hr = _ParseAddressRange(&startaddress, &endaddress);
-				if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 				{
-					pcr = new CommandToken();
-					if (pcr == 0)
-						throw std::bad_alloc();
-					pcr->SetTokenDisassembly(startaddress, endaddress);
+					pcr->SetTokenError(TEXT("Require start-address.\r"));
 				}
 				else
 				{
-					pcr = new CommandToken();
-					if (pcr == 0)
-						throw std::bad_alloc();
-					pcr->SetTokenError(TEXT("Invalid address.\r"));
+					bit16 startaddress, endaddress;
+					hr = _ParseNumber16(&startaddress);
+					if (SUCCEEDED(hr))
+					{
+						if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+						{
+							pcr->SetTokenDisassembly(startaddress, (startaddress + 0x0f) & 0xffff);
+						}
+						else
+						{
+							hr = _ParseNumber16(&endaddress);
+							if (SUCCEEDED(hr))
+							{
+								if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+								{
+									pcr->SetTokenDisassembly(startaddress, endaddress);
+								}
+								else
+								{
+									pcr->SetTokenError(TEXT("Disassemble memory failed.\r"));
+								}
+							}
+							else
+							{
+								pcr->SetTokenError(TEXT("Invalid end-address.\r"));
+							}
+						}
+					}
+					else
+					{
+						pcr->SetTokenError(TEXT("Invalid start-address.\r"));
+					}
 				}
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cpu")) == 0)
@@ -1010,7 +1036,7 @@ int w;
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
-			pcr->SetTokenError(TEXT("Usage: a address assembly-code\r"));
+			pcr->SetTokenError(TEXT("Require start-address.\r"));
 		}
 		else
 		{
@@ -1069,7 +1095,7 @@ bit16 finishaddress;
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
-			pcr->SetTokenError(TEXT("Usage: m start-address [end-address].\r"));
+			pcr->SetTokenError(TEXT("Require start-address.\r"));
 		}
 		else
 		{
