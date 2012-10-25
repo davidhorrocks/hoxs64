@@ -11,6 +11,17 @@ private:
 	ICommandResult *m_pCommandResult;
 };
 
+class RunCommandMapMemory : public IRunCommand
+{
+public:
+	RunCommandMapMemory(ICommandResult *pCommandResult);
+protected:
+	virtual HRESULT Run();
+	std::basic_string<TCHAR> m_sLineBuffer;
+private:
+	ICommandResult *m_pCommandResult;
+};
+
 class RunCommandReadMemory : public IRunCommand
 {
 public:

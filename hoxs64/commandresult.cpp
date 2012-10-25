@@ -140,6 +140,9 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 		case DBGSYM::CliCommand::Help:
 			pcr = new RunCommandHelp(this);
 			break;
+		case DBGSYM::CliCommand::MapMemory:
+			pcr = new RunCommandMapMemory(this);
+			break;
 		case DBGSYM::CliCommand::Disassemble:
 			pcr = new RunCommandDisassembly(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
 			break;

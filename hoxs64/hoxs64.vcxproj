@@ -530,6 +530,7 @@
     <ClCompile Include="runcommandtext.cpp" />
     <ClCompile Include="diagbreakpointvicraster.cpp" />
     <ClCompile Include="mdichildcli.cpp" />
+    <ClCompile Include="runcommandmapmemory.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />
     <ClCompile Include="wpcbreakpoint.cpp" />
     <ClCompile Include="break_point.cpp">
