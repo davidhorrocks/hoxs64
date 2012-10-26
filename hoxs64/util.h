@@ -211,6 +211,7 @@ namespace DBGSYM
 			ROML = 16,
 			ROMH = 32,
 			RAM = 64,
+			_ALL = 127,
 		};
 	};
 };

@@ -35,6 +35,7 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_nCliFontHeight = 0;
 	m_commandstate = Idle;
 	m_cpumode = DBGSYM::CliCpuMode::C64;
+	m_mapmemory = DBGSYM::CliMapMemory::CURRENT;
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;
 
