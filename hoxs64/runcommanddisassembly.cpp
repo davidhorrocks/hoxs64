@@ -22,10 +22,11 @@
 #include "commandresult.h"
 #include "monitor.h"
 
-RunCommandDisassembly::RunCommandDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress)
+RunCommandDisassembly::RunCommandDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit16 finishaddress)
 {
 	this->m_pCommandResult  = pCommandResult;
 	this->m_cpumode = cpumode;
+	this->m_iDebuggerMmuIndex = iDebuggerMmuIndex;
 	this->m_startaddress = startaddress;
 	this->m_finishaddress = finishaddress;
 	this->m_address = startaddress;
@@ -50,7 +51,7 @@ HRESULT RunCommandDisassembly::Run()
 		if (m_pCommandResult->IsQuit())
 			break;
 		m_sLineBuffer.clear();
-		int instructionSize = pMon->DisassembleOneInstruction(pCpu, currentAddress, -1, AddressText, _countof(AddressText), BytesText, _countof(BytesText), MnemonicText, _countof(MnemonicText), bIsUndoc);
+		int instructionSize = pMon->DisassembleOneInstruction(pCpu, currentAddress, m_iDebuggerMmuIndex, AddressText, _countof(AddressText), BytesText, _countof(BytesText), MnemonicText, _countof(MnemonicText), bIsUndoc);
 		if (instructionSize<=0)
 			break;
 		m_sLineBuffer.append(TEXT("A "));

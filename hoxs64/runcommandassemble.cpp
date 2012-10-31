@@ -23,10 +23,11 @@
 #include "commandresult.h"
 #include "monitor.h"
 
-RunCommandAssemble::RunCommandAssemble(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit8 *data, int dataLength)
+RunCommandAssemble::RunCommandAssemble(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit8 *data, int dataLength)
 {
 	this->m_pCommandResult  = pCommandResult;
 	this->m_cpumode = cpumode;
+	this->m_iDebuggerMmuIndex = iDebuggerMmuIndex;
 	this->m_startaddress = startaddress;
 	this->m_address = startaddress;
 	this->m_data = data;
@@ -56,7 +57,7 @@ std::basic_string<TCHAR> s;
 	{
 		for(int i = 0; i<dataLength; i++)
 		{
-			pCpu->MonWriteByte((bit16)(startaddress + i), buffer[i], -1);
+			pCpu->MonWriteByte((bit16)(startaddress + i), buffer[i], m_iDebuggerMmuIndex);
 		}
 		s.append(TEXT("A $"));
 		HexConv::long_to_hex((bit16)(startaddress + dataLength), addressText, 4);

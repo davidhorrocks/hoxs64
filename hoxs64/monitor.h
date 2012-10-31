@@ -115,8 +115,8 @@ public:
 	virtual void IBreakpointManager::BM_DeleteAllBreakpoints();
 	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
 
-	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults);
-	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult);
+	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, LPTSTR *ppszResults);
+	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, shared_ptr<ICommandResult> *pICommandResult);
 	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult);
 	virtual void QuitCommands();
 

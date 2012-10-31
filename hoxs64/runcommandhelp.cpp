@@ -57,6 +57,14 @@ HRESULT RunCommandHelp::Run()
 		this->m_pCommandResult->AddLine(TEXT("Usage: m start-address [end-address]\r"));
 		this->m_pCommandResult->AddLine(TEXT("Example: m $C000 $C010\r"));
 	}
+	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("map")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("Map memory.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: map [C64] [KERNAL] [BASIC] [IO | CHARGEN] [RAM] [ROML] [ROMH]\r"));
+		this->m_pCommandResult->AddLine(TEXT("Examples\r"));
+		this->m_pCommandResult->AddLine(TEXT("Tie to C64 map: map C64\r"));
+		this->m_pCommandResult->AddLine(TEXT("Select RAM: map RAM\r"));
+	}
 	else
 	{	
 		this->m_pCommandResult->AddLine(TEXT("Command Summary\r"));
@@ -66,6 +74,7 @@ HRESULT RunCommandHelp::Run()
 		this->m_pCommandResult->AddLine(TEXT("cpu\t- Select CPU.\r"));
 		this->m_pCommandResult->AddLine(TEXT("d\t- Disassemble memory.\r"));
 		this->m_pCommandResult->AddLine(TEXT("m\t- Read memory.\r"));
+		this->m_pCommandResult->AddLine(TEXT("m\t- Map memory.\r"));
 	}
 	return S_OK;
 }

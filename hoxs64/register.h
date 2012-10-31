@@ -255,6 +255,8 @@ public:
 	virtual int GetId()=0;
 	virtual IMonitor* GetMonitor()=0;
 	virtual CommandToken* GetToken()=0;
+	virtual void *GetData()=0;
+	virtual void SetData(void *p)=0;
 protected:
 	virtual ~ICommandResult() {};
 };
@@ -288,8 +290,8 @@ public:
 	virtual IMonitorCpu *GetDiskCpu() = 0;
 	virtual IMonitorVic *GetVic() = 0;
 	virtual IMonitorDisk *GetDisk() = 0;
-	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults) = 0;
-	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult) = 0;
+	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, LPTSTR *ppszResults) = 0;
+	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, shared_ptr<ICommandResult> *pICommandResult) = 0;
 	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult) = 0;
 	virtual void QuitCommands() = 0;
 };

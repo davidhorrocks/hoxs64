@@ -38,6 +38,7 @@ private:
 	CommandState m_commandstate;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	DBGSYM::CliMapMemory::CliMapMemory m_mapmemory;
+	int m_iDebuggerMmuIndex;
 	int m_iCommandNumber;
 	shared_ptr<ICommandResult> m_pICommandResult;
 	bool m_bIsTimerActive;

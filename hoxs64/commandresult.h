@@ -8,7 +8,7 @@
 class CommandResult : public ICommandResult
 {
 public:
-	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode);
+	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex);
 	~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
@@ -29,6 +29,8 @@ public:
 	virtual int GetId();
 	virtual IMonitor* GetMonitor();
 	virtual CommandToken* GetToken();
+	virtual void *GetData();
+	virtual void SetData(void *p);
 protected:
 	HRESULT CreateCliCommandResult(CommandToken *pCommandToken, IRunCommand **ppRunCommand);
 	virtual HRESULT Run();
@@ -46,7 +48,9 @@ protected:
 	int m_id;
 	IMonitor *m_pIMonitor;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	int m_iDebuggerMmuIndex;
 	CommandToken *m_pCommandToken;
+	void *m_data;
 private:
     CommandResult(CommandResult const &);
     CommandResult & operator=(CommandResult const &);

@@ -23,10 +23,11 @@
 #include "commandresult.h"
 #include "monitor.h"
 
-RunCommandReadMemory::RunCommandReadMemory(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress)
+RunCommandReadMemory::RunCommandReadMemory(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit16 finishaddress)
 {
 	this->m_pCommandResult  = pCommandResult;
 	this->m_cpumode = cpumode;
+	this->m_iDebuggerMmuIndex = iDebuggerMmuIndex;
 	this->m_startaddress = startaddress;
 	this->m_finishaddress = finishaddress;
 	this->m_address = startaddress;
@@ -61,7 +62,7 @@ TCHAR byteText[3];
 			if (currentAddress == m_finishaddress)
 				bHitFinish = true;
 			m_sLineBuffer.append(TEXT(" "));
-			bit8 data = pCpu->MonReadByte(currentAddress, -1);
+			bit8 data = pCpu->MonReadByte(currentAddress, m_iDebuggerMmuIndex);
 			HexConv::long_to_hex(data, byteText, 2);
 			m_sLineBuffer.append(byteText);			
 		}

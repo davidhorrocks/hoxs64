@@ -35,9 +35,10 @@ void CommandResult::InitVars()
 	m_pCommandToken = 0;
 	m_bIsFinished = false;
 	m_bIsQuit = false;
+	m_data = NULL;
 }
 
-CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode)
+CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex)
 {
 	const char *S_EVENTCREATEERROR = "CreateEvent failed in CommandResult::CommandResult()";
 	InitVars();
@@ -54,6 +55,7 @@ CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode
 			throw std::runtime_error(S_EVENTCREATEERROR);
 		m_pIMonitor = pIMonitor;
 		m_cpumode = cpumode;
+		m_iDebuggerMmuIndex = iDebuggerMmuIndex;
 	}
 	catch(...)
 	{
@@ -98,6 +100,11 @@ void CommandResult::Cleanup()
 		delete m_pCommandToken;
 		m_pCommandToken = 0;
 	}
+	if (m_data)
+	{
+		free(m_data);
+		m_data = 0;
+	}
 }
 
 HRESULT CommandResult::Run()
@@ -141,16 +148,16 @@ HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunC
 			pcr = new RunCommandHelp(this);
 			break;
 		case DBGSYM::CliCommand::MapMemory:
-			pcr = new RunCommandMapMemory(this);
+			pcr = new RunCommandMapMemory(this, m_iDebuggerMmuIndex, pCommandToken->mapmemory);
 			break;
 		case DBGSYM::CliCommand::Disassemble:
-			pcr = new RunCommandDisassembly(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
+			pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
 			break;
 		case DBGSYM::CliCommand::ReadMemory:
-			pcr = new RunCommandReadMemory(this, m_cpumode, pCommandToken->startaddress, pCommandToken->finishaddress);
+			pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
 			break;
 		case DBGSYM::CliCommand::Assemble:
-			pcr = new RunCommandAssemble(this, m_cpumode, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);
+			pcr = new RunCommandAssemble(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);
 			break;
 		case DBGSYM::CliCommand::Error:
 			pcr = new RunCommandText(this, pCommandToken->text.c_str());
@@ -383,6 +390,32 @@ CommandToken *CommandResult::GetToken()
 		ReleaseMutex(m_mux);
 	}
 	return s;
+}
+
+void *CommandResult::GetData()
+{
+	void *p=NULL;
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		p = m_data;
+		ReleaseMutex(m_mux);
+	}
+	return p;
+}
+
+void CommandResult::SetData(void *p)
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		if (m_data)
+		{
+			free(m_data);
+		}
+		m_data = p;
+		ReleaseMutex(m_mux);
+	}
 }
 
 bool CommandResult::IsFinished()

@@ -20,27 +20,132 @@
 #include "runcommand.h"
 #include "commandresult.h"
 
-RunCommandMapMemory::RunCommandMapMemory(ICommandResult *pCommandResult)
+RunCommandMapMemory::RunCommandMapMemory(ICommandResult *pCommandResult, int iDebuggerMmuIndex, DBGSYM::CliMapMemory::CliMapMemory map)
 {
-	this->m_pCommandResult  = pCommandResult;
+	m_iMmuIndex = -1;
+	m_pCommandResult  = pCommandResult;
+	m_map  = map;
+	m_iDebuggerMmuIndex = iDebuggerMmuIndex;
 }
 
 HRESULT RunCommandMapMemory::Run()
 {
-//std::basic_string<TCHAR> s;
-	
-	//DBGSYM::CliMapMemory::CliMapMemory mm = m_pCommandResult->GetToken()->mapmemory;
-	//if ((int)mm & DBGSYM::CliMapMemory::k
-	//s.append(TEXT("Kernal"));
-	//this->m_pCommandResult->AddLine(s);
+IMonitor *mon = m_pCommandResult->GetMonitor();
+	m_iMmuIndex = GetMmuIndexFromMap(m_map);
+	m_pCommandResult->AddLine(TEXT("C64 memory map\r"));
+	switch(m_iMmuIndex & 0xf)
+	{
+	case 0xf:
+		m_pCommandResult->AddLine(TEXT("E000 - FFFF: Kernal ROM\r"));
+		if (m_iMmuIndex & 0x10)
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+		else
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: Char ROM\r"));
+		m_pCommandResult->AddLine(TEXT("C000 - CFFF: RAM\r"));
+		m_pCommandResult->AddLine(TEXT("A000 - BFFF: Basic ROM\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - 9FFF: RAM\r"));
+		break;
+	case 0xa:
+	case 0xb:
+		m_pCommandResult->AddLine(TEXT("E000 - FFFF: RAM\r"));
+		if (m_iMmuIndex & 0x10)
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+		else
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: Char ROM\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - CFFF: RAM\r"));
+		break;
+	case 0x8:
+		if (m_iMmuIndex & 0x10)
+		{
+			m_pCommandResult->AddLine(TEXT("E000 - FFFF: RAM\r"));
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+			m_pCommandResult->AddLine(TEXT("0000 - CFFF: RAM\r"));
+		}
+		else
+		{
+			m_pCommandResult->AddLine(TEXT("0000 - FFFF: RAM\r"));
+		}
+		break;
+	case 0x7:
+	case 0x6:
+		m_pCommandResult->AddLine(TEXT("E000 - FFFF: Kernal ROM\r"));
+		if (m_iMmuIndex & 0x10)
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+		else
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: Char ROM\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - CFFF: RAM\r"));
+		break;
+	case 0x0:
+	case 0x2:
+	case 0x3:
+		m_pCommandResult->AddLine(TEXT("0000 - FFFF: RAM\r"));
+		break;
+	case 0xe: 
+		m_pCommandResult->AddLine(TEXT("E000 - FFFF: Kernal ROM\r"));
+		if (m_iMmuIndex & 0x10)
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+		else
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: Char ROM\r"));
+		m_pCommandResult->AddLine(TEXT("C000 - CFFF: RAM\r"));
+		m_pCommandResult->AddLine(TEXT("A000 - BFFF: Basic ROM\r"));
+		m_pCommandResult->AddLine(TEXT("8000 - 9FFF: Low ROM\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - 7FFF: RAM\r"));
+		break;
+	case 0x4:
+		m_pCommandResult->AddLine(TEXT("E000 - FFFF: Kernal ROM\r"));
+		if (m_iMmuIndex & 0x10)
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+		else
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: Char ROM\r"));
+		m_pCommandResult->AddLine(TEXT("C000 - CFFF: RAM\r"));
+		m_pCommandResult->AddLine(TEXT("A000 - BFFF: High ROM\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - 9FFF: RAM\r"));
+		break;
+	case 0xc:
+		m_pCommandResult->AddLine(TEXT("E000 - FFFF: Kernal ROM\r"));
+		if (m_iMmuIndex & 0x10)
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+		else
+			m_pCommandResult->AddLine(TEXT("D000 - DFFF: Char ROM\r"));
+		m_pCommandResult->AddLine(TEXT("C000 - CFFF: RAM\r"));
+		m_pCommandResult->AddLine(TEXT("A000 - BFFF: High ROM\r"));
+		m_pCommandResult->AddLine(TEXT("8000 - 9FFF: Low ROM\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - 7FFF: RAM\r"));
+		break;
+	default:
+		m_pCommandResult->AddLine(TEXT("E000 - FFFF: High ROM\r"));
+		m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
+		m_pCommandResult->AddLine(TEXT("A000 - CFFF: RO RAM\r"));
+		m_pCommandResult->AddLine(TEXT("8000 - 9FFF: Low ROM\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - 7FFF: RO RAM\r"));
+		break;
+	}
+	int *p = (int *)malloc(sizeof(int));
+	if (!p)
+		return E_OUTOFMEMORY;
+	*p = this->m_iMmuIndex;
+	this->m_pCommandResult->SetData(p);
 	return S_OK;
 }
 
-int GetMmuIndexFromMap(DBGSYM::CliMapMemory::CliMapMemory map)
+int RunCommandMapMemory::GetMmuIndexFromMap(DBGSYM::CliMapMemory::CliMapMemory map)
 {
-	if ((map & DBGSYM::CliMapMemory::_ALL) == DBGSYM::CliMapMemory::CURRENT)
+	if ((map & DBGSYM::CliMapMemory::_ALL) == DBGSYM::CliMapMemory::VIEWCURRENT)
 	{
-		return -1;//current
+		if (m_iDebuggerMmuIndex < 0)
+		{
+			//Debugger follows C64
+			return m_pCommandResult->GetMonitor()->GetMainCpu()->GetCurrentCpuMmuMemoryMap();
+		}
+		else
+		{
+			//Debugger using own map
+			return m_iDebuggerMmuIndex;
+		}
+	}
+	else if ((map & DBGSYM::CliMapMemory::SETCURRENT) == DBGSYM::CliMapMemory::SETCURRENT)
+	{
+		return m_pCommandResult->GetMonitor()->GetMainCpu()->GetCurrentCpuMmuMemoryMap();
 	}
 	else if ((map & DBGSYM::CliMapMemory::_ALL) == DBGSYM::CliMapMemory::RAM)
 	{

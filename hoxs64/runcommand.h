@@ -14,23 +14,29 @@ private:
 class RunCommandMapMemory : public IRunCommand
 {
 public:
-	RunCommandMapMemory(ICommandResult *pCommandResult);
+	RunCommandMapMemory(ICommandResult *pCommandResult, int iDebuggerMmuIndex, DBGSYM::CliMapMemory::CliMapMemory map);
 protected:
 	virtual HRESULT Run();
 	std::basic_string<TCHAR> m_sLineBuffer;
 private:
 	ICommandResult *m_pCommandResult;
+	DBGSYM::CliMapMemory::CliMapMemory m_map;
+	int m_iMmuIndex;
+	int m_iDebuggerMmuIndex;
+
+	int GetMmuIndexFromMap(DBGSYM::CliMapMemory::CliMapMemory map);
 };
 
 class RunCommandReadMemory : public IRunCommand
 {
 public:
-	RunCommandReadMemory(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress);
+	RunCommandReadMemory(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit16 finishaddress);
 protected:
 	virtual HRESULT Run();
 
 	bit16 m_address;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	int m_iDebuggerMmuIndex;
 	bit16 m_startaddress;
 	bit16 m_finishaddress;
 	std::basic_string<TCHAR> m_sLineBuffer;
@@ -41,12 +47,13 @@ private:
 class RunCommandDisassembly : public IRunCommand
 {
 public:
-	RunCommandDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit16 finishaddress);
+	RunCommandDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit16 finishaddress);
 protected:
 	virtual HRESULT Run();
 
 	bit16 m_address;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	int m_iDebuggerMmuIndex;
 	bit16 m_startaddress;
 	bit16 m_finishaddress;
 	std::basic_string<TCHAR> m_sLineBuffer;
@@ -57,7 +64,7 @@ private:
 class RunCommandAssemble : public IRunCommand
 {
 public:
-	RunCommandAssemble(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit16 startaddress, bit8 *data, int dataLength);
+	RunCommandAssemble(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit8 *data, int dataLength);
 protected:
 	virtual HRESULT Run();
 
@@ -65,6 +72,7 @@ protected:
 	bit8 *m_data;
 	int m_dataLength;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	int m_iDebuggerMmuIndex;
 	bit16 m_startaddress;
 	std::basic_string<TCHAR> m_sLineBuffer;
 private:

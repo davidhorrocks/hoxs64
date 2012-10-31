@@ -473,7 +473,7 @@ IEnumBreakpointItem *Monitor::BM_CreateEnumBreakpointItem()
 	return r;
 }
 
-HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, shared_ptr<ICommandResult> *pICommandResult)
+HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, shared_ptr<ICommandResult> *pICommandResult)
 {
 	HRESULT hr = E_FAIL;
 	shared_ptr<ICommandResult> p;
@@ -482,7 +482,7 @@ HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int 
 	{
 		try
 		{
-			p = shared_ptr<ICommandResult>(new CommandResult(this, cpumode));
+			p = shared_ptr<ICommandResult>(new CommandResult(this, cpumode, iDebuggerMmuIndex));
 			if (!p)
 				throw std::bad_alloc();
 			m_lstCommandResult.push_back(p);
@@ -547,7 +547,7 @@ void Monitor::QuitCommands()
 	m_lstCommandResult.clear();
 }
 
-HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, LPTSTR *ppszResults)
+HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, LPTSTR *ppszResults)
 {
 	Assembler as;
 	CommandToken *pcmdt = 0;
@@ -557,7 +557,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 	DWORD dwWaitResult;
 	try
 	{
-		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, cpumode, &pcr);
+		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, cpumode, iDebuggerMmuIndex, &pcr);
 		if (SUCCEEDED(hr))
 		{
 			dwWaitResult = pcr->WaitFinished(10000);

@@ -203,7 +203,7 @@ namespace DBGSYM
 	{
 		enum CliMapMemory : int
 		{
-			CURRENT = 0,
+			VIEWCURRENT = 0,
 			BASIC = 1,
 			KERNAL = 2,
 			IO = 4,
@@ -211,7 +211,8 @@ namespace DBGSYM
 			ROML = 16,
 			ROMH = 32,
 			RAM = 64,
-			_ALL = 127,
+			SETCURRENT = 128,
+			_ALL = -1,
 		};
 	};
 };

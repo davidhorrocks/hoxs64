@@ -35,7 +35,8 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_nCliFontHeight = 0;
 	m_commandstate = Idle;
 	m_cpumode = DBGSYM::CliCpuMode::C64;
-	m_mapmemory = DBGSYM::CliMapMemory::CURRENT;
+	m_mapmemory = DBGSYM::CliMapMemory::VIEWCURRENT;
+	m_iDebuggerMmuIndex = -1;
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;
 
@@ -181,6 +182,7 @@ LRESULT WpcCli::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled)
 
 void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+void *p;
 	if (m_bClosing)
 		return;
 	if (!m_pICommandResult)
@@ -213,6 +215,13 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 				break;
 			case DBGSYM::CliCommand::ClearScreen:
 				this->m_pITextDocument->New();
+				break;
+			case DBGSYM::CliCommand::MapMemory:
+				p = m_pICommandResult->GetData();
+				if (p)
+				{
+					this->m_iDebuggerMmuIndex = *(int *)p;
+				}
 				break;
 			}
 		}
@@ -262,6 +271,7 @@ HRESULT hr;
 		m_pRange->Select();
 		if (!isRangeInView(m_pRange))
 			m_pRange->ScrollIntoView(tomEnd);
+		m_pRange->Select();				
 		StopCommand();
 	}
 	else
@@ -273,10 +283,9 @@ HRESULT hr;
 			{
 				WriteCommandResponse(m_pRange, pline);
 				m_pRange->Collapse(tomEnd);
-				m_pRange->Select();
 				if (!isRangeInView(m_pRange))
 					m_pRange->ScrollIntoView(tomEnd);
-				
+				m_pRange->Select();				
 			}
 		}
 		else
@@ -456,7 +465,7 @@ HRESULT WpcCli::StartCommand(LPCTSTR pszCommand)
 HRESULT hr;
 	StopCommand();
 	m_iCommandNumber++;
-	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, &m_pICommandResult);
+	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, m_iDebuggerMmuIndex, &m_pICommandResult);
 	if (SUCCEEDED(hr))
 	{		
 		m_commandstate = Busy;
