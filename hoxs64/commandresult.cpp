@@ -204,6 +204,9 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 		case DBGSYM::CliCommand::Error:
 			pcr = new RunCommandText(this, pCommandToken->text.c_str());
 			break;
+		case DBGSYM::CliCommand::ShowCpu:
+			pcr = new RunCommandCpuRegisters(this, m_cpumode);
+			break;
 		case DBGSYM::CliCommand::SelectCpu:
 			switch(pCommandToken->cpumode)
 			{

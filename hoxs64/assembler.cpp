@@ -925,6 +925,10 @@ CommandToken *pcr = NULL;
 			{
 				pcr = GetCommandTokenCpu();
 			}
+			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("r")) == 0)
+			{
+				pcr = GetCommandTokenShowCpu();
+			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cls")) == 0)
 			{
 				GetNextToken();
@@ -950,6 +954,33 @@ CommandToken *pcr = NULL;
 		if (pcr)
 			delete pcr;
 		return E_FAIL;
+	}
+}
+
+CommandToken *Assembler::GetCommandTokenShowCpu()
+{
+HRESULT hr;
+
+	CommandToken *pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+			throw std::bad_alloc();
+
+		GetNextToken();
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+		{
+			pcr->SetTokenShowCpu();
+		}
+
+		return pcr;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		throw;
 	}
 }
 
@@ -1348,6 +1379,11 @@ void CommandToken::SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode, boo
 	cmd = DBGSYM::CliCommand::SelectCpu;
 	this->cpumode = cpumode;
 	this->bViewCurrent = bViewCurrent;
+}
+
+void CommandToken::SetTokenShowCpu()
+{
+	cmd = DBGSYM::CliCommand::ShowCpu;
 }
 
 void CommandToken::SetTokenMapMemory(DBGSYM::CliMapMemory::CliMapMemory mapmemory)

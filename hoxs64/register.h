@@ -209,6 +209,7 @@ public:
 
 	void SetTokenClearScreen();
 	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode, bool bViewCurrent);
+	void SetTokenShowCpu();
 	void SetTokenHelp(LPCTSTR name);
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);

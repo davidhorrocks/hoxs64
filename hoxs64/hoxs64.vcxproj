@@ -524,6 +524,7 @@
     <ClCompile Include="bpenum.cpp" />
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="runcommandassemble.cpp" />
+    <ClCompile Include="runcommandcpuregisters.cpp" />
     <ClCompile Include="runcommanddisassembly.cpp" />
     <ClCompile Include="runcommandhelp.cpp" />
     <ClCompile Include="runcommandreadmemory.cpp" />

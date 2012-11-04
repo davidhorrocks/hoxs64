@@ -11,6 +11,19 @@ private:
 	ICommandResult *m_pCommandResult;
 };
 
+class RunCommandCpuRegisters : public IRunCommand
+{
+public:
+	RunCommandCpuRegisters(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode);
+protected:
+	virtual HRESULT Run();
+
+	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	std::basic_string<TCHAR> m_sLineBuffer;
+private:
+	ICommandResult *m_pCommandResult;
+};
+
 class RunCommandMapMemory : public IRunCommand
 {
 public:

@@ -39,6 +39,11 @@ HRESULT RunCommandHelp::Run()
 		this->m_pCommandResult->AddLine(TEXT("Clear screen.\r"));
 		this->m_pCommandResult->AddLine(TEXT("Usage: cls\r"));
 	}
+	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("r")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("CPU registers.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: r\r"));
+	}
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("cpu")) == 0)
 	{
 		this->m_pCommandResult->AddLine(TEXT("Select CPU.\r"));
@@ -75,6 +80,7 @@ HRESULT RunCommandHelp::Run()
 		this->m_pCommandResult->AddLine(TEXT("d\t- Disassemble memory.\r"));
 		this->m_pCommandResult->AddLine(TEXT("m\t- Read memory.\r"));
 		this->m_pCommandResult->AddLine(TEXT("map\t- Map memory.\r"));
+		this->m_pCommandResult->AddLine(TEXT("r\t- CPU registers.\r"));
 	}
 	return S_OK;
 }

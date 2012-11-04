@@ -154,6 +154,32 @@ HRESULT hr;
 						}
 
 						m_wpOrigEditProc = this->SubclassChildWindow(m_hWndEdit);
+						
+						if (m_pRange)
+						{
+							m_pRange->Release();
+							m_pRange = 0;
+						}
+						long iStart = 0;
+						long iEnd = 0;
+						long iLen;
+						if (SUCCEEDED(m_pITextDocument->Range(iStart, iEnd, &m_pRange)))
+						{
+							m_pRange->Collapse(tomEnd);
+							m_pRange->GetStoryLength(&iLen);
+							if (iEnd>=iLen)
+							{
+								WriteCommandResponse(m_pRange, TEXT("\r"));
+								m_pRange->Collapse(tomEnd);
+							}
+							else
+							{
+								WriteCommandResponse(m_pRange, TEXT("\r"));
+								m_pRange->Collapse(tomStart);
+							}
+							m_pRange->Select();
+							StartCommand(TEXT("r"));
+						}
 						return S_OK;
 					}
 				}
