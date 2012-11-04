@@ -42,7 +42,7 @@ HRESULT RunCommandHelp::Run()
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("cpu")) == 0)
 	{
 		this->m_pCommandResult->AddLine(TEXT("Select CPU.\r"));
-		this->m_pCommandResult->AddLine(TEXT("Usage: cpu {0|1}\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: cpu [0|1|c64|disk]\r"));
 		this->m_pCommandResult->AddLine(TEXT("Example: cpu 0\r"));
 	}
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("d")) == 0)

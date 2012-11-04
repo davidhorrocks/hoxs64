@@ -965,33 +965,56 @@ CommandToken *pcr = NULL;
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cpu")) == 0)
 			{
-				do
+				bool bViewCpu = true;
+				bool bOk = false;
+				DBGSYM::CliCpuMode::CliCpuMode cpumode  = DBGSYM::CliCpuMode::C64;
+				pcr = new CommandToken();
+				if (pcr == 0)
+					throw std::bad_alloc();
+				GetNextToken();
+				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 				{
-					GetNextToken();
-					bit16 num;
-					hr = _ParseNumber16(&num);
-					if (SUCCEEDED(hr) && m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+					bViewCpu = true;
+					bOk = true;
+				}
+				else
+				{
+					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 					{
-						DBGSYM::CliCpuMode::CliCpuMode cpumode = (DBGSYM::CliCpuMode::CliCpuMode)num;
-						switch (cpumode)
+						if (m_CurrentToken.Value8 >=0 && m_CurrentToken.Value8 <=1)
 						{
-						case DBGSYM::CliCpuMode::C64:
-						case DBGSYM::CliCpuMode::Disk:
-							pcr = new CommandToken();
-							if (pcr == 0)
-								throw std::bad_alloc();
-							pcr->SetTokenSelectCpu((DBGSYM::CliCpuMode::CliCpuMode)num);
-							break;
+							cpumode = (DBGSYM::CliCpuMode::CliCpuMode)m_CurrentToken.Value8;
+							bViewCpu = false;
+							bOk = true;
+							GetNextToken();
 						}
 					}
-				} while (false);
-				if (!pcr)
-				{
-					pcr = new CommandToken();
-					if (pcr == 0)
-						throw std::bad_alloc();
-					pcr->SetTokenHelp(TEXT("cpu"));
+					else
+					{
+						if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("C64")) == 0)
+						{
+							bViewCpu = false;
+							bOk = true;
+							DBGSYM::CliCpuMode::CliCpuMode cpumode  = DBGSYM::CliCpuMode::C64;
+							GetNextToken();
+						}
+						else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("DISK")) == 0)
+						{
+							bViewCpu = false;
+							bOk = true;
+							DBGSYM::CliCpuMode::CliCpuMode cpumode  = DBGSYM::CliCpuMode::Disk;
+							GetNextToken();
+						}
+					}
 				}
+				if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+				{
+					bOk = false;
+				}
+				if (bOk)
+					pcr->SetTokenSelectCpu(cpumode, bViewCpu);
+				else
+					pcr->SetTokenHelp(TEXT("cpu"));
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cls")) == 0)
 			{
@@ -1282,10 +1305,11 @@ void CommandToken::SetTokenError(LPCTSTR pszErrortext)
 	text.append(pszErrortext);
 }
 
-void CommandToken::SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode)
+void CommandToken::SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode, bool bViewCurrent)
 {
 	cmd = DBGSYM::CliCommand::SelectCpu;
 	this->cpumode = cpumode;
+	this->bViewCurrent = bViewCurrent;
 }
 
 void CommandToken::SetTokenMapMemory(DBGSYM::CliMapMemory::CliMapMemory mapmemory)

@@ -197,17 +197,25 @@ RunCommandMapMemory *pRunCommandMapMemory;
 		CommandToken *pToken = m_pICommandResult->GetToken();
 		if (pToken)
 		{
+			DBGSYM::CliCpuMode::CliCpuMode cpumode = DBGSYM::CliCpuMode::C64;
 			switch(pToken->cmd)
 			{
 			case DBGSYM::CliCommand::SelectCpu:
-				switch (pToken->cpumode)
+				if (pToken->bViewCurrent)
+				{
+					cpumode = this->m_cpumode;
+				}
+				else
+				{
+					cpumode = pToken->cpumode;
+					this->m_cpumode = pToken->cpumode;
+				}
+				switch (cpumode)
 				{
 					case DBGSYM::CliCpuMode::C64:
-						this->m_cpumode = pToken->cpumode;
 						m_pICommandResult->AddLine(TEXT("C64\r"));
 						break;
 					case DBGSYM::CliCpuMode::Disk:
-						this->m_cpumode = pToken->cpumode;
 						m_pICommandResult->AddLine(TEXT("Disk\r"));
 						break;
 				}

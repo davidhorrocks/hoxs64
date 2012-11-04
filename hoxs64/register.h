@@ -208,7 +208,7 @@ public:
 	~CommandToken();
 
 	void SetTokenClearScreen();
-	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode);
+	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode, bool bViewCurrent);
 	void SetTokenHelp(LPCTSTR name);
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);
@@ -235,6 +235,7 @@ public:
 	DBGSYM::CliMapMemory::CliMapMemory mapmemory;
 	bit8 buffer[256];
 	int dataLength;
+	bool bViewCurrent;
 };
 
 class IRunCommand;
