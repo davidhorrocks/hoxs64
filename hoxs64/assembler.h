@@ -36,6 +36,8 @@ public:
 	CommandToken *GetCommandTokenReadMemory();
 	CommandToken *GetCommandTokenWriteMemory();
 	CommandToken *GetCommandTokenMapMemory();
+	CommandToken *GetCommandTokenDisassembleLine();
+	CommandToken *GetCommandTokenCpu();
 
 	static HRESULT TryParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 private:

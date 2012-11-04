@@ -919,102 +919,11 @@ CommandToken *pcr = NULL;
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("D")) == 0)
 			{
-				pcr = new CommandToken();
-				if (pcr == 0)
-					throw std::bad_alloc();
-				GetNextToken();
-				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
-				{
-					pcr->SetTokenError(TEXT("Require start-address.\r"));
-				}
-				else
-				{
-					bit16 startaddress, endaddress;
-					hr = _ParseNumber16(&startaddress);
-					if (SUCCEEDED(hr))
-					{
-						if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
-						{
-							pcr->SetTokenDisassembly(startaddress, (startaddress + 0x0f) & 0xffff);
-						}
-						else
-						{
-							hr = _ParseNumber16(&endaddress);
-							if (SUCCEEDED(hr))
-							{
-								if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
-								{
-									pcr->SetTokenDisassembly(startaddress, endaddress);
-								}
-								else
-								{
-									pcr->SetTokenError(TEXT("Disassemble memory failed.\r"));
-								}
-							}
-							else
-							{
-								pcr->SetTokenError(TEXT("Invalid end-address.\r"));
-							}
-						}
-					}
-					else
-					{
-						pcr->SetTokenError(TEXT("Invalid start-address.\r"));
-					}
-				}
+				pcr = GetCommandTokenDisassembleLine();
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cpu")) == 0)
 			{
-				bool bViewCpu = true;
-				bool bOk = false;
-				DBGSYM::CliCpuMode::CliCpuMode cpumode  = DBGSYM::CliCpuMode::C64;
-				pcr = new CommandToken();
-				if (pcr == 0)
-					throw std::bad_alloc();
-				GetNextToken();
-				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
-				{
-					bViewCpu = true;
-					bOk = true;
-				}
-				else
-				{
-					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
-					{
-						if (m_CurrentToken.Value8 >=0 && m_CurrentToken.Value8 <=1)
-						{
-							cpumode = (DBGSYM::CliCpuMode::CliCpuMode)m_CurrentToken.Value8;
-							bViewCpu = false;
-							bOk = true;
-							GetNextToken();
-						}
-					}
-					else
-					{
-						if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("C64")) == 0)
-						{
-							bViewCpu = false;
-							bOk = true;
-							cpumode  = DBGSYM::CliCpuMode::C64;
-							GetNextToken();
-						}
-						else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("DISK")) == 0)
-						{
-							bViewCpu = false;
-							bOk = true;
-							cpumode  = DBGSYM::CliCpuMode::Disk;
-							GetNextToken();
-						}
-					}
-				}
-				if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
-				{
-					bOk = false;
-				}
-				if (bOk)
-					pcr->SetTokenSelectCpu(cpumode, bViewCpu);
-				else
-					pcr->SetTokenHelp(TEXT("cpu"));
+				pcr = GetCommandTokenCpu();
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("cls")) == 0)
 			{
@@ -1041,6 +950,135 @@ CommandToken *pcr = NULL;
 		if (pcr)
 			delete pcr;
 		return E_FAIL;
+	}
+}
+
+CommandToken *Assembler::GetCommandTokenCpu()
+{
+HRESULT hr;
+
+	CommandToken *pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+			throw std::bad_alloc();
+
+		bool bViewCpu = true;
+		bool bOk = false;
+		DBGSYM::CliCpuMode::CliCpuMode cpumode  = DBGSYM::CliCpuMode::C64;
+		GetNextToken();
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+		{
+			bViewCpu = true;
+			bOk = true;
+		}
+		else
+		{
+			if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+			{
+				if (m_CurrentToken.Value8 >=0 && m_CurrentToken.Value8 <=1)
+				{
+					cpumode = (DBGSYM::CliCpuMode::CliCpuMode)m_CurrentToken.Value8;
+					bViewCpu = false;
+					bOk = true;
+					GetNextToken();
+				}
+			}
+			else
+			{
+				if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("C64")) == 0)
+				{
+					bViewCpu = false;
+					bOk = true;
+					cpumode  = DBGSYM::CliCpuMode::C64;
+					GetNextToken();
+				}
+				else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("DISK")) == 0)
+				{
+					bViewCpu = false;
+					bOk = true;
+					cpumode  = DBGSYM::CliCpuMode::Disk;
+					GetNextToken();
+				}
+			}
+		}
+		if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+		{
+			bOk = false;
+		}
+		if (bOk)
+			pcr->SetTokenSelectCpu(cpumode, bViewCpu);
+		else
+			pcr->SetTokenHelp(TEXT("cpu"));
+
+		return pcr;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		throw;
+	}
+}
+
+CommandToken *Assembler::GetCommandTokenDisassembleLine()
+{
+HRESULT hr;
+
+	CommandToken *pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+			throw std::bad_alloc();
+		GetNextToken();
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+		{
+			pcr->SetTokenError(TEXT("Require start-address.\r"));
+		}
+		else
+		{
+			bit16 startaddress, endaddress;
+			hr = _ParseNumber16(&startaddress);
+			if (SUCCEEDED(hr))
+			{
+				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				{
+					pcr->SetTokenDisassembly(startaddress, (startaddress + 0x0f) & 0xffff);
+				}
+				else
+				{
+					hr = _ParseNumber16(&endaddress);
+					if (SUCCEEDED(hr))
+					{
+						if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+						{
+							pcr->SetTokenDisassembly(startaddress, endaddress);
+						}
+						else
+						{
+							pcr->SetTokenError(TEXT("Disassemble memory failed.\r"));
+						}
+					}
+					else
+					{
+						pcr->SetTokenError(TEXT("Invalid end-address.\r"));
+					}
+				}
+			}
+			else
+			{
+				pcr->SetTokenError(TEXT("Invalid start-address.\r"));
+			}
+		}
+		return pcr;
+	}
+	catch(std::exception)
+	{
+		if (pcr)
+			delete pcr;
+		throw;
 	}
 }
 
