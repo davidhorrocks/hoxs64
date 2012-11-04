@@ -16,33 +16,35 @@ public:
 	//ICommandResult
 	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id);
 	virtual HRESULT Quit();
-	virtual bool IsFinished();
 	virtual bool IsQuit();
 	virtual DWORD WaitLinesTakenOrQuit(DWORD timeout);
+	virtual DWORD WaitResultDataTakenOrQuit(DWORD timeout);
 	virtual DWORD WaitFinished(DWORD timeout);
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
+	virtual void SetHwnd(HWND hWnd);
 	virtual void Reset();
 	virtual void AddLine(LPCTSTR pszLine);
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
+	virtual void SetDataTaken();
 	virtual size_t CountUnreadLines();
 	virtual int GetId();
 	virtual IMonitor* GetMonitor();
 	virtual CommandToken* GetToken();
-	virtual void *GetData();
-	virtual void SetData(void *p);
+	virtual IRunCommand* GetRunCommand();
 protected:
-	HRESULT CreateCliCommandResult(CommandToken *pCommandToken, IRunCommand **ppRunCommand);
+	HRESULT CreateRunCommand(CommandToken *pCommandToken, IRunCommand **ppRunCommand);
 	virtual HRESULT Run();
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
 	void PostFinished();
-	void SetFinished();
 	size_t line;
 	std::vector<LPTSTR> a_lines;
 	HWND m_hWnd;
 	HANDLE m_hThread;
 	HANDLE m_hevtQuit;
 	HANDLE m_hevtLineTaken;
+	HANDLE m_hevtResultDataReady;
+	HANDLE m_hevtResultDataTaken;
 	HANDLE m_mux;
 	DWORD m_dwThreadId;
 	int m_id;
@@ -50,13 +52,12 @@ protected:
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	int m_iDebuggerMmuIndex;
 	CommandToken *m_pCommandToken;
-	void *m_data;
+	IRunCommand *m_pIRunCommand;
 private:
     CommandResult(CommandResult const &);
     CommandResult & operator=(CommandResult const &);
 
 	std::basic_string<TCHAR> m_sCommandLine;
-	bool m_bIsFinished;
 	bool m_bIsQuit;
 	void InitVars();
 	void Cleanup();

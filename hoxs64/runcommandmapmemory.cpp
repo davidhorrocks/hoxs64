@@ -31,8 +31,36 @@ RunCommandMapMemory::RunCommandMapMemory(ICommandResult *pCommandResult, int iDe
 HRESULT RunCommandMapMemory::Run()
 {
 IMonitor *mon = m_pCommandResult->GetMonitor();
-	m_iMmuIndex = GetMmuIndexFromMap(m_map);
-	m_pCommandResult->AddLine(TEXT("C64 memory map\r"));
+	m_bSetDebuggerToFollowC64Mmu = ((m_map & DBGSYM::CliMapMemory::_ALL) == DBGSYM::CliMapMemory::SETCURRENT);
+	m_bViewDebuggerC64Mmu = ((m_map & DBGSYM::CliMapMemory::_ALL) == DBGSYM::CliMapMemory::VIEWCURRENT);
+
+	if (m_bViewDebuggerC64Mmu)
+	{
+		if (m_iDebuggerMmuIndex < 0)
+		{
+			//Debugger follows C64
+			m_iMmuIndex = m_pCommandResult->GetMonitor()->GetMainCpu()->GetCurrentCpuMmuMemoryMap();
+			m_pCommandResult->AddLine(TEXT("C64 memory map - follow C64\r"));
+		}
+		else
+		{
+			//Debugger using own map
+			m_iMmuIndex = m_iDebuggerMmuIndex;
+			m_pCommandResult->AddLine(TEXT("C64 memory map - Debugger fixed\r"));
+		}
+	}
+	else if (m_bSetDebuggerToFollowC64Mmu)
+	{
+		//Debugger to follow C64
+		m_iMmuIndex = m_pCommandResult->GetMonitor()->GetMainCpu()->GetCurrentCpuMmuMemoryMap();
+		m_pCommandResult->AddLine(TEXT("C64 memory map - follow C64\r"));
+	}
+	else
+	{
+		//Debugger to use own fixed map
+		m_iMmuIndex = GetMmuIndexFromMap(m_map);
+		m_pCommandResult->AddLine(TEXT("C64 memory map - Debugger fixed\r"));
+	}
 	switch(m_iMmuIndex & 0xf)
 	{
 	case 0xf:
@@ -120,30 +148,12 @@ IMonitor *mon = m_pCommandResult->GetMonitor();
 		m_pCommandResult->AddLine(TEXT("0000 - 7FFF: RO RAM\r"));
 		break;
 	}
-	int *p = (int *)malloc(sizeof(int));
-	if (!p)
-		return E_OUTOFMEMORY;
-	*p = this->m_iMmuIndex;
-	this->m_pCommandResult->SetData(p);
 	return S_OK;
 }
 
 int RunCommandMapMemory::GetMmuIndexFromMap(DBGSYM::CliMapMemory::CliMapMemory map)
 {
-	if ((map & DBGSYM::CliMapMemory::_ALL) == DBGSYM::CliMapMemory::VIEWCURRENT)
-	{
-		if (m_iDebuggerMmuIndex < 0)
-		{
-			//Debugger follows C64
-			return m_pCommandResult->GetMonitor()->GetMainCpu()->GetCurrentCpuMmuMemoryMap();
-		}
-		else
-		{
-			//Debugger using own map
-			return m_iDebuggerMmuIndex;
-		}
-	}
-	else if ((map & DBGSYM::CliMapMemory::SETCURRENT) == DBGSYM::CliMapMemory::SETCURRENT)
+	if ((map & DBGSYM::CliMapMemory::SETCURRENT) == DBGSYM::CliMapMemory::SETCURRENT)
 	{
 		return m_pCommandResult->GetMonitor()->GetMainCpu()->GetCurrentCpuMmuMemoryMap();
 	}

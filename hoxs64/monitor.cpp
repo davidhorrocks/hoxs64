@@ -560,7 +560,7 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, cpumode, iDebuggerMmuIndex, &pcr);
 		if (SUCCEEDED(hr))
 		{
-			dwWaitResult = pcr->WaitFinished(10000);
+			dwWaitResult = pcr->WaitFinished(INFINITE);
 			if (dwWaitResult == WAIT_OBJECT_0)
 			{
 				hr =  this->EndExecuteCommandLine(pcr);

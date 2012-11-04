@@ -33,9 +33,8 @@ void CommandResult::InitVars()
 	m_mux = 0;
 	m_pIMonitor = 0;
 	m_pCommandToken = 0;
-	m_bIsFinished = false;
 	m_bIsQuit = false;
-	m_data = NULL;
+	m_pIRunCommand = NULL;
 }
 
 CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex)
@@ -50,6 +49,13 @@ CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode
 		m_hevtLineTaken = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtLineTaken==NULL)
 			throw std::runtime_error(S_EVENTCREATEERROR);
+		m_hevtResultDataReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (m_hevtResultDataReady==NULL)
+			throw std::runtime_error(S_EVENTCREATEERROR);
+		m_hevtResultDataTaken = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (m_hevtResultDataTaken==NULL)
+			throw std::runtime_error(S_EVENTCREATEERROR);
+		//
 		m_mux = CreateMutex(NULL, FALSE, NULL);
 		if (m_mux==NULL)
 			throw std::runtime_error(S_EVENTCREATEERROR);
@@ -72,6 +78,12 @@ CommandResult::~CommandResult()
 void CommandResult::Cleanup()
 {
 	Quit();
+	if (m_hThread)
+	{
+		WaitFinished(INFINITE);
+		CloseHandle(m_hThread);
+		m_hThread = NULL;
+	}
 	if (m_hevtQuit)
 	{
 		CloseHandle(m_hevtQuit);
@@ -82,7 +94,17 @@ void CommandResult::Cleanup()
 		CloseHandle(m_hevtLineTaken);
 		m_hevtLineTaken = NULL;
 	}
-	//
+	if (m_hevtResultDataReady)
+	{
+		CloseHandle(m_hevtResultDataReady);
+		m_hevtResultDataReady = NULL;
+	}
+	if (m_hevtResultDataTaken)
+	{
+		CloseHandle(m_hevtResultDataTaken);
+		m_hevtResultDataTaken = NULL;
+	}
+
 	if (m_mux)
 	{
 		CloseHandle(m_mux);
@@ -100,10 +122,10 @@ void CommandResult::Cleanup()
 		delete m_pCommandToken;
 		m_pCommandToken = 0;
 	}
-	if (m_data)
+	if (m_pIRunCommand)
 	{
-		free(m_data);
-		m_data = 0;
+		delete m_pIRunCommand;
+		m_pIRunCommand = 0;
 	}
 }
 
@@ -111,7 +133,6 @@ HRESULT CommandResult::Run()
 {
 	Assembler as;
 	HRESULT hr = E_FAIL;
-	IRunCommand *pcr;
 	try
 	{
 		if (m_pCommandToken)
@@ -119,14 +140,35 @@ HRESULT CommandResult::Run()
 			delete m_pCommandToken;
 			m_pCommandToken = 0;
 		}
+		if (m_pIRunCommand)
+		{
+			delete m_pIRunCommand;
+			m_pIRunCommand = 0;
+		}
+		SetStatus(DBGSYM::CliCommandStatus::Running);
 		hr = as.CreateCliCommandToken(m_sCommandLine.c_str(), &m_pCommandToken);
 		if (SUCCEEDED(hr))
 		{
-			hr = CreateCliCommandResult(m_pCommandToken, &pcr);
+			hr = CreateRunCommand(m_pCommandToken, &m_pIRunCommand);
 			if (SUCCEEDED(hr))
 			{
-				hr = pcr->Run();
+				hr = m_pIRunCommand->Run();
 			}
+		}
+		DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+		if (rm == WAIT_OBJECT_0)
+		{
+			if (SUCCEEDED(hr))
+			{
+				SetStatus(DBGSYM::CliCommandStatus::CompletedOK);
+				PostFinished();
+			}
+			else
+			{
+				SetStatus(DBGSYM::CliCommandStatus::Failed);
+				PostFinished();
+			}
+			ReleaseMutex(m_mux);
 		}
 	}
 	catch(...)
@@ -136,7 +178,7 @@ HRESULT CommandResult::Run()
 	return hr;
 }
 
-HRESULT CommandResult::CreateCliCommandResult(CommandToken *pCommandToken, IRunCommand **ppRunCommand)
+HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand **ppRunCommand)
 {
 	HRESULT hr = E_FAIL;
 	IRunCommand *pcr = 0;
@@ -305,11 +347,12 @@ HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString, int id)
 	if (rm == WAIT_OBJECT_0)
 	{
 		Quit();
+		ResetEvent(m_hevtResultDataReady);
+		ResetEvent(m_hevtResultDataTaken);
 		try
 		{
 			m_sCommandLine.clear();
 			m_sCommandLine.append(pszCommandString);
-			m_bIsFinished = false;
 			m_bIsQuit = false;
 			m_hWnd = hWnd;
 			m_id = id;
@@ -340,6 +383,16 @@ void CommandResult::SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)
 	if (rm == WAIT_OBJECT_0)
 	{
 		m_status = status;
+		ReleaseMutex(m_mux);
+	}
+}
+
+void CommandResult::SetHwnd(HWND hWnd)
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		m_hWnd = hWnd;
 		ReleaseMutex(m_mux);
 	}
 }
@@ -386,45 +439,19 @@ CommandToken *CommandResult::GetToken()
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		s =  this->m_pCommandToken;;
+		s =  this->m_pCommandToken;
 		ReleaseMutex(m_mux);
 	}
 	return s;
 }
 
-void *CommandResult::GetData()
+IRunCommand *CommandResult::GetRunCommand()
 {
-	void *p=NULL;
+	IRunCommand *s=0;
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		p = m_data;
-		ReleaseMutex(m_mux);
-	}
-	return p;
-}
-
-void CommandResult::SetData(void *p)
-{
-	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
-	if (rm == WAIT_OBJECT_0)
-	{
-		if (m_data)
-		{
-			free(m_data);
-		}
-		m_data = p;
-		ReleaseMutex(m_mux);
-	}
-}
-
-bool CommandResult::IsFinished()
-{
-	bool s= false;
-	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
-	if (rm == WAIT_OBJECT_0)
-	{
-		s =  m_bIsFinished;
+		s = this->m_pIRunCommand;
 		ReleaseMutex(m_mux);
 	}
 	return s;
@@ -442,20 +469,10 @@ bool CommandResult::IsQuit()
 	return s;
 }
 
-void CommandResult::SetFinished()
-{
-	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
-	if (rm == WAIT_OBJECT_0)
-	{
-		m_bIsFinished = true;
-		ReleaseMutex(m_mux);
-	}
-}
-
 DWORD CommandResult::WaitFinished(DWORD timeout)
 {
 DWORD r = 0;
-	if (GetStatus() == DBGSYM::CliCommandStatus::Running)
+	if (m_hThread)
 	{
 		r = WaitForSingleObject(&m_hThread, timeout);
 		return r;
@@ -474,6 +491,19 @@ DWORD r;
 	return r;
 }
 
+DWORD CommandResult::WaitResultDataTakenOrQuit(DWORD timeout)
+{
+DWORD r;
+	HANDLE wh[] = {m_hevtResultDataReady, m_hevtQuit};
+	r = WaitForMultipleObjects(2, &wh[0], FALSE, timeout);
+	return r;
+}
+
+void CommandResult::SetDataTaken()
+{
+	SetEvent(m_hevtResultDataTaken);
+}
+
 HRESULT CommandResult::Quit()
 {
 DWORD r = 0;
@@ -483,32 +513,9 @@ HANDLE hThread = 0;
 	if (rm == WAIT_OBJECT_0)
 	{
 		m_bIsQuit = true;
-		if (m_hThread)
-		{
-			hThread = m_hThread;
-			m_hThread = 0;
-			SetEvent(m_hevtQuit);
-			ReleaseMutex(m_mux);
-			//HANDLE wh[] = {m_hThread, m_hevtQuit};
-			//r = MsgWaitForMultipleObjects(2, &m_hThread, TRUE, INFINITE, QS_ALLINPUT);
-			//r = WaitForMultipleObjects(2, &m_hThread, TRUE, INFINITE);
-			WaitForSingleObject(&hThread, INFINITE);
-			//if (r >= WAIT_OBJECT_0 && r < WAIT_OBJECT_0 + _countof(wh))
-			if (r == WAIT_OBJECT_0)
-			{
-				if (hThread)
-				{
-					CloseHandle(hThread);
-					hThread = NULL;
-				}
-				hr = S_OK;
-			}
-		}
-		else
-		{
-			ReleaseMutex(m_mux);
-			hr = S_OK;
-		}		
+		SetEvent(m_hevtQuit);
+		ReleaseMutex(m_mux);
+		hr = S_OK;	
 	}
 	return hr;
 }
@@ -522,30 +529,14 @@ void CommandResult::PostFinished()
 			PostMessage(m_hWnd, WM_COMMANDRESULT_COMPLETED, m_id, (LPARAM)this);
 		ReleaseMutex(m_mux);
 	}
+	SetEvent(m_hevtResultDataReady);
+	WaitResultDataTakenOrQuit(INFINITE);
 }
 
 DWORD WINAPI CommandResult::ThreadProc(LPVOID lpThreadParameter)
 {
 	CommandResult *p = (CommandResult *)lpThreadParameter;
 	HRESULT hr;
-	p->SetStatus(DBGSYM::CliCommandStatus::Running);
 	hr = p->Run();
-	DWORD rm = WaitForSingleObject(p->m_mux, INFINITE);
-	if (rm == WAIT_OBJECT_0)
-	{
-		if (SUCCEEDED(hr))
-		{
-			p->SetStatus(DBGSYM::CliCommandStatus::CompletedOK);
-			p->SetFinished();
-			p->PostFinished();
-		}
-		else
-		{
-			p->SetStatus(DBGSYM::CliCommandStatus::Failed);
-			p->SetFinished();
-			p->PostFinished();
-		}
-		ReleaseMutex(p->m_mux);
-	}
 	return 0;
 }

@@ -21,7 +21,6 @@ const TCHAR WpcCli::ClassName[] = TEXT("WPCCLI");
 WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 {
 	m_bIsTimerActive = false;
-	m_bCommandFinished = true;
 	m_bClosing = false;
 	m_iCommandNumber = 0;
 	m_hinstRiched = NULL;
@@ -182,7 +181,7 @@ LRESULT WpcCli::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled)
 
 void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-void *p;
+RunCommandMapMemory *pRunCommandMapMemory;
 	if (m_bClosing)
 		return;
 	if (!m_pICommandResult)
@@ -217,26 +216,26 @@ void *p;
 				this->m_pITextDocument->New();
 				break;
 			case DBGSYM::CliCommand::MapMemory:
-				p = m_pICommandResult->GetData();
-				if (p)
+				pRunCommandMapMemory = (RunCommandMapMemory *)m_pICommandResult->GetRunCommand();
+				if (pRunCommandMapMemory)
 				{
-					this->m_iDebuggerMmuIndex = *(int *)p;
+					if (!pRunCommandMapMemory->m_bViewDebuggerC64Mmu)
+					{
+						if (pRunCommandMapMemory->m_bSetDebuggerToFollowC64Mmu)
+							this->m_iDebuggerMmuIndex = -1;
+						else
+							this->m_iDebuggerMmuIndex = pRunCommandMapMemory->m_iMmuIndex;
+					}
 				}
 				break;
 			}
 		}
-		m_bCommandFinished = true;
-
-		//UINT_PTR t = SetTimer(hWnd, m_pICommandResult->GetId(), 30, NULL);
-		//if (t)
-		//{
-		//	m_bIsTimerActive = true;
-		//}
 	}
-	else
+	if (m_pICommandResult)
 	{
-		StopCommand();
+		m_pICommandResult->SetDataTaken();
 	}
+	//StopCommand();
 }
 
 void WpcCli::OnTimer(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -288,11 +287,16 @@ HRESULT hr;
 				m_pRange->Select();				
 			}
 		}
-		else
+		if (m_pICommandResult->CountUnreadLines() == 0)
 		{
-			//No more lines
-			if (m_bCommandFinished)
+			DBGSYM::CliCommandStatus::CliCommandStatus status = m_pICommandResult->GetStatus();
+			switch(status)
+			{
+			case DBGSYM::CliCommandStatus::CompletedOK:
+			case DBGSYM::CliCommandStatus::Running:
 				StopCommand();
+				break;
+			}
 		}
 	}
 	if (pSel)
@@ -334,6 +338,10 @@ void WpcCli::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void WpcCli::OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (m_pICommandResult)
+	{
+		m_pICommandResult->SetHwnd(NULL);
+	}
 	StopCommand();
 	if (m_hWndEdit)
 	{
@@ -389,11 +397,6 @@ int wmId, wmEvent;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
-		//switch (wmId) 
-		//{
-		//case IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY:
-		//	return 0;
-		//}
 		break;
 	case WM_TIMER:
 		OnTimer(m_hWnd, uMsg, wParam, lParam);
@@ -468,12 +471,11 @@ HRESULT hr;
 	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, m_iDebuggerMmuIndex, &m_pICommandResult);
 	if (SUCCEEDED(hr))
 	{		
-		m_commandstate = Busy;
-		m_bCommandFinished = false;
 		UINT_PTR t = SetTimer(m_hWnd, m_pICommandResult->GetId(), 30, NULL);
 		if (t)
 		{
 			m_bIsTimerActive = true;
+			m_commandstate = Busy;
 		}	
 	}
 	else
@@ -485,7 +487,6 @@ HRESULT hr;
 
 void WpcCli::StopCommand()
 {
-	m_bCommandFinished = true;
 	if (m_pICommandResult)
 	{
 		if (m_bIsTimerActive)
@@ -495,8 +496,8 @@ void WpcCli::StopCommand()
 		}
 		m_pICommandResult->Quit();
 		m_pICommandResult.reset();
-		m_commandstate = Idle;
 	}
+	m_commandstate = Idle;
 }
 
 void WpcCli::OnCommandEnterKey()
@@ -506,7 +507,7 @@ LPTSTR ps = NULL;
 long iStart = 0;
 long iEnd = 0;
 long iLen = 0;
-	if (m_commandstate != Idle || m_pICommandResult)
+	if (m_commandstate == Busy || m_pICommandResult)
 		return;
 	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb, NULL, NULL)))
 	{

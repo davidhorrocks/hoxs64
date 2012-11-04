@@ -14,6 +14,9 @@ private:
 class RunCommandMapMemory : public IRunCommand
 {
 public:
+	bool m_bSetDebuggerToFollowC64Mmu;
+	bool m_bViewDebuggerC64Mmu;
+	int m_iMmuIndex;
 	RunCommandMapMemory(ICommandResult *pCommandResult, int iDebuggerMmuIndex, DBGSYM::CliMapMemory::CliMapMemory map);
 protected:
 	virtual HRESULT Run();
@@ -21,9 +24,7 @@ protected:
 private:
 	ICommandResult *m_pCommandResult;
 	DBGSYM::CliMapMemory::CliMapMemory m_map;
-	int m_iMmuIndex;
 	int m_iDebuggerMmuIndex;
-
 	int GetMmuIndexFromMap(DBGSYM::CliMapMemory::CliMapMemory map);
 };
 
