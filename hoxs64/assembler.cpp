@@ -995,14 +995,14 @@ CommandToken *pcr = NULL;
 						{
 							bViewCpu = false;
 							bOk = true;
-							DBGSYM::CliCpuMode::CliCpuMode cpumode  = DBGSYM::CliCpuMode::C64;
+							cpumode  = DBGSYM::CliCpuMode::C64;
 							GetNextToken();
 						}
 						else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("DISK")) == 0)
 						{
 							bViewCpu = false;
 							bOk = true;
-							DBGSYM::CliCpuMode::CliCpuMode cpumode  = DBGSYM::CliCpuMode::Disk;
+							cpumode  = DBGSYM::CliCpuMode::Disk;
 							GetNextToken();
 						}
 					}
