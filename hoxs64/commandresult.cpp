@@ -46,7 +46,7 @@ CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode
 		m_hevtQuit = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtQuit==NULL)
 			throw std::runtime_error(S_EVENTCREATEERROR);
-		m_hevtLineTaken = CreateEvent(NULL, TRUE, FALSE, NULL);
+		m_hevtLineTaken = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (m_hevtLineTaken==NULL)
 			throw std::runtime_error(S_EVENTCREATEERROR);
 		m_hevtResultDataReady = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -359,17 +359,19 @@ DWORD r;
 HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString, int id)
 {
 	HRESULT r = E_FAIL;
+	Quit();
+	this->WaitFinished(INFINITE);
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		Quit();
+		m_bIsQuit = false;
+		ResetEvent(m_hevtQuit);
 		ResetEvent(m_hevtResultDataReady);
 		ResetEvent(m_hevtResultDataTaken);
 		try
 		{
 			m_sCommandLine.clear();
 			m_sCommandLine.append(pszCommandString);
-			m_bIsQuit = false;
 			m_hWnd = hWnd;
 			m_id = id;
 			this->SetStatus(DBGSYM::CliCommandStatus::Running);

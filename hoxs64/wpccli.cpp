@@ -349,12 +349,9 @@ HRESULT hr;
 		if (m_pICommandResult->CountUnreadLines() == 0)
 		{
 			DBGSYM::CliCommandStatus::CliCommandStatus status = m_pICommandResult->GetStatus();
-			switch(status)
+			if (status != DBGSYM::CliCommandStatus::Running)
 			{
-			case DBGSYM::CliCommandStatus::CompletedOK:
-			case DBGSYM::CliCommandStatus::Running:
 				StopCommand();
-				break;
 			}
 		}
 	}

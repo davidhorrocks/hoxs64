@@ -77,15 +77,16 @@ HRESULT RunCommandDisassembly::Run()
 		
 		if (m_currentAddress == m_finishaddress)
 			done = true;
+		bit16 k = m_currentAddress;
+		m_currentAddress = (m_currentAddress + instructionSize) & 0xffff;
 		for (int i=1; i<instructionSize; i++)
 		{
-			m_currentAddress = (m_currentAddress + 1) & 0xffff;
-			if (m_currentAddress == m_finishaddress)
+			k = (k + 1) & 0xffff;
+			if (k == m_finishaddress)
 				done = true;
 		}
 		if (done)
 			break;
-		m_currentAddress = (m_currentAddress + 1) & 0xffff;
 	}
 	return S_OK;
 }
