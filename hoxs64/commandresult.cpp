@@ -37,7 +37,7 @@ void CommandResult::InitVars()
 	m_pIRunCommand = NULL;
 }
 
-CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex)
+CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress)
 {
 	const char *S_EVENTCREATEERROR = "CreateEvent failed in CommandResult::CommandResult()";
 	InitVars();
@@ -62,6 +62,7 @@ CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode
 		m_pIMonitor = pIMonitor;
 		m_cpumode = cpumode;
 		m_iDebuggerMmuIndex = iDebuggerMmuIndex;
+		m_iDefaultAddress = iDefaultAddress;
 	}
 	catch(...)
 	{
@@ -182,6 +183,8 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 {
 	HRESULT hr = E_FAIL;
 	IRunCommand *pcr = 0;
+	const bit16 DEFAULTDISASSEMBLEBYTES = 0xf;
+	const bit16 DEFAULTMEMORYBYTES = 0xff;
 	try
 	{
 		switch(pCommandToken->cmd)
@@ -193,10 +196,20 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 			pcr = new RunCommandMapMemory(this, m_iDebuggerMmuIndex, pCommandToken->mapmemory);
 			break;
 		case DBGSYM::CliCommand::Disassemble:
-			pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
+			if (pCommandToken->bHasStartAddress && pCommandToken->bHasFinishAddress)
+				pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
+			else if (pCommandToken->bHasStartAddress)
+				pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, (pCommandToken->startaddress + DEFAULTDISASSEMBLEBYTES) & 0xffff);
+			else
+				pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, m_iDefaultAddress, (m_iDefaultAddress + DEFAULTDISASSEMBLEBYTES) & 0xffff);
 			break;
 		case DBGSYM::CliCommand::ReadMemory:
-			pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
+			if (pCommandToken->bHasStartAddress && pCommandToken->bHasFinishAddress)
+				pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
+			else if (pCommandToken->bHasStartAddress)
+				pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, (pCommandToken->startaddress + DEFAULTMEMORYBYTES) & 0xffff);
+			else
+				pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, m_iDefaultAddress, (m_iDefaultAddress + DEFAULTMEMORYBYTES) & 0xffff);
 			break;
 		case DBGSYM::CliCommand::Assemble:
 			pcr = new RunCommandAssemble(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);

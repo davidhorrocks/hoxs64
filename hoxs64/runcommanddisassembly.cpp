@@ -29,7 +29,7 @@ RunCommandDisassembly::RunCommandDisassembly(ICommandResult *pCommandResult, DBG
 	this->m_iDebuggerMmuIndex = iDebuggerMmuIndex;
 	this->m_startaddress = startaddress;
 	this->m_finishaddress = finishaddress;
-	this->m_address = startaddress;
+	this->m_currentAddress = startaddress;
 	this->m_sLineBuffer.reserve(50);
 }
 
@@ -45,13 +45,15 @@ HRESULT RunCommandDisassembly::Run()
 		pCpu = pMon->GetMainCpu();
 	else
 		pCpu = pMon->GetDiskCpu();
-	bit16 currentAddress = m_startaddress;
+	
+	m_currentAddress = m_startaddress;
+	bool done=false;
 	while (true)
 	{
 		if (m_pCommandResult->IsQuit())
 			break;
 		m_sLineBuffer.clear();
-		int instructionSize = pMon->DisassembleOneInstruction(pCpu, currentAddress, m_iDebuggerMmuIndex, AddressText, _countof(AddressText), BytesText, _countof(BytesText), MnemonicText, _countof(MnemonicText), bIsUndoc);
+		int instructionSize = pMon->DisassembleOneInstruction(pCpu, m_currentAddress, m_iDebuggerMmuIndex, AddressText, _countof(AddressText), BytesText, _countof(BytesText), MnemonicText, _countof(MnemonicText), bIsUndoc);
 		if (instructionSize<=0)
 			break;
 		m_sLineBuffer.append(TEXT("A "));
@@ -73,13 +75,17 @@ HRESULT RunCommandDisassembly::Run()
 		}
 		m_pCommandResult->AddLine(m_sLineBuffer.c_str());
 		
-		for (int i = 1; i<instructionSize && currentAddress != m_finishaddress; i++)
+		if (m_currentAddress == m_finishaddress)
+			done = true;
+		for (int i=1; i<instructionSize; i++)
 		{
-			currentAddress = (currentAddress + 1) & 0xffff;
+			m_currentAddress = (m_currentAddress + 1) & 0xffff;
+			if (m_currentAddress == m_finishaddress)
+				done = true;
 		}
-		if (currentAddress == m_finishaddress)
+		if (done)
 			break;
-		currentAddress++;
+		m_currentAddress = (m_currentAddress + 1) & 0xffff;
 	}
 	return S_OK;
 }

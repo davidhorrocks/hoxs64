@@ -959,8 +959,6 @@ CommandToken *pcr = NULL;
 
 CommandToken *Assembler::GetCommandTokenShowCpu()
 {
-HRESULT hr;
-
 	CommandToken *pcr = NULL;
 	try
 	{
@@ -986,8 +984,6 @@ HRESULT hr;
 
 CommandToken *Assembler::GetCommandTokenCpu()
 {
-HRESULT hr;
-
 	CommandToken *pcr = NULL;
 	try
 	{
@@ -1066,7 +1062,7 @@ HRESULT hr;
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
-			pcr->SetTokenError(TEXT("Require start-address.\r"));
+			pcr->SetTokenDisassembly();
 		}
 		else
 		{
@@ -1076,7 +1072,7 @@ HRESULT hr;
 			{
 				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 				{
-					pcr->SetTokenDisassembly(startaddress, (startaddress + 0x0f) & 0xffff);
+					pcr->SetTokenDisassembly(startaddress);
 				}
 				else
 				{
@@ -1250,7 +1246,7 @@ bit16 finishaddress;
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
-			pcr->SetTokenError(TEXT("Require start-address.\r"));
+			pcr->SetTokenReadMemory();
 		}
 		else
 		{
@@ -1259,7 +1255,7 @@ bit16 finishaddress;
 			{
 				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 				{
-					pcr->SetTokenReadMemory(startaddress, (startaddress + 0xff) & 0xffff);
+					pcr->SetTokenReadMemory(startaddress);
 				}
 				else
 				{
@@ -1361,11 +1357,28 @@ void CommandToken::SetTokenHelp(LPCTSTR name)
 		this->text.clear();
 }
 
+void CommandToken::SetTokenDisassembly()
+{
+	cmd = DBGSYM::CliCommand::Disassemble;
+	bHasStartAddress = false;
+	bHasFinishAddress = false;
+}
+
+void CommandToken::SetTokenDisassembly(bit16 startaddress)
+{
+	cmd = DBGSYM::CliCommand::Disassemble;
+	this->startaddress = startaddress;
+	bHasStartAddress = true;
+	bHasFinishAddress = false;
+}
+
 void CommandToken::SetTokenDisassembly(bit16 startaddress, bit16 finishaddress)
 {
 	cmd = DBGSYM::CliCommand::Disassemble;
 	this->startaddress = startaddress;
 	this->finishaddress = finishaddress;
+	bHasStartAddress = true;
+	bHasFinishAddress = true;
 }
 
 void CommandToken::SetTokenError(LPCTSTR pszErrortext)
@@ -1442,11 +1455,28 @@ void CommandToken::SetTokenClearScreen()
 	cmd = DBGSYM::CliCommand::ClearScreen;
 }
 
+void CommandToken::SetTokenReadMemory()
+{
+	cmd = DBGSYM::CliCommand::ReadMemory;
+	bHasStartAddress = false;
+	bHasFinishAddress = false;
+}
+
+void CommandToken::SetTokenReadMemory(bit16 startaddress)
+{
+	cmd = DBGSYM::CliCommand::ReadMemory;
+	this->startaddress = startaddress;
+	bHasStartAddress = true;
+	bHasFinishAddress = false;
+}
+
 void CommandToken::SetTokenReadMemory(bit16 startaddress, bit16 finishaddress)
 {
 	cmd = DBGSYM::CliCommand::ReadMemory;
 	this->startaddress = startaddress;
 	this->finishaddress = finishaddress;
+	bHasStartAddress = true;
+	bHasFinishAddress = true;
 }
 
 void CommandToken::SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSize)

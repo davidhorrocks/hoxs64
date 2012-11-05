@@ -30,7 +30,7 @@ RunCommandReadMemory::RunCommandReadMemory(ICommandResult *pCommandResult, DBGSY
 	this->m_iDebuggerMmuIndex = iDebuggerMmuIndex;
 	this->m_startaddress = startaddress;
 	this->m_finishaddress = finishaddress;
-	this->m_address = startaddress;
+	this->m_currentAddress = startaddress;
 	this->m_sLineBuffer.reserve(50);
 }
 
@@ -45,7 +45,7 @@ TCHAR byteText[3];
 		pCpu = pMon->GetMainCpu();
 	else
 		pCpu = pMon->GetDiskCpu();
-	bit16 currentAddress = m_startaddress;
+	m_currentAddress = m_startaddress;
 	while (true)
 	{
 		const int COLS = 16;
@@ -54,15 +54,15 @@ TCHAR byteText[3];
 		m_sLineBuffer.clear();
 		int instructionSize = COLS;
 		m_sLineBuffer.append(TEXT(". $"));
-		HexConv::long_to_hex(currentAddress, addressText, 4);
+		HexConv::long_to_hex(m_currentAddress, addressText, 4);
 		m_sLineBuffer.append(addressText);
 		bool bHitFinish = false;
-		for (int x = 0; x < COLS; x++, currentAddress = (currentAddress + 1) & 0xffff)
+		for (int x = 0; x < COLS; x++, m_currentAddress = (m_currentAddress + 1) & 0xffff)
 		{
-			if (currentAddress == m_finishaddress)
+			if (m_currentAddress == m_finishaddress)
 				bHitFinish = true;
 			m_sLineBuffer.append(TEXT(" "));
-			bit8 data = pCpu->MonReadByte(currentAddress, m_iDebuggerMmuIndex);
+			bit8 data = pCpu->MonReadByte(m_currentAddress, m_iDebuggerMmuIndex);
 			HexConv::long_to_hex(data, byteText, 2);
 			m_sLineBuffer.append(byteText);			
 		}

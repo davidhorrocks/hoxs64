@@ -45,10 +45,10 @@ class RunCommandReadMemory : public IRunCommand
 {
 public:
 	RunCommandReadMemory(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit16 finishaddress);
+	bit16 m_currentAddress;
 protected:
 	virtual HRESULT Run();
 
-	bit16 m_address;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	int m_iDebuggerMmuIndex;
 	bit16 m_startaddress;
@@ -62,10 +62,10 @@ class RunCommandDisassembly : public IRunCommand
 {
 public:
 	RunCommandDisassembly(ICommandResult *pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 startaddress, bit16 finishaddress);
+	bit16 m_currentAddress;
 protected:
 	virtual HRESULT Run();
 
-	bit16 m_address;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	int m_iDebuggerMmuIndex;
 	bit16 m_startaddress;

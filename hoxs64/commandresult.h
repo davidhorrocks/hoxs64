@@ -8,7 +8,7 @@
 class CommandResult : public ICommandResult
 {
 public:
-	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex);
+	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress);
 	~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
@@ -51,6 +51,7 @@ protected:
 	IMonitor *m_pIMonitor;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	int m_iDebuggerMmuIndex;
+	bit16 m_iDefaultAddress;
 	CommandToken *m_pCommandToken;
 	IRunCommand *m_pIRunCommand;
 private:

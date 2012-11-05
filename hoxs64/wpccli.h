@@ -38,6 +38,7 @@ private:
 	CommandState m_commandstate;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	DBGSYM::CliMapMemory::CliMapMemory m_mapmemory;
+	bit16 m_iDefaultAddress;
 	int m_iDebuggerMmuIndex;
 	int m_iCommandNumber;
 	shared_ptr<ICommandResult> m_pICommandResult;
@@ -64,6 +65,7 @@ private:
 	HRESULT WriteCommandResponse(long iCharIndex, LPCTSTR pText);
 	HRESULT WriteCommandResponse(ITextRange *pRange, LPCTSTR pText);
 	bool isRangeInView(ITextRange *pIRange);
+	bit16 GetDefaultCpuPcAddress();
 };
 
 #endif

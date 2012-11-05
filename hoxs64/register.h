@@ -211,9 +211,13 @@ public:
 	void SetTokenSelectCpu(DBGSYM::CliCpuMode::CliCpuMode cpumode, bool bViewCurrent);
 	void SetTokenShowCpu();
 	void SetTokenHelp(LPCTSTR name);
+	void SetTokenDisassembly();
+	void SetTokenDisassembly(bit16 startaddress);
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);
 	void SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize);
+	void SetTokenReadMemory();
+	void SetTokenReadMemory(bit16 startaddress);
 	void SetTokenReadMemory(bit16 startaddress, bit16 finishaddress);
 	void SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSize);
 	void SetTokenMapMemory(DBGSYM::CliMapMemory::CliMapMemory);
@@ -231,6 +235,8 @@ public:
 
 	bit16 startaddress;
 	bit16 finishaddress;
+	bool bHasStartAddress;
+	bool bHasFinishAddress;
 	std::basic_string<TCHAR> text;
 	DBGSYM::CliCpuMode::CliCpuMode cpumode;
 	DBGSYM::CliMapMemory::CliMapMemory mapmemory;
@@ -295,8 +301,8 @@ public:
 	virtual IMonitorCpu *GetDiskCpu() = 0;
 	virtual IMonitorVic *GetVic() = 0;
 	virtual IMonitorDisk *GetDisk() = 0;
-	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, LPTSTR *ppszResults) = 0;
-	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, shared_ptr<ICommandResult> *pICommandResult) = 0;
+	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, LPTSTR *ppszResults) = 0;
+	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, shared_ptr<ICommandResult> *pICommandResult) = 0;
 	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult) = 0;
 	virtual void QuitCommands() = 0;
 };

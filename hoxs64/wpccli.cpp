@@ -38,7 +38,7 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_iDebuggerMmuIndex = -1;
 	this->c64 = c64;
 	this->m_pIAppCommand = pIAppCommand;
-
+	m_iDefaultAddress = GetDefaultCpuPcAddress();
 	m_hFont = hFont;
 	if (hFont)
 	{
@@ -92,6 +92,14 @@ WNDCLASSEX  wc;
 HWND WpcCli::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
+}
+
+bit16 WpcCli::GetDefaultCpuPcAddress()
+{
+	IMonitorCpu *pCpu = c64->GetMon()->GetMainCpu();
+	CPUState reg;
+	pCpu->GetCpuState(reg);
+	return reg.PC_CurrentOpcode;
 }
 
 void WpcCli::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -208,6 +216,8 @@ LRESULT WpcCli::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled)
 void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 RunCommandMapMemory *pRunCommandMapMemory;
+RunCommandDisassembly *pRunCommandDisassembly;
+RunCommandReadMemory *pRunCommandReadMemory;
 	if (m_bClosing)
 		return;
 	if (!m_pICommandResult)
@@ -245,6 +255,7 @@ RunCommandMapMemory *pRunCommandMapMemory;
 						m_pICommandResult->AddLine(TEXT("Disk\r"));
 						break;
 				}
+				m_iDefaultAddress = GetDefaultCpuPcAddress();
 				break;
 			case DBGSYM::CliCommand::ClearScreen:
 				this->m_pITextDocument->New();
@@ -260,6 +271,20 @@ RunCommandMapMemory *pRunCommandMapMemory;
 						else
 							this->m_iDebuggerMmuIndex = pRunCommandMapMemory->m_iMmuIndex;
 					}
+				}
+				break;
+			case DBGSYM::CliCommand::Disassemble:
+				pRunCommandDisassembly = (RunCommandDisassembly *)m_pICommandResult->GetRunCommand();
+				if (pRunCommandDisassembly)
+				{
+					this->m_iDefaultAddress = pRunCommandDisassembly->m_currentAddress;
+				}
+				break;
+			case DBGSYM::CliCommand::ReadMemory:
+				pRunCommandReadMemory = (RunCommandReadMemory *)m_pICommandResult->GetRunCommand();
+				if (pRunCommandReadMemory)
+				{
+					this->m_iDefaultAddress = pRunCommandReadMemory->m_currentAddress;
 				}
 				break;
 			}
@@ -502,7 +527,7 @@ HRESULT WpcCli::StartCommand(LPCTSTR pszCommand)
 HRESULT hr;
 	StopCommand();
 	m_iCommandNumber++;
-	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, m_iDebuggerMmuIndex, &m_pICommandResult);
+	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, m_iDebuggerMmuIndex, m_iDefaultAddress, &m_pICommandResult);
 	if (SUCCEEDED(hr))
 	{		
 		UINT_PTR t = SetTimer(m_hWnd, m_pICommandResult->GetId(), 30, NULL);
