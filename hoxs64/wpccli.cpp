@@ -326,7 +326,6 @@ HRESULT hr;
 	{
 		WriteCommandResponse(m_pRange, TEXT("*break*\r"));
 		m_pRange->Collapse(tomEnd);
-		m_pRange->Select();
 		if (!isRangeInView(m_pRange))
 			m_pRange->ScrollIntoView(tomEnd);
 		m_pRange->Select();				
