@@ -254,7 +254,9 @@ public:
 	virtual HRESULT Quit()=0;
 	virtual bool IsQuit()=0;
 	virtual DWORD WaitLinesTakenOrQuit(DWORD timeout)=0;
+	virtual DWORD WaitAllLinesTakenOrQuit(DWORD timeout)=0;
 	virtual DWORD WaitResultDataTakenOrQuit(DWORD timeout)=0;
+	virtual DWORD WaitDataReady(DWORD timeout)=0;
 	virtual DWORD WaitFinished(DWORD timeout)=0;
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus()=0;
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status)=0;
@@ -262,6 +264,7 @@ public:
 	virtual void AddLine(LPCTSTR pszLine)=0;
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine)=0;
 	virtual void SetDataTaken()=0;
+	virtual void SetAllLinesTaken()=0;
 	virtual size_t CountUnreadLines()=0;
 	virtual void Reset()=0;
 	virtual int GetId()=0;

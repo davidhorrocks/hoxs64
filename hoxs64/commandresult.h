@@ -18,7 +18,9 @@ public:
 	virtual HRESULT Quit();
 	virtual bool IsQuit();
 	virtual DWORD WaitLinesTakenOrQuit(DWORD timeout);
+	virtual DWORD WaitAllLinesTakenOrQuit(DWORD timeout);
 	virtual DWORD WaitResultDataTakenOrQuit(DWORD timeout);
+	virtual DWORD WaitDataReady(DWORD timeout);
 	virtual DWORD WaitFinished(DWORD timeout);
 	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
 	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
@@ -27,6 +29,7 @@ public:
 	virtual void AddLine(LPCTSTR pszLine);
 	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
 	virtual void SetDataTaken();
+	virtual void SetAllLinesTaken();
 	virtual size_t CountUnreadLines();
 	virtual int GetId();
 	virtual IMonitor* GetMonitor();
@@ -36,13 +39,14 @@ protected:
 	HRESULT CreateRunCommand(CommandToken *pCommandToken, IRunCommand **ppRunCommand);
 	virtual HRESULT Run();
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
-	void PostFinished();
+	bool PostFinished();
 	size_t line;
 	std::vector<LPTSTR> a_lines;
 	HWND m_hWnd;
 	HANDLE m_hThread;
 	HANDLE m_hevtQuit;
 	HANDLE m_hevtLineTaken;
+	HANDLE m_hevtAllLinesTaken;
 	HANDLE m_hevtResultDataReady;
 	HANDLE m_hevtResultDataTaken;
 	HANDLE m_mux;
@@ -60,8 +64,10 @@ private:
 
 	std::basic_string<TCHAR> m_sCommandLine;
 	bool m_bIsQuit;
+	bool m_bIsFinished;
 	void InitVars();
 	void Cleanup();
+	void CleanThreadAllocations();
 };
 
 #endif

@@ -485,6 +485,7 @@ HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int 
 			p = shared_ptr<ICommandResult>(new CommandResult(this, cpumode, iDebuggerMmuIndex, iDefaultAddress));
 			if (!p)
 				throw std::bad_alloc();
+			hr = E_FAIL;
 			m_lstCommandResult.push_back(p);
 			try
 			{
@@ -492,14 +493,13 @@ HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int 
 				if (SUCCEEDED(hr))
 				{
 					*pICommandResult = p;
-					hr = S_OK;
 				}
 			}
 			catch(...)
 			{
-				m_lstCommandResult.remove(p);
-				throw;
 			}
+			if (FAILED(hr))
+				m_lstCommandResult.remove(p);
 		}
 		catch(...)
 		{
@@ -521,15 +521,17 @@ HRESULT Monitor::EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResul
 	{
 		DWORD r = pICommandResult->WaitFinished(INFINITE);
 		if (r == WAIT_OBJECT_0)
+		{
 			hr = S_OK;
+			DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+			if (rm == WAIT_OBJECT_0)
+			{
+				m_lstCommandResult.remove(pICommandResult);
+				ReleaseMutex(m_mux);
+			}
+		}
 		else
 			hr = E_FAIL;
-		DWORD rm = WaitForSingleObject(m_mux, INFINITE);
-		if (rm == WAIT_OBJECT_0)
-		{
-			m_lstCommandResult.remove(pICommandResult);
-			ReleaseMutex(m_mux);
-		}
 	}
 	catch(...)
 	{
@@ -538,11 +540,26 @@ HRESULT Monitor::EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResul
 	return hr;	
 }
 
+//void Monitor::PruneCommands()
+//{
+//	for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+//	{
+//		shared_ptr<ICommandResult> k = *it;
+//		if (k->GetStatus() == DBGSYM::CliCommandStatus::Finished)
+//		{
+//		}
+//	}
+//}
+
 void Monitor::QuitCommands()
 {
 	for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
 	{
 		(*it)->Quit();
+	}
+	for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+	{
+		(*it)->WaitFinished(INFINITE);
 	}
 	m_lstCommandResult.clear();
 }
@@ -560,10 +577,10 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 		hr = this->BeginExecuteCommandLine(hwnd, pszCommandLine, id, cpumode, iDebuggerMmuIndex, iDefaultAddress, &pcr);
 		if (SUCCEEDED(hr))
 		{
-			dwWaitResult = pcr->WaitFinished(INFINITE);
+			dwWaitResult = pcr->WaitDataReady(INFINITE);
 			if (dwWaitResult == WAIT_OBJECT_0)
 			{
-				hr =  this->EndExecuteCommandLine(pcr);
+				hr =  EndExecuteCommandLine(pcr);
 				if (SUCCEEDED(hr))
 				{
 					std::basic_string<TCHAR> s;
@@ -579,6 +596,8 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 			}
 			else
 			{
+				pcr->Quit();
+				EndExecuteCommandLine(pcr);
 				ps = _tcsdup(TEXT("Command timeout."));
 			}
 		}

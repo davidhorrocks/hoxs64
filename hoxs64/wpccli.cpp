@@ -294,7 +294,6 @@ RunCommandReadMemory *pRunCommandReadMemory;
 	{
 		m_pICommandResult->SetDataTaken();
 	}
-	//StopCommand();
 }
 
 void WpcCli::OnTimer(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -329,7 +328,7 @@ HRESULT hr;
 		if (!isRangeInView(m_pRange))
 			m_pRange->ScrollIntoView(tomEnd);
 		m_pRange->Select();				
-		StopCommand();
+		StopCommand(true);
 	}
 	else
 	{
@@ -345,13 +344,16 @@ HRESULT hr;
 				m_pRange->Select();				
 			}
 		}
-		if (m_pICommandResult->CountUnreadLines() == 0)
+		DBGSYM::CliCommandStatus::CliCommandStatus status = m_pICommandResult->GetStatus();
+		switch (status)
 		{
-			DBGSYM::CliCommandStatus::CliCommandStatus status = m_pICommandResult->GetStatus();
-			if (status != DBGSYM::CliCommandStatus::Running)
-			{
-				StopCommand();
-			}
+			case DBGSYM::CliCommandStatus::Finished:
+				if (m_pICommandResult->CountUnreadLines() == 0)
+				{
+					m_pICommandResult->SetAllLinesTaken();
+					StopCommand(true);
+				}
+				break;
 		}
 	}
 	if (pSel)
@@ -397,7 +399,7 @@ void WpcCli::OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		m_pICommandResult->SetHwnd(NULL);
 	}
-	StopCommand();
+	StopCommand(true);
 	if (m_hWndEdit)
 	{
 		if (m_wpOrigEditProc!=NULL)
@@ -478,7 +480,7 @@ short nVirtKey;
 		switch(uMsg)
 		{
 		case WM_CHAR:
-			if (this->m_commandstate == Busy)
+			if (this->m_commandstate == Busy || m_pIAppCommand->IsRunning())
 			{
 				return 0;
 			}
@@ -521,7 +523,7 @@ short nVirtKey;
 HRESULT WpcCli::StartCommand(LPCTSTR pszCommand)
 {
 HRESULT hr;
-	StopCommand();
+	StopCommand(true);
 	m_iCommandNumber++;
 	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, m_iDebuggerMmuIndex, m_iDefaultAddress, &m_pICommandResult);
 	if (SUCCEEDED(hr))
@@ -540,7 +542,7 @@ HRESULT hr;
 	return hr;
 }
 
-void WpcCli::StopCommand()
+void WpcCli::StopCommand(bool bWait)
 {
 	if (m_pICommandResult)
 	{
@@ -550,7 +552,10 @@ void WpcCli::StopCommand()
 			m_bIsTimerActive = false;
 		}
 		m_pICommandResult->Quit();
-		m_pICommandResult.reset();
+		if (bWait)
+		{
+			this->c64->GetMon()->EndExecuteCommandLine(m_pICommandResult);
+		}
 	}
 	m_commandstate = Idle;
 }
@@ -562,7 +567,9 @@ LPTSTR ps = NULL;
 long iStart = 0;
 long iEnd = 0;
 long iLen = 0;
-	if (m_commandstate == Busy || m_pICommandResult)
+	if (m_commandstate == Busy)
+		return;
+	if (m_pIAppCommand->IsRunning())
 		return;
 	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb, NULL, NULL)))
 	{

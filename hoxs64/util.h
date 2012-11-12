@@ -186,9 +186,11 @@ namespace DBGSYM
 	{
 		enum CliCommandStatus
 		{
-			CompletedOK = 0,
+			NotStarted,
 			Running,
+			CompletedOK,
 			Failed,
+			Finished
 		};
 	};
 	namespace CliCpuMode
