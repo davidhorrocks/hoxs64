@@ -328,7 +328,7 @@ HRESULT hr;
 		if (!isRangeInView(m_pRange))
 			m_pRange->ScrollIntoView(tomEnd);
 		m_pRange->Select();				
-		StopCommand(true);
+		StopCommand();
 	}
 	else
 	{
@@ -351,7 +351,7 @@ HRESULT hr;
 				if (m_pICommandResult->CountUnreadLines() == 0)
 				{
 					m_pICommandResult->SetAllLinesTaken();
-					StopCommand(true);
+					StopCommand();
 				}
 				break;
 		}
@@ -399,7 +399,7 @@ void WpcCli::OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		m_pICommandResult->SetHwnd(NULL);
 	}
-	StopCommand(true);
+	StopCommand();
 	if (m_hWndEdit)
 	{
 		if (m_wpOrigEditProc!=NULL)
@@ -523,7 +523,7 @@ short nVirtKey;
 HRESULT WpcCli::StartCommand(LPCTSTR pszCommand)
 {
 HRESULT hr;
-	StopCommand(true);
+	StopCommand();
 	m_iCommandNumber++;
 	hr = c64->GetMon()->BeginExecuteCommandLine(this->GetHwnd(), pszCommand, this->m_iCommandNumber, m_cpumode, m_iDebuggerMmuIndex, m_iDefaultAddress, &m_pICommandResult);
 	if (SUCCEEDED(hr))
@@ -542,7 +542,7 @@ HRESULT hr;
 	return hr;
 }
 
-void WpcCli::StopCommand(bool bWait)
+void WpcCli::StopCommand()
 {
 	if (m_pICommandResult)
 	{
@@ -552,10 +552,7 @@ void WpcCli::StopCommand(bool bWait)
 			m_bIsTimerActive = false;
 		}
 		m_pICommandResult->Quit();
-		if (bWait)
-		{
-			this->c64->GetMon()->EndExecuteCommandLine(m_pICommandResult);
-		}
+		m_pICommandResult->WaitFinished(INFINITE);
 	}
 	m_commandstate = Idle;
 }

@@ -119,7 +119,8 @@ public:
 	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, shared_ptr<ICommandResult> *pICommandResult);
 	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult);
 	virtual void QuitCommands();
-	//virtual void PruneCommands();
+	virtual void QuitCommand(shared_ptr<ICommandResult> pICommandResult);
+	virtual void RemoveCommand(shared_ptr<ICommandResult> pICommandResult);
 
 private:
 	IMonitorCpu *m_pMonitorMainCpu;

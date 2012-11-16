@@ -83,9 +83,9 @@ CommandResult::~CommandResult()
 void CommandResult::Cleanup()
 {
 	Quit();
+	WaitFinished(INFINITE);
 	if (m_hThread)
 	{
-		WaitFinished(INFINITE);
 		CloseHandle(m_hThread);
 		m_hThread = NULL;
 	}
@@ -186,6 +186,7 @@ HRESULT CommandResult::Run()
 	SetStatus(DBGSYM::CliCommandStatus::Finished);
 	WaitAllLinesTakenOrQuit(INFINITE);
 	CleanThreadAllocations();
+	m_pIMonitor->RemoveCommand(this->shared_from_this());
 	return hr;
 }
 
@@ -500,7 +501,6 @@ bool CommandResult::IsQuit()
 DWORD CommandResult::WaitFinished(DWORD timeout)
 {
 DWORD r = 0;
-	SetEvent(m_hevtResultDataTaken);
 	if (m_hThread)
 	{
 		r = WaitForSingleObject(m_hThread, timeout);
@@ -588,6 +588,7 @@ BOOL br = FALSE;
 DWORD WINAPI CommandResult::ThreadProc(LPVOID lpThreadParameter)
 {
 	CommandResult *p = (CommandResult *)lpThreadParameter;
+
 	HRESULT hr;
 	hr = p->Run();
 	return 0;

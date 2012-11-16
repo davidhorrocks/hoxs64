@@ -59,7 +59,7 @@ private:
 	BSTR m_bstrFontName;
 
 	HRESULT StartCommand(LPCTSTR pszCommand);
-	void StopCommand(bool bWait);
+	void StopCommand();
 	HRESULT GetCurrentParagraphText(LPTSTR psBuffer, long *pcchBuffer, long *piStartCharIndex, long *piEndCharIndex);
 	HRESULT SetCharInsertionPoint(long iCharIndex);
 	HRESULT WriteCommandResponse(long iCharIndex, LPCTSTR pText);

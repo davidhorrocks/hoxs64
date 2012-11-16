@@ -308,6 +308,8 @@ public:
 	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, shared_ptr<ICommandResult> *pICommandResult) = 0;
 	virtual HRESULT EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResult) = 0;
 	virtual void QuitCommands() = 0;
+	virtual void QuitCommand(shared_ptr<ICommandResult> pICommandResult) = 0;
+	virtual void RemoveCommand(shared_ptr<ICommandResult> pICommandResult) = 0;
 };
 
 class IC64Event : public IC64BreakEvent

@@ -519,16 +519,13 @@ HRESULT Monitor::EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResul
 	HRESULT hr = E_FAIL;
 	try
 	{
+		pICommandResult->SetDataTaken();
+		pICommandResult->SetAllLinesTaken();
 		DWORD r = pICommandResult->WaitFinished(INFINITE);
 		if (r == WAIT_OBJECT_0)
 		{
 			hr = S_OK;
-			DWORD rm = WaitForSingleObject(m_mux, INFINITE);
-			if (rm == WAIT_OBJECT_0)
-			{
-				m_lstCommandResult.remove(pICommandResult);
-				ReleaseMutex(m_mux);
-			}
+			this->RemoveCommand(pICommandResult);
 		}
 		else
 			hr = E_FAIL;
@@ -540,28 +537,59 @@ HRESULT Monitor::EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResul
 	return hr;	
 }
 
-//void Monitor::PruneCommands()
-//{
-//	for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
-//	{
-//		shared_ptr<ICommandResult> k = *it;
-//		if (k->GetStatus() == DBGSYM::CliCommandStatus::Finished)
-//		{
-//		}
-//	}
-//}
-
 void Monitor::QuitCommands()
 {
-	for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
 	{
-		(*it)->Quit();
+		for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+		{
+			(*it)->Quit();
+		}
+		while (true)
+		{
+			if(rm == WAIT_OBJECT_0)
+			{
+				std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin();
+				if (it == m_lstCommandResult.end())
+				{
+					ReleaseMutex(m_mux);
+					break;
+				}
+				shared_ptr<ICommandResult> k = *it;
+				m_lstCommandResult.erase(it);
+				ReleaseMutex(m_mux);
+				k->Quit();
+				k->WaitFinished(INFINITE);
+				k->Reset();
+			}
+			else
+				break;//should not happen
+			rm = WaitForSingleObject(m_mux, INFINITE);
+		}
 	}
-	for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+}
+
+void Monitor::QuitCommand(shared_ptr<ICommandResult> pICommandResult)
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
 	{
-		(*it)->WaitFinished(INFINITE);
+		RemoveCommand(pICommandResult);
+		ReleaseMutex(m_mux);
+		pICommandResult->Quit();
+		pICommandResult->WaitFinished(INFINITE);
 	}
-	m_lstCommandResult.clear();
+}
+
+void Monitor::RemoveCommand(shared_ptr<ICommandResult> pICommandResult)
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		m_lstCommandResult.remove(pICommandResult);
+		ReleaseMutex(m_mux);
+	}
 }
 
 HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, LPTSTR *ppszResults)
