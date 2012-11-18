@@ -1169,6 +1169,7 @@ LPMONITORFROMRECT G::s_pFnMonitorFromRect = NULL;
 LPMONITORFROMWINDOW G::s_pFnMonitorFromWindow = NULL;
 LPDWMISCOMPOSITIONENABLED G::s_pFnDwmIsCompositionEnabled = NULL;
 LPDWMENABLECOMPOSITION G::s_pFnDwmEnableComposition = NULL;
+LPDWMGETWINDOWATTRIBUTE G::s_pFnDwmGetWindowAttribute = NULL;
 
 bool G::m_bHasCachedCommonControlsVersion = false;
 DWORD G::m_dwCachedCommonControlsVersion = 0;
@@ -1195,6 +1196,7 @@ void G::InitLateBindLibraryCalls()
 		{
 			s_pFnDwmIsCompositionEnabled = (LPDWMISCOMPOSITIONENABLED) GetProcAddress(hDwmapi, "DwmIsCompositionEnabled");
 			s_pFnDwmEnableComposition = (LPDWMENABLECOMPOSITION) GetProcAddress(hDwmapi, "DwmEnableComposition");
+			s_pFnDwmGetWindowAttribute = (LPDWMGETWINDOWATTRIBUTE) GetProcAddress(hDwmapi, "DwmGetWindowAttribute");
 		}
 	}
 	s_bInitLateBindLibraryCallsDone = true;
@@ -1485,6 +1487,21 @@ bool G::IsMultiCore()
 	return (c > 1);
 }
 
+BOOL G::GetWindowRect6(HWND hWnd, LPRECT lpRect)
+{ 
+	if (WINVER < 0x600 && G::IsDwmApiOk())
+	{
+		if (SUCCEEDED(G::s_pFnDwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, lpRect, sizeof(RECT))))
+			return TRUE;
+		else
+			return FALSE;
+	}
+	else
+	{
+		return ::GetWindowRect(hWnd, lpRect);
+	}
+}
+
 void G::PaintRect(HDC hdc, RECT *rect, COLORREF colour)
 {
 	COLORREF oldcr = SetBkColor(hdc, colour);
@@ -1664,6 +1681,41 @@ void G::GetWorkArea(RECT& rcWorkArea)
 		rcWorkArea.left = rcWorkArea.top = 0;
 		rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
 		rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
+	}
+}
+
+void G::GetMonitorWorkAreaFromWindow(HWND hWnd, RECT& rcWorkArea)
+{
+LONG lRetCode; 
+bool bGotWorkArea = false;
+	SetRectEmpty(&rcWorkArea);
+	if (G::s_pFnMonitorFromWindow != NULL && G::s_pFnGetMonitorInfo != NULL)
+	{
+		MONITORINFO mi;
+		ZeroMemory(&mi, sizeof(mi));
+		mi.cbSize = sizeof(mi);
+		HMONITOR hMonitor = G::s_pFnMonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+		if (G::s_pFnGetMonitorInfo(hMonitor, &mi))
+		{
+			rcWorkArea = mi.rcMonitor;
+			bGotWorkArea = true;
+		}
+	}
+
+	if (!bGotWorkArea)
+	{
+		// Get the limits of the 'workarea'
+		lRetCode = SystemParametersInfo(
+			SPI_GETWORKAREA,  // system parameter to query or set
+			sizeof(RECT),
+			&rcWorkArea,
+			0);
+		if (!lRetCode)
+		{
+			rcWorkArea.left = rcWorkArea.top = 0;
+			rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
+			rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
+		}
 	}
 }
 

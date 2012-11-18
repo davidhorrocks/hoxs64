@@ -125,7 +125,7 @@ public:
 	static LPMONITORFROMWINDOW s_pFnMonitorFromWindow;
 	static LPDWMISCOMPOSITIONENABLED s_pFnDwmIsCompositionEnabled;
 	static LPDWMENABLECOMPOSITION s_pFnDwmEnableComposition;
-
+	static LPDWMGETWINDOWATTRIBUTE s_pFnDwmGetWindowAttribute;
 
 	static BOOL WaitMessageTimeout(DWORD dwTimeout);
 	static HRESULT GetVersion_Res(LPTSTR filename, VS_FIXEDFILEINFO *p_vinfo);
@@ -149,6 +149,7 @@ public:
 	static bool IsWin98OrLater();
 	static bool IsWinVerSupportInitializeCriticalSectionAndSpinCount();
 	static bool IsMultiCore();
+	static BOOL GetWindowRect6(HWND hWnd, LPRECT lpRect);
 	static void PaintRect(HDC hdc, RECT *rect, COLORREF colour);
 	static void AutoSetComboBoxHeight(HWND hWnd,  int maxHeight);
 	static void AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int maxHeight);
@@ -160,6 +161,7 @@ public:
 	static void RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h);
 	static BOOL DrawDefText(HDC hdc, int x, int y, LPCTSTR text, int len, int* nextx, int* nexty);
 	static void GetWorkArea(RECT& rcWorkArea);
+	static void GetMonitorWorkAreaFromWindow(HWND hWnd, RECT& rcWorkArea);
 	static BOOL DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP);
 	//Win98 WinNT 4 SP6
 	//static BOOL IsWindowEnabled(HWND hWnd, bool &bResult);
