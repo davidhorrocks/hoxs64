@@ -378,7 +378,7 @@ HRESULT hr;
 	}
 }
 
-void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
+void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) throw()
 {
 HRESULT hr;
 	try
