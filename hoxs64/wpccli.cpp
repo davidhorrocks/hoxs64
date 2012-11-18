@@ -218,6 +218,7 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 RunCommandMapMemory *pRunCommandMapMemory;
 RunCommandDisassembly *pRunCommandDisassembly;
 RunCommandReadMemory *pRunCommandReadMemory;
+EventArgs argMemoryChanged;
 	if (m_bClosing)
 		return;
 	if (!m_pICommandResult)
@@ -286,6 +287,14 @@ RunCommandReadMemory *pRunCommandReadMemory;
 				{
 					this->m_iDefaultAddress = pRunCommandReadMemory->m_currentAddress;
 				}
+				break;
+			case DBGSYM::CliCommand::Assemble:
+				argMemoryChanged = EventArgs();
+				this->m_pIAppCommand->EsMemoryChanged.Raise(this, argMemoryChanged);
+				break;
+			case DBGSYM::CliCommand::WriteMemory:
+				argMemoryChanged = EventArgs();
+				this->m_pIAppCommand->EsMemoryChanged.Raise(this, argMemoryChanged);
 				break;
 			}
 		}

@@ -68,12 +68,11 @@ public:
 	EventSource<EventArgs> EsExecuteDiskInstruction;
 	EventSource<EventArgs> EsUpdateApplication;
 	EventSource<EventArgs> EsShowDevelopment;
-
 	EventSource<EventArgs> EsCpuC64RegPCChanged;
 	EventSource<EventArgs> EsCpuDiskRegPCChanged;
-
 	EventSource<BreakpointChangedEventArgs> EsBreakpointChanged;
 	EventSource<VicCursorMoveEventArgs> EsVicCursorMove;
+	EventSource<EventArgs> EsMemoryChanged;
 };
 
 class Monitor : public IMonitor

@@ -89,6 +89,17 @@ protected:
 	virtual void OnShowDevelopment(void *sender, EventArgs& e) =0;
 };
 
+class CDisassemblyFrame_EventSink_OnMemoryChanged : public EventSink<EventArgs>
+{
+protected:
+	virtual int Sink(void *sender, EventArgs& e)
+	{
+		OnMemoryChanged(sender, e);
+		return 0;
+	}
+	virtual void OnMemoryChanged(void *sender, EventArgs& e) =0;
+};
+
 class CDisassemblyFrame_EventSink : 
 	public CDisassemblyFrame_EventSink_OnResume,
 	public CDisassemblyFrame_EventSink_OnTrace,
@@ -97,7 +108,8 @@ class CDisassemblyFrame_EventSink :
 	public CDisassemblyFrame_EventSink_OnExecuteDiskClock,
 	public CDisassemblyFrame_EventSink_OnExecuteC64Instruction,
 	public CDisassemblyFrame_EventSink_OnExecuteDiskInstruction,
-	public CDisassemblyFrame_EventSink_OnShowDevelopment
+	public CDisassemblyFrame_EventSink_OnShowDevelopment,
+	public CDisassemblyFrame_EventSink_OnMemoryChanged
 {
 };
 
@@ -171,6 +183,7 @@ private:
 	void OnExecuteC64Instruction(void *sender, EventArgs& e);
 	void OnExecuteDiskInstruction(void *sender, EventArgs& e);
 	void OnShowDevelopment(void *sender, EventArgs& e);
+	void OnMemoryChanged(void *sender, EventArgs& e);
 
 	HRESULT AdviseEvents();
 	void UnadviseEvents();

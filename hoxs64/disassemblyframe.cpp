@@ -181,6 +181,12 @@ HRESULT CDisassemblyFrame::AdviseEvents()
 			hr = E_FAIL;
 			break;
 		}
+		hs = m_pAppCommand->EsMemoryChanged.Advise((CDisassemblyFrame_EventSink_OnMemoryChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
 		hr = S_OK;
 	} while (false);
 	return hr;
@@ -196,7 +202,7 @@ void CDisassemblyFrame::UnadviseEvents()
 	((CDisassemblyFrame_EventSink_OnExecuteC64Instruction *)this)->UnadviseAll();
 	((CDisassemblyFrame_EventSink_OnExecuteDiskInstruction *)this)->UnadviseAll();
 	((CDisassemblyFrame_EventSink_OnShowDevelopment *)this)->UnadviseAll();
-
+	((CDisassemblyFrame_EventSink_OnMemoryChanged *)this)->UnadviseAll();
 }
 
 HRESULT CDisassemblyFrame::RegisterClass(HINSTANCE hInstance)
@@ -749,6 +755,11 @@ void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 		UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		SetMenuState();
 	}
+}
+
+void CDisassemblyFrame::OnMemoryChanged(void *sender, EventArgs& e)
+{
+	this->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 }
 
 bool CDisassemblyFrame::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
