@@ -522,9 +522,9 @@ void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 			bool bAutoPos = false;
 			if (GetWindowRect(hWndOwner, &rcMain))
 			{
-				if (GetWindowRect(hwnd, &rcDlg))
+				if (G::GetWindowRect6(hwnd, &rcDlg))
 				{
-					OffsetRect(&rcDlg, -(rcDlg.left - rcMain.left) - (rcDlg.right-rcDlg.left), 0);
+					OffsetRect(&rcDlg, -(rcDlg.left - rcMain.left) - (rcDlg.right - rcDlg.left), 0);
 					if (rcDlg.left < 0)
 					{
 						OffsetRect(&rcDlg, -rcDlg.left, 0);

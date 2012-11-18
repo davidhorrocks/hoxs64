@@ -266,7 +266,8 @@ HWND hWnd;
 		GetMinWindowSize(w, h);
 
 		RECT rcDesk;
-		G::GetWorkArea(rcDesk);
+		//G::GetWorkArea(rcDesk);
+		G::GetMonitorWorkAreaFromWindow(hWndParent, rcDesk);
 
 		int gap = (rcDesk.bottom - rcDesk.top) / 10;
 		int id=this->GetCpuId();
