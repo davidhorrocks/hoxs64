@@ -234,8 +234,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 					BOOL bIsDwmOn;
 					if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&bIsDwmOn)))
 					{
-						if (appStatus->m_bGotOldDwm && appStatus->m_oldDwm && !bIsDwmOn)
-							G::s_pFnDwmEnableComposition(DWM_EC_ENABLECOMPOSITION);
+						G::s_pFnDwmEnableComposition(DWM_EC_ENABLECOMPOSITION);
 					}
 				}
 			}
@@ -909,8 +908,7 @@ HRESULT hRet;
 		{
 			if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&bIsDwmOn)))
 			{
-				if (appStatus->m_bGotOldDwm && appStatus->m_oldDwm && !bIsDwmOn)
-					G::s_pFnDwmEnableComposition(DWM_EC_ENABLECOMPOSITION);
+				G::s_pFnDwmEnableComposition(DWM_EC_ENABLECOMPOSITION);
 			}
 		}
 	}

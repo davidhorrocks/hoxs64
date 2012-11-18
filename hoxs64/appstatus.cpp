@@ -37,7 +37,4 @@ CAppStatus::CAppStatus()
 	m_bDiskLedDrive = false;
 	m_bSerialTooBusyForSeparateThread = false;
 	m_lastAudioVBLCatchUpCounter = 0;	
-
-	m_bGotOldDwm = false;
-	m_oldDwm = FALSE;
 }

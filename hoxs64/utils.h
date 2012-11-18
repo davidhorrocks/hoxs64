@@ -120,6 +120,7 @@ public:
 	static void InitLateBindLibraryCalls();
 	static bool IsMultiMonitorApiOk();
 	static bool IsDwmApiOk();
+	static bool DwmIsCompositionEnabled();
 	static LPGETMONITORINFO s_pFnGetMonitorInfo;
 	static LPMONITORFROMRECT s_pFnMonitorFromRect;
 	static LPMONITORFROMWINDOW s_pFnMonitorFromWindow;

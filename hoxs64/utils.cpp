@@ -1212,6 +1212,17 @@ bool G::IsDwmApiOk()
 	return s_pFnDwmIsCompositionEnabled!=NULL && s_pFnDwmEnableComposition != NULL;
 }
 
+bool G::DwmIsCompositionEnabled()
+{
+BOOL b = FALSE;
+	if (IsDwmApiOk())
+	{
+		if (SUCCEEDED(s_pFnDwmIsCompositionEnabled(&b)))
+			return b != FALSE;
+	}
+	return false;
+}
+
 BOOL G::WaitMessageTimeout(DWORD dwTimeout)
 {
 	return MsgWaitForMultipleObjects(0, NULL, FALSE, dwTimeout, QS_ALLINPUT) == WAIT_TIMEOUT;
@@ -1489,7 +1500,7 @@ bool G::IsMultiCore()
 
 BOOL G::GetWindowRect6(HWND hWnd, LPRECT lpRect)
 { 
-	if (WINVER < 0x600 && G::IsDwmApiOk())
+	if (WINVER < 0x600 && G::DwmIsCompositionEnabled())
 	{
 		if (SUCCEEDED(G::s_pFnDwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, lpRect, sizeof(RECT))))
 			return TRUE;

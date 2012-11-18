@@ -741,13 +741,6 @@ TCHAR ext[_MAX_EXT];
     SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &m_StartupToggleKeys, 0);
     SystemParametersInfo(SPI_GETFILTERKEYS, sizeof(FILTERKEYS), &m_StartupFilterKeys, 0);
 
-
-	if (G::IsDwmApiOk() && m_bDisableDwmFullscreen)
-	{
-		if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&m_oldDwm)))
-			m_bGotOldDwm = true;
-	}
-
 	if (dx.pSecondarySoundBuffer)
 	{
 		dx.RestoreSoundBuffers();
