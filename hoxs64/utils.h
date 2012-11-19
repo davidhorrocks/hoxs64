@@ -201,7 +201,7 @@ protected:
 	virtual void OnDestroy(void *sender, EventArgs& e) =0;
 };
 
-class CBaseVirWindow : public std::enable_shared_from_this<CBaseVirWindow>
+class CBaseVirWindow : public enable_shared_from_this<CBaseVirWindow>
 {
 public:
 	CBaseVirWindow()
@@ -232,7 +232,7 @@ protected:
 	HWND m_hWnd;
 	// Application instance handle.
 
-	std::shared_ptr<CBaseVirWindow> m_pKeepAlive;
+	shared_ptr<CBaseVirWindow> m_pKeepAlive;
 	WNDPROC SubclassChildWindow(HWND hWnd);
 	WNDPROC SubclassChildWindow(HWND hWnd, WNDPROC proc);
 private:
@@ -273,7 +273,7 @@ public:
 
 	shared_ptr<CVirWindow> shared_from_this()
 	{
-		return std::static_pointer_cast<CVirWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+		return static_pointer_cast<CVirWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
 	}
 protected:
 	// Envelopes the Windows' CreateWindow function call.
@@ -353,7 +353,7 @@ public:
 
 	shared_ptr<CVirDialog> shared_from_this()
 	{
-		return std::static_pointer_cast<CVirDialog, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+		return static_pointer_cast<CVirDialog, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
 	}
 protected:
   bool m_bIsModeless;
@@ -391,7 +391,7 @@ public:
 
 	shared_ptr<CVirMdiFrameWindow> shared_from_this()
 	{
-		return std::static_pointer_cast<CVirMdiFrameWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+		return static_pointer_cast<CVirMdiFrameWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
 	}
 protected:
 	virtual LRESULT MdiFrameWindowProc(
@@ -426,7 +426,7 @@ public:
 
 	shared_ptr<CVirMdiChildWindow> shared_from_this()
 	{
-		return std::static_pointer_cast<CVirMdiChildWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
+		return static_pointer_cast<CVirMdiChildWindow, CBaseVirWindow>(CBaseVirWindow::shared_from_this());
 	}
 protected:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;

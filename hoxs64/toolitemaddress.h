@@ -37,7 +37,6 @@ private:
 	HFONT m_hFont;
 	TCHAR m_tempAddressTextBuffer[MAX_EDIT_GOTO_ADDRESS_CHARS+1];
 	HWND CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h);
-	HWND CreateButton(HWND hWndParent, int id, int x, int y, int w, int h);
 
 	HRESULT GetSizeRectTextBox(RECT &rc);
 	HRESULT GetSizeRectButton(RECT &rc);

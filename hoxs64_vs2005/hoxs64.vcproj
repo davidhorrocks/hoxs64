@@ -298,10 +298,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\monitor.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\prgbrowse.cpp"
 				>
 			</File>
@@ -349,11 +345,23 @@
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\bpenum.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\CDPI.cpp"
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\commandresult.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\dchelper.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\diagbreakpointvicraster.cpp"
 					>
 				</File>
 				<File
@@ -377,7 +385,47 @@
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\mdichildcli.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\mdidebuggerframe.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\monitor.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommandassemble.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommandcpuregisters.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommanddisassembly.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommandhelp.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommandmapmemory.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommandreadmemory.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommandtext.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\toolitemaddress.cpp"
 					>
 				</File>
 				<File
@@ -390,6 +438,10 @@
 				</File>
 				<File
 					RelativePath="..\hoxs64\wpcbreakpoint.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\wpccli.cpp"
 					>
 				</File>
 			</Filter>
@@ -627,11 +679,23 @@
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\bpenum.h"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\CDPI.h"
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\commandresult.h"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\dchelper.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\diagbreakpointvicraster.h"
 					>
 				</File>
 				<File
@@ -655,11 +719,23 @@
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\mdichildcli.h"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\mdidebuggerframe.h"
 					>
 				</File>
 				<File
 					RelativePath="..\hoxs64\monitor.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\runcommand.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\toolitemaddress.h"
 					>
 				</File>
 				<File
@@ -672,6 +748,10 @@
 				</File>
 				<File
 					RelativePath="..\hoxs64\wpcbreakpoint.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\wpccli.h"
 					>
 				</File>
 			</Filter>

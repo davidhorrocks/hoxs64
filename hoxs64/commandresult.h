@@ -5,7 +5,7 @@
 #define WM_COMMANDRESULT_COMPLETED (WM_USER + 1)
 #define WM_COMMANDRESULT_LINEREADY (WM_USER + 2)
 
-class CommandResult : public ICommandResult, public std::enable_shared_from_this<CommandResult>
+class CommandResult : public ICommandResult, public enable_shared_from_this<CommandResult>
 {
 public:
 	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress);

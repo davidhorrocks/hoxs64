@@ -625,7 +625,7 @@ SIZE sizeText;
 	{
 		p = shared_ptr<CToolItemAddress>(new CToolItemAddress(m_hFont));
 		if (!p)
-			return NULL;
+			return shared_ptr<CToolItemAddress>();
 	}
 	catch(...)
 	{
@@ -634,12 +634,12 @@ SIZE sizeText;
 	hr = p->GetDefaultTextBoxSize(hWndParent, sizeText);
 	if (FAILED(hr))
 	{
-		return NULL;
+		return shared_ptr<CToolItemAddress>();
 	}
 	HWND hwnd = p->Create(m_hInst, hWndParent, NULL, 0, 0, sizeText.cx, sizeText.cy, (HMENU)IDC_TOI_GOTOADDRESS);
 	if (!hwnd)
 	{
-		return NULL;
+		return shared_ptr<CToolItemAddress>();
 	}
 	return p;
 }
@@ -1019,6 +1019,7 @@ void CDisassemblyFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 {
 }
 
+#if _WIN32_WINNT >= 0x400
 void CDisassemblyFrame::OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	try
@@ -1038,6 +1039,7 @@ void CDisassemblyFrame::OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	{
 	}
 }
+#endif
 
 LRESULT CDisassemblyFrame::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -1074,9 +1076,11 @@ HRESULT hr;
 		if (OnNotify(hWnd, uMsg, wParam, lParam))
 			return 0;
 		break;
+#if _WIN32_WINNT >= 0x400
 	case WM_MOUSEWHEEL:
 		OnMouseWheel(hWnd, uMsg, wParam, lParam);
 		return 0;
+#endif
 	case WM_ENTERMENULOOP:
 		m_pAppCommand->SoundOff();
 		return 0;

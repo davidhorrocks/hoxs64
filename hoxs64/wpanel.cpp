@@ -28,7 +28,7 @@ const TCHAR WPanel::ClassName[] = TEXT("Hoxs64WPanel");
 WPanel::WPanel()
 {
 	m_pIWPanelManager = NULL;
-	m_pChildWin = NULL;
+	m_pChildWin.reset();
 	m_szPreferredSize.cx = 0;
 	m_szPreferredSize.cy = 0;
 	m_hrgSizerTop = NULL;

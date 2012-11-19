@@ -59,7 +59,7 @@ HWND CToolItemAddress::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR 
 
 HWND CToolItemAddress::CreateTextBox(HWND hWndParent, int id, int x, int y, int w, int h)
 {
-	HWND hwnd = CreateWindowEx(0, TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)id, (HINSTANCE) m_hInst, 0); 
+	HWND hwnd = CreateWindowEx(0, TEXT("EDIT"), NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_WANTRETURN, x, y, w, h, hWndParent, (HMENU)(INT_PTR)id, (HINSTANCE) m_hInst, 0); 
 	if (!hwnd)
 		return 0;
 	return hwnd;

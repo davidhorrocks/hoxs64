@@ -262,7 +262,7 @@ POINT pt;
 			}
 		}
 	}
-	return NULL;
+	return Sp_WPanel();
 }
 
 void WPanelManager::DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
@@ -349,7 +349,7 @@ bool WPanelManager::Splitter_OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, 
 {
 	POINT pt;
 	HDC hdc;
-	m_pPanelToSize = NULL;
+	m_pPanelToSize.reset();
 
 	pt.x = (short)LOWORD(lParam);  // horizontal position of cursor 
 	pt.y = (short)HIWORD(lParam);
@@ -445,7 +445,7 @@ bool WPanelManager::Splitter_OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LP
 		m_pPanelToSize->SetPreferredSize(&szPref);
 		this->SizePanels(hWnd, rcRootPanel.left, rcRootPanel.top, rcRootPanel.right - rcRootPanel.left, rcRootPanel.bottom - rcRootPanel.top);
 	
-		m_pPanelToSize = NULL;
+		m_pPanelToSize.reset();
 	}
 
 	return true;

@@ -4752,7 +4752,7 @@ bit16 VIC6569::GetNextRasterLine()
 
 bit8 VIC6569::GetNextRasterCycle()
 {
-	return (bit16)((vic_raster_cycle < PAL_CLOCKS_PER_LINE) ? vic_raster_cycle + 1 : 1);
+	return (bit8)((vic_raster_cycle < PAL_CLOCKS_PER_LINE) ? vic_raster_cycle + 1 : 1);
 }
 
 bool VIC6569::SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
