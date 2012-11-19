@@ -1733,18 +1733,25 @@ bool bGotWorkArea = false;
 
 BOOL G::DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP)
 {
-	HDC       hDCBits;
-	BITMAP    Bitmap;
-	BOOL      bResult;
+HDC       hDCBits;
+BITMAP    Bitmap;
+BOOL      bResult = FALSE;
 
-	if (!hDC || !hBitmap)
-		return FALSE;
-
-	hDCBits = CreateCompatibleDC(hDC);
-	GetObject(hBitmap, sizeof(BITMAP), (LPSTR)&Bitmap);
-	SelectObject(hDCBits, hBitmap);
-	bResult = BitBlt(hDC, x, y, Bitmap.bmWidth, Bitmap.bmHeight, hDCBits, 0, 0, dwROP);
-	DeleteDC(hDCBits);
+	if (hDC!=0 && hBitmap!=0)
+	{
+		hDCBits = CreateCompatibleDC(hDC);
+		if (hDCBits)
+		{
+			GetObject(hBitmap, sizeof(BITMAP), (LPSTR)&Bitmap);
+			HBITMAP oldbmp = (HBITMAP)SelectObject(hDCBits, hBitmap);
+			if (oldbmp)
+			{
+				bResult = BitBlt(hDC, x, y, Bitmap.bmWidth, Bitmap.bmHeight, hDCBits, 0, 0, dwROP);
+				SelectObject(hDCBits, oldbmp);
+			}
+			DeleteDC(hDCBits);
+		}
+	}
 	return bResult;
 }
 
