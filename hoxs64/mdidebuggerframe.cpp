@@ -198,7 +198,10 @@ void CMDIDebuggerFrame::SetMenuState()
 	}
 	EnableMenuItem(hMenu, IDM_STEP_TRACE, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_TRACEFRAME, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_BREAKPOINT_VICRASTER, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_FILE_NEWCLI, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
+	
 
 	if (m_hWndTooBar!=NULL)
 	{
