@@ -1742,14 +1742,16 @@ BOOL      bResult = FALSE;
 		hDCBits = CreateCompatibleDC(hDC);
 		if (hDCBits)
 		{
-			GetObject(hBitmap, sizeof(BITMAP), (LPVOID)&Bitmap);
-			HBITMAP oldbmp = (HBITMAP)SelectObject(hDCBits, hBitmap);
-			if (oldbmp)
+			if (GetObject(hBitmap, sizeof(BITMAP), (LPVOID)&Bitmap))
 			{
-				bResult = BitBlt(hDC, x, y, Bitmap.bmWidth, Bitmap.bmHeight, hDCBits, 0, 0, dwROP);
-				SelectObject(hDCBits, oldbmp);
+				HBITMAP oldbmp = (HBITMAP)SelectObject(hDCBits, hBitmap);
+				if (oldbmp)
+				{
+					bResult = BitBlt(hDC, x, y, Bitmap.bmWidth, Bitmap.bmHeight, hDCBits, 0, 0, dwROP);
+					SelectObject(hDCBits, oldbmp);
+				}
+				DeleteDC(hDCBits);
 			}
-			DeleteDC(hDCBits);
 		}
 	}
 	return bResult;
