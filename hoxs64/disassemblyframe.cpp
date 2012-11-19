@@ -246,7 +246,9 @@ WINDOWPLACEMENT wp;
 int x,y,w,h;
 BOOL br;
 HWND hWnd;
-	
+
+	RECT rcDesk;
+	G::GetWorkArea(rcDesk);
 	hWnd = this->GetHwnd();
 	if (hWnd == NULL)
 	{
@@ -265,34 +267,27 @@ HWND hWnd;
 			return E_FAIL;
 		GetMinWindowSize(w, h);
 
-		RECT rcDesk;
-		//G::GetWorkArea(rcDesk);
-		G::GetMonitorWorkAreaFromWindow(hWndParent, rcDesk);
-
-		int gap = (rcDesk.bottom - rcDesk.top) / 10;
+		int gap = 0;
 		int id=this->GetCpuId();
 		if (id == CPUID_MAIN)
 		{
 			x = wp.rcNormalPosition.left-w;
-			if (wp.rcNormalPosition.left - rcDesk.left >= w)
-				y = rcDesk.top + gap;
-			else
-				y = wp.rcNormalPosition.top + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYMENU);
+			y = rcDesk.top + gap;
 			w = w;
 			h = rcDesk.bottom - rcDesk.top -  2*gap;
 		}
 		else
 		{
 			x = wp.rcNormalPosition.right;
-			if (rcDesk.right - wp.rcNormalPosition.right>= w)
-				y = rcDesk.top + gap;
-			else
-				y = wp.rcNormalPosition.top + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYMENU);
+			y = rcDesk.top + gap;
 			w = w;
 			h = rcDesk.bottom - rcDesk.top -  2*gap;
 		}
+		if (x < rcDesk.left)
+			x = rcDesk.left;
+		if (y < rcDesk.top)
+			y = rcDesk.top;
 		SetWindowPos(hWnd, HWND_TOP, x, y, w, h, SWP_NOZORDER);
-		G::EnsureWindowPosition(hWnd);
 	}
 	else
 	{
@@ -303,8 +298,11 @@ HWND hWnd;
 			y = wp.rcNormalPosition.top;
 			w = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
 			h = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
+			if (x < rcDesk.left)
+				x = rcDesk.left;
+			if (y < rcDesk.top)
+				y = rcDesk.top;
 			SetWindowPos(hWnd, HWND_TOP, x, y, w, h, SWP_NOZORDER);
-			G::EnsureWindowPosition(hWnd);
 		}
 	}
 	SetMenuState();

@@ -1065,9 +1065,11 @@ struct tabpageitem CAppWindow::m_tabPagesSetting[5]=
 
 HWND CAppWindow::ShowDevelopment()
 {
+CDPI dpi;
 HWND hWnd = NULL;
 shared_ptr<CMDIDebuggerFrame> pwin;
 HRESULT hr;
+const int X_GAP = 362;
 bool bCreated = false;
 bool ok = false;
 
@@ -1075,6 +1077,9 @@ bool ok = false;
 	c64->SynchroniseDevicesWithVIC();
 	appStatus->m_bRunning = FALSE;
 	appStatus->m_bDebug = TRUE;
+
+	RECT rcDesk;
+	G::GetWorkArea(rcDesk);
 
 	try
 	{
@@ -1084,10 +1089,15 @@ bool ok = false;
 			if (pwin != NULL)
 			{
 				int x,y,w,h;
-				x = CW_USEDEFAULT;
-				y = CW_USEDEFAULT;
-				w = CW_USEDEFAULT;
-				h = CW_USEDEFAULT;
+				x = dpi.ScaleX(X_GAP);
+				y = 0;
+				w = rcDesk.right - 2 * x;
+				h = rcDesk.bottom - y;
+				if (w<0 || h<0)
+				{
+					w = CW_USEDEFAULT;
+					h = CW_USEDEFAULT;
+				}
 				POINT pos = {x,y};
 				SIZE size= {w,h};
 				hr = CConfig::LoadMDIWindowSetting(pos, size);
