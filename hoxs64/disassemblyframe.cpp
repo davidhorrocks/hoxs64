@@ -247,12 +247,12 @@ int x,y,w,h;
 BOOL br;
 HWND hWnd;
 
+	HWND hWndParent = pWinParent->GetHwnd();
 	RECT rcDesk;
-	G::GetWorkArea(rcDesk);
+	G::GetMonitorWorkAreaFromWindow(hWndParent, rcDesk);
 	hWnd = this->GetHwnd();
 	if (hWnd == NULL)
 	{
-		HWND hWndParent = pWinParent->GetHwnd();
 		HINSTANCE hInstance = this->GetHinstance();	
 
 		ZeroMemory(&wp, sizeof(wp));
@@ -283,6 +283,8 @@ HWND hWnd;
 			w = w;
 			h = rcDesk.bottom - rcDesk.top -  2*gap;
 		}
+		if (x + w > rcDesk.right)
+			x = rcDesk.right - w;
 		if (x < rcDesk.left)
 			x = rcDesk.left;
 		if (y < rcDesk.top)

@@ -1709,7 +1709,8 @@ bool bGotWorkArea = false;
 		if (G::s_pFnGetMonitorInfo(hMonitor, &mi))
 		{
 			rcWorkArea = mi.rcMonitor;
-			bGotWorkArea = true;
+			if ((mi.dwFlags & MONITORINFOF_PRIMARY) == 0)
+				bGotWorkArea = true;
 		}
 	}
 
