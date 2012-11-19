@@ -1742,7 +1742,7 @@ BOOL      bResult = FALSE;
 		hDCBits = CreateCompatibleDC(hDC);
 		if (hDCBits)
 		{
-			GetObject(hBitmap, sizeof(BITMAP), (LPSTR)&Bitmap);
+			GetObject(hBitmap, sizeof(BITMAP), (LPVOID)&Bitmap);
 			HBITMAP oldbmp = (HBITMAP)SelectObject(hDCBits, hBitmap);
 			if (oldbmp)
 			{
