@@ -144,7 +144,7 @@ public:
 	//INTERRUPT
 	bit32 vicINTERRUPT_STATUS;
 	bit32 vicINTERRUPT_ENABLE;
-	bit8 vic_check_irq_in_cycle2;
+	bool vic_check_irq_in_cycle2;
 
 	//Sprites
 	VICSprite vicSprite[8];
@@ -209,8 +209,6 @@ public:
 	bit8 vicBankChangeByte;
 
 	//IMonitorVic
-	virtual bit16 GetCompletedRasterLine();
-	virtual bit8 GetCompletedRasterCycle();
 	virtual bit16 GetNextRasterLine();
 	virtual bit8 GetNextRasterCycle();
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint);

@@ -1700,7 +1700,7 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	vicMemoryBankIndex = 0;
 	LP_TRIGGER=0;
 	vicLightPen=1;
-	vic_check_irq_in_cycle2=0;
+	vic_check_irq_in_cycle2=false;
 	vicAEC=3;
 	vicMainBorder=1;
 	vicVerticalBorder=1;
@@ -2469,7 +2469,7 @@ bit8 data8;
 				DrawSprites(cyclePrev);
 			if(vic_raster_line == PAL_MAX_LINE)
 			{
-				vic_check_irq_in_cycle2=1;
+				vic_check_irq_in_cycle2=true;
 				vic_pixelbuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][0];
 				FrameNumber++;
 				if (appStatus->m_bDebug)
@@ -2495,26 +2495,6 @@ bit8 data8;
 					bVicRasterMatch = false;
 			}
 
-			//TEST
-			//if (vic_raster_line == 0xeb)//Onslaught Bobby Bounceback+4 Burkah
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0xf5)//Onslaught Bobby Bounceback+4 Burkah
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0x93)//Chromance scroller
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0x39)//Patterzoom
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0x87)//comalight 87
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0x7f)
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0xee)
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0xba)
-			//	vic_raster_line = vic_raster_line;
-			//if (vic_raster_line == 0xc9)//Starion sprite 7
-			//	vic_raster_line = vic_raster_line;
-
 			init_line_start();
 			SetBA(clocks, cycle);
 
@@ -2536,7 +2516,7 @@ bit8 data8;
 				DrawSprites(cyclePrev);
 			if(vic_check_irq_in_cycle2)
 			{
-				vic_check_irq_in_cycle2=0;
+				vic_check_irq_in_cycle2=false;
 				vic_raster_line=0;
 				vicDRAMRefresh=0xFF;
 				LP_TRIGGER=0;
@@ -3359,7 +3339,7 @@ void VIC6569::SpriteXChange(bit8 spriteNo, bit16 x_new, bit8 cycle)
 void VIC6569::CheckRasterCompare(bit8 cycle)
 {
 	//Edge triggered raster IRQ noticed in Octopus In Red Wine demo.
-	if (vic_check_irq_in_cycle2 == 0)
+	if (!vic_check_irq_in_cycle2)
 	{
 		if (cycle != PAL_CLOCKS_PER_LINE)
 		{
@@ -4726,28 +4706,21 @@ unsigned short h;
 #endif
 }
 
-
-bit16 VIC6569::GetCompletedRasterLine()
-{
-	if (vic_check_irq_in_cycle2)
-		return 0;
-	else
-		return (bit16)this->vic_raster_line;
-}
-
-bit8 VIC6569::GetCompletedRasterCycle()
-{
-	return this->vic_raster_cycle;
-}
-
 bit16 VIC6569::GetNextRasterLine()
 {
-	if (vic_raster_cycle < PAL_CLOCKS_PER_LINE)
-		return (bit16)vic_raster_line;
-	else if (vic_raster_line < PAL_MAX_LINE)
-		return (bit16)(vic_raster_line + 1);
-	else
+	if (vic_check_irq_in_cycle2)
+	{
 		return 0;
+	}
+	else 
+	{
+		if (vic_raster_cycle < PAL_CLOCKS_PER_LINE)
+			return (bit16)vic_raster_line;
+		else if (vic_raster_line < PAL_MAX_LINE)
+			return (bit16)(vic_raster_line + 1);
+		else
+			return 0;
+	}
 }
 
 bit8 VIC6569::GetNextRasterCycle()
