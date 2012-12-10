@@ -25,17 +25,26 @@ struct CrtChip
 	bit16 ROMImageSize;
 };
 
+# pragma pack ()
+
 struct CrtChipAndData
 {
-	CrtChipAndData(CrtChip chip, bit8 *pData);
+	CrtChipAndData(CrtChip &chip, bit8 *pData);
+	virtual ~CrtChipAndData();
 	CrtChip chip;
 	bit8 *pData;
 };
 
-# pragma pack ()
+typedef std::shared_ptr<CrtChipAndData> Sp_CrtChipAndData;
 
-//typedef std::shared_ptr<CrtHeader> Sp_CrtHeader;
-//typedef std::shared_ptr<CrtChip> Sp_CrtChip;
+struct LessChipAndDataBank
+{
+	bool operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const;
+};
+
+typedef std::list<Sp_CrtChipAndData> CrtChipAndDataList;
+typedef std::list<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
+
 
 class Cart : public ErrorMsg
 {
@@ -46,8 +55,7 @@ public:
 
 private:
 	CrtHeader m_crtHeader;
-	std::vector<CrtChip> m_lstChip;
-	std::vector<bit8 *> m_lstChipData;
+	CrtChipAndDataList m_lstChipAndData;
 	void CleanUp();
 };
 

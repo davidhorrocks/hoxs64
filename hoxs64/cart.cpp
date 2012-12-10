@@ -41,9 +41,8 @@ __int64 pos = 0;
 __int64 spos = 0;
 bit8 S_SIGHEADER[] = "C64 CARTRIDGE";
 bit8 S_SIGCHIP[] = "CHIP";
-std::vector<bit8 *> lstChipData;
-std::vector<CrtChip> lstChip;
-bit8 *p = NULL;
+CrtChipAndDataList lstChipAndData;
+bit8 *pBank = NULL;
 __int64 filesize=0;
 const int MAXBANKS = 256;
 
@@ -54,18 +53,6 @@ const int MAXBANKS = 256;
 		bool ok = true;
 		do
 		{
-			try
-			{
-				this->m_lstChip.reserve(MAXBANKS);
-				this->m_lstChipData.reserve(MAXBANKS);
-			}
-			catch(std::exception&)
-			{
-				ok = false;
-				hr = SetError(E_FAIL, S_READFAILED, filename);
-				break;
-			}
-
 			hFile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 			if (hFile == INVALID_HANDLE_VALUE)
 			{
@@ -156,23 +143,25 @@ const int MAXBANKS = 256;
 					ok = false;
 					break;
 				}
-				p = (bit8 *)GlobalAlloc(GPTR, chip.ROMImageSize);
-				if (!p)
+				pBank = (bit8 *)GlobalAlloc(GPTR, chip.ROMImageSize);
+				if (!pBank)
 				{
 					hr = SetError(E_FAIL, S_READFAILED, filename);
 					ok = false;
 					break;
 				}
-				br = ReadFile(hFile, p, chip.ROMImageSize, &nBytesRead, NULL);
+				br = ReadFile(hFile, pBank, chip.ROMImageSize, &nBytesRead, NULL);
 				if (!br)
 				{
 					hr = SetError(E_FAIL, S_READFAILED, filename);
 					ok = false;
 					break;
 				}
-				lstChip.push_back(chip);
-				lstChipData.push_back(p);
-				p = NULL;
+				Sp_CrtChipAndData sp(new CrtChipAndData(chip, pBank));
+				if (sp == 0)
+					throw std::bad_alloc();
+				pBank = NULL;
+				lstChipAndData.push_back(sp);
 				nChipCount++;
 				pos = G::FileSeek(hFile, 0, FILE_CURRENT);
 				if (pos < 0)
@@ -211,45 +200,22 @@ const int MAXBANKS = 256;
 		CloseHandle(hFile);
 		hFile = NULL;
 	}
-	if (p)
+	if (pBank)
 	{
-		GlobalFree(p);
-		p = NULL;
+		GlobalFree(pBank);
+		pBank = NULL;
 	}
 
 	if (SUCCEEDED(hr))
 	{
-		if (lstChip.size() == 0 || lstChipData.size() != lstChip.size())
+		if (lstChipAndData.size() == 0)
 		{
 			hr = SetError(E_FAIL, S_READFAILED, filename);
 		}
-	}
-	if (SUCCEEDED(hr))
-	{
-		try
+		else
 		{
-			this->m_lstChip.reserve(lstChip.size());
-			this->m_lstChipData.reserve(lstChipData.size());
-		}
-		catch(std::exception&)
-		{
-			hr = E_FAIL;
-		}
-	}
-	if (SUCCEEDED(hr))
-	{
-		this->m_lstChip.assign(lstChip.begin(), lstChip.end());
-		this->m_lstChipData.assign(lstChipData.begin(), lstChipData.end());
-	}
-	else
-	{
-		for (std::vector<bit8 *>::iterator it = lstChipData.begin(); it != lstChipData.end(); it++)
-		{
-			if (*it != NULL)
-			{
-				GlobalFree(*it);
-				*it = NULL;
-			}
+			lstChipAndData.sort(LessChipAndDataBank());
+			m_lstChipAndData = lstChipAndData;
 		}
 	}
 	return hr;
@@ -257,15 +223,26 @@ const int MAXBANKS = 256;
 
 void Cart::CleanUp()
 {
-	for (std::vector<bit8 *>::iterator it = m_lstChipData.begin(); it != m_lstChipData.end(); it++)
-	{
-		if(*it)
-		{
-			GlobalFree(*it);
-			*it = 0;
-		}
-	}
-	m_lstChipData.clear();
-	m_lstChip.clear();
+	m_lstChipAndData.clear();
 }
 
+
+bool LessChipAndDataBank::operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const
+{
+	return x->chip.BankLocation < y->chip.BankLocation;
+}
+
+CrtChipAndData::~CrtChipAndData()
+{
+	if (this->pData)
+	{
+		GlobalFree(this->pData);
+		this->pData = 0;
+	}
+}
+
+CrtChipAndData::CrtChipAndData(CrtChip &chip, bit8 *pData)
+{
+	this->chip = chip;
+	this->pData = pData;
+}
