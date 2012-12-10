@@ -993,7 +993,16 @@ C64File c64file;
 	if (lstrlen(filename) >= 4)
 	{
 		p= &(filename[lstrlen(filename) - 4]);
-		if (lstrcmpi(p, TEXT(".tap"))==0)
+		if (lstrcmpi(p, TEXT(".crt"))==0)
+		{
+			hr = LoadCrtFile(filename);
+			if (SUCCEEDED(hr))
+			{
+				autoLoadCommand.type = C64::AUTOLOAD_CRT_FILE;
+				appStatus->m_bAutoload = TRUE;
+			}
+		}
+		else if (lstrcmpi(p, TEXT(".tap"))==0)
 		{
 			hr = LoadTAPFile(filename);
 			if (SUCCEEDED(hr))
@@ -1187,6 +1196,15 @@ HRESULT hr;
 	*pStartAddress = (bit16)start;
 	*pSize = (bit16)code_size;
 	return S_OK;
+}
+
+HRESULT C64::LoadCrtFile(TCHAR *filename)
+{
+HRESULT hr = E_FAIL;
+Cart crt;
+	ClearError();
+	crt.LoadCrtFile(filename);
+	return hr;
 }
 
 HRESULT C64::LoadTAPFile(TCHAR *filename)

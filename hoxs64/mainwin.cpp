@@ -301,6 +301,11 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		//Parse the menu selections:
 		switch (wmId) 
 		{
+		case IDM_CART_ATTACHCRT:
+			appStatus->SoundHalt();
+			appStatus->LoadCrtFile(hWnd);
+			appStatus->SoundResume();
+			break;
 		case IDM_TAPE_INSERT:
 			appStatus->SoundHalt();
 			appStatus->InsertTape(hWnd);

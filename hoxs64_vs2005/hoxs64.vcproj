@@ -194,6 +194,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\cart.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\cia1.cpp"
 				>
 			</File>
@@ -485,6 +489,10 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\CArray.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\cart.h"
 				>
 			</File>
 			<File

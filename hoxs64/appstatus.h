@@ -51,6 +51,7 @@ public:
 	virtual void ToggleMaxSpeed() = 0;	
 	virtual void FreeDirectX() = 0;
 	virtual void InsertTape(HWND hWnd) = 0;
+	virtual void LoadCrtFile(HWND hWnd) = 0;
 	virtual void LoadC64Image(HWND hWnd) = 0;
 	virtual void LoadT64(HWND hWnd) = 0;
 	virtual void AutoLoad(HWND hWnd) = 0;

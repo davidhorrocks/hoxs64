@@ -522,6 +522,7 @@
     <ClCompile Include="appstatus.cpp" />
     <ClCompile Include="assembler.cpp" />
     <ClCompile Include="bpenum.cpp" />
+    <ClCompile Include="cart.cpp" />
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="runcommandassemble.cpp" />
     <ClCompile Include="runcommandcpuregisters.cpp" />
@@ -834,6 +835,7 @@
     <ClInclude Include="assembler.h" />
     <ClInclude Include="bits.h" />
     <ClInclude Include="bpenum.h" />
+    <ClInclude Include="cart.h" />
     <ClInclude Include="commandresult.h" />
     <ClInclude Include="diagbreakpointvicraster.h" />
     <ClInclude Include="IC64.h" />

@@ -36,6 +36,7 @@
 #include "via2.h"
 #include "diskinterface.h"
 #include "t64.h"
+#include "cart.h"
 #include "c64file.h"
 #include "assembler.h"
 #include "runcommand.h"
@@ -79,6 +80,7 @@ public:
 
 	HRESULT AutoLoad(TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks);
 
+	HRESULT LoadCrtFile(TCHAR *filename);
 	HRESULT LoadImageFile(TCHAR *filename, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadT64ImageFile(TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadTAPFile(TCHAR *filename);
@@ -127,7 +129,8 @@ public:
 		AUTOLOAD_PRG_FILE,
 		AUTOLOAD_T64_FILE,
 		AUTOLOAD_DISK_FILE,
-		AUTOLOAD_SID_FILE
+		AUTOLOAD_SID_FILE,
+		AUTOLOAD_CRT_FILE
 	};
 
 	enum AutoLoadSequence

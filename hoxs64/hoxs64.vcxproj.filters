@@ -228,6 +228,9 @@
     <ClCompile Include="runcommandcpuregisters.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="cart.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -457,6 +460,9 @@
     </ClInclude>
     <ClInclude Include="runcommand.h">
       <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="cart.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

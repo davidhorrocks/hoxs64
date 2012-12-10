@@ -127,6 +127,10 @@ BEGIN
         MENUITEM MFT_SEPARATOR
         MENUITEM "Reset Drive",                 IDM_DISK_RESETDRIVE,MFT_STRING,MFS_ENABLED
     END
+    POPUP "C&art",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Attach CRT",                  IDM_CART_ATTACHCRT,MFT_STRING,MFS_ENABLED
+    END
     POPUP "&Setting",                       65535,MFT_STRING,MFS_ENABLED
     BEGIN
         MENUITEM "Toggle Full Screen\tAlt Enter", IDM_TOGGLEFULLSCREEN,MFT_STRING,MFS_ENABLED

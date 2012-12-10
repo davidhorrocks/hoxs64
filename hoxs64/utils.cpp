@@ -2392,3 +2392,39 @@ bool G::IsStringBlank(LPCTSTR ps)
 	}
 	return true;
 }
+
+__int64 G::FileSeek (HANDLE hfile, __int64 distance, DWORD moveMethod)
+{
+   LARGE_INTEGER li;
+
+   li.QuadPart = distance;
+
+   li.LowPart = SetFilePointer (hfile, 
+                                li.LowPart, 
+                                &li.HighPart, 
+                                moveMethod);
+
+   if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() 
+       != NO_ERROR)
+   {
+      li.QuadPart = -1;
+   }
+
+   return li.QuadPart;
+}
+
+__int64 G::FileSize (HANDLE hfile)
+{
+   ULARGE_INTEGER li;
+
+   li.QuadPart = 0;
+
+   li.LowPart = GetFileSize (hfile, &li.HighPart);
+
+   if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() 
+       != NO_ERROR)
+   {
+      li.QuadPart = -1;
+   }
+   return (__int64)li.QuadPart;
+}

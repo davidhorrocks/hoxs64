@@ -784,6 +784,32 @@ void CApp::ToggleMaxSpeed()
 	ApplyConfig(tCfg);
 }
 
+void CApp::LoadCrtFile(HWND hWnd)
+{
+OPENFILENAME_500EX of;
+TCHAR initfilename[MAX_PATH];
+BOOL b;
+
+	initfilename[0] = 0;
+	
+	G::InitOfn(of, 
+		hWnd, 
+		TEXT("Choose a cartridge CRT file"),
+		initfilename,
+		MAX_PATH,
+		TEXT("Cartridge CRT (*.crt)\0*.crt\0All files (*.*)\0*.*\0\0"),
+		NULL,
+		0);
+
+	b = GetOpenFileName((LPOPENFILENAME)&of);
+	if (b)
+	{
+		HRESULT hr = c64.LoadCrtFile(initfilename);
+		if (FAILED(hr))
+			c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
+	}
+}
+
 void CApp::InsertTape(HWND hWnd)
 {
 OPENFILENAME_500EX of;

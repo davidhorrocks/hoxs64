@@ -29,6 +29,7 @@ public:
 	virtual void CAppStatus::ToggleSoundMute();
 	virtual void CAppStatus::ToggleMaxSpeed();
 	virtual void CAppStatus::InsertTape(HWND hWnd);
+	virtual void CAppStatus::LoadCrtFile(HWND hWnd);
 	virtual void CAppStatus::LoadC64Image(HWND hWnd);
 	virtual void CAppStatus::LoadT64(HWND hWnd);
 	virtual void CAppStatus::AutoLoad(HWND hWnd);

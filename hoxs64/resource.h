@@ -265,13 +265,17 @@
 #define IDM_BREAKPOINTOPTIONS_HEXADECIMAL 40157
 #define ID_FILE_NEWCLI                  40158
 #define IDM_FILE_NEWCLI                 40159
+#define ID_CART_ATTACHCRT               40160
+#define IDM_CONTEXT_HELP                40161
+#define IDM_ATTACHCRT                   40162
+#define IDM_CART_ATTACHCRT              40163
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        188
-#define _APS_NEXT_COMMAND_VALUE         40160
+#define _APS_NEXT_COMMAND_VALUE         40164
 #define _APS_NEXT_CONTROL_VALUE         1322
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
