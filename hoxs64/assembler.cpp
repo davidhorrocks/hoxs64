@@ -949,7 +949,7 @@ CommandToken *pcr = NULL;
 			*ppmdr = pcr;
 		return S_OK;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
@@ -974,7 +974,7 @@ CommandToken *Assembler::GetCommandTokenShowCpu()
 
 		return pcr;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
@@ -1041,7 +1041,7 @@ CommandToken *Assembler::GetCommandTokenCpu()
 
 		return pcr;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
@@ -1101,7 +1101,7 @@ HRESULT hr;
 		}
 		return pcr;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
@@ -1155,7 +1155,7 @@ int w;
 		}
 		return pcr;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
@@ -1223,7 +1223,7 @@ CommandToken *Assembler::GetCommandTokenMapMemory()
 		}
 		return pcr;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
@@ -1284,7 +1284,7 @@ bit16 finishaddress;
 		}
 		return pcr;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
@@ -1331,7 +1331,7 @@ int w;
 		}
 		return pcr;
 	}
-	catch(std::exception)
+	catch(std::exception&)
 	{
 		if (pcr)
 			delete pcr;
