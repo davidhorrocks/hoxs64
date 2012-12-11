@@ -13,15 +13,20 @@
 #include "carray.h"
 #include "cevent.h"
 #include "errormsg.h"
+#include "CDPI.h"
 #include "bits.h"
 #include "util.h"
-#include "CDPI.h"
 #include "utils.h"
+#include "register.h"
 #include "cart.h"
 
 
 Cart::Cart()
 {
+	IsActive = false;
+	m_crtHeader.EXROM = 0;
+	m_crtHeader.GAME = 0;
+	m_crtHeader.HardwareType = 0;
 }
 
 Cart::~Cart()
@@ -226,6 +231,33 @@ void Cart::CleanUp()
 	m_lstChipAndData.clear();
 }
 
+
+void Cart::Reset(ICLK sysclock)
+{
+}
+
+void Cart::ExecuteCycle(ICLK sysclock)
+{
+}
+
+bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
+{
+	return 0;
+}
+
+void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
+{
+}
+
+bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
+{
+	return 0;
+}
+
+bool Cart::IsCartRegister(bit16 address)
+{
+	return IsActive && address >= 0xDE00 && address < 0xE000;
+}
 
 bool LessChipAndDataBank::operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const
 {

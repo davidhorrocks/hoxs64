@@ -46,16 +46,28 @@ typedef std::list<Sp_CrtChipAndData> CrtChipAndDataList;
 typedef std::list<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
 
 
-class Cart : public ErrorMsg
+class Cart : public IRegister, public ErrorMsg
 {
 public:
 	Cart();
 	~Cart();
 	HRESULT LoadCrtFile(LPCTSTR filename);
+	bool IsActive;
 
-private:
+	virtual void Reset(ICLK sysclock);
+	virtual void ExecuteCycle(ICLK sysclock);
+	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
+	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
+	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+
+	bool IsCartRegister(bit16 address);
+
 	CrtHeader m_crtHeader;
 	CrtChipAndDataList m_lstChipAndData;
+
+	bit8 reg1;
+	bit8 reg2;
+private:
 	void CleanUp();
 };
 

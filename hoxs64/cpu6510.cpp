@@ -20,6 +20,7 @@
 #include "appstatus.h"
 #include "dxstuff9.h"
 #include "hexconv.h"
+#include "cart.h"
 #include "c6502.h"
 #include "ram64.h"
 #include "cpu6510.h"
@@ -142,9 +143,17 @@ bit8 *t;
 		case 0xDD:
 			vic->ExecuteCycle(CurrentClock);
 			return cia2->ReadRegister(address, CurrentClock);
-		default:
-			return vic->ReadRegister(address, CurrentClock);
+		case 0xDE:
+		case 0xDF:
+			if (ram->cart.IsCartRegister(address))
+				return ram->cart.ReadRegister(address, CurrentClock);
+			else
+				return vic->ReadRegister(address, CurrentClock);
 		}
+		if (ram->cart.IsCartRegister(address))
+			return ram->cart.ReadRegister(address, CurrentClock);
+		else
+			return 0;
 	}
 }
 
@@ -214,6 +223,11 @@ bit8 *t;
 				}
 #endif
 				cia2->WriteRegister(address, CurrentClock, data);
+				break;
+			case 0xDE:
+			case 0xDF:
+				if (ram->cart.IsCartRegister(address))
+					return ram->cart.WriteRegister(address, CurrentClock, data);
 				break;
 			}
 		}

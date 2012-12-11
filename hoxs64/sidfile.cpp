@@ -17,6 +17,7 @@
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
+#include "cart.h"
 #include "c6502.h"
 #include "ram64.h"
 #include "cpu6510.h"

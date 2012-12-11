@@ -1204,6 +1204,7 @@ HRESULT hr = E_FAIL;
 Cart crt;
 	ClearError();
 	crt.LoadCrtFile(filename);
+	ram.AttachCart(crt);
 	return hr;
 }
 

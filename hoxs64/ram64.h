@@ -13,6 +13,7 @@ public:
 	int GetCurrentCpuMmuMemoryMap();
 	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
 	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
+	void AttachCart(Cart &cart);
 
 	MEM_TYPE MMU_MT_read[32][16];
 	MEM_TYPE MMU_MT_write[32][16];
@@ -24,6 +25,11 @@ public:
 	bit8 *miBasic;
 	bit8 *miIO;
 	bit8 *miCharGen;
+	bit8 *miROML;
+	bit8 *miROMH;
+	bit8 *miROML_ULTIMAX;
+	bit8 *miROMH_ULTIMAX;
+	bit8 *miEXRAM;
 	bit8 tmp_data[0x10000];
 
 	bit8 *mMemory;
@@ -32,6 +38,7 @@ public:
 	bit8 *mIO;
 	bit8 *mColorRAM;
 	bit8 *mCharGen;
+	Cart cart;
 private:
 	bit8 m_iCurrentCpuMmuIndex;
 	TCHAR m_szAppDirectory[MAX_PATH+1];

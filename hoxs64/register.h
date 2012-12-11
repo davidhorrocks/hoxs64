@@ -39,15 +39,20 @@ struct LessBreakpointKey
 	bool operator()(const Sp_BreakpointKey x, const Sp_BreakpointKey y) const;
 };
 
-typedef enum tagMemoryType : int
+typedef enum tagMemoryType
 {
-	MT_DEFAULT = 0,
-	MT_RAM = 1,
-	MT_IO = 2,
-	MT_CHARGEN = 4,
-	MT_BASIC = 8,
-	MT_KERNAL = 16,
-	MT_NOTCONNECTED = 32
+	MT_DEFAULT,
+	MT_RAM,
+	MT_IO,
+	MT_CHARGEN,
+	MT_BASIC,
+	MT_KERNAL,
+	MT_ROML,
+	MT_ROMH,
+	MT_ROML_ULTIMAX,
+	MT_ROMH_ULTIMAX,
+	MT_EXRAM,
+	MT_NOTCONNECTED
 } MEM_TYPE;
 
 class IRegister

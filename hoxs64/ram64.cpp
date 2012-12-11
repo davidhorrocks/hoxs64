@@ -19,6 +19,7 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
+#include "cart.h"
 #include "c6502.h"
 #include "ram64.h"
 #include "cpu6510.h"
@@ -274,6 +275,12 @@ bit8 *RAM64::GetCpuMmuIndexedPointer(MEM_TYPE mt)
 		return miBasic;
 	case MT_KERNAL:
 		return miKernal;
+	case MT_ROML:
+	case MT_ROMH:
+	case MT_ROML_ULTIMAX:
+	case MT_ROMH_ULTIMAX:
+	case MT_EXRAM:
+		return 0;
 	default:
 		return miMemory;
 	}
@@ -298,6 +305,9 @@ MEM_TYPE RAM64::GetCpuMmuWriteMemoryType(bit16 address, int memorymap)
 void RAM64::InitMMU_0()
 {
 int i,j;
+	
+	//CHARGEN,LORAM,HIRAM,GAME,EXROM
+	//11111	#1
 	MMU_MT_read[0x1F][0xF]=MT_KERNAL;
 	MMU_MT_read[0x1F][0xE]=MT_KERNAL;
 	MMU_MT_read[0x1F][0xD]=MT_IO;
@@ -742,19 +752,31 @@ int i,j;
 	for (i=0 ; i<=0x1f ; i++)
 	{
 		for (j=0 ; j<=0xf ; j++)
-			if (MMU_MT_read[i][j] == MT_CHARGEN 
-				|| MMU_MT_read[i][j] == MT_BASIC
-				|| MMU_MT_read[i][j] == MT_KERNAL)
+		{
+			MEM_TYPE readmt = MMU_MT_read[i][j];
+			if (readmt == MT_CHARGEN 
+				|| readmt == MT_BASIC
+				|| readmt == MT_KERNAL
+				|| readmt == MT_ROML
+				|| readmt == MT_ROMH
+				)
+			{
 				MMU_MT_write[i][j]=MT_RAM;
+			}
+			else if (readmt == MT_ROML_ULTIMAX || readmt == MT_ROMH_ULTIMAX)
+			{
+				MMU_MT_write[i][j]=MT_EXRAM;
+			}
 			else
-				MMU_MT_write[i][j]=MMU_MT_read[i][j];
+			{
+				MMU_MT_write[i][j]=readmt;
+			}
+		}
 	}
 }
 
 void RAM64::InitMMU(){
 int i,j;
-//-LORAM, -HIRAM, -GAME, -EXROM 
-
 	InitMMU_0();
 
 	miMemory = mMemory;
@@ -764,6 +786,11 @@ int i,j;
 	mColorRAM = mIO + 0x0800;
 	miCharGen = mCharGen - 0xD000;
 
+	//miROML;
+	//miROMH;
+	//miEXRAM = miMemory;
+
+
 	for (i=0 ; i<=0x1f ; i++)
 	{
 		for (j=0 ; j<=0xf ; j++)
@@ -772,459 +799,6 @@ int i,j;
 			MMU_write[i][j] = GetCpuMmuIndexedPointer(MMU_MT_write[i][j]);
 		}
 	}
-
-	////11111	#1
-	//MMU_read[0x1F][0xF]=miKernal;
-	//MMU_read[0x1F][0xE]=miKernal;
-	//MMU_read[0x1F][0xD]=0;
-	//MMU_read[0x1F][0xC]=miMemory;
-	//MMU_read[0x1F][0xB]=miBasic;
-	//MMU_read[0x1F][0xA]=miBasic;
-	//MMU_read[0x1F][0x9]=miMemory;
-	//MMU_read[0x1F][0x8]=miMemory;
-	//MMU_read[0x1F][0x7]=miMemory;
-	//MMU_read[0x1F][0x6]=miMemory;
-	//MMU_read[0x1F][0x5]=miMemory;
-	//MMU_read[0x1F][0x4]=miMemory;
-	//MMU_read[0x1F][0x3]=miMemory;
-	//MMU_read[0x1F][0x2]=miMemory;
-	//MMU_read[0x1F][0x1]=miMemory;
-	//MMU_read[0x1F][0x0]=miMemory;
-	////01111	#1
-	//MMU_read[0x0F][0xF]=miKernal;
-	//MMU_read[0x0F][0xE]=miKernal;
-	//MMU_read[0x0F][0xD]=miCharGen;
-	//MMU_read[0x0F][0xC]=miMemory;
-	//MMU_read[0x0F][0xB]=miBasic;
-	//MMU_read[0x0F][0xA]=miBasic;
-	//MMU_read[0x0F][0x9]=miMemory;
-	//MMU_read[0x0F][0x8]=miMemory;
-	//MMU_read[0x0F][0x7]=miMemory;
-	//MMU_read[0x0F][0x6]=miMemory;
-	//MMU_read[0x0F][0x5]=miMemory;
-	//MMU_read[0x0F][0x4]=miMemory;
-	//MMU_read[0x0F][0x3]=miMemory;
-	//MMU_read[0x0F][0x2]=miMemory;
-	//MMU_read[0x0F][0x1]=miMemory;
-	//MMU_read[0x0F][0x0]=miMemory;
-
-
-	//for (i=0 ; i<=0x1f ; i++){
-
-	//	for (j=0 ; j<=0xf ; j++){
-	//		if (i!=0x1f && i!=0xf)
-	//			if ((i & 0x10)!=0)
-	//				MMU_read[i][j]=MMU_read[0x1f][j];
-	//			else
-	//				MMU_read[i][j]=MMU_read[0x0f][j];
-	//	}
-	//}
-
-	////11010 #2
-	//MMU_read[0x1A][0xF]=miMemory;
-	//MMU_read[0x1A][0xE]=miMemory;
-	//MMU_read[0x1A][0xD]=0;
-	//MMU_read[0x1A][0xC]=miMemory;
-	//MMU_read[0x1A][0xB]=miMemory;
-	//MMU_read[0x1A][0xA]=miMemory;
-	//MMU_read[0x1A][0x9]=miMemory;
-	//MMU_read[0x1A][0x8]=miMemory;
-	//MMU_read[0x1A][0x7]=miMemory;
-	//MMU_read[0x1A][0x6]=miMemory;
-	//MMU_read[0x1A][0x5]=miMemory;
-	//MMU_read[0x1A][0x4]=miMemory;
-	//MMU_read[0x1A][0x3]=miMemory;
-	//MMU_read[0x1A][0x2]=miMemory;
-	//MMU_read[0x1A][0x1]=miMemory;
-	//MMU_read[0x1A][0x0]=miMemory;
-	////01010 #2
-	//MMU_read[0x0A][0xF]=miMemory;
-	//MMU_read[0x0A][0xE]=miMemory;
-	//MMU_read[0x0A][0xD]=miCharGen;
-	//MMU_read[0x0A][0xC]=miMemory;
-	//MMU_read[0x0A][0xB]=miMemory;
-	//MMU_read[0x0A][0xA]=miMemory;
-	//MMU_read[0x0A][0x9]=miMemory;
-	//MMU_read[0x0A][0x8]=miMemory;
-	//MMU_read[0x0A][0x7]=miMemory;
-	//MMU_read[0x0A][0x6]=miMemory;
-	//MMU_read[0x0A][0x5]=miMemory;
-	//MMU_read[0x0A][0x4]=miMemory;
-	//MMU_read[0x0A][0x3]=miMemory;
-	//MMU_read[0x0A][0x2]=miMemory;
-	//MMU_read[0x0A][0x1]=miMemory;
-	//MMU_read[0x0A][0x0]=miMemory;
-
-	////11011 #2
-	//MMU_read[0x1B][0xF]=miMemory;
-	//MMU_read[0x1B][0xE]=miMemory;
-	//MMU_read[0x1B][0xD]=0;
-	//MMU_read[0x1B][0xC]=miMemory;
-	//MMU_read[0x1B][0xB]=miMemory;
-	//MMU_read[0x1B][0xA]=miMemory;
-	//MMU_read[0x1B][0x9]=miMemory;
-	//MMU_read[0x1B][0x8]=miMemory;
-	//MMU_read[0x1B][0x7]=miMemory;
-	//MMU_read[0x1B][0x6]=miMemory;
-	//MMU_read[0x1B][0x5]=miMemory;
-	//MMU_read[0x1B][0x4]=miMemory;
-	//MMU_read[0x1B][0x3]=miMemory;
-	//MMU_read[0x1B][0x2]=miMemory;
-	//MMU_read[0x1B][0x1]=miMemory;
-	//MMU_read[0x1B][0x0]=miMemory;
-	////01011 #2
-	//MMU_read[0x0B][0xF]=miMemory;
-	//MMU_read[0x0B][0xE]=miMemory;
-	//MMU_read[0x0B][0xD]=miCharGen;
-	//MMU_read[0x0B][0xC]=miMemory;
-	//MMU_read[0x0B][0xB]=miMemory;
-	//MMU_read[0x0B][0xA]=miMemory;
-	//MMU_read[0x0B][0x9]=miMemory;
-	//MMU_read[0x0B][0x8]=miMemory;
-	//MMU_read[0x0B][0x7]=miMemory;
-	//MMU_read[0x0B][0x6]=miMemory;
-	//MMU_read[0x0B][0x5]=miMemory;
-	//MMU_read[0x0B][0x4]=miMemory;
-	//MMU_read[0x0B][0x3]=miMemory;
-	//MMU_read[0x0B][0x2]=miMemory;
-	//MMU_read[0x0B][0x1]=miMemory;
-	//MMU_read[0x0B][0x0]=miMemory;
-
-
-	////11000 #3
-	//MMU_read[0x18][0xF]=miMemory;
-	//MMU_read[0x18][0xE]=miMemory;
-	//MMU_read[0x18][0xD]=miMemory;
-	//MMU_read[0x18][0xC]=miMemory;
-	//MMU_read[0x18][0xB]=miMemory;
-	//MMU_read[0x18][0xA]=miMemory;
-	//MMU_read[0x18][0x9]=miMemory;
-	//MMU_read[0x18][0x8]=miMemory;
-	//MMU_read[0x18][0x7]=miMemory;
-	//MMU_read[0x18][0x6]=miMemory;
-	//MMU_read[0x18][0x5]=miMemory;
-	//MMU_read[0x18][0x4]=miMemory;
-	//MMU_read[0x18][0x3]=miMemory;
-	//MMU_read[0x18][0x2]=miMemory;
-	//MMU_read[0x18][0x1]=miMemory;
-	//MMU_read[0x18][0x0]=miMemory;
-	////01000 #3
-	//MMU_read[0x08][0xF]=miMemory;
-	//MMU_read[0x08][0xE]=miMemory;
-	//MMU_read[0x08][0xD]=miCharGen;
-	//MMU_read[0x08][0xC]=miMemory;
-	//MMU_read[0x08][0xB]=miMemory;
-	//MMU_read[0x08][0xA]=miMemory;
-	//MMU_read[0x08][0x9]=miMemory;
-	//MMU_read[0x08][0x8]=miMemory;
-	//MMU_read[0x08][0x7]=miMemory;
-	//MMU_read[0x08][0x6]=miMemory;
-	//MMU_read[0x08][0x5]=miMemory;
-	//MMU_read[0x08][0x4]=miMemory;
-	//MMU_read[0x08][0x3]=miMemory;
-	//MMU_read[0x08][0x2]=miMemory;
-	//MMU_read[0x08][0x1]=miMemory;
-	//MMU_read[0x08][0x0]=miMemory;
-
-
-	////10110 #4
-	//MMU_read[0x16][0xF]=miKernal;
-	//MMU_read[0x16][0xE]=miKernal;
-	//MMU_read[0x16][0xD]=0;
-	//MMU_read[0x16][0xC]=miMemory;
-	//MMU_read[0x16][0xB]=miMemory;
-	//MMU_read[0x16][0xA]=miMemory;
-	//MMU_read[0x16][0x9]=miMemory;
-	//MMU_read[0x16][0x8]=miMemory;
-	//MMU_read[0x16][0x7]=miMemory;
-	//MMU_read[0x16][0x6]=miMemory;
-	//MMU_read[0x16][0x5]=miMemory;
-	//MMU_read[0x16][0x4]=miMemory;
-	//MMU_read[0x16][0x3]=miMemory;
-	//MMU_read[0x16][0x2]=miMemory;
-	//MMU_read[0x16][0x1]=miMemory;
-	//MMU_read[0x16][0x0]=miMemory;
-	////00110 #4
-	//MMU_read[0x06][0xF]=miKernal;
-	//MMU_read[0x06][0xE]=miKernal;
-	//MMU_read[0x06][0xD]=miCharGen;
-	//MMU_read[0x06][0xC]=miMemory;
-	//MMU_read[0x06][0xB]=miMemory;
-	//MMU_read[0x06][0xA]=miMemory;
-	//MMU_read[0x06][0x9]=miMemory;
-	//MMU_read[0x06][0x8]=miMemory;
-	//MMU_read[0x06][0x7]=miMemory;
-	//MMU_read[0x06][0x6]=miMemory;
-	//MMU_read[0x06][0x5]=miMemory;
-	//MMU_read[0x06][0x4]=miMemory;
-	//MMU_read[0x06][0x3]=miMemory;
-	//MMU_read[0x06][0x2]=miMemory;
-	//MMU_read[0x06][0x1]=miMemory;
-	//MMU_read[0x06][0x0]=miMemory;
-
-
-	////10111 #4
-	//MMU_read[0x17][0xF]=miKernal;
-	//MMU_read[0x17][0xE]=miKernal;
-	//MMU_read[0x17][0xD]=0;
-	//MMU_read[0x17][0xC]=miMemory;
-	//MMU_read[0x17][0xB]=miMemory;
-	//MMU_read[0x17][0xA]=miMemory;
-	//MMU_read[0x17][0x9]=miMemory;
-	//MMU_read[0x17][0x8]=miMemory;
-	//MMU_read[0x17][0x7]=miMemory;
-	//MMU_read[0x17][0x6]=miMemory;
-	//MMU_read[0x17][0x5]=miMemory;
-	//MMU_read[0x17][0x4]=miMemory;
-	//MMU_read[0x17][0x3]=miMemory;
-	//MMU_read[0x17][0x2]=miMemory;
-	//MMU_read[0x17][0x1]=miMemory;
-	//MMU_read[0x17][0x0]=miMemory;
-	////00111 #4
-	//MMU_read[0x07][0xF]=miKernal;
-	//MMU_read[0x07][0xE]=miKernal;
-	//MMU_read[0x07][0xD]=miCharGen;
-	//MMU_read[0x07][0xC]=miMemory;
-	//MMU_read[0x07][0xB]=miMemory;
-	//MMU_read[0x07][0xA]=miMemory;
-	//MMU_read[0x07][0x9]=miMemory;
-	//MMU_read[0x07][0x8]=miMemory;
-	//MMU_read[0x07][0x7]=miMemory;
-	//MMU_read[0x07][0x6]=miMemory;
-	//MMU_read[0x07][0x5]=miMemory;
-	//MMU_read[0x07][0x4]=miMemory;
-	//MMU_read[0x07][0x3]=miMemory;
-	//MMU_read[0x07][0x2]=miMemory;
-	//MMU_read[0x07][0x1]=miMemory;
-	//MMU_read[0x07][0x0]=miMemory;
-
-
-	////10010 #5
-	//MMU_read[0x12][0xF]=miMemory;
-	//MMU_read[0x12][0xE]=miMemory;
-	//MMU_read[0x12][0xD]=miMemory;
-	//MMU_read[0x12][0xC]=miMemory;
-	//MMU_read[0x12][0xB]=miMemory;
-	//MMU_read[0x12][0xA]=miMemory;
-	//MMU_read[0x12][0x9]=miMemory;
-	//MMU_read[0x12][0x8]=miMemory;
-	//MMU_read[0x12][0x7]=miMemory;
-	//MMU_read[0x12][0x6]=miMemory;
-	//MMU_read[0x12][0x5]=miMemory;
-	//MMU_read[0x12][0x4]=miMemory;
-	//MMU_read[0x12][0x3]=miMemory;
-	//MMU_read[0x12][0x2]=miMemory;
-	//MMU_read[0x12][0x1]=miMemory;
-	//MMU_read[0x12][0x0]=miMemory;
-	////00010 #5
-	//MMU_read[0x02][0xF]=miMemory;
-	//MMU_read[0x02][0xE]=miMemory;
-	//MMU_read[0x02][0xD]=miMemory;
-	//MMU_read[0x02][0xC]=miMemory;
-	//MMU_read[0x02][0xB]=miMemory;
-	//MMU_read[0x02][0xA]=miMemory;
-	//MMU_read[0x02][0x9]=miMemory;
-	//MMU_read[0x02][0x8]=miMemory;
-	//MMU_read[0x02][0x7]=miMemory;
-	//MMU_read[0x02][0x6]=miMemory;
-	//MMU_read[0x02][0x5]=miMemory;
-	//MMU_read[0x02][0x4]=miMemory;
-	//MMU_read[0x02][0x3]=miMemory;
-	//MMU_read[0x02][0x2]=miMemory;
-	//MMU_read[0x02][0x1]=miMemory;
-	//MMU_read[0x02][0x0]=miMemory;
-
-
-	////10011 #5
-	//MMU_read[0x13][0xF]=miMemory;
-	//MMU_read[0x13][0xE]=miMemory;
-	//MMU_read[0x13][0xD]=miMemory;
-	//MMU_read[0x13][0xC]=miMemory;
-	//MMU_read[0x13][0xB]=miMemory;
-	//MMU_read[0x13][0xA]=miMemory;
-	//MMU_read[0x13][0x9]=miMemory;
-	//MMU_read[0x13][0x8]=miMemory;
-	//MMU_read[0x13][0x7]=miMemory;
-	//MMU_read[0x13][0x6]=miMemory;
-	//MMU_read[0x13][0x5]=miMemory;
-	//MMU_read[0x13][0x4]=miMemory;
-	//MMU_read[0x13][0x3]=miMemory;
-	//MMU_read[0x13][0x2]=miMemory;
-	//MMU_read[0x13][0x1]=miMemory;
-	//MMU_read[0x13][0x0]=miMemory;
-	////00011 #5
-	//MMU_read[0x03][0xF]=miMemory;
-	//MMU_read[0x03][0xE]=miMemory;
-	//MMU_read[0x03][0xD]=miMemory;
-	//MMU_read[0x03][0xC]=miMemory;
-	//MMU_read[0x03][0xB]=miMemory;
-	//MMU_read[0x03][0xA]=miMemory;
-	//MMU_read[0x03][0x9]=miMemory;
-	//MMU_read[0x03][0x8]=miMemory;
-	//MMU_read[0x03][0x7]=miMemory;
-	//MMU_read[0x03][0x6]=miMemory;
-	//MMU_read[0x03][0x5]=miMemory;
-	//MMU_read[0x03][0x4]=miMemory;
-	//MMU_read[0x03][0x3]=miMemory;
-	//MMU_read[0x03][0x2]=miMemory;
-	//MMU_read[0x03][0x1]=miMemory;
-	//MMU_read[0x03][0x0]=miMemory;
-
-
-	////10000 #5
-	//MMU_read[0x10][0xF]=miMemory;
-	//MMU_read[0x10][0xE]=miMemory;
-	//MMU_read[0x10][0xD]=miMemory;
-	//MMU_read[0x10][0xC]=miMemory;
-	//MMU_read[0x10][0xB]=miMemory;
-	//MMU_read[0x10][0xA]=miMemory;
-	//MMU_read[0x10][0x9]=miMemory;
-	//MMU_read[0x10][0x8]=miMemory;
-	//MMU_read[0x10][0x7]=miMemory;
-	//MMU_read[0x10][0x6]=miMemory;
-	//MMU_read[0x10][0x5]=miMemory;
-	//MMU_read[0x10][0x4]=miMemory;
-	//MMU_read[0x10][0x3]=miMemory;
-	//MMU_read[0x10][0x2]=miMemory;
-	//MMU_read[0x10][0x1]=miMemory;
-	//MMU_read[0x10][0x0]=miMemory;
-	////00000 #5
-	//MMU_read[0x00][0xF]=miMemory;
-	//MMU_read[0x00][0xE]=miMemory;
-	//MMU_read[0x00][0xD]=miMemory;
-	//MMU_read[0x00][0xC]=miMemory;
-	//MMU_read[0x00][0xB]=miMemory;
-	//MMU_read[0x00][0xA]=miMemory;
-	//MMU_read[0x00][0x9]=miMemory;
-	//MMU_read[0x00][0x8]=miMemory;
-	//MMU_read[0x00][0x7]=miMemory;
-	//MMU_read[0x00][0x6]=miMemory;
-	//MMU_read[0x00][0x5]=miMemory;
-	//MMU_read[0x00][0x4]=miMemory;
-	//MMU_read[0x00][0x3]=miMemory;
-	//MMU_read[0x00][0x2]=miMemory;
-	//MMU_read[0x00][0x1]=miMemory;
-	//MMU_read[0x00][0x0]=miMemory;
-
-
-	////11110 #6
-	//MMU_read[0x1E][0xF]=miKernal;
-	//MMU_read[0x1E][0xE]=miKernal;
-	//MMU_read[0x1E][0xD]=0;
-	//MMU_read[0x1E][0xC]=miMemory;
-	//MMU_read[0x1E][0xB]=miBasic;
-	//MMU_read[0x1E][0xA]=miBasic;
-	//MMU_read[0x1E][0x9]=miMemory;
-	//MMU_read[0x1E][0x8]=miMemory;
-	//MMU_read[0x1E][0x7]=miMemory;
-	//MMU_read[0x1E][0x6]=miMemory;
-	//MMU_read[0x1E][0x5]=miMemory;
-	//MMU_read[0x1E][0x4]=miMemory;
-	//MMU_read[0x1E][0x3]=miMemory;
-	//MMU_read[0x1E][0x2]=miMemory;
-	//MMU_read[0x1E][0x1]=miMemory;
-	//MMU_read[0x1E][0x0]=miMemory;
-	////01110 #6
-	//MMU_read[0x0E][0xF]=miKernal;
-	//MMU_read[0x0E][0xE]=miKernal;
-	//MMU_read[0x0E][0xD]=miCharGen;
-	//MMU_read[0x0E][0xC]=miMemory;
-	//MMU_read[0x0E][0xB]=miBasic;
-	//MMU_read[0x0E][0xA]=miBasic;
-	//MMU_read[0x0E][0x9]=miMemory;
-	//MMU_read[0x0E][0x8]=miMemory;
-	//MMU_read[0x0E][0x7]=miMemory;
-	//MMU_read[0x0E][0x6]=miMemory;
-	//MMU_read[0x0E][0x5]=miMemory;
-	//MMU_read[0x0E][0x4]=miMemory;
-	//MMU_read[0x0E][0x3]=miMemory;
-	//MMU_read[0x0E][0x2]=miMemory;
-	//MMU_read[0x0E][0x1]=miMemory;
-	//MMU_read[0x0E][0x0]=miMemory;
-
-
-	////10100 #7
-	//MMU_read[0x14][0xF]=miKernal;
-	//MMU_read[0x14][0xE]=miKernal;
-	//MMU_read[0x14][0xD]=0;
-	//MMU_read[0x14][0xC]=miMemory;
-	//MMU_read[0x14][0xB]=miMemory;
-	//MMU_read[0x14][0xA]=miMemory;
-	//MMU_read[0x14][0x9]=miMemory;
-	//MMU_read[0x14][0x8]=miMemory;
-	//MMU_read[0x14][0x7]=miMemory;
-	//MMU_read[0x14][0x6]=miMemory;
-	//MMU_read[0x14][0x5]=miMemory;
-	//MMU_read[0x14][0x4]=miMemory;
-	//MMU_read[0x14][0x3]=miMemory;
-	//MMU_read[0x14][0x2]=miMemory;
-	//MMU_read[0x14][0x1]=miMemory;
-	//MMU_read[0x14][0x0]=miMemory;
-	////00100 #7
-	//MMU_read[0x04][0xF]=miKernal;
-	//MMU_read[0x04][0xE]=miKernal;
-	//MMU_read[0x04][0xD]=miCharGen;
-	//MMU_read[0x04][0xC]=miMemory;
-	//MMU_read[0x04][0xB]=miMemory;
-	//MMU_read[0x04][0xA]=miMemory;
-	//MMU_read[0x04][0x9]=miMemory;
-	//MMU_read[0x04][0x8]=miMemory;
-	//MMU_read[0x04][0x7]=miMemory;
-	//MMU_read[0x04][0x6]=miMemory;
-	//MMU_read[0x04][0x5]=miMemory;
-	//MMU_read[0x04][0x4]=miMemory;
-	//MMU_read[0x04][0x3]=miMemory;
-	//MMU_read[0x04][0x2]=miMemory;
-	//MMU_read[0x04][0x1]=miMemory;
-	//MMU_read[0x04][0x0]=miMemory;
-
-
-	////11100 #8
-	//MMU_read[0x1C][0xF]=miKernal;
-	//MMU_read[0x1C][0xE]=miKernal;
-	//MMU_read[0x1C][0xD]=0;
-	//MMU_read[0x1C][0xC]=miMemory;
-	//MMU_read[0x1C][0xB]=miMemory;
-	//MMU_read[0x1C][0xA]=miMemory;
-	//MMU_read[0x1C][0x9]=miMemory;
-	//MMU_read[0x1C][0x8]=miMemory;
-	//MMU_read[0x1C][0x7]=miMemory;
-	//MMU_read[0x1C][0x6]=miMemory;
-	//MMU_read[0x1C][0x5]=miMemory;
-	//MMU_read[0x1C][0x4]=miMemory;
-	//MMU_read[0x1C][0x3]=miMemory;
-	//MMU_read[0x1C][0x2]=miMemory;
-	//MMU_read[0x1C][0x1]=miMemory;
-	//MMU_read[0x1C][0x0]=miMemory;
-	////01100 #8
-	//MMU_read[0x0C][0xF]=miKernal;
-	//MMU_read[0x0C][0xE]=miKernal;
-	//MMU_read[0x0C][0xD]=miCharGen;
-	//MMU_read[0x0C][0xC]=miMemory;
-	//MMU_read[0x0C][0xB]=miMemory;
-	//MMU_read[0x0C][0xA]=miMemory;
-	//MMU_read[0x0C][0x9]=miMemory;
-	//MMU_read[0x0C][0x8]=miMemory;
-	//MMU_read[0x0C][0x7]=miMemory;
-	//MMU_read[0x0C][0x6]=miMemory;
-	//MMU_read[0x0C][0x5]=miMemory;
-	//MMU_read[0x0C][0x4]=miMemory;
-	//MMU_read[0x0C][0x3]=miMemory;
-	//MMU_read[0x0C][0x2]=miMemory;
-	//MMU_read[0x0C][0x1]=miMemory;
-	//MMU_read[0x0C][0x0]=miMemory;
-
-
-	//for (i=0 ; i<=0x1f ; i++){
-	//	for (j=0 ; j<=0xf ; j++)
-	//		if (MMU_read[i][j] == miCharGen 
-	//			|| MMU_read[i][j] == miBasic
-	//			|| MMU_read[i][j] == miKernal)
-	//			MMU_write[i][j]=miMemory;
-	//		else
-	//			MMU_write[i][j]=MMU_read[i][j];
-	//}
-
 
 	VicMMU_read[0x3][0x3]=mMemory+0xC000;
 	VicMMU_read[0x3][0x2]=mMemory+0xC000;
@@ -1261,3 +835,8 @@ void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_
 	*p_vic_3fff_ptr = &(**p_vic_memory_map_read)[0x3fff];
 }
 
+
+void RAM64::AttachCart(Cart &cart)
+{
+	this->cart = cart;
+}

@@ -1483,5 +1483,5 @@ bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& othe
 
 bool CDisassemblyEditChild::AssemblyLineBuffer::GetIsReadOnly()
 {
-	return (AddressReadAccessType == MT_KERNAL || AddressReadAccessType == MT_BASIC || AddressReadAccessType == MT_CHARGEN || AddressReadAccessType == MT_NOTCONNECTED);
+	return (AddressReadAccessType == MT_KERNAL || AddressReadAccessType == MT_BASIC || AddressReadAccessType == MT_CHARGEN || AddressReadAccessType == MT_ROML || AddressReadAccessType == MT_ROMH || AddressReadAccessType == MT_ROML_ULTIMAX || AddressReadAccessType == MT_ROMH_ULTIMAX || AddressReadAccessType == MT_NOTCONNECTED);
 }
