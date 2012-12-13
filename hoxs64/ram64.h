@@ -27,8 +27,8 @@ public:
 	bit8 *miCharGen;
 	bit8 *miROML;
 	bit8 *miROMH;
-	bit8 *miROML_ULTIMAX;
-	bit8 *miROMH_ULTIMAX;
+	//bit8 *miROML_ULTIMAX;
+	//bit8 *miROMH_ULTIMAX;
 	bit8 *miEXRAM;
 	bit8 tmp_data[0x10000];
 
@@ -39,12 +39,19 @@ public:
 	bit8 *mColorRAM;
 	bit8 *mCharGen;
 	Cart cart;
+	bit8 *mCartMemory;
+	bit8 *mROML;
+	bit8 *mROMH;
+	bit8 *mEXRAM;
+	bool m_bIsCartAttached;
+	bool m_bIsCartIOActive;
 private:
 	bit8 m_iCurrentCpuMmuIndex;
 	TCHAR m_szAppDirectory[MAX_PATH+1];
 	HRESULT	Allocate64Memory();
 	void Free64Memory();
 	void Zero64MemoryPointers();
+	void ZeroCartMemoryPointers();
 	void InitMMU();
 	void InitMMU_0();
 	void LoadResetPattern();

@@ -34,30 +34,15 @@
 RAM64::RAM64()
 {
 	Zero64MemoryPointers();
+	ZeroCartMemoryPointers();
+	m_bIsCartAttached = false;
+	m_bIsCartIOActive = false;
 }
 
 RAM64::~RAM64()
 {
 	Free64Memory();
 }
-
-/*
-void RAM64::Reset()
-{
-int i;
-	for (i=0 ; i<=0xFFFF ; i++)
-	{
-		if ((i & 64)==0)
-			mMemory[i] = 0;
-		else
-			mMemory[i] = 255;
-	}
-	for (i=0 ; i<1024 ; i++)
-	{
-		mColorRAM[i] = 0;
-	}
-}
-*/
 
 void RAM64::Reset()
 {
@@ -221,17 +206,23 @@ TCHAR szRomPath[MAX_PATH+1];
 
 HRESULT RAM64::Allocate64Memory(){
 bool r=S_OK;
-	Free64Memory();
-	if (NULL != (mMemory =(bit8 *) VirtualAlloc(NULL, (64 + 8 + 8 + 4 + 4)*1024, MEM_COMMIT, PAGE_READWRITE))){
-		mKernal = mMemory+0x10000;
-		mBasic = mKernal+0x2000;
-		mIO = mBasic+0x2000;
-		mCharGen = mIO+0x1000;
+const int MEM_RAM64 = 64* 1024;
+const int MEM_KERNAL = 8* 1024;
+const int MEM_BASIC = 8* 1024;
+const int MEM_CHARGEN = 4* 1024;
+const int MEM_IO = 4* 1024;
 
+	Free64Memory();
+	if (NULL != (mMemory =(bit8 *) VirtualAlloc(NULL, (MEM_RAM64 + MEM_KERNAL + MEM_BASIC + MEM_CHARGEN + MEM_IO), MEM_COMMIT, PAGE_READWRITE))){
+		mKernal = mMemory + (INT_PTR)MEM_RAM64;
+		mBasic = mKernal + (INT_PTR)MEM_KERNAL;
+		mIO = mBasic + (INT_PTR)MEM_BASIC;
+		mCharGen = mIO + (INT_PTR)MEM_IO;
 		return S_OK;
 	}
-	Free64Memory();
-	return SetError(E_FAIL, TEXT("Allocate64Memory() failed"));
+	else{
+		return SetError(E_FAIL, TEXT("Allocate64Memory() failed"));
+	}
 }
 
 void RAM64::Free64Memory(){
@@ -247,13 +238,25 @@ void RAM64::Zero64MemoryPointers(){
 	mBasic=0L;
 	mIO=0L;
 	mCharGen=0L;
-	mColorRAM;
+	mColorRAM=0L;
 
 	miMemory=0L;
 	miKernal=0L;
 	miBasic=0L;
 	miIO=0L;
 	miCharGen=0L;
+}
+
+void RAM64::ZeroCartMemoryPointers(){
+	mROML=0L;
+	mROMH=0L;
+	mEXRAM=0L;
+
+	miROML=0L;
+	miROMH=0L;
+	miEXRAM=0L;
+
+	mCartMemory = 0L;
 }
 
 int RAM64::GetCurrentCpuMmuMemoryMap()
@@ -984,4 +987,14 @@ void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_
 void RAM64::AttachCart(Cart &cart)
 {
 	this->cart = cart;
+	cart.m_pCartData = NULL;//Move ownership of cart memory;
+
+	mCartMemory = this->cart.m_pCartData;
+	mEXRAM = mCartMemory;
+	mROML = this->cart.m_lstChipAndData[0]->pData;
+	mROMH = this->cart.m_lstChipAndData[0]->pData;
+
+	miEXRAM = mCartMemory;
+	miROMH = mROMH - 0;
+	miROML = mROML - 0;
 }

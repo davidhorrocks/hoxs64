@@ -33,6 +33,8 @@ struct CrtChipAndData
 	virtual ~CrtChipAndData();
 	CrtChip chip;
 	bit8 *pData;
+
+	__int64 iFileIndex;
 };
 
 typedef std::shared_ptr<CrtChipAndData> Sp_CrtChipAndData;
@@ -42,8 +44,9 @@ struct LessChipAndDataBank
 	bool operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const;
 };
 
-typedef std::list<Sp_CrtChipAndData> CrtChipAndDataList;
-typedef std::list<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
+typedef std::vector<Sp_CrtChipAndData> CrtChipAndDataList;
+typedef std::vector<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
+typedef std::vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
 
 
 class Cart : public IRegister, public ErrorMsg
@@ -52,7 +55,6 @@ public:
 	Cart();
 	~Cart();
 	HRESULT LoadCrtFile(LPCTSTR filename);
-	bool IsActive;
 
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);
@@ -62,13 +64,17 @@ public:
 
 	bool IsCartRegister(bit16 address);
 
+	int GetTotalCartMemoryRequirement();
+
 	CrtHeader m_crtHeader;
 	CrtChipAndDataList m_lstChipAndData;
+	bit8 *m_pCartData;
 
 	bit8 reg1;
-	bit8 reg2;
 private:
+	static const int RAMRESERVEDSIZE;
 	void CleanUp();
+	int GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip);
 };
 
 #endif
