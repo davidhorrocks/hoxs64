@@ -757,6 +757,9 @@ void CPU6502::ClearNMI()
 	NMI=0;
 }
 
+void CPU6502::ConfigureMemoryMap()
+{
+}
 
 void __forceinline CPU6502::code_cmp()
 {

@@ -35,8 +35,6 @@ RAM64::RAM64()
 {
 	Zero64MemoryPointers();
 	ZeroCartMemoryPointers();
-	m_bIsCartAttached = false;
-	m_bIsCartIOActive = false;
 }
 
 RAM64::~RAM64()
@@ -934,11 +932,6 @@ int i,j;
 	mColorRAM = mIO + 0x0800;
 	miCharGen = mCharGen - 0xD000;
 
-	//miROML;
-	//miROMH;
-	//miEXRAM = miMemory;
-
-
 	for (i=0 ; i<=0x1f ; i++)
 	{
 		for (j=0 ; j<=0xf ; j++)
@@ -986,15 +979,13 @@ void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_
 
 void RAM64::AttachCart(Cart &cart)
 {
-	this->cart = cart;
-	cart.m_pCartData = NULL;//Move ownership of cart memory;
-
-	mCartMemory = this->cart.m_pCartData;
+	cart.m_bIsCartAttached = true;
+	mCartMemory = cart.m_pCartData;
 	mEXRAM = mCartMemory;
-	mROML = this->cart.m_lstChipAndData[0]->pData;
-	mROMH = this->cart.m_lstChipAndData[0]->pData;
+	mROML = cart.m_lstChipAndData[cart.m_bSelectedBank]->pData;
+	mROMH = cart.m_lstChipAndData[cart.m_bSelectedBank]->pData;
 
 	miEXRAM = mCartMemory;
-	miROMH = mROMH - 0;
-	miROML = mROML - 0;
+	miROMH = mROMH - 0x8000;
+	miROML = mROML - 0x8000;
 }

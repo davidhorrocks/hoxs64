@@ -66,6 +66,17 @@ public:
 	ICLK CurrentClock;
 };
 
+class IC6502: public IRegister
+{
+public:
+	virtual void SetIRQ(ICLK sysclock)=0;
+	virtual void ClearIRQ()=0;
+	virtual void ClearSlowIRQ()=0;
+	virtual void SetNMI(ICLK sysclock)=0;
+	virtual void ClearNMI()=0;
+	virtual void ConfigureMemoryMap() = 0;
+};
+
 class ILightPen
 {
 public:

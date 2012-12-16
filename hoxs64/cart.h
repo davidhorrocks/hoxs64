@@ -52,8 +52,16 @@ typedef std::vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
 class Cart : public IRegister, public ErrorMsg
 {
 public:
+	enum CartState
+	{
+		Normal,
+		CartReset,
+		CartFreeze
+	};
+
 	Cart();
 	~Cart();
+	void Init(IC6502 *pCpu);
 	HRESULT LoadCrtFile(LPCTSTR filename);
 
 	virtual void Reset(ICLK sysclock);
@@ -63,18 +71,32 @@ public:
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
 
 	bool IsCartRegister(bit16 address);
-
 	int GetTotalCartMemoryRequirement();
+	void ConfigureMemoryMap();
+	void SetWakeUpClock();
+	void PreventClockOverflow();
 
 	CrtHeader m_crtHeader;
 	CrtChipAndDataList m_lstChipAndData;
 	bit8 *m_pCartData;
 
 	bit8 reg1;
+
+	bit8 GAME;
+	bit8 EXROM;
+	bool m_bIsCartAttached;
+	bool m_bIsCartIOActive;
+	bool m_bEnableRAM;
+	bit8 m_bSelectedBank;
+	ICLK ClockNextWakeUpClock;
+	
 private:
 	static const int RAMRESERVEDSIZE;
 	void CleanUp();
 	int GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip);
+	IC6502 *m_pCpu;
+	CartState m_state;
+	ICLK m_ClockCartReset;
 };
 
 #endif

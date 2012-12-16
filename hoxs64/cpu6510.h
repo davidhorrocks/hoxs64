@@ -5,12 +5,15 @@ class CPU6510;
 class CIA1;
 class CIA2;
 class VIC6569;
+class Cart;
+class SID64;
+
 class CPU6510 : public CPU6502
 {
 public:
 	CPU6510();
 	~CPU6510();
-	HRESULT Init(IC64Event *pIC64Event, int ID, IRegister *cia1, IRegister *cia2, IRegister *vic, IRegister *sid, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
+	HRESULT Init(IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
 	void SetCassetteSense(bit8 sense);
 
 	bit8 IRQ_VIC;	
@@ -34,9 +37,10 @@ public:
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
 
-	//
 	virtual bit8 ReadByte(bit16 address);
 	virtual void WriteByte(bit16 address, bit8 data);
+
+	void ConfigureMemoryMap();
 
 	//IMonitorCpu
 	virtual bit8 MonReadByte(bit16 address, int memorymap);
@@ -53,6 +57,7 @@ private:
 	CIA1 *pCia1;
 	CIA2 *pCia2;
 	VIC6569 *pVic;
+	Cart *pCart;
 	RAM64 *ram;
 	ITape *tape;
 	IC64Event *pIC64Event;
@@ -62,6 +67,7 @@ private:
 	IRegister *cia2;
 	IRegister *vic;
 	IRegister *sid;
+	IRegister *cart;
 
 	bit8 **m_ppMemory_map_read;
 	bit8 **m_ppMemory_map_write;

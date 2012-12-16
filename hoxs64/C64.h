@@ -37,7 +37,6 @@
 #include "via2.h"
 #include "diskinterface.h"
 #include "t64.h"
-#include "cart.h"
 #include "c64file.h"
 #include "assembler.h"
 #include "runcommand.h"
@@ -59,6 +58,7 @@ public:
 	SID64 sid;
 	Tape64 tape64;
 	DiskInterface diskdrive;
+	Cart cart;
 
 	CAppStatus *appStatus;
 	CConfig *cfg;

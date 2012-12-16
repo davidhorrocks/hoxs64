@@ -38,13 +38,11 @@ public:
 	bit8 *mIO;
 	bit8 *mColorRAM;
 	bit8 *mCharGen;
-	Cart cart;
 	bit8 *mCartMemory;
 	bit8 *mROML;
 	bit8 *mROMH;
 	bit8 *mEXRAM;
-	bool m_bIsCartAttached;
-	bool m_bIsCartIOActive;
+
 private:
 	bit8 m_iCurrentCpuMmuIndex;
 	TCHAR m_szAppDirectory[MAX_PATH+1];

@@ -501,7 +501,7 @@ typedef struct {
 
 //using namespace std;
 
-class CPU6502 : public IMonitorCpu, public IRegister, public ErrorMsg
+class CPU6502 : public IMonitorCpu, public IC6502, public ErrorMsg
 {
 public:
 	CPU6502();
@@ -548,7 +548,7 @@ public:
 	virtual void ClearSlowIRQ();
 	virtual void SetNMI(ICLK sysclock);
 	virtual void ClearNMI();
-	virtual void SyncVFlag();
+	virtual void ConfigureMemoryMap();
 
 	void SetBALow(ICLK sysclock);
 	void SetBAHigh(ICLK sysclock);
@@ -607,7 +607,7 @@ protected:
 	virtual void SyncChips()=0;
 	virtual void check_interrupts1();
 	virtual void check_interrupts0();
-	
+	virtual void SyncVFlag();	
 private:
 
 	void InitDecoder();

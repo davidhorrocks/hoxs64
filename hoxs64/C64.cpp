@@ -42,8 +42,8 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 
 	if (ram.Init(m_szAppDirectory)!=S_OK) return SetError(ram);
 
-	if (cpu.Init(pIC64Event, CPUID_MAIN, static_cast<IRegister *>(&cia1), static_cast<IRegister *>(&cia2), static_cast<IRegister *>(&vic), static_cast<IRegister *>(&sid), &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
-
+	if (cpu.Init(pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
+	cart.Init(&cpu);
 	if (cia1.Init(cfg, appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx, static_cast<IAutoLoad *>(this))!=S_OK) return SetError(cia1);
 	if (cia2.Init(cfg, appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
 
@@ -80,6 +80,7 @@ void C64::Reset(ICLK sysclock)
 	cia1.ClockNextWakeUpClock = sysclock;
 	cia2.ClockNextWakeUpClock = sysclock;
 	vic.ClockNextWakeUpClock = sysclock;
+	cart.ClockNextWakeUpClock = sysclock;
 
 	tape64.PressStop();
 	ram.Reset();
@@ -88,6 +89,7 @@ void C64::Reset(ICLK sysclock)
 	cia2.Reset(sysclock);
 	sid.Reset(sysclock);
 	cpu.Reset(sysclock);
+	cart.Reset(sysclock);
 	diskdrive.Reset(sysclock);
 	cpu.SetCassetteSense(1);
 
@@ -106,7 +108,7 @@ void C64::PreventClockOverflow()
 		cia1.PreventClockOverflow();
 		cia2.PreventClockOverflow();
 		vic.PreventClockOverflow();
-
+		cart.PreventClockOverflow();
 		diskdrive.PreventClockOverflow();
 	}
 
@@ -1201,10 +1203,14 @@ HRESULT hr;
 HRESULT C64::LoadCrtFile(TCHAR *filename)
 {
 HRESULT hr = E_FAIL;
-Cart crt;
 	ClearError();
-	crt.LoadCrtFile(filename);
-	ram.AttachCart(crt);
+	hr = cart.LoadCrtFile(filename);
+	if (SUCCEEDED(hr))
+	{
+		ram.AttachCart(cart);
+		cart.Reset(cpu.CurrentClock);
+		cpu.ConfigureMemoryMap();
+	}
 	return hr;
 }
 

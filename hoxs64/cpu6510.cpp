@@ -30,6 +30,8 @@
 #include "c64keys.h"
 #include "cia1.h"
 #include "cia2.h"
+#include "filter.h"
+#include "sid.h"
 
 CPU6510::CPU6510()
 {
@@ -43,6 +45,7 @@ CPU6510::CPU6510()
 	sid = NULL;
 	ram = NULL;
 	tape = NULL;
+	cart = NULL;
 	m_bIsWriteCycle = false;
 }
 
@@ -74,7 +77,7 @@ void CPU6510::Reset(ICLK sysclock)
 	CPU6502::Reset(sysclock);
 }
 
-HRESULT CPU6510::Init(IC64Event *pIC64Event, int ID, IRegister *cia1, IRegister *cia2, IRegister *vic, IRegister *sid, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
+HRESULT CPU6510::Init(IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
 {
 HRESULT hr;
 	ClearError();
@@ -87,12 +90,14 @@ HRESULT hr;
 	this->cia2 = cia2;
 	this->vic = vic;
 	this->sid = sid;
+	this->cart = cart;
 	this->ram = ram;
 	this->tape = tape;
 
-	pCia1 = static_cast<CIA1 *>(cia1);
-	pCia2 = static_cast<CIA2 *>(cia2);
-	pVic = static_cast<VIC6569 *>(vic);
+	pCia1 = (cia1);
+	pCia2 = (cia2);
+	pVic = (vic);
+	pCart = (cart);
 
 	if (ram->miIO == NULL)
 		return SetError(E_FAIL, TEXT("Please call ram->Init() before calling cpu6510->Init()"));
@@ -106,8 +111,10 @@ HRESULT hr;
 bit8 CPU6510::ReadByte(bit16 address)
 {
 bit8 *t;
-	if (address < 0xA000 && address > 1)
-		return m_ppMemory_map_read[0][address];
+	//TODO optimise for with or with out cart. 
+	//if (address < 0xA000 && address > 1)
+	//	return m_ppMemory_map_read[0][address];
+
 	t=m_ppMemory_map_read[address >> 12];
 	if (t)
 		if (address>1)
@@ -145,13 +152,13 @@ bit8 *t;
 			return cia2->ReadRegister(address, CurrentClock);
 		case 0xDE:
 		case 0xDF:
-			if (ram->cart.IsCartRegister(address))
-				return ram->cart.ReadRegister(address, CurrentClock);
+			if (pCart->IsCartRegister(address))
+				return cart->ReadRegister(address, CurrentClock);
 			else
 				return vic->ReadRegister(address, CurrentClock);
 		}
-		if (ram->cart.IsCartRegister(address))
-			return ram->cart.ReadRegister(address, CurrentClock);
+		if (pCart->IsCartRegister(address))
+			return cart->ReadRegister(address, CurrentClock);
 		else
 			return 0;
 	}
@@ -226,8 +233,8 @@ bit8 *t;
 				break;
 			case 0xDE:
 			case 0xDF:
-				if (ram->cart.IsCartRegister(address))
-					return ram->cart.WriteRegister(address, CurrentClock, data);
+				if (pCart->IsCartRegister(address))
+					return pCart->WriteRegister(address, CurrentClock, data);
 				break;
 			}
 		}
@@ -291,9 +298,6 @@ void CPU6510::MonWriteByte(bit16 address, bit8 data, int memorymap)
 {
 bit8 *t;
 
-	//m_bIsWriteCycle = true;
-	//vic->ExecuteCycle(CurrentClock);
-	//m_bIsWriteCycle = false;
 	if (address>1)
 	{
 		if (memorymap < 0)//Use the MMU
@@ -339,7 +343,6 @@ bit8 *t;
 	else
 	{
 		WriteRegister(address, CurrentClock, data);
-		//ram->miMemory[address & 1] = pVic->de00_byte;
 	}
 }
 
@@ -359,6 +362,8 @@ void CPU6510::SyncChips()
 		cia1->ExecuteCycle(curClock);
 	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
 		cia2->ExecuteCycle(curClock);
+	if ((ICLKS)(pCart->ClockNextWakeUpClock - curClock) <=0)
+		cart->ExecuteCycle(curClock);
 }
 
 void CPU6510::AddClockDelay()
@@ -376,6 +381,8 @@ void CPU6510::check_interrupts1()
 		cia1->ExecuteCycle(curClock);
 	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
 		cia2->ExecuteCycle(curClock);
+	if ((ICLKS)(pCart->ClockNextWakeUpClock - curClock) <=0)
+		cart->ExecuteCycle(curClock);
 	CPU6502::check_interrupts1();
 }
 
@@ -385,6 +392,7 @@ ICLK& curClock = CurrentClock;
 	vic->ExecuteCycle(curClock);
 	cia1->ExecuteCycle(curClock);
 	cia2->ExecuteCycle(curClock);
+	cart->ExecuteCycle(curClock);
 	CPU6502::check_interrupts0();
 }
 
@@ -410,7 +418,7 @@ void CPU6510::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	{
 		write_cpu_io_data(data);
 	}
-	static_cast<CIA1 *>(cia1)->SetWakeUpClock();
+	pCia1->SetWakeUpClock();
 }
 
 bit8 CPU6510::ReadRegister_no_affect(bit16 address, ICLK sysclock)
@@ -497,7 +505,6 @@ void CPU6510::cpu_port(){
 
     cpu_io_readoutput = ((cpu_io_data | ~cpu_io_ddr) & (cpu_io_output | 0x17));
 
-
     if (!(cpu_io_ddr & 0x20))
       cpu_io_readoutput &= 0xdf;
 
@@ -508,6 +515,18 @@ void CPU6510::cpu_port(){
 
     CASSETTE_WRITE = ((~cpu_io_ddr | cpu_io_data) & 0x8)!=0;
 
+	tape->SetMotorWrite(!CASSETTE_MOTOR, CASSETTE_WRITE);
+
+	ConfigureMemoryMap();
+}
+
+int CPU6510::GetCurrentCpuMmuMemoryMap()
+{
+	return ram->GetCurrentCpuMmuMemoryMap();
+}
+
+void CPU6510::ConfigureMemoryMap()
+{
 	if (cpu_io_ddr & 0x01)
 		LORAM=cpu_io_data & 0x01;
 	else
@@ -523,15 +542,8 @@ void CPU6510::cpu_port(){
 	else
 		CHAREN=1;
 
-	ram->ConfigureMMU( 0x03 | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
-	tape->SetMotorWrite(!CASSETTE_MOTOR, CASSETTE_WRITE);
+	ram->ConfigureMMU((((pCart->GAME << 1) | pCart->EXROM) & 0x3) | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
 }
-
-int CPU6510::GetCurrentCpuMmuMemoryMap()
-{
-	return ram->GetCurrentCpuMmuMemoryMap();
-}
-
 void CPU6510::SetCassetteSense(bit8 sense)
 {
 	CASSETTE_SENSE = sense;

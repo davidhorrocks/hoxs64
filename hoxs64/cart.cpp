@@ -25,16 +25,29 @@ const int Cart::RAMRESERVEDSIZE = 64 * 1024;//Assume 64K cart RAM
 
 Cart::Cart()
 {
-	m_crtHeader.EXROM = 0;
-	m_crtHeader.GAME = 0;
+	m_crtHeader.EXROM = 1;
+	m_crtHeader.GAME = 1;
 	m_crtHeader.HardwareType = 0;
 	reg1 = 0;
 	m_pCartData = 0;
+	m_bIsCartAttached = false;
+	m_bIsCartIOActive = false;
+	m_bSelectedBank = 0;
+	GAME = 1;
+	EXROM = 1;
+	m_pCpu = NULL;
+	m_ClockCartReset = 0;
+	m_bEnableRAM = false;
 }
 
 Cart::~Cart()
 {
 	CleanUp();
+}
+
+void Cart::Init(IC6502 *pCpu)
+{
+	this->m_pCpu = pCpu;
 }
 
 HRESULT Cart::LoadCrtFile(LPCTSTR filename)
@@ -285,20 +298,138 @@ void Cart::CleanUp()
 
 void Cart::Reset(ICLK sysclock)
 {
+	CurrentClock = sysclock;
 	reg1 = 0;
+	if (this->m_bIsCartAttached)
+	{
+		m_state = CartReset;
+
+		m_ClockCartReset = sysclock + 100;
+	}
+	ConfigureMemoryMap();
+	SetWakeUpClock();
 }
 
 void Cart::ExecuteCycle(ICLK sysclock)
 {
+	if (m_state == Normal)
+	{
+		CurrentClock = sysclock;
+	}
+	else 
+	{
+		CurrentClock = sysclock;
+		if ((ICLKS) (m_ClockCartReset - CurrentClock) <= 0)
+		{
+			m_ClockCartReset = 0;
+			m_state = Normal;
+			this->ConfigureMemoryMap();
+		}		
+	}
+	SetWakeUpClock();
+}
+
+void Cart::ConfigureMemoryMap()
+{
+	if (this->m_bIsCartAttached)
+	{
+		if (this->m_state == Normal)
+		{
+			this->m_bSelectedBank = (reg1 >> 3) & 3;
+			this->GAME = (~reg1 & 1);
+			this->EXROM = (reg1 >> 1) & 1;
+			this->m_bEnableRAM = (reg1 & 0x20) != 0;
+		}
+		this->m_bIsCartIOActive = (reg1 & 0x4)==0;
+	}
+	else
+	{
+		this->m_state = Normal;
+		this->GAME = 1;
+		this->EXROM = 1;
+	}
+	m_pCpu->ConfigureMemoryMap();
+}
+
+void Cart::SetWakeUpClock()
+{
+	switch (m_state)
+	{
+	case Normal:
+		ClockNextWakeUpClock = CurrentClock + 0x10000000;
+		break;
+	case CartReset:
+	case CartFreeze:
+		ClockNextWakeUpClock = m_ClockCartReset;
+		break;
+	}
+}
+
+void Cart::PreventClockOverflow()
+{
+	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
+	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+
+	if ((ICLKS)(CurrentClock - m_ClockCartReset) >= CLOCKSYNCBAND_FAR)
+		m_ClockCartReset = ClockBehindNear;
 }
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 {
+	this->ExecuteCycle(sysclock);
+	if (address >= 0xDE00 && address < 0xDF00)
+	{
+		if (this->m_bIsCartAttached)
+		{
+			if (this->m_bIsCartIOActive)
+			{
+				return reg1;
+			}
+		}
+	}
+	else if (address >= 0xDF00 && address < 0xE000)
+	{
+		if (this->m_bIsCartAttached)
+		{
+			if (this->m_bIsCartIOActive)
+			{
+				if (this->m_bEnableRAM)
+				{
+					return this->m_pCartData[address - 0xDF00 + 0x9F00];
+				}
+			}
+		}
+	}
 	return 0;
 }
 
 void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
+	this->ExecuteCycle(sysclock);
+	if (address >= 0xDE00 && address < 0xDF00)
+	{
+		if (this->m_bIsCartIOActive)
+		{
+			this->reg1 = data;
+			this->ConfigureMemoryMap();
+		}
+	}
+	else if (address >= 0xDF00 && address < 0xE000)
+	{
+		if (this->m_bIsCartAttached)
+		{
+			if (this->m_bIsCartIOActive)
+			{
+				if (this->m_bEnableRAM)
+				{
+					this->m_pCartData[address - 0xDF00 + 0x9F00] = data;
+				}
+			}
+		}
+	}
+
+	SetWakeUpClock();
 }
 
 bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
@@ -308,7 +439,7 @@ bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 
 bool Cart::IsCartRegister(bit16 address)
 {
-	return address >= 0xDE00 && address < 0xE000;
+	return this->m_bIsCartAttached && this->m_bIsCartIOActive && address >= 0xDE00 && address < 0xE000;
 }
 
 int Cart::GetTotalCartMemoryRequirement()
