@@ -40,7 +40,7 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 
 	tape64.TapeEvent = (ITapeEvent *)this;
 
-	if (ram.Init(m_szAppDirectory)!=S_OK) return SetError(ram);
+	if (ram.Init(m_szAppDirectory, &cart)!=S_OK) return SetError(ram);
 
 	if (cpu.Init(pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
 	cart.Init(&cpu);
@@ -80,7 +80,6 @@ void C64::Reset(ICLK sysclock)
 	cia1.ClockNextWakeUpClock = sysclock;
 	cia2.ClockNextWakeUpClock = sysclock;
 	vic.ClockNextWakeUpClock = sysclock;
-	cart.ClockNextWakeUpClock = sysclock;
 
 	tape64.PressStop();
 	ram.Reset();
@@ -108,7 +107,6 @@ void C64::PreventClockOverflow()
 		cia1.PreventClockOverflow();
 		cia2.PreventClockOverflow();
 		vic.PreventClockOverflow();
-		cart.PreventClockOverflow();
 		diskdrive.PreventClockOverflow();
 	}
 

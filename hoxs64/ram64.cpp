@@ -116,7 +116,7 @@ int i;
 }
 
 
-HRESULT RAM64::Init(TCHAR *szAppDirectory)
+HRESULT RAM64::Init(TCHAR *szAppDirectory, Cart *cart)
 {
 HANDLE hfile=0;
 BOOL r;
@@ -124,6 +124,7 @@ DWORD bytes_read;
 TCHAR szRomPath[MAX_PATH+1];
 	ClearError();
 
+	m_pCart = cart;
 	if (szAppDirectory==NULL)
 		m_szAppDirectory[0] = 0;
 	else
@@ -253,7 +254,7 @@ void RAM64::ZeroCartMemoryPointers(){
 	miROML=0L;
 	miROMH=0L;
 	miEXRAM=0L;
-
+	miROMH_ULTIMAX=0L;
 	mCartMemory = 0L;
 }
 
@@ -982,10 +983,12 @@ void RAM64::AttachCart(Cart &cart)
 	cart.m_bIsCartAttached = true;
 	mCartMemory = cart.m_pCartData;
 	mEXRAM = mCartMemory;
-	mROML = cart.m_lstChipAndData[cart.m_bSelectedBank]->pData;
-	mROMH = cart.m_lstChipAndData[cart.m_bSelectedBank]->pData;
-
 	miEXRAM = mCartMemory;
-	miROMH = mROMH - 0x8000;
+
+	mROML = cart.m_lstChipAndData[cart.m_iSelectedBank]->pData;
+	mROMH = cart.m_lstChipAndData[cart.m_iSelectedBank]->pData;
+
+	miROMH = mROMH - 0xA000;
 	miROML = mROML - 0x8000;
+	miROMH_ULTIMAX = mROMH - 0xE000;
 }

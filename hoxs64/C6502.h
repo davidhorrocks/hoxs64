@@ -607,7 +607,8 @@ protected:
 	virtual void SyncChips()=0;
 	virtual void check_interrupts1();
 	virtual void check_interrupts0();
-	virtual void SyncVFlag();	
+	virtual void SyncVFlag();
+	virtual void CheckForCartFreeze();
 private:
 
 	void InitDecoder();

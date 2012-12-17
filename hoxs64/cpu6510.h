@@ -84,6 +84,7 @@ private:
 	virtual void SyncChips();
 	virtual void check_interrupts1();
 	virtual void check_interrupts0();
+	virtual void CheckForCartFreeze();
 	void cpu_port();
 	void write_cpu_io_data(bit8 data);
 	void write_cpu_io_ddr(bit8 data, ICLK sysclock);

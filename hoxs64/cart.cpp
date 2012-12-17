@@ -29,15 +29,19 @@ Cart::Cart()
 	m_crtHeader.GAME = 1;
 	m_crtHeader.HardwareType = 0;
 	reg1 = 0;
+	reg2 = 0;
 	m_pCartData = 0;
 	m_bIsCartAttached = false;
 	m_bIsCartIOActive = false;
-	m_bSelectedBank = 0;
+	m_iSelectedBank = 0;
+	m_iRamBankOffset = 0;
+	m_bAllowBank = false;
 	GAME = 1;
 	EXROM = 1;
 	m_pCpu = NULL;
-	m_ClockCartReset = 0;
 	m_bEnableRAM = false;
+	m_bFreezePending = false;
+	m_bFreezeDone= false;
 }
 
 Cart::~Cart()
@@ -300,146 +304,230 @@ void Cart::Reset(ICLK sysclock)
 {
 	CurrentClock = sysclock;
 	reg1 = 0;
-	if (this->m_bIsCartAttached)
-	{
-		m_state = CartReset;
-
-		m_ClockCartReset = sysclock + 100;
-	}
+	reg2 = 0;
 	ConfigureMemoryMap();
-	SetWakeUpClock();
 }
 
 void Cart::ExecuteCycle(ICLK sysclock)
 {
-	if (m_state == Normal)
-	{
-		CurrentClock = sysclock;
-	}
-	else 
-	{
-		CurrentClock = sysclock;
-		if ((ICLKS) (m_ClockCartReset - CurrentClock) <= 0)
-		{
-			m_ClockCartReset = 0;
-			m_state = Normal;
-			this->ConfigureMemoryMap();
-		}		
-	}
-	SetWakeUpClock();
+	CurrentClock = sysclock;
 }
 
 void Cart::ConfigureMemoryMap()
 {
 	if (this->m_bIsCartAttached)
 	{
-		if (this->m_state == Normal)
+		if (m_bFreezePending)
 		{
-			this->m_bSelectedBank = (reg1 >> 3) & 3;
+			this->m_bAllowBank = false;
+			this->m_iSelectedBank = 0;
+			this->m_iRamBankOffset = 0;
+			this->GAME = 1;
+			this->EXROM = 1;
+			this->m_bEnableRAM = false;
+			this->m_bIsCartIOActive = false;
+		}
+		else if (m_bFreezeDone)
+		{
+			this->m_bAllowBank = (reg2 & 0x2) != 0;
+			this->m_iSelectedBank = 0;
+			this->m_iRamBankOffset = 0;
+			this->GAME = 0;
+			this->EXROM = 0;
+			this->m_bEnableRAM = false;
+			this->m_bIsCartIOActive = true;
+		}
+		else
+		{
+			this->m_bAllowBank = (reg2 & 0x2) != 0;
+			this->m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+			this->m_iRamBankOffset = 0;
+			if (m_bAllowBank)
+			{
+				this->m_iRamBankOffset = (bit16)(((int)this->m_iSelectedBank) & 3 << 13); 
+			}
 			this->GAME = (~reg1 & 1);
 			this->EXROM = (reg1 >> 1) & 1;
 			this->m_bEnableRAM = (reg1 & 0x20) != 0;
+			this->m_bIsCartIOActive = (reg1 & 0x4) == 0;
 		}
-		this->m_bIsCartIOActive = (reg1 & 0x4)==0;
 	}
 	else
 	{
-		this->m_state = Normal;
+		this->m_bAllowBank = false;
 		this->GAME = 1;
 		this->EXROM = 1;
+		this->m_iSelectedBank = 0;
+		this->m_iRamBankOffset = 0;
 	}
 	m_pCpu->ConfigureMemoryMap();
 }
 
-void Cart::SetWakeUpClock()
+void Cart::CheckForCartFreeze()
 {
-	switch (m_state)
+	if (m_bFreezePending)
 	{
-	case Normal:
-		ClockNextWakeUpClock = CurrentClock + 0x10000000;
-		break;
-	case CartReset:
-	case CartFreeze:
-		ClockNextWakeUpClock = m_ClockCartReset;
-		break;
+		m_bFreezePending = false;
+		m_bFreezeDone = true;
+		m_iSelectedBank = 0;
+		m_iRamBankOffset = 0;
+		reg1 &= 0x18;
+		ConfigureMemoryMap();
 	}
-}
-
-void Cart::PreventClockOverflow()
-{
-	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
-	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
-	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
-
-	if ((ICLKS)(CurrentClock - m_ClockCartReset) >= CLOCKSYNCBAND_FAR)
-		m_ClockCartReset = ClockBehindNear;
 }
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 {
-	this->ExecuteCycle(sysclock);
-	if (address >= 0xDE00 && address < 0xDF00)
+	if (!this->m_bIsCartAttached)
+		return 0;
+	if ((address == 0xDE00 || address == 0xDE01) && this->m_bIsCartIOActive)
 	{
-		if (this->m_bIsCartAttached)
+		return (reg1 & 0xB8) | (reg2 & 2);
+	}
+	else if (address >= 0xDE00 && address < 0xE000)
+	{
+		if (this->m_bEnableRAM)
 		{
-			if (this->m_bIsCartIOActive)
-			{
-				return reg1;
-			}
+			return this->m_pCartData[address - 0xDE00 + m_iRamBankOffset];
+		}
+		else
+		{
+			bit16 addr = address - 0xDE00 + 0x1E00;
+			if (m_iSelectedBank < this->m_lstChipAndData.size() && addr < this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+				return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
 		}
 	}
-	else if (address >= 0xDF00 && address < 0xE000)
+	else if (address >= 0x8000 && address < 0xA000)
 	{
-		if (this->m_bIsCartAttached)
+		if (this->m_bEnableRAM)
 		{
-			if (this->m_bIsCartIOActive)
-			{
-				if (this->m_bEnableRAM)
-				{
-					return this->m_pCartData[address - 0xDF00 + 0x9F00];
-				}
-			}
+			return this->m_pCartData[address - 0x8000 + m_iRamBankOffset];
 		}
+		else
+		{
+			bit16 addr = address - 0x8000;
+			if (m_iSelectedBank < this->m_lstChipAndData.size() && addr < this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+				return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+		}
+	}
+	else if (address >= 0xA000 || address < 0xE000)
+	{
+		bit16 addr = address - 0xA000;
+		if (m_iSelectedBank < this->m_lstChipAndData.size() && addr < this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+			return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+	}
+	else if (address >= 0xE000)
+	{
+		bit16 addr = address - 0xE000;
+		if (m_iSelectedBank < this->m_lstChipAndData.size() && addr < this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+			return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
 	}
 	return 0;
 }
 
 void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
-	this->ExecuteCycle(sysclock);
-	if (address >= 0xDE00 && address < 0xDF00)
+	if (!this->m_bIsCartAttached)
+		return;
+	if (address == 0xDE00 && this->m_bIsCartIOActive)
 	{
-		if (this->m_bIsCartIOActive)
+		this->reg1 = data;
+		this->ConfigureMemoryMap();
+	}
+	else if (address == 0xDE01 && this->m_bIsCartIOActive)
+	{
+		this->reg2 = data;
+		this->reg1 = (this->reg1 & 0x63) | (data & 0x98);
+		this->ConfigureMemoryMap();
+	}
+	else if (address >= 0xDE00 && address < 0xE000)
+	{
+		if (this->m_bEnableRAM)
 		{
-			this->reg1 = data;
-			this->ConfigureMemoryMap();
+			this->m_pCartData[address - 0xDE00 + 0x1E00 + m_iRamBankOffset] = data;
 		}
 	}
-	else if (address >= 0xDF00 && address < 0xE000)
+	else if (address >= 0x8000 && address < 0xA000)
 	{
-		if (this->m_bIsCartAttached)
+		if (!this->m_bFreezeDone)
 		{
-			if (this->m_bIsCartIOActive)
-			{
-				if (this->m_bEnableRAM)
-				{
-					this->m_pCartData[address - 0xDF00 + 0x9F00] = data;
-				}
-			}
+			this->m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
 		}
 	}
-
-	SetWakeUpClock();
 }
 
 bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
-	return 0;
+	return ReadRegister(address, sysclock);
 }
 
-bool Cart::IsCartRegister(bit16 address)
+bit8 Cart::ReadROML(bit16 address)
 {
-	return this->m_bIsCartAttached && this->m_bIsCartIOActive && address >= 0xDE00 && address < 0xE000;
+	assert(address >= 0x8000 && address < 0xA000);
+	bit16 addr = address - 0x8000;
+	if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+		return 0;
+	return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+}
+
+bit8 Cart::ReadUltimaxROML(bit16 address)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	bit16 addr = address - 0x8000;
+	if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+		return 0;
+	return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+}
+
+bit8 Cart::ReadROMH(bit16 address)
+{
+	assert(address >= 0xA000 && address < 0xE000);
+	bit16 addr = address - 0xA000;
+	if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+		return 0;
+	return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+}
+
+bit8 Cart::ReadUltimaxROMH(bit16 address)
+{
+	assert(address >= 0xE000);
+	bit16 addr = address - 0xE000;
+	if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+		return 0;
+	return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+}
+
+void Cart::WriteROML(bit16 address, bit8 data)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (!this->m_bFreezeDone)
+	{
+		this->m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
+	}
+}
+
+void Cart::WriteUltimaxROML(bit16 address, bit8 data)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (!this->m_bFreezeDone)
+	{
+		this->m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
+	}
+}
+
+void Cart::WriteROMH(bit16 address, bit8 data)
+{
+	assert(address >= 0xA000 && address < 0xE000);
+}
+
+void Cart::WriteUltimaxROMH(bit16 address, bit8 data)
+{
+	assert(address >= 0xE000);
+}
+
+bool Cart::IsCartIOActive()
+{
+	return this->m_bIsCartAttached && this->m_bIsCartIOActive;
 }
 
 int Cart::GetTotalCartMemoryRequirement()

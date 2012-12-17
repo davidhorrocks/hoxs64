@@ -152,13 +152,29 @@ bit8 *t;
 			return cia2->ReadRegister(address, CurrentClock);
 		case 0xDE:
 		case 0xDF:
-			if (pCart->IsCartRegister(address))
+			if (pCart->IsCartIOActive())
 				return cart->ReadRegister(address, CurrentClock);
 			else
 				return vic->ReadRegister(address, CurrentClock);
 		}
-		if (pCart->IsCartRegister(address))
-			return cart->ReadRegister(address, CurrentClock);
+		if (pCart->m_bIsCartAttached)
+		{
+			switch(ram->GetCpuMmuReadMemoryType(address, -1))
+			{
+			case MT_ROML:
+				return pCart->ReadROML(address);
+			case MT_ROMH:
+				return pCart->ReadROMH(address);
+			case MT_ROML_ULTIMAX:
+				return pCart->ReadUltimaxROML(address);
+			case MT_ROMH_ULTIMAX:
+				return pCart->ReadUltimaxROMH(address);
+			case MT_EXRAM:
+				return 0;
+			default:
+				return 0;
+			}
+		}
 		else
 			return 0;
 	}
@@ -233,8 +249,30 @@ bit8 *t;
 				break;
 			case 0xDE:
 			case 0xDF:
-				if (pCart->IsCartRegister(address))
-					return pCart->WriteRegister(address, CurrentClock, data);
+				if (pCart->IsCartIOActive())
+					pCart->WriteRegister(address, CurrentClock, data);
+				break;
+			default:
+				if (pCart->m_bIsCartAttached)
+				{
+					switch(ram->GetCpuMmuReadMemoryType(address, -1))
+					{
+					case MT_ROML:
+						pCart->WriteROML(address, data);
+						break;
+					case MT_ROMH:
+						pCart->WriteROMH(address, data);
+						break;
+					case MT_ROML_ULTIMAX:
+						pCart->WriteUltimaxROML(address, data);
+						break;
+					case MT_ROMH_ULTIMAX:
+						pCart->WriteUltimaxROMH(address, data);
+						break;
+					case MT_EXRAM:
+						break;
+					}
+				}
 				break;
 			}
 		}
@@ -288,9 +326,33 @@ bit8 *t;
 			return cia1->ReadRegister_no_affect(address, CurrentClock);
 		case 0xDD:
 			return cia2->ReadRegister_no_affect(address, CurrentClock);
-		default:
-			return vic->ReadRegister(address, CurrentClock);
+		case 0xDE:
+		case 0xDF:
+			if (pCart->IsCartIOActive())
+				return cart->ReadRegister(address, CurrentClock);
+			else
+				return vic->ReadRegister(address, CurrentClock);
 		}
+		if (pCart->m_bIsCartAttached)
+		{
+			switch(ram->GetCpuMmuReadMemoryType(address, -1))
+			{
+			case MT_ROML:
+				return pCart->ReadROML(address);
+			case MT_ROMH:
+				return pCart->ReadROMH(address);
+			case MT_ROML_ULTIMAX:
+				return pCart->ReadUltimaxROML(address);
+			case MT_ROMH_ULTIMAX:
+				return pCart->ReadUltimaxROMH(address);
+			case MT_EXRAM:
+				return 0;
+			default:
+				return 0;
+			}
+		}
+		else
+			return 0;
 	}
 }
 
@@ -337,6 +399,32 @@ bit8 *t;
 			case 0xDD:
 				cia2->WriteRegister(address, CurrentClock, data);
 				break;
+			case 0xDE:
+			case 0xDF:
+				if (pCart->IsCartIOActive())
+					pCart->WriteRegister(address, CurrentClock, data);
+				break;
+			default:
+				if (pCart->m_bIsCartAttached)
+				{
+					switch(ram->GetCpuMmuReadMemoryType(address, memorymap))
+					{
+					case MT_ROML:
+						pCart->WriteROML(address, data);
+						break;
+					case MT_ROMH:
+						pCart->WriteROMH(address, data);
+						break;
+					case MT_ROML_ULTIMAX:
+						pCart->WriteUltimaxROML(address, data);
+						break;
+					case MT_ROMH_ULTIMAX:
+						pCart->WriteUltimaxROMH(address, data);
+						break;
+					case MT_EXRAM:
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -362,8 +450,6 @@ void CPU6510::SyncChips()
 		cia1->ExecuteCycle(curClock);
 	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
 		cia2->ExecuteCycle(curClock);
-	if ((ICLKS)(pCart->ClockNextWakeUpClock - curClock) <=0)
-		cart->ExecuteCycle(curClock);
 }
 
 void CPU6510::AddClockDelay()
@@ -381,8 +467,6 @@ void CPU6510::check_interrupts1()
 		cia1->ExecuteCycle(curClock);
 	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
 		cia2->ExecuteCycle(curClock);
-	if ((ICLKS)(pCart->ClockNextWakeUpClock - curClock) <=0)
-		cart->ExecuteCycle(curClock);
 	CPU6502::check_interrupts1();
 }
 
@@ -392,10 +476,13 @@ ICLK& curClock = CurrentClock;
 	vic->ExecuteCycle(curClock);
 	cia1->ExecuteCycle(curClock);
 	cia2->ExecuteCycle(curClock);
-	cart->ExecuteCycle(curClock);
 	CPU6502::check_interrupts0();
 }
 
+void CPU6510::CheckForCartFreeze()
+{
+	pCart->CheckForCartFreeze();
+}
 
 bit8 CPU6510::ReadRegister(bit16 address, ICLK sysclock)
 {

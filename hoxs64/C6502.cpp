@@ -920,6 +920,10 @@ void CPU6502::SyncVFlag()
 {
 }
 
+void CPU6502::CheckForCartFreeze()
+{
+}
+
 bool CPU6502::IsOpcodeFetch()
 {
 	return m_cpu_sequence == C_FETCH_OPCODE;
@@ -1087,6 +1091,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			break;
 		case C_LOAD_PC:
 			CHECK_BA;
+			CheckForCartFreeze();
 			CPU6502_LOAD_PCL(ReadByte(addr.word++));
 			m_cpu_sequence++;
 			break;

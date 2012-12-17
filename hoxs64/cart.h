@@ -52,13 +52,6 @@ typedef std::vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
 class Cart : public IRegister, public ErrorMsg
 {
 public:
-	enum CartState
-	{
-		Normal,
-		CartReset,
-		CartFreeze
-	};
-
 	Cart();
 	~Cart();
 	void Init(IC6502 *pCpu);
@@ -69,34 +62,43 @@ public:
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
-
-	bool IsCartRegister(bit16 address);
+	bit8 ReadROML(bit16 address);
+	bit8 ReadUltimaxROML(bit16 address);
+	bit8 ReadROMH(bit16 address);
+	bit8 ReadUltimaxROMH(bit16 address);
+	void WriteROML(bit16 address, bit8 data);
+	void WriteUltimaxROML(bit16 address, bit8 data);
+	void WriteROMH(bit16 address, bit8 data);
+	void WriteUltimaxROMH(bit16 address, bit8 data);
+	bool IsCartIOActive();
 	int GetTotalCartMemoryRequirement();
 	void ConfigureMemoryMap();
-	void SetWakeUpClock();
-	void PreventClockOverflow();
+	void CheckForCartFreeze();
 
 	CrtHeader m_crtHeader;
 	CrtChipAndDataList m_lstChipAndData;
 	bit8 *m_pCartData;
 
 	bit8 reg1;
+	bit8 reg2;
 
 	bit8 GAME;
 	bit8 EXROM;
 	bool m_bIsCartAttached;
 	bool m_bIsCartIOActive;
 	bool m_bEnableRAM;
-	bit8 m_bSelectedBank;
-	ICLK ClockNextWakeUpClock;
+	bool m_bAllowBank;
+	bit8 m_iSelectedBank;
+	bit8 m_bFreezePending;
+	bit8 m_bFreezeDone;
+	bit16 m_iRamBankOffset;
+protected:
 	
 private:
 	static const int RAMRESERVEDSIZE;
 	void CleanUp();
 	int GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip);
 	IC6502 *m_pCpu;
-	CartState m_state;
-	ICLK m_ClockCartReset;
 };
 
 #endif
