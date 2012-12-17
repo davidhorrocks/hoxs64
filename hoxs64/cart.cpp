@@ -386,26 +386,26 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 	}
 	else if (address >= 0xDE00 && address < 0xE000)
 	{
+		bit16 addr = address - 0xDE00 + 0x1E00;
 		if (this->m_bEnableRAM)
 		{
-			return this->m_pCartData[address - 0xDE00 + m_iRamBankOffset];
+			return this->m_pCartData[addr + m_iRamBankOffset];
 		}
 		else
 		{
-			bit16 addr = address - 0xDE00 + 0x1E00;
 			if (m_iSelectedBank < this->m_lstChipAndData.size() && addr < this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
 				return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
 		}
 	}
 	else if (address >= 0x8000 && address < 0xA000)
 	{
+		bit16 addr = address - 0x8000;
 		if (this->m_bEnableRAM)
 		{
-			return this->m_pCartData[address - 0x8000 + m_iRamBankOffset];
+			return this->m_pCartData[addr + m_iRamBankOffset];
 		}
 		else
 		{
-			bit16 addr = address - 0x8000;
 			if (m_iSelectedBank < this->m_lstChipAndData.size() && addr < this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
 				return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
 		}
@@ -465,18 +465,32 @@ bit8 Cart::ReadROML(bit16 address)
 {
 	assert(address >= 0x8000 && address < 0xA000);
 	bit16 addr = address - 0x8000;
-	if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
-		return 0;
-	return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+	if (this->m_bEnableRAM && !this->m_bFreezeDone)
+	{
+		return this->m_pCartData[addr + m_iRamBankOffset];
+	}
+	else
+	{
+		if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+			return 0;
+		return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+	}
 }
 
 bit8 Cart::ReadUltimaxROML(bit16 address)
 {
 	assert(address >= 0x8000 && address < 0xA000);
 	bit16 addr = address - 0x8000;
-	if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
-		return 0;
-	return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+	if (this->m_bEnableRAM && !this->m_bFreezeDone)
+	{
+		return this->m_pCartData[addr + m_iRamBankOffset];
+	}
+	else
+	{
+		if (m_iSelectedBank >= this->m_lstChipAndData.size() || addr >= this->m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+			return 0;
+		return this->m_lstChipAndData[m_iSelectedBank]->pData[addr];
+	}
 }
 
 bit8 Cart::ReadROMH(bit16 address)
