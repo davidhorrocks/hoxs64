@@ -104,8 +104,10 @@ public:
 	//IC64
 	virtual void HardReset(bool bCancelAutoload);
 	virtual void SoftReset(bool bCancelAutoload);
+	virtual void CartFreeze(bool bCancelAutoload);
 	virtual void PostHardReset(bool bCancelAutoload);
 	virtual void PostSoftReset(bool bCancelAutoload);
+	virtual void PostCartFreeze(bool bCancelAutoload);
 	virtual void ResetKeyboard();
 	virtual void TapePressPlay();
 	virtual void TapePressStop();
@@ -116,6 +118,7 @@ public:
 	virtual void Set_DiskProtect(bool bOn);
 	virtual bool Get_DiskProtect();
 	virtual void DiskReset();
+	virtual void DetachCart();
 	virtual IMonitor *GetMon();
 	virtual void SetupColorTables(unsigned int d3dFormat);
 	virtual HRESULT UpdateBackBuffer();
@@ -139,6 +142,14 @@ public:
 		AUTOSEQ_RESET=0,
 		AUTOSEQ_LOAD=1,
 		AUTOSEQ_RUN=2
+	};
+
+	enum C64Cmd
+	{
+		C64CMD_NONE,
+		C64CMD_HARDRESET,
+		C64CMD_SOFTRESET,
+		C64CMD_FREEZE
 	};
 
 	void PreventClockOverflow();
@@ -201,9 +212,9 @@ protected:
 
 private:
 	void ProcessReset();
-	bool bPendingReset;
-	bool bHardResetSystem;
-	bool bSoftResetSystem;
+	bool bPendingSystemCommand;
+	C64Cmd m_SystemCommand;
+	//bool bSoftResetSystem;
 	bool m_bLastPostedDriveWriteLed;
 	ICLK m_iClockOverflowCheckCounter;
 };

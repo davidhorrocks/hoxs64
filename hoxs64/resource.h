@@ -269,13 +269,17 @@
 #define IDM_CONTEXT_HELP                40161
 #define IDM_ATTACHCRT                   40162
 #define IDM_CART_ATTACHCRT              40163
+#define ID_CART_RESET                   40164
+#define ID_CART_FREEZE                  40165
+#define IDM_CART_RESET                  40166
+#define IDM_CART_FREEZE                 40167
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        188
-#define _APS_NEXT_COMMAND_VALUE         40164
+#define _APS_NEXT_COMMAND_VALUE         40170
 #define _APS_NEXT_CONTROL_VALUE         1322
 #define _APS_NEXT_SYMED_VALUE           117
 #endif

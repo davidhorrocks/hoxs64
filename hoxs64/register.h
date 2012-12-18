@@ -66,14 +66,20 @@ public:
 	ICLK CurrentClock;
 };
 
-class IC6502: public IRegister
+class IC6510
 {
 public:
-	virtual void SetIRQ(ICLK sysclock)=0;
-	virtual void ClearIRQ()=0;
-	virtual void ClearSlowIRQ()=0;
-	virtual void SetNMI(ICLK sysclock)=0;
-	virtual void ClearNMI()=0;
+	virtual ICLK GetCurrentClock() = 0;
+	virtual void Set_VIC_IRQ(ICLK sysclock) = 0;
+	virtual void Clear_VIC_IRQ() = 0;
+	virtual void Set_CIA_IRQ(ICLK sysclock) = 0;
+	virtual void Clear_CIA_IRQ() = 0;
+	virtual void Set_CRT_IRQ(ICLK sysclock) = 0;
+	virtual void Clear_CRT_IRQ() = 0;
+	virtual void Set_CIA_NMI(ICLK sysclock) = 0;
+	virtual void Clear_CIA_NMI() = 0;
+	virtual void Set_CRT_NMI(ICLK sysclock) = 0;
+	virtual void Clear_CRT_NMI() = 0;
 	virtual void ConfigureMemoryMap() = 0;
 };
 
@@ -341,8 +347,10 @@ class IC64
 public:
 	virtual void HardReset(bool bCancelAutoload)=0;
 	virtual void SoftReset(bool bCancelAutoload)=0;
+	virtual void CartFreeze(bool bCancelAutoload)=0;
 	virtual void PostHardReset(bool bCancelAutoload)=0;
 	virtual void PostSoftReset(bool bCancelAutoload)=0;
+	virtual void PostCartFreeze(bool bCancelAutoload)=0;
 
 	virtual void ResetKeyboard()=0;
 	virtual void TapePressPlay()=0;
@@ -353,6 +361,7 @@ public:
 	virtual void Set_DiskProtect(bool bOn)=0;
 	virtual bool Get_DiskProtect()=0;
 	virtual void DiskReset()=0;
+	virtual void DetachCart()=0;
 	virtual IMonitor *GetMon()=0;
 	virtual void SetupColorTables(unsigned int d3dFormat)=0;
 	virtual HRESULT UpdateBackBuffer()=0;

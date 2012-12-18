@@ -904,16 +904,16 @@ int i,j;
 			if (readmt == MT_CHARGEN 
 				|| readmt == MT_BASIC
 				|| readmt == MT_KERNAL
-				|| readmt == MT_ROML
-				|| readmt == MT_ROMH
+				//|| readmt == MT_ROML
+				//|| readmt == MT_ROMH
 				)
 			{
 				MMU_MT_write[i][j]=MT_RAM;
 			}
-			else if (readmt == MT_ROML_ULTIMAX || readmt == MT_ROMH_ULTIMAX)
-			{
-				MMU_MT_write[i][j]=MT_EXRAM;
-			}
+			//else if (readmt == MT_ROML_ULTIMAX || readmt == MT_ROMH_ULTIMAX)
+			//{
+			//	MMU_MT_write[i][j]=MT_EXRAM;
+			//}
 			else
 			{
 				MMU_MT_write[i][j]=readmt;

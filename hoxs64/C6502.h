@@ -501,7 +501,7 @@ typedef struct {
 
 //using namespace std;
 
-class CPU6502 : public IMonitorCpu, public IC6502, public ErrorMsg
+class CPU6502 : public IRegister, public IMonitorCpu, public ErrorMsg
 {
 public:
 	CPU6502();

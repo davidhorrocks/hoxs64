@@ -8,7 +8,7 @@ class VIC6569;
 class Cart;
 class SID64;
 
-class CPU6510 : public CPU6502
+class CPU6510 : public CPU6502, public IC6510
 {
 public:
 	CPU6510();
@@ -18,18 +18,24 @@ public:
 
 	bit8 IRQ_VIC;	
 	bit8 IRQ_CIA;
+	bit8 IRQ_CRT;
 	bit8 NMI_CIA;
+	bit8 NMI_CRT;
 
 	bool m_bIsWriteCycle;
 
 	void CheckPortFade(ICLK sysclock);
-
+	virtual ICLK GetCurrentClock();
 	void Set_VIC_IRQ(ICLK sysclock);
 	void Clear_VIC_IRQ();
 	void Set_CIA_IRQ(ICLK sysclock);
 	void Clear_CIA_IRQ();
+	void Set_CRT_IRQ(ICLK sysclock);
+	void Clear_CRT_IRQ();
 	void Set_CIA_NMI(ICLK sysclock);
 	void Clear_CIA_NMI();
+	void Set_CRT_NMI(ICLK sysclock);
+	void Clear_CRT_NMI();
 
 	//IRegister
 	virtual void Reset(ICLK sysclock);

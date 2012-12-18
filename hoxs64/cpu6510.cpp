@@ -60,6 +60,7 @@ void CPU6510::Reset(ICLK sysclock)
 	m_bIsWriteCycle = false;
 	IRQ_VIC=0;	
 	IRQ_CIA=0;
+	IRQ_CRT=0;
 	NMI_CIA=0;
 	NMI_TRIGGER=0;
 
@@ -106,6 +107,11 @@ HRESULT hr;
 
 	m_piColourRAM = ram->miIO;
 	return S_OK;
+}
+
+ICLK CPU6510::GetCurrentClock()
+{
+	return CurrentClock;
 }
 
 bit8 CPU6510::ReadByte(bit16 address)
@@ -644,10 +650,11 @@ void CPU6510::Set_VIC_IRQ(ICLK sysclock)
 }
 void CPU6510::Clear_VIC_IRQ()
 {
-	if (IRQ_CIA==0)
+	if (IRQ_CIA==0 && IRQ_CRT==0)
 		ClearSlowIRQ();
 	IRQ_VIC = 0;
 }
+
 void CPU6510::Set_CIA_IRQ(ICLK sysclock)
 {
 	SetIRQ(sysclock);
@@ -656,19 +663,48 @@ void CPU6510::Set_CIA_IRQ(ICLK sysclock)
 
 void CPU6510::Clear_CIA_IRQ()
 {
-	if (IRQ_VIC==0)
+	if (IRQ_VIC==0 && IRQ_CRT==0)
 		ClearSlowIRQ();
 	IRQ_CIA = 0;
+}
+
+void CPU6510::Set_CRT_IRQ(ICLK sysclock)
+{
+	SetIRQ(sysclock);
+	IRQ_CRT = 1;
+}
+
+void CPU6510::Clear_CRT_IRQ()
+{
+	if (IRQ_VIC==0 && IRQ_CIA==0)
+		ClearSlowIRQ();
+	IRQ_CRT = 0;
 }
 
 void CPU6510::Set_CIA_NMI(ICLK sysclock)
 {
 	SetNMI(sysclock);
+	NMI_CIA = 1;
 }
 
 void CPU6510::Clear_CIA_NMI()
 {
-	ClearNMI();
+	if (NMI_CIA)
+		ClearNMI();
+	NMI_CIA = 0;
+}
+
+void CPU6510::Set_CRT_NMI(ICLK sysclock)
+{
+	SetNMI(sysclock);
+	NMI_CRT = 1;
+}
+
+void CPU6510::Clear_CRT_NMI()
+{
+	if (NMI_CIA==0)
+		ClearNMI();
+	NMI_CRT = 0;
 }
 
 void CPU6510::SetDdr(bit8 v)

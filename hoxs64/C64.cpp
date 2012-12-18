@@ -16,9 +16,8 @@
 C64::C64()
 {
 	pIC64Event = 0;
-	bPendingReset = false;
-	bHardResetSystem = false;
-	bSoftResetSystem = false;
+	bPendingSystemCommand = false;
+	m_SystemCommand = C64CMD_NONE;
 }
 
 C64::~C64()
@@ -43,7 +42,7 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 	if (ram.Init(m_szAppDirectory, &cart)!=S_OK) return SetError(ram);
 
 	if (cpu.Init(pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
-	cart.Init(&cpu);
+	cart.Init(&cpu, ram.mMemory);
 	if (cia1.Init(cfg, appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx, static_cast<IAutoLoad *>(this))!=S_OK) return SetError(cia1);
 	if (cia2.Init(cfg, appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
 
@@ -375,7 +374,7 @@ void C64::ExecuteDebugFrame()
 ICLK cycles,sysclock;
 bool bBreakC64, bBreakDisk, bBreakVic;
 
-	if (bPendingReset)
+	if (bPendingSystemCommand)
 	{
 		ProcessReset();
 	}
@@ -509,7 +508,7 @@ void C64::ExecuteFrame()
 {
 ICLK cycles,sysclock;
 
-	if (bPendingReset)
+	if (bPendingSystemCommand)
 	{
 		ProcessReset();
 	}
@@ -579,7 +578,6 @@ void C64::ResetKeyboard()
 {
 	cia1.ResetKeyboard();
 }
-
 
 void C64::SetBasicProgramEndAddress(bit16 last_byte)
 {
@@ -924,6 +922,11 @@ bool C64::Get_DiskProtect()
 void C64::DiskReset()
 {
 	diskdrive.Reset(cpu.CurrentClock);
+}
+
+void C64::DetachCart()
+{
+	cart.DetachCart();
 }
 
 void C64::SetupColorTables(unsigned int d3dFormat)
@@ -1413,7 +1416,14 @@ void C64::SoftReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
-	cpu.Reset(cpu.CurrentClock);
+	ICLK sysclock = cpu.CurrentClock;
+	//ram.Reset();
+	//vic.Reset(sysclock);
+	//cia1.Reset(sysclock);
+	//cia2.Reset(sysclock);
+	//sid.Reset(sysclock);
+	cpu.Reset(sysclock);
+	cart.Reset(sysclock);
 }
 
 void C64::HardReset(bool bCancelAutoload)
@@ -1423,37 +1433,51 @@ void C64::HardReset(bool bCancelAutoload)
 	Reset(0);
 }
 
+void C64::CartFreeze(bool bCancelAutoload)
+{
+	if (bCancelAutoload)
+		appStatus->m_bAutoload = 0;
+	cart.Freeze();
+}
+
 void C64::PostSoftReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
-	bPendingReset = true;
-	bHardResetSystem = false;
-	bSoftResetSystem = true;
+	bPendingSystemCommand = true;
+	m_SystemCommand = C64CMD_SOFTRESET;
 }
 
 void C64::PostHardReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
-	bPendingReset = true;
-	bHardResetSystem = true;
-	bSoftResetSystem = false;
+	bPendingSystemCommand = true;
+	m_SystemCommand = C64CMD_HARDRESET;
+}
+
+void C64::PostCartFreeze(bool bCancelAutoload)
+{
+	if (bCancelAutoload)
+		appStatus->m_bAutoload = 0;
+	bPendingSystemCommand = true;
+	m_SystemCommand = C64CMD_FREEZE;
 }
 
 void C64::ProcessReset()
 {
-	bPendingReset = false;
-	if (bHardResetSystem)
+	bPendingSystemCommand = false;
+	switch(m_SystemCommand)
 	{
-		bHardResetSystem = false;
-		bSoftResetSystem = false;
+	case C64CMD_HARDRESET:
 		HardReset(false);
-	}
-	else if (bSoftResetSystem)
-	{	
-		bSoftResetSystem = false;
+		break;
+	case C64CMD_SOFTRESET:
 		SoftReset(false);
+		break;
+	case C64CMD_FREEZE:
+		CartFreeze(false);
+		break;
 	}
 }
 

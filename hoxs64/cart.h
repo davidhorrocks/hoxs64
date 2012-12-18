@@ -54,8 +54,9 @@ class Cart : public IRegister, public ErrorMsg
 public:
 	Cart();
 	~Cart();
-	void Init(IC6502 *pCpu);
+	void Init(IC6510 *pCpu, bit8 *pC64RamMemory);
 	HRESULT LoadCrtFile(LPCTSTR filename);
+	void DetachCart();
 
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);
@@ -74,6 +75,7 @@ public:
 	int GetTotalCartMemoryRequirement();
 	void ConfigureMemoryMap();
 	void CheckForCartFreeze();
+	void Freeze();
 
 	CrtHeader m_crtHeader;
 	CrtChipAndDataList m_lstChipAndData;
@@ -88,6 +90,7 @@ public:
 	bool m_bIsCartIOActive;
 	bool m_bEnableRAM;
 	bool m_bAllowBank;
+	bool m_bREUcompatible;
 	bit8 m_iSelectedBank;
 	bit8 m_bFreezePending;
 	bit8 m_bFreezeDone;
@@ -98,7 +101,8 @@ private:
 	static const int RAMRESERVEDSIZE;
 	void CleanUp();
 	int GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip);
-	IC6502 *m_pCpu;
+	IC6510 *m_pCpu;
+	bit8 *m_pC64RamMemory;
 };
 
 #endif

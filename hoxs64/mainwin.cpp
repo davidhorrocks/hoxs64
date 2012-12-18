@@ -304,6 +304,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		case IDM_CART_ATTACHCRT:
 			appStatus->SoundHalt();
 			appStatus->LoadCrtFile(hWnd);
+			c64->HardReset(true);
 			appStatus->SoundResume();
 			break;
 		case IDM_TAPE_INSERT:
@@ -339,6 +340,12 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			c64->HardReset(true);
 			return 0;
 		case IDM_FILE_SOFTRESET:
+			c64->SoftReset(true);
+			return 0;
+		case IDM_CART_FREEZE:
+			c64->CartFreeze(true);
+			return 0;
+		case IDM_CART_RESET:
 			c64->SoftReset(true);
 			return 0;
 		case IDM_FILE_MONITOR:

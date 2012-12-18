@@ -30,7 +30,6 @@
 #include "c64keys.h"
 #include "cia1.h"
 
-//pragma optimize( "ag", on )
 #define KEYBOARDSCANINTERVAL (PALCLOCKSPERSECOND / 40)
 
 #define KEYMATRIX_DOWN(row,col) keyboard_matrix[row] = \
@@ -360,8 +359,8 @@ void CIA1::ReadKeyboard()
 char     buffer[256]; 
 HRESULT  hr; 
 static BOOL restore_was_up=TRUE;
+static BOOL F12_was_up=TRUE;
 static BOOL F11_was_up=TRUE;
-static BOOL F10_was_up=TRUE;
 DIJOYSTATE  js1;
 DIJOYSTATE  js2;
 static LONG xpos1=0;
@@ -849,26 +848,24 @@ bit8 localjoyport2;
 			KEYMATRIX_DOWN(0, 3);
 		}
 											
-		if (RAWKEYDOWN(buffer, DIK_F11))
-		{
-			if (F10_was_up)
-				pIC64->PostSoftReset(true);
-			F10_was_up=FALSE;
-		}
-		else
-			F10_was_up=TRUE;
-			
-			
 		if (RAWKEYDOWN(buffer, DIK_F12))   
 		{
-			if (F11_was_up)
+			if (F12_was_up)
 				pIC64->PostHardReset(true);
+			F12_was_up=FALSE;
+		}
+		else
+			F12_was_up=TRUE;
+
+		if (RAWKEYDOWN(buffer, DIK_F11))
+		{
+			if (F11_was_up)
+				pIC64->PostSoftReset(true);
 			F11_was_up=FALSE;
 		}
 		else
 			F11_was_up=TRUE;
-			
-					
+								
 		if (KEYDOWN(buffer, C64K_HOME))  
 		{
 			KEYMATRIX_DOWN(6, 3);
@@ -900,7 +897,6 @@ bit8 localjoyport2;
 
 		if (KEYDOWN(buffer, C64K_CURSORUP))
 		{
-			//KEYMATRIX_DOWN(1, 7);
 			KEYMATRIX_DOWN(6, 4);
 			if (softcursorupcount > 0)
 			{
@@ -914,14 +910,12 @@ bit8 localjoyport2;
 			if (softcursorupcount > 0)
 			{
 				softcursorupcount--;
-				//KEYMATRIX_DOWN(1, 7);
 				KEYMATRIX_DOWN(6, 4);
 			}
 		}
 
 		if (KEYDOWN(buffer, C64K_CURSORLEFT))
 		{
-			//KEYMATRIX_DOWN(1, 7);
 			KEYMATRIX_DOWN(6, 4);
 			if (softcursorleftcount > 0)
 			{
@@ -935,7 +929,6 @@ bit8 localjoyport2;
 			if (softcursorleftcount > 0)
 			{
 				softcursorleftcount--;
-				//KEYMATRIX_DOWN(1, 7);
 				KEYMATRIX_DOWN(6, 4);
 			}
 		}
