@@ -1010,9 +1010,13 @@ C64File c64file;
 			hr = LoadCrtFile(filename);
 			if (SUCCEEDED(hr))
 			{
-				autoLoadCommand.type = C64::AUTOLOAD_CRT_FILE;
-				appStatus->m_bAutoload = TRUE;
+				cart.m_bIsCartAttached = true;
+				Reset(0);
+				autoLoadCommand.type = C64::AUTOLOAD_NONE;
+				appStatus->m_bAutoload = FALSE;
+				
 			}
+			return hr;
 		}
 		else if (lstrcmpi(p, TEXT(".tap"))==0)
 		{
@@ -1065,6 +1069,7 @@ C64File c64file;
 			{
 				autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
 				appStatus->m_bAutoload = TRUE;
+				cart.DetachCart();
 				Reset(0);
 				return hr;
 			}
@@ -1095,6 +1100,7 @@ C64File c64file;
 	{
 		return SetError(E_FAIL,TEXT("Unknown file type."));
 	}
+	cart.DetachCart();
 	Reset(0);
 	return S_OK;
 }
