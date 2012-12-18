@@ -57,7 +57,7 @@ public:
 	void Init(IC6510 *pCpu, bit8 *pC64RamMemory);
 	HRESULT LoadCrtFile(LPCTSTR filename);
 	void DetachCart();
-
+	bool IsCartAttached();
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
@@ -75,7 +75,8 @@ public:
 	int GetTotalCartMemoryRequirement();
 	void ConfigureMemoryMap();
 	void CheckForCartFreeze();
-	void Freeze();
+	void CartFreeze();
+	void CartReset();
 
 	CrtHeader m_crtHeader;
 	CrtChipAndDataList m_lstChipAndData;

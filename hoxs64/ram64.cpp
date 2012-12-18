@@ -34,7 +34,6 @@
 RAM64::RAM64()
 {
 	Zero64MemoryPointers();
-	ZeroCartMemoryPointers();
 }
 
 RAM64::~RAM64()
@@ -244,18 +243,6 @@ void RAM64::Zero64MemoryPointers(){
 	miBasic=0L;
 	miIO=0L;
 	miCharGen=0L;
-}
-
-void RAM64::ZeroCartMemoryPointers(){
-	mROML=0L;
-	mROMH=0L;
-	mEXRAM=0L;
-
-	miROML=0L;
-	miROMH=0L;
-	miEXRAM=0L;
-	miROMH_ULTIMAX=0L;
-	mCartMemory = 0L;
 }
 
 int RAM64::GetCurrentCpuMmuMemoryMap()
@@ -975,20 +962,4 @@ void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_
 {
 	*p_vic_memory_map_read = VicMMU_read[index & 3];
 	*p_vic_3fff_ptr = &(**p_vic_memory_map_read)[0x3fff];
-}
-
-
-void RAM64::AttachCart(Cart &cart)
-{
-	cart.m_bIsCartAttached = true;
-	mCartMemory = cart.m_pCartData;
-	mEXRAM = mCartMemory;
-	miEXRAM = mCartMemory;
-
-	mROML = cart.m_lstChipAndData[cart.m_iSelectedBank]->pData;
-	mROMH = cart.m_lstChipAndData[cart.m_iSelectedBank]->pData;
-
-	miROMH = mROMH - 0xA000;
-	miROML = mROML - 0x8000;
-	miROMH_ULTIMAX = mROMH - 0xE000;
 }

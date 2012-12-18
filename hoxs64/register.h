@@ -81,6 +81,7 @@ public:
 	virtual void Set_CRT_NMI(ICLK sysclock) = 0;
 	virtual void Clear_CRT_NMI() = 0;
 	virtual void ConfigureMemoryMap() = 0;
+	virtual void Reset(ICLK sysclock) = 0;
 };
 
 class ILightPen
@@ -348,6 +349,7 @@ public:
 	virtual void HardReset(bool bCancelAutoload)=0;
 	virtual void SoftReset(bool bCancelAutoload)=0;
 	virtual void CartFreeze(bool bCancelAutoload)=0;
+	virtual void CartReset(bool bCancelAutoload)=0;
 	virtual void PostHardReset(bool bCancelAutoload)=0;
 	virtual void PostSoftReset(bool bCancelAutoload)=0;
 	virtual void PostCartFreeze(bool bCancelAutoload)=0;
@@ -362,6 +364,7 @@ public:
 	virtual bool Get_DiskProtect()=0;
 	virtual void DiskReset()=0;
 	virtual void DetachCart()=0;
+	virtual bool IsCartAttached()=0;
 	virtual IMonitor *GetMon()=0;
 	virtual void SetupColorTables(unsigned int d3dFormat)=0;
 	virtual HRESULT UpdateBackBuffer()=0;

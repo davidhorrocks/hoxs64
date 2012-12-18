@@ -301,12 +301,6 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		//Parse the menu selections:
 		switch (wmId) 
 		{
-		case IDM_CART_ATTACHCRT:
-			appStatus->SoundHalt();
-			appStatus->LoadCrtFile(hWnd);
-			c64->HardReset(true);
-			appStatus->SoundResume();
-			break;
 		case IDM_TAPE_INSERT:
 			appStatus->SoundHalt();
 			appStatus->InsertTape(hWnd);
@@ -342,11 +336,21 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		case IDM_FILE_SOFTRESET:
 			c64->SoftReset(true);
 			return 0;
+		case IDM_CART_DETACHCART:
+			appStatus->SoundHalt();
+			c64->DetachCart();
+			appStatus->SoundResume();
+			break;
+		case IDM_CART_ATTACHCRT:
+			appStatus->SoundHalt();
+			appStatus->LoadCrtFile(hWnd);
+			appStatus->SoundResume();
+			break;
 		case IDM_CART_FREEZE:
 			c64->CartFreeze(true);
 			return 0;
 		case IDM_CART_RESET:
-			c64->SoftReset(true);
+			c64->CartReset(true);
 			return 0;
 		case IDM_FILE_MONITOR:
 			if (appStatus->m_bWindowed)

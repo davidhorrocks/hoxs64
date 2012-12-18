@@ -307,14 +307,28 @@ void Cart::Reset(ICLK sysclock)
 	CurrentClock = sysclock;
 	reg1 = 0;
 	reg2 = 0;
+	m_bFreezePending = false;
+	m_bFreezeDone= false;
+	m_pCpu->Clear_CRT_IRQ();
+	m_pCpu->Clear_CRT_NMI();
 	ConfigureMemoryMap();
 }
 
 void Cart::DetachCart()
 {
-	m_bIsCartAttached = false;
-	ConfigureMemoryMap();
-	CleanUp();
+	if (m_bIsCartAttached)
+	{
+		m_pCpu->Clear_CRT_IRQ();
+		m_pCpu->Clear_CRT_NMI();
+		m_bIsCartAttached = false;
+		ConfigureMemoryMap();
+		CleanUp();
+	}
+}
+
+bool Cart::IsCartAttached()
+{
+	return m_bIsCartAttached;
 }
 
 void Cart::ExecuteCycle(ICLK sysclock)
@@ -394,7 +408,7 @@ void Cart::CheckForCartFreeze()
 	}
 }
 
-void Cart::Freeze()
+void Cart::CartFreeze()
 {
 	if (m_bIsCartAttached && (reg2 & 0x04) == 0)
 	{
@@ -402,6 +416,15 @@ void Cart::Freeze()
 		m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
 		m_bFreezePending = true;
 		m_bFreezeDone = false;
+	}
+}
+
+void Cart::CartReset()
+{
+	if (m_bIsCartAttached)
+	{
+		m_pCpu->Reset(m_pCpu->GetCurrentClock());
+		Reset(m_pCpu->GetCurrentClock());
 	}
 }
 

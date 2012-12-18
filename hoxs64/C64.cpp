@@ -926,7 +926,16 @@ void C64::DiskReset()
 
 void C64::DetachCart()
 {
-	cart.DetachCart();
+	if (IsCartAttached())
+	{
+		cart.DetachCart();
+		HardReset(true);
+	}
+}
+
+bool C64::IsCartAttached()
+{
+	return cart.IsCartAttached();
 }
 
 void C64::SetupColorTables(unsigned int d3dFormat)
@@ -1208,9 +1217,8 @@ HRESULT hr = E_FAIL;
 	hr = cart.LoadCrtFile(filename);
 	if (SUCCEEDED(hr))
 	{
-		ram.AttachCart(cart);
-		cart.Reset(cpu.CurrentClock);
-		cpu.ConfigureMemoryMap();
+		cart.m_bIsCartAttached = true;
+		this->HardReset(true);
 	}
 	return hr;
 }
@@ -1437,7 +1445,14 @@ void C64::CartFreeze(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
-	cart.Freeze();
+	cart.CartFreeze();
+}
+
+void C64::CartReset(bool bCancelAutoload)
+{
+	if (bCancelAutoload)
+		appStatus->m_bAutoload = 0;
+	cart.CartReset();
 }
 
 void C64::PostSoftReset(bool bCancelAutoload)
@@ -1461,7 +1476,7 @@ void C64::PostCartFreeze(bool bCancelAutoload)
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
 	bPendingSystemCommand = true;
-	m_SystemCommand = C64CMD_FREEZE;
+	m_SystemCommand = C64CMD_CARTFREEZE;
 }
 
 void C64::ProcessReset()
@@ -1475,8 +1490,11 @@ void C64::ProcessReset()
 	case C64CMD_SOFTRESET:
 		SoftReset(false);
 		break;
-	case C64CMD_FREEZE:
+	case C64CMD_CARTFREEZE:
 		CartFreeze(false);
+		break;
+	case C64CMD_CARTRESET:
+		CartReset(false);
 		break;
 	}
 }

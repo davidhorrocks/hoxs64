@@ -131,6 +131,7 @@ BEGIN
     POPUP "C&art"
     BEGIN
         MENUITEM "Attach CRT",                  IDM_CART_ATTACHCRT
+        MENUITEM "Detach Cart",                 IDM_CART_DETACHCART
         MENUITEM SEPARATOR
         MENUITEM "Freeze\tAlt F11",             IDM_CART_FREEZE
         MENUITEM "Reset\tF11",                  IDM_CART_RESET

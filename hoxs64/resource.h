@@ -273,13 +273,15 @@
 #define ID_CART_FREEZE                  40165
 #define IDM_CART_RESET                  40166
 #define IDM_CART_FREEZE                 40167
+#define ID_CART_DETACHCART              40170
+#define IDM_CART_DETACHCART             40171
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        188
-#define _APS_NEXT_COMMAND_VALUE         40170
+#define _APS_NEXT_COMMAND_VALUE         40172
 #define _APS_NEXT_CONTROL_VALUE         1322
 #define _APS_NEXT_SYMED_VALUE           117
 #endif

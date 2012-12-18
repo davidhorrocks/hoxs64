@@ -105,6 +105,7 @@ public:
 	virtual void HardReset(bool bCancelAutoload);
 	virtual void SoftReset(bool bCancelAutoload);
 	virtual void CartFreeze(bool bCancelAutoload);
+	virtual void CartReset(bool bCancelAutoload);
 	virtual void PostHardReset(bool bCancelAutoload);
 	virtual void PostSoftReset(bool bCancelAutoload);
 	virtual void PostCartFreeze(bool bCancelAutoload);
@@ -119,6 +120,7 @@ public:
 	virtual bool Get_DiskProtect();
 	virtual void DiskReset();
 	virtual void DetachCart();
+	virtual bool IsCartAttached();
 	virtual IMonitor *GetMon();
 	virtual void SetupColorTables(unsigned int d3dFormat);
 	virtual HRESULT UpdateBackBuffer();
@@ -149,7 +151,8 @@ public:
 		C64CMD_NONE,
 		C64CMD_HARDRESET,
 		C64CMD_SOFTRESET,
-		C64CMD_FREEZE
+		C64CMD_CARTFREEZE,
+		C64CMD_CARTRESET,
 	};
 
 	void PreventClockOverflow();
