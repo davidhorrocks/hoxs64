@@ -52,6 +52,7 @@ END
 
 HOXS64 ACCELERATORS
 BEGIN
+    "F",            IDM_CART_FREEZE,        VIRTKEY, ALT, NOINVERT
     VK_F9,          IDM_FILE_MONITOR,       VIRTKEY, NOINVERT
     "P",            IDM_FILE_PAUSE,         VIRTKEY, ALT, NOINVERT
     "/",            IDM_HELP_ABOUT,         ASCII,  ALT, NOINVERT
@@ -63,7 +64,7 @@ BEGIN
     VK_F5,          IDM_STEP_TRACE,         VIRTKEY, NOINVERT
     VK_F6,          IDM_STEP_TRACEFRAME,    VIRTKEY, NOINVERT
     VK_RETURN,      IDM_TOGGLEFULLSCREEN,   VIRTKEY, ALT, NOINVERT
-    VK_F11,         IDM_CART_FREEZE,        VIRTKEY, ALT, NOINVERT
+    "R",            IDM_CART_RESET,         VIRTKEY, ALT, NOINVERT
 END
 
 
@@ -133,8 +134,8 @@ BEGIN
         MENUITEM "Attach CRT",                  IDM_CART_ATTACHCRT
         MENUITEM "Detach Cart",                 IDM_CART_DETACHCART
         MENUITEM SEPARATOR
-        MENUITEM "Freeze\tAlt F11",             IDM_CART_FREEZE
-        MENUITEM "Reset\tF11",                  IDM_CART_RESET
+        MENUITEM "Freeze\tAlt F",               IDM_CART_FREEZE
+        MENUITEM "Reset\tAlt R",                IDM_CART_RESET
     END
     POPUP "&Setting"
     BEGIN
