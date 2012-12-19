@@ -19,6 +19,7 @@ public:
 
 	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx, IAutoLoad *pAutoLoad);
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 

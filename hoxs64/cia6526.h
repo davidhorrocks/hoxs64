@@ -54,6 +54,7 @@ class CIA : public IRegister
 public:
 	CIA();
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);

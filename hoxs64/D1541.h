@@ -35,6 +35,7 @@ public:
 
 	void SyncVFlag();
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);

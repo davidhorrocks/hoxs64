@@ -155,7 +155,6 @@ __int64 iFileIndex = 0;
 				chip.LoadAddressRange = wordswap(chip.LoadAddressRange);
 				chip.ROMImageSize = wordswap(chip.ROMImageSize);
 				chip.TotalPacketLength = dwordswap(chip.TotalPacketLength);
-
 				if (_strnicmp((char *)&chip.Signature, (char *)&S_SIGCHIP[0], _countof(S_SIGCHIP) - 1) != 0)
 				{
 					//ok
@@ -218,7 +217,8 @@ __int64 iFileIndex = 0;
 		{
 			if (!ok)
 				break;
-			pCartData = (bit8 *)GlobalAlloc(GPTR, GetTotalCartMemoryRequirement(lstChipAndData));
+			SIZE_T lenAlloc = GetTotalCartMemoryRequirement(lstChipAndData);
+			pCartData = (bit8 *)GlobalAlloc(GPTR, lenAlloc);
 			if (!pCartData)
 			{
 				ok = false;
@@ -243,7 +243,7 @@ __int64 iFileIndex = 0;
 					ok = false;
 					break;
 				}
-				p = p + (INT_PTR)((*it)->chip.ROMImageSize);
+				p = p + (INT_PTR)((*it)->chip.ROMImageSize);				
 			}
 			if (!ok)
 				break;
@@ -302,13 +302,19 @@ void Cart::CleanUp()
 	}
 }
 
-void Cart::Reset(ICLK sysclock)
+void Cart::InitReset(ICLK sysclock)
 {
 	CurrentClock = sysclock;
 	reg1 = 0;
 	reg2 = 0;
 	m_bFreezePending = false;
 	m_bFreezeDone= false;
+	UpdateIO();
+}
+
+void Cart::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
 	m_pCpu->Clear_CRT_IRQ();
 	m_pCpu->Clear_CRT_NMI();
 	ConfigureMemoryMap();
@@ -336,7 +342,7 @@ void Cart::ExecuteCycle(ICLK sysclock)
 	CurrentClock = sysclock;
 }
 
-void Cart::ConfigureMemoryMap()
+void Cart::UpdateIO()
 {
 	if (m_bIsCartAttached)
 	{
@@ -378,7 +384,7 @@ void Cart::ConfigureMemoryMap()
 			GAME = (~reg1 & 1);
 			EXROM = (reg1 >> 1) & 1;
 			m_bEnableRAM = (reg1 & 0x20) != 0;
-			m_bIsCartIOActive = (reg1 & 0x4) == 0;
+			m_bIsCartIOActive = (reg1 & 0x4) == 0;			
 		}
 	}
 	else
@@ -389,6 +395,11 @@ void Cart::ConfigureMemoryMap()
 		m_iSelectedBank = 0;
 		m_iRamBankOffset = 0;
 	}
+}
+
+void Cart::ConfigureMemoryMap()
+{
+	UpdateIO();
 	m_pCpu->ConfigureMemoryMap();
 }
 
@@ -423,8 +434,8 @@ void Cart::CartReset()
 {
 	if (m_bIsCartAttached)
 	{
+		this->Reset(m_pCpu->GetCurrentClock());
 		m_pCpu->Reset(m_pCpu->GetCurrentClock());
-		Reset(m_pCpu->GetCurrentClock());
 	}
 }
 
@@ -606,7 +617,8 @@ int Cart::GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip)
 	{
 		i = i + (int)((*it)->chip.ROMImageSize);
 	}
-	return i;}
+	return i;
+}
 
 bool LessChipAndDataBank::operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const
 {
@@ -614,11 +626,11 @@ bool LessChipAndDataBank::operator()(const Sp_CrtChipAndData x, const Sp_CrtChip
 }
 
 CrtChipAndData::~CrtChipAndData()
-{
+{	
 }
 
 CrtChipAndData::CrtChipAndData(CrtChip &chip, bit8 *pData)
 {
-	chip = chip;
-	pData = pData;
+	this->chip = chip;
+	this->pData = pData;
 }

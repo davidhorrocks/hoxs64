@@ -57,10 +57,8 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 	return S_OK;
 }
 
-void C64::Reset(ICLK sysclock)
+void C64::InitReset(ICLK sysclock)
 {
-	diskdrive.WaitThreadReady();
-
 	m_iClockOverflowCheckCounter = 0;
 	tape64.CurrentClock = sysclock;
 	vic.CurrentClock = sysclock;
@@ -79,6 +77,23 @@ void C64::Reset(ICLK sysclock)
 	cia1.ClockNextWakeUpClock = sysclock;
 	cia2.ClockNextWakeUpClock = sysclock;
 	vic.ClockNextWakeUpClock = sysclock;
+	m_bLastPostedDriveWriteLed = false;
+
+	ram.InitReset();
+	vic.InitReset(sysclock);
+	cia1.InitReset(sysclock);
+	cia2.InitReset(sysclock);
+	sid.InitReset(sysclock);
+	cart.InitReset(sysclock);
+	cpu.InitReset(sysclock);
+	diskdrive.InitReset(sysclock);
+}
+
+void C64::Reset(ICLK sysclock)
+{
+	diskdrive.WaitThreadReady();
+
+	InitReset(sysclock);
 
 	tape64.PressStop();
 	ram.Reset();
@@ -86,8 +101,8 @@ void C64::Reset(ICLK sysclock)
 	cia1.Reset(sysclock);
 	cia2.Reset(sysclock);
 	sid.Reset(sysclock);
-	cpu.Reset(sysclock);
 	cart.Reset(sysclock);
+	cpu.Reset(sysclock);
 	diskdrive.Reset(sysclock);
 	cpu.SetCassetteSense(1);
 
@@ -1431,11 +1446,9 @@ void C64::SoftReset(bool bCancelAutoload)
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
 	ICLK sysclock = cpu.CurrentClock;
-	//ram.Reset();
-	//vic.Reset(sysclock);
-	//cia1.Reset(sysclock);
-	//cia2.Reset(sysclock);
-	//sid.Reset(sysclock);
+	cpu.InitReset(sysclock);
+	cart.InitReset(sysclock);
+
 	cpu.Reset(sysclock);
 	cart.Reset(sysclock);
 }

@@ -79,6 +79,7 @@ public:
 	virtual void SetSystemInterrupt()=0;
 	virtual void ClearSystemInterrupt()=0;
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);

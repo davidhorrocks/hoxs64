@@ -18,6 +18,7 @@ public:
 	void SetSystemInterrupt();
 	void ClearSystemInterrupt();
 
+	void InitReset(ICLK sysclock);
 	virtual void Reset(ICLK sysclock);
 
 protected:

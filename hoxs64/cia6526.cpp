@@ -20,7 +20,7 @@ CIA::CIA()
 	init_bitcount();
 }
 
-void CIA::Reset(ICLK sysclock)
+void CIA::InitReset(ICLK sysclock)
 {
 	CurrentClock=sysclock;
 	DevicesClock=sysclock;
@@ -75,6 +75,11 @@ void CIA::Reset(ICLK sysclock)
 	imr=0;
 
 	Interrupt=0;
+}
+
+void CIA::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
 	ClearSystemInterrupt();
 
 	WriteRegister(2, CurrentClock, 0);

@@ -53,8 +53,9 @@ CPU6510::~CPU6510()
 {
 }
 
-void CPU6510::Reset(ICLK sysclock)
+void CPU6510::InitReset(ICLK sysclock)
 {
+	CPU6502::InitReset(sysclock);
 	m_fade7clock = sysclock;
 	m_fade6clock = sysclock;
 	m_bIsWriteCycle = false;
@@ -73,9 +74,15 @@ void CPU6510::Reset(ICLK sysclock)
 	cpu_io_ddr=0;
 	cpu_io_data=0;
 	cpu_io_output=0;
+}
+
+void CPU6510::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
+	CPU6502::Reset(sysclock);
 	write_cpu_io_ddr(0, sysclock);
 	write_cpu_io_data(0);
-	CPU6502::Reset(sysclock);
+	LoadPCFromResetVector();
 }
 
 HRESULT CPU6510::Init(IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
@@ -123,6 +130,7 @@ bit8 *t;
 
 	t=m_ppMemory_map_read[address >> 12];
 	if (t)
+	{
 		if (address>1)
 			return t[address];
 		else 
@@ -130,6 +138,7 @@ bit8 *t;
 			vic->ExecuteCycle(CurrentClock);
 			return ReadRegister(address, CurrentClock);
 		}
+	}
 	else
 	{
 		switch (address >> 8)
@@ -689,7 +698,7 @@ void CPU6510::Set_CIA_NMI(ICLK sysclock)
 
 void CPU6510::Clear_CIA_NMI()
 {
-	if (NMI_CIA)
+	if (NMI_CRT==0)
 		ClearNMI();
 	NMI_CIA = 0;
 }

@@ -66,6 +66,7 @@ public:
 	CDX9 *dx;
 	Monitor mon;
 	HRESULT Init(CConfig *, CAppStatus *, IC64Event *, CDX9 *, TCHAR *szAppDirectory);
+	void InitReset(ICLK sysclock);
 	void Reset(ICLK sysclock);
 	void ExecuteDiskInstruction();
 	void ExecuteC64Instruction();

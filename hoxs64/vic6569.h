@@ -221,6 +221,7 @@ public:
 	void SetMMU(bit8 index);
 	bit8 de00_byte;
 
+	void InitReset(ICLK sysclock);
 	//IResgister
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);

@@ -28,12 +28,18 @@ CPUDisk::~CPUDisk()
 {
 }
 
-void CPUDisk::Reset(ICLK sysclock)
+void CPUDisk::InitReset(ICLK sysclock)
 {
-	CPU6502::Reset(sysclock);
+	CPU6502::InitReset(sysclock);
 	IRQ_VIA1=0;	
 	IRQ_VIA2=0;
 	NMI_TRIGGER=0;
+}
+
+void CPUDisk::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
+	CPU6502::Reset(sysclock);
 }
 
 

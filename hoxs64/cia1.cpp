@@ -311,11 +311,17 @@ void CIA1::WritePortB()
 	}
 }
 
-void CIA1::Reset(ICLK sysclock)
+void CIA1::InitReset(ICLK sysclock)
 {
+	CIA::InitReset(sysclock);
 	nextKeyboardScanClock = sysclock;
 	joyport1=0xff;
 	joyport2=0xff;
+}
+
+void CIA1::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
 	ResetKeyboard();
 	CIA::Reset(sysclock);
 	LightPen();

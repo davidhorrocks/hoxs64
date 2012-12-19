@@ -1689,7 +1689,7 @@ VIC6569::VIC6569()
 	m_iLastBackedUpFrameNumber = -1;
 }
 
-void VIC6569::Reset(ICLK sysclock)
+void VIC6569::InitReset(ICLK sysclock)
 {
 int i,j;
 bit32 initial_raster_line = PAL_MAX_LINE;
@@ -1714,7 +1714,6 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	vicLastGData=0;
 	vicLastGDataPrev=0;
 	vicLastGDataPrev2=0;
-	ClearSystemInterrupt();
 
 	vic_in_display_y=0;
 
@@ -1841,6 +1840,12 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	vic_pixelbuffer = ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][initial_raster_line];
 	ZeroMemory(pixelMaskBuffer,sizeof(pixelMaskBuffer));
 	DF_PixelsToSkip = 0;
+}
+
+void VIC6569::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
+	ClearSystemInterrupt();
 }
 
 void VIC6569::PreventClockOverflow()

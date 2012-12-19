@@ -102,6 +102,7 @@ public:
 	void UnLockSoundBuffer();
 	void SoundHalt(short value);
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);

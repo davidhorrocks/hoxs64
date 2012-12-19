@@ -825,7 +825,7 @@ void __forceinline CPU6502::code_sub()
 }
 
 
-void CPU6502::Reset(ICLK sysclock)
+void CPU6502::InitReset(ICLK sysclock)
 {
 	CurrentClock = sysclock;
 	BA=1;
@@ -855,8 +855,19 @@ void CPU6502::Reset(ICLK sysclock)
 	PROCESSOR_INTERRUPT=0;	
 	m_CurrentOpcodeAddress = mPC;
 	m_CurrentOpcodeClock = sysclock;
+}
+
+void CPU6502::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
+	LoadPCFromResetVector();
+}
+
+bit16 CPU6502::LoadPCFromResetVector()
+{
 	mPC.byte.loByte = ReadByte(0xFFFC);
 	mPC.byte.hiByte = ReadByte(0xFFFD);
+	return mPC.word;
 }
 
 HRESULT CPU6502::Init(int ID, IBreakpointManager *pIBreakpointManager)

@@ -58,6 +58,8 @@ public:
 	HRESULT LoadCrtFile(LPCTSTR filename);
 	void DetachCart();
 	bool IsCartAttached();
+	void InitReset(ICLK sysclock);
+	void UpdateIO();
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);

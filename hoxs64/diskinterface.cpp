@@ -116,15 +116,8 @@ DiskInterface::~DiskInterface()
 	Cleanup();
 }
 
-void DiskInterface::Reset(ICLK sysclock)
+void DiskInterface::InitReset(ICLK sysclock)
 {
-	WaitThreadReady();
-
-	CurrentClock = sysclock;
-	CurrentPALClock = sysclock;
-	m_pendingclocks = 0;
-	//CurrentPALClock must be set before calling ThreadSignalCommandResetClock
-	ThreadSignalCommandResetClock();
 	WaitThreadReady();
 
 	m_diskd64clk_xf = -Disk64clk_dy2 / 2;
@@ -169,6 +162,20 @@ void DiskInterface::Reset(ICLK sysclock)
 	m_currentTrackNumber = 0x2;
 	m_lastHeadStepDir = 0;
 	m_lastHeadStepPosition = 2;
+}
+
+void DiskInterface::Reset(ICLK sysclock)
+{
+	WaitThreadReady();
+
+	CurrentClock = sysclock;
+	CurrentPALClock = sysclock;
+	m_pendingclocks = 0;
+	//CurrentPALClock must be set before calling ThreadSignalCommandResetClock
+	ThreadSignalCommandResetClock();
+	WaitThreadReady();
+
+	InitReset(sysclock);
 
 	via1.Reset(sysclock);
 	via2.Reset(sysclock);

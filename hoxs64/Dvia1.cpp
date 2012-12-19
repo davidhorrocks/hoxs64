@@ -60,8 +60,14 @@ HRESULT VIA1::Init(int ID, CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, Di
 	return S_OK;
 }
 
+void VIA1::InitReset(ICLK sysclock)
+{
+	VIA::InitReset(sysclock);
+}
+
 void VIA1::Reset(ICLK sysclock)
 {
+	InitReset(sysclock);
 	VIA::Reset(sysclock);
 }
 

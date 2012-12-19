@@ -509,10 +509,10 @@ public:
 
 	HRESULT Init(int ID, IBreakpointManager *pIBreakpointManager);
 	void Cleanup();
+	virtual bit16 LoadPCFromResetVector();
 
 	virtual bit8 ReadByte(bit16 address)=0;
 	virtual void WriteByte(bit16 address, bit8 data)=0;
-
 	//IMonitorCpu
 	virtual int GetCpuId();
 	virtual bit8 MonReadByte(bit16 address, int memorymap)=0;
@@ -535,6 +535,7 @@ public:
 	virtual void SetDdr(bit8 v);
 	virtual void SetData(bit8 v);
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);

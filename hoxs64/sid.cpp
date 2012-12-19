@@ -416,7 +416,7 @@ void SIDVoice::Reset()
 	lastSample = CalcWave(wavetype);
 }
 
-void SID64::Reset(ICLK sysclock)
+void SID64::InitReset(ICLK sysclock)
 {
 	CurrentClock = sysclock;
 	sidVolume=0;
@@ -427,6 +427,11 @@ void SID64::Reset(ICLK sysclock)
 	sidBlock_Voice3=0;
 	sidLastWrite = 0;
 	sidReadDelay = 0;
+}
+
+void SID64::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
 
 	voice1.Reset();
 	voice2.Reset();

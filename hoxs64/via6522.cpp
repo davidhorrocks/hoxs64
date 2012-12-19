@@ -14,7 +14,7 @@
 #include "via6522.h"
 #include "d64.h"
 
-void VIA::Reset(ICLK sysclock)
+void VIA::InitReset(ICLK sysclock)
 {
 	CurrentClock = sysclock;
 	DevicesClock = sysclock;
@@ -58,7 +58,11 @@ void VIA::Reset(ICLK sysclock)
 	dec_2=1;
 	no_change_count=0;
 	idle=0;
+}
 
+void VIA::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
 	ClearSystemInterrupt();
 
 	WriteRegister(11, CurrentClock, acr);
@@ -66,9 +70,6 @@ void VIA::Reset(ICLK sysclock)
 	
 	SetPinsPortA(PortAOutput());
 	SetPinsPortB(PortBOutput());
-
-	//feed |= VIAPostOneShotA0;
-	//feed |= VIAPostOneShotB0;
 }
 
 void VIA::ExecuteCycle(ICLK sysclock)

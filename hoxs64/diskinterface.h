@@ -31,6 +31,7 @@ public:
 	void SetDiskLoaded();
 	void RemoveDisk();
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 	virtual void ExecuteCycle(ICLK sysclock);

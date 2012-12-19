@@ -37,6 +37,7 @@ public:
 	void Set_CRT_NMI(ICLK sysclock);
 	void Clear_CRT_NMI();
 
+	void InitReset(ICLK sysclock);
 	//IRegister
 	virtual void Reset(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);

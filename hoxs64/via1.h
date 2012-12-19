@@ -20,6 +20,7 @@ public:
 	void SetPinsPortB(bit8);
 	void SetSystemInterrupt();
 	void ClearSystemInterrupt();
+	void InitReset(ICLK sysclock);
 	void Reset(ICLK sysclock);
 
 	CPUDisk *cpu;
