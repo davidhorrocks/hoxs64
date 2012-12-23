@@ -52,6 +52,18 @@ typedef std::vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
 class Cart : public IRegister, public ErrorMsg
 {
 public:
+	class CartType
+	{
+	public:
+		enum ECartType
+		{
+			Action_Replay = 1,
+			Action_Replay_4 = 30,
+			Action_Replay_3 = 35,	
+			Retro_Replay = 36,
+			Action_Replay_2 = 50,
+		};
+	};
 	Cart();
 	~Cart();
 	void Init(IC6510 *pCpu, bit8 *pC64RamMemory);

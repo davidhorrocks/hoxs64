@@ -170,7 +170,7 @@ __int64 iFileIndex = 0;
 					ok = false;
 					break;
 				}
-				if (chip.ROMImageSize != 0x2000 || chip.ROMImageSize != 0x4000)
+				if (chip.ROMImageSize != 0x2000 && chip.ROMImageSize != 0x4000)
 				{
 					hr = SetError(E_FAIL, S_READFAILED, filename);
 					ok = false;
@@ -246,7 +246,7 @@ __int64 iFileIndex = 0;
 			for (CrtChipAndDataIter it = lstChipAndData.begin(); it!=lstChipAndData.end(); it++)
 			{
 				(*it)->pData = p;
-				if ((*it)->chip.ChipType != 1)
+				if ((*it)->chip.ChipType == 1)
 					continue;
 				iFileIndex = G::FileSeek(hFile, (*it)->iFileIndex, FILE_BEGIN);
 				if (iFileIndex < 0)
@@ -438,22 +438,32 @@ void Cart::CheckForCartFreeze()
 
 void Cart::CartFreeze()
 {
-	if (m_bIsCartAttached && (reg2 & 0x04) == 0)
+	if (!m_bIsCartAttached)
+		return;
+	switch(m_crtHeader.HardwareType)
 	{
-		m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
-		m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
-		m_bFreezePending = true;
-		m_bFreezeDone = false;
+		case CartType::Action_Replay:
+		case CartType::Action_Replay_4:
+		case CartType::Action_Replay_3:
+		case CartType::Retro_Replay:
+		case CartType::Action_Replay_2:
+			if (m_bIsCartAttached && (reg2 & 0x04) == 0)
+			{
+				m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
+				m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
+				m_bFreezePending = true;
+				m_bFreezeDone = false;
+			}
+			break;
 	}
 }
 
 void Cart::CartReset()
 {
-	if (m_bIsCartAttached)
-	{
-		this->Reset(m_pCpu->GetCurrentClock());
-		m_pCpu->Reset(m_pCpu->GetCurrentClock());
-	}
+	if (!m_bIsCartAttached)
+		return;
+	this->Reset(m_pCpu->GetCurrentClock());
+	m_pCpu->Reset(m_pCpu->GetCurrentClock());
 }
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
