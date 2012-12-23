@@ -297,6 +297,7 @@ __int64 iFileIndex = 0;
 				GlobalFree(m_pCartData);
 				m_pCartData = NULL;
 			}
+			m_crtHeader = hdr;
 			m_lstChipAndData = lstChipAndData;
 			m_pCartData = pCartData;
 			pCartData = NULL;
