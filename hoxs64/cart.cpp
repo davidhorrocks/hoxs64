@@ -127,7 +127,8 @@ __int64 iFileIndex = 0;
 					break;
 				}
 			}
-
+			//TEST
+			//hdr.HardwareType = 36;
 			int nChipCount = 0;
 			do
 			{
@@ -329,6 +330,7 @@ void Cart::InitReset(ICLK sysclock)
 	reg2 = 0;
 	m_bFreezePending = false;
 	m_bFreezeDone= false;
+	m_bDE01WriteDone = false;
 	UpdateIO();
 }
 
@@ -364,56 +366,106 @@ void Cart::ExecuteCycle(ICLK sysclock)
 
 void Cart::UpdateIO()
 {
+//TODO CartType
 	if (m_bIsCartAttached)
 	{
-		if (m_bFreezePending)
+		switch (m_crtHeader.HardwareType)
 		{
+		case CartType::Retro_Replay:
+			if (m_bFreezePending)
+			{
+				m_bAllowBank = false;
+				m_iSelectedBank = 0;
+				m_iRamBankOffset = 0;
+				GAME = 1;
+				EXROM = 1;
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = false;
+			}
+			else if (m_bFreezeDone)
+			{
+				m_bREUcompatible = (reg2 & 0x40) != 0;
+				m_bAllowBank = (reg2 & 0x2) != 0;
+				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_iRamBankOffset = 0;
+				if (m_bAllowBank)
+				{
+					m_iRamBankOffset = (bit16)(((int)m_iSelectedBank) & 3 << 13); 
+				}
+				//Ultimax
+				GAME = 0;//FIXME
+				EXROM = 1;//FIXME
+				m_bEnableRAM = (reg1 & 0x20) != 0;
+				m_bIsCartIOActive = true;
+			}
+			else
+			{
+				m_bREUcompatible = (reg2 & 0x40) != 0;
+				m_bAllowBank = (reg2 & 0x2) != 0;
+				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_iRamBankOffset = 0;
+				if (m_bAllowBank)
+				{
+					m_iRamBankOffset = (bit16)(((int)m_iSelectedBank) & 3 << 13); 
+				}
+				GAME = (~reg1 & 1);
+				EXROM = (reg1 >> 1) & 1;
+				m_bEnableRAM = (reg1 & 0x20) != 0;
+				m_bIsCartIOActive = (reg1 & 0x4) == 0;			
+			}
+			break;
+		case CartType::Action_Replay://AR5 + AR6
+			if (m_bFreezePending)
+			{
+				m_bAllowBank = false;
+				m_iSelectedBank = 0;
+				m_iRamBankOffset = 0;
+				GAME = 1;
+				EXROM = 1;
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = false;
+			}
+			else if (m_bFreezeDone)	
+			{
+				m_bREUcompatible = false;
+				m_bAllowBank = false;
+				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_iRamBankOffset = 0;
+				//Ultimax
+				GAME = 0;
+				EXROM = 1;
+				m_bEnableRAM = (reg1 & 0x20) != 0;
+				m_bIsCartIOActive = true;
+			}
+			else
+			{
+				m_bREUcompatible = false;
+				m_bAllowBank = false;
+				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_iRamBankOffset = 0;
+				GAME = (~reg1 & 1);
+				EXROM = (reg1 >> 1) & 1;
+				m_bEnableRAM = (reg1 & 0x20) != 0;
+				m_bIsCartIOActive = (reg1 & 0x4) == 0;			
+			}
+			break;
+		default: 
+			m_bREUcompatible = false;
 			m_bAllowBank = false;
 			m_iSelectedBank = 0;
 			m_iRamBankOffset = 0;
-			GAME = 1;
-			EXROM = 1;
+			GAME = m_crtHeader.GAME;
+			EXROM = m_crtHeader.EXROM;
 			m_bEnableRAM = false;
-			m_bIsCartIOActive = false;
-		}
-		else if (m_bFreezeDone)
-		{
-			m_bREUcompatible = (reg2 & 0x40) != 0;
-			m_bAllowBank = (reg2 & 0x2) != 0;
-			m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
-			m_iRamBankOffset = 0;
-			if (m_bAllowBank)
-			{
-				m_iRamBankOffset = (bit16)(((int)m_iSelectedBank) & 3 << 13); 
-			}
-			GAME = 0;
-			EXROM = 1;
-			m_bEnableRAM = (reg1 & 0x20) != 0;
-			m_bIsCartIOActive = true;
-		}
-		else
-		{
-			m_bREUcompatible = (reg2 & 0x40) != 0;
-			m_bAllowBank = (reg2 & 0x2) != 0;
-			m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
-			m_iRamBankOffset = 0;
-			if (m_bAllowBank)
-			{
-				m_iRamBankOffset = (bit16)(((int)m_iSelectedBank) & 3 << 13); 
-			}
-			GAME = (~reg1 & 1);
-			EXROM = (reg1 >> 1) & 1;
-			m_bEnableRAM = (reg1 & 0x20) != 0;
-			m_bIsCartIOActive = (reg1 & 0x4) == 0;			
+			m_bIsCartIOActive = false;			
+			break;
 		}
 	}
 	else
 	{
-		m_bAllowBank = false;
 		GAME = 1;
 		EXROM = 1;
-		m_iSelectedBank = 0;
-		m_iRamBankOffset = 0;
+		m_bIsCartIOActive = false;			
 	}
 }
 
@@ -425,6 +477,7 @@ void Cart::ConfigureMemoryMap()
 
 void Cart::CheckForCartFreeze()
 {
+//TODO CartType
 	if (m_bFreezePending)
 	{
 		m_bFreezePending = false;
@@ -439,16 +492,17 @@ void Cart::CheckForCartFreeze()
 
 void Cart::CartFreeze()
 {
+//TODO CartType
 	if (!m_bIsCartAttached)
 		return;
 	switch(m_crtHeader.HardwareType)
 	{
-		case CartType::Action_Replay:
+		case CartType::Retro_Replay:
+		case CartType::Action_Replay://AR5 + AR6
+		case CartType::Action_Replay_2:
 		case CartType::Action_Replay_4:
 		case CartType::Action_Replay_3:
-		case CartType::Retro_Replay:
-		case CartType::Action_Replay_2:
-			if (m_bIsCartAttached && (reg2 & 0x04) == 0)
+			if ((reg2 & 0x04) == 0)
 			{
 				m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
 				m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
@@ -469,77 +523,137 @@ void Cart::CartReset()
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 {
+//TODO CartType
 	if (!m_bIsCartAttached)
 		return 0;
-	if ((address == 0xDE00 || address == 0xDE01) && m_bIsCartIOActive)
+	switch (m_crtHeader.HardwareType)
 	{
-		return (reg1 & 0xB8) | (reg2 & 0x42);
-	}
-	else if (address >= 0xDE00 && address < 0xDF00 && m_bREUcompatible)
-	{
-		bit16 addr = address - 0xDE00 + 0x1E00;
-		if (m_bEnableRAM)
+	case CartType::Retro_Replay:
+		if ((address == 0xDE00 || address == 0xDE01) && m_bIsCartIOActive)
 		{
-			return m_pCartData[addr + m_iRamBankOffset];
+			return (reg1 & 0xB8) | (reg2 & 0x42);
 		}
-		else
+		else if (address >= 0xDE00 && address < 0xDF00 && m_bREUcompatible)
 		{
-			if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+			bit16 addr = address - 0xDE00 + 0x1E00;
+			if (m_bEnableRAM)
+			{
+				return m_pCartData[addr + m_iRamBankOffset];
+			}
+			else
+			{
+				if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+					return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+			}
+		}
+		else if (address >= 0xDF00 && address < 0xE000 && !m_bREUcompatible)
+		{
+			bit16 addr = address - 0xDF00 + 0x1F00;
+			if (m_bEnableRAM)
+			{
+				return m_pCartData[addr + m_iRamBankOffset];
+			}
+			else
+			{
+				if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+					return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+			}
+		}
+		break;
+	case CartType::Action_Replay:
+		if ((address >= 0xDE00 && address < 0xDF00) && m_bIsCartIOActive)
+		{
+			return 0;
+		}
+		else if (address >= 0xDF00 && address < 0xE000)
+		{
+			bit16 addr = address - 0xDF00 + 0x1F00;
+			if (m_bEnableRAM)
+			{
+				return m_pCartData[addr];
+			}
+			else
+			{
 				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+			}
 		}
-	}
-	else if (address >= 0xDF00 && address < 0xE000 && !m_bREUcompatible)
-	{
-		bit16 addr = address - 0xDF00 + 0x1F00;
-		if (m_bEnableRAM)
-		{
-			return m_pCartData[addr + m_iRamBankOffset];
-		}
-		else
-		{
-			if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
-				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
-		}
+		break;
 	}
 	return 0;
 }
 
 void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
+//TODO CartType
 	if (!m_bIsCartAttached)
 		return;
-	if (address == 0xDE00 && m_bIsCartIOActive)
+	switch (m_crtHeader.HardwareType)
 	{
-		if (m_bFreezeDone)
+	case CartType::Retro_Replay:
+		if (address == 0xDE00 && m_bIsCartIOActive)
 		{
-			if (data & 0x40)
+			if (m_bFreezeDone)
 			{
-				m_bFreezePending = false;
-				m_bFreezeDone = false;
+				if (data & 0x40)
+				{
+					m_bFreezePending = false;
+					m_bFreezeDone = false;
+				}
+			}
+			reg1 = data;
+			ConfigureMemoryMap();
+		}
+		else if (address == 0xDE01 && m_bIsCartIOActive)
+		{
+			if (m_bDE01WriteDone)
+			{
+				reg2 = (reg2 & 0x86) | (data & ~0x86);
+			}
+			else
+			{
+				reg2 = data;
+				m_bDE01WriteDone = true;
+			}
+			reg1 = (reg1 & 0x63) | (data & 0x98);
+			ConfigureMemoryMap();
+		}
+		else if (m_bREUcompatible && address >= 0xDE00 && address < 0xDF00)
+		{
+			if (m_bEnableRAM)
+			{
+				m_pCartData[address - 0xDE00 + 0x1E00 + m_iRamBankOffset] = data;
 			}
 		}
-		reg1 = data;
-		ConfigureMemoryMap();
-	}
-	else if (address == 0xDE01 && m_bIsCartIOActive)
-	{
-		reg2 = data;
-		reg1 = (reg1 & 0x63) | (data & 0x98);
-		ConfigureMemoryMap();
-	}
-	else if (m_bREUcompatible && address >= 0xDE00 && address < 0xDF00)
-	{
-		if (m_bEnableRAM)
+		else if (!m_bREUcompatible && address >= 0xDF00 && address < 0xE000)
 		{
-			m_pCartData[address - 0xDE00 + 0x1E00 + m_iRamBankOffset] = data;
+			if (m_bEnableRAM)
+			{
+				m_pCartData[address - 0xDF00 + 0x1F00 + m_iRamBankOffset] = data;
+			}
 		}
-	}
-	else if (!m_bREUcompatible && address >= 0xDF00 && address < 0xE000)
-	{
-		if (m_bEnableRAM)
+		break;
+	case CartType::Action_Replay:
+		if (address >= 0xDE00 && address < 0xDF00 && m_bIsCartIOActive)
 		{
-			m_pCartData[address - 0xDF00 + 0x1F00 + m_iRamBankOffset] = data;
+			if (m_bFreezeDone)
+			{
+				if (data & 0x40)
+				{
+					m_bFreezePending = false;
+					m_bFreezeDone = false;
+				}
+			}
+			reg1 = data;
+			ConfigureMemoryMap();
 		}
+		else if (address >= 0xDF00 && address < 0xE000)
+		{
+			if (m_bEnableRAM)
+			{
+				m_pCartData[address - 0xDF00 + 0x1F00] = data;
+			}
+		}
+		break;
 	}
 }
 

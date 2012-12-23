@@ -57,7 +57,7 @@ public:
 	public:
 		enum ECartType
 		{
-			Action_Replay = 1,
+			Action_Replay = 1,//AR5 + AR6
 			Action_Replay_4 = 30,
 			Action_Replay_3 = 35,	
 			Retro_Replay = 36,
@@ -109,6 +109,7 @@ public:
 	bit8 m_iSelectedBank;
 	bit8 m_bFreezePending;
 	bit8 m_bFreezeDone;
+	bool m_bDE01WriteDone;
 	bit16 m_iRamBankOffset;
 protected:
 	
