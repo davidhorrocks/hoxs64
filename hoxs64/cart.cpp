@@ -346,6 +346,7 @@ void Cart::DetachCart()
 {
 	if (m_bIsCartAttached)
 	{
+		m_bFreezePending = false;
 		m_pCpu->Clear_CRT_IRQ();
 		m_pCpu->Clear_CRT_NMI();
 		m_bIsCartAttached = false;
@@ -393,8 +394,8 @@ void Cart::UpdateIO()
 					m_iRamBankOffset = (bit16)(((int)m_iSelectedBank) & 3 << 13); 
 				}
 				//Ultimax
-				GAME = 0;//FIXME
-				EXROM = 1;//FIXME
+				GAME = 0;
+				EXROM = 1;
 				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = true;
 			}
@@ -446,8 +447,14 @@ void Cart::UpdateIO()
 				GAME = (~reg1 & 1);
 				EXROM = (reg1 >> 1) & 1;
 				m_bEnableRAM = (reg1 & 0x20) != 0;
-				m_bIsCartIOActive = (reg1 & 0x4) == 0;			
+				m_bIsCartIOActive = (reg1 & 0x4) == 0;
 			}
+			break;
+		case CartType::Ocean_1:
+			m_iSelectedBank = reg1 & 0x3f;
+			GAME = m_crtHeader.GAME;
+			EXROM = m_crtHeader.EXROM;
+			m_bIsCartIOActive = true;
 			break;
 		default: 
 			m_bREUcompatible = false;
@@ -579,6 +586,12 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 			}
 		}
 		break;
+	case CartType::Ocean_1:
+		if (address == 0xDE00)
+		{
+			return reg1;
+		}
+		break;
 	}
 	return 0;
 }
@@ -653,6 +666,13 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			{
 				m_pCartData[address - 0xDF00 + 0x1F00] = data;
 			}
+		}
+		break;
+	case CartType::Ocean_1:
+		if (address == 0xDE00)
+		{
+			reg1 = data;
+			ConfigureMemoryMap();
 		}
 		break;
 	}

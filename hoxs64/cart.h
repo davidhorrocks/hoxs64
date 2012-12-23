@@ -58,6 +58,7 @@ public:
 		enum ECartType
 		{
 			Action_Replay = 1,//AR5 + AR6
+			Ocean_1 = 5,
 			Action_Replay_4 = 30,
 			Action_Replay_3 = 35,	
 			Retro_Replay = 36,
