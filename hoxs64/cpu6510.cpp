@@ -645,6 +645,7 @@ void CPU6510::ConfigureMemoryMap()
 		CHAREN=1;
 
 	ram->ConfigureMMU((((pCart->GAME << 1) | pCart->EXROM) & 0x3) | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+	pVic->SetMMU(pVic->vicMemoryBankIndex);
 }
 void CPU6510::SetCassetteSense(bit8 sense)
 {

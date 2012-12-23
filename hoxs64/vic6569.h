@@ -350,7 +350,9 @@ private:
 	void render_32bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
 	void render_32bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
 
+public:
 	bit8 vicMemoryBankIndex;
+private:
 	bit8 **vic_memory_map_read;
 	bit8 *vic_3fff_ptr;
 

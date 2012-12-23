@@ -574,7 +574,8 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 			}
 			else
 			{
-				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+				if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+					return m_lstChipAndData[m_iSelectedBank]->pData[addr];
 			}
 		}
 		break;
@@ -701,7 +702,7 @@ bit8 Cart::ReadROMH(bit16 address)
 	if (m_iSelectedBank >= m_lstChipAndData.size())
 		return 0;
 	Sp_CrtChipAndData p = m_lstChipAndData[m_iSelectedBank];
-	if (p->chip.ROMImageSize == 0x4000)
+	if (p->chip.ROMImageSize > 0x2000)
 		address += 0x2000;
 	if (addr >= p->chip.ROMImageSize)
 		return 0;
@@ -715,7 +716,7 @@ bit8 Cart::ReadUltimaxROMH(bit16 address)
 	if (m_iSelectedBank >= m_lstChipAndData.size())
 		return 0;
 	Sp_CrtChipAndData p = m_lstChipAndData[m_iSelectedBank];
-	if (p->chip.ROMImageSize == 0x4000)
+	if (p->chip.ROMImageSize > 0x2000)
 		address += 0x2000;
 	if (addr >= p->chip.ROMImageSize)
 		return 0;
