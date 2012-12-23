@@ -72,6 +72,7 @@ public:
 	HRESULT LoadCrtFile(LPCTSTR filename);
 	void DetachCart();
 	bool IsCartAttached();
+	bool IsUltimax();
 	void InitReset(ICLK sysclock);
 	void UpdateIO();
 	virtual void Reset(ICLK sysclock);

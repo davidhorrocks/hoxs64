@@ -965,7 +965,7 @@ void RAM64::ConfigureMMU(bit8 index, bit8 ***p_memory_map_read, bit8 ***p_memory
 
 void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_vic_3fff_ptr)
 {
-	if (m_pCart->IsCartAttached() && m_pCart->m_lstChipAndData[0]->chip.ROMImageSize >= 0x2000)
+	if (m_pCart->IsCartAttached() && m_pCart->IsUltimax() && m_pCart->m_lstChipAndData[0]->chip.ROMImageSize >= 0x2000)
 	{
 		VicMMU_read[0x0][0x3] = m_pCart->m_lstChipAndData[0]->pData - 0x2000;
 		VicMMU_read[0x2][0x3] = m_pCart->m_lstChipAndData[0]->pData - 0x2000;

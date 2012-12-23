@@ -360,6 +360,11 @@ bool Cart::IsCartAttached()
 	return m_bIsCartAttached;
 }
 
+bool Cart::IsUltimax()
+{
+	return GAME == 0 && EXROM != 0;
+}
+
 void Cart::ExecuteCycle(ICLK sysclock)
 {
 	CurrentClock = sysclock;
