@@ -98,6 +98,7 @@ __int64 iFileIndex = 0;
 				break;
 			}
 
+			//Read header.
 			br = ReadFile(hFile, &hdr, sizeof(hdr), &nBytesRead, NULL);
 			if (!br)
 			{
@@ -143,6 +144,8 @@ __int64 iFileIndex = 0;
 					//ok
 					break;
 				}
+
+				//Read chip header
 				br = ReadFile(hFile, &chip, sizeof(chip), &nBytesRead, NULL);
 				if (!br)
 				{
@@ -154,6 +157,7 @@ __int64 iFileIndex = 0;
 				chip.BankLocation = wordswap(chip.BankLocation);
 				chip.LoadAddressRange = wordswap(chip.LoadAddressRange);
 				chip.ROMImageSize = wordswap(chip.ROMImageSize);
+				chip.ChipType = wordswap(chip.ChipType);				
 				chip.TotalPacketLength = dwordswap(chip.TotalPacketLength);
 				if (_strnicmp((char *)&chip.Signature, (char *)&S_SIGCHIP[0], _countof(S_SIGCHIP) - 1) != 0)
 				{
@@ -166,12 +170,25 @@ __int64 iFileIndex = 0;
 					ok = false;
 					break;
 				}
-				if (chip.ROMImageSize ==0)
+				if (chip.ROMImageSize != 0x2000 || chip.ROMImageSize != 0x4000)
 				{
 					hr = SetError(E_FAIL, S_READFAILED, filename);
 					ok = false;
 					break;
 				}
+				switch (chip.ChipType)
+				{
+					case 0://ROM
+					case 1://RAM
+					case 2://Flash ROM
+						break;
+					default:
+						hr = SetError(E_FAIL, S_READFAILED, filename);
+						ok = false;
+						break;
+				}
+				if (!ok)
+					break;
 				
 				Sp_CrtChipAndData sp(new CrtChipAndData(chip, NULL));
 				if (sp == 0)
@@ -229,6 +246,8 @@ __int64 iFileIndex = 0;
 			for (CrtChipAndDataIter it = lstChipAndData.begin(); it!=lstChipAndData.end(); it++)
 			{
 				(*it)->pData = p;
+				if ((*it)->chip.ChipType != 1)
+					continue;
 				iFileIndex = G::FileSeek(hFile, (*it)->iFileIndex, FILE_BEGIN);
 				if (iFileIndex < 0)
 				{
@@ -409,8 +428,6 @@ void Cart::CheckForCartFreeze()
 	{
 		m_bFreezePending = false;
 		m_bFreezeDone = true;
-		//m_iSelectedBank = 0;
-		//m_iRamBankOffset = 0;
 		reg1 &= 0x20;
 		reg2 &= 0x43;
 		m_pCpu->Clear_CRT_IRQ();
@@ -556,18 +573,28 @@ bit8 Cart::ReadROMH(bit16 address)
 {
 	assert(address >= 0xA000 && address < 0xE000);
 	bit16 addr = address - 0xA000;
-	if (m_iSelectedBank >= m_lstChipAndData.size() || addr >= m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+	if (m_iSelectedBank >= m_lstChipAndData.size())
 		return 0;
-	return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+	Sp_CrtChipAndData p = m_lstChipAndData[m_iSelectedBank];
+	if (p->chip.ROMImageSize == 0x4000)
+		address += 0x2000;
+	if (addr >= p->chip.ROMImageSize)
+		return 0;
+	return p->pData[addr];
 }
 
 bit8 Cart::ReadUltimaxROMH(bit16 address)
 {
 	assert(address >= 0xE000);
 	bit16 addr = address - 0xE000;
-	if (m_iSelectedBank >= m_lstChipAndData.size() || addr >= m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+	if (m_iSelectedBank >= m_lstChipAndData.size())
 		return 0;
-	return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+	Sp_CrtChipAndData p = m_lstChipAndData[m_iSelectedBank];
+	if (p->chip.ROMImageSize == 0x4000)
+		address += 0x2000;
+	if (addr >= p->chip.ROMImageSize)
+		return 0;
+	return p->pData[addr];
 }
 
 void Cart::WriteROML(bit16 address, bit8 data)
