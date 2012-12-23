@@ -456,6 +456,24 @@ void Cart::UpdateIO()
 			EXROM = m_crtHeader.EXROM;
 			m_bIsCartIOActive = true;
 			break;
+		case CartType::Magic_Desk:
+			m_bREUcompatible = false;
+			m_bAllowBank = false;
+			m_iSelectedBank = reg1 & 0x3f;
+			if (reg1 == 0x80)
+			{
+				GAME = 1;
+				EXROM = 1;
+				m_bEnableRAM = true;
+			}
+			else
+			{
+				GAME = m_crtHeader.GAME;
+				EXROM = m_crtHeader.EXROM;
+				m_bEnableRAM = false;
+			}
+			m_bIsCartIOActive = true;
+			break;
 		default: 
 			m_bREUcompatible = false;
 			m_bAllowBank = false;
@@ -592,6 +610,12 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 			return reg1;
 		}
 		break;
+	case CartType::Magic_Desk:
+		if (address == 0xDE00)
+		{
+			return reg1;
+		}
+		break;
 	}
 	return 0;
 }
@@ -669,6 +693,13 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		}
 		break;
 	case CartType::Ocean_1:
+		if (address == 0xDE00)
+		{
+			reg1 = data;
+			ConfigureMemoryMap();
+		}
+		break;
+	case CartType::Magic_Desk:
 		if (address == 0xDE00)
 		{
 			reg1 = data;
