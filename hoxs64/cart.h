@@ -58,6 +58,7 @@ public:
 		enum ECartType
 		{
 			Action_Replay = 1,//AR5 + AR6
+			Simons_Basic = 4,
 			Ocean_1 = 5,
 			Magic_Desk = 19,
 			Action_Replay_4 = 30,
@@ -114,6 +115,7 @@ public:
 	bit8 m_bFreezeDone;
 	bool m_bDE01WriteDone;
 	bit16 m_iRamBankOffset;
+	bool m_bSimonsBasic16K;
 protected:
 	
 private:

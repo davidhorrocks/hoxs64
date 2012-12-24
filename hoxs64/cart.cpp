@@ -328,6 +328,7 @@ void Cart::InitReset(ICLK sysclock)
 	CurrentClock = sysclock;
 	reg1 = 0;
 	reg2 = 0;
+	m_bSimonsBasic16K = false;
 	m_bFreezePending = false;
 	m_bFreezeDone= false;
 	m_bDE01WriteDone = false;
@@ -469,14 +470,30 @@ void Cart::UpdateIO()
 			{
 				GAME = 1;
 				EXROM = 1;
-				m_bEnableRAM = true;
 			}
 			else
 			{
 				GAME = m_crtHeader.GAME;
 				EXROM = m_crtHeader.EXROM;
-				m_bEnableRAM = false;
 			}
+			m_bEnableRAM = false;
+			m_bIsCartIOActive = true;
+			break;
+		case CartType::Simons_Basic:
+			m_bREUcompatible = false;
+			m_bAllowBank = false;
+			m_iSelectedBank = 0;
+			if (m_bSimonsBasic16K)
+			{
+				GAME = 0;
+				EXROM = 0;
+			}
+			else
+			{
+				GAME = m_crtHeader.GAME;
+				EXROM = m_crtHeader.EXROM;
+			}
+			m_bEnableRAM = false;
 			m_bIsCartIOActive = true;
 			break;
 		default: 
@@ -621,6 +638,14 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 			return reg1;
 		}
 		break;
+	case CartType::Simons_Basic:
+		if (address == 0xDE00)
+		{
+			m_bSimonsBasic16K = false;
+			ConfigureMemoryMap();
+			return 0;
+		}
+		break;
 	}
 	return 0;
 }
@@ -711,6 +736,13 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			ConfigureMemoryMap();
 		}
 		break;
+	case CartType::Simons_Basic:
+		if (address == 0xDE00)
+		{
+			m_bSimonsBasic16K = true;
+			ConfigureMemoryMap();
+		}
+		break;
 	}
 }
 
@@ -722,6 +754,7 @@ bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 bit8 Cart::ReadROML(bit16 address)
 {
 	assert(address >= 0x8000 && address < 0xA000);
+	bit8 i = m_iSelectedBank;
 	bit16 addr = address - 0x8000;
 	if (m_bEnableRAM)
 	{
@@ -729,9 +762,9 @@ bit8 Cart::ReadROML(bit16 address)
 	}
 	else
 	{
-		if (m_iSelectedBank >= m_lstChipAndData.size() || addr >= m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+		if (i >= m_lstChipAndData.size() || addr >= m_lstChipAndData[i]->chip.ROMImageSize)
 			return 0;
-		return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+		return m_lstChipAndData[i]->pData[addr];
 	}
 }
 
@@ -754,10 +787,13 @@ bit8 Cart::ReadUltimaxROML(bit16 address)
 bit8 Cart::ReadROMH(bit16 address)
 {
 	assert(address >= 0xA000 && address < 0xE000);
+	bit8 i = m_iSelectedBank;
+	if (m_bSimonsBasic16K)
+		i = 1;
 	bit16 addr = address - 0xA000;
-	if (m_iSelectedBank >= m_lstChipAndData.size())
+	if (i >= m_lstChipAndData.size())
 		return 0;
-	Sp_CrtChipAndData p = m_lstChipAndData[m_iSelectedBank];
+	Sp_CrtChipAndData p = m_lstChipAndData[i];
 	if (p->chip.ROMImageSize > 0x2000)
 		address += 0x2000;
 	if (addr >= p->chip.ROMImageSize)
