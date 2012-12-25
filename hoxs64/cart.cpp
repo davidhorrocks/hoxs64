@@ -338,7 +338,7 @@ void Cart::InitReset(ICLK sysclock)
 	reg2 = 0;
 	m_bSimonsBasic16K = false;
 	m_bFreezePending = false;
-	m_bFreezeDone= false;
+	m_bFreezeDone = false;
 	m_bDE01WriteDone = false;
 	UpdateIO();
 }
@@ -486,20 +486,6 @@ void Cart::UpdateIO()
 				m_bIsCartIOActive = false;
 				BankRom();
 			}
-			else if (m_bFreezeDone)	
-			{
-				m_bREUcompatible = false;
-				m_bAllowBank = false;
-				m_iSelectedBank = ((reg1) & 1) | ((reg1 >> 3) & 2);
-				m_iRamBankOffset = 0;
-				//Ultimax
-				GAME = 0;
-				EXROM = 1;
-				m_bEnableRAM = (reg1 & 0x20) != 0;
-				m_bIsCartIOActive = true;
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-			}
 			else
 			{
 				m_bREUcompatible = false;
@@ -511,7 +497,23 @@ void Cart::UpdateIO()
 				m_bEnableRAM = false;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
 				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+				switch(((reg1 & 2) >> 1) | ((reg1 & 8) >> 2))
+				{
+				case 0://GAME=0 EXROM=1 Ultimax
+					//E000 mirrors 8000
+					m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+					m_ipROML_8000 = m_pZeroBankData - 0x8000;
+					break;
+				case 1://GAME=1 EXROM=1
+					break;
+				case 2://GAME=0 EXROM=0
+					//A000 mirrors 8000
+					m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+					break;
+				case 3://GAME=1 EXROM=0
+					m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+					break;
+				}
 			}			
 			break;
 		case CartType::Ocean_1:
@@ -631,13 +633,27 @@ void Cart::CheckForCartFreeze()
 //TODO CartType
 	if (m_bFreezePending)
 	{
-		m_bFreezePending = false;
-		m_bFreezeDone = true;
-		reg1 &= 0x20;
-		reg2 &= 0x43;
-		m_pCpu->Clear_CRT_IRQ();
-		m_pCpu->Clear_CRT_NMI();
-		ConfigureMemoryMap();
+		switch(m_crtHeader.HardwareType)
+		{
+		case CartType::Action_Replay:
+		case CartType::Retro_Replay:
+			m_bFreezePending = false;
+			m_bFreezeDone = true;
+			reg1 &= 0x20;
+			reg2 &= 0x43;
+			m_pCpu->Clear_CRT_IRQ();
+			m_pCpu->Clear_CRT_NMI();
+			ConfigureMemoryMap();
+			break;
+		case CartType::Action_Replay_4:
+			m_bFreezePending = false;
+			m_bFreezeDone = false;
+			reg1 = 0x00;
+			m_pCpu->Clear_CRT_IRQ();
+			m_pCpu->Clear_CRT_NMI();
+			ConfigureMemoryMap();
+			break;
+		}
 	}
 }
 
@@ -731,9 +747,15 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 		}
 		break;
 	case CartType::Action_Replay_4:
-		if (address == 0xDE00)
+		if (address >= 0xDE00 && address < 0xDF00)
 		{
-			return reg1;
+			return 0;
+		}
+		else if (address >= 0xDF00 && address < 0xE000)
+		{
+			bit16 addr = address - 0xDF00 + 0x1F00;
+			if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
 		}
 		break;
 	case CartType::Ocean_1:
@@ -833,7 +855,7 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		}
 		break;
 	case CartType::Action_Replay_4:
-		if (address == 0xDE00)
+		if (address >= 0xDE00 && address < 0xDF00)
 		{
 			if (m_bFreezeDone)
 			{
