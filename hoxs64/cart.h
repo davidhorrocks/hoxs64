@@ -99,6 +99,7 @@ public:
 	CrtHeader m_crtHeader;
 	CrtChipAndDataList m_lstChipAndData;
 	bit8 *m_pCartData;
+	bit8 *m_pZeroBankData;
 
 	bit8 reg1;
 	bit8 reg2;
@@ -116,12 +117,18 @@ public:
 	bool m_bDE01WriteDone;
 	bit16 m_iRamBankOffset;
 	bool m_bSimonsBasic16K;
+
+	bit8 *m_ipROML_8000;
+	bit8 *m_ipROMH_A000;
+	bit8 *m_ipROMH_E000;
 protected:
 	
 private:
 	static const int RAMRESERVEDSIZE;
+	static const int ZEROBANKOFFSET;
 	void CleanUp();
 	int GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip);
+	void BankRom();
 	IC6510 *m_pCpu;
 	bit8 *m_pC64RamMemory;
 };
