@@ -474,6 +474,46 @@ void Cart::UpdateIO()
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 			}			
 			break;
+		case CartType::Action_Replay_4:
+			if (m_bFreezePending)
+			{
+				m_bAllowBank = false;
+				m_iSelectedBank = 0;
+				m_iRamBankOffset = 0;
+				GAME = 1;
+				EXROM = 1;
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = false;
+				BankRom();
+			}
+			else if (m_bFreezeDone)	
+			{
+				m_bREUcompatible = false;
+				m_bAllowBank = false;
+				m_iSelectedBank = ((reg1) & 1) | ((reg1 >> 3) & 2);
+				m_iRamBankOffset = 0;
+				//Ultimax
+				GAME = 0;
+				EXROM = 1;
+				m_bEnableRAM = (reg1 & 0x20) != 0;
+				m_bIsCartIOActive = true;
+				BankRom();
+				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+			}
+			else
+			{
+				m_bREUcompatible = false;
+				m_bAllowBank = false;
+				m_iSelectedBank = ((reg1) & 1) | ((reg1 >> 3) & 2);
+				m_iRamBankOffset = 0;
+				GAME = (reg1 >> 1) & 1;
+				EXROM = (~reg1 >> 3) & 1;
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = (reg1 & 0x4) == 0;
+				BankRom();
+				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+			}			
+			break;
 		case CartType::Ocean_1:
 			m_iSelectedBank = reg1 & 0x3f;
 			GAME = m_crtHeader.GAME;
@@ -640,7 +680,7 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 	switch (m_crtHeader.HardwareType)
 	{
 	case CartType::Retro_Replay:
-		if ((address == 0xDE00 || address == 0xDE01) && m_bIsCartIOActive)
+		if ((address == 0xDE00 || address == 0xDE01))
 		{
 			return (reg1 & 0xB8) | (reg2 & 0x42);
 		}
@@ -672,7 +712,7 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 		}
 		break;
 	case CartType::Action_Replay:
-		if ((address >= 0xDE00 && address < 0xDF00) && m_bIsCartIOActive)
+		if (address >= 0xDE00 && address < 0xDF00)
 		{
 			return 0;
 		}
@@ -688,6 +728,12 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 				if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
 					return m_lstChipAndData[m_iSelectedBank]->pData[addr];
 			}
+		}
+		break;
+	case CartType::Action_Replay_4:
+		if (address == 0xDE00)
+		{
+			return reg1;
 		}
 		break;
 	case CartType::Ocean_1:
@@ -722,7 +768,7 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	switch (m_crtHeader.HardwareType)
 	{
 	case CartType::Retro_Replay:
-		if (address == 0xDE00 && m_bIsCartIOActive)
+		if (address == 0xDE00)
 		{
 			if (m_bFreezeDone)
 			{
@@ -735,7 +781,7 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			reg1 = data;
 			ConfigureMemoryMap();
 		}
-		else if (address == 0xDE01 && m_bIsCartIOActive)
+		else if (address == 0xDE01)
 		{
 			if (m_bDE01WriteDone)
 			{
@@ -765,7 +811,7 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		}
 		break;
 	case CartType::Action_Replay:
-		if (address >= 0xDE00 && address < 0xDF00 && m_bIsCartIOActive)
+		if (address >= 0xDE00 && address < 0xDF00)
 		{
 			if (m_bFreezeDone)
 			{
@@ -784,6 +830,21 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			{
 				m_pCartData[address - 0xDF00 + 0x1F00] = data;
 			}
+		}
+		break;
+	case CartType::Action_Replay_4:
+		if (address == 0xDE00)
+		{
+			if (m_bFreezeDone)
+			{
+				if (data & 0x40)
+				{
+					m_bFreezePending = false;
+					m_bFreezeDone = false;
+				}
+			}
+			reg1 = data;
+			ConfigureMemoryMap();
 		}
 		break;
 	case CartType::Ocean_1:
@@ -825,10 +886,7 @@ bit8 Cart::ReadROML(bit16 address)
 	}
 	else
 	{
-		if (m_ipROML_8000)
-			return m_ipROML_8000[address];
-		else
-			return 0;
+		return m_ipROML_8000[address];
 	}
 }
 
@@ -842,29 +900,20 @@ bit8 Cart::ReadUltimaxROML(bit16 address)
 	}
 	else
 	{
-		if (m_ipROMH_E000)
-			return m_ipROMH_E000[address];
-		else
-			return 0;
+		return m_ipROML_8000[address];
 	}
 }
 
 bit8 Cart::ReadROMH(bit16 address)
 {
 	assert(address >= 0xA000 && address < 0xE000);
-	if (m_ipROMH_A000)
-		return m_ipROMH_A000[address];
-	else
-		return 0;
+	return m_ipROMH_A000[address];
 }
 
 bit8 Cart::ReadUltimaxROMH(bit16 address)
 {
 	assert(address >= 0xE000);
-	if (m_ipROMH_E000)
-		return m_ipROMH_E000[address];
-	else
-		return 0;
+	return m_ipROMH_E000[address];
 }
 
 void Cart::WriteROML(bit16 address, bit8 data)

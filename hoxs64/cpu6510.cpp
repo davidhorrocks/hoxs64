@@ -172,7 +172,7 @@ bit8 *t;
 			else
 				return vic->ReadRegister(address, CurrentClock);
 		}
-		if (pCart->m_bIsCartAttached)
+		if (pCart->IsCartAttached())
 		{
 			switch(ram->GetCpuMmuReadMemoryType(address, -1))
 			{
@@ -268,7 +268,7 @@ bit8 *t;
 					pCart->WriteRegister(address, CurrentClock, data);
 				break;
 			default:
-				if (pCart->m_bIsCartAttached)
+				if (pCart->IsCartAttached())
 				{
 					switch(ram->GetCpuMmuReadMemoryType(address, -1))
 					{
@@ -348,7 +348,7 @@ bit8 *t;
 			else
 				return vic->ReadRegister(address, CurrentClock);
 		}
-		if (pCart->m_bIsCartAttached)
+		if (pCart->IsCartAttached())
 		{
 			switch(ram->GetCpuMmuReadMemoryType(address, -1))
 			{
@@ -420,7 +420,7 @@ bit8 *t;
 					pCart->WriteRegister(address, CurrentClock, data);
 				break;
 			default:
-				if (pCart->m_bIsCartAttached)
+				if (pCart->IsCartAttached())
 				{
 					switch(ram->GetCpuMmuReadMemoryType(address, memorymap))
 					{
