@@ -516,6 +516,33 @@ void Cart::UpdateIO()
 				}
 			}			
 			break;
+		case CartType::Action_Replay_3:
+			if (m_bFreezePending)
+			{
+				m_bAllowBank = false;
+				m_iSelectedBank = 0;
+				m_iRamBankOffset = 0;
+				GAME = 1;
+				EXROM = 1;
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = false;
+				BankRom();
+			}
+			else
+			{
+				m_bREUcompatible = false;
+				m_bAllowBank = false;
+				m_iSelectedBank = ((reg1) & 1);
+				m_iRamBankOffset = 0;
+				GAME = (reg1 >> 1) & 1;//0;
+				EXROM = (~reg1 >> 3) & 1;
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = (reg1 & 0x4) == 0;
+				BankRom();
+				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+			}			
+			break;
 		case CartType::Ocean_1:
 			m_iSelectedBank = reg1 & 0x3f;
 			GAME = m_crtHeader.GAME;
@@ -646,6 +673,7 @@ void Cart::CheckForCartFreeze()
 			ConfigureMemoryMap();
 			break;
 		case CartType::Action_Replay_4:
+		case CartType::Action_Replay_3:
 			m_bFreezePending = false;
 			m_bFreezeDone = false;
 			reg1 = 0x00;
@@ -758,6 +786,18 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
 		}
 		break;
+	case CartType::Action_Replay_3:
+		if (address >= 0xDE00 && address < 0xDF00)
+		{
+			return 0;
+		}
+		else if (address >= 0xDF00 && address < 0xE000)
+		{
+			bit16 addr = address - 0xDF00 + 0x1F00;
+			if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
+		}
+		break;
 	case CartType::Ocean_1:
 		if (address == 0xDE00)
 		{
@@ -855,16 +895,9 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		}
 		break;
 	case CartType::Action_Replay_4:
+	case CartType::Action_Replay_3:
 		if (address >= 0xDE00 && address < 0xDF00)
 		{
-			if (m_bFreezeDone)
-			{
-				if (data & 0x40)
-				{
-					m_bFreezePending = false;
-					m_bFreezeDone = false;
-				}
-			}
 			reg1 = data;
 			ConfigureMemoryMap();
 		}
