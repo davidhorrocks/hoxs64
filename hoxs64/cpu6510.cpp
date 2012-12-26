@@ -344,9 +344,9 @@ bit8 *t;
 		case 0xDE:
 		case 0xDF:
 			if (pCart->IsCartIOActive())
-				return cart->ReadRegister(address, CurrentClock);
+				return cart->ReadRegister_no_affect(address, CurrentClock);
 			else
-				return vic->ReadRegister(address, CurrentClock);
+				return vic->ReadRegister_no_affect(address, CurrentClock);
 		}
 		if (pCart->IsCartAttached())
 		{

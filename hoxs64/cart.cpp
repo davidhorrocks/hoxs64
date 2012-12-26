@@ -24,6 +24,12 @@
 const int Cart::RAMRESERVEDSIZE = 64 * 1024 + 8 * 1024;//Assume 64K cart RAM + 8K zero byte bank
 const int Cart::ZEROBANKOFFSET = 64 * 1024;
 
+#define ACTIONREPLAYMK2DISABLEROMCOUNT (20)
+#define ACTIONREPLAYMK2DISABLEROMTRIGGER (200)
+
+#define ACTIONREPLAYMK2ENABLEROMCOUNT (20)
+#define ACTIONREPLAYMK2ENABLEROMTRIGGER (12)
+
 Cart::Cart()
 {
 	m_crtHeader.EXROM = 1;
@@ -47,6 +53,7 @@ Cart::Cart()
 	m_ipROML_8000 = NULL;
 	m_ipROMH_A000 = NULL;
 	m_ipROMH_E000 = NULL;
+	m_bEffects = true;
 }
 
 Cart::~Cart()
@@ -336,10 +343,18 @@ void Cart::InitReset(ICLK sysclock)
 	CurrentClock = sysclock;
 	reg1 = 0;
 	reg2 = 0;
+	m_iSelectedBank = 0;
 	m_bSimonsBasic16K = false;
 	m_bFreezePending = false;
 	m_bFreezeDone = false;
 	m_bDE01WriteDone = false;
+
+	m_bActionReplayMk2Rom = true;
+	m_iActionReplayMk2EnableRomCounter=0;
+	m_iActionReplayMk2DisableRomCounter=0;
+	m_clockLastDE00Write = sysclock;
+	m_clockLastDF40Read = sysclock;
+
 	UpdateIO();
 }
 
@@ -396,7 +411,7 @@ void Cart::UpdateIO()
 				EXROM = 1;
 				m_bEnableRAM = false;
 				m_bIsCartIOActive = false;
-				BankRom();
+				BankRom(false);
 			}
 			else if (m_bFreezeDone)
 			{
@@ -413,7 +428,7 @@ void Cart::UpdateIO()
 				EXROM = 1;
 				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = true;
-				BankRom();
+				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 			}
 			else
@@ -430,7 +445,7 @@ void Cart::UpdateIO()
 				EXROM = (reg1 >> 1) & 1;
 				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
+				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 			}
 			break;
@@ -444,7 +459,7 @@ void Cart::UpdateIO()
 				EXROM = 1;
 				m_bEnableRAM = false;
 				m_bIsCartIOActive = false;
-				BankRom();
+				BankRom(false);
 			}
 			else if (m_bFreezeDone)	
 			{
@@ -457,7 +472,7 @@ void Cart::UpdateIO()
 				EXROM = 1;
 				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = true;
-				BankRom();
+				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 			}
 			else
@@ -470,7 +485,7 @@ void Cart::UpdateIO()
 				EXROM = (reg1 >> 1) & 1;
 				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
+				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 			}			
 			break;
@@ -484,7 +499,7 @@ void Cart::UpdateIO()
 				EXROM = 1;
 				m_bEnableRAM = false;
 				m_bIsCartIOActive = false;
-				BankRom();
+				BankRom(false);
 			}
 			else
 			{
@@ -496,7 +511,7 @@ void Cart::UpdateIO()
 				EXROM = (~reg1 >> 3) & 1;
 				m_bEnableRAM = false;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
+				BankRom(false);
 				switch(((reg1 & 2) >> 1) | ((reg1 & 8) >> 2))
 				{
 				case 0://GAME=0 EXROM=1 Ultimax
@@ -526,7 +541,7 @@ void Cart::UpdateIO()
 				EXROM = 1;
 				m_bEnableRAM = false;
 				m_bIsCartIOActive = false;
-				BankRom();
+				BankRom(false);
 			}
 			else
 			{
@@ -538,7 +553,52 @@ void Cart::UpdateIO()
 				EXROM = (~reg1 >> 3) & 1;
 				m_bEnableRAM = false;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
+				BankRom(false);
+				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+			}			
+			break;
+		case CartType::Action_Replay_2:
+			if (m_bFreezePending)
+			{
+				m_bAllowBank = false;
+				m_iSelectedBank = 0;
+				m_iRamBankOffset = 0;
+				GAME = 1;
+				EXROM = 1;
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = true;
+				BankRom(false);
+			}
+			else
+			{
+				m_bREUcompatible = false;
+				m_bAllowBank = false;
+				//m_iSelectedBank = 0;
+				m_iRamBankOffset = 0;
+				if (m_bActionReplayMk2Rom)
+				{
+					if (m_iSelectedBank == 0)
+					{
+						GAME = 0;
+						EXROM = 1;
+					}
+					else
+					{
+						GAME = 1;
+						EXROM = 0;
+						//GAME = m_crtHeader.GAME;
+						//EXROM = m_crtHeader.EXROM;
+					}
+				}
+				else
+				{
+					GAME = 1;
+					EXROM = 1;
+				}
+				m_bEnableRAM = false;
+				m_bIsCartIOActive = true;
+				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
 			}			
@@ -548,7 +608,7 @@ void Cart::UpdateIO()
 			GAME = m_crtHeader.GAME;
 			EXROM = m_crtHeader.EXROM;
 			m_bIsCartIOActive = true;
-			BankRom();
+			BankRom(false);
 			break;
 		case CartType::Magic_Desk:
 			m_bREUcompatible = false;
@@ -566,7 +626,7 @@ void Cart::UpdateIO()
 			}
 			m_bEnableRAM = false;
 			m_bIsCartIOActive = true;
-			BankRom();
+			BankRom(false);
 			break;
 		case CartType::Simons_Basic:
 			m_bREUcompatible = false;
@@ -584,7 +644,7 @@ void Cart::UpdateIO()
 			}
 			m_bEnableRAM = false;
 			m_bIsCartIOActive = true;
-			BankRom();
+			BankRom(m_bSimonsBasic16K);
 			break;
 		default: 
 			m_bREUcompatible = false;
@@ -595,7 +655,7 @@ void Cart::UpdateIO()
 			EXROM = m_crtHeader.EXROM;
 			m_bEnableRAM = false;
 			m_bIsCartIOActive = false;
-			BankRom();
+			BankRom(false);
 			break;
 		}
 
@@ -608,7 +668,7 @@ void Cart::UpdateIO()
 	}
 }
 
-void Cart::BankRom()
+void Cart::BankRom(bool bLoadTwo8KBanks)
 {
 	m_ipROML_8000 = m_pZeroBankData - 0x8000;
 	m_ipROMH_A000 = m_pZeroBankData - 0xA000;
@@ -622,12 +682,12 @@ void Cart::BankRom()
 			if (p->chip.ROMImageSize == 0x2000)
 			{
 				m_ipROML_8000 = p->pData - 0x8000;
-				if (m_bSimonsBasic16K)
+				if (bLoadTwo8KBanks)
 				{
 					while (++i < m_lstChipAndData.size())
 					{
 						Sp_CrtChipAndData q = m_lstChipAndData[i];
-						if (q->chip.LoadAddressRange == 0xA000)
+						//if (q->chip.LoadAddressRange == 0xA000)
 						{
 							m_ipROMH_A000 = q->pData - 0xA000;
 							break;
@@ -681,6 +741,14 @@ void Cart::CheckForCartFreeze()
 			m_pCpu->Clear_CRT_NMI();
 			ConfigureMemoryMap();
 			break;
+		case CartType::Action_Replay_2:
+			m_iSelectedBank = 0;
+			m_bFreezePending = false;
+			m_bFreezeDone = false;
+			m_pCpu->Clear_CRT_IRQ();
+			m_pCpu->Clear_CRT_NMI();
+			ConfigureMemoryMap();
+			break;
 		}
 	}
 }
@@ -693,10 +761,6 @@ void Cart::CartFreeze()
 	switch(m_crtHeader.HardwareType)
 	{
 		case CartType::Retro_Replay:
-		case CartType::Action_Replay://AR5 + AR6
-		case CartType::Action_Replay_2:
-		case CartType::Action_Replay_4:
-		case CartType::Action_Replay_3:
 			if ((reg2 & 0x04) == 0)
 			{
 				m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
@@ -704,6 +768,15 @@ void Cart::CartFreeze()
 				m_bFreezePending = true;
 				m_bFreezeDone = false;
 			}
+			break;
+		case CartType::Action_Replay://AR5 + AR6 + AR4.x
+		case CartType::Action_Replay_4:
+		case CartType::Action_Replay_2:
+		case CartType::Action_Replay_3:
+			m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
+			m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
+			m_bFreezePending = true;
+			m_bFreezeDone = false;
 			break;
 	}
 }
@@ -718,7 +791,8 @@ void Cart::CartReset()
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 {
-//TODO CartType
+CrtChipAndDataList::size_type i;
+
 	if (!m_bIsCartAttached)
 		return 0;
 	switch (m_crtHeader.HardwareType)
@@ -798,6 +872,43 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
 		}
 		break;
+	case CartType::Action_Replay_2:
+		if (m_bEffects)
+		{
+			if (((ICLKS)(sysclock - m_clockLastDF40Read)) > ACTIONREPLAYMK2DISABLEROMCOUNT)
+				m_iActionReplayMk2DisableRomCounter = 0;
+		}
+		if (address >= 0xDE00 && address < 0xDF00)
+		{
+			return 0;
+		}
+		else if (address >= 0xDF00 && address < 0xE000)
+		{
+			if (m_bEffects)
+			{
+				if (address == 0xDF40)
+				{
+					if (((ICLKS)(sysclock - m_clockLastDF40Read)) <= ACTIONREPLAYMK2DISABLEROMCOUNT)
+					{
+						m_iActionReplayMk2DisableRomCounter++;
+						if (m_iActionReplayMk2DisableRomCounter > ACTIONREPLAYMK2DISABLEROMTRIGGER)
+						{
+							m_iActionReplayMk2DisableRomCounter = 0;
+							m_bActionReplayMk2Rom = false;
+							ConfigureMemoryMap();
+						}
+					}
+
+					m_clockLastDF40Read = sysclock;
+				}
+			}
+			bit16 addr = address - 0xDF00 + 0x1F00;
+			//TEST
+			i = m_iSelectedBank;
+			if (i < m_lstChipAndData.size() && addr < m_lstChipAndData[i]->chip.ROMImageSize)
+				return m_lstChipAndData[i]->pData[addr];
+		}
+		break;
 	case CartType::Ocean_1:
 		if (address == 0xDE00)
 		{
@@ -813,8 +924,11 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 	case CartType::Simons_Basic:
 		if (address == 0xDE00)
 		{
-			m_bSimonsBasic16K = false;
-			ConfigureMemoryMap();
+			if (m_bEffects)
+			{
+				m_bSimonsBasic16K = false;
+				ConfigureMemoryMap();
+			}
 			return 0;
 		}
 		break;
@@ -822,9 +936,18 @@ bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 	return 0;
 }
 
+bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
+{
+	m_bEffects = true;
+	bit8 r = ReadRegister(address, sysclock);
+	m_bEffects = false;
+	return r;
+}
+
 void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 //TODO CartType
+bit8 t;
 	if (!m_bIsCartAttached)
 		return;
 	switch (m_crtHeader.HardwareType)
@@ -902,6 +1025,35 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			ConfigureMemoryMap();
 		}
 		break;
+	case CartType::Action_Replay_2:
+		if (address >= 0xDE00 || address < 0xE000)
+		{
+			m_iActionReplayMk2DisableRomCounter = 0;
+			if (((ICLKS)(sysclock - m_clockLastDE00Write)) <= ACTIONREPLAYMK2ENABLEROMCOUNT)
+			{
+				m_iActionReplayMk2EnableRomCounter++;
+				if (m_iActionReplayMk2EnableRomCounter > ACTIONREPLAYMK2ENABLEROMTRIGGER)
+				{
+					GAME = m_crtHeader.GAME;
+					EXROM = m_crtHeader.EXROM;
+					m_iActionReplayMk2EnableRomCounter = 0;
+					m_bActionReplayMk2Rom = true;
+					t = (address >> 8) & 0xff;
+					//TEST
+					if (t == 0xDE)
+						m_iSelectedBank = 1;
+					else if (t == 0xDF)
+						m_iSelectedBank = 1;
+					ConfigureMemoryMap();
+				}
+			}
+			else
+			{
+				m_iActionReplayMk2EnableRomCounter = 0;
+			}
+			m_clockLastDE00Write = sysclock;
+		}
+		break;
 	case CartType::Ocean_1:
 		if (address == 0xDE00)
 		{
@@ -924,11 +1076,6 @@ void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		}
 		break;
 	}
-}
-
-bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
-{
-	return ReadRegister(address, sysclock);
 }
 
 bit8 Cart::ReadROML(bit16 address)

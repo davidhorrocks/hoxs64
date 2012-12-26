@@ -143,9 +143,10 @@ IMonitor *mon = m_pCommandResult->GetMonitor();
 	default:
 		m_pCommandResult->AddLine(TEXT("E000 - FFFF: High ROM\r"));
 		m_pCommandResult->AddLine(TEXT("D000 - DFFF: IO\r"));
-		m_pCommandResult->AddLine(TEXT("A000 - CFFF: RO RAM\r"));
+		m_pCommandResult->AddLine(TEXT("A000 - CFFF: Open\r"));
 		m_pCommandResult->AddLine(TEXT("8000 - 9FFF: Low ROM\r"));
-		m_pCommandResult->AddLine(TEXT("0000 - 7FFF: RO RAM\r"));
+		m_pCommandResult->AddLine(TEXT("1000 - 7FFF: Open\r"));
+		m_pCommandResult->AddLine(TEXT("0000 - 0FFF: RAM\r"));
 		break;
 	}
 	return S_OK;

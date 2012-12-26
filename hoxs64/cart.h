@@ -57,7 +57,7 @@ public:
 	public:
 		enum ECartType
 		{
-			Action_Replay = 1,//AR5 + AR6
+			Action_Replay = 1,//AR5 + AR6 + AR4.x
 			Simons_Basic = 4,
 			Ocean_1 = 5,
 			Magic_Desk = 19,
@@ -128,9 +128,15 @@ private:
 	static const int ZEROBANKOFFSET;
 	void CleanUp();
 	int GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip);
-	void BankRom();
+	void BankRom(bool bLoadTwo8KBanks);
 	IC6510 *m_pCpu;
 	bit8 *m_pC64RamMemory;
+	bool m_bEffects;
+	bool m_bActionReplayMk2Rom;
+	int m_iActionReplayMk2EnableRomCounter;
+	int m_iActionReplayMk2DisableRomCounter;
+	ICLK m_clockLastDE00Write;
+	ICLK m_clockLastDF40Read;
 };
 
 #endif
