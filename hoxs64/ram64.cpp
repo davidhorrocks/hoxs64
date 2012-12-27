@@ -967,13 +967,18 @@ void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_
 {
 	if (m_pCart->IsCartAttached() && m_pCart->IsUltimax())
 	{		
-		VicMMU_read[0x0][0x3] = m_pCart->m_ipROMH_E000 + 0xE000 - 0x2000;
-		VicMMU_read[0x2][0x3] = m_pCart->m_ipROML_8000 + 0x8000 - 0x2000;
+		bit8 *p = m_pCart->m_ipROMH_E000 + 0xE000 - 0x2000;
+		VicMMU_read[0x0][0x3] = p;
+		VicMMU_read[0x1][0x3] = p;
+		VicMMU_read[0x2][0x3] = p;
+		VicMMU_read[0x3][0x3] = p;
 	}
 	else
 	{
 		VicMMU_read[0x0][0x3] = mMemory;
+		VicMMU_read[0x1][0x3] = mMemory+0x4000;
 		VicMMU_read[0x2][0x3] = mMemory+0x8000;
+		VicMMU_read[0x3][0x3] = mMemory+0xC000;
 	}
 	*p_vic_memory_map_read = VicMMU_read[index & 3];
 	*p_vic_3fff_ptr = &(*p_vic_memory_map_read)[3][0x3fff];
