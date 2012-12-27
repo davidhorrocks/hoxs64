@@ -58,6 +58,7 @@ public:
 		enum ECartType
 		{
 			Action_Replay = 1,//AR5 + AR6 + AR4.x
+			Final_Cartridge_III = 3,
 			Simons_Basic = 4,
 			Ocean_1 = 5,
 			Magic_Desk = 19,
@@ -108,6 +109,7 @@ public:
 	bit8 EXROM;
 	bool m_bIsCartAttached;
 	bool m_bIsCartIOActive;
+	bool m_bIsCartRegActive;
 	bool m_bEnableRAM;
 	bool m_bAllowBank;
 	bool m_bREUcompatible;

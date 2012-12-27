@@ -40,6 +40,7 @@ Cart::Cart()
 	m_pCartData = 0;
 	m_bIsCartAttached = false;
 	m_bIsCartIOActive = false;
+	m_bIsCartRegActive = false;
 	m_iSelectedBank = 0;
 	m_iRamBankOffset = 0;
 	m_bAllowBank = false;
@@ -404,13 +405,6 @@ void Cart::UpdateIO()
 		case CartType::Retro_Replay:
 			if (m_bFreezePending)
 			{
-				m_bAllowBank = false;
-				m_iSelectedBank = 0;
-				m_iRamBankOffset = 0;
-				GAME = 1;
-				EXROM = 1;
-				m_bEnableRAM = false;
-				m_bIsCartIOActive = false;
 				BankRom(false);
 			}
 			else if (m_bFreezeDone)
@@ -418,6 +412,7 @@ void Cart::UpdateIO()
 				m_bREUcompatible = (reg2 & 0x40) != 0;
 				m_bAllowBank = (reg2 & 0x2) != 0;
 				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_iRamBankOffset = 0;
 				if (m_bAllowBank)
 				{
@@ -426,7 +421,6 @@ void Cart::UpdateIO()
 				//Ultimax
 				GAME = 0;
 				EXROM = 1;
-				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = true;
 				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
@@ -436,6 +430,7 @@ void Cart::UpdateIO()
 				m_bREUcompatible = (reg2 & 0x40) != 0;
 				m_bAllowBank = (reg2 & 0x2) != 0;
 				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_iRamBankOffset = 0;
 				if (m_bAllowBank)
 				{
@@ -443,7 +438,6 @@ void Cart::UpdateIO()
 				}
 				GAME = (~reg1 & 1);
 				EXROM = (reg1 >> 1) & 1;
-				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
 				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
@@ -452,38 +446,27 @@ void Cart::UpdateIO()
 		case CartType::Action_Replay://AR5 + AR6
 			if (m_bFreezePending)
 			{
-				m_bAllowBank = false;
-				m_iSelectedBank = 0;
-				m_iRamBankOffset = 0;
-				GAME = 1;
-				EXROM = 1;
-				m_bEnableRAM = false;
-				m_bIsCartIOActive = false;
 				BankRom(false);
 			}
 			else if (m_bFreezeDone)	
 			{
-				m_bREUcompatible = false;
-				m_bAllowBank = false;
 				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_iRamBankOffset = 0;
 				//Ultimax
 				GAME = 0;
 				EXROM = 1;
-				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = true;
 				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 			}
 			else
 			{
-				m_bREUcompatible = false;
-				m_bAllowBank = false;
 				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
+				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_iRamBankOffset = 0;
 				GAME = (~reg1 & 1);
 				EXROM = (reg1 >> 1) & 1;
-				m_bEnableRAM = (reg1 & 0x20) != 0;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
 				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
@@ -492,24 +475,15 @@ void Cart::UpdateIO()
 		case CartType::Action_Replay_4:
 			if (m_bFreezePending)
 			{
-				m_bAllowBank = false;
-				m_iSelectedBank = 0;
-				m_iRamBankOffset = 0;
-				GAME = 1;
-				EXROM = 1;
-				m_bEnableRAM = false;
-				m_bIsCartIOActive = false;
 				BankRom(false);
 			}
 			else
 			{
-				m_bREUcompatible = false;
-				m_bAllowBank = false;
 				m_iSelectedBank = ((reg1) & 1) | ((reg1 >> 3) & 2);
+				m_bEnableRAM = false;
 				m_iRamBankOffset = 0;
 				GAME = (reg1 >> 1) & 1;
 				EXROM = (~reg1 >> 3) & 1;
-				m_bEnableRAM = false;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
 				BankRom(false);
 				switch(((reg1 & 2) >> 1) | ((reg1 & 8) >> 2))
@@ -534,24 +508,15 @@ void Cart::UpdateIO()
 		case CartType::Action_Replay_3:
 			if (m_bFreezePending)
 			{
-				m_bAllowBank = false;
-				m_iSelectedBank = 0;
-				m_iRamBankOffset = 0;
-				GAME = 1;
-				EXROM = 1;
-				m_bEnableRAM = false;
-				m_bIsCartIOActive = false;
 				BankRom(false);
 			}
 			else
 			{
-				m_bREUcompatible = false;
-				m_bAllowBank = false;
 				m_iSelectedBank = ((reg1) & 1);
+				m_bEnableRAM = false;
 				m_iRamBankOffset = 0;
 				GAME = (reg1 >> 1) & 1;//0;
 				EXROM = (~reg1 >> 3) & 1;
-				m_bEnableRAM = false;
 				m_bIsCartIOActive = (reg1 & 0x4) == 0;
 				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
@@ -559,23 +524,16 @@ void Cart::UpdateIO()
 			}			
 			break;
 		case CartType::Action_Replay_2:
+			m_bEnableRAM = false;
+			m_iRamBankOffset = 0;
 			if (m_bFreezePending)
 			{
-				m_bAllowBank = false;
-				m_iSelectedBank = 0;
-				m_iRamBankOffset = 0;
-				GAME = 1;
-				EXROM = 1;
-				m_bEnableRAM = false;
-				m_bIsCartIOActive = true;
 				BankRom(false);
+				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
 			}
 			else
 			{
-				m_bREUcompatible = false;
-				m_bAllowBank = false;
-				//m_iSelectedBank = 0;
-				m_iRamBankOffset = 0;
 				if (m_bActionReplayMk2Rom)
 				{
 					if (m_iSelectedBank == 0)
@@ -587,8 +545,6 @@ void Cart::UpdateIO()
 					{
 						GAME = 1;
 						EXROM = 0;
-						//GAME = m_crtHeader.GAME;
-						//EXROM = m_crtHeader.EXROM;
 					}
 				}
 				else
@@ -596,12 +552,29 @@ void Cart::UpdateIO()
 					GAME = 1;
 					EXROM = 1;
 				}
-				m_bEnableRAM = false;
 				m_bIsCartIOActive = true;
 				BankRom(false);
 				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
 				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
 			}			
+			break;
+		case CartType::Final_Cartridge_III:
+			if (m_bFreezePending)
+			{
+				BankRom(false);
+			}
+			else
+			{
+				m_iSelectedBank = reg1 & 3;
+				GAME = (reg1 & 0x20) != 0;
+				EXROM = (reg1 & 0x10) != 0;
+				if (reg1 & 0x40)
+					m_pCpu->Clear_CRT_NMI();
+				else
+					m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
+				m_bIsCartIOActive = true;
+				BankRom(false);
+			}
 			break;
 		case CartType::Ocean_1:
 			m_iSelectedBank = reg1 & 0x3f;
@@ -611,8 +584,6 @@ void Cart::UpdateIO()
 			BankRom(false);
 			break;
 		case CartType::Magic_Desk:
-			m_bREUcompatible = false;
-			m_bAllowBank = false;
 			m_iSelectedBank = reg1 & 0x3f;
 			if (reg1 == 0x80)
 			{
@@ -624,13 +595,10 @@ void Cart::UpdateIO()
 				GAME = m_crtHeader.GAME;
 				EXROM = m_crtHeader.EXROM;
 			}
-			m_bEnableRAM = false;
 			m_bIsCartIOActive = true;
 			BankRom(false);
 			break;
 		case CartType::Simons_Basic:
-			m_bREUcompatible = false;
-			m_bAllowBank = false;
 			m_iSelectedBank = 0;
 			if (m_bSimonsBasic16K)
 			{
@@ -642,7 +610,6 @@ void Cart::UpdateIO()
 				GAME = m_crtHeader.GAME;
 				EXROM = m_crtHeader.EXROM;
 			}
-			m_bEnableRAM = false;
 			m_bIsCartIOActive = true;
 			BankRom(m_bSimonsBasic16K);
 			break;
@@ -650,11 +617,12 @@ void Cart::UpdateIO()
 			m_bREUcompatible = false;
 			m_bAllowBank = false;
 			m_iSelectedBank = 0;
+			m_bEnableRAM = false;
 			m_iRamBankOffset = 0;
-			GAME = m_crtHeader.GAME;
-			EXROM = m_crtHeader.EXROM;
 			m_bEnableRAM = false;
 			m_bIsCartIOActive = false;
+			GAME = m_crtHeader.GAME;
+			EXROM = m_crtHeader.EXROM;
 			BankRom(false);
 			break;
 		}
@@ -662,6 +630,8 @@ void Cart::UpdateIO()
 	}
 	else
 	{
+		m_bEnableRAM = false;
+		m_iRamBankOffset = 0;
 		GAME = 1;
 		EXROM = 1;
 		m_bIsCartIOActive = false;
@@ -706,6 +676,10 @@ void Cart::BankRom(bool bLoadTwo8KBanks)
 		{
 			m_ipROMH_E000 = p->pData - 0xE000;
 		}
+		else if (p->chip.LoadAddressRange == 0xA000)
+		{
+			m_ipROMH_A000 = p->pData - 0xA000;
+		}
 	}
 }
 
@@ -746,7 +720,18 @@ void Cart::CheckForCartFreeze()
 			m_bFreezePending = false;
 			m_bFreezeDone = false;
 			m_pCpu->Clear_CRT_IRQ();
-			m_pCpu->Clear_CRT_NMI();
+			m_pCpu->Clear_CRT_NMI();			
+			ConfigureMemoryMap();
+			break;
+		case CartType::Final_Cartridge_III:
+			m_bFreezePending = false;
+			m_bFreezeDone = false;
+			reg1 = (reg1 & 0x5C) | 0x10;
+			m_pCpu->Clear_CRT_IRQ();
+			if (reg1 & 0x40)
+			{
+				m_pCpu->Clear_CRT_NMI();
+			}
 			ConfigureMemoryMap();
 			break;
 		}
@@ -773,6 +758,7 @@ void Cart::CartFreeze()
 		case CartType::Action_Replay_4:
 		case CartType::Action_Replay_2:
 		case CartType::Action_Replay_3:
+		case CartType::Final_Cartridge_III:
 			m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
 			m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
 			m_bFreezePending = true;
@@ -898,15 +884,21 @@ CrtChipAndDataList::size_type i;
 							ConfigureMemoryMap();
 						}
 					}
-
 					m_clockLastDF40Read = sysclock;
 				}
 			}
-			bit16 addr = address - 0xDF00 + 0x1F00;
-			//TEST
+			bit16 addr = address - 0xDF00 + 0x1F00;			
 			i = m_iSelectedBank;
 			if (i < m_lstChipAndData.size() && addr < m_lstChipAndData[i]->chip.ROMImageSize)
 				return m_lstChipAndData[i]->pData[addr];
+		}
+		break;
+	case CartType::Final_Cartridge_III:
+		if (address >= 0xDE00 && address < 0xE000)
+		{
+			bit16 addr = address - 0xDE00 + 0x1E00;
+			if (m_iSelectedBank < m_lstChipAndData.size() && addr < m_lstChipAndData[m_iSelectedBank]->chip.ROMImageSize)
+				return m_lstChipAndData[m_iSelectedBank]->pData[addr];
 		}
 		break;
 	case CartType::Ocean_1:
@@ -1034,12 +1026,10 @@ bit8 t;
 				m_iActionReplayMk2EnableRomCounter++;
 				if (m_iActionReplayMk2EnableRomCounter > ACTIONREPLAYMK2ENABLEROMTRIGGER)
 				{
-					GAME = m_crtHeader.GAME;
-					EXROM = m_crtHeader.EXROM;
 					m_iActionReplayMk2EnableRomCounter = 0;
 					m_bActionReplayMk2Rom = true;
 					t = (address >> 8) & 0xff;
-					//TEST
+					//CHECKME always select bank1?
 					if (t == 0xDE)
 						m_iSelectedBank = 1;
 					else if (t == 0xDF)
@@ -1052,6 +1042,13 @@ bit8 t;
 				m_iActionReplayMk2EnableRomCounter = 0;
 			}
 			m_clockLastDE00Write = sysclock;
+		}
+		break;
+	case CartType::Final_Cartridge_III:
+		if (address == 0xDFFF && (reg1 & 0x80)==0)
+		{
+			reg1 = data;
+			ConfigureMemoryMap();
 		}
 		break;
 	case CartType::Ocean_1:
