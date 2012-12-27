@@ -101,8 +101,9 @@ void C64::Reset(ICLK sysclock)
 	cia1.Reset(sysclock);
 	cia2.Reset(sysclock);
 	sid.Reset(sysclock);
-	cart.Reset(sysclock);
+	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
 	cpu.Reset(sysclock);
+	cart.Reset(sysclock);
 	diskdrive.Reset(sysclock);
 	cpu.SetCassetteSense(1);
 
@@ -1453,6 +1454,7 @@ void C64::SoftReset(bool bCancelAutoload)
 	cpu.InitReset(sysclock);
 	cart.InitReset(sysclock);
 
+	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
 	cpu.Reset(sysclock);
 	cart.Reset(sysclock);
 }
