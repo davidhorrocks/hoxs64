@@ -926,12 +926,13 @@ CrtChipAndDataList::size_type i;
 		}
 		break;
 	case CartType::System_3:
+		break;
 	case CartType::Dinamic:
-		//if (address >= 0xDE00 && address < 0xDF00)
-		//{
-		//	this->m_bIsCartIOActive = false;
-		//	this->ConfigureMemoryMap();
-		//}
+		if (address >= 0xDE00 || address < 0xDF00)
+		{
+			m_iSelectedBank = (bit8)(address & 0x3F);
+			ConfigureMemoryMap();
+		}
 		break;
 	case CartType::Simons_Basic:
 		if (address == 0xDE00)
@@ -1086,12 +1087,13 @@ bit8 t;
 		}
 		break;
 	case CartType::System_3:
-	case CartType::Dinamic:
-		if (address >= 0xDE00 || address < 0xDE40)
+		if (address >= 0xDE00 || address < 0xDF00)
 		{
 			m_iSelectedBank = (bit8)(address & 0x3F);
 			ConfigureMemoryMap();
 		}
+		break;
+	case CartType::Dinamic:
 		break;
 	case CartType::Simons_Basic:
 		if (address == 0xDE00)
