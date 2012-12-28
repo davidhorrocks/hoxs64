@@ -349,6 +349,7 @@ void Cart::InitReset(ICLK sysclock)
 	m_bFreezePending = false;
 	m_bFreezeDone = false;
 	m_bDE01WriteDone = false;
+	m_bIsCartIOActive = true;
 
 	m_bActionReplayMk2Rom = true;
 	m_iActionReplayMk2EnableRomCounter=0;
@@ -596,6 +597,20 @@ void Cart::UpdateIO()
 				EXROM = m_crtHeader.EXROM;
 			}
 			m_bIsCartIOActive = true;
+			BankRom(false);
+			break;
+		case CartType::System_3:
+		case CartType::Dinamic:
+			if (m_bIsCartIOActive)
+			{
+				GAME = m_crtHeader.GAME;
+				EXROM = m_crtHeader.EXROM;
+			}
+			else
+			{
+				GAME = 1;
+				EXROM = 1;
+			}
 			BankRom(false);
 			break;
 		case CartType::Simons_Basic:
@@ -910,6 +925,14 @@ CrtChipAndDataList::size_type i;
 			return reg1;
 		}
 		break;
+	case CartType::System_3:
+	case CartType::Dinamic:
+		//if (address >= 0xDE00 && address < 0xDF00)
+		//{
+		//	this->m_bIsCartIOActive = false;
+		//	this->ConfigureMemoryMap();
+		//}
+		break;
 	case CartType::Simons_Basic:
 		if (address == 0xDE00)
 		{
@@ -1059,6 +1082,14 @@ bit8 t;
 		if (address == 0xDE00)
 		{
 			reg1 = data;
+			ConfigureMemoryMap();
+		}
+		break;
+	case CartType::System_3:
+	case CartType::Dinamic:
+		if (address >= 0xDE00 || address < 0xDE40)
+		{
+			m_iSelectedBank = (bit8)(address & 0x3F);
 			ConfigureMemoryMap();
 		}
 		break;

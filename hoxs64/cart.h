@@ -61,6 +61,8 @@ public:
 			Final_Cartridge_III = 3,
 			Simons_Basic = 4,
 			Ocean_1 = 5,
+			System_3 = 15,
+			Dinamic = 17,
 			Magic_Desk = 19,
 			Action_Replay_4 = 30,
 			Action_Replay_3 = 35,	
