@@ -726,12 +726,9 @@ void Cart::CheckForCartFreeze()
 		case CartType::Final_Cartridge_III:
 			m_bFreezePending = false;
 			m_bFreezeDone = false;
-			reg1 = (reg1 & 0x5C) | 0x10;
+			reg1 = (reg1 & 0x1C) | 0x10;
+			//Clear cart IRQ but leave cart NMI active.
 			m_pCpu->Clear_CRT_IRQ();
-			if (reg1 & 0x40)
-			{
-				m_pCpu->Clear_CRT_NMI();
-			}
 			ConfigureMemoryMap();
 			break;
 		}
