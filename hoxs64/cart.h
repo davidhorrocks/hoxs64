@@ -29,7 +29,7 @@ struct CrtChip
 
 struct CrtChipAndData
 {
-	CrtChipAndData(CrtChip &chip, bit8 *pData);
+	CrtChipAndData();
 	virtual ~CrtChipAndData();
 	CrtChip chip;
 	bit8 *pData;
@@ -37,17 +37,31 @@ struct CrtChipAndData
 	__int64 iFileIndex;
 };
 
-typedef std::shared_ptr<CrtChipAndData> Sp_CrtChipAndData;
-
-struct LessChipAndDataBank
+struct CrtBank
 {
-	bool operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const;
+	CrtBank();
+	virtual ~CrtBank();
+	bit8 bank;
+	CrtChipAndData chipAndDataLow;
+	CrtChipAndData chipAndDataHigh;
 };
 
-typedef std::vector<Sp_CrtChipAndData> CrtChipAndDataList;
-typedef std::vector<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
-typedef std::vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
+//typedef std::shared_ptr<CrtChipAndData> Sp_CrtChipAndData;
+typedef std::shared_ptr<CrtBank> Sp_CrtBank;
 
+//struct LessChipAndDataBank
+//{
+//	bool operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const;
+//};
+
+//typedef std::vector<Sp_CrtChipAndData> CrtChipAndDataList;
+//typedef std::vector<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
+//typedef std::vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
+
+
+typedef std::vector<Sp_CrtBank> CrtBankList;
+typedef std::vector<Sp_CrtBank>::iterator CrtBankListIter;
+typedef std::vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
 
 class Cart : public IRegister, public ErrorMsg
 {
@@ -101,7 +115,7 @@ public:
 	void CartReset();
 
 	CrtHeader m_crtHeader;
-	CrtChipAndDataList m_lstChipAndData;
+	CrtBankList m_lstBank;
 	bit8 *m_pCartData;
 	bit8 *m_pZeroBankData;
 
@@ -132,8 +146,8 @@ private:
 	static const int RAMRESERVEDSIZE;
 	static const int ZEROBANKOFFSET;
 	void CleanUp();
-	int GetTotalCartMemoryRequirement(CrtChipAndDataList lstChip);
-	void BankRom(bool bLoadTwo8KBanks);
+	int GetTotalCartMemoryRequirement(CrtBankList lstBank);
+	void BankRom();
 	IC6510 *m_pCpu;
 	bit8 *m_pC64RamMemory;
 	bool m_bEffects;
