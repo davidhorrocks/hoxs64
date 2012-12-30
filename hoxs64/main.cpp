@@ -805,7 +805,7 @@ BOOL b;
 	if (b)
 	{
 		HRESULT hr = c64.LoadCrtFile(initfilename);
-		if (FAILED(hr))
+		if (hr != S_OK)
 			c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
 	}
 }
@@ -862,9 +862,7 @@ CPRGBrowse prgBrowse;
 	if (b)
 	{
 		HRESULT hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks);
-		if (FAILED(hr))
-			c64.DisplayError(hWnd, TEXT("Auto Load"));
-		else if (hr == APPERR_BAD_CRC)
+		if (hr != S_OK)
 			c64.DisplayError(hWnd, TEXT("Auto Load"));
 
 		//The call to c64.AutoLoad can enable disk emulation

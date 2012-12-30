@@ -1242,10 +1242,7 @@ HRESULT hr = E_FAIL;
 		cart.m_bIsCartAttached = true;
 		this->HardReset(true);
 	}
-	else
-	{
-		this->SetError(cart);
-	}
+	this->SetError(cart);
 	return hr;
 }
 

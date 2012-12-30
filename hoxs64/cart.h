@@ -1,6 +1,8 @@
 #ifndef __CART_H__
 #define __CART_H__
 
+#define APPWARN_UNKNOWNCARTTYPE MAKE_HRESULT(0, 0xa00, 2)
+
 # pragma pack (1)
 
 struct CrtHeader
@@ -71,6 +73,7 @@ public:
 	public:
 		enum ECartType
 		{
+			Normal_Cartridge = 0,
 			Action_Replay = 1,//AR5 + AR6 + AR4.x
 			Final_Cartridge_III = 3,
 			Simons_Basic = 4,
@@ -114,6 +117,8 @@ public:
 	void CheckForCartFreeze();
 	void CartFreeze();
 	void CartReset();
+	bool IsSupported(CartType::ECartType hardwareType);
+	bool IsSupported();
 
 	CrtHeader m_crtHeader;
 	CrtBankList m_lstBank;

@@ -68,6 +68,35 @@ void Cart::Init(IC6510 *pCpu, bit8 *pC64RamMemory)
 	m_pC64RamMemory = pC64RamMemory;
 }
 
+bool Cart::IsSupported()
+{
+	return IsSupported((CartType::ECartType)this->m_crtHeader.HardwareType);
+}
+
+bool Cart::IsSupported(CartType::ECartType hardwareType)
+{
+	switch(hardwareType)
+	{
+	case CartType::Normal_Cartridge:
+	case CartType::Action_Replay:
+	case CartType::Final_Cartridge_III:
+	case CartType::Simons_Basic:
+	case CartType::Ocean_1:
+	case CartType::Fun_Play:
+	case CartType::Super_Games:
+	case CartType::System_3:
+	case CartType::Dinamic:
+	case CartType::Magic_Desk:
+	case CartType::Action_Replay_4:
+	case CartType::Action_Replay_3:
+	case CartType::Retro_Replay:
+	case CartType::Action_Replay_2:
+		return true;
+	}
+	return false;
+}
+
+
 HRESULT Cart::LoadCrtFile(LPCTSTR filename)
 {
 HRESULT hr = E_FAIL;
@@ -139,7 +168,6 @@ __int64 iFileIndex = 0;
 				}
 			}
 			
-			//lstChipAndData.reserve(MAXBANKS);
 			lstBank.resize(MAXBANKS);
 			int nChipCount = 0;
 			do
@@ -185,7 +213,7 @@ __int64 iFileIndex = 0;
 				}
 				if ((chip.LoadAddressRange != 0x8000 || (chip.ROMImageSize != 0x2000 && chip.ROMImageSize != 0x4000)) && (chip.LoadAddressRange != 0xA000 || (chip.ROMImageSize != 0x2000)) && (chip.LoadAddressRange != 0xE000 || (chip.ROMImageSize != 0x2000)))
 				{
-					hr = SetError(E_FAIL, S_READFAILED, filename);
+					hr = SetError(E_FAIL, TEXT("Unsupported chip in bank $%x address $%0.4x with size $%0.4x. 16K chip sizes must start at $8000 and 8K chip sizes must start at $8000 or $A000 or $E000."), (int)chip.BankLocation, (int)chip.LoadAddressRange, (int)chip.ROMImageSize);
 					ok = false;
 					break;
 				}
@@ -234,7 +262,6 @@ __int64 iFileIndex = 0;
 					spBank->chipAndDataHigh.iFileIndex = iFileIndex;
 				}
 
-				//lstChipAndData.push_back(sp);
 				nChipCount++;
 				pos = G::FileSeek(hFile, 0, FILE_CURRENT);
 				if (pos < 0)
@@ -353,6 +380,8 @@ __int64 iFileIndex = 0;
 			m_ipROMH_A000 = m_pZeroBankData - 0xA000;
 			m_ipROMH_E000 = m_pZeroBankData - 0xE000;
 			pCartData = NULL;
+			if (!IsSupported())
+				hr = SetError(APPWARN_UNKNOWNCARTTYPE, TEXT("The hardware type for this cartridge is not supported. The emulator will attempt to run the ROM images with generic hardware. The cartridge software may not run correctly."));
 		}
 	}
 	if (pCartData)
