@@ -86,6 +86,7 @@ bool Cart::IsSupported(CartType::ECartType hardwareType)
 	case CartType::Super_Games:
 	case CartType::System_3:
 	case CartType::Dinamic:
+	case CartType::Zaxxon:
 	case CartType::Magic_Desk:
 	case CartType::Action_Replay_4:
 	case CartType::Action_Replay_3:
@@ -149,7 +150,7 @@ __int64 iFileIndex = 0;
 
 			if (_strnicmp((char *)&hdr.Signature, (char *)&S_SIGHEADER[0], _countof(S_SIGHEADER) - 1) != 0)
 			{
-				hr = SetError(E_FAIL, S_READFAILED, filename);
+				hr = SetError(E_FAIL, TEXT("Cartridge signature not found."));
 				ok = false;
 				break;
 			}
@@ -211,12 +212,12 @@ __int64 iFileIndex = 0;
 					ok = false;
 					break;
 				}
-				if ((chip.LoadAddressRange != 0x8000 || (chip.ROMImageSize != 0x2000 && chip.ROMImageSize != 0x4000)) && (chip.LoadAddressRange != 0xA000 || (chip.ROMImageSize != 0x2000)) && (chip.LoadAddressRange != 0xE000 || (chip.ROMImageSize != 0x2000)))
-				{
-					hr = SetError(E_FAIL, TEXT("Unsupported chip in bank $%x address $%0.4x with size $%0.4x. 16K chip sizes must start at $8000 and 8K chip sizes must start at $8000 or $A000 or $E000."), (int)chip.BankLocation, (int)chip.LoadAddressRange, (int)chip.ROMImageSize);
-					ok = false;
-					break;
-				}
+				//if ((chip.LoadAddressRange != 0x8000 || (chip.ROMImageSize != 0x2000 && chip.ROMImageSize != 0x4000)) && (chip.LoadAddressRange != 0xA000 || (chip.ROMImageSize != 0x2000)) && (chip.LoadAddressRange != 0xE000 || (chip.ROMImageSize != 0x2000)))
+				//{
+				//	hr = SetError(E_FAIL, TEXT("Unsupported chip in bank $%x address $%0.4x with size $%0.4x. 16K chip sizes must start at $8000 and 8K chip sizes must start at $8000 or $A000 or $E000."), (int)chip.BankLocation, (int)chip.LoadAddressRange, (int)chip.ROMImageSize);
+				//	ok = false;
+				//	break;
+				//}
 				switch (chip.ChipType)
 				{
 					case 0://ROM
@@ -249,18 +250,39 @@ __int64 iFileIndex = 0;
 					spBank = Sp_CrtBank(new CrtBank());
 					if (spBank == 0)
 						throw std::bad_alloc();
+					spBank->bank = chip.BankLocation;
 					lstBank[chip.BankLocation] = spBank;
 				}
-				if (chip.LoadAddressRange < 0xA000)
+				CrtChipAndData *pChipAndData;
+				bit16 romOffset = 0;
+				if (chip.LoadAddressRange >= 0x8000 && chip.LoadAddressRange < 0xA000 && chip.ROMImageSize > 0 && chip.ROMImageSize <= 0x4000)
 				{
-					spBank->chipAndDataLow.chip = chip;
-					spBank->chipAndDataLow.iFileIndex = iFileIndex;
+					pChipAndData = &spBank->chipAndDataLow;
+					romOffset = chip.LoadAddressRange - 0x8000;
+				}
+				else if (chip.LoadAddressRange >= 0xA000  && chip.LoadAddressRange < 0xC000 && chip.ROMImageSize > 0 && chip.ROMImageSize <= 0x2000)
+				{
+					pChipAndData = &spBank->chipAndDataHigh;
+					romOffset = chip.LoadAddressRange - 0xA000;
+				}
+				else if (chip.LoadAddressRange >= 0xE000 && chip.ROMImageSize > 0 && chip.ROMImageSize <= 0x2000)
+				{
+					pChipAndData = &spBank->chipAndDataHigh;
+					romOffset = chip.LoadAddressRange - 0xE000;
 				}
 				else
 				{
-					spBank->chipAndDataHigh.chip = chip;
-					spBank->chipAndDataHigh.iFileIndex = iFileIndex;
+					hr = SetError(E_FAIL, TEXT("Unsupported chip in bank $%x address $%0.4x with size $%0.4x. 16K chip sizes must reside at $8000-9FFF and 8K chip sizes must reside at $8000-9FFF or $A000-BFFF or $E000-FFFF."), (int)chip.BankLocation, (int)chip.LoadAddressRange, (int)chip.ROMImageSize);
+					ok = false;
+					break;
 				}
+				pChipAndData->chip = chip;
+				pChipAndData->iFileIndex = iFileIndex;
+				pChipAndData->romOffset = romOffset;
+				if (chip.ROMImageSize <= 0x2000)
+					pChipAndData->allocatedSize = 0x2000;
+				else
+					pChipAndData->allocatedSize = 0x4000;
 
 				nChipCount++;
 				pos = G::FileSeek(hFile, 0, FILE_CURRENT);
@@ -327,16 +349,24 @@ __int64 iFileIndex = 0;
 								ok = false;
 								break;
 							}
-							br = ReadFile(hFile, p, pChipAndData->chip.ROMImageSize, &nBytesRead, NULL);
-							if (!br)
+							DWORD nBytesToRead = pChipAndData->chip.ROMImageSize;
+							if ((DWORD)pChipAndData->romOffset + (DWORD)pChipAndData->chip.ROMImageSize > (DWORD)pChipAndData->allocatedSize)
 							{
-								hr = SetError(E_FAIL, S_READFAILED, filename);
-								ok = false;
-								break;
+								nBytesToRead = (DWORD)pChipAndData->allocatedSize - (DWORD)pChipAndData->romOffset;
+							}
+							if (nBytesToRead > 0)
+							{
+								br = ReadFile(hFile, &p[pChipAndData->romOffset], nBytesToRead, &nBytesRead, NULL);
+								if (!br)
+								{
+									hr = SetError(E_FAIL, S_READFAILED, filename);
+									ok = false;
+									break;
+								}
 							}
 						}
 					}
-					p = p + (INT_PTR)(pChipAndData->chip.ROMImageSize);				
+					p = p + (INT_PTR)(pChipAndData->allocatedSize);				
 				}
 			}
 			if (!ok)
@@ -365,6 +395,37 @@ __int64 iFileIndex = 0;
 		}
 		else
 		{
+			switch(hdr.HardwareType)
+			{
+			case CartType::Zaxxon:
+#if (_MSC_VER < 1600)
+				this->OnReadROML = boost::bind(&Cart::ReadROML_Zaxxon, this, _1);
+				this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML_Zaxxon, this, _1);
+#else
+				this->OnReadROML = std::bind(&Cart::ReadROML_Zaxxon, this, std::placeholders::_1);
+				this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML_Zaxxon, this, std::placeholders::_1);
+#endif
+				if (lstBank[0] && lstBank[0]->chipAndDataLow.allocatedSize == 0x2000 && lstBank[0]->chipAndDataLow.pData!=0)
+				{
+					CopyMemory(&lstBank[0]->chipAndDataLow.pData[0x1000], &lstBank[0]->chipAndDataLow.pData[0], 0x1000);
+				}
+				
+				if (lstBank[1])
+				{
+					lstBank[1]->chipAndDataLow = lstBank[0]->chipAndDataLow;
+				}
+				break;
+			default:
+#if (_MSC_VER < 1600)
+				this->OnReadROML = boost::bind(&Cart::ReadROML, this, _1);
+				this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML, this, _1);
+#else
+				this->OnReadROML = std::bind(&Cart::ReadROML, this, std::placeholders::_1);
+				this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML, this, std::placeholders::_1);
+#endif
+				break;
+			}
+
 			m_lstBank.clear();
 			if (m_pCartData)
 			{
@@ -380,6 +441,7 @@ __int64 iFileIndex = 0;
 			m_ipROMH_A000 = m_pZeroBankData - 0xA000;
 			m_ipROMH_E000 = m_pZeroBankData - 0xE000;
 			pCartData = NULL;
+
 			if (!IsSupported())
 				hr = SetError(APPWARN_UNKNOWNCARTTYPE, TEXT("The hardware type for this cartridge is not supported. The emulator will attempt to run the ROM images with generic hardware. The cartridge software may not run correctly."));
 		}
@@ -415,6 +477,21 @@ void Cart::InitReset(ICLK sysclock)
 	m_bFreezeDone = false;
 	m_bDE01WriteDone = false;
 	m_bIsCartIOActive = true;
+	m_bREUcompatible = false;
+	m_bAllowBank = false;
+	m_iRamBankOffset = 0;
+	m_bEnableRAM = false;
+
+	if (this->m_bIsCartAttached)
+	{
+		GAME = m_crtHeader.GAME;
+		EXROM = m_crtHeader.EXROM;
+	}
+	else
+	{
+		GAME = 1;
+		EXROM = 1;
+	}
 
 	m_bActionReplayMk2Rom = true;
 	m_iActionReplayMk2EnableRomCounter=0;
@@ -716,11 +793,16 @@ void Cart::UpdateIO()
 			m_bIsCartIOActive = true;
 			BankRom();
 			break;
+		case CartType::Zaxxon:
+			m_bIsCartIOActive = true;
+			GAME = m_crtHeader.GAME;
+			EXROM = m_crtHeader.EXROM;
+			BankRom();
+			break;
 		default: 
 			m_bREUcompatible = false;
 			m_bAllowBank = false;
 			m_iSelectedBank = 0;
-			m_bEnableRAM = false;
 			m_iRamBankOffset = 0;
 			m_bEnableRAM = false;
 			m_bIsCartIOActive = false;
@@ -756,11 +838,11 @@ void Cart::BankRom()
 			CrtChipAndData* pH = &p->chipAndDataHigh;
 			if (pL->chip.ROMImageSize != 0)
 			{
-				if (pL->chip.ROMImageSize == 0x2000)
+				if (pL->chip.ROMImageSize <= 0x2000)
 				{
 					m_ipROML_8000 = pL->pData - 0x8000;
 				}
-				else if (pL->chip.ROMImageSize == 0x4000)
+				else if (pL->chip.ROMImageSize <= 0x4000)
 				{
 					m_ipROML_8000 = pL->pData - 0x8000;
 					m_ipROMH_A000 = &pL->pData[0x2000] - 0xA000;
@@ -1036,9 +1118,9 @@ bit16 addr;
 
 bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
-	m_bEffects = true;
-	bit8 r = ReadRegister(address, sysclock);
 	m_bEffects = false;
+	bit8 r = ReadRegister(address, sysclock);
+	m_bEffects = true;
 	return r;
 }
 
@@ -1218,6 +1300,46 @@ bit8 Cart::ReadROML(bit16 address)
 	}
 }
 
+
+bit8 Cart::ReadROML_Zaxxon(bit16 address)
+{
+	bit8 r=ReadROML(address);
+	if (m_bEffects)
+	{
+		if (address < 0x9000 && m_iSelectedBank != 0)
+		{
+			m_iSelectedBank = 0;
+			ConfigureMemoryMap();
+		}
+		if (address >= 0x9000 && m_iSelectedBank != 1)
+		{
+			m_iSelectedBank = 1;
+			ConfigureMemoryMap();
+		}
+	}
+	return r;
+}
+
+bit8 Cart::ReadUltimaxROML_Zaxxon(bit16 address)
+{
+	bit8 r=ReadUltimaxROML(address);
+	if (m_bEffects)
+	{
+		if (address < 0x9000 && m_iSelectedBank != 0)
+		{
+			m_iSelectedBank = 0;
+			ConfigureMemoryMap();
+		}
+		if (address >= 0x9000 && m_iSelectedBank != 1)
+		{
+			m_iSelectedBank = 1;
+			ConfigureMemoryMap();
+		}
+	}
+	return r;
+}
+
+
 bit8 Cart::ReadUltimaxROML(bit16 address)
 {
 	assert(address >= 0x8000 && address < 0xA000);
@@ -1287,13 +1409,13 @@ int Cart::GetTotalCartMemoryRequirement()
 int Cart::GetTotalCartMemoryRequirement(CrtBankList lstBank)
 {
 	int i = RAMRESERVEDSIZE;
-	for (CrtBankListConstIter it = lstBank.cbegin(); it!=lstBank.cend(); it++)
+	for (CrtBankListIter it = lstBank.begin(); it!=lstBank.end(); it++)
 	{
 		Sp_CrtBank sp = *it;
 		if (!sp)
 			continue;
-		i = i + (int)(sp->chipAndDataLow.chip.ROMImageSize);
-		i = i + (int)(sp->chipAndDataHigh.chip.ROMImageSize);
+		i = i + (int)(sp->chipAndDataLow.allocatedSize);
+		i = i + (int)(sp->chipAndDataHigh.allocatedSize);
 	}
 	return i;
 }
@@ -1312,6 +1434,8 @@ CrtChipAndData::CrtChipAndData()
 	ZeroMemory(&chip, sizeof(chip));
 	pData = NULL;
 	iFileIndex = 0;
+	allocatedSize = 0;
+	romOffset = 0;
 }
 
 CrtBank::CrtBank()

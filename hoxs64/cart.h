@@ -35,7 +35,8 @@ struct CrtChipAndData
 	virtual ~CrtChipAndData();
 	CrtChip chip;
 	bit8 *pData;
-
+	bit16 allocatedSize;
+	bit16 romOffset;
 	__int64 iFileIndex;
 };
 
@@ -43,22 +44,22 @@ struct CrtBank
 {
 	CrtBank();
 	virtual ~CrtBank();
-	bit8 bank;
+	bit16 bank;
 	CrtChipAndData chipAndDataLow;
 	CrtChipAndData chipAndDataHigh;
 };
 
-//typedef std::shared_ptr<CrtChipAndData> Sp_CrtChipAndData;
-typedef std::shared_ptr<CrtBank> Sp_CrtBank;
+//typedef shared_ptr<CrtChipAndData> Sp_CrtChipAndData;
+typedef shared_ptr<CrtBank> Sp_CrtBank;
 
 //struct LessChipAndDataBank
 //{
 //	bool operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const;
 //};
 
-//typedef std::vector<Sp_CrtChipAndData> CrtChipAndDataList;
-//typedef std::vector<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
-//typedef std::vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
+//typedef vector<Sp_CrtChipAndData> CrtChipAndDataList;
+//typedef vector<Sp_CrtChipAndData>::iterator CrtChipAndDataIter;
+//typedef vector<Sp_CrtChipAndData>::const_iterator CrtChipAndDataConstIter;
 
 
 typedef std::vector<Sp_CrtBank> CrtBankList;
@@ -82,6 +83,7 @@ public:
 			Super_Games = 8,
 			System_3 = 15,
 			Dinamic = 17,
+			Zaxxon = 18,
 			Magic_Desk = 19,
 			Action_Replay_4 = 30,
 			Action_Replay_3 = 35,	
@@ -111,6 +113,14 @@ public:
 	void WriteUltimaxROML(bit16 address, bit8 data);
 	void WriteROMH(bit16 address, bit8 data);
 	void WriteUltimaxROMH(bit16 address, bit8 data);
+
+
+	function<bit8 (bit16)> OnReadROML;
+	function<bit8 (bit16)> OnReadUltimaxROML;
+
+	bit8 ReadROML_Zaxxon(bit16 address);
+	bit8 ReadUltimaxROML_Zaxxon(bit16 address);
+
 	bool IsCartIOActive();
 	int GetTotalCartMemoryRequirement();
 	void ConfigureMemoryMap();

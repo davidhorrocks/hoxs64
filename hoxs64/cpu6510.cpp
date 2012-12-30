@@ -177,11 +177,11 @@ bit8 *t;
 			switch(ram->GetCpuMmuReadMemoryType(address, -1))
 			{
 			case MT_ROML:
-				return pCart->ReadROML(address);
+				return pCart->OnReadROML(address);
 			case MT_ROMH:
 				return pCart->ReadROMH(address);
 			case MT_ROML_ULTIMAX:
-				return pCart->ReadUltimaxROML(address);
+				return pCart->OnReadUltimaxROML(address);
 			case MT_ROMH_ULTIMAX:
 				return pCart->ReadUltimaxROMH(address);
 			case MT_EXRAM:
