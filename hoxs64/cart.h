@@ -76,6 +76,7 @@ public:
 			Simons_Basic = 4,
 			Ocean_1 = 5,
 			Fun_Play = 7,
+			Super_Games = 8,
 			System_3 = 15,
 			Dinamic = 17,
 			Magic_Desk = 19,

@@ -401,6 +401,7 @@ void Cart::Reset(ICLK sysclock)
 	InitReset(sysclock);
 	m_pCpu->Clear_CRT_IRQ();
 	m_pCpu->Clear_CRT_NMI();
+
 	ConfigureMemoryMap();
 }
 
@@ -650,7 +651,7 @@ void Cart::UpdateIO()
 			BankRom();
 			break;
 		case CartType::Fun_Play:
-			m_iSelectedBank = (bit8)(((reg1 & 0x38) >> 3) | ((reg1 & 0x1) << 3));
+			//m_iSelectedBank = (bit8)(((reg1 & 0x38) >> 3) | ((reg1 & 0x1) << 3));
 			m_iSelectedBank = reg1;
 			if (reg1 == 0x86)
 			{
@@ -663,6 +664,12 @@ void Cart::UpdateIO()
 				GAME = m_crtHeader.GAME;
 				EXROM = m_crtHeader.EXROM;
 			}
+			BankRom();
+			break;
+		case CartType::Super_Games:
+			m_iSelectedBank = reg1 & 3;
+			GAME = (reg1 & 4) != 0;
+			EXROM = (GAME!=0) && (reg1 & 8) != 0;
 			BankRom();
 			break;
 		case CartType::Simons_Basic:
@@ -977,6 +984,12 @@ bit16 addr;
 			return reg1;
 		}
 		break;
+	case CartType::Super_Games:
+		if (address == 0xDF00)
+		{
+			return reg1;
+		}
+		break;
 	case CartType::Simons_Basic:
 		if (address == 0xDE00)
 		{
@@ -1140,6 +1153,13 @@ bit8 t;
 		break;
 	case CartType::Fun_Play:
 		if (address == 0xDE00)
+		{			
+			reg1 = data;
+			ConfigureMemoryMap();
+		}
+		break;
+	case CartType::Super_Games:
+		if (address == 0xDF00)
 		{			
 			reg1 = data;
 			ConfigureMemoryMap();
