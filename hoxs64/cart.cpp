@@ -623,7 +623,7 @@ void Cart::UpdateIO()
 			break;
 		case CartType::Magic_Desk:
 			m_iSelectedBank = reg1 & 0x3f;
-			if (reg1 == 0x80)
+			if (reg1 & 0x80)
 			{
 				GAME = 1;
 				EXROM = 1;
