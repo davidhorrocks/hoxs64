@@ -223,8 +223,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,7,5
- PRODUCTVERSION 1,0,7,5
+ FILEVERSION 1,0,8,0
+ PRODUCTVERSION 1,0,8,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -242,12 +242,12 @@ BEGIN
             VALUE "Comments", "A Commodore 64 cycle based emulation."
             VALUE "CompanyName", "David Horrocks Enterprises"
             VALUE "FileDescription", "Hoxs64 C64 Emulator"
-            VALUE "FileVersion", "1.0.7.5"
+            VALUE "FileVersion", "1.0.8.0"
             VALUE "InternalName", "Hoxs64"
             VALUE "LegalCopyright", "Copyright © 2001"
             VALUE "OriginalFilename", "hoxs64.exe"
             VALUE "ProductName", "Hoxs64"
-            VALUE "ProductVersion", "1.0.7.5"
+            VALUE "ProductVersion", "1.0.8.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -273,7 +273,7 @@ BEGIN
     ICON            IDI_ICON_BIG,IDC_STATIC,7,7,20,20
     CTEXT           "David Horrocks",IDC_INFO2,35,23,121,8
     CTEXT           "email: support@hoxs64.net",IDC_INFO3,35,33,121,10
-    LTEXT           "For updates visit:-\r\rwww.hoxs64.net\rwww.btinternet.com/~hoxs64",IDC_STATIC,36,47,129,56
+    LTEXT           "For updates visit:-\r\rwww.hoxs64.net",IDC_STATIC,36,47,129,56
 END
 
 IDD_NEWDISK DIALOGEX 0, 0, 186, 134
