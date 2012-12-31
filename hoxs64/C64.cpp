@@ -1537,7 +1537,7 @@ void C64::ProcessReset()
 void C64::ExecuteRandomClocks()
 {
 	SynchroniseDevicesWithVIC();
-	int randomclocks = (int)(floor((double)rand() / (double)RAND_MAX) * ((double)PAL50CLOCKSPERSECOND / (double)PAL50FRAMESPERSECOND));
+	int randomclocks = (int)floor((double)rand() / (double)RAND_MAX * ((double)PAL50CLOCKSPERSECOND / (double)PAL50FRAMESPERSECOND));
 	while (randomclocks-- > 0)
 		this->ExecuteC64Clock();
 }
