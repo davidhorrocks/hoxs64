@@ -216,6 +216,7 @@ protected:
 
 private:
 	void ProcessReset();
+	void ExecuteRandomClocks();
 	bool bPendingSystemCommand;
 	C64Cmd m_SystemCommand;
 	//bool bSoftResetSystem;

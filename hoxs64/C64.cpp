@@ -1447,6 +1447,10 @@ void C64::SoftReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
+	if (!appStatus->m_bDebug)
+	{
+		ExecuteRandomClocks();
+	}
 	ICLK sysclock = cpu.CurrentClock;
 	cpu.InitReset(sysclock);
 	cart.InitReset(sysclock);
@@ -1467,6 +1471,11 @@ void C64::CartFreeze(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
+	if (!appStatus->m_bDebug)
+	{
+		ExecuteRandomClocks();
+	}
+
 	cart.CartFreeze();
 }
 
@@ -1474,6 +1483,10 @@ void C64::CartReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
+	if (!appStatus->m_bDebug)
+	{
+		ExecuteRandomClocks();
+	}
 	cart.CartReset();
 }
 
@@ -1519,6 +1532,14 @@ void C64::ProcessReset()
 		CartReset(false);
 		break;
 	}
+}
+
+void C64::ExecuteRandomClocks()
+{
+	SynchroniseDevicesWithVIC();
+	int randomclocks = (int)(floor((double)rand() / (double)RAND_MAX) * ((double)PAL50CLOCKSPERSECOND / (double)PAL50FRAMESPERSECOND));
+	while (randomclocks-- > 0)
+		this->ExecuteC64Clock();
 }
 
 IMonitorCpu *C64::GetCpu(int cpuid)
