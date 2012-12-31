@@ -86,6 +86,7 @@ public:
 			Zaxxon = 18,
 			Magic_Desk = 19,
 			Action_Replay_4 = 30,
+			EasyFlash = 32,
 			Action_Replay_3 = 35,	
 			Retro_Replay = 36,
 			Action_Replay_2 = 50,

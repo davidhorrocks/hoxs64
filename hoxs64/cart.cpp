@@ -89,6 +89,7 @@ bool Cart::IsSupported(CartType::ECartType hardwareType)
 	case CartType::Zaxxon:
 	case CartType::Magic_Desk:
 	case CartType::Action_Replay_4:
+	case CartType::EasyFlash:
 	case CartType::Action_Replay_3:
 	case CartType::Retro_Replay:
 	case CartType::Action_Replay_2:
@@ -499,6 +500,14 @@ void Cart::InitReset(ICLK sysclock)
 	m_clockLastDE00Write = sysclock;
 	m_clockLastDF40Read = sysclock;
 
+	switch(this->m_crtHeader.HardwareType)
+	{
+	case CartType::EasyFlash:
+		reg1 = 0;
+		reg2 = 5;
+		break;
+	}
+	//UpdateIO called here to allow the CPU to see the correct reset vector since cpu.Reset() is called before cart.Reset()
 	UpdateIO();
 }
 
@@ -719,6 +728,13 @@ void Cart::UpdateIO()
 				m_bIsCartIOActive = true;
 				BankRom();
 			}
+			break;
+		case CartType::EasyFlash:
+			m_iSelectedBank = reg1 & 0x3f;
+			GAME = (reg2 & 0x1) == 0;
+			EXROM = (reg2 & 0x2) == 0;
+			m_bIsCartIOActive = true;
+			BankRom();
 			break;
 		case CartType::Ocean_1:
 			m_iSelectedBank = reg1 & 0x3f;
@@ -1068,6 +1084,17 @@ bit16 addr;
 			return this->m_ipROML_8000[addr];
 		}
 		break;
+	case CartType::EasyFlash:
+		if (address >= 0xDF00 && address < 0xE000)
+		{
+			addr = address - 0xDF00;
+			return m_pCartData[addr];
+		}
+		else if (address == 0xDE00 || address == 0xDE02)
+		{
+			return 0;
+		}
+		break;
 	case CartType::Ocean_1:
 		if (address == 0xDE00)
 		{
@@ -1237,6 +1264,22 @@ bit8 t;
 		{
 			reg1 = data;
 			ConfigureMemoryMap();
+		}
+		break;
+	case CartType::EasyFlash:
+		if (address == 0xDE00)
+		{
+			reg1 = data;
+			ConfigureMemoryMap();
+		}
+		else if (address == 0xDE02)
+		{
+			reg2 = data;
+			ConfigureMemoryMap();
+		}
+		else if (address >= 0xDF00 && address < 0xE000)
+		{
+			m_pCartData[address - 0xDF00] = data;
 		}
 		break;
 	case CartType::Ocean_1:
