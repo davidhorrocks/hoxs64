@@ -1303,7 +1303,6 @@ bit8 Cart::ReadROML(bit16 address)
 
 bit8 Cart::ReadROML_Zaxxon(bit16 address)
 {
-	bit8 r=ReadROML(address);
 	if (m_bEffects)
 	{
 		if (address < 0x9000 && m_iSelectedBank != 0)
@@ -1311,18 +1310,17 @@ bit8 Cart::ReadROML_Zaxxon(bit16 address)
 			m_iSelectedBank = 0;
 			ConfigureMemoryMap();
 		}
-		if (address >= 0x9000 && m_iSelectedBank != 1)
+		else if (address >= 0x9000 && m_iSelectedBank != 1)
 		{
 			m_iSelectedBank = 1;
 			ConfigureMemoryMap();
 		}
 	}
-	return r;
+	return ReadROML(address);
 }
 
 bit8 Cart::ReadUltimaxROML_Zaxxon(bit16 address)
 {
-	bit8 r=ReadUltimaxROML(address);
 	if (m_bEffects)
 	{
 		if (address < 0x9000 && m_iSelectedBank != 0)
@@ -1330,13 +1328,13 @@ bit8 Cart::ReadUltimaxROML_Zaxxon(bit16 address)
 			m_iSelectedBank = 0;
 			ConfigureMemoryMap();
 		}
-		if (address >= 0x9000 && m_iSelectedBank != 1)
+		else if (address >= 0x9000 && m_iSelectedBank != 1)
 		{
 			m_iSelectedBank = 1;
 			ConfigureMemoryMap();
 		}
 	}
-	return r;
+	return ReadUltimaxROML(address);
 }
 
 
