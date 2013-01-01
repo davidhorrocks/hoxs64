@@ -56,6 +56,69 @@ void Cart::Init(IC6510 *pCpu, bit8 *pC64RamMemory)
 	m_pC64RamMemory = pC64RamMemory;
 }
 
+void Cart::InitReset(ICLK sysclock)
+{
+	CurrentClock = sysclock;
+	m_iSelectedBank = 0;
+	m_bSimonsBasic16K = false;
+	m_bFreezePending = false;
+	m_bFreezeDone = false;
+	m_bDE01WriteDone = false;
+	m_bREUcompatible = false;
+	m_bAllowBank = false;
+	m_iRamBankOffset = 0;
+	m_bEnableRAM = false;
+
+	m_bActionReplayMk2Rom = true;
+	m_iActionReplayMk2EnableRomCounter=0;
+	m_iActionReplayMk2DisableRomCounter=0;
+	m_clockLastDE00Write = sysclock;
+	m_clockLastDF40Read = sysclock;
+
+	reg1 = 0;
+	reg2 = 0;
+	if (m_bIsCartAttached)
+	{
+		m_bIsCartIOActive = true;
+		m_bIsCartRegActive = true;
+		switch(m_crtHeader.HardwareType)
+		{
+		case CartType::EasyFlash:
+			reg1 = 0;
+			reg2 = 5;
+			m_EasyFlashChipROML.InitReset();
+			m_EasyFlashChipROMH.InitReset();
+			break;
+		}
+	}
+	else
+	{
+		m_bIsCartIOActive = false;
+		m_bIsCartRegActive = false;
+	}
+	//UpdateIO called here to allow the CPU to see the correct reset vector since cpu.Reset() is called before cart.Reset()
+	UpdateIO();
+}
+
+void Cart::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
+	m_pCpu->Clear_CRT_IRQ();
+	m_pCpu->Clear_CRT_NMI();
+	switch(m_crtHeader.HardwareType)
+	{
+	case CartType::EasyFlash:
+		reg1 = 0;
+		reg2 = 5;
+		m_EasyFlashChipROML.Reset(sysclock);
+		m_EasyFlashChipROMH.Reset(sysclock);
+		break;
+	}
+
+	ConfigureMemoryMap();
+}
+
+
 bool Cart::IsSupported()
 {
 	return IsSupported((CartType::ECartType)this->m_crtHeader.HardwareType);
@@ -204,14 +267,14 @@ __int64 iFileIndex = 0;
 
 				switch (chip.ChipType)
 				{
-					case 0://ROM
-					case 1://RAM
-					case 2://Flash ROM
-						break;
-					default:
-						hr = SetError(E_FAIL, S_READFAILED, filename);
-						ok = false;
-						break;
+				case ChipType::ROM:
+				case ChipType::RAM:
+				case ChipType::EPROM:
+					break;
+				default:
+					hr = SetError(E_FAIL, S_READFAILED, filename);
+					ok = false;
+					break;
 				}
 				if (!ok)
 					break;
@@ -324,7 +387,7 @@ __int64 iFileIndex = 0;
 					if (pChipAndData->chip.ROMImageSize > 0)
 					{
 						pChipAndData->pData = p;
-						if (pChipAndData->chip.ChipType == 0 || pChipAndData->chip.ChipType == 2)//If ROM or EPROM then read from file.
+						if (pChipAndData->chip.ChipType == ChipType::ROM || pChipAndData->chip.ChipType == ChipType::EPROM)//If ROM or EPROM then read from file.
 						{
 							iFileIndex = G::FileSeek(hFile, pChipAndData->iFileIndex, FILE_BEGIN);
 							if (iFileIndex < 0)
@@ -419,6 +482,27 @@ __int64 iFileIndex = 0;
 					lstBank[1]->chipAndDataLow.chip.BankLocation = 1;
 				}
 				break;
+			case CartType::EasyFlash:
+#if (_MSC_VER < 1600)
+				this->OnReadROML = boost::bind(&Cart::ReadROML_EasyFlash, this, _1);
+				this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML_EasyFlash, this, _1);
+				this->OnReadROMH = boost::bind(&Cart::ReadROMH_EasyFlash, this, std::placeholders::_1);
+				this->OnReadUltimaxROMH = boost::bind(&Cart::ReadUltimaxROMH_EasyFlash, this, _1);
+				this->OnWriteROML = boost::bind(&Cart::WriteROML_EasyFlash, this, _1, _2);
+				this->OnWriteUltimaxROML = boost::bind(&Cart::WriteUltimaxROML_EasyFlash, this, _1, _2);
+				this->OnWriteROMH = boost::bind(&Cart::WriteROMH_EasyFlash, this, _1, _2);
+				this->OnWriteUltimaxROMH = boost::bind(&Cart::WriteUltimaxROMH_EasyFlash, this, _1, _2);
+#else
+				this->OnReadROML = std::bind(&Cart::ReadROML_EasyFlash, this, std::placeholders::_1);
+				this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML_EasyFlash, this, std::placeholders::_1);
+				this->OnReadROMH = std::bind(&Cart::ReadROMH_EasyFlash, this, std::placeholders::_1);
+				this->OnReadUltimaxROMH = std::bind(&Cart::ReadUltimaxROMH_EasyFlash, this, std::placeholders::_1);
+				this->OnWriteROML = std::bind(&Cart::WriteROML_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
+				this->OnWriteUltimaxROML = std::bind(&Cart::WriteUltimaxROML_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
+				this->OnWriteROMH = std::bind(&Cart::WriteROMH_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
+				this->OnWriteUltimaxROMH = std::bind(&Cart::WriteUltimaxROMH_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
+#endif
+				break;
 			}
 
 			m_lstBank.clear();
@@ -437,6 +521,14 @@ __int64 iFileIndex = 0;
 			m_ipROMH_E000 = m_pZeroBankData - 0xE000;
 			pCartData = NULL;
 
+			switch(hdr.HardwareType)
+			{
+			case CartType::EasyFlash:
+				m_EasyFlashChipROML.Init(this, 0);
+				m_EasyFlashChipROMH.Init(this, 1);
+				break;
+			}
+
 			if (!IsSupported())
 				hr = SetError(APPWARN_UNKNOWNCARTTYPE, TEXT("The hardware type for this cartridge is not supported. The emulator will attempt to run the ROM images with generic hardware. The cartridge software may not run correctly."));
 		}
@@ -452,6 +544,8 @@ __int64 iFileIndex = 0;
 void Cart::CleanUp()
 {
 	m_bIsCartAttached = false;
+	m_EasyFlashChipROML.CleanUp();
+	m_EasyFlashChipROMH.CleanUp();
 	m_lstBank.clear();
 	if (m_pCartData)
 	{
@@ -459,68 +553,15 @@ void Cart::CleanUp()
 		m_pCartData = 0;
 		m_pZeroBankData = 0;
 	}
-}
-
-void Cart::InitReset(ICLK sysclock)
-{
-	CurrentClock = sysclock;
-	m_iSelectedBank = 0;
-	m_bSimonsBasic16K = false;
-	m_bFreezePending = false;
-	m_bFreezeDone = false;
-	m_bDE01WriteDone = false;
-	m_bREUcompatible = false;
-	m_bAllowBank = false;
-	m_iRamBankOffset = 0;
-	m_bEnableRAM = false;
-
-	m_bActionReplayMk2Rom = true;
-	m_iActionReplayMk2EnableRomCounter=0;
-	m_iActionReplayMk2DisableRomCounter=0;
-	m_clockLastDE00Write = sysclock;
-	m_clockLastDF40Read = sysclock;
-
-	m_iEasyFlashCommandByte = 0;
-	m_iEasyFlashCommandCycle = 0;
-	m_iEasyFlashStatus = 0;
-	m_iEasyFlashByteWritten = 0;
-
-	reg1 = 0;
-	reg2 = 0;
-	if (m_bIsCartAttached)
-	{
-		m_bIsCartIOActive = true;
-		m_bIsCartRegActive = true;
-		switch(m_crtHeader.HardwareType)
-		{
-		case CartType::EasyFlash:
-			reg1 = 0;
-			reg2 = 5;
-			break;
-		}
-	}
-	else
-	{
-		m_bIsCartIOActive = false;
-		m_bIsCartRegActive = false;
-	}
-	//UpdateIO called here to allow the CPU to see the correct reset vector since cpu.Reset() is called before cart.Reset()
-	UpdateIO();
-}
-
-void Cart::Reset(ICLK sysclock)
-{
-	InitReset(sysclock);
-	m_pCpu->Clear_CRT_IRQ();
-	m_pCpu->Clear_CRT_NMI();
-
-	ConfigureMemoryMap();
+	
 }
 
 void Cart::DetachCart()
 {
 	if (m_bIsCartAttached)
 	{
+		m_EasyFlashChipROML.Detach();
+		m_EasyFlashChipROMH.Detach();
 		m_bFreezePending = false;
 		m_pCpu->Clear_CRT_IRQ();
 		m_pCpu->Clear_CRT_NMI();
@@ -824,7 +865,6 @@ void Cart::UpdateIO()
 			BankRom();
 			break;
 		}
-
 	}
 	else
 	{
@@ -1352,13 +1392,13 @@ void Cart::WriteROML(bit16 address, bit8 data)
 
 bit8 Cart::ReadROMH(bit16 address)
 {
-	assert(address >= 0xA000 && address < 0xE000);
+	assert(address >= 0xA000 && address < 0xC000);
 	return m_ipROMH_A000[address];
 }
 
 void Cart::WriteROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xA000 && address < 0xE000);
+	assert(address >= 0xA000 && address < 0xC000);
 	m_pC64RamMemory[address] = data;
 }
 
@@ -1433,15 +1473,54 @@ bit8 Cart::ReadUltimaxROML_Zaxxon(bit16 address)
 	return ReadUltimaxROML(address);
 }
 
+bit8 Cart::ReadROML_EasyFlash(bit16 address)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	return this->m_EasyFlashChipROML.ReadByte(address - 0x8000);
+}
 
 void Cart::WriteROML_EasyFlash(bit16 address, bit8 data)
 {
 	assert(address >= 0x8000 && address < 0xA000);
-	if (m_bEnableRAM)
-	{
-		m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
-	}
 	m_pC64RamMemory[address] = data;
+	this->m_EasyFlashChipROML.WriteByte(address - 0x8000, data);
+}
+
+bit8 Cart::ReadROMH_EasyFlash(bit16 address)
+{
+	assert(address >= 0xA000 && address < 0xC000);
+	return this->m_EasyFlashChipROMH.ReadByte(address - 0xA000);
+}
+
+void Cart::WriteROMH_EasyFlash(bit16 address, bit8 data)
+{
+	assert(address >= 0xA000 && address < 0xC000);
+	m_pC64RamMemory[address] = data;
+	this->m_EasyFlashChipROMH.WriteByte(address - 0xA000, data);
+}
+
+bit8 Cart::ReadUltimaxROML_EasyFlash(bit16 address)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	return this->m_EasyFlashChipROML.ReadByte(address - 0x8000);
+}
+
+void Cart::WriteUltimaxROML_EasyFlash(bit16 address, bit8 data)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	this->m_EasyFlashChipROML.WriteByte(address - 0x8000, data);
+}
+
+bit8 Cart::ReadUltimaxROMH_EasyFlash(bit16 address)
+{
+	assert(address >= 0xE000);
+	return this->m_EasyFlashChipROMH.ReadByte(address - 0xE000);
+}
+
+void Cart::WriteUltimaxROMH_EasyFlash(bit16 address, bit8 data)
+{
+	assert(address >= 0xE000);
+	this->m_EasyFlashChipROMH.WriteByte(address - 0xE000, data);
 }
 
 bool Cart::IsCartIOActive()
@@ -1473,10 +1552,6 @@ int Cart::GetTotalCartMemoryRequirement(CrtBankList lstBank)
 //	return x->chip.BankLocation < y->chip.BankLocation;
 //}
 
-CrtChipAndData::~CrtChipAndData()
-{	
-}
-
 CrtChipAndData::CrtChipAndData()
 {
 	ZeroMemory(&chip, sizeof(chip));
@@ -1493,3 +1568,403 @@ CrtBank::CrtBank()
 CrtBank::~CrtBank()
 {
 }
+
+
+EasyFlashChip::EasyFlashChip()
+{
+	m_pBlankData = NULL;
+	m_chipNumber = 0;
+	m_vecPendingSectorErase.reserve(MAXBANKS);
+	m_vecBanks.resize(MAXBANKS);
+}
+
+
+void EasyFlashChip::Detach()
+{
+	CleanUp();
+}
+
+void EasyFlashChip::CleanUp()
+{
+	m_vecBanks.clear();
+	if (m_pBlankData)
+	{
+		GlobalFree(m_pBlankData);
+		m_pBlankData = NULL;
+	}
+
+}
+
+void EasyFlashChip::Init(Cart *pCart, int chipNumber)
+{
+int i;
+const int BANKSIZE = 0x2000;
+bit8 *pBlankData = NULL;
+	try
+	{
+		m_pCart = pCart;
+		m_chipNumber = chipNumber;
+		m_vecBanks.clear();
+
+		int iBlankChipsTotalBytes = 0;
+		i = 0;
+		for (CrtBankListIter it = pCart->m_lstBank.begin(); it != pCart->m_lstBank.end() && i < MAXBANKS; it++,i++)
+		{
+			if (chipNumber == 0)
+			{
+				if (!*it || (*it)->chipAndDataLow.pData==NULL)
+				{
+					iBlankChipsTotalBytes += BANKSIZE;
+				}
+			}
+			else
+			{
+				if (!*it || (*it)->chipAndDataHigh.pData==NULL)
+				{
+					iBlankChipsTotalBytes += BANKSIZE;
+				}
+			}
+		}
+		bit8 *pBlankData = (bit8 *)GlobalAlloc(GPTR, iBlankChipsTotalBytes);
+		bit8 *p = pBlankData;
+		int k = 0;
+		i = 0;
+		for (CrtBankListIter it = pCart->m_lstBank.begin(); it!=pCart->m_lstBank.end() && i < MAXBANKS; it++,i++)
+		{
+			if (chipNumber == 0)
+			{
+				if (*it && (*it)->chipAndDataLow.pData != NULL)
+				{
+					m_vecBanks.push_back((*it)->chipAndDataLow);
+					continue;
+				}
+			}
+			else
+			{
+				if (*it && (*it)->chipAndDataHigh.pData != NULL)
+				{
+					m_vecBanks.push_back((*it)->chipAndDataHigh);
+					continue;
+				}
+			}
+			CrtChipAndData def;
+			def.allocatedSize = BANKSIZE;
+			def.pData = p;
+			def.chip.BankLocation = i;
+			def.chip.ChipType = Cart::ChipType::EPROM;
+			def.chip.ROMImageSize = BANKSIZE;
+			if (chipNumber == 0)
+				def.chip.LoadAddressRange = 0x8000;
+			else
+				def.chip.LoadAddressRange = 0xA000;
+
+			p+=BANKSIZE;
+			m_vecBanks.push_back(def);
+		}
+		m_pBlankData = pBlankData;
+		pBlankData = NULL;
+	}
+	catch (std::exception&)
+	{
+		if (pBlankData)
+		{
+			GlobalFree(pBlankData);
+			pBlankData = pBlankData;
+		}
+		throw;
+	}
+}
+
+void EasyFlashChip::InitReset()
+{
+	m_iCommandByte = 0;
+	m_iCommandCycle = 0;
+	m_iStatus = 0;
+	m_iByteWritten = 0;
+
+	m_mode = Read;
+	m_iLastCommandWriteClock = 0;
+	m_iAddressWrite = 0;
+	m_iSectorWrite = 0;
+	m_iStatus = 0;
+	m_vecPendingSectorErase.clear();
+}
+
+void EasyFlashChip::Reset(ICLK sysclock)
+{
+	m_iLastCommandWriteClock = sysclock;
+	InitReset();
+}
+
+void EasyFlashChip::WriteByte(bit16 address, bit8 data)
+{
+int k;
+
+	//TODO check for 80us command write timeout.
+	address = address & 0x1fff;
+	ICLK clock = m_pCart->m_pCpu->GetCurrentClock();
+	CheckForPendingWrite(clock);
+	switch(m_mode)
+	{
+	case Read:
+		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 200)
+		{
+			m_iCommandCycle = 0;
+		}
+		break;
+	case AutoSelect:
+		if (data == 0xF0)
+		{
+			m_mode = Read;
+			m_iCommandCycle = 0;
+		}
+		break;
+	case ByteProgram:
+		k = (m_pCart->m_iSelectedBank) & 0x3f;
+		if (k < m_vecBanks.size())
+		{
+			CrtChipAndData &pc = m_vecBanks[k];
+			if (pc.pData && address < pc.chip.ROMImageSize)
+				pc.pData[address] &= data;
+		}
+		m_mode = Read;
+		m_iCommandCycle = 0;
+		break;
+	case ChipErase:
+		if (data == 0xB0)
+		{
+			m_mode = ChipEraseSuspend;
+		}
+		else
+		{
+			m_mode = Read;
+			m_iCommandCycle = 0;
+		}
+		break;
+	case SectorErase:
+		if (data == 0xB0)
+		{
+			m_mode = SectorEraseSuspend;
+		}
+		else if (address == 0)
+		{
+			if (m_vecPendingSectorErase.capacity() > m_vecPendingSectorErase.size())
+				m_vecPendingSectorErase.push_back(m_pCart->m_iSelectedBank);
+		}
+		else if (address != 0)
+		{
+			address=address;
+		}
+		else
+		{
+			m_mode = Read;
+			m_iCommandCycle = 0;
+		}
+		break;
+	case SectorEraseSuspend:
+		if (data == 0x30)
+		{
+			m_mode = SectorErase;
+		}
+		break;
+	case ChipEraseSuspend:
+		if (data == 0x30)
+		{
+			m_mode = ChipErase;
+		}
+		break;
+	}
+	m_iLastCommandWriteClock = clock;
+
+	switch (m_iCommandCycle)
+	{
+	case 0:
+		if (address == 0x555 && data == 0xAA)
+		{
+			m_iCommandCycle = 1;
+		}
+		break;
+	case 1:
+		if (address == 0x2AA && data == 0x55)
+		{
+			m_iCommandCycle = 2;
+		}
+		else if (address == 0x555 && data == 0xAA)
+		{
+			m_iCommandCycle = 1;
+		}
+		else
+		{
+			m_iCommandCycle = 0;
+		}
+		break;
+	case 2:
+		if (address == 0x555)
+		{
+			switch (data)
+			{
+			case 0xF0://Read/Reset
+				m_mode = Read;
+				m_iCommandCycle = 0;
+				break;
+			case 0x90://Autoselect
+				m_mode = AutoSelect;
+				m_iCommandCycle = 0;
+				break;
+			case 0xA0://Byte Program
+				m_mode = ByteProgram;
+				m_iCommandCycle = 6;
+				break;
+			case 0x80://Erase
+				m_iCommandByte = data;
+				m_iCommandCycle = 3;
+				break;
+			case 0xAA:
+				m_iCommandCycle = 1;
+				break;
+			default:
+				m_iCommandCycle = 0;
+				break;
+			}
+		}
+		else
+		{
+			m_iCommandCycle = 0;
+		}
+		break;
+	case 3:
+		if (address == 0x555 && data == 0xAA)
+		{
+			m_iCommandCycle = 4;
+		}
+		else
+		{
+			m_iCommandCycle = 0;
+		}
+		break;
+	case 4:
+		if (address == 0x2AA && data == 0x55)
+		{
+			m_iCommandCycle = 5;
+		}
+		else if (address == 0x555 && data == 0xAA)
+		{
+			m_iCommandCycle = 1;
+		}
+		else
+		{
+			m_iCommandCycle = 0;
+		}
+		break;
+	case 5:
+		if (address == 0x555 && data == 0x10)
+		{
+			m_mode = ChipErase;
+			m_iCommandCycle = 6;
+			m_iStatus = 0;
+		}
+		else if (address == 0x555 && data == 0xAA)
+		{
+			m_iCommandCycle = 1;
+		}
+		else if (data == 0x30)
+		{
+			m_mode = SectorErase;
+			m_iCommandCycle = 6;
+			m_iStatus = 0;
+			m_vecPendingSectorErase.clear();
+			m_vecPendingSectorErase.push_back(m_pCart->m_iSelectedBank);
+		}
+		else
+		{
+			m_iCommandCycle = 0;
+		}
+		break;
+	}
+}
+
+bit8 EasyFlashChip::ReadByte(bit16 address)
+{
+int k;
+const bit8 AmdManufacterId = 1;
+const bit8 Am29F040 = 0xA4;
+
+	address = address & 0x1fff;
+	ICLK clock = m_pCart->m_pCpu->GetCurrentClock();
+	CheckForPendingWrite(clock);
+	switch(m_mode)
+	{
+	case Read:
+		k = (m_pCart->m_iSelectedBank)  & 0x3f;
+		if (k < m_vecBanks.size())
+		{
+			CrtChipAndData &pc = m_vecBanks[k];
+			if (pc.pData && address < pc.chip.ROMImageSize)
+				return pc.pData[address];
+		}
+		return 0;
+	case AutoSelect:
+		if (address == 0x0000)
+			return AmdManufacterId;
+		else if (address == 0x0001)
+			return Am29F040;
+		return 0;
+	case ChipErase:
+		m_iStatus = (m_iStatus ^ 0x40);
+		return (m_iStatus & 0x40);
+	case SectorErase:
+		m_iStatus = (m_iStatus ^ 0x40);
+		return m_iStatus & 0x40;
+	case SectorEraseSuspend:
+		return m_iStatus & 0x40 | 0x88;
+	case ChipEraseSuspend:
+		return m_iStatus & 0x40 | 0x88;
+	}
+	return 0;
+}
+
+void EasyFlashChip::CheckForPendingWrite(ICLK clock)
+{
+int k;
+
+	//TODO check for 80us command write timeout.
+	switch(m_mode)
+	{
+	case ChipErase:
+		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 80)
+		{
+			m_iCommandCycle = 0;
+			for (int i = 0; i < m_vecBanks.size(); i++)
+			{
+				CrtChipAndData &pc = m_vecBanks[i];
+				if (pc.pData)
+					FillMemory(pc.pData, pc.chip.ROMImageSize, 0xff);
+			}
+		}
+		m_mode = Read;
+		m_iCommandCycle = 0;
+		break;
+	case SectorErase:
+		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 80)
+		{
+			m_iCommandCycle = 0;
+			for (std::vector<bit8>::iterator it = m_vecPendingSectorErase.begin(); it!=m_vecPendingSectorErase.end(); it++)
+			{
+				for (int i = 0; i < 8; i++)
+				{
+					k = ((*it) +i ) & 0x3f;
+					if (k < m_vecBanks.size())
+					{
+						CrtChipAndData &pc = m_vecBanks[k];
+						if (pc.pData)
+							FillMemory(pc.pData, pc.chip.ROMImageSize, 0xff);
+					}
+				}
+			}
+			m_mode = Read;
+			m_iCommandCycle = 0;
+		}
+		break;
+	}
+}
+

@@ -32,7 +32,6 @@ struct CrtChip
 struct CrtChipAndData
 {
 	CrtChipAndData();
-	virtual ~CrtChipAndData();
 	CrtChip chip;
 	bit8 *pData;
 	bit16 allocatedSize;
@@ -66,6 +65,48 @@ typedef std::vector<Sp_CrtBank> CrtBankList;
 typedef std::vector<Sp_CrtBank>::iterator CrtBankListIter;
 typedef std::vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
 
+
+class Cart;
+
+class EasyFlashChip
+{
+public:
+	enum EEasyFlashMode
+	{
+		Read,
+		AutoSelect,
+		ByteProgram,	
+		ChipErase,
+		SectorErase,
+		SectorEraseSuspend,
+		ChipEraseSuspend,
+	};
+	EasyFlashChip();
+	static const int MAXBANKS = 64;
+	void Init(Cart *pCart, int chipNumber);
+	void CleanUp();
+	void Detach();
+	void Reset(ICLK sysclock);
+	void InitReset();
+	void WriteByte(bit16 address, bit8 data);
+	bit8 ReadByte(bit16 address);
+	void CheckForPendingWrite(ICLK clock);
+private:
+	Cart *m_pCart;
+	ICLK m_iLastCommandWriteClock;
+	bit8 m_iCommandByte;
+	bit8 m_iCommandCycle;
+	bit8 m_iStatus;
+	bit8 m_iByteWritten;
+	bit16 m_iAddressWrite;
+	bit8 m_iSectorWrite;
+	EEasyFlashMode m_mode;
+	std::vector<bit8> m_vecPendingSectorErase;
+	std::vector<CrtChipAndData> m_vecBanks;
+	int m_chipNumber;
+	bit8 *m_pBlankData;
+};
+
 class Cart : public IRegister, public ErrorMsg
 {
 public:
@@ -90,6 +131,16 @@ public:
 			Action_Replay_3 = 35,	
 			Retro_Replay = 36,
 			Action_Replay_2 = 50,
+		};
+	};
+	class ChipType
+	{
+	public:
+		enum EChipType
+		{
+			ROM=0,
+			RAM=1,
+			EPROM=2,
 		};
 	};
 	Cart();
@@ -190,10 +241,10 @@ private:
 	ICLK m_clockLastDE00Write;
 	ICLK m_clockLastDF40Read;
 
-	bit8 m_iEasyFlashCommandByte;
-	bit8 m_iEasyFlashCommandCycle;
-	bit8 m_iEasyFlashStatus;
-	bit8 m_iEasyFlashByteWritten;
+	EasyFlashChip m_EasyFlashChipROML;
+	EasyFlashChip m_EasyFlashChipROMH;
+
+	friend EasyFlashChip;
 };
 
 #endif
