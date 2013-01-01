@@ -1340,6 +1340,62 @@ bit8 Cart::ReadROML(bit16 address)
 	}
 }
 
+void Cart::WriteROML(bit16 address, bit8 data)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (m_bEnableRAM)
+	{
+		m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
+	}
+	m_pC64RamMemory[address] = data;
+}
+
+bit8 Cart::ReadROMH(bit16 address)
+{
+	assert(address >= 0xA000 && address < 0xE000);
+	return m_ipROMH_A000[address];
+}
+
+void Cart::WriteROMH(bit16 address, bit8 data)
+{
+	assert(address >= 0xA000 && address < 0xE000);
+	m_pC64RamMemory[address] = data;
+}
+
+bit8 Cart::ReadUltimaxROML(bit16 address)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (m_bEnableRAM)
+	{
+		bit16 addr = address - 0x8000;
+		return m_pCartData[addr + m_iRamBankOffset];
+	}
+	else
+	{
+		return m_ipROML_8000[address];
+	}
+}
+
+void Cart::WriteUltimaxROML(bit16 address, bit8 data)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (m_bEnableRAM)
+	{
+		m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
+	}
+}
+
+bit8 Cart::ReadUltimaxROMH(bit16 address)
+{
+	assert(address >= 0xE000);
+	return m_ipROMH_E000[address];
+}
+
+void Cart::WriteUltimaxROMH(bit16 address, bit8 data)
+{
+	assert(address >= 0xE000);
+}
+
 
 bit8 Cart::ReadROML_Zaxxon(bit16 address)
 {
@@ -1378,33 +1434,7 @@ bit8 Cart::ReadUltimaxROML_Zaxxon(bit16 address)
 }
 
 
-bit8 Cart::ReadUltimaxROML(bit16 address)
-{
-	assert(address >= 0x8000 && address < 0xA000);
-	if (m_bEnableRAM)
-	{
-		bit16 addr = address - 0x8000;
-		return m_pCartData[addr + m_iRamBankOffset];
-	}
-	else
-	{
-		return m_ipROML_8000[address];
-	}
-}
-
-bit8 Cart::ReadROMH(bit16 address)
-{
-	assert(address >= 0xA000 && address < 0xE000);
-	return m_ipROMH_A000[address];
-}
-
-bit8 Cart::ReadUltimaxROMH(bit16 address)
-{
-	assert(address >= 0xE000);
-	return m_ipROMH_E000[address];
-}
-
-void Cart::WriteROML(bit16 address, bit8 data)
+void Cart::WriteROML_EasyFlash(bit16 address, bit8 data)
 {
 	assert(address >= 0x8000 && address < 0xA000);
 	if (m_bEnableRAM)
@@ -1412,26 +1442,6 @@ void Cart::WriteROML(bit16 address, bit8 data)
 		m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
 	}
 	m_pC64RamMemory[address] = data;
-}
-
-void Cart::WriteUltimaxROML(bit16 address, bit8 data)
-{
-	assert(address >= 0x8000 && address < 0xA000);
-	if (m_bEnableRAM)
-	{
-		m_pCartData[address - 0x8000 + m_iRamBankOffset] = data;
-	}
-}
-
-void Cart::WriteROMH(bit16 address, bit8 data)
-{
-	assert(address >= 0xA000 && address < 0xE000);
-	m_pC64RamMemory[address] = data;
-}
-
-void Cart::WriteUltimaxROMH(bit16 address, bit8 data)
-{
-	assert(address >= 0xE000);
 }
 
 bool Cart::IsCartIOActive()

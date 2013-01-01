@@ -133,10 +133,10 @@ public:
 	bit8 ReadUltimaxROML_EasyFlash(bit16 address);
 	bit8 ReadUltimaxROMH_EasyFlash(bit16 address);
 
-	void WriteROML_EasyFlash(bit16 address);
-	void WriteROMH_EasyFlash(bit16 address);
-	void WriteUltimaxROML_EasyFlash(bit16 address);
-	void WriteUltimaxROMH_EasyFlash(bit16 address);
+	void WriteROML_EasyFlash(bit16 address, bit8 data);
+	void WriteROMH_EasyFlash(bit16 address, bit8 data);
+	void WriteUltimaxROML_EasyFlash(bit16 address, bit8 data);
+	void WriteUltimaxROMH_EasyFlash(bit16 address, bit8 data);
 
 	bool IsCartIOActive();
 	int GetTotalCartMemoryRequirement();
