@@ -35,26 +35,14 @@ Cart::Cart()
 	m_crtHeader.EXROM = 1;
 	m_crtHeader.GAME = 1;
 	m_crtHeader.HardwareType = 0;
-	reg1 = 0;
-	reg2 = 0;
 	m_pCartData = 0;
-	m_bIsCartAttached = false;
-	m_bIsCartIOActive = false;
-	m_bIsCartRegActive = false;
-	m_iSelectedBank = 0;
-	m_iRamBankOffset = 0;
-	m_bAllowBank = false;
-	m_bREUcompatible = false;
-	GAME = 1;
-	EXROM = 1;
 	m_pCpu = NULL;
-	m_bEnableRAM = false;
-	m_bFreezePending = false;
-	m_bFreezeDone= false;
 	m_ipROML_8000 = NULL;
 	m_ipROMH_A000 = NULL;
 	m_ipROMH_E000 = NULL;
 	m_bEffects = true;
+	m_bIsCartAttached = false;
+	InitReset(0);
 }
 
 Cart::~Cart()
@@ -213,12 +201,7 @@ __int64 iFileIndex = 0;
 					ok = false;
 					break;
 				}
-				//if ((chip.LoadAddressRange != 0x8000 || (chip.ROMImageSize != 0x2000 && chip.ROMImageSize != 0x4000)) && (chip.LoadAddressRange != 0xA000 || (chip.ROMImageSize != 0x2000)) && (chip.LoadAddressRange != 0xE000 || (chip.ROMImageSize != 0x2000)))
-				//{
-				//	hr = SetError(E_FAIL, TEXT("Unsupported chip in bank $%x address $%0.4x with size $%0.4x. 16K chip sizes must start at $8000 and 8K chip sizes must start at $8000 or $A000 or $E000."), (int)chip.BankLocation, (int)chip.LoadAddressRange, (int)chip.ROMImageSize);
-				//	ok = false;
-				//	break;
-				//}
+
 				switch (chip.ChipType)
 				{
 					case 0://ROM
@@ -396,6 +379,25 @@ __int64 iFileIndex = 0;
 		}
 		else
 		{
+#if (_MSC_VER < 1600)
+			this->OnReadROML = boost::bind(&Cart::ReadROML, this, _1);
+			this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML, this, _1);
+			this->OnReadROMH = boost::bind(&Cart::ReadROMH, this, std::placeholders::_1);
+			this->OnReadUltimaxROMH = boost::bind(&Cart::ReadUltimaxROMH, this, _1);
+			this->OnWriteROML = boost::bind(&Cart::WriteROML, this, _1, _2);
+			this->OnWriteUltimaxROML = boost::bind(&Cart::WriteUltimaxROML, this, _1, _2);
+			this->OnWriteROMH = boost::bind(&Cart::WriteROMH, this, _1, _2);
+			this->OnWriteUltimaxROMH = boost::bind(&Cart::WriteUltimaxROMH, this, _1, _2);
+#else
+			this->OnReadROML = std::bind(&Cart::ReadROML, this, std::placeholders::_1);
+			this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML, this, std::placeholders::_1);
+			this->OnReadROMH = std::bind(&Cart::ReadROMH, this, std::placeholders::_1);
+			this->OnReadUltimaxROMH = std::bind(&Cart::ReadUltimaxROMH, this, std::placeholders::_1);
+			this->OnWriteROML = std::bind(&Cart::WriteROML, this, std::placeholders::_1, std::placeholders::_2);
+			this->OnWriteUltimaxROML = std::bind(&Cart::WriteUltimaxROML, this, std::placeholders::_1, std::placeholders::_2);
+			this->OnWriteROMH = std::bind(&Cart::WriteROMH, this, std::placeholders::_1, std::placeholders::_2);
+			this->OnWriteUltimaxROMH = std::bind(&Cart::WriteUltimaxROMH, this, std::placeholders::_1, std::placeholders::_2);
+#endif
 			switch(hdr.HardwareType)
 			{
 			case CartType::Zaxxon:
@@ -414,16 +416,8 @@ __int64 iFileIndex = 0;
 				if (lstBank[1])
 				{
 					lstBank[1]->chipAndDataLow = lstBank[0]->chipAndDataLow;
+					lstBank[1]->chipAndDataLow.chip.BankLocation = 1;
 				}
-				break;
-			default:
-#if (_MSC_VER < 1600)
-				this->OnReadROML = boost::bind(&Cart::ReadROML, this, _1);
-				this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML, this, _1);
-#else
-				this->OnReadROML = std::bind(&Cart::ReadROML, this, std::placeholders::_1);
-				this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML, this, std::placeholders::_1);
-#endif
 				break;
 			}
 
@@ -470,29 +464,15 @@ void Cart::CleanUp()
 void Cart::InitReset(ICLK sysclock)
 {
 	CurrentClock = sysclock;
-	reg1 = 0;
-	reg2 = 0;
 	m_iSelectedBank = 0;
 	m_bSimonsBasic16K = false;
 	m_bFreezePending = false;
 	m_bFreezeDone = false;
 	m_bDE01WriteDone = false;
-	m_bIsCartIOActive = true;
 	m_bREUcompatible = false;
 	m_bAllowBank = false;
 	m_iRamBankOffset = 0;
 	m_bEnableRAM = false;
-
-	if (this->m_bIsCartAttached)
-	{
-		GAME = m_crtHeader.GAME;
-		EXROM = m_crtHeader.EXROM;
-	}
-	else
-	{
-		GAME = 1;
-		EXROM = 1;
-	}
 
 	m_bActionReplayMk2Rom = true;
 	m_iActionReplayMk2EnableRomCounter=0;
@@ -500,12 +480,29 @@ void Cart::InitReset(ICLK sysclock)
 	m_clockLastDE00Write = sysclock;
 	m_clockLastDF40Read = sysclock;
 
-	switch(this->m_crtHeader.HardwareType)
+	m_iEasyFlashCommandByte = 0;
+	m_iEasyFlashCommandCycle = 0;
+	m_iEasyFlashStatus = 0;
+	m_iEasyFlashByteWritten = 0;
+
+	reg1 = 0;
+	reg2 = 0;
+	if (m_bIsCartAttached)
 	{
-	case CartType::EasyFlash:
-		reg1 = 0;
-		reg2 = 5;
-		break;
+		m_bIsCartIOActive = true;
+		m_bIsCartRegActive = true;
+		switch(m_crtHeader.HardwareType)
+		{
+		case CartType::EasyFlash:
+			reg1 = 0;
+			reg2 = 5;
+			break;
+		}
+	}
+	else
+	{
+		m_bIsCartIOActive = false;
+		m_bIsCartRegActive = false;
 	}
 	//UpdateIO called here to allow the CPU to see the correct reset vector since cpu.Reset() is called before cart.Reset()
 	UpdateIO();

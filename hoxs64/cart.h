@@ -118,9 +118,25 @@ public:
 
 	function<bit8 (bit16)> OnReadROML;
 	function<bit8 (bit16)> OnReadUltimaxROML;
+	function<bit8 (bit16)> OnReadROMH;
+	function<bit8 (bit16)> OnReadUltimaxROMH;
+	function<void (bit16, bit8)> OnWriteROML;
+	function<void (bit16, bit8)> OnWriteUltimaxROML;
+	function<void (bit16, bit8)> OnWriteROMH;
+	function<void (bit16, bit8)> OnWriteUltimaxROMH;
 
 	bit8 ReadROML_Zaxxon(bit16 address);
 	bit8 ReadUltimaxROML_Zaxxon(bit16 address);
+
+	bit8 ReadROML_EasyFlash(bit16 address);
+	bit8 ReadROMH_EasyFlash(bit16 address);
+	bit8 ReadUltimaxROML_EasyFlash(bit16 address);
+	bit8 ReadUltimaxROMH_EasyFlash(bit16 address);
+
+	void WriteROML_EasyFlash(bit16 address);
+	void WriteROMH_EasyFlash(bit16 address);
+	void WriteUltimaxROML_EasyFlash(bit16 address);
+	void WriteUltimaxROMH_EasyFlash(bit16 address);
 
 	bool IsCartIOActive();
 	int GetTotalCartMemoryRequirement();
@@ -173,6 +189,11 @@ private:
 	int m_iActionReplayMk2DisableRomCounter;
 	ICLK m_clockLastDE00Write;
 	ICLK m_clockLastDF40Read;
+
+	bit8 m_iEasyFlashCommandByte;
+	bit8 m_iEasyFlashCommandCycle;
+	bit8 m_iEasyFlashStatus;
+	bit8 m_iEasyFlashByteWritten;
 };
 
 #endif
