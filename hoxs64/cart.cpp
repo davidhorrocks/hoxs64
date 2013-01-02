@@ -1721,7 +1721,7 @@ int k;
 		break;
 	case ByteProgram:
 		k = (m_pCart->m_iSelectedBank) & 0x3f;
-		if (k < m_vecBanks.size())
+		if ((unsigned int)k < m_vecBanks.size())
 		{
 			CrtChipAndData &pc = m_vecBanks[k];
 			if (pc.pData && address < pc.chip.ROMImageSize)
@@ -1896,7 +1896,7 @@ const bit8 Am29F040 = 0xA4;
 	{
 	case Read:
 		k = (m_pCart->m_iSelectedBank)  & 0x3f;
-		if (k < m_vecBanks.size())
+		if ((unsigned int)k < m_vecBanks.size())
 		{
 			CrtChipAndData &pc = m_vecBanks[k];
 			if (pc.pData && address < pc.chip.ROMImageSize)
@@ -1934,7 +1934,7 @@ int k;
 		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 80)
 		{
 			m_iCommandCycle = 0;
-			for (int i = 0; i < m_vecBanks.size(); i++)
+			for (int i = 0; (unsigned int)i < m_vecBanks.size(); i++)
 			{
 				CrtChipAndData &pc = m_vecBanks[i];
 				if (pc.pData)
@@ -1953,7 +1953,7 @@ int k;
 				for (int i = 0; i < 8; i++)
 				{
 					k = ((*it) +i ) & 0x3f;
-					if (k < m_vecBanks.size())
+					if ((unsigned int)k < m_vecBanks.size())
 					{
 						CrtChipAndData &pc = m_vecBanks[k];
 						if (pc.pData)
