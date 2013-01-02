@@ -4335,8 +4335,7 @@ bit8 modeOld;
 		if (cycle == 55)
 		{
 			//This fix was added to make the "Booze Design-Starion" demo work.
-			//clock 55 is special because this is where the VIC alters ff_YP based on vicSpriteYExpand.
-				
+			//Clear the Y expansion flip-flop if Y expansion register bit transitions on (0 -> 1) in cycle 55.	
 			ff_YP = (vicSpriteYExpand & ff_YP) | (~vicSpriteYExpand & ff_YP & ~data);
 		}
 		ff_YP = (ff_YP & data) | ~data;
