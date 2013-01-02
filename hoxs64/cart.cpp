@@ -445,7 +445,7 @@ __int64 iFileIndex = 0;
 #if (_MSC_VER < 1600)
 			this->OnReadROML = boost::bind(&Cart::ReadROML, this, _1);
 			this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML, this, _1);
-			this->OnReadROMH = boost::bind(&Cart::ReadROMH, this, std::placeholders::_1);
+			this->OnReadROMH = boost::bind(&Cart::ReadROMH, this, _1);
 			this->OnReadUltimaxROMH = boost::bind(&Cart::ReadUltimaxROMH, this, _1);
 			this->OnWriteROML = boost::bind(&Cart::WriteROML, this, _1, _2);
 			this->OnWriteUltimaxROML = boost::bind(&Cart::WriteUltimaxROML, this, _1, _2);
@@ -486,7 +486,7 @@ __int64 iFileIndex = 0;
 #if (_MSC_VER < 1600)
 				this->OnReadROML = boost::bind(&Cart::ReadROML_EasyFlash, this, _1);
 				this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML_EasyFlash, this, _1);
-				this->OnReadROMH = boost::bind(&Cart::ReadROMH_EasyFlash, this, std::placeholders::_1);
+				this->OnReadROMH = boost::bind(&Cart::ReadROMH_EasyFlash, this, _1);
 				this->OnReadUltimaxROMH = boost::bind(&Cart::ReadUltimaxROMH_EasyFlash, this, _1);
 				this->OnWriteROML = boost::bind(&Cart::WriteROML_EasyFlash, this, _1, _2);
 				this->OnWriteUltimaxROML = boost::bind(&Cart::WriteUltimaxROML_EasyFlash, this, _1, _2);
