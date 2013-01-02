@@ -1802,7 +1802,7 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	line_info= &BA_line_info[vicSpriteDMA];
 	vic_address_line_info = &(*line_info)[vic_badline];
 
-	ff_YP=0;
+	ff_YP=0xff;
 	vicSpriteMSBX=0;
 	vicSpriteEnable=0;
 	vicSpriteYExpand=0;
