@@ -102,33 +102,6 @@ bit8 VIC6569::BA_line_info[256][2][64]=
 	}
 };
 
-
-const int VIC6569::vic_ii_sprites_crunch_table[64] =
-{
-	1,   4,   3, /* 0 */
-	4,   1,   0, /* 3 */
-	-1,   0,   1, /* 6 */
-	4,   3,   4, /* 9 */
-	1,   8,   7, /* 12 */
-	8,   1,   4, /* 15 */
-	3,   4,   1, /* 18 */
-	0,  -1,   0, /* 21 */
-	1,   4,   3, /* 24 */
-	4,   1,  -8, /* 27 */
-	-9,  -8,   1, /* 30 */
-	4,   3,   4, /* 33 */
-	1,   0,  -1, /* 36 */
-	0,   1,   4, /* 39 */
-	3,   4,   1, /* 42 */
-	8,   7,   8, /* 45 */
-	1,   4,   3, /* 48 */
-	4,   1,   0, /* 51 */
-	-1,   0,   1, /* 54 */
-	4,   3,   4, /* 57 */
-	1, -40, -41, /* 60 */
-	0
-};
-
 bit8 VIC6569::vic_spr_load_x[8]=
 {
 	58,60,62,1,3,5,7,9
@@ -1693,6 +1666,7 @@ void VIC6569::InitReset(ICLK sysclock)
 {
 int i,j;
 bit32 initial_raster_line = PAL_MAX_LINE;
+
 	CurrentClock = sysclock;
 	ClockNextWakeUpClock=sysclock;
 	FrameNumber = 0;
@@ -1789,9 +1763,9 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 		vicSprite[i].Reset();
 		vicSpriteX[i]=0;
 		vicSpriteY[i]=0;
-		MC_INCR[i]=3;
 		SpriteXChange(i,0,1);
 	}
+	vicClearingYExpandRegInClock15 = 0;
 	vicSpriteArmedOrActive = 0;
 	vicSpriteDMA=0;
 	vicSpriteDMAPrev=0;
@@ -2559,6 +2533,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite3, 1) = vic_ph1_read_byte(vicSpritePointer[sprite3] + MC[sprite3]);
 				MC[sprite3] = (MC[sprite3] + 1) & 63;
 				LOADSPRITEDATA(sprite3, 0) = vic_ph2_read_byte(vicSpritePointer[sprite3] + MC[sprite3]);
+				MC[sprite3] = (MC[sprite3] + 1) & 63;
 			}
 			else
 			{
@@ -2589,6 +2564,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite4, 1) = vic_ph1_read_byte(vicSpritePointer[sprite4] + MC[sprite4]);
 				MC[sprite4] = (MC[sprite4] + 1) & 63;
 				LOADSPRITEDATA(sprite4, 0) = vic_ph2_read_byte(vicSpritePointer[sprite4] + MC[sprite4]);
+				MC[sprite4] = (MC[sprite4] + 1) & 63;
 			}
 			else
 			{
@@ -2619,6 +2595,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite5, 1) = vic_ph1_read_byte(vicSpritePointer[sprite5] + MC[sprite5]);
 				MC[sprite5] = (MC[sprite5] + 1) & 63;
 				LOADSPRITEDATA(sprite5, 0) = vic_ph2_read_byte(vicSpritePointer[sprite5] + MC[sprite5]);
+				MC[sprite5] = (MC[sprite5] + 1) & 63;
 			}
 			else
 			{
@@ -2649,6 +2626,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite6, 1) = vic_ph1_read_byte(vicSpritePointer[sprite6] + MC[sprite6]);
 				MC[sprite6] = (MC[sprite6] + 1) & 63;
 				LOADSPRITEDATA(sprite6, 0) = vic_ph2_read_byte(vicSpritePointer[sprite6] + MC[sprite6]);
+				MC[sprite6] = (MC[sprite6] + 1) & 63;
 			}
 			else
 			{
@@ -2684,6 +2662,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite7, 1) = vic_ph1_read_byte(vicSpritePointer[sprite7] + MC[sprite7]);
 				MC[sprite7] = (MC[sprite7] + 1) & 63;
 				LOADSPRITEDATA(sprite7, 0) = vic_ph2_read_byte(vicSpritePointer[sprite7] + MC[sprite7]);
+				MC[sprite7] = (MC[sprite7] + 1) & 63;
 			}
 			else
 			{
@@ -2764,12 +2743,22 @@ bit8 data8;
 			for (ibit8=1,i=0 ; i < 8 ; i++,ibit8<<=1)
 			{
 				if (ff_YP & ibit8)
-					MCBASE[i]= (MCBASE[i]+MC_INCR[i]) & 63;
+				{
+					if (vicClearingYExpandRegInClock15 & ibit8)
+					{
+						MCBASE[i] = (0x2A & MCBASE[i] & MC[i]) | (0x15 & (MCBASE[i] | MC[i]));
+					}
+					else
+					{
+						MCBASE[i] = MC[i];
+					}
+				}				
 				if (MCBASE[i]==63)
 				{
 					vicSpriteDMA &= ~ibit8;
 				}
 			}
+			vicClearingYExpandRegInClock15 = 0;
 
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][vic_badline];
 			SetBA(clocks, cycle);
@@ -2927,7 +2916,6 @@ bit8 data8;
 					if (vicSpriteYExpand & ibit8)
 						ff_YP &= ~ibit8;
 				}
-				MC_INCR[i] = (ff_YP & ibit8) ? 3 : 0;
 			}
 
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][0];
@@ -3038,6 +3026,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite0, 1) = vic_ph1_read_byte(vicSpritePointer[sprite0] + MC[sprite0]);
 				MC[sprite0] = (MC[sprite0] + 1) & 63;
 				LOADSPRITEDATA(sprite0, 0) = vic_ph2_read_byte(vicSpritePointer[sprite0] + MC[sprite0]);
+				MC[sprite0] = (MC[sprite0] + 1) & 63;
 			}
 			else
 			{
@@ -3076,6 +3065,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite1, 1) = vic_ph1_read_byte(vicSpritePointer[sprite1] + MC[sprite1]);
 				MC[sprite1] = (MC[sprite1] + 1) & 63;
 				LOADSPRITEDATA(sprite1, 0) = vic_ph2_read_byte(vicSpritePointer[sprite1] + MC[sprite1]);
+				MC[sprite1] = (MC[sprite1] + 1) & 63;
 			}
 			else
 			{
@@ -3110,6 +3100,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite2, 1) = vic_ph1_read_byte(vicSpritePointer[sprite2] + MC[sprite2]);
 				MC[sprite2] = (MC[sprite2] + 1) & 63;
 				LOADSPRITEDATA(sprite2, 0) = vic_ph2_read_byte(vicSpritePointer[sprite2] + MC[sprite2]);
+				MC[sprite2] = (MC[sprite2] + 1) & 63;
 			}
 			else
 			{
@@ -3447,7 +3438,6 @@ void VIC6569::DmaFixUp(bit8 cycle, bit8 data)
 void VIC6569::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 bit16 old_raster_compare;
-bit8 i,ibit8;
 bit8 cycle;
 bit8 oldVicRSEL;
 bit8 oldVicDEN;
@@ -4317,21 +4307,10 @@ bit8 modeOld;
 		}
 		break;
 	case 0x17:	//sprite Y expand
-		for (ibit8=1,i=0 ; i < 8 ; i++,ibit8<<=1)
+		if (cycle == 15)
 		{
-			if (!(data & ibit8) && !(ff_YP & ibit8))
-			{
-				//the flip-flop is clear while writing a 0 
-				/* Sprite crunch!  */
-				if (cycle == 15)
-					MC_INCR[i] = vic_ii_sprites_crunch_table[MCBASE[i]];
-				else if (cycle < 15)
-					MC_INCR[i] =3;
-				else if (cycle > 55) // Fix for "Spice Up Your Life"
-					MC_INCR[i] =3;
-			}
-		}
-		
+			vicClearingYExpandRegInClock15 = ~(data | ff_YP);
+		}		
 		if (cycle == 55)
 		{
 			//This fix was added to make the "Booze Design-Starion" demo work.

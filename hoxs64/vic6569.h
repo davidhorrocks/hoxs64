@@ -159,7 +159,7 @@ public:
 	bit8 vicSpriteX[8];
 	bit8 vicSpriteY[8];
 	bit16 MC[8],MCBASE[8];
-	bit16 MC_INCR[8];
+	bit8 vicClearingYExpandRegInClock15;
 	bit8 vicSpriteMSBX;
 	bit8 vicSpriteEnable;
 	bit8 vicSpriteYExpand;
@@ -278,7 +278,6 @@ private:
 	bool m_bVicModeChanging;
 	bit32 VideoMatrix[100];//NUM_SCREEN_COLUMNS
 	static bit8 BA_line_info[256][2][64];
-	static const int vic_ii_sprites_crunch_table[64];
 	static bit8 vic_spr_load_x[8];
 	static bit16 vic_spr_data_load_x[8];
 
