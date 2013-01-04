@@ -632,7 +632,6 @@ ICLK vicCurrentClock;
 
 void VIC6569::SetSystemInterrupt()
 {
-	ClockNextWakeUpClock = CurrentClock;
 	cpu->Set_VIC_IRQ(CurrentClock);
 }
 
@@ -1668,7 +1667,6 @@ int i,j;
 bit32 initial_raster_line = PAL_MAX_LINE;
 
 	CurrentClock = sysclock;
-	ClockNextWakeUpClock=sysclock;
 	FrameNumber = 0;
 	m_iLastBackedUpFrameNumber = -1;
 	vicMemoryBankIndex = 0;
@@ -2427,8 +2425,6 @@ bit8 ibit8;
 bit8 cycle;
 bit8 cyclePrev;
 ICLK clocks;
-bool bNextLineCouldMayBeBad;
-bit32 nextLine;
 bit8 *ptr8;
 bit8 data8;
 
@@ -2998,20 +2994,6 @@ bit8 data8;
 			if (vicIDLE==0)
 				vicRC=(vicRC +1) & 7;
 
-			nextLine = (vic_raster_line + 1) % (PAL_MAX_LINE + 1);
-			bNextLineCouldMayBeBad = false;
-			if (nextLine>=0x30 && nextLine<=0xf7 && ((nextLine & 7)==vicYSCROLL))
-			{
-				bNextLineCouldMayBeBad = true;
-			}
-			if ((bNextLineCouldMayBeBad == false) && (vicSpriteDMA == 0) && (nextLine != 0 || (vicINTERRUPT_ENABLE & 0x8) == 0) && (nextLine != vicRASTER_compare || (vicINTERRUPT_ENABLE & 0x1) == 0) && (vicSpriteArmedOrActive == 0 || (vicINTERRUPT_ENABLE & 0x6) == 0))
-			{
-				ClockNextWakeUpClock = CurrentClock + 59;
-			}
-			else
-			{
-				ClockNextWakeUpClock = CurrentClock;
-			}
 			break;
 		case 59:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
@@ -3245,7 +3227,6 @@ bit8 data;
 		data = (bit8)vicSpriteXExpand;
 		break;
 	case 0x1e:	//sprite-sprite collision
-		ClockNextWakeUpClock = sysclock;
 		t = (bit8)vicSpriteSpriteCollision;
 		vicSpriteSpriteInt = 1;
 		SpriteCollisionUpdateArmedOrActive();
@@ -3253,7 +3234,6 @@ bit8 data;
 		data = t;
 		break;
 	case 0x1f:	//sprite-data collision
-		ClockNextWakeUpClock = sysclock;
 		t = (bit8)vicSpriteDataCollision;
 		vicSpriteDataInt = 1;
 		SpriteCollisionUpdateArmedOrActive();
@@ -3334,6 +3314,7 @@ void VIC6569::SpriteXChange(bit8 spriteNo, bit16 x_new, bit8 cycle)
 
 void VIC6569::CheckRasterCompare(bit8 cycle)
 {
+
 	//Edge triggered raster IRQ noticed in Octopus In Red Wine demo.
 	if (!vic_check_irq_in_cycle2)
 	{
@@ -3530,7 +3511,6 @@ bit8 modeOld;
 		vicSpriteMSBX = data;
 		break;
 	case 0x11:	//control 1
-		ClockNextWakeUpClock = sysclock;
 		modeOld = vicECM_BMM_MCM;
 		m_bVicModeChanging = true;
 		oldXScroll = vicXSCROLL;
@@ -3951,7 +3931,6 @@ bit8 modeOld;
 		
 		if (vicRASTER_compare != old_raster_compare)
 		{
-			//nextWakeUpClock = sysclock;
 			CheckRasterCompare(cycle);
 		}		
 		break;
@@ -3961,11 +3940,8 @@ bit8 modeOld;
 		break;
 	case 0x15:	//sprite enable
 		vicSpriteEnable = data;
-		if (data != 0)
-			ClockNextWakeUpClock = sysclock;
 		break;
 	case 0x16:	//control 2
-		ClockNextWakeUpClock = sysclock;
 		modeOld = vicECM_BMM_MCM;
 		m_bVicModeChanging = true;
 		oldXScroll = vicXSCROLL;
@@ -4333,7 +4309,6 @@ bit8 modeOld;
 		vicINTERRUPT_ENABLE = data & 0xF;
 		if ((vicINTERRUPT_STATUS & vicINTERRUPT_ENABLE & 0xF)!=0)
 		{
-			//nextWakeUpClock = sysclock;
 			SetSystemInterrupt();
 		}
 		else

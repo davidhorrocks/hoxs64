@@ -76,7 +76,6 @@ void C64::InitReset(ICLK sysclock)
 	cia1.nextKeyboardScanClock = sysclock;
 	cia1.ClockNextWakeUpClock = sysclock;
 	cia2.ClockNextWakeUpClock = sysclock;
-	vic.ClockNextWakeUpClock = sysclock;
 	m_bLastPostedDriveWriteLed = false;
 
 	ram.InitReset();

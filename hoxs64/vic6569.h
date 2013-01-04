@@ -111,7 +111,7 @@ public:
 	LPDIRECT3DSURFACE9 m_pBackBuffer;
 	D3DLOCKED_RECT m_LockRect;
 
-	ICLK ClockNextWakeUpClock;
+	//ICLK ClockNextWakeUpClock;
 
 	bit8 cpu_next_op_code;
 
