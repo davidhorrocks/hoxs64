@@ -714,8 +714,11 @@ void CPU6502::SetBALow(ICLK sysclock)
 
 void CPU6502::SetBAHigh(ICLK sysclock)
 {
-	BA = 1;
-	LastBAHighClock = sysclock;
+	if (BA == 0)
+	{
+		LastBAHighClock = sysclock;
+		BA = 1;
+	}
 }
 
 void CPU6502::SetIRQ(ICLK sysclock)
@@ -2790,7 +2793,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			break;
 		case TAS_ABSOLUTEY:
 			this->SyncChips();
-			if (this->LastBAHighClock != CurrentClock)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
 				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
 			}
@@ -2807,7 +2810,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			break;	
 		case SAY_ABSOLUTEX:
 			this->SyncChips();
-			if (this->LastBAHighClock != CurrentClock)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
 				axa_byte = ((bit8)((addr.word-mX) >> 8)+1);
 			}
@@ -2823,7 +2826,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			break;	
 		case XAS_ABSOLUTEY:
 			this->SyncChips();
-			if (this->LastBAHighClock != CurrentClock)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
 				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
 			}
@@ -2840,7 +2843,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case AXA_ABSOLUTEY:
 		case AXA_INDIRECTY://AHX/SHAAY/SHAIY
 			this->SyncChips();
-			if (this->LastBAHighClock != CurrentClock)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
 				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
 			}
