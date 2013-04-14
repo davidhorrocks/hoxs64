@@ -270,7 +270,7 @@ bit8 *t;
 			default:
 				if (pCart->IsCartAttached())
 				{
-					switch(ram->GetCpuMmuReadMemoryType(address, -1))
+					switch(ram->GetCpuMmuWriteMemoryType(address, -1))
 					{
 					case MT_ROML:
 						pCart->OnWriteROML(address, data);
@@ -422,7 +422,7 @@ bit8 *t;
 			default:
 				if (pCart->IsCartAttached())
 				{
-					switch(ram->GetCpuMmuReadMemoryType(address, memorymap))
+					switch(ram->GetCpuMmuWriteMemoryType(address, memorymap))
 					{
 					case MT_ROML:
 						pCart->WriteROML(address, data);
