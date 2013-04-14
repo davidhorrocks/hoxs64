@@ -218,7 +218,8 @@ public:
 	bit8 m_bFreezePending;
 	bit8 m_bFreezeDone;
 	bool m_bDE01WriteDone;
-	bit16 m_iRamBankOffset;
+	bit16 m_iRamBankOffsetIO;
+	bit16 m_iRamBankOffsetRomL;
 	bool m_bSimonsBasic16K;
 
 	bit8 *m_ipROML_8000;
