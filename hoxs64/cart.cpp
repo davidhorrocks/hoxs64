@@ -24,11 +24,325 @@
 const int Cart::RAMRESERVEDSIZE = 64 * 1024 + 8 * 1024;//Assume 64K cart RAM + 8K zero byte bank
 const int Cart::ZEROBANKOFFSET = 64 * 1024;
 
-#define ACTIONREPLAYMK2DISABLEROMCOUNT (20)
-#define ACTIONREPLAYMK2DISABLEROMTRIGGER (200)
+CartCommon::CartCommon(Cart *pCart, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: m_crtHeader(pCart->m_crtHeader), m_lstBank(pCart->m_lstBank)
+{
+	this->m_pCart = pCart;
+	this->m_pCpu = pCpu;
+	this->m_pC64RamMemory = pC64RamMemory;
 
-#define ACTIONREPLAYMK2ENABLEROMCOUNT (20)
-#define ACTIONREPLAYMK2ENABLEROMTRIGGER (12)
+	this->m_pCartData = pCart->m_pCartData;
+	this->m_pZeroBankData = pCart->m_pZeroBankData;
+
+	this->m_ipROML_8000 = pCart->m_pZeroBankData - 0x8000;
+	this->m_ipROMH_A000 = pCart->m_pZeroBankData - 0xA000;
+	this->m_ipROMH_E000 = pCart->m_pZeroBankData - 0xE000;
+	m_bIsCartAttached = false;
+	InitReset(pCpu->GetCurrentClock());
+}
+
+CartCommon::~CartCommon()
+{
+}
+
+void CartCommon::ConfigureMemoryMap()
+{
+	if (this->IsCartAttached())
+	{
+		UpdateIO();
+	}
+	else
+	{
+		GAME = 1;
+		EXROM = 1;
+		m_pCpu->Clear_CRT_IRQ();
+		m_pCpu->Clear_CRT_NMI();
+	}
+	m_pCpu->ConfigureMemoryMap();
+}
+
+void CartCommon::CheckForCartFreeze()
+{
+}
+
+void CartCommon::ExecuteCycle(ICLK sysclock)
+{
+	CurrentClock = sysclock;
+}
+
+bit8 CartCommon::ReadRegister(bit16 address, ICLK sysclock)
+{
+	return 0;
+}
+
+void CartCommon::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
+{
+}
+
+bit8 CartCommon::ReadRegister_no_affect(bit16 address, ICLK sysclock)
+{
+	m_bEffects = false;
+	bit8 r = ReadRegister(address, sysclock);
+	m_bEffects = true;
+	return r;
+}
+
+void CartCommon::BankRom()
+{
+	m_ipROML_8000 = m_pZeroBankData - 0x8000;
+	m_ipROMH_A000 = m_pZeroBankData - 0xA000;
+	m_ipROMH_E000 = m_pZeroBankData - 0xE000;
+	SIZE_T i = m_iSelectedBank;
+	if (i < m_lstBank.size())
+	{
+		Sp_CrtBank p = m_lstBank[i];
+		if (p)
+		{
+			CrtChipAndData* pL = &p->chipAndDataLow;
+			CrtChipAndData* pH = &p->chipAndDataHigh;
+			if (pL->chip.ROMImageSize != 0)
+			{
+				if (pL->chip.ROMImageSize <= 0x2000)
+				{
+					m_ipROML_8000 = pL->pData - 0x8000;
+				}
+				else if (pL->chip.ROMImageSize <= 0x4000)
+				{
+					m_ipROML_8000 = pL->pData - 0x8000;
+					m_ipROMH_A000 = &pL->pData[0x2000] - 0xA000;
+					m_ipROMH_E000 = &pL->pData[0x2000] - 0xE000;
+				}
+			}
+			if (pH->chip.ROMImageSize != 0)
+			{
+				m_ipROMH_E000 = pH->pData - 0xE000;
+				m_ipROMH_A000 = pH->pData - 0xA000;
+			}
+		}
+	}
+	this->m_pCart->m_ipROML_8000 = m_ipROML_8000;
+	this->m_pCart->m_ipROMH_A000 = m_ipROMH_A000;
+	this->m_pCart->m_ipROMH_E000 = m_ipROMH_E000;
+}
+
+void CartCommon::CartFreeze()
+{
+}
+
+void CartCommon::InitReset(ICLK sysclock)
+{
+	CurrentClock = sysclock;
+	m_bEffects = true;
+	m_iSelectedBank = 0;
+	m_bFreezePending = false;
+	m_bFreezeDone = false;
+	m_bREUcompatible = false;
+	m_bAllowBank = false;
+	m_iRamBankOffsetIO = 0;
+	m_iRamBankOffsetRomL = 0;
+	m_bEnableRAM = false;
+	m_bIsCartIOActive = true;
+	m_bIsCartRegActive = true;
+	reg1 = 0;
+	reg2 = 0;
+	m_pCpu->Clear_CRT_IRQ();
+	m_pCpu->Clear_CRT_NMI();
+}
+
+void CartCommon::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
+	ConfigureMemoryMap();
+}
+
+void CartCommon::CartReset()
+{
+	if (m_bIsCartAttached)
+	{
+		this->Reset(m_pCpu->GetCurrentClock());
+		m_pCpu->Reset(m_pCpu->GetCurrentClock());
+	}
+}
+
+
+void CartCommon::AttachCart()
+{
+	if (!m_bIsCartAttached)
+	{
+		m_bIsCartAttached = true;
+		this->Reset(m_pCpu->GetCurrentClock());
+		if (m_bFreezePending)
+		{
+			CartFreeze();
+		}
+		ConfigureMemoryMap();
+	}
+}
+
+void CartCommon::DetachCart()
+{
+	if (m_bIsCartAttached)
+	{
+		m_bIsCartAttached = false;
+		ConfigureMemoryMap();
+	}
+}
+
+bit8 CartCommon::Get_GAME()
+{
+	return this->GAME;
+}
+
+bit8 CartCommon::Get_EXROM()
+{
+	return this->EXROM;
+}
+
+bool CartCommon::IsCartIOActive()
+{
+	return this->m_bIsCartAttached && this->m_bIsCartIOActive;
+}
+
+bool CartCommon::IsCartAttached()
+{
+	return this->m_bIsCartAttached;
+}
+
+bool CartCommon::IsUltimax()
+{
+	return GAME == 0 && EXROM != 0;
+}
+
+
+bit8 CartCommon::ReadROML(bit16 address)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (m_bEnableRAM)
+	{
+		bit16 addr = address - 0x8000;
+		return m_pCartData[addr + m_iRamBankOffsetRomL];
+	}
+	else
+	{
+		return m_ipROML_8000[address];
+	}
+}
+
+void CartCommon::WriteROML(bit16 address, bit8 data)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (m_bEnableRAM)
+	{
+		m_pCartData[address - 0x8000 + m_iRamBankOffsetRomL] = data;
+	}
+	m_pC64RamMemory[address] = data;
+}
+
+bit8 CartCommon::ReadROMH(bit16 address)
+{
+	assert(address >= 0xA000 && address < 0xC000);
+	return m_ipROMH_A000[address];
+}
+
+void CartCommon::WriteROMH(bit16 address, bit8 data)
+{
+	assert(address >= 0xA000 && address < 0xC000);
+	m_pC64RamMemory[address] = data;
+}
+
+bit8 CartCommon::ReadUltimaxROML(bit16 address)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (m_bEnableRAM)
+	{
+		bit16 addr = address - 0x8000;
+		return m_pCartData[addr + m_iRamBankOffsetRomL];
+	}
+	else
+	{
+		return m_ipROML_8000[address];
+	}
+}
+
+void CartCommon::WriteUltimaxROML(bit16 address, bit8 data)
+{
+	assert(address >= 0x8000 && address < 0xA000);
+	if (m_bEnableRAM)
+	{
+		m_pCartData[address - 0x8000 + m_iRamBankOffsetRomL] = data;
+	}
+}
+
+bit8 CartCommon::ReadUltimaxROMH(bit16 address)
+{
+	assert(address >= 0xE000);
+	return m_ipROMH_E000[address];
+}
+
+void CartCommon::WriteUltimaxROMH(bit16 address, bit8 data)
+{
+	assert(address >= 0xE000);
+}
+
+bit8 CartCommon::MonReadROML(bit16 address)
+{
+	m_bEffects = false;
+	bit8 r = ReadROML(address);
+	m_bEffects = true;
+	return r;
+}
+
+bit8 CartCommon::MonReadROMH(bit16 address)
+{
+	m_bEffects = false;
+	bit8 r = ReadROMH(address);
+	m_bEffects = true;
+	return r;
+}
+
+bit8 CartCommon::MonReadUltimaxROML(bit16 address)
+{
+	m_bEffects = false;
+	bit8 r = ReadUltimaxROML(address);
+	m_bEffects = true;
+	return r;
+}
+
+bit8 CartCommon::MonReadUltimaxROMH(bit16 address)
+{
+	m_bEffects = false;
+	bit8 r = ReadUltimaxROMH(address);
+	m_bEffects = true;
+	return r;
+}
+
+void CartCommon::MonWriteROML(bit16 address, bit8 data)
+{
+	m_bEffects = false;
+	WriteROML(address, data);
+	m_bEffects = true;
+}
+
+void CartCommon::MonWriteROMH(bit16 address, bit8 data)
+{
+	m_bEffects = false;
+	WriteROMH(address, data);
+	m_bEffects = true;
+}
+
+void CartCommon::MonWriteUltimaxROML(bit16 address, bit8 data)
+{
+	m_bEffects = false;
+	WriteUltimaxROML(address, data);
+	m_bEffects = true;
+}
+
+void CartCommon::MonWriteUltimaxROMH(bit16 address, bit8 data)
+{
+	m_bEffects = false;
+	WriteUltimaxROMH(address, data);
+	m_bEffects = true;
+}
 
 Cart::Cart()
 {
@@ -40,9 +354,7 @@ Cart::Cart()
 	m_ipROML_8000 = NULL;
 	m_ipROMH_A000 = NULL;
 	m_ipROMH_E000 = NULL;
-	m_bEffects = true;
-	m_bIsCartAttached = false;
-	InitReset(0);
+	m_bIsCartDataLoaded = false;
 }
 
 Cart::~Cart()
@@ -52,73 +364,21 @@ Cart::~Cart()
 
 void Cart::Init(IC6510 *pCpu, bit8 *pC64RamMemory)
 {
-	m_pCpu = pCpu;
-	m_pC64RamMemory = pC64RamMemory;
+	this->m_pCpu = pCpu;
+	this->m_pC64RamMemory = pC64RamMemory;
 }
 
-void Cart::InitReset(ICLK sysclock)
+void Cart::CleanUp()
 {
-	CurrentClock = sysclock;
-	m_iSelectedBank = 0;
-	m_bSimonsBasic16K = false;
-	m_bFreezePending = false;
-	m_bFreezeDone = false;
-	m_bDE01WriteDone = false;
-	m_bREUcompatible = false;
-	m_bAllowBank = false;
-	m_iRamBankOffsetIO = 0;
-	m_iRamBankOffsetRomL = 0;
-	m_bEnableRAM = false;
-
-	m_bActionReplayMk2Rom = true;
-	m_iActionReplayMk2EnableRomCounter=0;
-	m_iActionReplayMk2DisableRomCounter=0;
-	m_clockLastDE00Write = sysclock;
-	m_clockLastDF40Read = sysclock;
-
-	reg1 = 0;
-	reg2 = 0;
-	if (m_bIsCartAttached)
+	m_bIsCartDataLoaded = false;
+	m_lstBank.clear();
+	if (m_pCartData)
 	{
-		m_bIsCartIOActive = true;
-		m_bIsCartRegActive = true;
-		switch(m_crtHeader.HardwareType)
-		{
-		case CartType::EasyFlash:
-			reg1 = 0;
-			reg2 = 5;
-			m_EasyFlashChipROML.InitReset();
-			m_EasyFlashChipROMH.InitReset();
-			break;
-		}
+		GlobalFree(m_pCartData);
+		m_pCartData = 0;
+		m_pZeroBankData = 0;
 	}
-	else
-	{
-		m_bIsCartIOActive = false;
-		m_bIsCartRegActive = false;
-	}
-	//UpdateIO called here to allow the CPU to see the correct reset vector since cpu.Reset() is called before cart.Reset()
-	UpdateIO();
 }
-
-void Cart::Reset(ICLK sysclock)
-{
-	InitReset(sysclock);
-	m_pCpu->Clear_CRT_IRQ();
-	m_pCpu->Clear_CRT_NMI();
-	switch(m_crtHeader.HardwareType)
-	{
-	case CartType::EasyFlash:
-		reg1 = 0;
-		reg2 = 5;
-		m_EasyFlashChipROML.Reset(sysclock);
-		m_EasyFlashChipROMH.Reset(sysclock);
-		break;
-	}
-
-	ConfigureMemoryMap();
-}
-
 
 bool Cart::IsSupported()
 {
@@ -150,6 +410,24 @@ bool Cart::IsSupported(CartType::ECartType hardwareType)
 	return false;
 }
 
+int Cart::GetTotalCartMemoryRequirement()
+{
+	return GetTotalCartMemoryRequirement(m_lstBank);
+}
+
+int Cart::GetTotalCartMemoryRequirement(CrtBankList lstBank)
+{
+	int i = RAMRESERVEDSIZE;
+	for (CrtBankListIter it = lstBank.begin(); it!=lstBank.end(); it++)
+	{
+		Sp_CrtBank sp = *it;
+		if (!sp)
+			continue;
+		i = i + (int)(sp->chipAndDataLow.allocatedSize);
+		i = i + (int)(sp->chipAndDataHigh.allocatedSize);
+	}
+	return i;
+}
 
 HRESULT Cart::LoadCrtFile(LPCTSTR filename)
 {
@@ -443,35 +721,9 @@ __int64 iFileIndex = 0;
 		}
 		else
 		{
-#if (_MSC_VER < 1600)
-			this->OnReadROML = boost::bind(&Cart::ReadROML, this, _1);
-			this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML, this, _1);
-			this->OnReadROMH = boost::bind(&Cart::ReadROMH, this, _1);
-			this->OnReadUltimaxROMH = boost::bind(&Cart::ReadUltimaxROMH, this, _1);
-			this->OnWriteROML = boost::bind(&Cart::WriteROML, this, _1, _2);
-			this->OnWriteUltimaxROML = boost::bind(&Cart::WriteUltimaxROML, this, _1, _2);
-			this->OnWriteROMH = boost::bind(&Cart::WriteROMH, this, _1, _2);
-			this->OnWriteUltimaxROMH = boost::bind(&Cart::WriteUltimaxROMH, this, _1, _2);
-#else
-			this->OnReadROML = std::bind(&Cart::ReadROML, this, std::placeholders::_1);
-			this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML, this, std::placeholders::_1);
-			this->OnReadROMH = std::bind(&Cart::ReadROMH, this, std::placeholders::_1);
-			this->OnReadUltimaxROMH = std::bind(&Cart::ReadUltimaxROMH, this, std::placeholders::_1);
-			this->OnWriteROML = std::bind(&Cart::WriteROML, this, std::placeholders::_1, std::placeholders::_2);
-			this->OnWriteUltimaxROML = std::bind(&Cart::WriteUltimaxROML, this, std::placeholders::_1, std::placeholders::_2);
-			this->OnWriteROMH = std::bind(&Cart::WriteROMH, this, std::placeholders::_1, std::placeholders::_2);
-			this->OnWriteUltimaxROMH = std::bind(&Cart::WriteUltimaxROMH, this, std::placeholders::_1, std::placeholders::_2);
-#endif
 			switch(hdr.HardwareType)
 			{
 			case CartType::Zaxxon:
-#if (_MSC_VER < 1600)
-				this->OnReadROML = boost::bind(&Cart::ReadROML_Zaxxon, this, _1);
-				this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML_Zaxxon, this, _1);
-#else
-				this->OnReadROML = std::bind(&Cart::ReadROML_Zaxxon, this, std::placeholders::_1);
-				this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML_Zaxxon, this, std::placeholders::_1);
-#endif
 				if (lstBank[0] && lstBank[0]->chipAndDataLow.allocatedSize == 0x2000 && lstBank[0]->chipAndDataLow.pData!=0)
 				{
 					CopyMemory(&lstBank[0]->chipAndDataLow.pData[0x1000], &lstBank[0]->chipAndDataLow.pData[0], 0x1000);
@@ -483,29 +735,12 @@ __int64 iFileIndex = 0;
 					lstBank[1]->chipAndDataLow.chip.BankLocation = 1;
 				}
 				break;
-			case CartType::EasyFlash:
-#if (_MSC_VER < 1600)
-				this->OnReadROML = boost::bind(&Cart::ReadROML_EasyFlash, this, _1);
-				this->OnReadUltimaxROML = boost::bind(&Cart::ReadUltimaxROML_EasyFlash, this, _1);
-				this->OnReadROMH = boost::bind(&Cart::ReadROMH_EasyFlash, this, _1);
-				this->OnReadUltimaxROMH = boost::bind(&Cart::ReadUltimaxROMH_EasyFlash, this, _1);
-				this->OnWriteROML = boost::bind(&Cart::WriteROML_EasyFlash, this, _1, _2);
-				this->OnWriteUltimaxROML = boost::bind(&Cart::WriteUltimaxROML_EasyFlash, this, _1, _2);
-				this->OnWriteROMH = boost::bind(&Cart::WriteROMH_EasyFlash, this, _1, _2);
-				this->OnWriteUltimaxROMH = boost::bind(&Cart::WriteUltimaxROMH_EasyFlash, this, _1, _2);
-#else
-				this->OnReadROML = std::bind(&Cart::ReadROML_EasyFlash, this, std::placeholders::_1);
-				this->OnReadUltimaxROML = std::bind(&Cart::ReadUltimaxROML_EasyFlash, this, std::placeholders::_1);
-				this->OnReadROMH = std::bind(&Cart::ReadROMH_EasyFlash, this, std::placeholders::_1);
-				this->OnReadUltimaxROMH = std::bind(&Cart::ReadUltimaxROMH_EasyFlash, this, std::placeholders::_1);
-				this->OnWriteROML = std::bind(&Cart::WriteROML_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
-				this->OnWriteUltimaxROML = std::bind(&Cart::WriteUltimaxROML_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
-				this->OnWriteROMH = std::bind(&Cart::WriteROMH_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
-				this->OnWriteUltimaxROMH = std::bind(&Cart::WriteUltimaxROMH_EasyFlash, this, std::placeholders::_1, std::placeholders::_2);
-#endif
-				break;
 			}
-
+			if (this->m_spCurrentCart)
+			{
+				m_spCurrentCart->DetachCart();
+				m_spCurrentCart = 0;
+			}
 			m_lstBank.clear();
 			if (m_pCartData)
 			{
@@ -521,14 +756,7 @@ __int64 iFileIndex = 0;
 			m_ipROMH_A000 = m_pZeroBankData - 0xA000;
 			m_ipROMH_E000 = m_pZeroBankData - 0xE000;
 			pCartData = NULL;
-
-			switch(hdr.HardwareType)
-			{
-			case CartType::EasyFlash:
-				m_EasyFlashChipROML.Init(this, 0);
-				m_EasyFlashChipROMH.Init(this, 1);
-				break;
-			}
+			m_bIsCartDataLoaded = true;
 
 			if (!IsSupported())
 				hr = SetError(APPWARN_UNKNOWNCARTTYPE, TEXT("The hardware type for this cartridge is not supported. The emulator will attempt to run the ROM images with generic hardware. The cartridge software may not run correctly."));
@@ -538,1029 +766,252 @@ __int64 iFileIndex = 0;
 	{
 		GlobalFree(pCartData);
 		pCartData = NULL;		
-	}	
+	}
+	
 	return hr;
 }
 
-void Cart::CleanUp()
+shared_ptr<ICartInterface> Cart::CreateCartInterface(IC6510 *pCpu, bit8 *pC64RamMemory)
 {
-	m_bIsCartAttached = false;
-	m_EasyFlashChipROML.CleanUp();
-	m_EasyFlashChipROMH.CleanUp();
-	m_lstBank.clear();
-	if (m_pCartData)
+shared_ptr<ICartInterface> p;
+	try
 	{
-		GlobalFree(m_pCartData);
-		m_pCartData = 0;
-		m_pZeroBankData = 0;
+		switch(this->m_crtHeader.HardwareType)
+		{
+		case CartType::Normal_Cartridge:
+			p = shared_ptr<ICartInterface>(new CartNormalCartridge(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Action_Replay:
+			p = shared_ptr<ICartInterface>(new CartActionReplay(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Final_Cartridge_III:
+			p = shared_ptr<ICartInterface>(new CartFinalCartridgeIII(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Simons_Basic:
+			p = shared_ptr<ICartInterface>(new CartSimonsBasic(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Ocean_1:
+			p = shared_ptr<ICartInterface>(new CartOcean1(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Fun_Play:
+			p = shared_ptr<ICartInterface>(new CartFunPlay(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Super_Games:
+			p = shared_ptr<ICartInterface>(new CartSuperGames(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::System_3:
+			p = shared_ptr<ICartInterface>(new CartSystem3(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Dinamic:
+			p = shared_ptr<ICartInterface>(new CartDinamic(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Zaxxon:
+			p = shared_ptr<ICartInterface>(new CartZaxxon(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Magic_Desk:
+			p = shared_ptr<ICartInterface>(new CartMagicDesk(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Action_Replay_4:
+			p = shared_ptr<ICartInterface>(new CartActionReplayMk4(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::EasyFlash:
+			p = shared_ptr<ICartInterface>(new CartEasyFlash(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Action_Replay_3:
+			p = shared_ptr<ICartInterface>(new CartActionReplayMk3(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Retro_Replay:
+			p = shared_ptr<ICartInterface>(new CartRetroReplay(this, pCpu, pC64RamMemory));
+			break;
+		case CartType::Action_Replay_2:
+			p = shared_ptr<ICartInterface>(new CartActionReplayMk2(this, pCpu, pC64RamMemory));
+			break;
+		}
 	}
-	
-}
-
-void Cart::DetachCart()
-{
-	if (m_bIsCartAttached)
+	catch(std::bad_alloc&)
 	{
-		m_EasyFlashChipROML.Detach();
-		m_EasyFlashChipROMH.Detach();
-		m_bFreezePending = false;
-		m_pCpu->Clear_CRT_IRQ();
-		m_pCpu->Clear_CRT_NMI();
-		m_bIsCartAttached = false;
-		ConfigureMemoryMap();
-		CleanUp();
+		SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
+		p = 0;
 	}
+	return p;
 }
 
-bool Cart::IsCartAttached()
+void Cart::Reset(ICLK sysclock)
 {
-	return m_bIsCartAttached;
-}
-
-bool Cart::IsUltimax()
-{
-	return GAME == 0 && EXROM != 0;
+	if (m_spCurrentCart)
+		m_spCurrentCart->Reset(sysclock);
 }
 
 void Cart::ExecuteCycle(ICLK sysclock)
 {
-	CurrentClock = sysclock;
-}
-
-void Cart::UpdateIO()
-{
-//TODO CartType
-	if (m_bIsCartAttached)
-	{
-		switch (m_crtHeader.HardwareType)
-		{
-		case CartType::Retro_Replay:
-			if (m_bFreezePending)
-			{
-				BankRom();
-			}
-			else if (m_bFreezeDone)
-			{
-				m_bREUcompatible = (reg2 & 0x40) != 0;
-				m_bAllowBank = (reg2 & 0x2) != 0;
-				m_iSelectedBank = ((reg1 & 0x18) >> 3) | ((reg1 & 0x80) >> 5);// | ((reg1 & 0x20) >> 2);
-				m_bEnableRAM = (reg1 & 0x20) != 0;
-				m_iRamBankOffsetIO = 0;
-				m_iRamBankOffsetRomL = (bit16)((((int)m_iSelectedBank) & 3) << 13);//Maximum of 64K RAM available in non flash mode.
-				if (m_bAllowBank)
-				{
-					m_iRamBankOffsetIO = m_iRamBankOffsetRomL;
-				}
-				//Ultimax
-				GAME = 0;
-				EXROM = 1;
-				m_bIsCartIOActive = true;
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-			}
-			else
-			{
-				m_bREUcompatible = (reg2 & 0x40) != 0;
-				m_bAllowBank = (reg2 & 0x2) != 0;
-				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
-				m_bEnableRAM = (reg1 & 0x20) != 0;
-				m_iRamBankOffsetIO = 0;
-				m_iRamBankOffsetRomL = (bit16)((((int)m_iSelectedBank) & 3) << 13); 
-				if (m_bAllowBank)
-				{
-					m_iRamBankOffsetIO = m_iRamBankOffsetRomL;
-				}
-				GAME = (~reg1 & 1);
-				EXROM = (reg1 >> 1) & 1;
-				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-			}
-			break;
-		case CartType::Action_Replay://AR5 + AR6
-			if (m_bFreezePending)
-			{
-				BankRom();
-			}
-			else if (m_bFreezeDone)	
-			{
-				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
-				m_bEnableRAM = (reg1 & 0x20) != 0;
-				m_iRamBankOffsetIO = 0;
-				m_iRamBankOffsetRomL = 0;
-				//Ultimax
-				GAME = 0;
-				EXROM = 1;
-				m_bIsCartIOActive = true;
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-			}
-			else
-			{
-				m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
-				m_bEnableRAM = (reg1 & 0x20) != 0;
-				m_iRamBankOffsetIO = 0;
-				m_iRamBankOffsetRomL = 0;
-				GAME = (~reg1 & 1);
-				EXROM = (reg1 >> 1) & 1;
-				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-			}			
-			break;
-		case CartType::Action_Replay_4:
-			if (m_bFreezePending)
-			{
-				BankRom();
-			}
-			else
-			{
-				m_iSelectedBank = ((reg1) & 1) | ((reg1 >> 3) & 2);
-				m_bEnableRAM = false;
-				m_iRamBankOffsetIO = 0;
-				m_iRamBankOffsetRomL = 0;
-				GAME = (reg1 >> 1) & 1;
-				EXROM = (~reg1 >> 3) & 1;
-				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
-				switch(((reg1 & 2) >> 1) | ((reg1 & 8) >> 2))
-				{
-				case 0://GAME=0 EXROM=1 Ultimax
-					//E000 mirrors 8000
-					m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-					m_ipROML_8000 = m_pZeroBankData - 0x8000;
-					break;
-				case 1://GAME=1 EXROM=1
-					break;
-				case 2://GAME=0 EXROM=0
-					//A000 mirrors 8000
-					m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
-					break;
-				case 3://GAME=1 EXROM=0
-					m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
-					break;
-				}
-			}			
-			break;
-		case CartType::Action_Replay_3:
-			if (m_bFreezePending)
-			{
-				BankRom();
-			}
-			else
-			{
-				m_iSelectedBank = ((reg1) & 1);
-				m_bEnableRAM = false;
-				m_iRamBankOffsetIO = 0;
-				m_iRamBankOffsetRomL = 0;
-				GAME = (reg1 >> 1) & 1;//0;
-				EXROM = (~reg1 >> 3) & 1;
-				m_bIsCartIOActive = (reg1 & 0x4) == 0;
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
-			}			
-			break;
-		case CartType::Action_Replay_2:
-			m_bEnableRAM = false;
-			m_iRamBankOffsetIO = 0;
-			m_iRamBankOffsetRomL = 0;
-			if (m_bFreezePending)
-			{
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
-			}
-			else
-			{
-				if (m_bActionReplayMk2Rom)
-				{
-					if (m_iSelectedBank == 0)
-					{
-						GAME = 0;
-						EXROM = 1;
-					}
-					else
-					{
-						GAME = 1;
-						EXROM = 0;
-					}
-				}
-				else
-				{
-					GAME = 1;
-					EXROM = 1;
-				}
-				m_bIsCartIOActive = true;
-				BankRom();
-				m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-				m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
-			}			
-			break;
-		case CartType::Final_Cartridge_III:
-			if (m_bFreezePending)
-			{
-				BankRom();
-			}
-			else
-			{
-				m_iSelectedBank = reg1 & 3;
-				GAME = (reg1 & 0x20) != 0;
-				EXROM = (reg1 & 0x10) != 0;
-				if (reg1 & 0x40)
-					m_pCpu->Clear_CRT_NMI();
-				else
-					m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
-				m_bIsCartIOActive = true;
-				BankRom();
-			}
-			break;
-		case CartType::EasyFlash:
-			m_iSelectedBank = reg1 & 0x3f;
-			GAME = (reg2 & 0x1) == 0;
-			EXROM = (reg2 & 0x2) == 0;
-			m_bIsCartIOActive = true;
-			BankRom();
-			break;
-		case CartType::Ocean_1:
-			m_iSelectedBank = reg1 & 0x3f;
-			GAME = m_crtHeader.GAME;
-			EXROM = m_crtHeader.EXROM;
-			m_bIsCartIOActive = true;
-			BankRom();
-			break;
-		case CartType::Magic_Desk:
-			m_iSelectedBank = reg1 & 0x3f;
-			if (reg1 & 0x80)
-			{
-				GAME = 1;
-				EXROM = 1;
-			}
-			else
-			{
-				GAME = m_crtHeader.GAME;
-				EXROM = m_crtHeader.EXROM;
-			}
-			m_bIsCartIOActive = true;
-			BankRom();
-			break;
-		case CartType::System_3:
-		case CartType::Dinamic:
-			if (m_bIsCartIOActive)
-			{
-				GAME = m_crtHeader.GAME;
-				EXROM = m_crtHeader.EXROM;
-			}
-			else
-			{
-				GAME = 1;
-				EXROM = 1;
-			}
-			BankRom();
-			break;
-		case CartType::Fun_Play:
-			//m_iSelectedBank = (bit8)(((reg1 & 0x38) >> 3) | ((reg1 & 0x1) << 3));
-			m_iSelectedBank = reg1;
-			if (reg1 == 0x86)
-			{
-				m_bIsCartIOActive = false;
-				GAME = 1;
-				EXROM = 1;
-			}
-			else
-			{
-				GAME = m_crtHeader.GAME;
-				EXROM = m_crtHeader.EXROM;
-			}
-			BankRom();
-			break;
-		case CartType::Super_Games:
-			m_iSelectedBank = reg1 & 3;
-			GAME = (reg1 & 4) != 0;
-			EXROM = (GAME!=0) && (reg1 & 8) != 0;
-			BankRom();
-			break;
-		case CartType::Simons_Basic:
-			m_iSelectedBank = 0;
-			if (m_bSimonsBasic16K)
-			{
-				GAME = 0;
-				EXROM = 0;
-			}
-			else
-			{
-				GAME = m_crtHeader.GAME;
-				EXROM = m_crtHeader.EXROM;
-			}
-			m_bIsCartIOActive = true;
-			BankRom();
-			break;
-		case CartType::Zaxxon:
-			m_bIsCartIOActive = true;
-			GAME = m_crtHeader.GAME;
-			EXROM = m_crtHeader.EXROM;
-			BankRom();
-			break;
-		default: 
-			m_bREUcompatible = false;
-			m_bAllowBank = false;
-			m_iSelectedBank = 0;
-			m_iRamBankOffsetIO = 0;
-			m_iRamBankOffsetRomL = 0;
-			m_bEnableRAM = false;
-			m_bIsCartIOActive = false;
-			GAME = m_crtHeader.GAME;
-			EXROM = m_crtHeader.EXROM;
-			BankRom();
-			break;
-		}
-	}
-	else
-	{
-		m_bEnableRAM = false;
-		m_iRamBankOffsetIO = 0;
-		m_iRamBankOffsetRomL = 0;
-		GAME = 1;
-		EXROM = 1;
-		m_bIsCartIOActive = false;
-	}
-}
-
-void Cart::BankRom()
-{
-	m_ipROML_8000 = m_pZeroBankData - 0x8000;
-	m_ipROMH_A000 = m_pZeroBankData - 0xA000;
-	m_ipROMH_E000 = m_pZeroBankData - 0xE000;
-	SIZE_T i = m_iSelectedBank;
-	if (i < m_lstBank.size())
-	{
-		Sp_CrtBank p = m_lstBank[i];
-		if (p)
-		{
-			CrtChipAndData* pL = &p->chipAndDataLow;
-			CrtChipAndData* pH = &p->chipAndDataHigh;
-			if (pL->chip.ROMImageSize != 0)
-			{
-				if (pL->chip.ROMImageSize <= 0x2000)
-				{
-					m_ipROML_8000 = pL->pData - 0x8000;
-				}
-				else if (pL->chip.ROMImageSize <= 0x4000)
-				{
-					m_ipROML_8000 = pL->pData - 0x8000;
-					m_ipROMH_A000 = &pL->pData[0x2000] - 0xA000;
-					m_ipROMH_E000 = &pL->pData[0x2000] - 0xE000;
-				}
-			}
-			if (pH->chip.ROMImageSize != 0)
-			{
-				m_ipROMH_E000 = pH->pData - 0xE000;
-				m_ipROMH_A000 = pH->pData - 0xA000;
-			}
-		}
-	}
-}
-
-void Cart::ConfigureMemoryMap()
-{
-	UpdateIO();
-	m_pCpu->ConfigureMemoryMap();
-}
-
-void Cart::CheckForCartFreeze()
-{
-//TODO CartType
-	if (m_bFreezePending)
-	{
-		switch(m_crtHeader.HardwareType)
-		{
-		case CartType::Action_Replay:
-		case CartType::Retro_Replay:
-			m_bFreezePending = false;
-			m_bFreezeDone = true;
-			reg1 &= 0x20;
-			reg2 &= 0x43;
-			m_pCpu->Clear_CRT_IRQ();
-			m_pCpu->Clear_CRT_NMI();
-			ConfigureMemoryMap();
-			break;
-		case CartType::Action_Replay_4:
-		case CartType::Action_Replay_3:
-			m_bFreezePending = false;
-			m_bFreezeDone = false;
-			reg1 = 0x00;
-			m_pCpu->Clear_CRT_IRQ();
-			m_pCpu->Clear_CRT_NMI();
-			ConfigureMemoryMap();
-			break;
-		case CartType::Action_Replay_2:
-			m_iSelectedBank = 0;
-			m_bFreezePending = false;
-			m_bFreezeDone = false;
-			m_pCpu->Clear_CRT_IRQ();
-			m_pCpu->Clear_CRT_NMI();			
-			ConfigureMemoryMap();
-			break;
-		case CartType::Final_Cartridge_III:
-			m_bFreezePending = false;
-			m_bFreezeDone = false;
-			reg1 = (reg1 & 0x1C) | 0x10;
-			//Clear cart IRQ but leave cart NMI active.
-			m_pCpu->Clear_CRT_IRQ();
-			ConfigureMemoryMap();
-			break;
-		}
-	}
-}
-
-void Cart::CartFreeze()
-{
-//TODO CartType
-	if (!m_bIsCartAttached)
-		return;
-	switch(m_crtHeader.HardwareType)
-	{
-		case CartType::Retro_Replay:
-			if ((reg2 & 0x04) == 0)
-			{
-				m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
-				m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
-				m_bFreezePending = true;
-				m_bFreezeDone = false;
-			}
-			break;
-		case CartType::Action_Replay://AR5 + AR6 + AR4.x
-		case CartType::Action_Replay_4:
-		case CartType::Action_Replay_2:
-		case CartType::Action_Replay_3:
-		case CartType::Final_Cartridge_III:
-			m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
-			m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
-			m_bFreezePending = true;
-			m_bFreezeDone = false;
-			break;
-	}
-}
-
-void Cart::CartReset()
-{
-	if (!m_bIsCartAttached)
-		return;
-	this->Reset(m_pCpu->GetCurrentClock());
-	m_pCpu->Reset(m_pCpu->GetCurrentClock());
+	m_spCurrentCart->ExecuteCycle(sysclock);
 }
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)
 {
-bit16 addr;
-
-	if (!m_bIsCartAttached)
-		return 0;
-	switch (m_crtHeader.HardwareType)
-	{
-	case CartType::Retro_Replay:
-		if ((address == 0xDE00 || address == 0xDE01))
-		{
-			return (reg1 & 0xB8) | (reg2 & 0x42);
-		}
-		else if (address >= 0xDE00 && address < 0xDF00 && m_bREUcompatible)
-		{
-			if (m_bEnableRAM)
-			{
-				addr = address - 0xDE00 + 0x1E00;
-				return m_pCartData[addr + m_iRamBankOffsetIO];
-			}
-			else
-			{
-				addr = address - 0xDE00 + 0x9E00;
-				return this->m_ipROML_8000[addr];
-			}
-		}
-		else if (address >= 0xDF00 && address < 0xE000 && !m_bREUcompatible)
-		{
-			if (m_bEnableRAM)
-			{
-				addr = address - 0xDF00 + 0x1F00;
-				return m_pCartData[addr + m_iRamBankOffsetIO];
-			}
-			else
-			{
-				addr = address - 0xDF00 + 0x9F00;
-				return this->m_ipROML_8000[addr];
-			}
-		}
-		break;
-	case CartType::Action_Replay:
-		if (address >= 0xDE00 && address < 0xDF00)
-		{
-			return 0;
-		}
-		else if (address >= 0xDF00 && address < 0xE000)
-		{
-			if (m_bEnableRAM)
-			{
-				addr = address - 0xDF00 + 0x1F00;
-				return m_pCartData[addr + m_iRamBankOffsetIO];
-			}
-			else
-			{
-				addr = address - 0xDF00 + 0x9F00;
-				return this->m_ipROML_8000[addr];
-			}
-		}
-		break;
-	case CartType::Action_Replay_4:
-		if (address >= 0xDE00 && address < 0xDF00)
-		{
-			return 0;
-		}
-		else if (address >= 0xDF00 && address < 0xE000)
-		{
-			addr = address - 0xDF00 + 0x9F00;
-			return this->m_ipROML_8000[addr];
-		}
-		break;
-	case CartType::Action_Replay_3:
-		if (address >= 0xDE00 && address < 0xDF00)
-		{
-			return 0;
-		}
-		else if (address >= 0xDF00 && address < 0xE000)
-		{
-			addr = address - 0xDF00 + 0x9F00;
-			return this->m_ipROML_8000[addr];
-		}
-		break;
-	case CartType::Action_Replay_2:
-		if (m_bEffects)
-		{
-			if (((ICLKS)(sysclock - m_clockLastDF40Read)) > ACTIONREPLAYMK2DISABLEROMCOUNT)
-				m_iActionReplayMk2DisableRomCounter = 0;
-		}
-		if (address >= 0xDE00 && address < 0xDF00)
-		{
-			return 0;
-		}
-		else if (address >= 0xDF00 && address < 0xE000)
-		{
-			if (m_bEffects)
-			{
-				if (address == 0xDF40)
-				{
-					if (((ICLKS)(sysclock - m_clockLastDF40Read)) <= ACTIONREPLAYMK2DISABLEROMCOUNT)
-					{
-						m_iActionReplayMk2DisableRomCounter++;
-						if (m_iActionReplayMk2DisableRomCounter > ACTIONREPLAYMK2DISABLEROMTRIGGER)
-						{
-							m_iActionReplayMk2DisableRomCounter = 0;
-							m_bActionReplayMk2Rom = false;
-							ConfigureMemoryMap();
-						}
-					}
-					m_clockLastDF40Read = sysclock;
-				}
-			}
-			addr = address - 0xDF00 + 0x9F00;
-			return this->m_ipROML_8000[addr];
-		}
-		break;
-	case CartType::Final_Cartridge_III:
-		if (address >= 0xDE00 && address < 0xE000)
-		{
-			addr = address - 0xDE00 + 0x9E00;
-			return this->m_ipROML_8000[addr];
-		}
-		break;
-	case CartType::EasyFlash:
-		if (address >= 0xDF00 && address < 0xE000)
-		{
-			addr = address - 0xDF00;
-			return m_pCartData[addr];
-		}
-		else if (address == 0xDE00 || address == 0xDE02)
-		{
-			return 0;
-		}
-		break;
-	case CartType::Ocean_1:
-		if (address == 0xDE00)
-		{
-			return reg1;
-		}
-		break;
-	case CartType::Magic_Desk:
-		if (address == 0xDE00)
-		{
-			return reg1;
-		}
-		break;
-	case CartType::System_3:
-		break;
-	case CartType::Dinamic:
-		if (address >= 0xDE00 || address < 0xDF00)
-		{
-			m_iSelectedBank = (bit8)(address & 0x3F);
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::Fun_Play:
-		if (address == 0xDE00)
-		{
-			return reg1;
-		}
-		break;
-	case CartType::Super_Games:
-		if (address == 0xDF00)
-		{
-			return reg1;
-		}
-		break;
-	case CartType::Simons_Basic:
-		if (address == 0xDE00)
-		{
-			if (m_bEffects)
-			{
-				m_bSimonsBasic16K = false;
-				ConfigureMemoryMap();
-			}
-			return 0;
-		}
-		break;
-	}
-	return 0;
-}
-
-bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
-{
-	m_bEffects = false;
-	bit8 r = ReadRegister(address, sysclock);
-	m_bEffects = true;
-	return r;
+	return m_spCurrentCart->ReadRegister(address, sysclock);
 }
 
 void Cart::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
-//TODO CartType
-bit8 t;
-	if (!m_bIsCartAttached)
-		return;
-	switch (m_crtHeader.HardwareType)
-	{
-	case CartType::Retro_Replay:
-		if (address == 0xDE00)
-		{
-			if (m_bFreezeDone)
-			{
-				if (data & 0x40)
-				{
-					m_bFreezePending = false;
-					m_bFreezeDone = false;
-				}
-			}
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		else if (address == 0xDE01)
-		{
-			if (m_bDE01WriteDone)
-			{
-				reg2 = (reg2 & 0x86) | (data & ~0x86);
-			}
-			else
-			{
-				reg2 = data;
-				m_bDE01WriteDone = true;
-			}
-			reg1 = (reg1 & 0x63) | (data & 0x98);
-			ConfigureMemoryMap();
-		}
-		else if (m_bREUcompatible && address >= 0xDE00 && address < 0xDF00)
-		{
-			if (m_bEnableRAM)
-			{
-				m_pCartData[address - 0xDE00 + 0x1E00 + m_iRamBankOffsetIO] = data;
-			}
-		}
-		else if (!m_bREUcompatible && address >= 0xDF00 && address < 0xE000)
-		{
-			if (m_bEnableRAM)
-			{
-				m_pCartData[address - 0xDF00 + 0x1F00 + m_iRamBankOffsetIO] = data;
-			}
-		}
-		break;
-	case CartType::Action_Replay:
-		if (address >= 0xDE00 && address < 0xDF00)
-		{
-			if (m_bFreezeDone)
-			{
-				if (data & 0x40)
-				{
-					m_bFreezePending = false;
-					m_bFreezeDone = false;
-				}
-			}
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		else if (address >= 0xDF00 && address < 0xE000)
-		{
-			if (m_bEnableRAM)
-			{
-				m_pCartData[address - 0xDF00 + 0x1F00] = data;
-			}
-		}
-		break;
-	case CartType::Action_Replay_4:
-	case CartType::Action_Replay_3:
-		if (address >= 0xDE00 && address < 0xDF00)
-		{
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::Action_Replay_2:
-		if (address >= 0xDE00 || address < 0xE000)
-		{
-			m_iActionReplayMk2DisableRomCounter = 0;
-			if (((ICLKS)(sysclock - m_clockLastDE00Write)) <= ACTIONREPLAYMK2ENABLEROMCOUNT)
-			{
-				m_iActionReplayMk2EnableRomCounter++;
-				if (m_iActionReplayMk2EnableRomCounter > ACTIONREPLAYMK2ENABLEROMTRIGGER)
-				{
-					m_iActionReplayMk2EnableRomCounter = 0;
-					m_bActionReplayMk2Rom = true;
-					t = (address >> 8) & 0xff;
-					//CHECKME always select bank1?
-					if (t == 0xDE)
-						m_iSelectedBank = 1;
-					else if (t == 0xDF)
-						m_iSelectedBank = 1;
-					ConfigureMemoryMap();
-				}
-			}
-			else
-			{
-				m_iActionReplayMk2EnableRomCounter = 0;
-			}
-			m_clockLastDE00Write = sysclock;
-		}
-		break;
-	case CartType::Final_Cartridge_III:
-		if (address == 0xDFFF && (reg1 & 0x80)==0)
-		{
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::EasyFlash:
-		if (address == 0xDE00)
-		{
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		else if (address == 0xDE02)
-		{
-			reg2 = data;
-			ConfigureMemoryMap();
-		}
-		else if (address >= 0xDF00 && address < 0xE000)
-		{
-			m_pCartData[address - 0xDF00] = data;
-		}
-		break;
-	case CartType::Ocean_1:
-		if (address == 0xDE00)
-		{
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::Magic_Desk:
-		if (address == 0xDE00)
-		{
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::System_3:
-		if (address >= 0xDE00 || address < 0xDF00)
-		{
-			m_iSelectedBank = (bit8)(address & 0x3F);
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::Dinamic:
-		break;
-	case CartType::Fun_Play:
-		if (address == 0xDE00)
-		{			
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::Super_Games:
-		if (address == 0xDF00)
-		{			
-			reg1 = data;
-			ConfigureMemoryMap();
-		}
-		break;
-	case CartType::Simons_Basic:
-		if (address == 0xDE00)
-		{
-			m_bSimonsBasic16K = true;
-			ConfigureMemoryMap();
-		}
-		break;
-	}
+	m_spCurrentCart->WriteRegister(address, sysclock, data);
+}
+
+bit8 Cart::ReadRegister_no_affect(bit16 address, ICLK sysclock)
+{
+	return m_spCurrentCart->ReadRegister_no_affect(address, sysclock);
+}
+
+bit8 Cart::Get_GAME()
+{
+	return m_spCurrentCart->Get_GAME();
+}
+
+bit8 Cart::Get_EXROM()
+{
+	return m_spCurrentCart->Get_EXROM();
 }
 
 bit8 Cart::ReadROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	if (m_bEnableRAM)
-	{
-		bit16 addr = address - 0x8000;
-		return m_pCartData[addr + m_iRamBankOffsetRomL];
-	}
-	else
-	{
-		return m_ipROML_8000[address];
-	}
-}
-
-void Cart::WriteROML(bit16 address, bit8 data)
-{
-	assert(address >= 0x8000 && address < 0xA000);
-	if (m_bEnableRAM)
-	{
-		m_pCartData[address - 0x8000 + m_iRamBankOffsetRomL] = data;
-	}
-	m_pC64RamMemory[address] = data;
+	return m_spCurrentCart->ReadROML(address);
 }
 
 bit8 Cart::ReadROMH(bit16 address)
 {
-	assert(address >= 0xA000 && address < 0xC000);
-	return m_ipROMH_A000[address];
-}
-
-void Cart::WriteROMH(bit16 address, bit8 data)
-{
-	assert(address >= 0xA000 && address < 0xC000);
-	m_pC64RamMemory[address] = data;
+	return m_spCurrentCart->ReadROMH(address);
 }
 
 bit8 Cart::ReadUltimaxROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	if (m_bEnableRAM)
-	{
-		bit16 addr = address - 0x8000;
-		return m_pCartData[addr + m_iRamBankOffsetRomL];
-	}
-	else
-	{
-		return m_ipROML_8000[address];
-	}
-}
-
-void Cart::WriteUltimaxROML(bit16 address, bit8 data)
-{
-	assert(address >= 0x8000 && address < 0xA000);
-	if (m_bEnableRAM)
-	{
-		m_pCartData[address - 0x8000 + m_iRamBankOffsetRomL] = data;
-	}
+	return m_spCurrentCart->ReadUltimaxROML(address);
 }
 
 bit8 Cart::ReadUltimaxROMH(bit16 address)
 {
-	assert(address >= 0xE000);
-	return m_ipROMH_E000[address];
+	return m_spCurrentCart->ReadUltimaxROMH(address);
+}
+
+void Cart::WriteROML(bit16 address, bit8 data)
+{
+	m_spCurrentCart->WriteROML(address, data);
+}
+
+void Cart::WriteROMH(bit16 address, bit8 data)
+{
+	m_spCurrentCart->WriteROMH(address, data);
+}
+
+void Cart::WriteUltimaxROML(bit16 address, bit8 data)
+{
+	m_spCurrentCart->WriteUltimaxROML(address, data);
 }
 
 void Cart::WriteUltimaxROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xE000);
+	m_spCurrentCart->WriteUltimaxROMH(address, data);
 }
 
-
-bit8 Cart::ReadROML_Zaxxon(bit16 address)
+bit8 Cart::MonReadROML(bit16 address)
 {
-	if (m_bEffects)
-	{
-		if (address < 0x9000 && m_iSelectedBank != 0)
-		{
-			m_iSelectedBank = 0;
-			ConfigureMemoryMap();
-		}
-		else if (address >= 0x9000 && m_iSelectedBank != 1)
-		{
-			m_iSelectedBank = 1;
-			ConfigureMemoryMap();
-		}
-	}
-	return ReadROML(address);
+	return m_spCurrentCart->MonReadROML(address);
 }
 
-bit8 Cart::ReadUltimaxROML_Zaxxon(bit16 address)
+bit8 Cart::MonReadROMH(bit16 address)
 {
-	if (m_bEffects)
-	{
-		if (address < 0x9000 && m_iSelectedBank != 0)
-		{
-			m_iSelectedBank = 0;
-			ConfigureMemoryMap();
-		}
-		else if (address >= 0x9000 && m_iSelectedBank != 1)
-		{
-			m_iSelectedBank = 1;
-			ConfigureMemoryMap();
-		}
-	}
-	return ReadUltimaxROML(address);
+	return m_spCurrentCart->MonReadROMH(address);
 }
 
-bit8 Cart::ReadROML_EasyFlash(bit16 address)
+bit8 Cart::MonReadUltimaxROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	return this->m_EasyFlashChipROML.ReadByte(address - 0x8000);
+	return m_spCurrentCart->MonReadUltimaxROML(address);
 }
 
-void Cart::WriteROML_EasyFlash(bit16 address, bit8 data)
+bit8 Cart::MonReadUltimaxROMH(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	m_pC64RamMemory[address] = data;
-	this->m_EasyFlashChipROML.WriteByte(address - 0x8000, data);
+	return m_spCurrentCart->MonReadUltimaxROMH(address);
 }
 
-bit8 Cart::ReadROMH_EasyFlash(bit16 address)
+void Cart::MonWriteROML(bit16 address, bit8 data)
 {
-	assert(address >= 0xA000 && address < 0xC000);
-	return this->m_EasyFlashChipROMH.ReadByte(address - 0xA000);
+	m_spCurrentCart->MonWriteROML(address, data);
 }
 
-void Cart::WriteROMH_EasyFlash(bit16 address, bit8 data)
+void Cart::MonWriteROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xA000 && address < 0xC000);
-	m_pC64RamMemory[address] = data;
-	this->m_EasyFlashChipROMH.WriteByte(address - 0xA000, data);
+	m_spCurrentCart->MonWriteROMH(address, data);
 }
 
-bit8 Cart::ReadUltimaxROML_EasyFlash(bit16 address)
+void Cart::MonWriteUltimaxROML(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	return this->m_EasyFlashChipROML.ReadByte(address - 0x8000);
+	m_spCurrentCart->MonWriteUltimaxROML(address, data);
 }
 
-void Cart::WriteUltimaxROML_EasyFlash(bit16 address, bit8 data)
+void Cart::MonWriteUltimaxROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	this->m_EasyFlashChipROML.WriteByte(address - 0x8000, data);
+	m_spCurrentCart->MonWriteUltimaxROMH(address, data);
 }
 
-bit8 Cart::ReadUltimaxROMH_EasyFlash(bit16 address)
+bool Cart::IsUltimax()
 {
-	assert(address >= 0xE000);
-	return this->m_EasyFlashChipROMH.ReadByte(address - 0xE000);
-}
-
-void Cart::WriteUltimaxROMH_EasyFlash(bit16 address, bit8 data)
-{
-	assert(address >= 0xE000);
-	this->m_EasyFlashChipROMH.WriteByte(address - 0xE000, data);
+	return m_bIsCartDataLoaded && m_spCurrentCart && m_spCurrentCart->IsUltimax();
 }
 
 bool Cart::IsCartIOActive()
 {
-	return m_bIsCartAttached && m_bIsCartIOActive;
+	return m_bIsCartDataLoaded && m_spCurrentCart && m_spCurrentCart->IsCartIOActive();
 }
 
-int Cart::GetTotalCartMemoryRequirement()
+bool Cart::IsCartAttached()
 {
-	return GetTotalCartMemoryRequirement(m_lstBank);
+	return m_bIsCartDataLoaded && m_spCurrentCart && m_spCurrentCart->IsCartAttached();
 }
 
-int Cart::GetTotalCartMemoryRequirement(CrtBankList lstBank)
+void Cart::CartFreeze()
 {
-	int i = RAMRESERVEDSIZE;
-	for (CrtBankListIter it = lstBank.begin(); it!=lstBank.end(); it++)
+	if (this->IsCartAttached())
+		m_spCurrentCart->CartFreeze();
+}
+
+void Cart::CartReset()
+{
+	if (this->IsCartAttached())
+		m_spCurrentCart->CartReset();
+}
+
+void Cart::CheckForCartFreeze()
+{
+	if (m_spCurrentCart)
+		m_spCurrentCart->CheckForCartFreeze();
+}
+
+void Cart::AttachCart()
+{
+	if (this->m_bIsCartDataLoaded)
 	{
-		Sp_CrtBank sp = *it;
-		if (!sp)
-			continue;
-		i = i + (int)(sp->chipAndDataLow.allocatedSize);
-		i = i + (int)(sp->chipAndDataHigh.allocatedSize);
+		m_spCurrentCart = this->CreateCartInterface(this->m_pCpu, this->m_pC64RamMemory);
+		if (m_spCurrentCart)
+		{
+			m_spCurrentCart->AttachCart();
+		}
 	}
-	return i;
 }
 
-//bool LessChipAndDataBank::operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const
-//{
-//	return x->chip.BankLocation < y->chip.BankLocation;
-//}
+void Cart::DetachCart()
+{
+	if (m_spCurrentCart)
+	{
+		m_spCurrentCart->DetachCart();
+		m_spCurrentCart = 0;
+	}
+	CleanUp();
+}
+
+void Cart::ConfigureMemoryMap()
+{
+	if (m_spCurrentCart)
+		m_spCurrentCart->ConfigureMemoryMap();
+}
 
 CrtChipAndData::CrtChipAndData()
 {
@@ -1579,402 +1030,4 @@ CrtBank::~CrtBank()
 {
 }
 
-
-EasyFlashChip::EasyFlashChip()
-{
-	m_pBlankData = NULL;
-	m_chipNumber = 0;
-	m_vecPendingSectorErase.reserve(MAXBANKS);
-	m_vecBanks.resize(MAXBANKS);
-}
-
-
-void EasyFlashChip::Detach()
-{
-	CleanUp();
-}
-
-void EasyFlashChip::CleanUp()
-{
-	m_vecBanks.clear();
-	if (m_pBlankData)
-	{
-		GlobalFree(m_pBlankData);
-		m_pBlankData = NULL;
-	}
-
-}
-
-void EasyFlashChip::Init(Cart *pCart, int chipNumber)
-{
-int i;
-const int BANKSIZE = 0x2000;
-bit8 *pBlankData = NULL;
-	try
-	{
-		m_pCart = pCart;
-		m_chipNumber = chipNumber;
-		m_vecBanks.clear();
-
-		int iBlankChipsTotalBytes = 0;
-		i = 0;
-		for (CrtBankListIter it = pCart->m_lstBank.begin(); it != pCart->m_lstBank.end() && i < MAXBANKS; it++,i++)
-		{
-			if (chipNumber == 0)
-			{
-				if (!*it || (*it)->chipAndDataLow.pData==NULL)
-				{
-					iBlankChipsTotalBytes += BANKSIZE;
-				}
-			}
-			else
-			{
-				if (!*it || (*it)->chipAndDataHigh.pData==NULL)
-				{
-					iBlankChipsTotalBytes += BANKSIZE;
-				}
-			}
-		}
-		bit8 *pBlankData = (bit8 *)GlobalAlloc(GPTR, iBlankChipsTotalBytes);
-		bit8 *p = pBlankData;
-		int k = 0;
-		i = 0;
-		for (CrtBankListIter it = pCart->m_lstBank.begin(); it!=pCart->m_lstBank.end() && i < MAXBANKS; it++,i++)
-		{
-			if (chipNumber == 0)
-			{
-				if (*it && (*it)->chipAndDataLow.pData != NULL)
-				{
-					m_vecBanks.push_back((*it)->chipAndDataLow);
-					continue;
-				}
-			}
-			else
-			{
-				if (*it && (*it)->chipAndDataHigh.pData != NULL)
-				{
-					m_vecBanks.push_back((*it)->chipAndDataHigh);
-					continue;
-				}
-			}
-			CrtChipAndData def;
-			def.allocatedSize = BANKSIZE;
-			def.pData = p;
-			def.chip.BankLocation = i;
-			def.chip.ChipType = Cart::ChipType::EPROM;
-			def.chip.ROMImageSize = BANKSIZE;
-			if (chipNumber == 0)
-				def.chip.LoadAddressRange = 0x8000;
-			else
-				def.chip.LoadAddressRange = 0xA000;
-
-			p+=BANKSIZE;
-			m_vecBanks.push_back(def);
-		}
-		m_pBlankData = pBlankData;
-		pBlankData = NULL;
-	}
-	catch (std::exception&)
-	{
-		if (pBlankData)
-		{
-			GlobalFree(pBlankData);
-			pBlankData = pBlankData;
-		}
-		throw;
-	}
-}
-
-void EasyFlashChip::InitReset()
-{
-	m_iCommandByte = 0;
-	m_iCommandCycle = 0;
-	m_iStatus = 0;
-	m_iByteWritten = 0;
-
-	m_mode = Read;
-	m_iLastCommandWriteClock = 0;
-	m_iAddressWrite = 0;
-	m_iSectorWrite = 0;
-	m_iStatus = 0;
-	m_vecPendingSectorErase.clear();
-}
-
-void EasyFlashChip::Reset(ICLK sysclock)
-{
-	m_iLastCommandWriteClock = sysclock;
-	InitReset();
-}
-
-void EasyFlashChip::WriteByte(bit16 address, bit8 data)
-{
-int k;
-
-	//TODO check for 80us command write timeout.
-	address = address & 0x1fff;
-	ICLK clock = m_pCart->m_pCpu->GetCurrentClock();
-	CheckForPendingWrite(clock);
-	switch(m_mode)
-	{
-	case Read:
-		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 200)
-		{
-			m_iCommandCycle = 0;
-		}
-		break;
-	case AutoSelect:
-		if (data == 0xF0)
-		{
-			m_mode = Read;
-			m_iCommandCycle = 0;
-		}
-		break;
-	case ByteProgram:
-		k = (m_pCart->m_iSelectedBank) & 0x3f;
-		if ((unsigned int)k < m_vecBanks.size())
-		{
-			CrtChipAndData &pc = m_vecBanks[k];
-			if (pc.pData && address < pc.chip.ROMImageSize)
-				pc.pData[address] &= data;
-		}
-		m_mode = Read;
-		m_iCommandCycle = 0;
-		break;
-	case ChipErase:
-		if (data == 0xB0)
-		{
-			m_mode = ChipEraseSuspend;
-		}
-		else
-		{
-			m_mode = Read;
-			m_iCommandCycle = 0;
-		}
-		break;
-	case SectorErase:
-		if (data == 0xB0)
-		{
-			m_mode = SectorEraseSuspend;
-		}
-		else if (address == 0)
-		{
-			if (m_vecPendingSectorErase.capacity() > m_vecPendingSectorErase.size())
-				m_vecPendingSectorErase.push_back(m_pCart->m_iSelectedBank);
-		}
-		else if (address != 0)
-		{
-			address=address;
-		}
-		else
-		{
-			m_mode = Read;
-			m_iCommandCycle = 0;
-		}
-		break;
-	case SectorEraseSuspend:
-		if (data == 0x30)
-		{
-			m_mode = SectorErase;
-		}
-		break;
-	case ChipEraseSuspend:
-		if (data == 0x30)
-		{
-			m_mode = ChipErase;
-		}
-		break;
-	}
-	m_iLastCommandWriteClock = clock;
-
-	switch (m_iCommandCycle)
-	{
-	case 0:
-		if (address == 0x555 && data == 0xAA)
-		{
-			m_iCommandCycle = 1;
-		}
-		break;
-	case 1:
-		if (address == 0x2AA && data == 0x55)
-		{
-			m_iCommandCycle = 2;
-		}
-		else if (address == 0x555 && data == 0xAA)
-		{
-			m_iCommandCycle = 1;
-		}
-		else
-		{
-			m_iCommandCycle = 0;
-		}
-		break;
-	case 2:
-		if (address == 0x555)
-		{
-			switch (data)
-			{
-			case 0xF0://Read/Reset
-				m_mode = Read;
-				m_iCommandCycle = 0;
-				break;
-			case 0x90://Autoselect
-				m_mode = AutoSelect;
-				m_iCommandCycle = 0;
-				break;
-			case 0xA0://Byte Program
-				m_mode = ByteProgram;
-				m_iCommandCycle = 6;
-				break;
-			case 0x80://Erase
-				m_iCommandByte = data;
-				m_iCommandCycle = 3;
-				break;
-			case 0xAA:
-				m_iCommandCycle = 1;
-				break;
-			default:
-				m_iCommandCycle = 0;
-				break;
-			}
-		}
-		else
-		{
-			m_iCommandCycle = 0;
-		}
-		break;
-	case 3:
-		if (address == 0x555 && data == 0xAA)
-		{
-			m_iCommandCycle = 4;
-		}
-		else
-		{
-			m_iCommandCycle = 0;
-		}
-		break;
-	case 4:
-		if (address == 0x2AA && data == 0x55)
-		{
-			m_iCommandCycle = 5;
-		}
-		else if (address == 0x555 && data == 0xAA)
-		{
-			m_iCommandCycle = 1;
-		}
-		else
-		{
-			m_iCommandCycle = 0;
-		}
-		break;
-	case 5:
-		if (address == 0x555 && data == 0x10)
-		{
-			m_mode = ChipErase;
-			m_iCommandCycle = 6;
-			m_iStatus = 0;
-		}
-		else if (address == 0x555 && data == 0xAA)
-		{
-			m_iCommandCycle = 1;
-		}
-		else if (data == 0x30)
-		{
-			m_mode = SectorErase;
-			m_iCommandCycle = 6;
-			m_iStatus = 0;
-			m_vecPendingSectorErase.clear();
-			m_vecPendingSectorErase.push_back(m_pCart->m_iSelectedBank);
-		}
-		else
-		{
-			m_iCommandCycle = 0;
-		}
-		break;
-	}
-}
-
-bit8 EasyFlashChip::ReadByte(bit16 address)
-{
-int k;
-const bit8 AmdManufacterId = 1;
-const bit8 Am29F040 = 0xA4;
-
-	address = address & 0x1fff;
-	ICLK clock = m_pCart->m_pCpu->GetCurrentClock();
-	CheckForPendingWrite(clock);
-	switch(m_mode)
-	{
-	case Read:
-		k = (m_pCart->m_iSelectedBank)  & 0x3f;
-		if ((unsigned int)k < m_vecBanks.size())
-		{
-			CrtChipAndData &pc = m_vecBanks[k];
-			if (pc.pData && address < pc.chip.ROMImageSize)
-				return pc.pData[address];
-		}
-		return 0;
-	case AutoSelect:
-		if (address == 0x0000)
-			return AmdManufacterId;
-		else if (address == 0x0001)
-			return Am29F040;
-		return 0;
-	case ChipErase:
-		m_iStatus = (m_iStatus ^ 0x40);
-		return (m_iStatus & 0x40);
-	case SectorErase:
-		m_iStatus = (m_iStatus ^ 0x40);
-		return m_iStatus & 0x40;
-	case SectorEraseSuspend:
-		return m_iStatus & 0x40 | 0x88;
-	case ChipEraseSuspend:
-		return m_iStatus & 0x40 | 0x88;
-	}
-	return 0;
-}
-
-void EasyFlashChip::CheckForPendingWrite(ICLK clock)
-{
-int k;
-
-	//TODO check for 80us command write timeout.
-	switch(m_mode)
-	{
-	case ChipErase:
-		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 80)
-		{
-			m_iCommandCycle = 0;
-			for (int i = 0; (unsigned int)i < m_vecBanks.size(); i++)
-			{
-				CrtChipAndData &pc = m_vecBanks[i];
-				if (pc.pData)
-					FillMemory(pc.pData, pc.chip.ROMImageSize, 0xff);
-			}
-		}
-		m_mode = Read;
-		m_iCommandCycle = 0;
-		break;
-	case SectorErase:
-		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 80)
-		{
-			m_iCommandCycle = 0;
-			for (std::vector<bit8>::iterator it = m_vecPendingSectorErase.begin(); it!=m_vecPendingSectorErase.end(); it++)
-			{
-				for (int i = 0; i < 8; i++)
-				{
-					k = ((*it) +i ) & 0x3f;
-					if ((unsigned int)k < m_vecBanks.size())
-					{
-						CrtChipAndData &pc = m_vecBanks[k];
-						if (pc.pData)
-							FillMemory(pc.pData, pc.chip.ROMImageSize, 0xff);
-					}
-				}
-			}
-			m_mode = Read;
-			m_iCommandCycle = 0;
-		}
-		break;
-	}
-}
 

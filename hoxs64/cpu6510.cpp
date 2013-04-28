@@ -168,7 +168,7 @@ bit8 *t;
 		case 0xDE:
 		case 0xDF:
 			if (pCart->IsCartIOActive())
-				return cart->ReadRegister(address, CurrentClock);
+				return pCart->ReadRegister(address, CurrentClock);
 			else
 				return vic->ReadRegister(address, CurrentClock);
 		}
@@ -177,13 +177,13 @@ bit8 *t;
 			switch(ram->GetCpuMmuReadMemoryType(address, -1))
 			{
 			case MT_ROML:
-				return pCart->OnReadROML(address);
+				return pCart->ReadROML(address);
 			case MT_ROMH:
-				return pCart->OnReadROMH(address);
+				return pCart->ReadROMH(address);
 			case MT_ROML_ULTIMAX:
-				return pCart->OnReadUltimaxROML(address);
+				return pCart->ReadUltimaxROML(address);
 			case MT_ROMH_ULTIMAX:
-				return pCart->OnReadUltimaxROMH(address);
+				return pCart->ReadUltimaxROMH(address);
 			case MT_EXRAM:
 				return 0;
 			default:
@@ -273,16 +273,16 @@ bit8 *t;
 					switch(ram->GetCpuMmuWriteMemoryType(address, -1))
 					{
 					case MT_ROML:
-						pCart->OnWriteROML(address, data);
+						pCart->WriteROML(address, data);
 						break;
 					case MT_ROMH:
-						pCart->OnWriteROMH(address, data);
+						pCart->WriteROMH(address, data);
 						break;
 					case MT_ROML_ULTIMAX:
-						pCart->OnWriteUltimaxROML(address, data);
+						pCart->WriteUltimaxROML(address, data);
 						break;
 					case MT_ROMH_ULTIMAX:
-						pCart->OnWriteUltimaxROMH(address, data);
+						pCart->WriteUltimaxROMH(address, data);
 						break;
 					case MT_EXRAM:
 						break;
@@ -344,7 +344,7 @@ bit8 *t;
 		case 0xDE:
 		case 0xDF:
 			if (pCart->IsCartIOActive())
-				return cart->ReadRegister_no_affect(address, CurrentClock);
+				return pCart->ReadRegister_no_affect(address, CurrentClock);
 			else
 				return vic->ReadRegister_no_affect(address, CurrentClock);
 		}
@@ -353,13 +353,13 @@ bit8 *t;
 			switch(ram->GetCpuMmuReadMemoryType(address, -1))
 			{
 			case MT_ROML:
-				return pCart->ReadROML(address);
+				return pCart->MonReadROML(address);
 			case MT_ROMH:
-				return pCart->ReadROMH(address);
+				return pCart->MonReadROMH(address);
 			case MT_ROML_ULTIMAX:
-				return pCart->ReadUltimaxROML(address);
+				return pCart->MonReadUltimaxROML(address);
 			case MT_ROMH_ULTIMAX:
-				return pCart->ReadUltimaxROMH(address);
+				return pCart->MonReadUltimaxROMH(address);
 			case MT_EXRAM:
 				return 0;
 			default:
@@ -425,16 +425,16 @@ bit8 *t;
 					switch(ram->GetCpuMmuWriteMemoryType(address, memorymap))
 					{
 					case MT_ROML:
-						pCart->WriteROML(address, data);
+						pCart->MonWriteROML(address, data);
 						break;
 					case MT_ROMH:
-						pCart->WriteROMH(address, data);
+						pCart->MonWriteROMH(address, data);
 						break;
 					case MT_ROML_ULTIMAX:
-						pCart->WriteUltimaxROML(address, data);
+						pCart->MonWriteUltimaxROML(address, data);
 						break;
 					case MT_ROMH_ULTIMAX:
-						pCart->WriteUltimaxROMH(address, data);
+						pCart->MonWriteUltimaxROMH(address, data);
 						break;
 					case MT_EXRAM:
 						break;
@@ -642,7 +642,11 @@ void CPU6510::ConfigureMemoryMap()
 	else
 		CHAREN=1;
 
-	ram->ConfigureMMU((((pCart->GAME << 1) | pCart->EXROM) & 0x3) | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+	if (pCart->IsCartAttached())
+		ram->ConfigureMMU((((pCart->Get_GAME() << 1) | pCart->Get_EXROM()) & 0x3) | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+	else
+		ram->ConfigureMMU(3 | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+
 	pVic->SetMMU(pVic->vicMemoryBankIndex);
 }
 void CPU6510::SetCassetteSense(bit8 sense)

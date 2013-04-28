@@ -83,7 +83,7 @@ void C64::InitReset(ICLK sysclock)
 	cia1.InitReset(sysclock);
 	cia2.InitReset(sysclock);
 	sid.InitReset(sysclock);
-	cart.InitReset(sysclock);
+	//cart.InitReset(sysclock);
 	cpu.InitReset(sysclock);
 	diskdrive.InitReset(sysclock);
 }
@@ -1025,7 +1025,7 @@ C64File c64file;
 			hr = LoadCrtFile(filename);
 			if (SUCCEEDED(hr))
 			{
-				cart.m_bIsCartAttached = true;
+				cart.AttachCart();
 				Reset(0);
 				autoLoadCommand.type = C64::AUTOLOAD_NONE;
 				appStatus->m_bAutoload = FALSE;
@@ -1238,7 +1238,7 @@ HRESULT hr = E_FAIL;
 	hr = cart.LoadCrtFile(filename);
 	if (SUCCEEDED(hr))
 	{
-		cart.m_bIsCartAttached = true;
+		cart.AttachCart();
 		this->HardReset(true);
 	}
 	this->SetError(cart);
@@ -1452,7 +1452,7 @@ void C64::SoftReset(bool bCancelAutoload)
 	}
 	ICLK sysclock = cpu.CurrentClock;
 	cpu.InitReset(sysclock);
-	cart.InitReset(sysclock);
+	//cart.InitReset(sysclock);
 
 	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
 	cpu.Reset(sysclock);

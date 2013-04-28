@@ -25,6 +25,12 @@
     <Filter Include="Header Files\debugger">
       <UniqueIdentifier>{6a4198c2-946b-49d9-8e70-8d5c372d38c9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\cart">
+      <UniqueIdentifier>{cf6ae06b-288f-4bd7-be6d-0eed4eb74959}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\cart">
+      <UniqueIdentifier>{01a4c02d-6d79-4386-9f55-7a590f2a485d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="appstatus.cpp">
@@ -229,7 +235,58 @@
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
     <ClCompile Include="cart.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_easyflash.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_normal_cartridge.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_easyflash_chip.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_retro_replay.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_action_replay.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_action_replay_mk4.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_action_replay_mk3.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_action_replay_mk2.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_ocean1.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_final_cartridge_iii.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_simons_basic.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_fun_play.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_super_games.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_system_3.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_dinamic.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_zaxxon.cpp">
+      <Filter>Header Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_magic_desk.cpp">
+      <Filter>Header Files\cart</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -462,7 +519,55 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="cart.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_easyflash.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_normal_cartridge.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_retro_replay.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_action_replay.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_action_replay_mk4.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_action_replay_mk3.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_action_replay_mk2.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_ocean1.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_final_cartridge_iii.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_simons_basic.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_fun_play.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_super_games.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_system_3.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_dinamic.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_zaxxon.h">
+      <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_magic_desk.h">
+      <Filter>Header Files\cart</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -7,6 +7,8 @@
 #include "stdio.h"
 #include "defines.h"
 
+const LPCTSTR ErrorMsg::ERR_OUTOFMEMORY = TEXT("Out of memory.");
+
 ErrorMsg::ErrorMsg()
 {
 	ClearError();

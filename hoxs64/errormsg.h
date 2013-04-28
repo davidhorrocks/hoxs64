@@ -15,6 +15,8 @@ public:
 	HRESULT errorValue;
 	void DisplayError(HWND hWnd, const TCHAR title[]);
 	static void ShowMessage(HWND hWnd, UINT uType, LPCTSTR szTitle, LPCTSTR szError, ...);
+
+	static const LPCTSTR ERR_OUTOFMEMORY;
 };
 
 #endif
