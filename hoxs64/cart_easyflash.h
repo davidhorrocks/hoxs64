@@ -26,9 +26,11 @@ public:
 	bit8 ReadByte(bit16 address);
 	void WriteByte(bit16 address, bit8 data);
 	void CheckForPendingWrite(ICLK clock);
-
 	bit8 MonReadByte(bit16 address);
 	void MonWriteByte(bit16 address, bit8 data);
+
+	void PreventClockOverflow();
+
 private:
 	CartEasyFlash *m_pCartEasyFlash;
 	ICLK m_iLastCommandWriteClock;
@@ -74,6 +76,8 @@ public:
 	virtual void MonWriteROMH(bit16 address, bit8 data);
 	virtual void MonWriteUltimaxROML(bit16 address, bit8 data);
 	virtual void MonWriteUltimaxROMH(bit16 address, bit8 data);
+
+	virtual void PreventClockOverflow();
 
 protected:
 	virtual void UpdateIO();

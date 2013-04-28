@@ -967,7 +967,7 @@ void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_
 {
 	if (m_pCart->IsUltimax())
 	{		
-		bit8 *p = m_pCart->m_ipROMH_E000 + 0xE000 - 0x2000;
+		bit8 *p = m_pCart->Get_RomH() - 0x2000;//Move from $E000 to $C000 by subtracting $2000
 		VicMMU_read[0x0][0x3] = p;
 		VicMMU_read[0x1][0x3] = p;
 		VicMMU_read[0x2][0x3] = p;

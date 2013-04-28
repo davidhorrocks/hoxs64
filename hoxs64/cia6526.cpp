@@ -104,8 +104,8 @@ void CIA::SetMode(HCFG::CIAMODE mode, bool bTimerBbug)
 
 void CIA::PreventClockOverflow()
 {
-	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
-	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
+	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
 	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - ClockReadICR) >= CLOCKSYNCBAND_FAR)

@@ -456,3 +456,17 @@ int k;
 	}
 }
 
+void EasyFlashChip::PreventClockOverflow()
+{
+	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
+
+	ICLK clock = m_pCartEasyFlash->m_pCpu->GetCurrentClock();
+
+	ICLK ClockBehindNear = clock - CLOCKSYNCBAND_NEAR;
+	
+	if ((ICLKS)(clock - m_iLastCommandWriteClock) >= CLOCKSYNCBAND_FAR)
+	{
+		m_iLastCommandWriteClock = ClockBehindNear;
+	}
+}

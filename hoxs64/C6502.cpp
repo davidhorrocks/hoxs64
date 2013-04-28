@@ -882,8 +882,8 @@ HRESULT CPU6502::Init(int ID, IBreakpointManager *pIBreakpointManager)
 
 void CPU6502::PreventClockOverflow()
 {
-	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
-	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
+	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
 	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - FirstIRQClock) >= CLOCKSYNCBAND_FAR)

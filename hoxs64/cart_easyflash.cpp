@@ -185,3 +185,11 @@ void CartEasyFlash::UpdateIO()
 	m_bIsCartIOActive = true;
 	BankRom();
 }
+
+
+void CartEasyFlash::PreventClockOverflow()
+{
+	m_EasyFlashChipROML.PreventClockOverflow();
+	m_EasyFlashChipROMH.PreventClockOverflow();
+}
+

@@ -122,6 +122,7 @@ void C64::PreventClockOverflow()
 		cia2.PreventClockOverflow();
 		vic.PreventClockOverflow();
 		diskdrive.PreventClockOverflow();
+		cart.PreventClockOverflow();
 	}
 
 	cpu.CheckPortFade(cpu.CurrentClock);

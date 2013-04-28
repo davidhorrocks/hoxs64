@@ -61,6 +61,15 @@ void CartCommon::ConfigureMemoryMap()
 	m_pCpu->ConfigureMemoryMap();
 }
 
+bit8 *CartCommon::Get_RomH()
+{
+	return this->m_ipROMH_E000 + 0xE000;
+}
+
+void CartCommon::PreventClockOverflow()
+{
+}
+
 void CartCommon::CheckForCartFreeze()
 {
 }
@@ -120,9 +129,6 @@ void CartCommon::BankRom()
 			}
 		}
 	}
-	this->m_pCart->m_ipROML_8000 = m_ipROML_8000;
-	this->m_pCart->m_ipROMH_A000 = m_ipROMH_A000;
-	this->m_pCart->m_ipROMH_E000 = m_ipROMH_E000;
 }
 
 void CartCommon::CartFreeze()
@@ -351,9 +357,6 @@ Cart::Cart()
 	m_crtHeader.HardwareType = 0;
 	m_pCartData = 0;
 	m_pCpu = NULL;
-	m_ipROML_8000 = NULL;
-	m_ipROMH_A000 = NULL;
-	m_ipROMH_E000 = NULL;
 	m_bIsCartDataLoaded = false;
 }
 
@@ -752,9 +755,6 @@ __int64 iFileIndex = 0;
 			m_lstBank = lstBank;
 			m_pCartData = pCartData;
 			m_pZeroBankData = &pCartData[ZEROBANKOFFSET];
-			m_ipROML_8000 = m_pZeroBankData - 0x8000;
-			m_ipROMH_A000 = m_pZeroBankData - 0xA000;
-			m_ipROMH_E000 = m_pZeroBankData - 0xE000;
 			pCartData = NULL;
 			m_bIsCartDataLoaded = true;
 
@@ -1011,6 +1011,20 @@ void Cart::ConfigureMemoryMap()
 {
 	if (m_spCurrentCart)
 		m_spCurrentCart->ConfigureMemoryMap();
+}
+
+bit8 *Cart::Get_RomH()
+{
+	if (m_spCurrentCart)
+		return m_spCurrentCart->Get_RomH();
+	else
+		return 0;
+}
+
+void Cart::PreventClockOverflow()
+{
+	if (m_spCurrentCart)
+		m_spCurrentCart->PreventClockOverflow();
 }
 
 CrtChipAndData::CrtChipAndData()

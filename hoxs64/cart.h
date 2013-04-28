@@ -6,13 +6,6 @@
 class ICartInterface : public IRegister
 {
 public:
-
-	//virtual void Reset(ICLK sysclock)=0;
-	//virtual void ExecuteCycle(ICLK sysclock)=0;
-	//virtual bit8 ReadRegister(bit16 address, ICLK sysclock)=0;
-	//virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data)=0;
-	//virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock)=0;
-
 	virtual bit8 Get_GAME()=0;
 	virtual bit8 Get_EXROM()=0;
 
@@ -47,6 +40,9 @@ public:
 	virtual void AttachCart()=0;
 	virtual void DetachCart()=0;
 	virtual void ConfigureMemoryMap()=0;
+
+	virtual bit8 *Get_RomH()=0;
+	virtual void PreventClockOverflow() = 0;
 };
 
 class Cart;
@@ -156,6 +152,8 @@ public:
 	virtual void AttachCart();
 	virtual void DetachCart();
 	virtual void ConfigureMemoryMap();
+	virtual bit8 *Get_RomH();
+	virtual void PreventClockOverflow();
 
 protected:
 	virtual void UpdateIO()=0;
@@ -278,7 +276,8 @@ public:
 	void AttachCart();
 	void DetachCart();
 	void ConfigureMemoryMap();
-
+	bit8 *Get_RomH();
+	void PreventClockOverflow();
 
 	CrtHeader m_crtHeader;//Cart head information
 	CrtBankList m_lstBank;//A list of cart ROM/EPROM banks that index the cart memory data.
@@ -287,9 +286,6 @@ public:
 
 	bool m_bIsCartDataLoaded;
 
-	bit8 *m_ipROML_8000;
-	bit8 *m_ipROMH_A000;
-	bit8 *m_ipROMH_E000;
 protected:
 	
 private:

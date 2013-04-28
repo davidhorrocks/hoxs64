@@ -1071,8 +1071,8 @@ ICLKS cycles;
 
 void DiskInterface::PreventClockOverflow()
 {
-	const ICLKS CLOCKSYNCBAND_NEAR = 0x4000;
-	const ICLKS CLOCKSYNCBAND_FAR = 0x40000000;
+	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
 	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - m_changing_c64_serialbus_diskview_diskclock) >= CLOCKSYNCBAND_FAR)

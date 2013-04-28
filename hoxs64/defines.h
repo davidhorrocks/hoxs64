@@ -45,4 +45,7 @@ const int HEIGHT_64 = 284;
 #define CPUID_MAIN 0
 #define CPUID_DISK 1
 
+#define PAL_5_MINUTES (0x119E1B80)
+#define OVERFLOWSAFTYTHRESHOLD (0x40000000)
+
 #endif
