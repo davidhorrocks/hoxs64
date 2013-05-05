@@ -168,9 +168,14 @@ bit8 *t;
 		case 0xDE:
 		case 0xDF:
 			if (pCart->IsCartIOActive())
+			{
+				vic->ExecuteCycle(CurrentClock);
 				return pCart->ReadRegister(address, CurrentClock);
+			}
 			else
+			{
 				return vic->ReadRegister(address, CurrentClock);
+			}
 		}
 		if (pCart->IsCartAttached())
 		{
@@ -480,6 +485,7 @@ void CPU6510::check_interrupts1()
 		cia1->ExecuteCycle(curClock);
 	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
 		cia2->ExecuteCycle(curClock);
+	//cart->ExecuteCycle(curClock);
 	CPU6502::check_interrupts1();
 }
 
@@ -489,6 +495,7 @@ ICLK& curClock = CurrentClock;
 	vic->ExecuteCycle(curClock);
 	cia1->ExecuteCycle(curClock);
 	cia2->ExecuteCycle(curClock);
+	//cart->ExecuteCycle(curClock);
 	CPU6502::check_interrupts0();
 }
 

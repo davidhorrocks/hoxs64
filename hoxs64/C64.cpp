@@ -169,6 +169,7 @@ ICLK sysclock;
 		sysclock = sysclock;
 	}
 	cpu.ExecuteCycle(sysclock);
+	//cart.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
 	cia2.ExecuteCycle(sysclock);
 	if (cfg->m_bSID_Emulation_Enable)
@@ -207,10 +208,11 @@ ICLK sysclock;
 				break;
 			}
 		}
-
+		
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
+		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
 		if (cfg->m_bD1541_Emulation_Enable)
@@ -265,6 +267,7 @@ bool bBreak;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
+		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
 		if (cfg->m_bD1541_Emulation_Enable)
@@ -314,6 +317,7 @@ ICLK sysclock;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
+		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
 		if (cfg->m_bD1541_Emulation_Enable)
@@ -359,6 +363,7 @@ bool bBreak;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
+		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
 		if (cpu.IsOpcodeFetch() && !bWasC64CpuOpCodeFetch)// && cpu.PROCESSOR_INTERRUPT == 0
@@ -446,6 +451,7 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
+		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
 		if (vic.CheckBreakpointRasterCompare(vic.GetNextRasterLine(), vic.GetNextRasterCycle(), true) == 0)
@@ -547,10 +553,11 @@ ICLK cycles,sysclock;
 		diskdrive.ExecuteAllPendingDiskCpuClocks();
 	}
 
-	cpu.ExecuteCycle(sysclock);
+	cpu.ExecuteCycle(sysclock);	
 	vic.ExecuteCycle(sysclock);
+	//cart.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
-	cia2.ExecuteCycle(sysclock);
+	cia2.ExecuteCycle(sysclock);	
 	if (bIsDiskEnabled)
 	{
 		if (bIsDiskThreadEnabled && !appStatus->m_bSerialTooBusyForSeparateThread)

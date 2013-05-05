@@ -530,6 +530,7 @@
     <ClCompile Include="cart_dinamic.cpp" />
     <ClCompile Include="cart_easyflash.cpp" />
     <ClCompile Include="cart_easyflash_chip.cpp" />
+    <ClCompile Include="cart_epyx_fastload.cpp" />
     <ClCompile Include="cart_fun_play.cpp" />
     <ClCompile Include="cart_magic_desk.cpp" />
     <ClCompile Include="cart_normal_cartridge.cpp" />
@@ -854,6 +855,7 @@
     <ClInclude Include="bpenum.h" />
     <ClInclude Include="cart.h" />
     <ClInclude Include="cart_dinamic.h" />
+    <ClInclude Include="cart_epyx_fastload.h" />
     <ClInclude Include="cart_fun_play.h" />
     <ClInclude Include="cart_magic_desk.h" />
     <ClInclude Include="cart_ocean1.h" />

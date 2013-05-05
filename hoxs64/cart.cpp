@@ -399,6 +399,7 @@ bool Cart::IsSupported(CartType::ECartType hardwareType)
 	case CartType::Ocean_1:
 	case CartType::Fun_Play:
 	case CartType::Super_Games:
+	case CartType::Epyx_FastLoad:
 	case CartType::System_3:
 	case CartType::Dinamic:
 	case CartType::Zaxxon:
@@ -824,7 +825,10 @@ shared_ptr<ICartInterface> p;
 			p = shared_ptr<ICartInterface>(new CartRetroReplay(this, pCpu, pC64RamMemory));
 			break;
 		case CartType::Action_Replay_2:
-			p = shared_ptr<ICartInterface>(new CartActionReplayMk2(this, pCpu, pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartActionReplayMk2(this, pCpu, pC64RamMemory));			
+			break;
+		case CartType::Epyx_FastLoad:
+			p = shared_ptr<ICartInterface>(new CartEpyxFastLoad(this, pCpu, pC64RamMemory));
 			break;
 		}
 	}
@@ -844,7 +848,8 @@ void Cart::Reset(ICLK sysclock)
 
 void Cart::ExecuteCycle(ICLK sysclock)
 {
-	m_spCurrentCart->ExecuteCycle(sysclock);
+	if (m_spCurrentCart)
+		m_spCurrentCart->ExecuteCycle(sysclock);
 }
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)

@@ -155,6 +155,8 @@ public:
 	virtual bit8 *Get_RomH();
 	virtual void PreventClockOverflow();
 
+	//ICLK ClockNextWakeUpClock;
+
 protected:
 	virtual void UpdateIO()=0;
 	void BankRom();
@@ -206,6 +208,7 @@ public:
 			Ocean_1 = 5,
 			Fun_Play = 7,
 			Super_Games = 8,
+			Epyx_FastLoad = 10,
 			System_3 = 15,
 			Dinamic = 17,
 			Zaxxon = 18,
@@ -317,4 +320,5 @@ private:
 #include "cart_dinamic.h"
 #include "cart_zaxxon.h"
 #include "cart_magic_desk.h"
+#include "cart_epyx_fastload.h"
 #endif
