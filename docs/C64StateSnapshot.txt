@@ -1,0 +1,82 @@
+COMMODORE 64 STATE SNAPSHOT
+===========================
+
+The file consists of a fixed size file header followed by one or more variable length section blocks.
+
+Header
+======
+The file header is 0x40 bytes long. The file header is followed by one or more section blocks. 
+
+0x0000 | 0x15 | Signature "COMMODORE 64 STATE SNAPSHOT" in ASCII/UTF8
+0x001B | 0x01 | 1 zero byte
+0x001C | 0x04 | Version zero as a 4 byte integer in little endian. Current version is zero.
+0x0020 | 0x20 | Optional emulator name in UTF8 left aligned and zero terminated.
+0x0040 | ~    | The first "Section Header" starts here.
+
+
+
+Section Header
+==============
+A section block comprises of a fixed size header which is followed by zero or more data bytes. The first 4 bytes of a section block header contain length of the section complete block such that the section header start position plus the section block size would take you to the start of the next section. A zero length means there are no more sections. The amount of data in a section block is permitted to be far less than the section block size would infer. 
+
+The section header is 0x10 bytes long.
+0x0000 | 0x04 | Total size of the section including the section header in bytes 
+0x0004 | 0x04 | Type of section
+		    0:  C64 RAM
+		    1:  C64 CPU
+		    2:  C64 CIA1
+		    3:  C64 CIA2
+		    4:  C64 VIC
+		    5:  C64 SID
+		    6:  DISK CPU
+		    7:  DISK CPU
+		    8:  DISK VIA1
+		    9:  DISK VIA2
+		    10: DISK CONTROLLER
+		    11: DISK MEDIA
+		    12: TAPE PLAYER
+		    13: TAPE MEDIA
+		    16: CARTRIDGE
+		    100: EMULATOR CUSTOMISATION
+0x0008 | 0x40 | Section version as a 4 byte integer in little endian
+0x000C | 0x04 | Version 0 as a 4 byte integer in little endian.
+
+C64 RAM
+=======
+0x0010 | 0x10000 | 64K RAM layed out in sequential order with address $0000 in the first byte.
+
+C64 CPU
+=======
+0x0000 | 0x4| CPU Model: 0
+0x0004 | 0x4| PC
+0x0008 | 0x1| A
+0x0009 | 0x1| X
+0x000A | 0x1| Y
+0x000B | 0x1| SP
+0x000C | 0x1| SR
+
+0x0010 | 0x8 | ICLK CurrentClock;
+0x0010 | 0x8 | ICLK SOTriggerClock;
+0x0010 | 0x8 | ICLK FirstIRQClock;
+0x0010 | 0x8 | ICLK FirstNMIClock;
+0x0010 | 0x8 | ICLK RisingIRQClock;
+0x0010 | 0x8 | ICLK FirstBALowClock;
+0x0010 | 0x8 | ICLK LastBAHighClock;
+0x0010 | 0x8 | ICLK m_CurrentOpcodeClock;
+0x0010 | 0x4 | bit32 m_cpu_sequence;
+0x0010 | 0x4 | bit32 m_cpu_final_sequence;
+0x0010 | 0x4 | bit32 m_op_code;
+0x0010 | 0x2 | bit16 addr;
+0x0010 | 0x2 | bit16 ptr;
+0x0010 | 0x2 | bit16 m_CurrentOpcodeAddress;
+0x0010 | 0x1 | bool SOTrigger;
+0x0010 | 0x1 | bool m_bBALowInClock2OfSEI;
+0x0010 | 0x1 | bit8 PROCESSOR_INTERRUPT;
+0x0010 | 0x1 | bit8 IRQ
+0x0010 | 0x1 | bit8 NMI
+0x0010 | 0x1 | bit8 NMI_TRIGGER
+0x0010 | 0x1 | bit8 BA;
+0x0010 | 0x1 | bit8 databyte;
+
+
+C64 VIC
