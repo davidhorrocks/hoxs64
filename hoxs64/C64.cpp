@@ -114,7 +114,7 @@ void C64::Reset(ICLK sysclock)
 
 void C64::PreventClockOverflow()
 {
-	if (++m_iClockOverflowCheckCounter > 25L)
+	if (++m_iClockOverflowCheckCounter > 0x100)
 	{
 		m_iClockOverflowCheckCounter=0;
 		cpu.PreventClockOverflow();
@@ -124,8 +124,6 @@ void C64::PreventClockOverflow()
 		diskdrive.PreventClockOverflow();
 		cart.PreventClockOverflow();
 	}
-
-	cpu.CheckPortFade(cpu.CurrentClock);
 }
 
 void C64::EnterDebugRun(bool bWithSound)

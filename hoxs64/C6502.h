@@ -553,7 +553,7 @@ public:
 
 	void SetBALow(ICLK sysclock);
 	void SetBAHigh(ICLK sysclock);
-	void PreventClockOverflow();
+	virtual void PreventClockOverflow();
 
 	bit16 decode_array[256];
 	bit16u mPC;

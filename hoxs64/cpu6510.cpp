@@ -735,3 +735,16 @@ void CPU6510::SetData(bit8 v)
 {
 	write_cpu_io_data(v);
 }
+
+
+void CPU6510::PreventClockOverflow()
+{
+	CPU6502::PreventClockOverflow();
+	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+	if ((ICLKS)(CurrentClock - m_fade7clock) >= CLOCKSYNCBAND_FAR)
+		m_fade7clock = ClockBehindNear;
+	if ((ICLKS)(CurrentClock - m_fade6clock) >= CLOCKSYNCBAND_FAR)
+		m_fade6clock = ClockBehindNear;
+}

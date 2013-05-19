@@ -60,6 +60,7 @@ public:
 	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
 
 	void AddClockDelay();
+	virtual void PreventClockOverflow();
 private:
 	CIA1 *pCia1;
 	CIA2 *pCia2;
