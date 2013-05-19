@@ -235,12 +235,10 @@ public:
 
 	void PreventClockOverflow();
 	HRESULT UpdateBackBuffer();
-	//HRESULT UpdateBackBufferLine(bit16 line, bit8 cycle);
 	HRESULT UpdateBackBufferLine(bit8 *pDestSurfLine, int videoPitch, bit16 line, bit8 cycle);
 
 	bit8 ScreenPixelBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
-	bit8 LinePixelBuffer[2][PIXELBUFFER_SIZE+1];
-	//bit8 ScreenBorderBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
+	bit8 LinePixelBuffer[PIXELBUFFER_COUNT][PIXELBUFFER_SIZE+1];
 	int FrameNumber;
 
 	void BackupMainPixelBuffers();
@@ -271,7 +269,6 @@ private:
 	//bit8 *vic_borderbuffer;
 	bit8 pixelMaskBuffer[(PIXELBUFFER_SIZE + 1) / 8];
 	bit8 vic_sprite_collision_line[PIXELBUFFER_SIZE];
-	bit8 (*line_info)[2][64];
 	bit8 (*vic_address_line_info)[64];
 	bit8 foregroundMask_mcm[256];
 	bit8 vic_allow_c_access;

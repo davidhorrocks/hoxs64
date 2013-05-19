@@ -100,7 +100,6 @@ void CartActionReplay::CheckForCartFreeze()
 
 void CartActionReplay::UpdateIO()
 {
-	//CartType::Action_Replay://AR5 + AR6
 	if (m_bFreezePending)
 	{
 		BankRom();

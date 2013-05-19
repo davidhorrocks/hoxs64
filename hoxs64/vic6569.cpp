@@ -1771,8 +1771,7 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	vicSpriteYMatch=0;
 
 	vic_badline=0;
-	line_info= &BA_line_info[vicSpriteDMA];
-	vic_address_line_info = &(*line_info)[vic_badline];
+	vic_address_line_info = &BA_line_info[vicSpriteDMA][vic_badline];
 
 	ff_YP=0xff;
 	vicSpriteMSBX=0;
@@ -2137,39 +2136,6 @@ int i, j;
 	}
 	m_iLastBackedUpFrameNumber = FrameNumber;
 }
-
-//HRESULT VIC6569::UpdateBackBufferLine(bit16 line, bit8 cycle)
-//{
-//HRESULT hr = E_FAIL;
-//D3DLOCKED_RECT lrLockRect; 
-//
-//	if (dx == NULL)
-//		return E_FAIL;
-//	if (dx->m_pd3dDevice == NULL)
-//		return E_FAIL;
-//	if (line < 0 || line > PAL_MAX_LINE)
-//		return E_FAIL;
-//	if (cycle < 1 || cycle > PAL_CLOCKS_PER_LINE)
-//		return E_FAIL;
-//
-//#ifdef USESYSMEMSURFACE
-//	IDirect3DSurface9 *pBackBuffer = dx->GetSysMemSurface();
-//#else
-//	IDirect3DSurface9 *pBackBuffer = dx->GetSmallSurface();
-//#endif
-//	if (pBackBuffer)
-//	{
-//		hr = pBackBuffer->LockRect(&lrLockRect, NULL, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK);
-//		if (SUCCEEDED(hr))
-//		{
-//			hr = UpdateBackBufferLine((bit8 *) lrLockRect.pBits, lrLockRect.Pitch, line, cycle);
-//			pBackBuffer->UnlockRect();
-//		}
-//		pBackBuffer->Release();
-//		pBackBuffer = NULL;
-//	}
-//	return hr;
-//}
 
 HRESULT VIC6569::UpdateBackBufferLine(bit8 *pDestSurfLine, int videoPitch, bit16 line, bit8 cycle)
 {

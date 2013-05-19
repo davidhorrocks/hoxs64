@@ -614,16 +614,13 @@ private:
 
 	void InitDecoder();
 	bit16u addr;
-	bit16u addr2;
 	bit16u ptr;
 	bit8 databyte;
-	bit16u dataword;
 	unsigned int _a;
 	unsigned int _al;
 	unsigned int _ah;
 	unsigned int _s;
 	unsigned int _r;
-	unsigned long _datalong;
 	bit8 axa_byte;
 	bool m_bBreakOnInterruptTaken;
 	IBreakpointManager *m_pIBreakpointManager;
