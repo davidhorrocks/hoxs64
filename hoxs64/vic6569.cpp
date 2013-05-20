@@ -1036,15 +1036,21 @@ void VIC6569::C_ACCESS()
 	if (vic_allow_c_access)
 	{
 		if (vicAEC<0)
+		{
 			VideoMatrix[vicVMLI] = vic_ph2_read_byte(vicMemptrVM | vicVC) | ((bit16)vic_read_color_byte(vicVC) << 8);
+		}
 		else
 		{
+			if (cpu->m_bDebug)
+			{
+				//VIC runs upto 1 clock ahead of the CPU in debug mode.
+				cpu->ExecuteCycle(CurrentClock);
+				cpu_next_op_code = cpu->m_op_code;
+			}
 			VideoMatrix[vicVMLI] = ((bit16)(cpu_next_op_code & 0xF) << 8) | 0xFF;
 		}
 	}
 }
-
-
 
 bit8 VIC6569::G_ACCESS(const bit8 ecm_bmm_mcm, bit32& lastCData)
 {
@@ -1694,6 +1700,8 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	vic_left_compare=0x1f;
 	vic_right_compare=0x14f;
 
+	cpu_next_op_code = 0;
+	vic_allow_c_access = false;
 
 	// control reg 1
 	vicECM=0;
@@ -2325,11 +2333,16 @@ void VIC6569::SetBA(ICLK &cycles, bit8 cycle)
 			--vicAEC;
 		//If cpu->m_bIsWriteCycle == false or cycles != 0 then it means that the cpu has recently executed a read cycle which should have caused a cpu BA delay.
 		//We synchronise the vic with all cpu-write cycles but allow the cpu to run ahead with reads from RAM.
-		//'cycles' will always be zero if we call here on a cpu write-cycle
+		//If we call here on a cpu write cycle then 'cycles' will be zero through 'cycles' may be zero for cpu read cycles too.
 		if (!cpu->m_bDebug)
 		{
 			if (!cpu->m_bIsWriteCycle || cycles != 0)
 			{
+				if (cycles == 0 && vic_allow_c_access && vicAEC>=0 && CurrentClock == cpu->CurrentClock && cpu->IsOpcodeFetch())
+				{
+					//Handles a special case where cpu is paused on a read cycle and the op code fetch is from IO space.
+					cpu_next_op_code = cpu->ReadByte(cpu->mPC.word);
+				}
 				cpu->AddClockDelay();
 				++cycles;
 			}
@@ -2689,7 +2702,7 @@ bit8 data8;
 
 			SetBA(clocks, cycle);
 			vic_ph1_read_byte(0x3f00 | vicDRAMRefresh--);
-			vic_allow_c_access = vic_badline;
+			vic_allow_c_access = vic_badline!=0;
 			vicIDLE_DELAY=0;
 
 			C_ACCESS();
@@ -2831,6 +2844,8 @@ bit8 data8;
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
 
+			vic_allow_c_access = false;
+
 			vicSpriteYMatch=0;
 			ff_YP= ((~ff_YP) & vicSpriteYExpand) | (~vicSpriteYExpand & ff_YP);
 
@@ -2848,8 +2863,6 @@ bit8 data8;
 
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][0];
 			SetBA(clocks, cycle);
-
-			vic_allow_c_access = FALSE;
 
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
@@ -3078,9 +3091,6 @@ bit8 data8;
 			m_bVicBankChanging = false;
 			SetMMU(vicBankChangeByte);
 		}
-		//TEST
-		//vicBorderColor=7;
-		//vicBackgroundColor[0] = 0;
 	}
 }
 
@@ -3561,10 +3571,12 @@ bit8 modeOld;
 			vic_badline=1;
 			if (cycle>=15 && cycle<=54)
 			{
-				vic_allow_c_access = 1;
+				vic_allow_c_access = true;
 			}
 			vicCDataCarry=0;
 
+			//Reads from the system one clock too soon. This is fine for reading RAM or ROM.
+			//CACCESS and SetBA handle the case when the opcode is fetched from IO space.
 			cpu_next_op_code = cpu->MonReadByte(cpu->mPC.word, -1);
 			
 			vicIDLE=0;
@@ -3572,7 +3584,8 @@ bit8 modeOld;
 		}
 		else
 		{
-			vic_allow_c_access = vic_badline =0;
+			vic_badline = 0;
+			vic_allow_c_access = false;
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][0];
 		}
 

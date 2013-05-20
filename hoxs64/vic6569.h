@@ -111,8 +111,6 @@ public:
 	LPDIRECT3DSURFACE9 m_pBackBuffer;
 	D3DLOCKED_RECT m_LockRect;
 
-	//ICLK ClockNextWakeUpClock;
-
 	bit8 cpu_next_op_code;
 
 	// control reg 1
@@ -266,12 +264,11 @@ private:
 	bit8 vic_border_part_40;
 
 	bit8 *vic_pixelbuffer;
-	//bit8 *vic_borderbuffer;
 	bit8 pixelMaskBuffer[(PIXELBUFFER_SIZE + 1) / 8];
-	bit8 vic_sprite_collision_line[PIXELBUFFER_SIZE];
+	bit8 vic_sprite_collision_line[PIXELBUFFER_SIZE + 1];
 	bit8 (*vic_address_line_info)[64];
 	bit8 foregroundMask_mcm[256];
-	bit8 vic_allow_c_access;
+	bool vic_allow_c_access;
 	bool m_bVicModeChanging;
 	bit32 VideoMatrix[100];//NUM_SCREEN_COLUMNS
 	static bit8 BA_line_info[256][2][64];

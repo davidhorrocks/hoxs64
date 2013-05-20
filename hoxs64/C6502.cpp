@@ -982,23 +982,30 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		switch (m_cpu_sequence)
 		{
 		case C_FETCH_OPCODE:
-			CHECK_BA;
+			//CHECKBA;
+			if (m_bDebug && BA==0) {
+				++m_CurrentOpcodeClock;
+				if (this->FirstBALowClock == CurrentClock)
+					m_op_code = ReadByte(mPC.word);
+				break;
+			}
 			if (PROCESSOR_INTERRUPT==0)
 			{
-				m_op_code=ReadByte(mPC.word++);
+				m_op_code=ReadByte(mPC.word);
+				mPC.word++;
 				m_cpu_sequence=decode_array[m_op_code];
 				m_cpu_final_sequence=m_op_code;
 			}
 			else if(PROCESSOR_INTERRUPT & INT_NMI)
 			{
 				PROCESSOR_INTERRUPT=0;
-				ReadByte(mPC.word);
+				m_op_code=ReadByte(mPC.word);
 				m_cpu_sequence=C_NMI;
 			}
 			else if((PROCESSOR_INTERRUPT & INT_IRQ))
 			{
 				PROCESSOR_INTERRUPT=0;
-				ReadByte(mPC.word);
+				m_op_code=ReadByte(mPC.word);
 				m_cpu_sequence=C_IRQ;
 			}
 			break;
