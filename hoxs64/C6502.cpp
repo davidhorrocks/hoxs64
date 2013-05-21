@@ -765,18 +765,61 @@ void CPU6502::ConfigureMemoryMap()
 {
 }
 
-void __forceinline CPU6502::code_cmp()
+bit8 CPU6502::code_arr(unsigned int _a, unsigned int _s)
 {
+unsigned int _al;
+unsigned int _ah;
+unsigned int _r;
+
+	SyncVFlag();
+	if (fDECIMAL==0)
+	{
+		_a = _a & _s;
+		_a >>= 1;
+		_a |= (fCARRY ? 0x80 : 0);
+		fNEGATIVE = fCARRY;
+		fZERO = (_a==0);
+		fCARRY = (_a & 0x40) >> 6;
+		fOVERFLOW = fCARRY ^ ((_a & 0x20) >> 5);
+		return _a & 0xff;
+	}
+	else
+	{
+		_a = _a & _s;
+		_al = _a >> 4;
+		_ah = _a & 15;
+		fNEGATIVE = fCARRY;
+		_r = (_a >> 1);
+		_r |= (fCARRY ? 0x80 : 0);
+		fZERO = (_r==0);
+		fOVERFLOW = ((_r ^ _a) & 0x40) >> 6;
+
+		if ((_al + (_al & 1)) > 5)
+			_r = (_r & 0xf0) | ((_r + 6) & 0xf);
+		if (fCARRY = (_ah + (_ah & 1) > 5))
+			_r = (_r + 0x60) & 0xff;
+
+		return _r & 0xff;
+	}	
+}
+
+bit8 CPU6502::code_cmp(unsigned int _a, unsigned int _s)
+{
+unsigned int _r;
 	_r=_a - _s;
 	_a=_r & 0xFF;
 	fCARRY=!(_r>>8);
 	fZERO=(_a==0);
 	fNEGATIVE=(_a & 0x80) >> 7;
-
+	return _a;
 }
 
-void __forceinline CPU6502::code_add()
+bit8 CPU6502::code_add(unsigned int _a, unsigned int _s)
 {
+unsigned int _al;
+unsigned int _ah;
+unsigned int _r;
+
 	SyncVFlag();
 	if (fDECIMAL==0){
 		_r=_a + _s + fCARRY;
@@ -798,10 +841,15 @@ void __forceinline CPU6502::code_add()
 		fCARRY = (_ah > 0x0F);
 		_a = ((_ah << 4) | (_al & 0x0F)) & 0xFF;
 	}
+	return _a;
 }
 
-void __forceinline CPU6502::code_sub()
+bit8 CPU6502::code_sub(unsigned int _a, unsigned int _s)
 {
+unsigned int _al;
+unsigned int _ah;
+unsigned int _r;
+
 	SyncVFlag();
 	if (fDECIMAL==0){
 		_r=_a - _s - !fCARRY;
@@ -826,6 +874,7 @@ void __forceinline CPU6502::code_sub()
 
 		_a = ((_ah << 4) | (_al & 0x0F)) & 0xFF;
 	}
+	return _a;
 }
 
 
@@ -977,6 +1026,7 @@ bool CPU6502::IsInterruptInstruction()
 
 void CPU6502::ExecuteCycle(ICLK sysclock)
 {
+unsigned int v;
 	//The value of CurrentClock can be advanced by vic.ExecuteCycle()
 	while ((ICLKS)(sysclock - CurrentClock) > 0)
 	{
@@ -1696,11 +1746,9 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case ADC_ABSOLUTEX:
 		case ADC_INDIRECTY:
 		case ADC_INDIRECTX:
-			_s=ReadByte(addr.word);
+			databyte=ReadByte(addr.word);
 			CHECK_BA;
-			_a=mA;
-			code_add();
-			mA=_a;
+			mA = code_add(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -1716,11 +1764,9 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case SBC_ABSOLUTEX:
 		case SBC_INDIRECTY:
 		case SBC_INDIRECTX:
-			_s=ReadByte(addr.word);
+			databyte = ReadByte(addr.word);
 			CHECK_BA;
-			_a=mA;
-			code_sub();
-			mA=_a;
+			mA = code_sub(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -1736,10 +1782,9 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case CMP_ABSOLUTEY:
 		case CMP_INDIRECTX:
 		case CMP_INDIRECTY:
-			_s=ReadByte(addr.word);
+			databyte = ReadByte(addr.word);
 			CHECK_BA;
-			_a=mA;
-			code_cmp();
+			code_cmp(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -1750,10 +1795,9 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_cpu_sequence = CPX_ZEROPAGE;
 		case CPX_ZEROPAGE:
 		case CPX_ABSOLUTE:
-			_s=ReadByte(addr.word);
+			databyte = ReadByte(addr.word);
 			CHECK_BA;
-			_a=mX;
-			code_cmp();
+			code_cmp(mX, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -1764,10 +1808,9 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_cpu_sequence = CPY_ZEROPAGE;
 		case CPY_ZEROPAGE:
 		case CPY_ABSOLUTE:
-			_s=ReadByte(addr.word);
+			databyte = ReadByte(addr.word);
 			CHECK_BA;
-			_a=mY;
-			code_cmp();
+			code_cmp(mY, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -1950,12 +1993,12 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case ROL_IMPLIED:
 			ReadByte(mPC.word);
 			CHECK_BA;
-			_a=mA;
-			_a<<=1;
-			_a|=fCARRY;
-			fCARRY=(_a & 0x0100) >> 8;
-			fNEGATIVE=(_a & 0x80) >> 7;
-			mA=_a & 0xFF;
+			v=mA;
+			v<<=1;
+			v|=fCARRY;
+			fCARRY=(v & 0x0100) >> 8;
+			fNEGATIVE=(v & 0x80) >> 7;
+			mA=v & 0xFF;
 			fZERO= (mA==0);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1966,14 +2009,14 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case ROL_ZEROPAGEX:
 		case ROL_ABSOLUTE:
 		case ROL_ABSOLUTEX:
-			_a=databyte;
-			_a<<=1;
-			_a|=fCARRY;
-			fCARRY=(_a & 0x0100) >> 8;
-			fNEGATIVE=(_a & 0x80) >> 7;
-			_a=_a & 0xFF;
-			fZERO= (_a==0);
-			WriteByte(addr.word, _a);
+			v=databyte;
+			v<<=1;
+			v|=fCARRY;
+			fCARRY=(v & 0x0100) >> 8;
+			fNEGATIVE=(v & 0x80) >> 7;
+			v=v & 0xFF;
+			fZERO= (v==0);
+			WriteByte(addr.word, v);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -1982,13 +2025,13 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case ROR_IMPLIED:
 			ReadByte(mPC.word);
 			CHECK_BA;
-			_a=mA;
-			_a|= (fCARRY << 8);
-			fCARRY= _a & 1;
-			_a>>=1;
-			fNEGATIVE=(_a & 0x80) >> 7;
+			v=mA;
+			v|= (fCARRY << 8);
+			fCARRY= v & 1;
+			v>>=1;
+			fNEGATIVE=(v & 0x80) >> 7;
 			fCARRY= mA & 1;
-			mA=_a & 0xFF;
+			mA=v & 0xFF;
 			fZERO= (mA==0);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1999,14 +2042,14 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case ROR_ZEROPAGEX:
 		case ROR_ABSOLUTE:
 		case ROR_ABSOLUTEX:
-			_a=databyte;
-			_a|= (fCARRY << 8);
-			fCARRY= _a & 1;
-			_a>>=1;
-			fNEGATIVE=(_a & 0x80) >> 7;
-			_a=_a & 0xFF;
-			fZERO= (_a==0);
-			WriteByte(addr.word, _a);
+			v=databyte;
+			v|= (fCARRY << 8);
+			fCARRY= v & 1;
+			v>>=1;
+			fNEGATIVE=(v & 0x80) >> 7;
+			v=v & 0xFF;
+			fZERO= (v==0);
+			WriteByte(addr.word, v);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -2557,11 +2600,11 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case RLA_ABSOLUTEY:
 		case RLA_ABSOLUTEX:
 		case RLA_INDIRECTX:
-			_a=databyte;
-			_a<<=1;
-			_a|=fCARRY;
-			fCARRY=(_a & 0x0100) >> 8;
-			databyte=(bit8)_a;
+			v=databyte;
+			v<<=1;
+			v|=fCARRY;
+			fCARRY=(v & 0x0100) >> 8;
+			databyte=(bit8)v;
 			WriteByte(addr.word, databyte);
 			
 			mA&=databyte;
@@ -2604,17 +2647,14 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case RRA_ABSOLUTEY:
 		case RRA_ABSOLUTEX:
 		case RRA_INDIRECTX:
-			_a=databyte;
-			_a|= (fCARRY << 8);
-			fCARRY= _a & 1;
-			_a>>=1;
-			databyte= (bit8) _a;
-			WriteByte(addr.word, databyte);
+			v = databyte;
+			v |= (fCARRY << 8);
+			fCARRY = v & 1;
+			v >>= 1;
+			databyte= (bit8) v;
+			WriteByte(addr.word, v);
 
-			_s=databyte;
-			_a=mA;
-			code_add();
-			mA=_a;
+			mA = code_add(mA, v);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -2657,9 +2697,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case DCP_INDIRECTX:
 			databyte--;
 			WriteByte(addr.word,databyte);
-			_s=databyte;
-			_a=mA;
-			code_cmp();
+			code_cmp(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -2677,10 +2715,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 		case ISB_INDIRECTX:
 			databyte++;
 			WriteByte(addr.word,databyte);
-			_s=databyte;
-			_a=mA;
-			code_sub();
-			mA=_a;
+			mA = code_sub(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -2704,35 +2739,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			databyte = ReadByte(mPC.word);
 			CHECK_BA;
 			mPC.word++;
-			if (fDECIMAL==0)
-			{
-				_a = mA & databyte;
-				_a >>= 1;
-				_a |= (fCARRY ? 0x80 : 0);
-				fNEGATIVE = fCARRY;
-				fZERO = (_a==0);
-				fCARRY = (_a & 0x40) >> 6;
-				SyncVFlag();
-				fOVERFLOW = fCARRY ^ ((_a & 0x20) >> 5);
-				mA = _a;
-			}
-			else
-			{
-				_a = mA & databyte;
-				_al = _a >> 4;
-				_ah = _a & 15;
-				fNEGATIVE = fCARRY;
-				mA = (_a >> 1);
-				mA |= (fCARRY ? 0x80 : 0);
-				fZERO = (mA==0);
-				SyncVFlag();
-				fOVERFLOW = ((mA ^ _a) & 0x40) >> 6;
-
-				if ((_al + (_al & 1)) > 5)
-					mA = (mA & 0xf0) | ((mA + 6) & 0xf);
-				if (fCARRY = (_ah + (_ah & 1) > 5))
-					mA = (mA + 0x60) & 0xff;
-			}
+			mA = code_arr(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -2775,12 +2782,10 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case SBX_IMMEDIATE:
-			_s=ReadByte(mPC.word);
+			databyte = ReadByte(mPC.word);
 			CHECK_BA;
 			mPC.word++;
-			_a=mA & mX;
-			code_cmp();
-			mX = (bit8) _a;
+			mX = code_cmp(mA & mX, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;

@@ -594,9 +594,10 @@ protected:
 	ICLK m_CurrentOpcodeClock;
 	bool m_bBALowInClock2OfSEI;
 
-	void __forceinline code_add();
-	void __forceinline code_sub();
-	void __forceinline code_cmp();
+	bit8 code_add(unsigned int _a, unsigned int _s);
+	bit8 code_sub(unsigned int _a, unsigned int _s);
+	bit8 code_cmp(unsigned int _a, unsigned int _s);
+	bit8 code_arr(unsigned int _a, unsigned int _s);
 
 	virtual void SyncChips()=0;
 	virtual void check_interrupts1();
@@ -609,11 +610,12 @@ private:
 	bit16u addr;
 	bit16u ptr;
 	bit8 databyte;
-	unsigned int _a;
-	unsigned int _al;
-	unsigned int _ah;
-	unsigned int _s;
-	unsigned int _r;
+	//unsigned int _a;
+	//unsigned int _al;
+	//unsigned int _ah;
+	//unsigned int _s;
+	//unsigned int _r;
+	unsigned int v;
 	bit8 axa_byte;
 	bool m_bBreakOnInterruptTaken;
 	IBreakpointManager *m_pIBreakpointManager;
