@@ -889,8 +889,8 @@ void CPU6502::InitReset(ICLK sysclock)
 	FirstNMIClock=0;
 	RisingIRQClock = sysclock - 1;
 	m_bBALowInClock2OfSEI = false;
-	mPC.word=0;
-	mA=0;
+	mPC.word=0x00ff;
+	mA=0xaa;
 	mX=0;
 	mY=0;
 	mS=0;
@@ -900,7 +900,7 @@ void CPU6502::InitReset(ICLK sysclock)
 	fBREAK=0;
 	fDECIMAL=0;
 	fINTERRUPT=0;
-	fZERO=0;
+	fZERO=1;
 	fCARRY=0;
 	SOTrigger = false;
 	SOTriggerClock = 0;
@@ -913,14 +913,6 @@ void CPU6502::InitReset(ICLK sysclock)
 void CPU6502::Reset(ICLK sysclock)
 {
 	InitReset(sysclock);
-	LoadPCFromResetVector();
-}
-
-bit16 CPU6502::LoadPCFromResetVector()
-{
-	mPC.byte.loByte = ReadByte(0xFFFC);
-	mPC.byte.hiByte = ReadByte(0xFFFD);
-	return mPC.word;
 }
 
 HRESULT CPU6502::Init(int ID, IBreakpointManager *pIBreakpointManager)
@@ -1086,6 +1078,7 @@ unsigned int v;
 				addr.word=0xFFFE;
 				m_cpu_sequence=C_LOAD_PC;
 			}
+			CheckForCartFreeze();
 			break;
 		case C_NMI:
 			ReadByte(mPC.word);
@@ -1107,6 +1100,7 @@ unsigned int v;
 			PROCESSOR_INTERRUPT=0;
 			addr.word=0xFFFA;
 			m_cpu_sequence=C_LOAD_PC;
+			CheckForCartFreeze();
 			break;
 		case C_BRK_IMPLIED:
 			ReadByte(mPC.word);
@@ -1154,12 +1148,12 @@ unsigned int v;
 				addr.word=0xFFFE;
 				m_cpu_sequence=C_LOAD_PC;
 			}
+			CheckForCartFreeze();
 			break;
 		case C_LOAD_PC:
 			CPU6502_LOAD_PCL(ReadByte(addr.word));
 			CHECK_BA;
 			addr.word++;
-			CheckForCartFreeze();
 			m_cpu_sequence++;
 			break;
 		case C_LOAD_PC_2:
@@ -1172,47 +1166,51 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_RESET:
+			databyte = ReadByte(mPC.word);
+			CHECK_BA;
+			m_cpu_sequence++;
+			break;
+		case C_RESET_1:
+			databyte = ReadByte(mPC.word);
+			CHECK_BA;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_2:
+			databyte = ReadByte(mPC.word);
+			CHECK_BA;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_3:
+			ReadByte(mSP + 0x0100);
+			CHECK_BA;
+			mSP--;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_4:
-			addr.word=0xFFFC;
+			ReadByte(mSP + 0x0100);
+			CHECK_BA;
+			mSP--;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_5:
+			ReadByte(mSP + 0x0100);
+			CHECK_BA;
+			mSP--;
+			fBREAK = 1;
+			fINTERRUPT = 1;
+			addr.word=0xFFFC;
+			m_cpu_sequence++;
+			break;
+		case C_RESET_6:
 			CPU6502_LOAD_PCL(ReadByte(addr.word));
 			CHECK_BA;
 			addr.word++;
 			m_cpu_sequence++;
 			break;
-		case C_RESET_6:
+		case C_RESET_7:
 			CPU6502_LOAD_PCH(ReadByte(addr.word));
 			CHECK_BA;
 
-			IRQ=0;	
-			NMI=0;
-			NMI_TRIGGER=0;
-			FirstIRQClock = CurrentClock;
-			FirstNMIClock = CurrentClock;
-			RisingIRQClock = CurrentClock - 1;
-			mA=0;
-			mX=0;
-			mY=0;
-			mS=0;
-			mSP=0;
-			fNEGATIVE=0;
-			fOVERFLOW=0;
-			fBREAK=0;
-			fDECIMAL=0;
-			fINTERRUPT=0;
-			fZERO=0;
-			fCARRY=0;
-			PROCESSOR_INTERRUPT=0;	
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
@@ -2973,11 +2971,13 @@ bool CPU6502::IsWriteCycle()
 		case C_LOAD_PC_2:
 			return false;
 		case C_RESET:
+		case C_RESET_1:
 		case C_RESET_2:
 		case C_RESET_3:
 		case C_RESET_4:
 		case C_RESET_5:
 		case C_RESET_6:
+		case C_RESET_7:
 			return false;
 		case C_INDIRECTX:
 		case C_INDIRECTX_2:

@@ -82,7 +82,6 @@ void CPU6510::Reset(ICLK sysclock)
 	CPU6502::Reset(sysclock);
 	write_cpu_io_ddr(0, sysclock);
 	write_cpu_io_data(0);
-	LoadPCFromResetVector();
 }
 
 HRESULT CPU6510::Init(IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)

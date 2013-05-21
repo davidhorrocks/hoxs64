@@ -466,11 +466,13 @@ typedef struct {
 #define C_SKB_IMMEDIATE_4CLK_2	0x0179
 #define C_SKB_IMMEDIATE_4CLK_3	0x017a
 #define C_RESET					0x017b
-#define C_RESET_2				0x017c
-#define C_RESET_3				0x017d
-#define C_RESET_4				0x017e
-#define C_RESET_5				0x017f
-#define C_RESET_6				0x0180
+#define C_RESET_1				0x017c
+#define C_RESET_2				0x017d
+#define C_RESET_3				0x017e
+#define C_RESET_4				0x017f
+#define C_RESET_5				0x0180
+#define C_RESET_6				0x0181
+#define C_RESET_7				0x0182
 
 
 
@@ -502,7 +504,6 @@ public:
 
 	HRESULT Init(int ID, IBreakpointManager *pIBreakpointManager);
 	void Cleanup();
-	virtual bit16 LoadPCFromResetVector();
 
 	virtual bit8 ReadByte(bit16 address)=0;
 	virtual void WriteByte(bit16 address, bit8 data)=0;
