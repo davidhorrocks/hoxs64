@@ -124,23 +124,25 @@ ICLK CPU6510::GetCurrentClock()
 bit8 CPU6510::ReadByte(bit16 address)
 {
 bit8 *t;
-	//TODO optimise for with or with out cart. 
-	//if (address < 0xA000 && address > 1)
-	//	return m_ppMemory_map_read[0][address];
-
 	t=m_ppMemory_map_read[address >> 12];
 	if (t)
 	{
 		if (address>1)
+		{
 			return t[address];
+		}
 		else 
 		{
+			if (m_bDebug && BA==0 && CurrentClock - FirstBALowClock >= 3)
+				return 0;
 			vic->ExecuteCycle(CurrentClock);
 			return ReadRegister(address, CurrentClock);
 		}
 	}
 	else
 	{
+		if (m_bDebug && BA==0 && CurrentClock - FirstBALowClock >= 3)
+			return 0;
 		switch (address >> 8)
 		{
 		case 0xD0:

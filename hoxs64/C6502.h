@@ -480,24 +480,17 @@ typedef struct {
 #define CPU6502_PUSH_PS_B WriteByte(mSP-- + 0x0100, (fNEGATIVE <<7) | (fOVERFLOW <<6) | (1<<5) | (1 <<4) | (fDECIMAL <<3) | (fINTERRUPT <<2) | (fZERO <<1) | (fCARRY))
 #define CPU6502_PUSH_PS_NO_B WriteByte(mSP-- + 0x0100, (fNEGATIVE <<7) | (fOVERFLOW <<6) | (1<<5) | (fDECIMAL <<3) | (fINTERRUPT <<2) | (fZERO <<1) | (fCARRY))
 #define CPU6502_PUSH_A WriteByte(mSP-- + 0x0100, mA)
-#define CPU6502_POP_PCL mPC.byte.loByte=ReadByte(++mSP + 0x0100)
-#define CPU6502_GET_PCL mPC.byte.loByte=ReadByte(mSP + 0x0100)
-#define CPU6502_POP_PCH mPC.byte.hiByte=ReadByte(++mSP + 0x0100)
-#define CPU6502_GET_PCH mPC.byte.hiByte=ReadByte(mSP + 0x0100)
-#define CPU6502_POP_A mA=ReadByte(++mSP + 0x0100)
-#define CPU6502_GET_A mA=ReadByte(mSP + 0x0100)
-#define CPU6502_GET_PS mS=ReadByte(mSP + 0x0100); \
-	fNEGATIVE=(mS & psNEGATIVE)!=0; \
-	fOVERFLOW=(mS & psOVERFLOW)!=0; \
-	fBREAK=(mS & psBREAK)!=0; \
-	fDECIMAL=(mS & psDECIMAL)!=0; \
-	fINTERRUPT=(mS & psINTERRUPT)!=0; \
-	fZERO =(mS & psZERO)!=0; \
-	fCARRY=(mS & psCARRY)!=0
+
+#define CPU6502_SET_PS(v) fNEGATIVE=(v & psNEGATIVE)!=0; \
+	fOVERFLOW=(v & psOVERFLOW)!=0; \
+	fBREAK=(v & psBREAK)!=0; \
+	fDECIMAL=(v & psDECIMAL)!=0; \
+	fINTERRUPT=(v & psINTERRUPT)!=0; \
+	fZERO =(v & psZERO)!=0; \
+	fCARRY=(v & psCARRY)!=0;
 
 #define CPU6502_LOAD_PCL(v) mPC.byte.loByte=v
 #define CPU6502_LOAD_PCH(v) mPC.byte.hiByte=v
-#define CPU6502_IDLE_READ(addr) ReadByte(addr);
 
 //using namespace std;
 
