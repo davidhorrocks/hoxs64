@@ -2738,18 +2738,22 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
-		case XAA_IMMEDIATE:
-			_s = ReadByte(mPC.word);
+		case XAA_IMMEDIATE://ANE
+			databyte = ReadByte(mPC.word);
 			CHECK_BA;
 			mPC.word++;
-			mA |= 0xEE;
+			this->SyncChips();
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
+				mA |= 0xEE;
+			else
+				mA |= 0xEE;//BA just gone high
 
-			//Made up rule to allow bit0 to transfer from X to A
-			//Needed for some burner loaders like Obitron, DarkStar and Spectipede
-			if (_s > 3 && (_s & 0xf0) != 0)
-				mA |= 0x1;
+			////Made up rule to allow bit0 to transfer from X to A
+			////Needed for some burner loaders like Obitron, DarkStar and Spectipede
+			//if (databyte > 3 && (databyte & 0xf0) != 0)
+			//	mA |= 0x1;
 
-			mA &= mX & (bit8)_s;
+			mA &= mX & (bit8)databyte;
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
 			check_interrupts1();
@@ -2757,7 +2761,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
-		case OAL_IMMEDIATE:
+		case OAL_IMMEDIATE://LXA
 			databyte = ReadByte(mPC.word);
 			CHECK_BA;
 			mPC.word++;
@@ -2840,7 +2844,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			break;
 		case HLT_IMPLIED:
 			break;
-		case TAS_ABSOLUTEY:
+		case TAS_ABSOLUTEY://SHS
 			this->SyncChips();
 			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
@@ -2857,7 +2861,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
-		case SAY_ABSOLUTEX:
+		case SAY_ABSOLUTEX://SHY
 			this->SyncChips();
 			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
@@ -2873,7 +2877,7 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
-		case XAS_ABSOLUTEY:
+		case XAS_ABSOLUTEY://SHX
 			this->SyncChips();
 			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
@@ -2883,14 +2887,14 @@ void CPU6502::ExecuteCycle(ICLK sysclock)
 			{
 				axa_byte = 0xff;
 			}
-			WriteByte(addr.word, mA & mX & axa_byte);
+			WriteByte(addr.word, mX & axa_byte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
-		case AXA_ABSOLUTEY:
-		case AXA_INDIRECTY://AHX/SHAAY/SHAIY
+		case AXA_ABSOLUTEY://SHAAY
+		case AXA_INDIRECTY://SHAIY AHX
 			this->SyncChips();
 			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
 			{
