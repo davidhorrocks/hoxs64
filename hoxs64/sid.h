@@ -80,7 +80,7 @@ struct SIDVoice
 	void ClockShiftRegister();
 	void Reset();
 	void SetWave(bit8 data);
-	long shifterTestCounter;
+	bit32s shifterTestCounter;
 };
 
 class SID64 : public IRegister, public ErrorMsg

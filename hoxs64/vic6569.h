@@ -2,16 +2,10 @@
 #define __VIC6569_H__
 
 #define DISPLAY_START (76)
-
-#define NUM_SCREEN_COLUMNS (40)
 #define GACCESS_COL1_CYCLE (16)
 #define SPRITE_DISPLAY_CHECK_XPOS (0x164)
 
-#define PIXELBUFFER_SIZE (65 *8 + 48)
-
-#define PIXELBUFFER_MAIN_INDEX 0
-#define PIXELBUFFER_BACKUP_INDEX 1
-#define PIXELBUFFER_COUNT 2
+#include "vicpixelbuffer.h"
 
 class VIC6569;
 
@@ -187,7 +181,7 @@ public:
 	bit16 vicRC;
 	bit16 vicVCBASE;
 	bit8 vicVMLI;
-	long vicAEC;
+	bit8s vicAEC;
 	bit8 vicIDLE;
 	bit8 vicIDLE_DELAY;
 	bit32 vicLastCData;
