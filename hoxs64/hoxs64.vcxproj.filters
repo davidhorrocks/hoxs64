@@ -31,6 +31,12 @@
     <Filter Include="Source Files\cart">
       <UniqueIdentifier>{01a4c02d-6d79-4386-9f55-7a590f2a485d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\savestate">
+      <UniqueIdentifier>{32ed25cb-1353-44bb-a4c3-00d25566e9f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\savestate">
+      <UniqueIdentifier>{3bf91b0c-9382-492b-996e-54f62fcce9b2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="appstatus.cpp">
@@ -290,6 +296,9 @@
     </ClCompile>
     <ClCompile Include="cart_epyx_fastload.cpp">
       <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="savestate.cpp">
+      <Filter>Source Files\savestate</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -574,6 +583,12 @@
     </ClInclude>
     <ClInclude Include="cart_epyx_fastload.h">
       <Filter>Header Files\cart</Filter>
+    </ClInclude>
+    <ClInclude Include="savestate.h">
+      <Filter>Header Files\savestate</Filter>
+    </ClInclude>
+    <ClInclude Include="vicpixelbuffer.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

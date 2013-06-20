@@ -551,6 +551,7 @@
     <ClCompile Include="mdichildcli.cpp" />
     <ClCompile Include="runcommandmapmemory.cpp" />
     <ClCompile Include="cart_simons_basic.cpp" />
+    <ClCompile Include="savestate.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />
     <ClCompile Include="wpcbreakpoint.cpp" />
     <ClCompile Include="break_point.cpp">
@@ -877,7 +878,9 @@
     <ClInclude Include="oldos_multimon.h" />
     <ClInclude Include="runcommand.h" />
     <ClInclude Include="cart_simons_basic.h" />
+    <ClInclude Include="savestate.h" />
     <ClInclude Include="toolitemaddress.h" />
+    <ClInclude Include="vicpixelbuffer.h" />
     <ClInclude Include="wpcbreakpoint.h" />
     <ClInclude Include="CDPI.h" />
     <ClInclude Include="cevent.h" />
