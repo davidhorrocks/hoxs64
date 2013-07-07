@@ -368,8 +368,66 @@ struct SsDiskInterface
 	__int64 m_diskd64clk_xf;
 };
 
-struct SsVia
+struct SsViaCommon
 {
+	int ID;
+	ICLK DevicesClock;
+	
+	bool bLatchA;
+	bool bLatchB;
+
+	bit8 ora;
+	bit8 ira;
+	bit8 orb;
+	bit8 irb;
+	bit8 ddra;
+	bit8 ddrb;
+	bit16u timer1_counter;
+	bit16u timer2_counter;
+	bit16u timer1_latch;
+	bit16u timer2_latch;
+	bit8 acr;
+	bit8 pcr;
+	bit8 ca1_in;
+	bit8 ca1_in_prev;
+	bit8 ca2_in;
+	bit8 ca2_in_prev;
+	bit8 cb1_in;
+	bit8 cb1_in_prev;
+	bit8 cb2_in;
+	bit8 cb2_in_prev;
+	bit8 ca2_out;
+	bit8 cb2_out;
+	bit8 shift;
+	bit8 ifr;
+	bit8 ier;
+	bit8 serial_active;
+	bit8 serial_mode;
+	unsigned __int64 delay;
+	unsigned __int64 feed;
+	unsigned __int64 old_delay;
+	unsigned __int64 old_feed;
+	bit8 modulo;
+	bit8 Interrupt;
+
+	bit8 bPB7TimerMode;
+	bit8 bPB7Toggle;
+	bit8 bPB7TimerOut;
+
+	bit8 no_change_count;
+	bit16 dec_2;
+	bit8 idle;
+};
+
+struct SsVia1
+{
+	SsViaCommon via;
+};
+
+struct SsVia2
+{
+	SsViaCommon via;
+	bit8 oldDiskControl;
 };
 
 # pragma pack ()
