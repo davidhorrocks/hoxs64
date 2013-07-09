@@ -300,6 +300,9 @@
     <ClCompile Include="savestate.cpp">
       <Filter>Source Files\savestate</Filter>
     </ClCompile>
+    <ClCompile Include="filestream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -588,6 +591,9 @@
       <Filter>Header Files\savestate</Filter>
     </ClInclude>
     <ClInclude Include="vicpixelbuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="filestream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
