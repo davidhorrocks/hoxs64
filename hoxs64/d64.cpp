@@ -2417,7 +2417,7 @@ HRESULT GCRDISK::SaveFDIToFile(TCHAR *filename)
 {
 BOOL rb;
 FDIHeader fdiHeader;
-HANDLE hfile;
+HANDLE hFile;
 DWORD bytes_written,file_size,r;
 struct FDITrackDescription fdiTrackDescription[G64_MAX_TRACKS];
 long i,j;
@@ -2443,12 +2443,17 @@ CRC32Alloc crc;
 		return E_OUTOFMEMORY;
 	crc.pCRC32->Init(CRC32POLY,0xffffffff,0xffffffff, true);
 
-	hfile=CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL ,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
+	hFile=CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL ,NULL); 
+	if (hFile==INVALID_HANDLE_VALUE)
 	{
-		return SetError(E_FAIL,TEXT("Could not save %s."),filename);
+		return SetError(E_FAIL,TEXT("Could not save %s."), filename);
 	}
-	hw.HuffSetFile(hfile);
+	hr = hw.HuffSetFile(hFile);
+	if (FAILED(hr))
+	{
+		CloseHandle(hFile);
+		return SetError(hr, TEXT("Could not save %s."), filename);
+	}
 
 	memset(&fdiHeader.signature[0], 0, sizeof(FDIHeader));
 	memcpy(fdiHeader.signature, "Formatted Disk Image file\r\n", 27);
@@ -2468,7 +2473,7 @@ CRC32Alloc crc;
 	fdiHeader.headwidth = 2;
 	fdiHeader.reserved = 0;
 	
-	rb = WriteFile(hfile, &fdiHeader, sizeof(FDIHeader), &bytes_written, NULL);
+	rb = WriteFile(hFile, &fdiHeader, sizeof(FDIHeader), &bytes_written, NULL);
 	if (!rb)
 		return SetError(E_FAIL,TEXT("Could not save %s."),filename);
 
@@ -2520,7 +2525,7 @@ CRC32Alloc crc;
 			return SetError(E_FAIL,TEXT("Too many pulses found in track %d."),(int)tr);
 
 		
-		r = SetFilePointer (hfile, nextTrackWrite + sizeof(FDIRawTrackHeader), 0L, FILE_BEGIN);
+		r = SetFilePointer (hFile, nextTrackWrite + sizeof(FDIRawTrackHeader), 0L, FILE_BEGIN);
 		if (r == INVALID_SET_FILE_POINTER)
 		{
 			return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
@@ -2543,7 +2548,7 @@ CRC32Alloc crc;
 			zeroPadSize = 0x100 - (writeSize & 0xff);
 			for (i=0; i < zeroPadSize; i++)
 			{
-				rb = WriteFile(hfile, &j, 1, &bytes_written, NULL);
+				rb = WriteFile(hFile, &j, 1, &bytes_written, NULL);
 				if (!rb)
 					return SetError(E_FAIL, TEXT("Could not save %s."),filename);
 			}
@@ -2568,12 +2573,12 @@ CRC32Alloc crc;
 		fdiRawTrackHeader.idxSize[1] = 0;
 		fdiRawTrackHeader.idxSize[0] = 0;
 
-		r = SetFilePointer (hfile, nextTrackWrite, 0L, FILE_BEGIN);
+		r = SetFilePointer (hFile, nextTrackWrite, 0L, FILE_BEGIN);
 		if (r == INVALID_SET_FILE_POINTER)
 		{
 			return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 		}
-		rb = WriteFile(hfile, &fdiRawTrackHeader, sizeof(FDIRawTrackHeader), &bytes_written, NULL);
+		rb = WriteFile(hFile, &fdiRawTrackHeader, sizeof(FDIRawTrackHeader), &bytes_written, NULL);
 		if (!rb)
 			return SetError(E_FAIL, TEXT("Could not save %s."),filename);
 
@@ -2587,37 +2592,37 @@ CRC32Alloc crc;
 		nextTrackWrite+= (writeSize * 0x100);
 	}
 
-	r = SetFilePointer (hfile, SOFFSET(FDIHeader,trackDescription) , 0L, FILE_BEGIN);
+	r = SetFilePointer (hFile, SOFFSET(FDIHeader,trackDescription) , 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
-	rb = WriteFile(hfile, &fdiTrackDescription[0], sizeof(FDITrackDescription) * G64_MAX_TRACKS, &bytes_written, NULL);
+	rb = WriteFile(hFile, &fdiTrackDescription[0], sizeof(FDITrackDescription) * G64_MAX_TRACKS, &bytes_written, NULL);
 	if (!rb)
 		return SetError(E_FAIL, TEXT("Could not save %s."),filename);
 
 	/*Calculate CRC-32 values*/
 	/*Seek to begining*/
-	r = SetFilePointer (hfile, 0L, 0L, FILE_BEGIN);
+	r = SetFilePointer (hFile, 0L, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
-	file_size = GetFileSize(hfile, 0);
+	file_size = GetFileSize(hFile, 0);
 	if (INVALID_FILE_SIZE == file_size)
 	{
 		return SetError(E_FAIL,TEXT("GetFileSize failed for %s."),filename);
 	}
 
 	/*Read header*/
-	hr = ReadFromFile(hfile, filename, (char *)&fdiHeader, sizeof(struct FDIHeader), 0);
+	hr = ReadFromFile(hFile, filename, (char *)&fdiHeader, sizeof(struct FDIHeader), 0);
 	if (FAILED(hr))
 		return hr;
 	
 	/*Read track data and calculate it's CRC-32*/
 	for (i=sizeof(struct FDIHeader) ; (DWORD)i < file_size ; i++)
 	{
-		hr = ReadFromFile(hfile, filename, (char *)&currentByte, 1, 0);
+		hr = ReadFromFile(hFile, filename, (char *)&currentByte, 1, 0);
 		if (FAILED(hr))
 			return hr;
 		crc.pCRC32->ProcessByte((BYTE)currentByte);
@@ -2635,13 +2640,13 @@ CRC32Alloc crc;
 
 
 	/*Seek to begining*/
-	r = SetFilePointer (hfile, 0L , 0L, FILE_BEGIN);
+	r = SetFilePointer (hFile, 0L , 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
 	/*rewrite the header*/
-	rb = WriteFile(hfile, &fdiHeader, sizeof(FDIHeader), &bytes_written, NULL);
+	rb = WriteFile(hFile, &fdiHeader, sizeof(FDIHeader), &bytes_written, NULL);
 	if (!rb || bytes_written!=sizeof(FDIHeader))
 		return SetError(E_FAIL, TEXT("Could not save %s."),filename);
 

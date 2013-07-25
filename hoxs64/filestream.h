@@ -6,9 +6,11 @@ class FileStream : public IStream
     ~FileStream();
 
 public:
-    HRESULT static OpenFile(LPCTSTR pName, IStream ** ppStream, bool fWrite);
+    HRESULT static CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite);
 
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void ** ppvObject);
+    HRESULT static CreateObject(HANDLE hFile, IStream ** ppStream);
+
+	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void ** ppvObject);
 	
 	virtual ULONG STDMETHODCALLTYPE AddRef(void);
 

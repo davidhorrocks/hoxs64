@@ -29,7 +29,7 @@ HuffWork Class
 ***********************************************************************************************************************/
 HuffWork::HuffWork()
 {
-	hfile=0;
+	m_pStream=0;
 	huffTable = NULL;
 }
 HuffWork::~HuffWork()
@@ -37,10 +37,10 @@ HuffWork::~HuffWork()
 	if (huffTable)
 		GlobalFree(huffTable);
 	huffTable = NULL;
-	if (hfile)
+	if (m_pStream)
 	{
-		CloseHandle(hfile);
-		hfile=0;
+		m_pStream->Release();
+		m_pStream=0;
 	}
 }
 
@@ -56,15 +56,15 @@ HRESULT HuffWork::Init()
 void HuffWork::HuffWriteBit(bit8 data)
 {
 bit8 i,m,v;
-BOOL rb;
+HRESULT hr;
 DWORD bytes_written;
 
 	if (bufferPos +1 > HUFFBUFFERSIZE*8)
 	{
-		if (!writeError && hfile!=0)
+		if (!writeError && m_pStream!=NULL)
 		{
-			rb = WriteFile(hfile, buffer, HUFFBUFFERSIZE, &bytes_written, NULL);
-			if (rb==FALSE)
+			hr = m_pStream->Write(buffer, HUFFBUFFERSIZE, &bytes_written);
+			if (FAILED(hr))
 				writeError = true;
 		}
 		bufferPos = 0;
@@ -81,14 +81,14 @@ void HuffWork::HuffWriteByte(bit8 data)
 {
 bit8 i,m,*p,shift,v;
 DWORD bytes_written;
-BOOL rb;
+HRESULT hr;
 	
 	if (bufferPos +8 > HUFFBUFFERSIZE*8)
 	{
-		if (!writeError && hfile!=0)
+		if (!writeError && m_pStream!=0)
 		{
-			rb = WriteFile(hfile, buffer, bufferPos/8, &bytes_written, NULL);
-			if (rb==FALSE)
+			hr = m_pStream->Write(buffer, bufferPos/8, &bytes_written);
+			if (FAILED(hr))
 				writeError = true;
 		}
 		buffer[0] = buffer[HUFFBUFFERSIZE-1];
@@ -113,7 +113,6 @@ BOOL rb;
 	outLength+=8;
 }
 
-
 void HuffWork::HuffWriteWord(bit16 data)
 {
 	HuffWriteByte((bit8)(data>>8));
@@ -123,7 +122,7 @@ void HuffWork::HuffWriteWord(bit16 data)
 void HuffWork::HuffEndWrite()
 {
 bit8 i,m,*p,shift;
-BOOL rb;
+HRESULT hr;
 DWORD bytes_written;
 
 	shift = (bit8)bufferPos & 7;
@@ -135,10 +134,10 @@ DWORD bytes_written;
 		*p = (i & m);
 		bufferPos = (bufferPos + (8-shift));
 	}
-	if (!writeError && hfile!=0)
+	if (!writeError && m_pStream!=0)
 	{
-		rb = WriteFile(hfile, buffer, bufferPos/8, &bytes_written, NULL);
-		if (rb==FALSE)
+		hr = m_pStream->Write(buffer, bufferPos/8, &bytes_written);
+		if (FAILED(hr))
 			writeError = true;
 	}
 	bufferPos=0;
@@ -190,9 +189,40 @@ void HuffWork::HuffWalkTreeValues(HuffNode *node)
 	}
 }
 
-void HuffWork::HuffSetFile(HANDLE hfile)
+HRESULT HuffWork::HuffSetFile(HANDLE hfile)
 {
-	HuffWork::hfile = hfile;
+HRESULT hr = E_FAIL;
+IStream *pstm = NULL;
+	hr = FileStream::CreateObject(hfile, &pstm);
+	if (SUCCEEDED(hr))
+	{
+		if (this->m_pStream)
+		{
+			this->m_pStream->Release();
+			this->m_pStream = NULL;
+		}
+		this->m_pStream = pstm;
+		pstm = NULL;
+		InitSetFile();
+	}
+	return hr;
+}
+
+HRESULT HuffWork::HuffSetFile(IStream *pStream)
+{
+	pStream->AddRef();
+	if (this->m_pStream)
+	{
+		this->m_pStream->Release();
+		this->m_pStream = NULL;
+	}
+	this->m_pStream = pStream;
+	InitSetFile();
+	return S_OK;
+}
+
+void HuffWork::InitSetFile()
+{
 	writeError=false;
 	bufferPos=0;
 }

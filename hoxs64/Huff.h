@@ -1,6 +1,8 @@
 #ifndef __HUFF_H__ 
 #define __HUFF_H__ 
 
+#include "filestream.h"
+
 #define HUFFBUFFERSIZE (32)
 
 #define HUFFSYMBOLS (0x10000)
@@ -68,14 +70,17 @@ public:
 
 	void HuffWalkTreeBits(HuffNode *node);
 	void HuffWalkTreeValues(HuffNode *node);
-	void HuffSetFile(HANDLE hfile);
+	HRESULT HuffSetFile(HANDLE hfile);
+	HRESULT HuffSetFile(IStream *pStream);
 	void HuffEndWrite();
 
 private:
+	void InitSetFile();
 	HuffTable *huffTable;
 	bit8 buffer[HUFFBUFFERSIZE];
 	bit32 bufferPos;
-	HANDLE hfile;
+	//HANDLE hfile;
+	IStream *m_pStream;
 	bool writeError;
 	bit32 path;
 	bit8 pathLength;

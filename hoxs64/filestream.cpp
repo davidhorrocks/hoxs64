@@ -16,7 +16,7 @@ FileStream::~FileStream()
 	}
 }
 
-HRESULT FileStream::OpenFile(LPCTSTR pName, IStream ** ppStream, bool fWrite)
+HRESULT FileStream::CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite)
 {
 	HANDLE hFile = ::CreateFile(pName, fWrite ? GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,
 		NULL, fWrite ? CREATE_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -24,12 +24,22 @@ HRESULT FileStream::OpenFile(LPCTSTR pName, IStream ** ppStream, bool fWrite)
 	if (hFile == INVALID_HANDLE_VALUE)
 		return HRESULT_FROM_WIN32(GetLastError());
         
-	*ppStream = new FileStream(hFile);
-        
-	if(*ppStream == NULL)
-		CloseHandle(hFile);
-            
-	return S_OK;
+	return CreateObject(hFile, ppStream);
+}
+
+HRESULT FileStream::CreateObject(HANDLE hFile, IStream ** ppStream)
+{
+IStream * pStream;
+	pStream = new FileStream(hFile);     
+	if(ppStream != NULL)
+	{
+		*ppStream = pStream;
+		return S_OK;
+	}
+	else
+	{
+		return E_OUTOFMEMORY;
+	}
 }
 
 HRESULT FileStream::QueryInterface(REFIID iid, void ** ppvObject)
