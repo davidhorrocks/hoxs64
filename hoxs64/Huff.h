@@ -56,26 +56,28 @@ typedef class MList<HuffNode *> CHuffList;
 typedef class MListElement<HuffNode *> CHuffListElement;
 
 
-class HuffWork
+class HuffCompression
 {
 public:
-	HuffWork();
-	~HuffWork();
+	HuffCompression();
+	~HuffCompression();
 
 	HRESULT Init();
-	HRESULT HuffCompress(bit32 *src, bit32 srcSize, bit32 *dstSize);
+	HRESULT Compress(bit32 *src, bit32 srcSize, bit32 *dstSize);
+	HRESULT SetFile(HANDLE hfile, bool bOwnFileHandle);
+	HRESULT SetFile(IStream *pStream);
+private:
 	void HuffWriteBit(bit8 data);
 	void HuffWriteByte(bit8 data);
 	void HuffWriteWord( bit16 data);
 
 	void HuffWalkTreeBits(HuffNode *node);
 	void HuffWalkTreeValues(HuffNode *node);
-	HRESULT HuffSetFile(HANDLE hfile);
-	HRESULT HuffSetFile(IStream *pStream);
 	void HuffEndWrite();
 
 private:
 	void InitSetFile();
+
 	HuffTable *huffTable;
 	bit8 buffer[HUFFBUFFERSIZE];
 	bit32 bufferPos;
@@ -87,6 +89,33 @@ private:
 	bit32 outLength;
 };
 
+class HuffDecompression
+{
+public:
+	HuffDecompression();
+	~HuffDecompression();
 
+	HRESULT SetFile(HANDLE hfile, bool bOwnFileHandle);
+	HRESULT SetFile(IStream *pStream);
+
+	HRESULT Decompress(DWORD numberOfDoubleWords, DWORD **data);
+
+private:
+	class FDIStream
+	{
+	public:
+		FDIStream();
+		~FDIStream();
+		bit8 lowBitNumber;
+		bit8 highBitNumber;
+		bit8 *data;
+		bool bSignExtend;
+		bit8 bitSize;
+	};
+
+	void InitSetFile();
+
+	IStream *m_pStream;
+};
 
 #endif

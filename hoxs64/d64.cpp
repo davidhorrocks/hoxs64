@@ -1842,7 +1842,13 @@ HRESULT GCRDISK::FDIReadTrackStream(HANDLE hfile, DWORD filePointer, bit8 trackN
 HRESULT hr;
 DWORD r,d,i;
 FDIStreamsHeader fdiStreamsHeader;
- 
+HuffDecompression hd;
+
+	hr = hd.SetFile(hfile, false);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
 	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
@@ -1894,7 +1900,7 @@ FDIStreamsHeader fdiStreamsHeader;
 	if (fdiStreamsHeader.aveCompression==0)
 		hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
 	else if (fdiStreamsHeader.aveCompression==1)
-		hr = FDIDecompress(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
+		hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
 	else
 		hr = E_FAIL;
 	if (FAILED(hr))
@@ -1913,7 +1919,7 @@ FDIStreamsHeader fdiStreamsHeader;
 		if (fdiStreamsHeader.minCompression==0)
 			hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
 		else if (fdiStreamsHeader.minCompression==1)
-			hr = FDIDecompress(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
+			hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
 		else
 			hr = E_FAIL;
 		if (FAILED(hr))
@@ -1932,7 +1938,7 @@ FDIStreamsHeader fdiStreamsHeader;
 			if (fdiStreamsHeader.maxCompression==0)
 				hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
 			else if (fdiStreamsHeader.maxCompression==1)
-				hr = FDIDecompress(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
+				hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
 			else
 				hr = E_FAIL;
 			if (FAILED(hr))
@@ -1954,7 +1960,7 @@ FDIStreamsHeader fdiStreamsHeader;
 		if (fdiStreamsHeader.idxCompression==0)
 			hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
 		else if (fdiStreamsHeader.idxCompression==1)
-			hr = FDIDecompress(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
+			hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
 		else
 			hr = E_FAIL;
 		if (FAILED(hr))
@@ -2107,197 +2113,6 @@ bit32 *p;
 	return S_OK;
 }
 
-
-HRESULT GCRDISK::FDIDecompress(HANDLE hfile, DWORD pulseCount, DWORD **data)
-{
-HuffNode *rootNode;
-bit8 subStreamHeader1;
-bit8 subStreamHeader2;
-FDIStream fdiStream;
-char currentByte;
-short currentWord;
-bit8 frame;
-HuffNode *currentNode,*hn;
-HRESULT hr;
-DWORD i,v;
-DWORD mask;
-CHuffNodeArray nodeArray;
-HuffNodeHolder nodeHolder;
-int cnt = 0;
-
-	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, pulseCount * 4);
-	if (!fdiStream.data)
-		return E_FAIL;
-
-	do
-	{
-		cnt++;
-		//
-		nodeArray.Clear();
-		hr = nodeArray.Resize(256);
-		if (FAILED(hr))
-			return hr;
-		hr = nodeHolder.Init(0x20000);
-		if (FAILED(hr))
-			return hr;
-
-		rootNode = nodeHolder.Create();
-		if (rootNode==NULL)
-			return E_OUTOFMEMORY;
-		currentNode = rootNode;
-		//
-
-
-		hr = ReadFromFileQ(hfile, (char *)&subStreamHeader1, 1, 0);
-		if (FAILED(hr))
-			return hr;
-
-		hr = ReadFromFileQ(hfile, (char *)&subStreamHeader2, 1, 0);
-		if (FAILED(hr))
-			return hr;
-
-		fdiStream.highBitNumber = subStreamHeader2 & 0x7f;
-		fdiStream.lowBitNumber = subStreamHeader1 & 0x7f;
-
-		if (subStreamHeader1 & 0x80)
-			fdiStream.bSignExtend = true;
-		else
-			fdiStream.bSignExtend = false;
-
-
-		if (subStreamHeader2 & 0x80)
-			fdiStream.bitSize = 16;
-		else
-			fdiStream.bitSize = 8;
-
-		mask = ((DWORD)-1) >> (31 - fdiStream.highBitNumber);
-		mask &=  ((DWORD)-1) << (fdiStream.lowBitNumber);
-
-		//Build Huffman tree;
-		frame = 0;
-		i=0;
-		while(1)
-		{
-			if (frame == 0)
-			{
-				frame = 8;
-				hr = ReadFromFileQ(hfile, (char *)&currentByte, 1, 0);
-				if (FAILED(hr))
-					return hr;
-			}
-			if (currentByte >= 0)
-			{
-				//high bit is a 0
-				//currentNode is a "node"
-				currentNode->AddLeft(hn = nodeHolder.Create());
-				if (hn == NULL)
-					return E_OUTOFMEMORY;
-				currentNode->AddRight(hn = nodeHolder.Create());
-				if (hn == NULL)
-					return E_OUTOFMEMORY;
-				currentNode = currentNode->leftNode;
-			}
-			else
-			{
-				//high bit is a 1
-				//currentNode is a "leaf"
-				currentNode->isLeaf = true;
-				hr = nodeArray.Append(currentNode);
-				if (FAILED(hr))
-					return hr;
-				currentNode = currentNode->FindDeepestRightNode();
-				if (currentNode==0)
-					break;
-			}
-			i++;
-			if (i>0x20000)//tree limit
-				return E_FAIL;
-
-			currentByte <<= 1;
-			frame--;
-		}
-
-		//Read tree values
-		for (i = 0 ; i < nodeArray.Count(); i++)
-		{
-			if (fdiStream.bitSize == 16)
-			{
-				hr = ReadFromFileQ(hfile, (char *)&currentWord, 2, 0);
-				if (FAILED(hr))
-					return hr;
-
-				//Is this right?
-				//Not really a correct decompression but it saves on another loop to
-				//swap endianess of the decompressed data.
-				currentWord = wordswap(currentWord);
-
-				if (fdiStream.bSignExtend)
-					nodeArray[i]->value = (unsigned long)(signed short)currentWord;
-				else
-					nodeArray[i]->value = (unsigned long)(unsigned short)currentWord;
-
-			}
-			else
-			{
-				hr = ReadFromFileQ(hfile, (char *)&currentByte, 1, 0);
-				if (FAILED(hr))
-					return hr;
-
-				if (fdiStream.bSignExtend)
-					nodeArray[i]->value = (unsigned long)(signed char)currentByte;
-				else
-					nodeArray[i]->value = (unsigned long)(unsigned char)currentByte;
-			}
-		}
-
-
-		//decode stream
-		i=0;
-		frame=0;
-		for (i = 0 ; i < pulseCount ; i++)
-		{
-			currentNode = rootNode;
-			while (!currentNode->isLeaf)
-			{
-				if (frame == 0)
-				{
-					frame = 8;
-					hr = ReadFromFileQ(hfile, (char *)&currentByte, 1, 0);
-					if (FAILED(hr))
-						return hr;
-				}
-				if (currentByte >= 0)
-				{
-					if (currentNode->leftNode==0)
-						return E_FAIL;
-					currentNode = currentNode->leftNode;
-				}
-				else
-				{
-					if (currentNode->rightNode==0)
-						return E_FAIL;
-					currentNode = currentNode->rightNode;
-				}
-
-				currentByte <<= 1;
-				frame--;
-			}
-
-			v = currentNode->value;
-			v = v << fdiStream.lowBitNumber;
-			v = v & mask;
-			bit32 x = ((bit32 *)fdiStream.data)[i];
-			x = (x & ~mask) | v;
-			((bit32 *)fdiStream.data)[i] = x;
-		}
-	} while (fdiStream.lowBitNumber != 0);
-
-	*data = (DWORD *)fdiStream.data;
-	fdiStream.data = 0;
-	return S_OK;
-
-}
-
 HRESULT GCRDISK::LoadFDIFromFile(TCHAR *filename)
 {
 HANDLE hfile=0;
@@ -2427,7 +2242,7 @@ struct FDIRawTrackHeader fdiRawTrackHeader;
 bit32 pulseCount;
 FDIData buffer;
 bit32 *p,delay;
-HuffWork hw;
+HuffCompression hw;
 bit32 nextTrackWrite;
 bit32 compressedBufferSize;
 bit32 writeSize;
@@ -2448,7 +2263,7 @@ CRC32Alloc crc;
 	{
 		return SetError(E_FAIL,TEXT("Could not save %s."), filename);
 	}
-	hr = hw.HuffSetFile(hFile);
+	hr = hw.SetFile(hFile, true);
 	if (FAILED(hr))
 	{
 		CloseHandle(hFile);
@@ -2531,7 +2346,7 @@ CRC32Alloc crc;
 			return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 		}
 
-		hr = hw.HuffCompress(p, pulseCount, &compressedBufferSize);
+		hr = hw.Compress(p, pulseCount, &compressedBufferSize);
 		if (FAILED(hr))
 		{
 			if (hr == E_OUTOFMEMORY)

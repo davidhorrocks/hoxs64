@@ -542,6 +542,8 @@
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="cart_final_cartridge_iii.cpp" />
     <ClCompile Include="filestream.cpp" />
+    <ClCompile Include="HuffCompression.cpp" />
+    <ClCompile Include="HuffDecompression.cpp" />
     <ClCompile Include="runcommandassemble.cpp" />
     <ClCompile Include="runcommandcpuregisters.cpp" />
     <ClCompile Include="runcommanddisassembly.cpp" />

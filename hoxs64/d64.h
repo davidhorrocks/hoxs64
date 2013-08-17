@@ -146,7 +146,6 @@ public:
 	HRESULT FDIReadTrackStream(HANDLE hfile, DWORD filePointer, bit8 trackNumber);
 	HRESULT FDIReadRawGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType);
 	HRESULT FDIReadDecodedGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType);
-	HRESULT FDIDecompress(HANDLE hfile, DWORD pulseCount, DWORD **data);
 	HRESULT FDICopyTrackStream(HANDLE hfile, DWORD pulseCount, DWORD **data);
 	HRESULT FDICheckCRC(HANDLE hfile, TCHAR *filename, DWORD file_size);
 

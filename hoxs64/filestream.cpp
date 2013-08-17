@@ -2,17 +2,21 @@
 #include <tchar.h>
 #include "filestream.h"
 
-FileStream::FileStream(HANDLE hFile) 
+FileStream::FileStream(HANDLE hFile, bool bOwnFileHandle) 
 {
 	_refcount = 1;
 	_hFile = hFile;
+	_bOwnFileHandle = bOwnFileHandle;
 }
 
 FileStream::~FileStream()
 {
-	if (_hFile != INVALID_HANDLE_VALUE)
+	if (_bOwnFileHandle)
 	{
-		::CloseHandle(_hFile);
+		if (_hFile != INVALID_HANDLE_VALUE)
+		{
+			::CloseHandle(_hFile);
+		}
 	}
 }
 
@@ -24,13 +28,13 @@ HRESULT FileStream::CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite
 	if (hFile == INVALID_HANDLE_VALUE)
 		return HRESULT_FROM_WIN32(GetLastError());
         
-	return CreateObject(hFile, ppStream);
+	return CreateObject(hFile, true, ppStream);
 }
 
-HRESULT FileStream::CreateObject(HANDLE hFile, IStream ** ppStream)
+HRESULT FileStream::CreateObject(HANDLE hFile, bool bOwnFileHandle, IStream ** ppStream)
 {
 IStream * pStream;
-	pStream = new FileStream(hFile);     
+	pStream = new FileStream(hFile, bOwnFileHandle);     
 	if(ppStream != NULL)
 	{
 		*ppStream = pStream;
