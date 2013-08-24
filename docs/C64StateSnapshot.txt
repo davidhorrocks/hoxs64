@@ -5,21 +5,21 @@ The file consists of a fixed size file header followed by one or more variable l
 
 File Header
 ===========
-The file header is 0x40 bytes long. The file header is followed by one or more data blocks. 
+The file header is 0x40 bytes long. The file header is followed by one or more section blocks. 
 
-0x0000 | 0x15 | Signature "COMMODORE 64 STATE SNAPSHOT" in ASCII/UTF8
+0x0000 | 0x1B | Signature "COMMODORE 64 STATE SNAPSHOT" in ASCII/UTF8
 0x001B | 0x01 | 1 zero byte
 0x001C | 0x04 | Version zero as a 4 byte integer in little endian. Current version is zero.
 0x0020 | 0x20 | Optional emulator name in UTF8 left aligned and zero terminated.
-0x0040 | ~    | The first byte of the first data block starts here.
+0x0040 | ~    | The first byte of the first section block starts here.
 
 
-Data Block
-==========
-A data block comprises of a fixed size data block header which is followed by zero or more data bytes. The first 4 bytes of a data block header contains the byte length of the data block such that the data block header start position plus the block size would take you to the start of the next data block header. A zero length means there are no more data blocks. 
+Section Block
+=============
+A section block comprises of a fixed size section block header which is followed by zero or more data bytes. The first 4 bytes of a section block header contains the byte length of the section block such that the section block header start position plus the block size would take you to the start of the next section block header. A zero length means there are no more section blocks. 
 
-The data block header is 0x10 bytes long.
-0x0000 | 0x04 | Total size of the section including the data block header in bytes 
+The section block header is 0x10 bytes long.
+0x0000 | 0x04 | Total size of the section including the section block header in bytes 
 0x0004 | 0x04 | Type of section
 		    0:  C64 RAM
 		    1:  C64 CPU
