@@ -4,24 +4,14 @@
 #include <math.h>
 #include <assert.h>
 #include "boost2005.h"
-#include "defines.h"
+#include "bits.h"
 #include "carray.h"
 #include "mlist.h"
-#include "bits.h"
-#include "util.h"
-#include "errormsg.h"
-#include "hconfig.h"
-#include "appstatus.h"
-#include "register.h"
 #include "errormsg.h"
 #include "huff.h"
+#include "FDI.h"
 #include "crc.h"
-#include "defines.h"
 #include "d64.h"
-
-
-//bit8 D64_extract_binary_nibble (bit8 *src,unsigned long i);
-//long D64_GCR_to_Binary(bit8 *src, bit8 *dest, unsigned long length);
 
 const bit8 GCRDISK::gcr_table[16]=
 {
@@ -267,11 +257,11 @@ const struct D64_Track_Info GCRDISK::D64_info[42]=
 	/* 41 */{17,0x31100,D64_TRACK_SIZE_31_35,0,802,83.0}
 };
 
-#define d64_gapheader 11
-#define d64_synclength 5
-#define d64_gapsector 6
-#define d64_sector_header_size 8
-#define d64_sector_datablock_size 256
+#define D64_GAPHEADER 11
+#define D64_SYNCLENGTH 5
+#define D64_GAPSECTOR 6
+#define D64_SECTOR_HEADER_SIZE 8
+#define D64_SECTOR_DATABLOCK_SIZE 256
 #define D64_SECTOR_SIZE 260
 
 struct sector_header
@@ -295,94 +285,6 @@ struct sector_data
 	bit8 pad1;
 	bit8 pad2;
 };
-
-/***********************************************************************************************************************
-FDIData Class
-***********************************************************************************************************************/
-FDIData::FDIData()
-{
-	data = 0;
-}
-FDIData::~FDIData()
-{
-	if (data)
-	{
-		GlobalFree(data);
-		data = 0;
-	}
-}
-
-
-/***********************************************************************************************************************
-FDIStreamsHeader Class
-***********************************************************************************************************************/
-FDIStreamsHeader::FDIStreamsHeader()
-{
-	aveData=0;
-	minData=0;
-	maxData=0;
-	idxData=0;
-	numPulses=0;
-	aveSize=0;
-	aveCompression=0;
-	minSize=0;
-	minCompression=0;
-	maxSize=0;
-	maxCompression=0;
-	idxSize=0;
-	idxCompression=0;
-}
-
-FDIStreamsHeader::~FDIStreamsHeader()
-{
-	if (aveData)
-	{
-		GlobalFree(aveData);
-		aveData=0;
-	}
-	if (minData)
-	{
-		GlobalFree(minData);
-		minData=0;
-	}
-	if (maxData)
-	{
-		GlobalFree(maxData);
-		maxData=0;
-	}
-	if (idxData)
-	{
-		GlobalFree(idxData);
-		idxData=0;
-	}
-}
-
-/***********************************************************************************************************************
-FDIStream Class
-***********************************************************************************************************************/
-FDIStream::FDIStream()
-{
-	data=0;
-	highBitNumber=0;
-	lowBitNumber=0;
-	//nextStream = 0;
-};
-
-FDIStream::~FDIStream()
-{
-	if (data)
-	{
-		GlobalFree(data);
-		data = 0;
-	}
-	/*
-	if (nextStream)
-	{
-		delete nextStream;
-		nextStream = 0;
-	}
-	*/
-}
 
 /***********************************************************************************************************************
 GCRDISK Class
@@ -1080,12 +982,12 @@ int trackByteLen;
 
 			if (sectorError!=3)
 			{
-				for (j = 0 ; j < d64_synclength; j++, wi=(wi+1) % trackByteLen)
+				for (j = 0 ; j < D64_SYNCLENGTH; j++, wi=(wi+1) % trackByteLen)
 					pGcr[wi] = 0xff;
 			}
 			else
 			{
-				for (j = 0 ; j < d64_synclength; j++, wi=(wi+1) % trackByteLen)
+				for (j = 0 ; j < D64_SYNCLENGTH; j++, wi=(wi+1) % trackByteLen)
 					pGcr[wi] = 0x00;
 			}
 
@@ -1123,17 +1025,17 @@ int trackByteLen;
 
 			//TEST
 			//header gap changed from 9 to 11
-			for (j = 0 ; j < d64_gapheader; j++, wi=(wi+1) % trackByteLen)
+			for (j = 0 ; j < D64_GAPHEADER; j++, wi=(wi+1) % trackByteLen)
 				pGcr[wi]=0x55;
 
 			if (sectorError!=3)
 			{
-				for (j = 0 ; j < d64_synclength; j++, wi=(wi+1) % trackByteLen)
+				for (j = 0 ; j < D64_SYNCLENGTH; j++, wi=(wi+1) % trackByteLen)
 					pGcr[wi] = 0xff;
 			}
 			else
 			{
-				for (j = 0 ; j < d64_synclength; j++, wi=(wi+1) % trackByteLen)
+				for (j = 0 ; j < D64_SYNCLENGTH; j++, wi=(wi+1) % trackByteLen)
 					pGcr[wi] = 0x00;
 			}
 
@@ -1159,7 +1061,7 @@ int trackByteLen;
 			for (j = 0 ; j < (260*5/4); j++, wi=(wi+1) % trackByteLen)
 				pGcr[wi] = tempGcrBuffer[j];
 
-			for (j = 0 ; j < d64_gapsector; j++, wi=(wi+1) % trackByteLen)
+			for (j = 0 ; j < D64_GAPSECTOR; j++, wi=(wi+1) % trackByteLen)
 				pGcr[wi]=0x55;
 			
 		}
@@ -2036,7 +1938,7 @@ HuffDecompression hd;
 			unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
 			pulseStrength = index1state + index0state;
 			bIsStrongPulse = (pulseStrength == maxPulseStrength);
-			bIsNoticablePulse = (pulseStrength >= maxPulseStrength/4);
+			bIsNoticablePulse = (pulseStrength >= maxPulseStrength/2);
 		}
 		else
 		{

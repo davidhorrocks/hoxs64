@@ -104,15 +104,15 @@ public:
 	virtual IMonitorVic *GetVic();
 	virtual IMonitorDisk *GetDisk();
 
-	virtual bool IBreakpointManager::BM_SetBreakpoint(Sp_BreakpointItem bp);
-	virtual bool IBreakpointManager::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp);
-	virtual void IBreakpointManager::BM_DeleteBreakpoint(Sp_BreakpointKey k);
-	virtual void IBreakpointManager::BM_EnableBreakpoint(Sp_BreakpointKey k);
-	virtual void IBreakpointManager::BM_DisableBreakpoint(Sp_BreakpointKey k);
-	virtual void IBreakpointManager::BM_EnableAllBreakpoints();
-	virtual void IBreakpointManager::BM_DisableAllBreakpoints();
-	virtual void IBreakpointManager::BM_DeleteAllBreakpoints();
-	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem();
+	virtual bool BM_SetBreakpoint(Sp_BreakpointItem bp);
+	virtual bool BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp);
+	virtual void BM_DeleteBreakpoint(Sp_BreakpointKey k);
+	virtual void BM_EnableBreakpoint(Sp_BreakpointKey k);
+	virtual void BM_DisableBreakpoint(Sp_BreakpointKey k);
+	virtual void BM_EnableAllBreakpoints();
+	virtual void BM_DisableAllBreakpoints();
+	virtual void BM_DeleteAllBreakpoints();
+	virtual IEnumBreakpointItem *BM_CreateEnumBreakpointItem();
 
 	virtual HRESULT ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, LPTSTR *ppszResults);
 	virtual HRESULT BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, shared_ptr<ICommandResult> *pICommandResult);

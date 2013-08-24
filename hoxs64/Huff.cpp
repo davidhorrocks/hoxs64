@@ -1,10 +1,8 @@
 #include <windows.h>
 #include <assert.h>
-#include "defines.h"
+#include "bits.h"
 #include "carray.h"
 #include "mlist.h"
-#include "bits.h"
-#include "util.h"
 #include "huff.h"
 
 /***********************************************************************************************************************

@@ -19,6 +19,7 @@
 #include "resource.h"
 #include "errormsg.h"
 #include "register.h"
+#include "FDI.h"
 #include "d64.h"
 #include "t64.h"
 #include "tap.h"

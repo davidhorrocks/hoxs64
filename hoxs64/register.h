@@ -306,15 +306,6 @@ public:
 class IMonitor : public IBreakpointManager
 {
 public:
-	virtual bool IBreakpointManager::BM_SetBreakpoint(Sp_BreakpointItem bp) = 0;
-	virtual bool IBreakpointManager::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp) = 0;
-	virtual void IBreakpointManager::BM_DeleteBreakpoint(Sp_BreakpointKey k) = 0;
-	virtual void IBreakpointManager::BM_EnableBreakpoint(Sp_BreakpointKey k) = 0;
-	virtual void IBreakpointManager::BM_DisableBreakpoint(Sp_BreakpointKey k) = 0;
-	virtual void IBreakpointManager::BM_EnableAllBreakpoints() = 0;
-	virtual void IBreakpointManager::BM_DisableAllBreakpoints() = 0;
-	virtual void IBreakpointManager::BM_DeleteAllBreakpoints() = 0;
-	virtual IEnumBreakpointItem *IBreakpointManager::BM_CreateEnumBreakpointItem() = 0;
 	virtual void MonitorEventsOn() = 0;
 	virtual void MonitorEventsOff() = 0;
 	virtual int DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc) = 0;

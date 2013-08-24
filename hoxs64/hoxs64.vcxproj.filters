@@ -309,6 +309,12 @@
     <ClCompile Include="HuffDecompression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FDI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bits.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -600,6 +606,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="filestream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FDI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

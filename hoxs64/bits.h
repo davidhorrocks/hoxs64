@@ -46,4 +46,7 @@ typedef unsigned __int64 bit64;
 
 # pragma pack ()
 
+bit16 wordswap(bit16);
+bit32 dwordswap(bit32 v);
+
 #endif

@@ -73,9 +73,6 @@ namespace HCFG
 
 #define ALLOW_EMUFPS_50_12_MULTI
 
-bit16 wordswap(bit16);
-bit32 dwordswap(bit32 v);
-
 class C64WindowDimensions
 {
 public:

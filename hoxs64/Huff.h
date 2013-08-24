@@ -101,18 +101,6 @@ public:
 	HRESULT Decompress(DWORD numberOfDoubleWords, DWORD **data);
 
 private:
-	class FDIStream
-	{
-	public:
-		FDIStream();
-		~FDIStream();
-		bit8 lowBitNumber;
-		bit8 highBitNumber;
-		bit8 *data;
-		bool bSignExtend;
-		bit8 bitSize;
-	};
-
 	void InitSetFile();
 
 	IStream *m_pStream;

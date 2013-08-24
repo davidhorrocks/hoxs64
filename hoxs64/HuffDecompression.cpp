@@ -1,11 +1,12 @@
 #include <windows.h>
 #include <assert.h>
-#include "defines.h"
+#include "bits.h"
 #include "carray.h"
 #include "mlist.h"
 #include "bits.h"
 #include "util.h"
 #include "huff.h"
+#include "FDI.h"
 
 HuffDecompression::HuffDecompression()
 {
@@ -84,7 +85,7 @@ ULONG bytesRead = 0;
 	do
 	{
 		cnt++;
-		//
+
 		nodeArray.Clear();
 		hr = nodeArray.Resize(256);
 		if (FAILED(hr))
@@ -245,24 +246,4 @@ ULONG bytesRead = 0;
 	*data = (DWORD *)fdiStream.data;
 	fdiStream.data = 0;
 	return S_OK;
-}
-
-
-/***********************************************************************************************************************
-FDIStream Class
-***********************************************************************************************************************/
-HuffDecompression::FDIStream::FDIStream()
-{
-	data=0;
-	highBitNumber=0;
-	lowBitNumber=0;
-};
-
-HuffDecompression::FDIStream::~FDIStream()
-{
-	if (data)
-	{
-		GlobalFree(data);
-		data = 0;
-	}
 }
