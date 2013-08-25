@@ -554,7 +554,6 @@ public:
 	bit8 mA;
 	bit8 mX;
 	bit8 mY;
-	bit8 mS;
 	bit8 mSP;
 
 	unsigned int fNEGATIVE;
@@ -595,6 +594,13 @@ protected:
 	ICLK m_CurrentOpcodeClock;
 	bool m_bBALowInClock2OfSEI;
 
+	bit16u addr;
+	bit16u ptr;
+	bit8 databyte;
+	unsigned int v;
+	bit8 axa_byte;
+	bool m_bBreakOnInterruptTaken;
+
 	bit8 code_add(unsigned int _a, unsigned int _s);
 	bit8 code_sub(unsigned int _a, unsigned int _s);
 	bit8 code_cmp(unsigned int _a, unsigned int _s);
@@ -608,17 +614,7 @@ protected:
 private:
 
 	void InitDecoder();
-	bit16u addr;
-	bit16u ptr;
-	bit8 databyte;
-	//unsigned int _a;
-	//unsigned int _al;
-	//unsigned int _ah;
-	//unsigned int _s;
-	//unsigned int _r;
-	unsigned int v;
-	bit8 axa_byte;
-	bool m_bBreakOnInterruptTaken;
+
 	IBreakpointManager *m_pIBreakpointManager;
 };
 

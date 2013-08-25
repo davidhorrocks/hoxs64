@@ -62,8 +62,8 @@ public:
 	void AddClockDelay();
 	virtual void PreventClockOverflow();
 
-	void GetState(SsCpuMain *state);
-	void SetState(const SsCpuMain *state);
+	void GetState(SsCpuMain &state);
+	void SetState(const SsCpuMain &state);
 private:
 	CIA1 *pCia1;
 	CIA2 *pCia2;

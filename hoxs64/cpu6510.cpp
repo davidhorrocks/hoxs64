@@ -751,10 +751,99 @@ void CPU6510::PreventClockOverflow()
 		m_fade6clock = ClockBehindNear;
 }
 
-void CPU6510::GetState(SsCpuMain *state)
+void CPU6510::GetState(SsCpuMain &state)
 {
+	state.common.Model = 0;
+	state.common.PC = mPC.word;
+	state.common.A = mA;
+	state.common.X = mX;
+	state.common.Y = mY;
+	state.common.SP = mSP;
+	state.common.SR = (fNEGATIVE <<7) | (fOVERFLOW <<6) | (1<<5) | (fBREAK <<4) | (fDECIMAL <<3) | (fINTERRUPT <<2) | (fZERO <<1) | (fCARRY);
+	state.common.CurrentClock = CurrentClock;
+	state.common.SOTriggerClock = SOTriggerClock;
+	state.common.FirstIRQClock = FirstIRQClock;
+	state.common.FirstNMIClock = FirstNMIClock;
+	state.common.RisingIRQClock = RisingIRQClock;
+	state.common.FirstBALowClock = FirstBALowClock;
+	state.common.LastBAHighClock = LastBAHighClock;
+	state.common.m_CurrentOpcodeClock = m_CurrentOpcodeClock;
+	state.common.m_fade7clock = m_fade7clock;
+	state.common.m_fade6clock = m_fade6clock;
+	state.common.m_cpu_sequence = m_cpu_sequence;
+	state.common.m_cpu_final_sequence = m_cpu_final_sequence;
+	state.common.m_op_code = m_op_code;
+	state.common.m_CurrentOpcodeAddress = m_CurrentOpcodeAddress.word;
+	state.common.addr = addr.word;
+	state.common.ptr = ptr.word;
+	state.common.databyte = databyte;
+	state.common.SOTrigger = SOTrigger ? 1 : 0;
+	state.common.m_bBALowInClock2OfSEI = m_bBALowInClock2OfSEI ? 1 : 0;
+	state.common.BA = BA;
+	state.common.PROCESSOR_INTERRUPT = PROCESSOR_INTERRUPT;
+	state.common.IRQ = IRQ;
+	state.common.NMI = NMI;
+	state.common.NMI_TRIGGER = NMI_TRIGGER;
+
+	state.IRQ_VIC = IRQ_VIC;
+	state.IRQ_CIA = IRQ_CIA;
+	state.IRQ_CRT = IRQ_CRT;
+	state.NMI_CIA = NMI_CIA;
+	state.NMI_CRT = NMI_CRT;
+	state.cpu_io_data = cpu_io_data;
+	state.cpu_io_ddr = cpu_io_ddr;
+	state.cpu_io_output = cpu_io_output;
+	state.CASSETTE_SENSE = CASSETTE_SENSE;
 }
 
-void CPU6510::SetState(const SsCpuMain *state)
+void CPU6510::SetState(const SsCpuMain &state)
 {
+	//state.common.Model = 0;
+	mPC.word = state.common.PC;
+	mA = state.common.A;
+	mX = state.common.X;
+	mY = state.common.Y;
+	mSP = state.common.SP;
+	fNEGATIVE = (state.common.SR >> 7) & 1;
+	fOVERFLOW = (state.common.SR >> 6) & 1;
+	//(1<<5)
+	fBREAK = (state.common.SR >> 4) & 1;
+	fDECIMAL = (state.common.SR >> 3) & 1;
+	fINTERRUPT = (state.common.SR >> 2) & 1;
+	fZERO = (state.common.SR >> 1) & 1;
+	fCARRY = (state.common.SR) & 1;
+	CurrentClock = state.common.CurrentClock;
+	SOTriggerClock = state.common.SOTriggerClock;
+	FirstIRQClock = state.common.FirstIRQClock;
+	FirstNMIClock = state.common.FirstNMIClock;
+	RisingIRQClock = state.common.RisingIRQClock;
+	FirstBALowClock = state.common.FirstBALowClock;
+	LastBAHighClock = state.common.LastBAHighClock;
+	m_CurrentOpcodeClock = state.common.m_CurrentOpcodeClock;
+	m_fade7clock = state.common.m_fade7clock;
+	m_fade6clock = state.common.m_fade6clock;
+	m_cpu_sequence = state.common.m_cpu_sequence;
+	m_cpu_final_sequence = state.common.m_cpu_final_sequence;
+	m_op_code = state.common.m_op_code;
+	m_CurrentOpcodeAddress.word = state.common.m_CurrentOpcodeAddress;
+	addr.word = state.common.addr;
+	ptr.word = state.common.ptr;
+	databyte = state.common.databyte;
+	SOTrigger = state.common.SOTrigger != 0;
+	m_bBALowInClock2OfSEI = state.common.m_bBALowInClock2OfSEI != 0;
+	BA = state.common.BA;
+	PROCESSOR_INTERRUPT = state.common.PROCESSOR_INTERRUPT;
+	IRQ = state.common.IRQ;
+	NMI = state.common.NMI;
+	NMI_TRIGGER = state.common.NMI_TRIGGER;
+	
+	IRQ_VIC = state.IRQ_VIC;
+	IRQ_CIA = state.IRQ_CIA;
+	IRQ_CRT = state.IRQ_CRT;
+	NMI_CIA = state.NMI_CIA;
+	NMI_CRT = state.NMI_CRT;
+	cpu_io_data = state.cpu_io_data;
+	cpu_io_ddr = state.cpu_io_ddr;
+	cpu_io_output = state.cpu_io_output;
+	CASSETTE_SENSE = state.CASSETTE_SENSE;
 }

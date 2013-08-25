@@ -893,7 +893,6 @@ void CPU6502::InitReset(ICLK sysclock)
 	mA=0xaa;
 	mX=0;
 	mY=0;
-	mS=0;
 	mSP=0;
 	fNEGATIVE=0;
 	fOVERFLOW=0;
