@@ -1463,7 +1463,7 @@ ULONG bytesWritten;
 		strcpy(hdr.Signature, "COMMODORE 64 STATE SNAPSHOT");
 		strcpy(hdr.EmulatorName, "Hoxs64");
 		hdr.Version = 0;
-
+		hdr.HeaderSize = sizeof(hdr);
 		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
 		if (SUCCEEDED(hr))
 		{

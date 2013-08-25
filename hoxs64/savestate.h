@@ -8,6 +8,7 @@ struct SsHeader
 {
 	char Signature[0x1C];
 	bit32 Version;
+	bit32 HeaderSize;
 	char EmulatorName[0x20];
 };
 

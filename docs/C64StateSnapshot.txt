@@ -5,13 +5,13 @@ The file consists of a fixed size file header followed by one or more variable l
 
 File Header
 ===========
-The file header is 0x40 bytes long. The file header is followed by one or more section blocks. 
+The file header is 0x44 bytes long. The file header is followed by one or more section blocks. 
 
 0x0000 | 0x1B | Signature "COMMODORE 64 STATE SNAPSHOT" in ASCII/UTF8
 0x001B | 0x01 | 1 zero byte
 0x001C | 0x04 | Version zero as a 4 byte integer in little endian. Current version is zero.
-0x0020 | 0x20 | Optional emulator name in UTF8 left aligned and zero terminated.
-0x0040 | ~    | The first byte of the first section block starts here.
+0x0020 | 0x04 | Header length in bytes
+0x0024 | 0x20 | Optional emulator name in UTF8 left aligned and zero terminated.
 
 
 Section Block
