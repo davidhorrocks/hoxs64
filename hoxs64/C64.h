@@ -93,7 +93,8 @@ public:
 
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
 	HRESULT SaveFDIToFile(TCHAR *filename);
-
+	HRESULT SaveC64StateToFile(TCHAR *filename);
+	HRESULT LoadC64StateFromFile(TCHAR *filename);
 
 	//IAutoLoad
 	void AutoLoadHandler(ICLK sysclock);

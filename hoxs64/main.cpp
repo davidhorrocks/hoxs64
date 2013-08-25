@@ -1097,6 +1097,84 @@ HRESULT hr;
 	}
 }
 
+void CApp::SaveC64State(HWND hWnd)
+{
+OPENFILENAME_500EX of;
+TCHAR initfilename[MAX_PATH+1];
+TCHAR filename[MAX_PATH+1];
+BOOL b;
+HRESULT hr;
+
+	TCHAR title[] = TEXT("Save State Image");
+
+	ZeroMemory(&of, sizeof(of));
+	if (G::IsEnhancedWinVer())
+		of.lStructSize = sizeof(OPENFILENAME_500EX);
+	else
+		of.lStructSize = sizeof(OPENFILENAME);
+	of.hwndOwner = hWnd;
+	of.lpstrFilter = TEXT("State Image (*.64s)\0*.64s\0All files (*.*)\0*.*\0\0");
+	of.nFilterIndex = 1;
+	initfilename[0] = 0;
+	of.lpstrDefExt=TEXT("64s");
+	of.lpstrFile = initfilename;
+	of.nMaxFile = MAX_PATH-1;
+	of.lpstrFileTitle = filename;
+	of.nMaxFileTitle = MAX_PATH-1;
+	of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+	of.lpstrTitle = TEXT("Save a state image file");
+	b = GetSaveFileName((LPOPENFILENAME)&of);
+	if (b)
+	{
+		SetBusy(true);
+		hr =  c64.SaveC64StateToFile(initfilename);
+		SetBusy(false);
+		if (SUCCEEDED(hr))
+		{
+			MessageBox(hWnd,
+			TEXT("State saved."), 
+			title, 
+			MB_OK | MB_ICONINFORMATION);
+		}
+		else
+		{
+			c64.DisplayError(hWnd, title);
+		}
+	}
+}
+
+void CApp::LoadC64State(HWND hWnd)
+{
+OPENFILENAME_500EX of;
+TCHAR initfilename[MAX_PATH];
+BOOL b;
+bit16 start, loadSize;
+HRESULT hr;
+
+	initfilename[0] = 0;
+
+	G::InitOfn(of, 
+		hWnd, 
+		TEXT("Choose a C64 state image file"),
+		initfilename,
+		MAX_PATH,
+		TEXT("State Image file (*.64s)\0*.64s\0All files (*.*)\0*.*\0\0"),
+		NULL,
+		0);
+
+	b = GetOpenFileName((LPOPENFILENAME)&of);
+	if (b)
+	{
+		hr = c64.LoadC64StateFromFile(initfilename);
+		if (SUCCEEDED(hr))
+		{
+			//ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("State Image") , TEXT("OK"));
+		}
+		else
+			c64.DisplayError(hWnd, TEXT("State Image"));
+	}
+}
+
 void CApp::SoundHalt()
 {
 	if (m_bSoundOK)

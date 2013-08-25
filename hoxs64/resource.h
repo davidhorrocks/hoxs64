@@ -275,13 +275,17 @@
 #define IDM_CART_FREEZE                 40167
 #define ID_CART_DETACHCART              40170
 #define IDM_CART_DETACHCART             40171
+#define ID_FILE_LOADSTATE               40174
+#define ID_FILE_SAVESTATE               40175
+#define IDM_FILE_LOADSTATE              40176
+#define IDM_FILE_SAVESTATE              40177
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        188
-#define _APS_NEXT_COMMAND_VALUE         40174
+#define _APS_NEXT_COMMAND_VALUE         40178
 #define _APS_NEXT_CONTROL_VALUE         1322
 #define _APS_NEXT_SYMED_VALUE           117
 #endif

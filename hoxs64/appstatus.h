@@ -58,6 +58,8 @@ public:
 	virtual void InsertDiskImage(HWND hWnd) = 0;
 	virtual void SaveD64Image(HWND hWnd) = 0;
 	virtual void SaveFDIImage(HWND hWnd) = 0;
+	virtual void SaveC64State(HWND hWnd) = 0;
+	virtual void LoadC64State(HWND hWnd) = 0;
 	virtual VS_FIXEDFILEINFO *GetVersionInfo() = 0;
 	virtual void RestoreUserSettings() = 0;
 	virtual void RestoreDefaultSettings() = 0;

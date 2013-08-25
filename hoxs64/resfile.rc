@@ -96,6 +96,8 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Monitor\tF9",                IDM_FILE_MONITOR
         MENUITEM "Pause\tAlt P",                IDM_FILE_PAUSE, CHECKED
+        MENUITEM "Load State",                  IDM_FILE_LOADSTATE
+        MENUITEM "Save State",                  IDM_FILE_SAVESTATE
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_EXIT
     END

@@ -538,6 +538,16 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SaveFDIImage(hWnd);
 			appStatus->SoundResume();
 			return 0;
+		case IDM_FILE_SAVESTATE:
+			appStatus->SoundHalt();
+			appStatus->SaveC64State(hWnd);
+			appStatus->SoundResume();
+			return 0;
+		case IDM_FILE_LOADSTATE:
+			appStatus->SoundHalt();
+			appStatus->LoadC64State(hWnd);
+			appStatus->SoundResume();
+			return 0;
 		case IDM_DISK_INSERT_NEWBLANKDISK:
 			appStatus->SoundHalt();
 			try

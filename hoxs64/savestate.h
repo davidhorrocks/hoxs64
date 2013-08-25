@@ -4,6 +4,13 @@
 
 # pragma pack (1)
 
+struct SsHeader
+{
+	char Signature[0x1C];
+	bit32 Version;
+	char EmulatorName[0x20];
+};
+
 struct SsCpuCommon
 {
 	bit32 Model;

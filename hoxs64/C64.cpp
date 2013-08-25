@@ -11,7 +11,9 @@
 #include <assert.h>
 #include "boost2005.h"
 #include "CDPI.h"
+#include "filestream.h"
 #include "C64.h"
+#include "savestate.h"
 
 C64::C64()
 {
@@ -1446,6 +1448,48 @@ HRESULT hr;
 		return hr;
 	}
 	return S_OK;	
+}
+
+HRESULT C64::SaveC64StateToFile(TCHAR *filename)
+{
+HRESULT hr;
+ULONG bytesWritten;
+	IStream *pfs;
+	hr = FileStream::CreateObject(filename, &pfs, true);
+	if (SUCCEEDED(hr))
+	{
+		SsHeader hdr;
+		ZeroMemory(&hdr, sizeof(hdr));
+		strcpy(hdr.Signature, "COMMODORE 64 STATE SNAPSHOT");
+		strcpy(hdr.EmulatorName, "Hoxs64");
+		hdr.Version = 0;
+
+		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
+		if (SUCCEEDED(hr))
+		{
+		}
+	}
+
+	return hr;
+}
+
+HRESULT C64::LoadC64StateFromFile(TCHAR *filename)
+{
+HRESULT hr;
+ULONG bytesWritten;
+	IStream *pfs;
+	hr = FileStream::CreateObject(filename, &pfs, false);
+	if (SUCCEEDED(hr))
+	{
+		SsHeader hdr;
+		ZeroMemory(&hdr, sizeof(hdr));
+		hr = pfs->Read(&hdr, sizeof(hdr), &bytesWritten);
+		if (SUCCEEDED(hr))
+		{
+		}
+	}
+
+	return hr;
 }
 
 void C64::SoftReset(bool bCancelAutoload)
