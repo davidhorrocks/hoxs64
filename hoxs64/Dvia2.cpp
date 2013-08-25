@@ -21,6 +21,7 @@
 #include "appstatus.h"
 #include "dxstuff9.h"
 #include "register.h"
+#include "savestate.h"
 #include "cart.h"
 #include "c6502.h"
 #include "ram64.h"

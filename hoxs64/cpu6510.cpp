@@ -20,6 +20,7 @@
 #include "appstatus.h"
 #include "dxstuff9.h"
 #include "hexconv.h"
+#include "savestate.h"
 #include "cart.h"
 #include "c6502.h"
 #include "ram64.h"
@@ -748,4 +749,12 @@ void CPU6510::PreventClockOverflow()
 		m_fade7clock = ClockBehindNear;
 	if ((ICLKS)(CurrentClock - m_fade6clock) >= CLOCKSYNCBAND_FAR)
 		m_fade6clock = ClockBehindNear;
+}
+
+void CPU6510::GetState(SsCpuMain *state)
+{
+}
+
+void CPU6510::SetState(const SsCpuMain *state)
+{
 }
