@@ -117,6 +117,8 @@ public:
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+	virtual ICLK GetCurrentClock();
+	virtual void SetCurrentClock(ICLK sysclock);
 
 	virtual bit8 Get_GAME();
 	virtual bit8 Get_EXROM();
@@ -154,8 +156,6 @@ public:
 	virtual void ConfigureMemoryMap();
 	virtual bit8 *Get_RomH();
 	virtual void PreventClockOverflow();
-
-	//ICLK ClockNextWakeUpClock;
 
 protected:
 	virtual void UpdateIO()=0;
@@ -239,11 +239,13 @@ public:
 	static bool IsSupported(CartType::ECartType hardwareType);
 	bool IsSupported();
 
-	void Reset(ICLK sysclock);
-	void ExecuteCycle(ICLK sysclock);
-	bit8 ReadRegister(bit16 address, ICLK sysclock);
-	void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-	bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+	virtual void Reset(ICLK sysclock);
+	virtual void ExecuteCycle(ICLK sysclock);
+	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
+	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
+	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+	virtual ICLK GetCurrentClock();
+	virtual void SetCurrentClock(ICLK sysclock);
 
 	bit8 Get_GAME();
 	bit8 Get_EXROM();

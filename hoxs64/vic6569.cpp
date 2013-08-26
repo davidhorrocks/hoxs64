@@ -1859,6 +1859,23 @@ void VIC6569::PreventClockOverflow()
 		clockFirstForcedBadlineCData = ClockBehindNear;
 }
 
+ICLK VIC6569::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void VIC6569::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - CurrentClock;
+	CurrentClock += v;	
+	clockSpriteMultiColorChange += v;
+	clockSpriteXExpandChange += v;
+	clockSpriteDataPriorityChange += v;
+	clockReadSpriteDataCollision += v;
+	clockReadSpriteSpriteCollision += v;
+	clockFirstForcedBadlineCData += v;
+}
+
 VIC6569::~VIC6569()
 {
 	Cleanup();

@@ -30,6 +30,7 @@ public:
 	void MonWriteByte(bit16 address, bit8 data);
 
 	void PreventClockOverflow();
+	void SetCurrentClock(ICLK sysclock);
 
 private:
 	CartEasyFlash *m_pCartEasyFlash;
@@ -78,6 +79,9 @@ public:
 	virtual void MonWriteUltimaxROMH(bit16 address, bit8 data);
 
 	virtual void PreventClockOverflow();
+
+	virtual ICLK GetCurrentClock();
+	virtual void SetCurrentClock(ICLK sysclock);
 
 protected:
 	virtual void UpdateIO();

@@ -38,7 +38,7 @@ CartCommon::CartCommon(Cart *pCart, IC6510 *pCpu, bit8 *pC64RamMemory)
 	this->m_ipROMH_A000 = pCart->m_pZeroBankData - 0xA000;
 	this->m_ipROMH_E000 = pCart->m_pZeroBankData - 0xE000;
 	m_bIsCartAttached = false;
-	InitReset(pCpu->GetCurrentClock());
+	InitReset(pCpu->Get6510CurrentClock());
 }
 
 CartCommon::~CartCommon()
@@ -68,6 +68,16 @@ bit8 *CartCommon::Get_RomH()
 
 void CartCommon::PreventClockOverflow()
 {
+}
+
+ICLK CartCommon::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void CartCommon::SetCurrentClock(ICLK sysclock)
+{
+	this->CurrentClock = sysclock;
 }
 
 void CartCommon::CheckForCartFreeze()
@@ -165,8 +175,8 @@ void CartCommon::CartReset()
 {
 	if (m_bIsCartAttached)
 	{
-		this->Reset(m_pCpu->GetCurrentClock());
-		m_pCpu->Reset(m_pCpu->GetCurrentClock());
+		this->Reset(m_pCpu->Get6510CurrentClock());
+		m_pCpu->Reset6510(m_pCpu->Get6510CurrentClock());
 	}
 }
 
@@ -176,7 +186,7 @@ void CartCommon::AttachCart()
 	if (!m_bIsCartAttached)
 	{
 		m_bIsCartAttached = true;
-		this->Reset(m_pCpu->GetCurrentClock());
+		this->Reset(m_pCpu->Get6510CurrentClock());
 		if (m_bFreezePending)
 		{
 			CartFreeze();
@@ -1030,6 +1040,21 @@ void Cart::PreventClockOverflow()
 {
 	if (m_spCurrentCart)
 		m_spCurrentCart->PreventClockOverflow();
+}
+
+ICLK Cart::GetCurrentClock()
+{
+	if (m_spCurrentCart)
+		return m_spCurrentCart->GetCurrentClock();
+	else
+		return CurrentClock;
+}
+
+void Cart::SetCurrentClock(ICLK sysclock)
+{
+	CurrentClock = sysclock;
+	if (m_spCurrentCart)
+		m_spCurrentCart->SetCurrentClock(sysclock);
 }
 
 CrtChipAndData::CrtChipAndData()

@@ -1277,3 +1277,12 @@ void SID64::SoundHalt(short value)
 	}
 }
 
+ICLK SID64::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void SID64::SetCurrentClock(ICLK sysclock)
+{
+	CurrentClock = sysclock;
+}

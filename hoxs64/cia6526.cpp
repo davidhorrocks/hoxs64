@@ -112,6 +112,18 @@ void CIA::PreventClockOverflow()
 		ClockReadICR = ClockBehindNear;
 }
 
+ICLK CIA::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void CIA::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - CurrentClock;
+	CurrentClock+=v;
+	ClockReadICR+=v;
+}
+
 //pragma optimize( "ag", off )
 
 void CIA::incrementTOD()

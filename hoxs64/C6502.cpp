@@ -921,6 +921,23 @@ HRESULT CPU6502::Init(int ID, IBreakpointManager *pIBreakpointManager)
 	return S_OK;
 }
 
+ICLK CPU6502::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void CPU6502::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - CurrentClock;
+	CurrentClock = sysclock;
+	FirstIRQClock += v;
+	FirstNMIClock += v;
+	RisingIRQClock += v;
+	FirstBALowClock += v;
+	LastBAHighClock += v;
+	SOTriggerClock += v;
+}
+
 void CPU6502::PreventClockOverflow()
 {
 	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;

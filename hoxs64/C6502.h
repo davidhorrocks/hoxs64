@@ -536,6 +536,8 @@ public:
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock)=0;
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data)=0;
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock)=0;
+	virtual ICLK GetCurrentClock() = 0;
+	virtual void SetCurrentClock(ICLK sysclock) = 0;
 	int ID;
 
 	virtual void SetIRQ(ICLK sysclock);

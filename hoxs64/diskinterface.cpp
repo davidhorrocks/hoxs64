@@ -1070,6 +1070,23 @@ ICLKS cycles;
 	}
 }
 
+ICLK DiskInterface::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void DiskInterface::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - CurrentClock;
+	CurrentClock = sysclock;
+	m_changing_c64_serialbus_diskview_diskclock += v;
+	m_driveWriteChangeClock += v;
+	m_busDataUpdateClock += v;
+	cpu.SetCurrentClock(sysclock);
+	via1.SetCurrentClock(sysclock);
+	via2.SetCurrentClock(sysclock);
+}
+
 void DiskInterface::PreventClockOverflow()
 {
 	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;

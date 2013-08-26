@@ -43,7 +43,6 @@
 #include "tap.h"
 #include "diskinterface.h"
 
-
 VIA2::VIA2()
 {
 	cfg=0;

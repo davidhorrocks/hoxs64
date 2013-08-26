@@ -157,7 +157,7 @@ void EasyFlashChip::MonWriteByte(bit16 address, bit8 data)
 {
 int k;
 	address = address & 0x1fff;
-	ICLK clock = m_pCartEasyFlash->m_pCpu->GetCurrentClock();
+	ICLK clock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
 	CheckForPendingWrite(clock);
 	k = (m_pCartEasyFlash->m_iSelectedBank) & 0x3f;
 	if ((unsigned int)k < m_vecBanks.size())
@@ -174,7 +174,7 @@ int k;
 
 	//TODO check for 80us command write timeout.
 	address = address & 0x1fff;
-	ICLK clock = m_pCartEasyFlash->m_pCpu->GetCurrentClock();
+	ICLK clock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
 	CheckForPendingWrite(clock);
 	switch(m_mode)
 	{
@@ -359,7 +359,7 @@ bit8 EasyFlashChip::MonReadByte(bit16 address)
 {
 int k;
 	address = address & 0x1fff;
-	ICLK clock = m_pCartEasyFlash->m_pCpu->GetCurrentClock();
+	ICLK clock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
 	CheckForPendingWrite(clock);
 	k = (m_pCartEasyFlash->m_iSelectedBank)  & 0x3f;
 	if ((unsigned int)k < m_vecBanks.size())
@@ -378,7 +378,7 @@ const bit8 AmdManufacterId = 1;
 const bit8 Am29F040 = 0xA4;
 
 	address = address & 0x1fff;
-	ICLK clock = m_pCartEasyFlash->m_pCpu->GetCurrentClock();
+	ICLK clock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
 	CheckForPendingWrite(clock);
 	switch(m_mode)
 	{
@@ -461,7 +461,7 @@ void EasyFlashChip::PreventClockOverflow()
 	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
 	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
 
-	ICLK clock = m_pCartEasyFlash->m_pCpu->GetCurrentClock();
+	ICLK clock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
 
 	ICLK ClockBehindNear = clock - CLOCKSYNCBAND_NEAR;
 	
@@ -469,4 +469,11 @@ void EasyFlashChip::PreventClockOverflow()
 	{
 		m_iLastCommandWriteClock = ClockBehindNear;
 	}
+}
+
+void EasyFlashChip::SetCurrentClock(ICLK sysclock)
+{
+ICLK CurrentClock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
+ICLK v = sysclock - CurrentClock;
+	this->m_iLastCommandWriteClock += v;
 }

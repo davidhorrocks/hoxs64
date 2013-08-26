@@ -125,8 +125,8 @@ void CartRetroReplay::CartFreeze()
 	{
 		if ((reg2 & 0x04) == 0)
 		{
-			m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
-			m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
+			m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
+			m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 			m_bFreezePending = true;
 			m_bFreezeDone = false;
 		}

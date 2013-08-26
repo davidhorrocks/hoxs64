@@ -50,8 +50,8 @@ void CartFinalCartridgeIII::CartFreeze()
 {
 	if (m_bIsCartAttached)
 	{
-		m_pCpu->Set_CRT_IRQ(m_pCpu->GetCurrentClock());
-		m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
+		m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
+		m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bFreezePending = true;
 		m_bFreezeDone = false;
 	}
@@ -84,7 +84,7 @@ void CartFinalCartridgeIII::UpdateIO()
 		if (reg1 & 0x40)
 			m_pCpu->Clear_CRT_NMI();
 		else
-			m_pCpu->Set_CRT_NMI(m_pCpu->GetCurrentClock());
+			m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bIsCartIOActive = true;
 		BankRom();
 	}

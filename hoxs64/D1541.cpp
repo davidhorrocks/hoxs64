@@ -254,3 +254,14 @@ bit8 CPUDisk::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
 	return 0;
 }
+
+ICLK CPUDisk::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void CPUDisk::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - CurrentClock;
+	CPU6502::SetCurrentClock(sysclock);
+}

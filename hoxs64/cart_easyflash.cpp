@@ -186,10 +186,21 @@ void CartEasyFlash::UpdateIO()
 	BankRom();
 }
 
-
 void CartEasyFlash::PreventClockOverflow()
 {
 	m_EasyFlashChipROML.PreventClockOverflow();
 	m_EasyFlashChipROMH.PreventClockOverflow();
+}
+
+ICLK CartEasyFlash::GetCurrentClock()
+{
+	return this->m_pCpu->Get6510CurrentClock();
+}
+
+void CartEasyFlash::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - this->m_pCpu->Get6510CurrentClock();
+	m_EasyFlashChipROML.SetCurrentClock(sysclock);
+	m_EasyFlashChipROMH.SetCurrentClock(sysclock);
 }
 

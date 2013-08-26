@@ -25,7 +25,10 @@ public:
 	bool m_bIsWriteCycle;
 
 	void CheckPortFade(ICLK sysclock);
-	virtual ICLK GetCurrentClock();
+
+	void Reset6510(ICLK sysclock);
+	ICLK Get6510CurrentClock();
+	void Set6510CurrentClock(ICLK sysclock);
 	void Set_VIC_IRQ(ICLK sysclock);
 	void Clear_VIC_IRQ();
 	void Set_CIA_IRQ(ICLK sysclock);
@@ -36,6 +39,7 @@ public:
 	void Clear_CIA_NMI();
 	void Set_CRT_NMI(ICLK sysclock);
 	void Clear_CRT_NMI();
+	void ConfigureMemoryMap();
 
 	void InitReset(ICLK sysclock);
 	//IRegister
@@ -43,11 +47,11 @@ public:
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+	virtual ICLK GetCurrentClock();
+	virtual void SetCurrentClock(ICLK sysclock);
 
 	virtual bit8 ReadByte(bit16 address);
 	virtual void WriteByte(bit16 address, bit8 data);
-
-	void ConfigureMemoryMap();
 
 	//IMonitorCpu
 	virtual bit8 MonReadByte(bit16 address, int memorymap);

@@ -1109,3 +1109,13 @@ void VIA::SetCB2Input(bit8 value, int phase)
 			delay&=~VIACB2Trans0;
 	}
 }
+
+ICLK VIA::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void VIA::SetCurrentClock(ICLK sysclock)
+{
+	CurrentClock = sysclock;
+}

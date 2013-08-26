@@ -102,7 +102,7 @@ bit8 CartEpyxFastLoad::ReadRegister(bit16 address, ICLK sysclock)
 bit8 CartEpyxFastLoad::ReadROML(bit16 address)
 {
 	if (!m_bCapacitorCharged)
-		this->ExecuteCycle(this->m_pCpu->GetCurrentClock());
+		this->ExecuteCycle(this->m_pCpu->Get6510CurrentClock());
 	if (EXROM == 0)
 	{
 		if (this->m_bEffects)
@@ -125,7 +125,7 @@ bit8 CartEpyxFastLoad::ReadUltimaxROML(bit16 address)
 bit8 CartEpyxFastLoad::Get_EXROM()
 {
 	if (!m_bCapacitorCharged)
-		this->ExecuteCycle(this->m_pCpu->GetCurrentClock());
+		this->ExecuteCycle(this->m_pCpu->Get6510CurrentClock());
 	return EXROM;
 }
 

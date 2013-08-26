@@ -116,11 +116,6 @@ HRESULT hr;
 	return S_OK;
 }
 
-ICLK CPU6510::GetCurrentClock()
-{
-	return CurrentClock;
-}
-
 bit8 CPU6510::ReadByte(bit16 address)
 {
 bit8 *t;
@@ -541,6 +536,46 @@ bit8 CPU6510::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 	}
 }
 
+ICLK CPU6510::GetCurrentClock()
+{
+	return CurrentClock;
+}
+
+void CPU6510::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - CurrentClock;
+	CPU6502::SetCurrentClock(sysclock);
+	m_fade7clock += v;
+	m_fade6clock += v;
+}
+
+void CPU6510::PreventClockOverflow()
+{
+	CPU6502::PreventClockOverflow();
+	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+	if ((ICLKS)(CurrentClock - m_fade7clock) >= CLOCKSYNCBAND_FAR)
+		m_fade7clock = ClockBehindNear;
+	if ((ICLKS)(CurrentClock - m_fade6clock) >= CLOCKSYNCBAND_FAR)
+		m_fade6clock = ClockBehindNear;
+}
+
+void CPU6510::Reset6510(ICLK sysclock)
+{
+	Reset(sysclock);
+}
+
+ICLK CPU6510::Get6510CurrentClock()
+{
+	return CurrentClock;
+}
+
+void CPU6510::Set6510CurrentClock(ICLK sysclock)
+{
+	SetCurrentClock(sysclock);
+}
+
 MEM_TYPE CPU6510::GetCpuMmuReadMemoryType(bit16 address, int memorymap)
 {
 	return ram->GetCpuMmuReadMemoryType(address, memorymap);
@@ -736,19 +771,6 @@ void CPU6510::SetDdr(bit8 v)
 void CPU6510::SetData(bit8 v)
 {
 	write_cpu_io_data(v);
-}
-
-
-void CPU6510::PreventClockOverflow()
-{
-	CPU6502::PreventClockOverflow();
-	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
-	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
-	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
-	if ((ICLKS)(CurrentClock - m_fade7clock) >= CLOCKSYNCBAND_FAR)
-		m_fade7clock = ClockBehindNear;
-	if ((ICLKS)(CurrentClock - m_fade6clock) >= CLOCKSYNCBAND_FAR)
-		m_fade6clock = ClockBehindNear;
 }
 
 void CPU6510::GetState(SsCpuMain &state)

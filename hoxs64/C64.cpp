@@ -254,7 +254,7 @@ bool bBreak;
 			while (diskdrive.m_pendingclocks>1)
 			{
 				diskdrive.ExecuteOnePendingDiskCpuClock();
-				if (diskdrive.cpu.IsOpcodeFetch())// && diskdrive.cpu.PROCESSOR_INTERRUPT == 0)
+				if (diskdrive.cpu.IsOpcodeFetch())
 				{
 					bBreak = true;
 					break;
@@ -276,7 +276,7 @@ bool bBreak;
 			while (diskdrive.m_pendingclocks>0)
 			{
 				diskdrive.ExecuteOnePendingDiskCpuClock();
-				if (diskdrive.cpu.IsOpcodeFetch())// && diskdrive.cpu.PROCESSOR_INTERRUPT == 0)
+				if (diskdrive.cpu.IsOpcodeFetch())
 				{
 					bBreak = true;
 					break;
@@ -366,7 +366,7 @@ bool bBreak;
 		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
-		if (cpu.IsOpcodeFetch() && !bWasC64CpuOpCodeFetch)// && cpu.PROCESSOR_INTERRUPT == 0
+		if (cpu.IsOpcodeFetch() && !bWasC64CpuOpCodeFetch)
 		{
 			bBreak = true;
 		}
@@ -1505,12 +1505,12 @@ HRESULT hr;
 ULONG bytesWritten;
 SsSectionHeader sh;
 STATSTG stat;
-LARGE_INTEGER pos_in;
+LARGE_INTEGER pos_next;
 ULARGE_INTEGER pos_out;
 SsCpuMain sbCpuMain;
 bit8 *pC64Ram = NULL;
 bool done = false;
-
+const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 	IStream *pfs = NULL;
 	do
 	{
@@ -1535,22 +1535,25 @@ bool done = false;
 			hr = E_FAIL;
 			break;
 		}
-	
-		bool eof = false;
 
+		pos_next.QuadPart = 0;
+		hr = pfs->Seek(pos_next, STREAM_SEEK_CUR, &pos_out);
+		if (FAILED(hr))
+			break;
+		pos_next.QuadPart = pos_out.QuadPart;
+		bool eof = false;
 		bool bC64Cpu = false;
 		bool bC64Ram = false;
 		while (!eof && !done)
 		{
-			pos_in.QuadPart = 0;
-			hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
-			if (FAILED(hr))
-				break;
-			if (pos_out.QuadPart >= stat.cbSize.QuadPart)
+			if ((ULONGLONG)pos_next.QuadPart >= stat.cbSize.QuadPart)
 			{
 				eof = true;
 				break;
 			}
+			hr = pfs->Seek(pos_next, STREAM_SEEK_SET, &pos_out);
+			if (FAILED(hr))
+				break;
 			hr = pfs->Read(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
 				break;
@@ -1559,14 +1562,23 @@ bool done = false;
 				eof = true;
 				break;
 			}
+			pos_next.QuadPart = pos_next.QuadPart + sh.size;
 			switch(sh.id)
 			{
 			case SsLib::SectionType::C64Cpu:
-				bC64Cpu = true;
+				hr = pfs->Read(&sbCpuMain, sizeof(sbCpuMain), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bC64Cpu = true;
+				}
 				break;
 			case SsLib::SectionType::C64Ram:
 				pC64Ram = (bit8 *)malloc(SaveState::SIZE64K);
-				if (!pC64Ram)
+				if (pC64Ram)
+				{
+					hr = pfs->Read(pC64Ram, SaveState::SIZE64K, &bytesWritten);
+				}
+				else
 				{
 					hr = E_OUTOFMEMORY;
 				}
@@ -1595,6 +1607,15 @@ bool done = false;
 		cpu.SetState(sbCpuMain);
 		if (ram.mMemory && pC64Ram)
 			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
+		ICLK c = sbCpuMain.common.CurrentClock;
+
+		cia1.SetCurrentClock(c);
+		cia2.SetCurrentClock(c);
+		vic.SetCurrentClock(c);
+		sid.SetCurrentClock(c);
+		cart.SetCurrentClock(c);
+		diskdrive.SetCurrentClock(c);
+				
 		hr = S_OK;
 	}
 	else

@@ -63,13 +63,17 @@ public:
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock)=0;
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data)=0;
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock)=0;
+	virtual ICLK GetCurrentClock() = 0;
+	virtual void SetCurrentClock(ICLK sysclock) = 0;
 	ICLK CurrentClock;
 };
 
 class IC6510
 {
 public:
-	virtual ICLK GetCurrentClock() = 0;
+	virtual void Reset6510(ICLK sysclock)=0;
+	virtual ICLK Get6510CurrentClock() = 0;
+	virtual void Set6510CurrentClock(ICLK sysclock) = 0;
 	virtual void Set_VIC_IRQ(ICLK sysclock) = 0;
 	virtual void Clear_VIC_IRQ() = 0;
 	virtual void Set_CIA_IRQ(ICLK sysclock) = 0;
@@ -81,7 +85,6 @@ public:
 	virtual void Set_CRT_NMI(ICLK sysclock) = 0;
 	virtual void Clear_CRT_NMI() = 0;
 	virtual void ConfigureMemoryMap() = 0;
-	virtual void Reset(ICLK sysclock) = 0;
 };
 
 class ILightPen

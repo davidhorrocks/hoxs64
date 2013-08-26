@@ -38,6 +38,8 @@ public:
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
+	virtual ICLK GetCurrentClock();
+	virtual void SetCurrentClock(ICLK sysclock);
 
 	//IMonitorDisk
 	virtual bit8 GetHalfTrackIndex();
