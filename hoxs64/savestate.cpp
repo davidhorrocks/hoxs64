@@ -12,3 +12,6 @@
 #include "bits.h"
 #include "savestate.h"
 
+
+const char SaveState::SIGNATURE[]= "COMMODORE 64 STATE SNAPSHOT";
+const char SaveState::NAME[]= "Hoxs64";

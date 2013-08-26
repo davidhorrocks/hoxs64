@@ -1454,23 +1454,48 @@ HRESULT C64::SaveC64StateToFile(TCHAR *filename)
 {
 HRESULT hr;
 ULONG bytesWritten;
-	IStream *pfs;
-	hr = FileStream::CreateObject(filename, &pfs, true);
-	if (SUCCEEDED(hr))
+SsSectionHeader sh;
+
+	IStream *pfs = NULL;
+	do
 	{
+		hr = FileStream::CreateObject(filename, &pfs, true);
+		if (FAILED(hr))
+			break;
+
 		SsHeader hdr;
 		ZeroMemory(&hdr, sizeof(hdr));
-		strcpy(hdr.Signature, "COMMODORE 64 STATE SNAPSHOT");
-		strcpy(hdr.EmulatorName, "Hoxs64");
+		strcpy(hdr.Signature, SaveState::SIGNATURE);
+		strcpy(hdr.EmulatorName, SaveState::NAME);
 		hdr.Version = 0;
 		hdr.HeaderSize = sizeof(hdr);
 		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
-		if (SUCCEEDED(hr))
-		{
-			
-		}
-	}
+		if (FAILED(hr))
+			break;
 
+		sh.id = SsLib::SectionType::C64Ram;
+		sh.size = sizeof(sh) + SaveState::SIZE64K;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		hr = pfs->Write(this->ram.mMemory, SaveState::SIZE64K, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		SsCpuMain sbCpuMain;
+		this->cpu.GetState(sbCpuMain);
+		hr = SaveState::SaveSection(pfs, sbCpuMain, SsLib::SectionType::C64Cpu);
+		if (FAILED(hr))
+			break;
+
+		
+	} while (false);
+	if (pfs)
+	{
+		pfs->Release();
+		pfs = NULL;
+	}
 	return hr;
 }
 
@@ -1478,18 +1503,110 @@ HRESULT C64::LoadC64StateFromFile(TCHAR *filename)
 {
 HRESULT hr;
 ULONG bytesWritten;
-	IStream *pfs;
-	hr = FileStream::CreateObject(filename, &pfs, false);
-	if (SUCCEEDED(hr))
+SsSectionHeader sh;
+STATSTG stat;
+LARGE_INTEGER pos_in;
+ULARGE_INTEGER pos_out;
+SsCpuMain sbCpuMain;
+bit8 *pC64Ram = NULL;
+bool done = false;
+
+	IStream *pfs = NULL;
+	do
 	{
+		hr = FileStream::CreateObject(filename, &pfs, false);
+		if (FAILED(hr))
+			break;
+
+		ZeroMemory(&stat, sizeof(stat));
+
+		pfs->Stat(&stat, STATFLAG_NONAME);
+		if (FAILED(hr))
+			break;
+
 		SsHeader hdr;
 		ZeroMemory(&hdr, sizeof(hdr));
 		hr = pfs->Read(&hdr, sizeof(hdr), &bytesWritten);
-		if (SUCCEEDED(hr))
-		{
-		}
-	}
+		if (FAILED(hr))
+			break;
 
+		if (strcmp(hdr.Signature, SaveState::SIGNATURE) != 0)
+		{
+			hr = E_FAIL;
+			break;
+		}
+	
+		bool eof = false;
+
+		bool bC64Cpu = false;
+		bool bC64Ram = false;
+		while (!eof && !done)
+		{
+			pos_in.QuadPart = 0;
+			hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
+			if (FAILED(hr))
+				break;
+			if (pos_out.QuadPart >= stat.cbSize.QuadPart)
+			{
+				eof = true;
+				break;
+			}
+			hr = pfs->Read(&sh, sizeof(sh), &bytesWritten);
+			if (FAILED(hr))
+				break;
+			if (sh.size == 0)
+			{
+				eof = true;
+				break;
+			}
+			switch(sh.id)
+			{
+			case SsLib::SectionType::C64Cpu:
+				bC64Cpu = true;
+				break;
+			case SsLib::SectionType::C64Ram:
+				pC64Ram = (bit8 *)malloc(SaveState::SIZE64K);
+				if (!pC64Ram)
+				{
+					hr = E_OUTOFMEMORY;
+				}
+				bC64Ram = true;
+				break;
+			}
+			if (FAILED(hr))
+				break;
+
+			if (bC64Cpu && bC64Ram)
+			{
+				done = true;
+				hr = S_OK;
+			}
+		}
+		if (FAILED(hr))
+			break;
+	} while (false);
+	if (pfs)
+	{
+		pfs->Release();
+		pfs = NULL;
+	}
+	if (done)
+	{
+		cpu.SetState(sbCpuMain);
+		if (ram.mMemory && pC64Ram)
+			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
+		hr = S_OK;
+	}
+	else
+	{
+		if (SUCCEEDED(hr))
+			hr = E_FAIL;
+	}
+	if (pC64Ram)
+	{
+		free(pC64Ram);
+		pC64Ram = NULL;
+	}
 	return hr;
 }
 
@@ -1503,7 +1620,6 @@ void C64::SoftReset(bool bCancelAutoload)
 	}
 	ICLK sysclock = cpu.CurrentClock;
 	cpu.InitReset(sysclock);
-	//cart.InitReset(sysclock);
 
 	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
 	cpu.Reset(sysclock);

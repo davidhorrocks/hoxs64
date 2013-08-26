@@ -4,12 +4,34 @@
 
 # pragma pack (1)
 
+namespace SsLib
+{
+	namespace SectionType
+	{
+		enum SectionType : __int32
+		{
+			C64Ram = 0,
+			C64Cpu = 1,
+			C64Cia1 = 2,
+			C64Cia2 = 3,
+			C64Vic = 4,
+			C64Sid = 5,
+		};
+	}
+};
+
 struct SsHeader
 {
 	char Signature[0x1C];
 	bit32 Version;
 	bit32 HeaderSize;
 	char EmulatorName[0x20];
+};
+
+struct SsSectionHeader
+{
+	bit32 size;
+	bit32 id;
 };
 
 struct SsCpuCommon
@@ -439,3 +461,32 @@ struct SsVia2
 };
 
 # pragma pack ()
+
+class SaveState
+{
+public:
+	static const char SIGNATURE[];
+	static const char NAME[];
+	static const int SIZE64K = 0x10000;
+
+	template<class T>
+	static HRESULT SaveSection(IStream *pfs, const T& section, SsLib::SectionType::SectionType sectionType);
+};
+
+template<class T>
+HRESULT SaveState::SaveSection(IStream *pfs, const T& section, SsLib::SectionType::SectionType sectionType)
+{
+HRESULT hr;
+ULONG bytesWritten;
+SsSectionHeader sh;
+
+	sh.size = sizeof(section);
+	sh.id = sectionType;
+
+	hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+	if (SUCCEEDED(hr))
+	{
+		hr = pfs->Write(&section, sizeof(section), &bytesWritten);
+	}
+	return hr;
+}

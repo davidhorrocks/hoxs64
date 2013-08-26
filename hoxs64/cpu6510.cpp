@@ -753,6 +753,7 @@ void CPU6510::PreventClockOverflow()
 
 void CPU6510::GetState(SsCpuMain &state)
 {
+	ZeroMemory(&state, sizeof(state));
 	state.common.Model = 0;
 	state.common.PC = mPC.word;
 	state.common.A = mA;
