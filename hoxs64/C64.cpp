@@ -1508,6 +1508,10 @@ STATSTG stat;
 LARGE_INTEGER pos_next;
 ULARGE_INTEGER pos_out;
 SsCpuMain sbCpuMain;
+SsCia1 sbCia1;
+SsCia2 sbCia2;
+SsVic6569 sbVic6569;
+
 bit8 *pC64Ram = NULL;
 bool done = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
@@ -1544,6 +1548,9 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		bool eof = false;
 		bool bC64Cpu = false;
 		bool bC64Ram = false;
+		bool bC64Cia1 = false;
+		bool bC64Cia2 = false;
+		bool bC64Vic6569 = false;
 		while (!eof && !done)
 		{
 			if ((ULONGLONG)pos_next.QuadPart >= stat.cbSize.QuadPart)
@@ -1584,11 +1591,32 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 				}
 				bC64Ram = true;
 				break;
+			case SsLib::SectionType::C64Cia1:
+				hr = pfs->Read(&sbCia1, sizeof(sbCia1), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bC64Cia1 = true;
+				}
+				break;
+			case SsLib::SectionType::C64Cia2:
+				hr = pfs->Read(&sbCia2, sizeof(sbCia2), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bC64Cia2 = true;
+				}
+				break;
+			case SsLib::SectionType::C64Vic:
+				hr = pfs->Read(&sbVic6569, sizeof(sbVic6569), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bC64Vic6569 = true;
+				}
+				break;
 			}
 			if (FAILED(hr))
 				break;
 
-			if (bC64Cpu && bC64Ram)
+			if (bC64Cpu && bC64Ram && bC64Cia1 && bC64Cia2 && bC64Vic6569)
 			{
 				done = true;
 				hr = S_OK;
