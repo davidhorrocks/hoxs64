@@ -4720,3 +4720,12 @@ int i = -1;
 	}
 	return i;
 } 
+
+void VIC6569::GetState(SsVic6569 &state)
+{
+	ZeroMemory(&state, sizeof(state));
+}
+
+void VIC6569::SetState(const SsVic6569 &state)
+{
+}

@@ -1456,6 +1456,8 @@ HRESULT hr;
 ULONG bytesWritten;
 SsSectionHeader sh;
 
+	SynchroniseDevicesWithVIC();
+
 	IStream *pfs = NULL;
 	do
 	{
@@ -1501,6 +1503,12 @@ SsSectionHeader sh;
 		if (FAILED(hr))
 			break;
 
+		SsVic6569 sbVic6569;
+		this->vic.GetState(sbVic6569);
+		hr = SaveState::SaveSection(pfs, sbVic6569, SsLib::SectionType::C64Vic);
+		if (FAILED(hr))
+			break;
+
 	} while (false);
 	if (pfs)
 	{
@@ -1526,6 +1534,9 @@ SsVic6569 sbVic6569;
 bit8 *pC64Ram = NULL;
 bool done = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
+
+	diskdrive.WaitThreadReady();
+
 	IStream *pfs = NULL;
 	do
 	{
@@ -1646,6 +1657,10 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		cpu.SetState(sbCpuMain);
 		if (ram.mMemory && pC64Ram)
 			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
+		cia1.SetState(sbCia1);
+		cia2.SetState(sbCia2);
+		vic.SetState(sbVic6569);
+
 		ICLK c = sbCpuMain.common.CurrentClock;
 
 		cia1.SetCurrentClock(c);
@@ -1654,7 +1669,9 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		sid.SetCurrentClock(c);
 		cart.SetCurrentClock(c);
 		diskdrive.SetCurrentClock(c);
-				
+		
+		cpu.ConfigureMemoryMap();
+
 		hr = S_OK;
 	}
 	else

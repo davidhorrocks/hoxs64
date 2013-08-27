@@ -236,6 +236,8 @@ public:
 	int FrameNumber;
 
 	void BackupMainPixelBuffers();
+	void GetState(SsVic6569 &state);
+	void SetState(const SsVic6569 &state);
 
 	static bit32 vic_color_array[256];
 	static bit32 vic_color_array32[256];
