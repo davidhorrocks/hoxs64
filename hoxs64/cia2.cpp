@@ -173,3 +173,20 @@ void CIA2::ClearSystemInterrupt()
 {
 	cpu->Clear_CIA_NMI();
 }
+
+void CIA2::GetState(SsCia2 &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	CIA::GetState(state.cia);
+
+	state.c64_serialbus = c64_serialbus;
+	state.m_commandedVicBankIndex = m_commandedVicBankIndex;
+}
+
+void CIA2::SetState(const SsCia2 &state)
+{
+	CIA::SetState(state.cia);
+	c64_serialbus = state.c64_serialbus;
+	m_commandedVicBankIndex = state.m_commandedVicBankIndex;
+
+}

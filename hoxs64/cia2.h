@@ -24,6 +24,9 @@ public:
 
 	void ExecuteDevices(ICLK sysclock);
 
+	void GetState(SsCia2 &state);
+	void SetState(const SsCia2 &state);
+
 	CConfig *cfg;
 	CAppStatus *appStatus;
 	CPU6510 *cpu;
@@ -31,6 +34,7 @@ public:
 	DiskInterface *disk;
 	volatile bit8 c64_serialbus;
 	bit8 m_commandedVicBankIndex;
+
 };
 
 

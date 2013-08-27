@@ -1489,7 +1489,18 @@ SsSectionHeader sh;
 		if (FAILED(hr))
 			break;
 
+		SsCia1 sbCia1;
+		this->cia1.GetState(sbCia1);
+		hr = SaveState::SaveSection(pfs, sbCia1, SsLib::SectionType::C64Cia1);
+		if (FAILED(hr))
+			break;
 		
+		SsCia2 sbCia2;
+		this->cia2.GetState(sbCia2);
+		hr = SaveState::SaveSection(pfs, sbCia2, SsLib::SectionType::C64Cia2);
+		if (FAILED(hr))
+			break;
+
 	} while (false);
 	if (pfs)
 	{

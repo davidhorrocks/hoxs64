@@ -3,6 +3,7 @@
 #include "defines.h"
 #include "bits.h"
 #include "util.h"
+#include "savestate.h"
 #include "register.h"
 #include "cia6526.h"
 
@@ -1304,4 +1305,116 @@ void CIA::init_bitcount()
 		}
 		prec_bitcount[i] = c;
 	}
+}
+
+void CIA::GetState(SsCia &state)
+{
+	ZeroMemory(&state, sizeof(state));
+
+	state.DevicesClock = DevicesClock;
+	state.delay = delay;
+	state.feed = feed;
+	state.old_delay = old_delay;
+	state.old_feed = old_feed;
+	state.idle = idle;
+	state.dec_a = dec_a;
+	state.dec_b = dec_b;
+	state.no_change_count = no_change_count;
+	state.flag_change = flag_change;
+	state.sp_change = sp_change;
+	state.f_flag_in = f_flag_in;
+	state.f_flag_out = f_flag_out;
+	state.f_sp_in = f_sp_in;
+	state.f_sp_out = f_sp_out;
+	state.f_cnt_in = f_cnt_in;
+	state.f_cnt_out = f_cnt_out;
+	state.pra_out = pra_out;
+	state.prb_out = prb_out;
+	state.ddra = ddra;
+	state.ddrb = ddrb;
+	state.ta_counter = ta_counter;
+	state.tb_counter = tb_counter;
+	state.ta_latch = ta_latch;
+	state.tb_latch = tb_latch;
+	state.tod_clock_reload = tod_clock_reload;
+	state.tod_clock_rate = tod_clock_rate;
+	state.tod_tick = tod_tick;
+	state.tod_clock_compare_band = tod_clock_compare_band;
+	state.tod_alarm = tod_alarm;
+	state.tod_read_freeze = tod_read_freeze;	
+	state.tod_read_latch.dword = tod_read_latch.dword;
+	state.tod_write_freeze = tod_write_freeze;
+	state.tod_write_latch.dword = tod_write_latch.dword;
+	state.tod.dword = tod.dword;
+	state.alarm.dword = alarm.dword;
+	state.sdr = sdr;
+	state.cra = cra;
+	state.crb = crb;
+	state.timera_output = timera_output;
+	state.timerb_output = timerb_output;
+	state.icr = icr;
+	state.imr = imr;
+	state.Interrupt = Interrupt;
+	state.serial_int_count = serial_int_count;
+	state.bEarlyIRQ = bEarlyIRQ;
+	state.bTimerBbug = bTimerBbug;
+	state.ClockReadICR = ClockReadICR;
+	state.bPB67TimerMode = bPB67TimerMode;
+	state.bPB67TimerOut = bPB67TimerOut;
+	state.bPB67Toggle = bPB67Toggle;
+}
+
+void CIA::SetState(const SsCia &state)
+{
+	DevicesClock = state.DevicesClock;
+	delay = state.delay;
+	feed = state.feed;
+	old_delay = state.old_delay;
+	old_feed = state.old_feed;
+	idle = state.idle;
+	dec_a = state.dec_a;
+	dec_b = state.dec_b;
+	no_change_count = state.no_change_count;
+	flag_change = state.flag_change;
+	sp_change = state.sp_change;
+	f_flag_in = state.f_flag_in;
+	f_flag_out = state.f_flag_out;
+	f_sp_in = state.f_sp_in;
+	f_sp_out = state.f_sp_out;
+	f_cnt_in = state.f_cnt_in;
+	f_cnt_out = state.f_cnt_out;
+	pra_out = state.pra_out;
+	prb_out = state.prb_out;
+	ddra = state.ddra;
+	ddrb = state.ddrb;
+	ta_counter = state.ta_counter;
+	tb_counter = state.tb_counter;
+	ta_latch = state.ta_latch;
+	tb_latch = state.tb_latch;
+	tod_clock_reload = state.tod_clock_reload;
+	tod_clock_rate = state.tod_clock_rate;
+	tod_tick = state.tod_tick;
+	tod_clock_compare_band = state.tod_clock_compare_band;
+	tod_alarm = state.tod_alarm;
+	tod_read_freeze = state.tod_read_freeze;	
+	tod_read_latch.dword = state.tod_read_latch.dword;
+	tod_write_freeze = state.tod_write_freeze;
+	tod_write_latch.dword = state.tod_write_latch.dword;
+	tod.dword = state.tod.dword;
+	alarm.dword = state.alarm.dword;
+	sdr = state.sdr;
+	cra = state.cra;
+	crb = state.crb;
+	timera_output = state.timera_output;
+	timerb_output = state.timerb_output;
+	icr = state.icr;
+	imr = state.imr;
+	Interrupt = state.Interrupt;
+	serial_int_count = state.serial_int_count;
+	bEarlyIRQ = state.bEarlyIRQ != 0;
+	bTimerBbug = state.bTimerBbug != 0;
+	ClockReadICR = state.ClockReadICR;
+	bPB67TimerMode = state.bPB67TimerMode;
+	bPB67TimerOut = state.bPB67TimerOut;
+	bPB67Toggle = state.bPB67Toggle;
 }

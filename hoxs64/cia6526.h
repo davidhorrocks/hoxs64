@@ -89,9 +89,11 @@ public:
 
 	bit32 delay;
 	bit32 feed;
-	bit32 old_delay,old_feed;
+	bit32 old_delay;
+	bit32 old_feed;
 	bit32 idle;
-	bit16 dec_a,dec_b;
+	bit16 dec_a;
+	bit16 dec_b;
 	bit32 no_change_count;
 	bit32 flag_change;
 	bit32 sp_change;
@@ -146,6 +148,9 @@ public:
 	static int prec_bitcount[256];
 	static void init_bitcount();
 
+protected:
+	void GetState(SsCia &state);
+	void SetState(const SsCia &state);
 };
 
 

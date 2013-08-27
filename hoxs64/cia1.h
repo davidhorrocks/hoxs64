@@ -41,6 +41,9 @@ public:
 	void ResetKeyboard();
 	void SetKeyMatrixDown(bit8 row, bit8 col);
 
+	void GetState(SsCia1 &state);
+	void SetState(const SsCia1 &state);
+
 	unsigned char c64KeyMap[256];
 	ICLK nextKeyboardScanClock;
 	virtual void SetWakeUpClock();
