@@ -51,8 +51,6 @@ struct SsCpuCommon
 	bit32 FirstBALowClock;
 	bit32 LastBAHighClock;
 	bit32 m_CurrentOpcodeClock;
-	bit32 m_fade7clock;
-	bit32 m_fade6clock;
 	bit32 m_cpu_sequence;
 	bit32 m_cpu_final_sequence;
 	bit32 m_op_code;
@@ -72,6 +70,8 @@ struct SsCpuCommon
 struct SsCpuMain
 {
 	SsCpuCommon common;
+	bit32 m_fade7clock;
+	bit32 m_fade6clock;
 	bit8 IRQ_VIC;	
 	bit8 IRQ_CIA;
 	bit8 IRQ_CRT;

@@ -1148,7 +1148,6 @@ void CApp::LoadC64State(HWND hWnd)
 OPENFILENAME_500EX of;
 TCHAR initfilename[MAX_PATH];
 BOOL b;
-bit16 start, loadSize;
 HRESULT hr;
 
 	initfilename[0] = 0;

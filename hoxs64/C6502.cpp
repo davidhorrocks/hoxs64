@@ -13,6 +13,7 @@
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
+#include "savestate.h"
 #include "register.h"
 #include "bpenum.h"
 #include "c6502.h"
@@ -3468,4 +3469,78 @@ void CPU6502::SetDdr(bit8 v)
 
 void CPU6502::SetData(bit8 v)
 {
+}
+
+void CPU6502::GetState(SsCpuCommon &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	state.Model = 0;
+	state.PC = mPC.word;
+	state.A = mA;
+	state.X = mX;
+	state.Y = mY;
+	state.SP = mSP;
+	state.SR = (fNEGATIVE <<7) | (fOVERFLOW <<6) | (1<<5) | (fBREAK <<4) | (fDECIMAL <<3) | (fINTERRUPT <<2) | (fZERO <<1) | (fCARRY);
+	state.CurrentClock = CurrentClock;
+	state.SOTriggerClock = SOTriggerClock;
+	state.FirstIRQClock = FirstIRQClock;
+	state.FirstNMIClock = FirstNMIClock;
+	state.RisingIRQClock = RisingIRQClock;
+	state.FirstBALowClock = FirstBALowClock;
+	state.LastBAHighClock = LastBAHighClock;
+	state.m_CurrentOpcodeClock = m_CurrentOpcodeClock;
+	state.m_cpu_sequence = m_cpu_sequence;
+	state.m_cpu_final_sequence = m_cpu_final_sequence;
+	state.m_op_code = m_op_code;
+	state.m_CurrentOpcodeAddress = m_CurrentOpcodeAddress.word;
+	state.addr = addr.word;
+	state.ptr = ptr.word;
+	state.databyte = databyte;
+	state.SOTrigger = SOTrigger ? 1 : 0;
+	state.m_bBALowInClock2OfSEI = m_bBALowInClock2OfSEI ? 1 : 0;
+	state.BA = BA;
+	state.PROCESSOR_INTERRUPT = PROCESSOR_INTERRUPT;
+	state.IRQ = IRQ;
+	state.NMI = NMI;
+	state.NMI_TRIGGER = NMI_TRIGGER;
+}
+
+void CPU6502::SetState(const SsCpuCommon &state)
+{
+	//state.Model = 0;
+	mPC.word = state.PC;
+	mA = state.A;
+	mX = state.X;
+	mY = state.Y;
+	mSP = state.SP;
+	fNEGATIVE = (state.SR >> 7) & 1;
+	fOVERFLOW = (state.SR >> 6) & 1;
+	//(1<<5)
+	fBREAK = (state.SR >> 4) & 1;
+	fDECIMAL = (state.SR >> 3) & 1;
+	fINTERRUPT = (state.SR >> 2) & 1;
+	fZERO = (state.SR >> 1) & 1;
+	fCARRY = (state.SR) & 1;
+	CurrentClock = state.CurrentClock;
+	SOTriggerClock = state.SOTriggerClock;
+	FirstIRQClock = state.FirstIRQClock;
+	FirstNMIClock = state.FirstNMIClock;
+	RisingIRQClock = state.RisingIRQClock;
+	FirstBALowClock = state.FirstBALowClock;
+	LastBAHighClock = state.LastBAHighClock;
+	m_CurrentOpcodeClock = state.m_CurrentOpcodeClock;
+	m_cpu_sequence = state.m_cpu_sequence;
+	m_cpu_final_sequence = state.m_cpu_final_sequence;
+	m_op_code = state.m_op_code;
+	m_CurrentOpcodeAddress.word = state.m_CurrentOpcodeAddress;
+	addr.word = state.addr;
+	ptr.word = state.ptr;
+	databyte = state.databyte;
+	SOTrigger = state.SOTrigger != 0;
+	m_bBALowInClock2OfSEI = state.m_bBALowInClock2OfSEI != 0;
+	BA = state.BA;
+	PROCESSOR_INTERRUPT = state.PROCESSOR_INTERRUPT;
+	IRQ = state.IRQ;
+	NMI = state.NMI;
+	NMI_TRIGGER = state.NMI_TRIGGER;	
 }

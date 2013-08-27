@@ -613,6 +613,9 @@ protected:
 	virtual void check_interrupts0();
 	virtual void SyncVFlag();
 	virtual void CheckForCartFreeze();
+
+	void GetState(SsCpuCommon &state);
+	void SetState(const SsCpuCommon &state);
 private:
 
 	void InitDecoder();
