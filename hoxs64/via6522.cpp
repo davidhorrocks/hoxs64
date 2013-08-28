@@ -9,6 +9,7 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "register.h"
+#include "savestate.h"
 #include "c6502.h"
 #include "d1541.h"
 #include "via6522.h"

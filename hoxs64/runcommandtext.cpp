@@ -14,7 +14,7 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "register.h"
-
+#include "savestate.h"
 #include "c6502.h"
 #include "assembler.h"
 #include "runcommand.h"

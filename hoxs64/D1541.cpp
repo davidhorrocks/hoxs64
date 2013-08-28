@@ -7,6 +7,7 @@
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
+#include "savestate.h"
 #include "c6502.h"
 #include "via6522.h"
 #include "via1.h"
