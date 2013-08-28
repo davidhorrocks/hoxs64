@@ -631,6 +631,55 @@ ICLK vicCurrentClock;
 	}
 }
 
+void VICSprite::GetState(SsVicSprite &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	state.dataBuffer = dataBuffer;
+	state.bufferPos = bufferPos;
+	state.xPos = xPos;
+	state.column = column;
+	state.columnX = columnX;
+	state.xPixelInit = xPixelInit;
+	state.xPixel = xPixel;
+	state.dataLoadClock = dataLoadClock;
+	state.dataLoadedClock = dataLoadedClock;
+	state.dataLoadIndex = dataLoadIndex;
+	state.shiftStatus = shiftStatus;//enum SpriteShiftRegister
+	state.shiftCounter = shiftCounter;
+	state.ff_XP = ff_XP;
+	state.ff_MC = ff_MC;
+	state.bleedMode = bleedMode;
+	state.currentPixel = currentPixel;
+	state.armDelay = armDelay;
+	state.drawCount = drawCount;
+	state.spriteNumber = spriteNumber;
+	state.spriteBit = spriteBit;
+}
+
+void VICSprite::SetState(const SsVicSprite &state)
+{
+	dataBuffer = state.dataBuffer;
+	bufferPos = state.bufferPos;
+	xPos = state.xPos;
+	column = state.column;
+	columnX = state.columnX;
+	xPixelInit = state.xPixelInit;
+	xPixel = state.xPixel;
+	dataLoadClock = state.dataLoadClock;
+	dataLoadedClock = state.dataLoadedClock;
+	dataLoadIndex = state.dataLoadIndex;
+	shiftStatus = (SpriteShiftRegister)state.shiftStatus;
+	shiftCounter = state.shiftCounter;
+	ff_XP = state.ff_XP;
+	ff_MC = state.ff_MC;
+	bleedMode = state.bleedMode;
+	currentPixel = state.currentPixel;
+	armDelay = state.armDelay;
+	drawCount = state.drawCount;
+	spriteNumber = state.spriteNumber;
+	spriteBit = state.spriteBit;
+}
+
 void VIC6569::SetSystemInterrupt()
 {
 	cpu->Set_VIC_IRQ(CurrentClock);
@@ -4724,8 +4773,233 @@ int i = -1;
 void VIC6569::GetState(SsVic6569 &state)
 {
 	ZeroMemory(&state, sizeof(state));
+
+	state.cpu_next_op_code = cpu_next_op_code;
+	state.vicECM = vicECM;
+	state.vicBMM = vicBMM;
+	state.vicDEN = vicDEN;
+	state.vicRSEL = vicRSEL;
+	state.vicYSCROLL = vicYSCROLL;
+	state.vicECM_BMM_MCM = vicECM_BMM_MCM;
+	state.vicECM_BMM_MCM_prev = vicECM_BMM_MCM_prev;
+	state.vicRES = vicRES;
+	state.vicMCM = vicMCM;
+	state.vicCSEL = vicCSEL;
+	state.vicXSCROLL = vicXSCROLL;
+	state.vicXSCROLL_Cycle57 = vicXSCROLL_Cycle57;
+	state.vicMemptrVM = vicMemptrVM;
+	state.vicMemptrCB = vicMemptrCB;
+	state.vicBorderColor = vicBorderColor;	
+	state.vicSaveBackgroundColor0 = vicSaveBackgroundColor0;
+	state.vicRASTER_compare = vicRASTER_compare;
+	state.vic_raster_cycle = vic_raster_cycle;
+	state.vic_raster_line = vic_raster_line;
+	state.vicINTERRUPT_STATUS = vicINTERRUPT_STATUS;
+	state.vicINTERRUPT_ENABLE = vicINTERRUPT_ENABLE;
+	state.vic_check_irq_in_cycle2 = vic_check_irq_in_cycle2;
+	state.vicSpriteArmedOrActive = vicSpriteArmedOrActive;
+	state.ff_YP = ff_YP;
+	state.vicSpriteDMA = vicSpriteDMA;
+	state.vicSpriteDMAPrev = vicSpriteDMAPrev;
+	state.vicSpriteDisplay = vicSpriteDisplay;
+	state.vicSpriteYMatch = vicSpriteYMatch;
+	state.vicClearingYExpandRegInClock15 = vicClearingYExpandRegInClock15;
+	state.vicSpriteMSBX = vicSpriteMSBX;
+	state.vicSpriteEnable = vicSpriteEnable;
+	state.vicSpriteYExpand = vicSpriteYExpand;
+	state.vicSpriteXExpand = vicSpriteXExpand;
+	state.vicSpriteXExpandPrev = vicSpriteXExpandPrev;
+	state.vicSpriteDataPriority = vicSpriteDataPriority;
+	state.vicSpriteDataPriorityPrev = vicSpriteDataPriorityPrev;
+	state.vicSpriteMultiColor = vicSpriteMultiColor;
+	state.vicSpriteMultiColorPrev = vicSpriteMultiColorPrev;
+	state.vicSpriteSpriteCollision = vicSpriteSpriteCollision;
+	state.vicSpriteDataCollision = vicSpriteDataCollision;
+	state.vicNextSprite_sprite_collision = vicNextSprite_sprite_collision;
+	state.vicNextSprite_data_collision = vicNextSprite_data_collision;
+	state.vicCurrSprite_sprite_collision = vicCurrSprite_sprite_collision;
+	state.vicCurrSprite_data_collision = vicCurrSprite_data_collision;
+	state.vicSpriteSpriteInt = vicSpriteSpriteInt;
+	state.vicSpriteDataInt = vicSpriteDataInt;
+	state.clockSpriteMultiColorChange = clockSpriteMultiColorChange;
+	state.clockSpriteDataPriorityChange = clockSpriteDataPriorityChange;
+	state.clockSpriteXExpandChange = clockSpriteXExpandChange;
+	state.clockReadSpriteDataCollision = clockReadSpriteDataCollision;
+	state.clockReadSpriteSpriteCollision = clockReadSpriteSpriteCollision;
+	state.clockFirstForcedBadlineCData = clockFirstForcedBadlineCData;
+	state.vicVC = vicVC;
+	state.vicRC = vicRC;
+	state.vicVCBASE = vicVCBASE;
+	state.vicVMLI = vicVMLI;
+	state.vicAEC = vicAEC;
+	state.vicIDLE = vicIDLE;
+	state.vicIDLE_DELAY = vicIDLE_DELAY;
+	state.vicLastCData = vicLastCData;
+	state.vicLastCDataPrev = vicLastCDataPrev;
+	state.vicLastCDataPrev2 = vicLastCDataPrev2;
+	state.vicCDataCarry = vicCDataCarry;
+	state.vicLastGData = vicLastGData;
+	state.vicLastGDataPrev = vicLastGDataPrev;
+	state.vicLastGDataPrev2 = vicLastGDataPrev2;
+	state.vic_latchDEN = vic_latchDEN;
+	state.vic_lpx = vic_lpx;
+	state.vic_lpy = vic_lpy;
+	state.vicDRAMRefresh = vicDRAMRefresh;
+	state.LP_TRIGGER = LP_TRIGGER;
+	state.vicLightPen = vicLightPen;
+	state.m_bVicBankChanging = m_bVicBankChanging;
+	state.vicBankChangeByte = vicBankChangeByte;
+	state.de00_byte = de00_byte;
+	state.FrameNumber = FrameNumber;
+	state.bVicRasterMatch = bVicRasterMatch;
+	state.vic_in_display_y = vic_in_display_y;
+	state.vic_badline = vic_badline;
+	state.vicBA_new = vicBA_new;
+	state.vic_top_compare = vic_top_compare;
+	state.vic_bottom_compare = vic_bottom_compare;
+	state.vic_left_compare = vic_left_compare;
+	state.vic_right_compare = vic_right_compare;
+	state.vicMainBorder = vicMainBorder;
+	state.vicVerticalBorder = vicVerticalBorder; 
+	state.vicCharDataOutputDisabled = vicCharDataOutputDisabled; 
+	state.vicMainBorder_old = vicMainBorder_old;
+	state.vic_border_part_38 = vic_border_part_38;
+	state.vic_border_part_40 = vic_border_part_40;
+	state.vic_allow_c_access = vic_allow_c_access;
+	state.m_bVicModeChanging = m_bVicModeChanging;
+	state.vicMemoryBankIndex = vicMemoryBankIndex;
+	state.m_iLastBackedUpFrameNumber = m_iLastBackedUpFrameNumber;
+
+	for (int i = 0; i < _countof(vicSprite); i++)
+	{
+		 vicSprite[i].GetState(state.vicSprite[i]);
+	}
+	memcpy_s(state.vicBackgroundColor, sizeof(state.vicBackgroundColor), vicBackgroundColor, sizeof(vicBackgroundColor));
+	memcpy_s(state.vicSpritePointer, sizeof(state.vicSpritePointer), vicSpritePointer, sizeof(vicSpritePointer));
+	memcpy_s(state.vicSpriteData, sizeof(state.vicSpriteData), vicSpriteData, sizeof(vicSpriteData));	
+	memcpy_s(state.vicSpriteX, sizeof(state.vicSpriteX), vicSpriteX, sizeof(vicSpriteX));
+	memcpy_s(state.vicSpriteY, sizeof(state.vicSpriteY), vicSpriteY, sizeof(vicSpriteY));
+	memcpy_s(state.MC, sizeof(state.MC), MC, sizeof(MC));
+	memcpy_s(state.MCBASE, sizeof(state.MCBASE), MCBASE, sizeof(MCBASE));
+	memcpy_s(state.ScreenPixelBuffer, sizeof(state.ScreenPixelBuffer), ScreenPixelBuffer, sizeof(ScreenPixelBuffer));
+	memcpy_s(state.LinePixelBuffer, sizeof(state.LinePixelBuffer), LinePixelBuffer, sizeof(LinePixelBuffer));
+	memcpy_s(state.pixelMaskBuffer, sizeof(state.pixelMaskBuffer), pixelMaskBuffer, sizeof(pixelMaskBuffer));
+	memcpy_s(state.vic_sprite_collision_line, sizeof(state.vic_sprite_collision_line), vic_sprite_collision_line, sizeof(vic_sprite_collision_line));
+	memcpy_s(state.VideoMatrix, sizeof(state.VideoMatrix), VideoMatrix, sizeof(VideoMatrix));
 }
 
 void VIC6569::SetState(const SsVic6569 &state)
 {
+	cpu_next_op_code = cpu_next_op_code;
+	vicECM = state.vicECM;
+	vicBMM = state.vicBMM;
+	vicDEN = state.vicDEN;
+	vicRSEL = state.vicRSEL;
+	vicYSCROLL = state.vicYSCROLL;
+	vicECM_BMM_MCM = state.vicECM_BMM_MCM;
+	vicECM_BMM_MCM_prev = state.vicECM_BMM_MCM_prev;
+	vicRES = state.vicRES;
+	vicMCM = state.vicMCM;
+	vicCSEL = state.vicCSEL;
+	vicXSCROLL = state.vicXSCROLL;
+	vicXSCROLL_Cycle57 = state.vicXSCROLL_Cycle57;
+	vicMemptrVM = state.vicMemptrVM;
+	vicMemptrCB = state.vicMemptrCB;
+	vicBorderColor = state.vicBorderColor;	
+	vicSaveBackgroundColor0 = state.vicSaveBackgroundColor0;
+	vicRASTER_compare = state.vicRASTER_compare;
+	vic_raster_cycle = state.vic_raster_cycle;
+	vic_raster_line = state.vic_raster_line;
+	vicINTERRUPT_STATUS = state.vicINTERRUPT_STATUS;
+	vicINTERRUPT_ENABLE = state.vicINTERRUPT_ENABLE;
+	vic_check_irq_in_cycle2 = state.vic_check_irq_in_cycle2 != 0;
+	vicSpriteArmedOrActive = state.vicSpriteArmedOrActive;
+	ff_YP = state.ff_YP;
+	vicSpriteDMA = state.vicSpriteDMA;
+	vicSpriteDMAPrev = state.vicSpriteDMAPrev;
+	vicSpriteDisplay = state.vicSpriteDisplay;
+	vicSpriteYMatch = state.vicSpriteYMatch;
+	vicClearingYExpandRegInClock15 = state.vicClearingYExpandRegInClock15;
+	vicSpriteMSBX = state.vicSpriteMSBX;
+	vicSpriteEnable = state.vicSpriteEnable;
+	vicSpriteYExpand = state.vicSpriteYExpand;
+	vicSpriteXExpand = state.vicSpriteXExpand;
+	vicSpriteXExpandPrev = state.vicSpriteXExpandPrev;
+	vicSpriteDataPriority = state.vicSpriteDataPriority;
+	vicSpriteDataPriorityPrev = state.vicSpriteDataPriorityPrev;
+	vicSpriteMultiColor = state.vicSpriteMultiColor;
+	vicSpriteMultiColorPrev = state.vicSpriteMultiColorPrev;
+	vicSpriteSpriteCollision = state.vicSpriteSpriteCollision;
+	vicSpriteDataCollision = state.vicSpriteDataCollision;
+	vicNextSprite_sprite_collision = state.vicNextSprite_sprite_collision;
+	vicNextSprite_data_collision = state.vicNextSprite_data_collision;
+	vicCurrSprite_sprite_collision = state.vicCurrSprite_sprite_collision;
+	vicCurrSprite_data_collision = state.vicCurrSprite_data_collision;
+	vicSpriteSpriteInt = state.vicSpriteSpriteInt;
+	vicSpriteDataInt = state.vicSpriteDataInt;
+	clockSpriteMultiColorChange = state.clockSpriteMultiColorChange;
+	clockSpriteDataPriorityChange = state.clockSpriteDataPriorityChange;
+	clockSpriteXExpandChange = state.clockSpriteXExpandChange;
+	clockReadSpriteDataCollision = state.clockReadSpriteDataCollision;
+	clockReadSpriteSpriteCollision = state.clockReadSpriteSpriteCollision;
+	clockFirstForcedBadlineCData = state.clockFirstForcedBadlineCData;
+	vicVC = state.vicVC;
+	vicRC = state.vicRC;
+	vicVCBASE = state.vicVCBASE;
+	vicVMLI = state.vicVMLI;
+	vicAEC = state.vicAEC;
+	vicIDLE = state.vicIDLE;
+	vicIDLE_DELAY = state.vicIDLE_DELAY;
+	vicLastCData = state.vicLastCData;
+	vicLastCDataPrev = state.vicLastCDataPrev;
+	vicLastCDataPrev2 = state.vicLastCDataPrev2;
+	vicCDataCarry = state.vicCDataCarry;
+	vicLastGData = state.vicLastGData;
+	vicLastGDataPrev = state.vicLastGDataPrev;
+	vicLastGDataPrev2 = state.vicLastGDataPrev2;
+	vic_latchDEN = state.vic_latchDEN;
+	vic_lpx = state.vic_lpx;
+	vic_lpy = state.vic_lpy;
+	vicDRAMRefresh = state.vicDRAMRefresh;
+	LP_TRIGGER = state.LP_TRIGGER;
+	vicLightPen = state.vicLightPen;
+	m_bVicBankChanging = state.m_bVicBankChanging != 0;
+	vicBankChangeByte = state.vicBankChangeByte;
+	de00_byte = state.de00_byte;
+	FrameNumber = state.FrameNumber;
+	bVicRasterMatch = state.bVicRasterMatch != 0;
+	vic_in_display_y = state.vic_in_display_y;
+	vic_badline = state.vic_badline;
+	vicBA_new = state.vicBA_new;
+	vic_top_compare = state.vic_top_compare;
+	vic_bottom_compare = state.vic_bottom_compare;
+	vic_left_compare = state.vic_left_compare;
+	vic_right_compare = state.vic_right_compare;
+	vicMainBorder = state.vicMainBorder;
+	vicVerticalBorder = state.vicVerticalBorder; 
+	vicCharDataOutputDisabled = state.vicCharDataOutputDisabled; 
+	vicMainBorder_old = state.vicMainBorder_old;
+	vic_border_part_38 = state.vic_border_part_38;
+	vic_border_part_40 = state.vic_border_part_40;
+	vic_allow_c_access = state.vic_allow_c_access != 0;
+	m_bVicModeChanging = state.m_bVicModeChanging != 0;
+	vicMemoryBankIndex = state.vicMemoryBankIndex;
+	m_iLastBackedUpFrameNumber = state.m_iLastBackedUpFrameNumber;
+
+	for (int i = 0; i < _countof(vicSprite); i++)
+	{
+		 vicSprite[i].SetState(state.vicSprite[i]);
+	}
+	memcpy_s(vicBackgroundColor, sizeof(vicBackgroundColor), state.vicBackgroundColor, sizeof(state.vicBackgroundColor));
+	memcpy_s(vicSpritePointer, sizeof(vicSpritePointer), state.vicSpritePointer, sizeof(state.vicSpritePointer));
+	memcpy_s(vicSpriteData, sizeof(vicSpriteData), state.vicSpriteData, sizeof(state.vicSpriteData));	
+	memcpy_s(vicSpriteX, sizeof(vicSpriteX), state.vicSpriteX, sizeof(state.vicSpriteX));
+	memcpy_s(vicSpriteY, sizeof(vicSpriteY), state.vicSpriteY, sizeof(state.vicSpriteY));
+	memcpy_s(MC, sizeof(MC), state.MC, sizeof(state.MC));
+	memcpy_s(MCBASE, sizeof(MCBASE), state.MCBASE, sizeof(state.MCBASE));
+	memcpy_s(ScreenPixelBuffer, sizeof(ScreenPixelBuffer), state.ScreenPixelBuffer, sizeof(state.ScreenPixelBuffer));
+	memcpy_s(LinePixelBuffer, sizeof(LinePixelBuffer), state.LinePixelBuffer, sizeof(state.LinePixelBuffer));
+	memcpy_s(pixelMaskBuffer, sizeof(pixelMaskBuffer), state.pixelMaskBuffer, sizeof(state.pixelMaskBuffer));
+	memcpy_s(vic_sprite_collision_line, sizeof(vic_sprite_collision_line), state.vic_sprite_collision_line, sizeof(state.vic_sprite_collision_line));
+	memcpy_s(VideoMatrix, sizeof(VideoMatrix), state.VideoMatrix, sizeof(state.VideoMatrix));
 }

@@ -65,6 +65,10 @@ struct VICSprite
 	int InitDraw();
 	int InitDraw(bit16 xPos, bit16 columnX, bit16 xPixelInit);
 	void DrawSprite(int count);
+
+	void GetState(SsVicSprite &state);
+	void SetState(const SsVicSprite &state);
+
 	friend VIC6569;
 };
 

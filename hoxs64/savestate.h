@@ -117,7 +117,7 @@ struct SsVicSprite
 	bit8 spriteBit;
 };
 
-class SsVic6569
+struct SsVic6569
 {
 	bit8 cpu_next_op_code;
 	// control reg 1
