@@ -1178,7 +1178,7 @@ bit8 gData;
 					bit8 iWritevicVMLI2 = (bit8)(lastBadlineCount & 0xff);
 					bit32 cdata_carry;
 					bit8 gap = iWritevicVMLI2 - iWritevicVMLI1;
-					bit32& char0 = VideoMatrix[(iWritevicVMLI2-1) % gap];
+					bit32& char0 = VideoMatrix[((iWritevicVMLI2-1) % gap) % NUM_SCREEN_COLUMNS];
 					bit32& char1 = VideoMatrix[iWritevicVMLI1];
 					bit32& char2 = VideoMatrix[iWritevicVMLI2];
 					if (((vic_raster_cycle +1) & 3) == 0)

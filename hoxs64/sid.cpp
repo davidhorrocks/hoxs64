@@ -13,6 +13,7 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "savestate.h"
 #include "register.h"
 #include "errormsg.h"
 #include "hconfig.h"
@@ -1094,11 +1095,74 @@ bit32 t;
 	control = data;
 }
 
-double SID64::GetCutOff(WORD sidfreq)
+void SIDVoice::GetState(SsSidVoice &state)
+{
+	state.counter = counter;
+	state.frequency = frequency;
+	state.volume = volume;
+	state.sampleHoldDelay = sampleHoldDelay;
+	state.envmode = envmode;
+	state.wavetype = wavetype;
+	state.sync = sync;
+	state.ring_mod = ring_mod;
+	state.sustain_level = sustain_level;
+	state.zeroTheCounter = zeroTheCounter;
+	state.exponential_counter_period = exponential_counter_period;
+	state.attack_value = attack_value;
+	state.decay_value = decay_value;
+	state.release_value = release_value;
+	state.pulse_width_counter = pulse_width_counter;
+	state.pulse_width_reg = pulse_width_reg;
+	state.sampleHold = sampleHold;
+	state.lastSample = lastSample;
+	state.fVolSample = fVolSample;
+	state.gate = gate;
+	state.test = test;
+	state.sidShiftRegister = sidShiftRegister;
+	state.keep_zero_volume = keep_zero_volume;
+	state.envelope_counter = envelope_counter;
+	state.envelope_compare = envelope_compare;
+	state.exponential_counter = exponential_counter;
+	state.control = control;
+	state.shifterTestCounter = shifterTestCounter;
+}
+
+void SIDVoice::SetState(const SsSidVoice &state)
+{
+	counter = state.counter;
+	frequency = state.frequency;
+	volume = state.volume;
+	sampleHoldDelay = state.sampleHoldDelay;
+	envmode = (eEnvelopeMode) state.envmode;
+	wavetype = (eWaveType) state.wavetype;
+	sync = state.sync;
+	ring_mod = state.ring_mod;
+	sustain_level = state.sustain_level;
+	zeroTheCounter = state.zeroTheCounter;
+	exponential_counter_period = state.exponential_counter_period;
+	attack_value = state.attack_value;
+	decay_value = state.decay_value;
+	release_value = state.release_value;
+	pulse_width_counter = state.pulse_width_counter;
+	pulse_width_reg = state.pulse_width_reg;
+	sampleHold = state.sampleHold;
+	lastSample = state.lastSample;
+	fVolSample = state.fVolSample;
+	gate = state.gate;
+	test = state.test;
+	sidShiftRegister = state.sidShiftRegister;
+	keep_zero_volume = state.keep_zero_volume;
+	envelope_counter = state.envelope_counter;
+	envelope_compare = state.envelope_compare;
+	exponential_counter = state.exponential_counter;
+	control = state.control;
+	shifterTestCounter = state.shifterTestCounter;
+}
+
+double SID64::GetCutOff(bit16 sidfreq)
 {
 	return (double)sidfreq * (5.8) + 30.0;
 }
-
 
 void SID64::SetFilter()
 {
@@ -1215,7 +1279,7 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		SetFilter();
 		break;
 	case 0x16:
-		sidFilterFrequency = (sidFilterFrequency & 7) | (((WORD)data << 3) & 0x7f8);
+		sidFilterFrequency = (sidFilterFrequency & 7) | (((bit16)data << 3) & 0x7f8);
 		SetFilter();
 		break;
 	case 0x17:
@@ -1285,4 +1349,35 @@ ICLK SID64::GetCurrentClock()
 void SID64::SetCurrentClock(ICLK sysclock)
 {
 	CurrentClock = sysclock;
+}
+
+void SID64::GetState(SsSid &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	voice1.GetState(state.voice1);
+	voice2.GetState(state.voice2);
+	voice3.GetState(state.voice3);
+	state.sidVolume = sidVolume;
+	state.sidFilter = sidFilter;
+	state.sidVoice_though_filter = sidVoice_though_filter;
+	state.sidResonance = sidResonance;
+	state.sidFilterFrequency = sidFilterFrequency;
+	state.sidBlock_Voice3 = sidBlock_Voice3;
+	state.sidLastWrite = sidLastWrite;
+	state.sidReadDelay = sidReadDelay;
+}
+
+void SID64::SetState(const SsSid &state)
+{
+	voice1.SetState(state.voice1);
+	voice2.SetState(state.voice2);
+	voice3.SetState(state.voice3);
+	sidVolume = state.sidVolume;
+	sidFilter = state.sidFilter;
+	sidVoice_though_filter = state.sidVoice_though_filter;
+	sidResonance = state.sidResonance;
+	sidFilterFrequency = state.sidFilterFrequency;
+	sidBlock_Voice3 = state.sidBlock_Voice3;
+	sidLastWrite = state.sidLastWrite;
+	sidReadDelay = state.sidReadDelay;
 }

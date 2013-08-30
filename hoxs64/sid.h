@@ -35,51 +35,50 @@ class SID64;
 struct SIDVoice
 {
 	~SIDVoice();
-
-	CConfig *cfg;
-	CAppStatus *appStatus;
-
 	HRESULT Init(CConfig *cfg, CAppStatus *appStatus);
-
-	SID64 *sid;
-	DWORD counter;
-	DWORD frequency;
-	WORD volume;
-	DWORD sampleHoldDelay;
-	eEnvelopeMode envmode;
-	eWaveType wavetype;
-	BYTE sync;
-	BYTE ring_mod;
-	BYTE sustain_level;
-	BYTE zeroTheCounter;
-	BYTE exponential_counter_period;
-	struct SIDVoice *modulator_voice;
-	struct SIDVoice *affected_voice;
-	DWORD attack_value;
-	DWORD decay_value;
-	DWORD release_value;
-	DWORD pulse_width_counter;
-	DWORD pulse_width_reg;
-	unsigned short sampleHold;
-	unsigned short lastSample;
-	double fVolSample;
-	//unsigned short wave;
 	void Envelope();
 	void Modulate();
 	void SyncRecheck();
 	unsigned short WaveRegister();
 	unsigned short CalcWave(bit8 waveType);
-	BYTE gate;
-	BYTE test;
+	void ClockShiftRegister();
+	void Reset();
+	void SetWave(bit8 data);
+	void GetState(SsSidVoice &state);
+	void SetState(const SsSidVoice &state);
+
+	CConfig *cfg;
+	CAppStatus *appStatus;
+	SID64 *sid;
+	bit32 counter;
+	bit32 frequency;
+	bit16 volume;
+	bit32 sampleHoldDelay;
+	eEnvelopeMode envmode;
+	eWaveType wavetype;
+	bit8 sync;
+	bit8 ring_mod;
+	bit8 sustain_level;
+	bit8 zeroTheCounter;
+	bit8 exponential_counter_period;
+	struct SIDVoice *modulator_voice;
+	struct SIDVoice *affected_voice;
+	bit32 attack_value;
+	bit32 decay_value;
+	bit32 release_value;
+	bit32 pulse_width_counter;
+	bit32 pulse_width_reg;
+	unsigned short sampleHold;
+	unsigned short lastSample;
+	double fVolSample;
+	bit8 gate;
+	bit8 test;
 	bit32 sidShiftRegister;
-	BYTE keep_zero_volume;
+	bit8 keep_zero_volume;
 	bit16 envelope_counter;
 	bit16 envelope_compare;
 	bit8 exponential_counter;
 	bit8 control;
-	void ClockShiftRegister();
-	void Reset();
-	void SetWave(bit8 data);
 	bit32s shifterTestCounter;
 };
 
@@ -116,6 +115,8 @@ public:
 	void ClockSidResample(ICLK sysclock);
 	void ClockSidDownSample(ICLK sysclock);
 	void WriteSample(short dxsample);
+	void GetState(SsSid &state);
+	void SetState(const SsSid &state);
 
 	friend struct SIDVoice;
 	short m_last_dxsample;
@@ -138,7 +139,7 @@ private:
 	DWORD soundBufferSize;
 	DWORD bufferLockSize;
 	DWORD bufferLockPoint;
-	BYTE bufferSplit;
+	bit8 bufferSplit;
 	LPWORD pBuffer1;
 	LPWORD pBuffer2;
 	LPWORD pOverflowBuffer;
@@ -155,21 +156,21 @@ private:
 	DWORD m_soundplay_pos;
 	DWORD m_soundwrite_pos;
 
-	WORD sidVolume;
+	bit8 sidVolume;
 	bit8 sidFilter;
 	bit8 sidVoice_though_filter;
 	bit8 sidResonance;
-	WORD sidFilterFrequency;
+	bit16 sidFilterFrequency;
 
 	BYTE sidBlock_Voice3;
 	bit8 sidLastWrite;
-	ICLK sidReadDelay;//Clock
-	long sidSampler;
+	ICLK sidReadDelay;
+	long sidSampler;//Used for filter
 
 	void SetFilter();
-	double GetCutOff(WORD sidfreq);
+	double GetCutOff(bit16 sidfreq);
 	struct SIDVoice voice1, voice2, voice3;
 	void CleanUp();
-
+	
 };
 #endif

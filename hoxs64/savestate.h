@@ -11,11 +11,14 @@ namespace SsLib
 		enum SectionType : __int32
 		{
 			C64Ram = 0,
-			C64Cpu = 1,
-			C64Cia1 = 2,
-			C64Cia2 = 3,
-			C64Vic = 4,
-			C64Sid = 5,
+			C64ColourRam = 1,
+			C64Cpu = 2,
+			C64Cia1 = 3,
+			C64Cia2 = 4,
+			C64Vic = 5,
+			C64Sid = 6,
+			C64KernelROM = 7,
+			C64BasicROM = 8
 		};
 	}
 };
@@ -315,34 +318,87 @@ struct SsCia2
 
 struct SsSidVoice
 {
-	DWORD counter;
-	DWORD frequency;
-	WORD volume;
-	DWORD sampleHoldDelay;
-	BYTE envmode;
-	BYTE wavetype;
-	BYTE sync;
-	BYTE ring_mod;
-	BYTE sustain_level;
-	BYTE zeroTheCounter;
-	BYTE exponential_counter_period;
-	DWORD attack_value;
-	DWORD decay_value;
-	DWORD release_value;
-	DWORD pulse_width_counter;
-	DWORD pulse_width_reg;
+	bit32 counter;
+	bit32 frequency;
+	bit16 volume;
+	bit32 sampleHoldDelay;
+	bit8 envmode;
+	bit8 wavetype;
+	bit8 sync;
+	bit8 ring_mod;
+	bit8 sustain_level;
+	bit8 zeroTheCounter;
+	bit8 exponential_counter_period;
+	bit32 attack_value;
+	bit32 decay_value;
+	bit32 release_value;
+	bit32 pulse_width_counter;
+	bit32 pulse_width_reg;
 	bit16 sampleHold;
 	bit16 lastSample;
 	double fVolSample;
-	BYTE gate;
-	BYTE test;
+	bit8 gate;
+	bit8 test;
 	bit32 sidShiftRegister;
-	BYTE keep_zero_volume;
+	bit8 keep_zero_volume;
 	bit16 envelope_counter;
 	bit16 envelope_compare;
 	bit8 exponential_counter;
 	bit8 control;
 	bit32s shifterTestCounter;
+};
+
+struct SsSid
+{
+	//long filterInterpolationFactor;
+	//long filterDecimationFactor;
+	//long filterKernelLength;
+
+	//Filter filterPreFilterStage2;
+	//Filter filterNoFilterStage2;
+
+	//Filter filterPreFilterResample;
+	//Filter filterNoFilterResample;
+	//Filter filterUpSample2xSample;
+	//Filter svfilter;
+
+	//DWORD soundBufferSize;
+	//DWORD bufferLockSize;
+	//DWORD bufferLockPoint;
+	//BYTE bufferSplit;
+	//LPWORD pBuffer1;
+	//LPWORD pBuffer2;
+	//LPWORD pOverflowBuffer;
+
+	//DWORD bufferLen1;
+	//DWORD bufferLen2;
+	//DWORD bufferSampleLen1;
+	//DWORD bufferSampleLen2;
+	//DWORD overflowBufferSampleLen;
+
+	//DWORD bufferIndex;
+	//DWORD overflowBufferIndex;
+
+	//DWORD m_soundplay_pos;
+	//DWORD m_soundwrite_pos;
+
+	//bit32 sidSampler;//Used for filter
+	
+	//short m_last_dxsample;
+
+	SsSidVoice voice1;
+	SsSidVoice voice2;
+	SsSidVoice voice3;
+
+	bit8 sidVolume;
+	bit8 sidFilter;
+	bit8 sidVoice_though_filter;
+	bit8 sidResonance;
+	bit16 sidFilterFrequency;
+
+	bit8 sidBlock_Voice3;
+	bit8 sidLastWrite;
+	ICLK sidReadDelay;
 };
 
 struct SsDiskInterface
@@ -468,6 +524,7 @@ public:
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;
+	static const int SIZECOLOURAM = 0x400;
 
 	template<class T>
 	static HRESULT SaveSection(IStream *pfs, const T& section, SsLib::SectionType::SectionType sectionType);
@@ -480,7 +537,7 @@ HRESULT hr;
 ULONG bytesWritten;
 SsSectionHeader sh;
 
-	sh.size = sizeof(section);
+	sh.size = sizeof(section) + sizeof(sh);
 	sh.id = sectionType;
 
 	hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);

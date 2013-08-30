@@ -1485,6 +1485,16 @@ SsSectionHeader sh;
 		if (FAILED(hr))
 			break;
 
+		sh.id = SsLib::SectionType::C64ColourRam;
+		sh.size = sizeof(sh) + SaveState::SIZECOLOURAM;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		hr = pfs->Write(this->ram.mColorRAM, SaveState::SIZECOLOURAM, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
 		SsCpuMain sbCpuMain;
 		this->cpu.GetState(sbCpuMain);
 		hr = SaveState::SaveSection(pfs, sbCpuMain, SsLib::SectionType::C64Cpu);
@@ -1509,6 +1519,11 @@ SsSectionHeader sh;
 		if (FAILED(hr))
 			break;
 
+		SsSid sbSid;
+		this->sid.GetState(sbSid);
+		hr = SaveState::SaveSection(pfs, sbSid, SsLib::SectionType::C64Sid);
+		if (FAILED(hr))
+			break;
 	} while (false);
 	if (pfs)
 	{
@@ -1530,8 +1545,9 @@ SsCpuMain sbCpuMain;
 SsCia1 sbCia1;
 SsCia2 sbCia2;
 SsVic6569 sbVic6569;
-
+SsSid sbSid;
 bit8 *pC64Ram = NULL;
+bit8 *pC64ColourRam = NULL;
 bool done = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 
@@ -1570,9 +1586,11 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		bool eof = false;
 		bool bC64Cpu = false;
 		bool bC64Ram = false;
+		bool bC64ColourRam = false;
 		bool bC64Cia1 = false;
 		bool bC64Cia2 = false;
 		bool bC64Vic6569 = false;
+		bool bC64Sid = false;
 		while (!eof && !done)
 		{
 			if ((ULONGLONG)pos_next.QuadPart >= stat.cbSize.QuadPart)
@@ -1613,6 +1631,18 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 				}
 				bC64Ram = true;
 				break;
+			case SsLib::SectionType::C64ColourRam:
+				pC64ColourRam = (bit8 *)malloc(SaveState::SIZECOLOURAM);
+				if (pC64ColourRam)
+				{
+					hr = pfs->Read(pC64ColourRam, SaveState::SIZECOLOURAM, &bytesWritten);
+				}
+				else
+				{
+					hr = E_OUTOFMEMORY;
+				}
+				bC64ColourRam = true;
+				break;
 			case SsLib::SectionType::C64Cia1:
 				hr = pfs->Read(&sbCia1, sizeof(sbCia1), &bytesWritten);
 				if (SUCCEEDED(hr))
@@ -1634,11 +1664,18 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 					bC64Vic6569 = true;
 				}
 				break;
+			case SsLib::SectionType::C64Sid:
+				hr = pfs->Read(&sbSid, sizeof(sbSid), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bC64Sid = true;
+				}
+				break;
 			}
 			if (FAILED(hr))
 				break;
 
-			if (bC64Cpu && bC64Ram && bC64Cia1 && bC64Cia2 && bC64Vic6569)
+			if (bC64Cpu && bC64Ram && bC64ColourRam && bC64Cia1 && bC64Cia2 && bC64Vic6569 && bC64Sid)
 			{
 				done = true;
 				hr = S_OK;
@@ -1657,12 +1694,14 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		cpu.SetState(sbCpuMain);
 		if (ram.mMemory && pC64Ram)
 			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
+		if (ram.mColorRAM && pC64ColourRam)
+			memcpy(ram.mColorRAM, pC64ColourRam, SaveState::SIZECOLOURAM);
 		cia1.SetState(sbCia1);
 		cia2.SetState(sbCia2);
 		vic.SetState(sbVic6569);
+		sid.SetState(sbSid);
 
 		ICLK c = sbCpuMain.common.CurrentClock;
-
 		cia1.SetCurrentClock(c);
 		cia2.SetCurrentClock(c);
 		vic.SetCurrentClock(c);
@@ -1683,6 +1722,11 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 	{
 		free(pC64Ram);
 		pC64Ram = NULL;
+	}
+	if (pC64ColourRam)
+	{
+		free(pC64ColourRam);
+		pC64ColourRam = NULL;
 	}
 	return hr;
 }

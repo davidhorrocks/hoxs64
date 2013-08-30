@@ -272,7 +272,7 @@ private:
 	bit8 foregroundMask_mcm[256];
 	bool vic_allow_c_access;
 	bool m_bVicModeChanging;
-	bit32 VideoMatrix[100];//NUM_SCREEN_COLUMNS
+	bit32 VideoMatrix[NUM_SCREEN_COLUMNS];//100?
 	static bit8 BA_line_info[256][2][64];
 	static bit8 vic_spr_load_x[8];
 	static bit16 vic_spr_data_load_x[8];
