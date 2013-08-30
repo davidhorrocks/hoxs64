@@ -17,8 +17,17 @@ namespace SsLib
 			C64Cia2 = 4,
 			C64Vic = 5,
 			C64Sid = 6,
-			C64KernelROM = 7,
-			C64BasicROM = 8
+			C64KernelRom = 7,
+			C64BasicRom = 8,
+			C64CharRom = 9,
+			C64Tape = 10,
+			DriveRam = 11,
+			DriveVia1 = 12,
+			DriveVia2 = 13,
+			DriveController = 14,
+			DriveDiskImage = 15,
+			DriveRom = 16,
+			Cart = 17,
 		};
 	}
 };
@@ -525,6 +534,9 @@ public:
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;
 	static const int SIZECOLOURAM = 0x400;
+	static const int SIZEC64KERNEL = 0x2000;
+	static const int SIZEC64BASIC = 0x2000;
+	static const int SIZEC64CHARGEN = 0x1000;
 
 	template<class T>
 	static HRESULT SaveSection(IStream *pfs, const T& section, SsLib::SectionType::SectionType sectionType);

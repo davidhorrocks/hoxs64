@@ -1524,6 +1524,36 @@ SsSectionHeader sh;
 		hr = SaveState::SaveSection(pfs, sbSid, SsLib::SectionType::C64Sid);
 		if (FAILED(hr))
 			break;
+
+		sh.id = SsLib::SectionType::C64KernelRom;
+		sh.size = sizeof(sh) + SaveState::SIZEC64KERNEL;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		hr = pfs->Write(this->ram.mKernal, SaveState::SIZEC64KERNEL, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		sh.id = SsLib::SectionType::C64BasicRom;
+		sh.size = sizeof(sh) + SaveState::SIZEC64BASIC;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		hr = pfs->Write(this->ram.mBasic, SaveState::SIZEC64BASIC, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		sh.id = SsLib::SectionType::C64CharRom;
+		sh.size = sizeof(sh) + SaveState::SIZEC64CHARGEN;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		hr = pfs->Write(this->ram.mCharGen, SaveState::SIZEC64CHARGEN, &bytesWritten);
+		if (FAILED(hr))
+			break;
 	} while (false);
 	if (pfs)
 	{
@@ -1548,6 +1578,10 @@ SsVic6569 sbVic6569;
 SsSid sbSid;
 bit8 *pC64Ram = NULL;
 bit8 *pC64ColourRam = NULL;
+bit8 *pC64KernelRom = NULL;
+bit8 *pC64BasicRom = NULL;
+bit8 *pC64CharRom = NULL;
+bool hasC64 = false;
 bool done = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 
@@ -1591,9 +1625,13 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		bool bC64Cia2 = false;
 		bool bC64Vic6569 = false;
 		bool bC64Sid = false;
+		bool bC64KernelRom = false;
+		bool bC64BasicRom = false;
+		bool bC64CharRom = false;
+		
 		while (!eof && !done)
 		{
-			if ((ULONGLONG)pos_next.QuadPart >= stat.cbSize.QuadPart)
+			if ((ULONGLONG)pos_next.QuadPart + sizeof(sh) >= stat.cbSize.QuadPart)
 			{
 				eof = true;
 				break;
@@ -1671,13 +1709,49 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 					bC64Sid = true;
 				}
 				break;
+			case SsLib::SectionType::C64KernelRom:
+				pC64KernelRom = (bit8 *)malloc(SaveState::SIZEC64KERNEL);
+				if (pC64KernelRom)
+				{
+					hr = pfs->Read(pC64KernelRom, SaveState::SIZEC64KERNEL, &bytesWritten);
+				}
+				else
+				{
+					hr = E_OUTOFMEMORY;
+				}
+				bC64KernelRom = true;
+				break;
+			case SsLib::SectionType::C64BasicRom:
+				pC64BasicRom = (bit8 *)malloc(SaveState::SIZEC64BASIC);
+				if (pC64BasicRom)
+				{
+					hr = pfs->Read(pC64BasicRom, SaveState::SIZEC64BASIC, &bytesWritten);
+				}
+				else
+				{
+					hr = E_OUTOFMEMORY;
+				}
+				bC64BasicRom = true;
+				break;
+			case SsLib::SectionType::C64CharRom:
+				pC64CharRom = (bit8 *)malloc(SaveState::SIZEC64CHARGEN);
+				if (pC64CharRom)
+				{
+					hr = pfs->Read(pC64CharRom, SaveState::SIZEC64CHARGEN, &bytesWritten);
+				}
+				else
+				{
+					hr = E_OUTOFMEMORY;
+				}
+				bC64CharRom = true;
+				break;
 			}
 			if (FAILED(hr))
 				break;
 
 			if (bC64Cpu && bC64Ram && bC64ColourRam && bC64Cia1 && bC64Cia2 && bC64Vic6569 && bC64Sid)
 			{
-				done = true;
+				hasC64 = true;
 				hr = S_OK;
 			}
 		}
@@ -1689,7 +1763,7 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		pfs->Release();
 		pfs = NULL;
 	}
-	if (done)
+	if (hasC64)
 	{
 		cpu.SetState(sbCpuMain);
 		if (ram.mMemory && pC64Ram)
@@ -1700,6 +1774,19 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		cia2.SetState(sbCia2);
 		vic.SetState(sbVic6569);
 		sid.SetState(sbSid);
+
+		if (pC64KernelRom && ram.mKernal)
+		{
+			memcpy(ram.mKernal, pC64KernelRom, SaveState::SIZEC64KERNEL);
+		}
+		if (pC64BasicRom && ram.mBasic)
+		{
+			memcpy(ram.mBasic, pC64BasicRom, SaveState::SIZEC64BASIC);
+		}
+		if (pC64CharRom && ram.mCharGen)
+		{
+			memcpy(ram.mCharGen, pC64CharRom, SaveState::SIZEC64CHARGEN);
+		}
 
 		ICLK c = sbCpuMain.common.CurrentClock;
 		cia1.SetCurrentClock(c);
@@ -1727,6 +1814,21 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 	{
 		free(pC64ColourRam);
 		pC64ColourRam = NULL;
+	}
+	if (pC64KernelRom)
+	{
+		free(pC64KernelRom);
+		pC64KernelRom = NULL;
+	}
+	if (pC64BasicRom)
+	{
+		free(pC64BasicRom);
+		pC64BasicRom = NULL;
+	}
+	if (pC64CharRom)
+	{
+		free(pC64CharRom);
+		pC64CharRom = NULL;
 	}
 	return hr;
 }
