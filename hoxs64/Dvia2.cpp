@@ -228,4 +228,15 @@ void VIA2::ClearSystemInterrupt()
 
 //DATA=7 CLOCK=6 ATN=5
 
+void VIA2::GetState(SsVia2 &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	VIA::GetState(state.via);
+	state.oldDiskControl = oldDiskControl;
+}
 
+void VIA2::SetState(const SsVia2 &state)
+{
+	VIA::SetState(state.via);
+	oldDiskControl = state.oldDiskControl;
+}

@@ -23,6 +23,9 @@ public:
 	void InitReset(ICLK sysclock);
 	void Reset(ICLK sysclock);
 
+	void GetState(SsVia1 &state);
+	void SetState(const SsVia1 &state);
+
 	CPUDisk *cpu;
 	DiskInterface *disk;
 	CConfig *cfg;

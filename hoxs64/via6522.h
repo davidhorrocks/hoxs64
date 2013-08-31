@@ -91,6 +91,9 @@ public:
 
 	virtual void ExecuteDevices(ICLK sysclock)=0;
 
+	void GetState(SsViaCommon &state);
+	void SetState(const SsViaCommon &state);
+
 	bit8 PortAOutput();
 	bit8 PortBOutput();
 	void SetCA1Input(bit8, int phase);

@@ -1477,20 +1477,20 @@ SsSectionHeader sh;
 
 		sh.id = SsLib::SectionType::C64Ram;
 		sh.size = sizeof(sh) + SaveState::SIZE64K;
+		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
 			break;
-
 		hr = pfs->Write(this->ram.mMemory, SaveState::SIZE64K, &bytesWritten);
 		if (FAILED(hr))
 			break;
 
 		sh.id = SsLib::SectionType::C64ColourRam;
 		sh.size = sizeof(sh) + SaveState::SIZECOLOURAM;
+		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
 			break;
-
 		hr = pfs->Write(this->ram.mColorRAM, SaveState::SIZECOLOURAM, &bytesWritten);
 		if (FAILED(hr))
 			break;
@@ -1527,33 +1527,76 @@ SsSectionHeader sh;
 
 		sh.id = SsLib::SectionType::C64KernelRom;
 		sh.size = sizeof(sh) + SaveState::SIZEC64KERNEL;
+		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
 			break;
-
 		hr = pfs->Write(this->ram.mKernal, SaveState::SIZEC64KERNEL, &bytesWritten);
 		if (FAILED(hr))
 			break;
 
 		sh.id = SsLib::SectionType::C64BasicRom;
 		sh.size = sizeof(sh) + SaveState::SIZEC64BASIC;
+		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
 			break;
-
 		hr = pfs->Write(this->ram.mBasic, SaveState::SIZEC64BASIC, &bytesWritten);
 		if (FAILED(hr))
 			break;
 
 		sh.id = SsLib::SectionType::C64CharRom;
 		sh.size = sizeof(sh) + SaveState::SIZEC64CHARGEN;
+		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
 			break;
-
 		hr = pfs->Write(this->ram.mCharGen, SaveState::SIZEC64CHARGEN, &bytesWritten);
 		if (FAILED(hr))
 			break;
+
+		sh.id = SsLib::SectionType::DriveRam;
+		sh.size = sizeof(sh) + SaveState::SIZEDRIVERAM;
+		sh.version = 0;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+		hr = pfs->Write(this->diskdrive.m_pD1541_ram, SaveState::SIZEDRIVERAM, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		sh.id = SsLib::SectionType::DriveRom;
+		sh.size = sizeof(sh) + SaveState::SIZEDRIVEROM;
+		sh.version = 0;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+		hr = pfs->Write(this->diskdrive.m_pD1541_rom, SaveState::SIZEDRIVEROM, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		SsDiskInterface sbDiskInterface;
+		this->diskdrive.GetState(sbDiskInterface);
+		hr = SaveState::SaveSection(pfs, sbDiskInterface, SsLib::SectionType::DriveController);
+		if (FAILED(hr))
+			break;
+
+		SsVia1 sbVia1;
+		this->diskdrive.via1.GetState(sbVia1);
+		hr = SaveState::SaveSection(pfs, sbVia1, SsLib::SectionType::DriveVia1);
+		if (FAILED(hr))
+			break;
+
+		SsVia2 sbVia2;
+		this->diskdrive.via2.GetState(sbVia2);
+		hr = SaveState::SaveSection(pfs, sbVia2, SsLib::SectionType::DriveVia2);
+		if (FAILED(hr))
+			break;
+
+		if (this->diskdrive.m_diskLoaded)
+		{
+		}
+
 	} while (false);
 	if (pfs)
 	{
@@ -1576,13 +1619,39 @@ SsCia1 sbCia1;
 SsCia2 sbCia2;
 SsVic6569 sbVic6569;
 SsSid sbSid;
+SsDiskInterface sbDriveController;
+SsVia1 sbDriveVia1;
+SsVia2 sbDriveVia2;
 bit8 *pC64Ram = NULL;
 bit8 *pC64ColourRam = NULL;
 bit8 *pC64KernelRom = NULL;
 bit8 *pC64BasicRom = NULL;
 bit8 *pC64CharRom = NULL;
+bit8 *pDriveRam = NULL;
+bit8 *pDriveRom = NULL;
 bool hasC64 = false;
 bool done = false;
+bool eof = false;
+bool bC64Cpu = false;
+bool bC64Ram = false;
+bool bC64ColourRam = false;
+bool bC64Cia1 = false;
+bool bC64Cia2 = false;
+bool bC64Vic6569 = false;
+bool bC64Sid = false;
+bool bC64KernelRom = false;
+bool bC64BasicRom = false;
+bool bC64CharRom = false;
+bool bTapePlayer = false;
+bool bTapeData = false;
+bool bDriveController = false;
+bool bDriveVia1 = false;
+bool bDriveVia2 = false;
+bool bDriveData = false;
+bool bDriveRam = false;
+bool bDriveRom = false;
+bool bDriveDiskData = false;
+
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 
 	diskdrive.WaitThreadReady();
@@ -1617,17 +1686,6 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		if (FAILED(hr))
 			break;
 		pos_next.QuadPart = pos_out.QuadPart;
-		bool eof = false;
-		bool bC64Cpu = false;
-		bool bC64Ram = false;
-		bool bC64ColourRam = false;
-		bool bC64Cia1 = false;
-		bool bC64Cia2 = false;
-		bool bC64Vic6569 = false;
-		bool bC64Sid = false;
-		bool bC64KernelRom = false;
-		bool bC64BasicRom = false;
-		bool bC64CharRom = false;
 		
 		while (!eof && !done)
 		{
@@ -1745,6 +1803,51 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 				}
 				bC64CharRom = true;
 				break;
+			case SsLib::SectionType::DriveRam:
+				pDriveRam = (bit8 *)malloc(SaveState::SIZEDRIVERAM);
+				if (pDriveRam)
+				{
+					hr = pfs->Read(pDriveRam, SaveState::SIZEDRIVERAM, &bytesWritten);
+				}
+				else
+				{
+					hr = E_OUTOFMEMORY;
+				}
+				bDriveRam = true;
+				break;
+			case SsLib::SectionType::DriveRom:
+				pDriveRom = (bit8 *)malloc(SaveState::SIZEDRIVEROM);
+				if (pDriveRom)
+				{
+					hr = pfs->Read(pDriveRom, SaveState::SIZEDRIVEROM, &bytesWritten);
+				}
+				else
+				{
+					hr = E_OUTOFMEMORY;
+				}
+				bDriveRom = true;
+				break;
+			case SsLib::SectionType::DriveController:
+				hr = pfs->Read(&sbDriveController, sizeof(sbDriveController), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bDriveController = true;
+				}
+				break;
+			case SsLib::SectionType::DriveVia1:
+				hr = pfs->Read(&sbDriveVia1, sizeof(sbDriveVia1), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bDriveVia1 = true;
+				}
+				break;
+			case SsLib::SectionType::DriveVia2:
+				hr = pfs->Read(&sbDriveVia2, sizeof(sbDriveVia2), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bDriveVia2 = true;
+				}
+				break;
 			}
 			if (FAILED(hr))
 				break;
@@ -1775,6 +1878,19 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 		vic.SetState(sbVic6569);
 		sid.SetState(sbSid);
 
+		if (bDriveController)
+		{
+			diskdrive.SetState(sbDriveController);
+		}
+		if (bDriveVia1)
+		{
+			diskdrive.via1.SetState(sbDriveVia1);
+		}
+		if (bDriveVia2)
+		{
+			diskdrive.via2.SetState(sbDriveVia2);
+		}
+
 		if (pC64KernelRom && ram.mKernal)
 		{
 			memcpy(ram.mKernal, pC64KernelRom, SaveState::SIZEC64KERNEL);
@@ -1788,6 +1904,14 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 			memcpy(ram.mCharGen, pC64CharRom, SaveState::SIZEC64CHARGEN);
 		}
 
+		if (pDriveRam && diskdrive.m_pD1541_ram)
+		{
+			memcpy(diskdrive.m_pD1541_ram, pDriveRam, SaveState::SIZEDRIVERAM);
+		}
+		if (pDriveRom && diskdrive.m_pD1541_rom)
+		{
+			memcpy(diskdrive.m_pD1541_rom, pDriveRom, SaveState::SIZEDRIVEROM);
+		}
 		ICLK c = sbCpuMain.common.CurrentClock;
 		cia1.SetCurrentClock(c);
 		cia2.SetCurrentClock(c);
@@ -1829,6 +1953,16 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 	{
 		free(pC64CharRom);
 		pC64CharRom = NULL;
+	}
+	if (pDriveRam)
+	{
+		free(pDriveRam);
+		pDriveRam = NULL;
+	}
+	if (pDriveRom)
+	{
+		free(pDriveRom);
+		pDriveRom = NULL;
 	}
 	return hr;
 }

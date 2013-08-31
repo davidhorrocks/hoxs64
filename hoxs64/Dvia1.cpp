@@ -137,3 +137,15 @@ void VIA1::ClearSystemInterrupt()
 }
 
 //DATA=7 CLOCK=6 ATN=5
+
+void VIA1::GetState(SsVia1 &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	VIA::GetState(state.via);
+}
+
+void VIA1::SetState(const SsVia1 &state)
+{
+	VIA::SetState(state.via);
+}
+

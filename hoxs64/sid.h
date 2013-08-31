@@ -153,9 +153,6 @@ private:
 	DWORD bufferIndex;
 	DWORD overflowBufferIndex;
 
-	DWORD m_soundplay_pos;
-	DWORD m_soundwrite_pos;
-
 	bit8 sidVolume;
 	bit8 sidFilter;
 	bit8 sidVoice_though_filter;

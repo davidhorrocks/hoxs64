@@ -57,8 +57,8 @@ SID64::SID64()
 	voice1.sid = this;
 	voice2.sid = this;
 	voice3.sid = this;
-	m_soundplay_pos=0;
-	m_soundwrite_pos=0;
+	//m_soundplay_pos=0;
+	//m_soundwrite_pos=0;
 	bufferLockSize=0;
 	bufferSplit=0;
 	pBuffer1=NULL;
@@ -107,23 +107,25 @@ HRESULT SID64::LockSoundBuffer()
 {
 HRESULT hRet;
 DWORD gap;
+DWORD soundplay_pos;
+DWORD soundwrite_pos;
 
 	int refLastAudioVBLCatchUpCounter = this->appStatus->m_lastAudioVBLCatchUpCounter;
 
-	hRet = dx->pSecondarySoundBuffer->GetCurrentPosition(&m_soundplay_pos, &m_soundwrite_pos);
+	hRet = dx->pSecondarySoundBuffer->GetCurrentPosition(&soundplay_pos, &soundwrite_pos);
 	if (FAILED(hRet))
 		return hRet;
 
-	if (m_soundwrite_pos > bufferLockPoint) 
-		gap = soundBufferSize - m_soundwrite_pos + bufferLockPoint;
+	if (soundwrite_pos > bufferLockPoint) 
+		gap = soundBufferSize - soundwrite_pos + bufferLockPoint;
 	else
-		gap = bufferLockPoint - m_soundwrite_pos;
+		gap = bufferLockPoint - soundwrite_pos;
 
 	if (gap < (DSGAP1 * bufferLockSize/8))
 	{
 		/*audio is getting ahead of us*/
 		bufferLockPoint =  (bufferLockPoint + bufferLockSize) % soundBufferSize;
-		//bufferLockPoint =  (m_soundplay_pos + 4 * bufferLockSize) % soundBufferSize;
+		//bufferLockPoint =  (soundplay_pos + 4 * bufferLockSize) % soundBufferSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
 	}

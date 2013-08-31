@@ -21,13 +21,15 @@ namespace SsLib
 			C64BasicRom = 8,
 			C64CharRom = 9,
 			C64Tape = 10,
-			DriveRam = 11,
-			DriveVia1 = 12,
-			DriveVia2 = 13,
-			DriveController = 14,
-			DriveDiskImage = 15,
-			DriveRom = 16,
-			Cart = 17,
+			C64TapeData = 11,
+			DriveRam = 12,
+			DriveVia1 = 13,
+			DriveVia2 = 14,
+			DriveController = 15,
+			DriveDiskImage = 16,
+			DriveRom = 17,
+			DriveTrackData = 18,
+			Cart = 19,
 		};
 	}
 };
@@ -44,6 +46,16 @@ struct SsSectionHeader
 {
 	bit32 size;
 	bit32 id;
+	bit32 version;
+};
+
+struct SsEmulation
+{
+	bit8 Cia1Model;
+	bit8 Cia2Model;
+	bit8 SidEmuationEnabled;
+	bit8 DriveEmuationEnabled;
+	bit8 DriveDiskInserted;
 };
 
 struct SsCpuCommon
@@ -285,10 +297,10 @@ struct SsCia
 	bit16u tb_counter;
 	bit16u ta_latch;
 	bit16u tb_latch;
-	ICLKS tod_clock_reload;
-	ICLKS tod_clock_rate;
-	ICLKS tod_tick;
-	ICLKS tod_clock_compare_band;
+	bit32s tod_clock_reload;
+	bit32s tod_clock_rate;
+	bit32s tod_tick;
+	bit32s tod_clock_compare_band;
 	bit8 tod_alarm;
 	bit8 tod_read_freeze;	
 	cia_tod tod_read_latch;
@@ -359,42 +371,6 @@ struct SsSidVoice
 
 struct SsSid
 {
-	//long filterInterpolationFactor;
-	//long filterDecimationFactor;
-	//long filterKernelLength;
-
-	//Filter filterPreFilterStage2;
-	//Filter filterNoFilterStage2;
-
-	//Filter filterPreFilterResample;
-	//Filter filterNoFilterResample;
-	//Filter filterUpSample2xSample;
-	//Filter svfilter;
-
-	//DWORD soundBufferSize;
-	//DWORD bufferLockSize;
-	//DWORD bufferLockPoint;
-	//BYTE bufferSplit;
-	//LPWORD pBuffer1;
-	//LPWORD pBuffer2;
-	//LPWORD pOverflowBuffer;
-
-	//DWORD bufferLen1;
-	//DWORD bufferLen2;
-	//DWORD bufferSampleLen1;
-	//DWORD bufferSampleLen2;
-	//DWORD overflowBufferSampleLen;
-
-	//DWORD bufferIndex;
-	//DWORD overflowBufferIndex;
-
-	//DWORD m_soundplay_pos;
-	//DWORD m_soundwrite_pos;
-
-	//bit32 sidSampler;//Used for filter
-	
-	//short m_last_dxsample;
-
 	SsSidVoice voice1;
 	SsSidVoice voice2;
 	SsSidVoice voice3;
@@ -407,7 +383,7 @@ struct SsSid
 
 	bit8 sidBlock_Voice3;
 	bit8 sidLastWrite;
-	ICLK sidReadDelay;
+	bit32 sidReadDelay;
 };
 
 struct SsDiskInterface
@@ -419,33 +395,33 @@ struct SsDiskInterface
 	bit8 m_d64_forcesync;
 	bit8 m_d64_soe_enable;
 	bit8 m_d64_write_enable;
-	bit8 mi_d64_diskchange;
+	bit8 m_d64_diskchange_counter;
 	bit8 m_d64TrackCount;
 	bit8 m_c64_serialbus_diskview;
 	bit8 m_c64_serialbus_diskview_next;
-	ICLKS m_diskChangeCounter;
-	ICLK CurrentPALClock;
-	ICLK m_changing_c64_serialbus_diskview_diskclock;
-	ICLK m_driveWriteChangeClock;
-	ICLK m_motorOffClock;
-	ICLK m_headStepClock;
-	ICLK m_pendingclocks;
-	ICLK m_DiskThreadCommandedPALClock;
-	ICLK m_DiskThreadCurrentPALClock;
+	bit32s m_diskChangeCounter;
+	bit32 CurrentPALClock;
+	bit32 m_changing_c64_serialbus_diskview_diskclock;
+	bit32 m_driveWriteChangeClock;
+	bit32 m_motorOffClock;
+	bit32 m_headStepClock;
+	bit32 m_pendingclocks;
+	bit32 m_DiskThreadCommandedPALClock;
+	bit32 m_DiskThreadCurrentPALClock;
 
 	bit8 m_d64_diskwritebyte;
 
-	bool m_bDiskMotorOn;
-	bool m_bDriveLedOn;
-	bool m_bDriveWriteWasOn;
+	bit8 m_bDiskMotorOn;
+	bit8 m_bDriveLedOn;
+	bit8 m_bDriveWriteWasOn;
 	bit8 m_diskLoaded;
 	bit32 m_currentHeadIndex;
 	bit8 m_currentTrackNumber;
-	char m_lastHeadStepDir;
+	bit8s m_lastHeadStepDir;
 	bit8 m_lastHeadStepPosition;
 	bit8 m_shifterWriter_UD3; //74LS165 UD3
 	bit16 m_shifterReader_UD2; //74LS164 UD2 Two flops make the shifter effectively 10 bits. The lower 8 bits are read by VIA2 port A.
-	ICLK m_busDataUpdateClock;
+	bit32 m_busDataUpdateClock;
 	bit16 m_busByteReadyPreviousData;
 	bit8 m_busByteReadySignal;
 	bit8 m_frameCounter_UC3; //74LS191 UC3
@@ -455,8 +431,8 @@ struct SsDiskInterface
 	bit8 m_clockDivider2_UF4; //74LS193 UF4
 
 	bit8 m_writeStream;
-	unsigned int m_totalclocks_UE7;
-	unsigned int m_lastPulseTime;
+	bit32 m_totalclocks_UE7;
+	bit32 m_lastPulseTime;
 
 	//bit8 *m_rawTrackData[G64_MAX_TRACKS];
 
@@ -465,11 +441,11 @@ struct SsDiskInterface
 
 struct SsViaCommon
 {
-	int ID;
-	ICLK DevicesClock;
+	bit32s ID;
+	bit32 DevicesClock;
 	
-	bool bLatchA;
-	bool bLatchB;
+	bit8 bLatchA;
+	bit8 bLatchB;
 
 	bit8 ora;
 	bit8 ira;
@@ -537,6 +513,8 @@ public:
 	static const int SIZEC64KERNEL = 0x2000;
 	static const int SIZEC64BASIC = 0x2000;
 	static const int SIZEC64CHARGEN = 0x1000;
+	static const int SIZEDRIVERAM = 0x0800;
+	static const int SIZEDRIVEROM = 0x4000;
 
 	template<class T>
 	static HRESULT SaveSection(IStream *pfs, const T& section, SsLib::SectionType::SectionType sectionType);
@@ -551,6 +529,7 @@ SsSectionHeader sh;
 
 	sh.size = sizeof(section) + sizeof(sh);
 	sh.id = sectionType;
+	sh.version = 0;
 
 	hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 	if (SUCCEEDED(hr))

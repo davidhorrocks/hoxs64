@@ -85,7 +85,7 @@ int i;
 	m_d64_sync = 0;
 	m_d64_forcesync = 0;
 	m_d64_diskwritebyte = 0;
-	mi_d64_diskchange = 0;
+	m_d64_diskchange_counter = 0;
 	m_diskChangeCounter = 0;
 
 	m_c64_serialbus_diskview = 0;
@@ -151,7 +151,7 @@ void DiskInterface::InitReset(ICLK sysclock)
 	m_d64_sync = 0;
 	m_d64_forcesync = 0;
 	m_d64_diskwritebyte = 0;
-	mi_d64_diskchange = 0;
+	m_d64_diskchange_counter = 0;
 	m_diskChangeCounter = 0;
 	m_changing_c64_serialbus_diskview_diskclock = sysclock;
 
@@ -534,7 +534,7 @@ void DiskInterface::D64_DiskProtect(bool bOn)
 
 bit8 DiskInterface::GetProtectSensorState()
 {
-	if (mi_d64_diskchange == 0)
+	if (m_d64_diskchange_counter == 0)
 	{
 		if (m_diskLoaded)
 			return m_d64_protectOff;
@@ -543,9 +543,9 @@ bit8 DiskInterface::GetProtectSensorState()
 	}
 	else 
 	{
-		if (mi_d64_diskchange>DISKCHANGE2)
+		if (m_d64_diskchange_counter>DISKCHANGE2)
 			return 0;
-		else if (mi_d64_diskchange>DISKCHANGE1)
+		else if (m_d64_diskchange_counter>DISKCHANGE1)
 			return 1;
 		else
 			return 0;
@@ -869,7 +869,7 @@ bit8 bMotorRun = m_bDiskMotorOn;
 			m_headStepClock--;
 		}
 
-		if (bMotorRun && mi_d64_diskchange==0)
+		if (bMotorRun && m_d64_diskchange_counter==0)
 		{
 			if (m_d64_write_enable==0)
 			{
@@ -1034,8 +1034,8 @@ ICLKS cycles;
 		if (m_diskChangeCounter < 0)
 		{
 			m_diskChangeCounter += DISKCHANGECLOCKRELOAD;
-			if (mi_d64_diskchange)
-				mi_d64_diskchange--;
+			if (m_d64_diskchange_counter)
+				m_d64_diskchange_counter--;
 		}
 		ICLK clock_change =  m_changing_c64_serialbus_diskview_diskclock;
 		ICLKS cycles_to_serialbuschange = (ICLKS)(clock_change - cpu.CurrentClock);
@@ -1135,9 +1135,9 @@ void DiskInterface::SetDiskLoaded()
 {
 	WaitThreadReady();
 	if (m_diskLoaded)
-		mi_d64_diskchange=DISKCHANGE3;
+		m_d64_diskchange_counter=DISKCHANGE3;
 	else
-		mi_d64_diskchange=DISKCHANGE1;
+		m_d64_diskchange_counter=DISKCHANGE1;
 	m_diskLoaded = 1;
 }
 
@@ -1147,7 +1147,7 @@ void DiskInterface::RemoveDisk()
 	if (m_diskLoaded)
 	{
 		m_diskLoaded = 0;
-		mi_d64_diskchange = DISKCHANGE1;
+		m_d64_diskchange_counter = DISKCHANGE1;
 	}
 }
 
@@ -1168,4 +1168,100 @@ bit8 DiskInterface::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 bit8 DiskInterface::GetHalfTrackIndex()
 {
 	return m_currentTrackNumber;
+}
+
+void DiskInterface::GetState(SsDiskInterface &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	state.m_d64_serialbus = m_d64_serialbus;
+	state.m_d64_dipswitch = m_d64_dipswitch;
+	state.m_d64_protectOff = m_d64_protectOff;
+	state.m_d64_sync = m_d64_sync;
+	state.m_d64_forcesync = m_d64_forcesync;
+	state.m_d64_soe_enable = m_d64_soe_enable;
+	state.m_d64_write_enable = m_d64_write_enable;
+	state.m_d64_diskchange_counter = m_d64_diskchange_counter;
+	state.m_d64TrackCount = m_d64TrackCount;
+	state.m_c64_serialbus_diskview = m_c64_serialbus_diskview;
+	state.m_c64_serialbus_diskview_next = m_c64_serialbus_diskview_next;
+	state.m_diskChangeCounter = m_diskChangeCounter;
+	state.CurrentPALClock = CurrentPALClock;
+	state.m_changing_c64_serialbus_diskview_diskclock = m_changing_c64_serialbus_diskview_diskclock;
+	state.m_driveWriteChangeClock = m_driveWriteChangeClock;
+	state.m_motorOffClock = m_motorOffClock;
+	state.m_headStepClock = m_headStepClock;
+	state.m_pendingclocks = m_pendingclocks;
+	state.m_DiskThreadCommandedPALClock = m_DiskThreadCommandedPALClock;
+	state.m_DiskThreadCurrentPALClock = m_DiskThreadCurrentPALClock;
+	state.m_d64_diskwritebyte = m_d64_diskwritebyte;
+	state.m_bDiskMotorOn = m_bDiskMotorOn;
+	state.m_bDriveLedOn = m_bDriveLedOn;
+	state.m_bDriveWriteWasOn = m_bDriveWriteWasOn;
+	state.m_diskLoaded = m_diskLoaded;
+	state.m_currentHeadIndex = m_currentHeadIndex % DISK_RAW_TRACK_SIZE;
+	state.m_currentTrackNumber = m_currentTrackNumber % G64_MAX_TRACKS;
+	state.m_lastHeadStepDir = m_lastHeadStepDir;
+	state.m_lastHeadStepPosition = m_lastHeadStepPosition;
+	state.m_shifterWriter_UD3 = m_shifterWriter_UD3;
+	state.m_shifterReader_UD2 = m_shifterReader_UD2;
+	state.m_busDataUpdateClock = m_busDataUpdateClock;
+	state.m_busByteReadyPreviousData = m_busByteReadyPreviousData;
+	state.m_busByteReadySignal = m_busByteReadySignal;
+	state.m_frameCounter_UC3 = m_frameCounter_UC3;
+	state.m_debugFrameCounter = m_debugFrameCounter;
+	state.m_clockDivider1_UE7_Reload = m_clockDivider1_UE7_Reload;
+	state.m_clockDivider1_UE7 = m_clockDivider1_UE7;
+	state.m_clockDivider2_UF4 = m_clockDivider2_UF4;
+	state.m_writeStream = m_writeStream;
+	state.m_totalclocks_UE7 = m_totalclocks_UE7;
+	state.m_lastPulseTime = m_lastPulseTime;
+	state.m_diskd64clk_xf = m_diskd64clk_xf;
+	//*m_rawTrackData[G64_MAX_TRACKS];
+}
+
+void DiskInterface::SetState(const SsDiskInterface &state)
+{
+	m_d64_serialbus = state.m_d64_serialbus;
+	m_d64_dipswitch = state.m_d64_dipswitch;
+	m_d64_protectOff = state.m_d64_protectOff;
+	m_d64_sync = state.m_d64_sync;
+	m_d64_forcesync = state.m_d64_forcesync;
+	m_d64_soe_enable = state.m_d64_soe_enable;
+	m_d64_write_enable = state.m_d64_write_enable;
+	m_d64_diskchange_counter = state.m_d64_diskchange_counter;
+	m_d64TrackCount = state.m_d64TrackCount;
+	m_c64_serialbus_diskview = state.m_c64_serialbus_diskview;
+	m_c64_serialbus_diskview_next = state.m_c64_serialbus_diskview_next;
+	m_diskChangeCounter = state.m_diskChangeCounter;
+	CurrentPALClock = state.CurrentPALClock;
+	m_changing_c64_serialbus_diskview_diskclock = state.m_changing_c64_serialbus_diskview_diskclock;
+	m_driveWriteChangeClock = state.m_driveWriteChangeClock;
+	m_motorOffClock = state.m_motorOffClock;
+	m_headStepClock = state.m_headStepClock;
+	m_pendingclocks = state.m_pendingclocks;
+	m_DiskThreadCommandedPALClock = state.m_DiskThreadCommandedPALClock;
+	m_DiskThreadCurrentPALClock = state.m_DiskThreadCurrentPALClock;
+	m_d64_diskwritebyte = state.m_d64_diskwritebyte;
+	m_bDiskMotorOn = state.m_bDiskMotorOn != 0;
+	m_bDriveLedOn = state.m_bDriveLedOn != 0;
+	m_bDriveWriteWasOn = state.m_bDriveWriteWasOn != 0;
+	m_diskLoaded = state.m_diskLoaded;
+	m_currentHeadIndex = state.m_currentHeadIndex;
+	m_currentTrackNumber = state.m_currentTrackNumber;
+	m_lastHeadStepDir = state.m_lastHeadStepDir;
+	m_lastHeadStepPosition = state.m_lastHeadStepPosition;
+	m_shifterWriter_UD3 = state.m_shifterWriter_UD3;
+	m_shifterReader_UD2 = state.m_shifterReader_UD2;
+	m_busDataUpdateClock = state.m_busDataUpdateClock;
+	m_busByteReadyPreviousData = state.m_busByteReadyPreviousData;
+	m_busByteReadySignal = state.m_busByteReadySignal;
+	m_frameCounter_UC3 = state.m_frameCounter_UC3;
+	m_debugFrameCounter = state.m_debugFrameCounter;
+	m_clockDivider1_UE7_Reload = state.m_clockDivider1_UE7_Reload;
+	m_clockDivider1_UE7 = state.m_clockDivider1_UE7;
+	m_clockDivider2_UF4 = state.m_clockDivider2_UF4;
+	m_writeStream = state.m_writeStream;
+	m_totalclocks_UE7 = state.m_totalclocks_UE7;
+	m_lastPulseTime = state.m_lastPulseTime;
+	m_diskd64clk_xf = state.m_diskd64clk_xf;
 }

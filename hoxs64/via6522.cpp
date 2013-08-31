@@ -1118,5 +1118,102 @@ ICLK VIA::GetCurrentClock()
 
 void VIA::SetCurrentClock(ICLK sysclock)
 {
+ICLK v = sysclock - CurrentClock;
 	CurrentClock = sysclock;
+	DevicesClock += v;
+}
+
+void VIA::GetState(SsViaCommon &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	state.ID = ID;
+	state.DevicesClock = DevicesClock;	
+	state.bLatchA = bLatchA;
+	state.bLatchB = bLatchB;
+	state.ora = ora;
+	state.ira = ira;
+	state.orb = orb;
+	state.irb = irb;
+	state.ddra = ddra;
+	state.ddrb = ddrb;
+	state.timer1_counter = timer1_counter;
+	state.timer2_counter = timer2_counter;
+	state.timer1_latch = timer1_latch;
+	state.timer2_latch = timer2_latch;
+	state.acr = acr;
+	state.pcr = pcr;
+	state.ca1_in = ca1_in;
+	state.ca1_in_prev = ca1_in_prev;
+	state.ca2_in = ca2_in;
+	state.ca2_in_prev = ca2_in_prev;
+	state.cb1_in = cb1_in;
+	state.cb1_in_prev = cb1_in_prev;
+	state.cb2_in = cb2_in;
+	state.cb2_in_prev = cb2_in_prev;
+	state.ca2_out = ca2_out;
+	state.cb2_out = cb2_out;
+	state.shift = shift;
+	state.ifr = ifr;
+	state.ier = ier;
+	state.serial_active = serial_active;
+	state.serial_mode = serial_mode;
+	state.delay = delay;
+	state.feed = feed;
+	state.old_delay = old_delay;
+	state.old_feed = old_feed;
+	state.modulo = modulo;
+	state.Interrupt = Interrupt;
+	state.bPB7TimerMode = bPB7TimerMode;
+	state.bPB7Toggle = bPB7Toggle;
+	state.bPB7TimerOut = bPB7TimerOut;
+	state.no_change_count = no_change_count;
+	state.dec_2 = dec_2;
+	state.idle = idle;
+}
+
+void VIA::SetState(const SsViaCommon &state)
+{
+	ID = state.ID;
+	DevicesClock = state.DevicesClock;	
+	bLatchA = state.bLatchA != 0;
+	bLatchB = state.bLatchB != 0;
+	ora = state.ora;
+	ira = state.ira;
+	orb = state.orb;
+	irb = state.irb;
+	ddra = state.ddra;
+	ddrb = state.ddrb;
+	timer1_counter = state.timer1_counter;
+	timer2_counter = state.timer2_counter;
+	timer1_latch = state.timer1_latch;
+	timer2_latch = state.timer2_latch;
+	acr = state.acr;
+	pcr = state.pcr;
+	ca1_in = state.ca1_in;
+	ca1_in_prev = state.ca1_in_prev;
+	ca2_in = state.ca2_in;
+	ca2_in_prev = state.ca2_in_prev;
+	cb1_in = state.cb1_in;
+	cb1_in_prev = state.cb1_in_prev;
+	cb2_in = state.cb2_in;
+	cb2_in_prev = state.cb2_in_prev;
+	ca2_out = state.ca2_out;
+	cb2_out = state.cb2_out;
+	shift = state.shift;
+	ifr = state.ifr;
+	ier = state.ier;
+	serial_active = state.serial_active;
+	serial_mode = state.serial_mode;
+	delay = state.delay;
+	feed = state.feed;
+	old_delay = state.old_delay;
+	old_feed = state.old_feed;
+	modulo = state.modulo;
+	Interrupt = state.Interrupt;
+	bPB7TimerMode = state.bPB7TimerMode;
+	bPB7Toggle = state.bPB7Toggle;
+	bPB7TimerOut = state.bPB7TimerOut;
+	no_change_count = state.no_change_count;
+	dec_2 = state.dec_2;
+	idle = state.idle;
 }

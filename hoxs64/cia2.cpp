@@ -188,5 +188,4 @@ void CIA2::SetState(const SsCia2 &state)
 	CIA::SetState(state.cia);
 	c64_serialbus = state.c64_serialbus;
 	m_commandedVicBankIndex = state.m_commandedVicBankIndex;
-
 }

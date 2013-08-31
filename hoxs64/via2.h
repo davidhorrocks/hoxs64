@@ -21,6 +21,9 @@ public:
 	void InitReset(ICLK sysclock);
 	virtual void Reset(ICLK sysclock);
 
+	void GetState(SsVia2 &state);
+	void SetState(const SsVia2 &state);
+
 protected:
 	virtual void OnTransitionCA1Low();
 

@@ -41,6 +41,9 @@ public:
 	virtual ICLK GetCurrentClock();
 	virtual void SetCurrentClock(ICLK sysclock);
 
+	void GetState(SsDiskInterface &state);
+	void SetState(const SsDiskInterface &state);
+
 	//IMonitorDisk
 	virtual bit8 GetHalfTrackIndex();
 
@@ -79,7 +82,7 @@ public:
 	bit8 m_d64_forcesync;
 	bit8 m_d64_soe_enable;
 	bit8 m_d64_write_enable;
-	bit8 mi_d64_diskchange;
+	bit8 m_d64_diskchange_counter;
 	bit8 m_d64TrackCount;
 	volatile bit8 m_c64_serialbus_diskview;
 	volatile bit8 m_c64_serialbus_diskview_next;
@@ -101,7 +104,7 @@ public:
 	bit8 m_diskLoaded;
 	bit32 m_currentHeadIndex;
 	bit8 m_currentTrackNumber;
-	char m_lastHeadStepDir;
+	bit8s m_lastHeadStepDir;
 	bit8 m_lastHeadStepPosition;
 	bit8 m_shifterWriter_UD3; //74LS165 UD3
 	bit16 m_shifterReader_UD2; //74LS164 UD2 Two flops make the shifter effectively 10 bits. The lower 8 bits are read by VIA2 port A.
