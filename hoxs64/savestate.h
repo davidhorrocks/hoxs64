@@ -47,6 +47,16 @@ struct SsSectionHeader
 	bit32 size;
 	bit32 id;
 	bit32 version;
+	//bit32 crc;
+};
+
+struct SsTrackHeader
+{
+	bit32 size;
+	bit32 number;
+	bit32 version;
+	bit32 pulse_count;
+	//bit32 crc;
 };
 
 struct SsEmulation

@@ -227,7 +227,7 @@ void HuffCompression::InitSetFile()
 	bufferPos=0;
 }
 
-HRESULT HuffCompression::Compress(bit32 *src, bit32 srcSize, bit32 *dstSize)
+HRESULT HuffCompression::Compress(bit32 *src, bit32 srcDoubleWordCount, bit32 *dstSize)
 {
 bit32 i;
 CHuffList list;
@@ -256,7 +256,7 @@ HRESULT hr;
 
 	for (streamNumber=1 ; streamNumber>=0 ; streamNumber--)
 	{
-		if (srcSize==0 || src==NULL)
+		if (srcDoubleWordCount==0 || src==NULL)
 			return E_FAIL;
 
 
@@ -264,7 +264,7 @@ HRESULT hr;
 
 		//get symbol weightings
 		streamRequired = false;
-		for (i=0 ; i < srcSize ; i++)
+		for (i=0 ; i < srcDoubleWordCount ; i++)
 		{
 			if (streamNumber==0)
 				v16 = (bit16)(src[i]);
@@ -371,7 +371,7 @@ HRESULT hr;
 		HuffEndWrite();
 		if (writeError)
 			return E_FAIL;
-		for (i=0; i < srcSize; i++)
+		for (i=0; i < srcDoubleWordCount; i++)
 		{
 			if (streamNumber==0)
 				s = (bit16)(src[i]);

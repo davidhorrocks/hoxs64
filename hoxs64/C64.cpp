@@ -12,6 +12,10 @@
 #include "boost2005.h"
 #include "CDPI.h"
 #include "filestream.h"
+#include "carray.h"
+#include "mlist.h"
+#include "bits.h"
+#include "Huff.h"
 #include "C64.h"
 #include "savestate.h"
 
@@ -1450,11 +1454,70 @@ HRESULT hr;
 	return S_OK;	
 }
 
+HRESULT C64::SaveTrackState(bit32 *pTrackBuffer, bit8 *pTrack, int track_size, int *p_pulse_count)
+{
+int i;
+int delay = 0;
+int pulseCount = 0;
+
+	if (p_pulse_count)
+		*p_pulse_count = 0;
+
+	for (i=0; i<DISK_RAW_TRACK_SIZE; i++)
+	{
+		bit8 k = pTrack[i];
+		if (k > 0 && k <= 16)
+		{
+			k = (k - 1) & 0xf;
+			//The first delay value represents the gap from the start of the track to the first pulse.
+			delay += k;
+			
+			pTrackBuffer[pulseCount] = delay;
+			pulseCount++;
+		
+			delay = (16 - k);
+		}
+		else
+			delay += 16;
+	}
+
+	if (pulseCount > 0)
+	{
+		pTrackBuffer[pulseCount] = delay;
+		//The last delay value represents the between the last pulse and the end of the track.
+	}
+
+	if (p_pulse_count)
+		*p_pulse_count = pulseCount;
+
+	return S_OK;
+}
+
+HRESULT C64::LoadTrackState(const bit32 *pTrackBuffer, bit8 *pTrack, int pulse_count)
+{
+const int MAXTIME = DISK_RAW_TRACK_SIZE * 16;
+	if (pulse_count < 0)
+		return S_OK;
+	int i;
+	bit32 delay = 0;
+	ZeroMemory(pTrack, DISK_RAW_TRACK_SIZE);
+	for (i=0; i < pulse_count; i++)
+	{
+		delay += pTrackBuffer[i];
+		if (delay > MAXTIME)
+			break;
+		int q = delay / 16;
+		pTrack[q] = (delay % 16) + 1;
+	}
+	return S_OK
+}
+
 HRESULT C64::SaveC64StateToFile(TCHAR *filename)
 {
 HRESULT hr;
 ULONG bytesWritten;
 SsSectionHeader sh;
+bit32 *pTrackBuffer = NULL;
 
 	SynchroniseDevicesWithVIC();
 
@@ -1595,6 +1658,91 @@ SsSectionHeader sh;
 
 		if (this->diskdrive.m_diskLoaded)
 		{
+			HuffCompression hw;
+			hr = hw.Init();
+			if (FAILED(hr))
+				break;
+			pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32));
+			LARGE_INTEGER spos_zero;
+			LARGE_INTEGER spos_next;
+			ULARGE_INTEGER pos_current_section_header;
+			ULARGE_INTEGER pos_next_section_header;
+			ULARGE_INTEGER pos_current_track_header;
+			ULARGE_INTEGER pos_next_track_header;
+			ULARGE_INTEGER pos_dummy;
+			spos_zero.QuadPart = 0;
+			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_section_header);
+			if (FAILED(hr))
+				break;
+			sh.id = SsLib::SectionType::DriveDiskImage;
+			sh.size = sizeof(sh) + 0;
+			sh.version = 0;
+			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			if (FAILED(hr))
+				break;
+			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_track_header);
+			if (FAILED(hr))
+				break;
+			pos_next_section_header = pos_current_track_header;
+
+			for(int i=0; i<G64_MAX_TRACKS; i++)
+			{
+				SsTrackHeader th;
+				th.number = i;
+				th.size = sizeof(th) + 0;
+				th.version = 0;
+				th.pulse_count = 0;
+				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
+				if (FAILED(hr))
+					break;
+				int pulse_count = 0;
+				bit32 compressed_size = 0;
+				bit8 *pTrack = diskdrive.m_rawTrackData[i];
+				SaveTrackState(pTrackBuffer, pTrack, DISK_RAW_TRACK_SIZE, &pulse_count);
+				hr = hw.SetFile(pfs);
+				if (FAILED(hr))
+					break;
+				if (pulse_count > 0)
+				{
+					hr = hw.Compress(pTrackBuffer, pulse_count + 1, &compressed_size);
+					if (FAILED(hr))
+						break;
+				}
+				hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next_track_header);
+				if (FAILED(hr))
+					break;
+
+				spos_next.QuadPart = pos_current_track_header.QuadPart;
+				hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+				if (FAILED(hr))
+					break;
+				th.size = sizeof(th) + (bit32)(pos_next_track_header.QuadPart - pos_current_track_header.QuadPart);
+				th.pulse_count = pulse_count;
+				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
+				if (FAILED(hr))
+					break;
+				spos_next.QuadPart = pos_next_track_header.QuadPart;
+				hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+				if (FAILED(hr))
+					break;
+
+				pos_next_section_header = pos_next_track_header;
+			}
+			if (FAILED(hr))
+				break;
+
+			spos_next.QuadPart = pos_current_section_header.QuadPart;
+			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+			if (FAILED(hr))
+				break;
+			sh.size = sizeof(sh) + (bit32)(pos_current_section_header.QuadPart - pos_next_section_header.QuadPart);
+			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			if (FAILED(hr))
+				break;
+			spos_next.QuadPart = pos_next_section_header.QuadPart;
+			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+			if (FAILED(hr))
+				break;
 		}
 
 	} while (false);
@@ -1602,6 +1750,11 @@ SsSectionHeader sh;
 	{
 		pfs->Release();
 		pfs = NULL;
+	}
+	if (pTrackBuffer)
+	{
+		GlobalFree(pTrackBuffer);
+		pTrackBuffer = NULL;
 	}
 	return hr;
 }
@@ -1632,6 +1785,8 @@ bit8 *pDriveRom = NULL;
 bool hasC64 = false;
 bool done = false;
 bool eof = false;
+HuffDecompression hw;
+bit32 *pTrackBuffer = NULL;
 bool bC64Cpu = false;
 bool bC64Ram = false;
 bool bC64ColourRam = false;
@@ -1651,7 +1806,6 @@ bool bDriveData = false;
 bool bDriveRam = false;
 bool bDriveRom = false;
 bool bDriveDiskData = false;
-
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 
 	diskdrive.WaitThreadReady();
@@ -1687,6 +1841,7 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 			break;
 		pos_next.QuadPart = pos_out.QuadPart;
 		
+		SsTrackHeader trackHeader;
 		while (!eof && !done)
 		{
 			if ((ULONGLONG)pos_next.QuadPart + sizeof(sh) >= stat.cbSize.QuadPart)
@@ -1848,6 +2003,24 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 					bDriveVia2 = true;
 				}
 				break;
+			case SsLib::SectionType::DriveDiskImage:
+				if (!pTrackBuffer)
+					pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32));
+				hr = pfs->Read(&trackHeader, sizeof(trackHeader), &bytesWritten);
+				if (FAILED(hr))
+					break;
+				hr = hw.SetFile(pfs);
+				if (FAILED(hr))
+					break;
+				if (trackHeader.pulse_count > DISK_RAW_TRACK_SIZE)
+				{
+					hr = E_FAIL;
+					break;
+				}
+				hr = hw.Decompress(trackHeader.pulse_count, &pTrackBuffer);
+				if (FAILED(hr))
+					break;
+				break;
 			}
 			if (FAILED(hr))
 				break;
@@ -1928,6 +2101,11 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 	{
 		if (SUCCEEDED(hr))
 			hr = E_FAIL;
+	}
+	if (pTrackBuffer)
+	{
+		GlobalFree(pTrackBuffer);
+		pTrackBuffer = NULL;
 	}
 	if (pC64Ram)
 	{

@@ -63,7 +63,7 @@ public:
 	~HuffCompression();
 
 	HRESULT Init();
-	HRESULT Compress(bit32 *src, bit32 srcSize, bit32 *dstSize);
+	HRESULT Compress(bit32 *src, bit32 srcDoubleWordCount, bit32 *dstSize);
 	HRESULT SetFile(HANDLE hfile, bool bOwnFileHandle);
 	HRESULT SetFile(IStream *pStream);
 private:
