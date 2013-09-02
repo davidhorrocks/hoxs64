@@ -114,6 +114,12 @@ struct SsCpuMain
 	bit8 cpu_io_data;
 	bit8 cpu_io_ddr;
 	bit8 cpu_io_output;
+	bit8 cpu_io_readoutput;
+	bit8 LORAM;
+	bit8 HIRAM;
+	bit8 CHAREN;
+	bit8 CASSETTE_WRITE;
+	bit8 CASSETTE_MOTOR;
 	bit8 CASSETTE_SENSE;
 };
 

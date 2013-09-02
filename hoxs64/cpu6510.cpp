@@ -755,6 +755,12 @@ void CPU6510::GetState(SsCpuMain &state)
 	state.cpu_io_data = cpu_io_data;
 	state.cpu_io_ddr = cpu_io_ddr;
 	state.cpu_io_output = cpu_io_output;
+	state.cpu_io_readoutput = cpu_io_readoutput;
+	state.LORAM = LORAM;
+	state.HIRAM = HIRAM;
+	state.CHAREN = CHAREN;
+	state.CASSETTE_WRITE = CASSETTE_WRITE;
+	state.CASSETTE_MOTOR = CASSETTE_MOTOR;
 	state.CASSETTE_SENSE = CASSETTE_SENSE;
 	state.m_fade7clock = m_fade7clock;
 	state.m_fade6clock = m_fade6clock;
@@ -772,6 +778,12 @@ void CPU6510::SetState(const SsCpuMain &state)
 	cpu_io_data = state.cpu_io_data;
 	cpu_io_ddr = state.cpu_io_ddr;
 	cpu_io_output = state.cpu_io_output;
+	cpu_io_readoutput = state.cpu_io_readoutput;
+	LORAM = state.LORAM;
+	HIRAM = state.HIRAM;
+	CHAREN = state.CHAREN;
+	CASSETTE_WRITE = state.CASSETTE_WRITE;
+	CASSETTE_MOTOR = state.CASSETTE_MOTOR;
 	CASSETTE_SENSE = state.CASSETTE_SENSE;
 	m_fade7clock = state.m_fade7clock;
 	m_fade6clock = state.m_fade6clock;
