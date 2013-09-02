@@ -1506,11 +1506,12 @@ const int MAXTIME = DISK_RAW_TRACK_SIZE * 16;
 	for (i=0; i < gap_count - 1; i++)
 	{
 		delay += pTrackBuffer[i];
-		if (delay > MAXTIME)
+		if (delay >= MAXTIME)
 			break;
 		int q = delay / 16;
 		pTrack[q] = (delay % 16) + 1;
 	}
+	assert(delay + pTrackBuffer[i] == MAXTIME);
 	return S_OK;
 }
 
@@ -1798,6 +1799,7 @@ bool eof = false;
 HuffDecompression hw;
 bit32 *pTrackBuffer = NULL;
 bit8 *pTrack = NULL;
+int i;
 bool bC64Cpu = false;
 bool bC64Ram = false;
 bool bC64ColourRam = false;
@@ -1818,9 +1820,17 @@ bool bDriveRam = false;
 bool bDriveRom = false;
 bool bDriveDiskData = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
+LARGE_INTEGER spos_zero;
+LARGE_INTEGER spos_next;
+ULARGE_INTEGER pos_current_section_header;
+ULARGE_INTEGER pos_next_section_header;
+ULARGE_INTEGER pos_current_track_header;
+ULARGE_INTEGER pos_next_track_header;
+ULARGE_INTEGER pos_dummy;
 
 	diskdrive.WaitThreadReady();
 
+	spos_zero.QuadPart = 0;
 	IStream *pfs = NULL;
 	do
 	{
@@ -2024,28 +2034,42 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 						break;
 					}
 				}
-				hr = pfs->Read(&trackHeader, sizeof(trackHeader), &bytesWritten);
-				if (FAILED(hr))
-					break;
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
 					break;
-				if (trackHeader.gap_count > DISK_RAW_TRACK_SIZE)
-				{
-					hr = E_FAIL;
+				hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_track_header);
+				if (FAILED(hr))
 					break;
-				}
-				if (trackHeader.gap_count > 0 && trackHeader.number >=0 && trackHeader.number < G64_MAX_TRACKS)
+				for (i=0; i<G64_MAX_TRACKS;i++)
 				{
-					pTrack = diskdrive.m_rawTrackData[trackHeader.number];
-					if (pTrack)
+					hr = pfs->Read(&trackHeader, sizeof(trackHeader), &bytesWritten);
+					if (FAILED(hr))
+						break;
+					if (trackHeader.gap_count > DISK_RAW_TRACK_SIZE)
 					{
-						hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
-						if (FAILED(hr))
-							break;
-						this->LoadTrackState(pTrackBuffer, pTrack, trackHeader.gap_count);
+						hr = E_FAIL;
+						break;
 					}
+					pos_next_track_header.QuadPart = pos_current_track_header.QuadPart + trackHeader.size;
+					if (trackHeader.gap_count > 0 && trackHeader.number >=0 && trackHeader.number < G64_MAX_TRACKS)
+					{
+						pTrack = diskdrive.m_rawTrackData[trackHeader.number];
+						if (pTrack)
+						{
+							hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
+							if (FAILED(hr))
+								break;
+							this->LoadTrackState(pTrackBuffer, pTrack, trackHeader.gap_count);
+						}
+					}
+					spos_next.QuadPart = pos_next_track_header.QuadPart;
+					hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_current_track_header);
+					if (FAILED(hr))
+						break;
+					pos_current_track_header = pos_next_track_header;
 				}
+				if (FAILED(hr))
+					break;
 				break;
 			}
 			if (FAILED(hr))
