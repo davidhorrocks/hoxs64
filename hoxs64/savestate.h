@@ -153,6 +153,7 @@ struct SsVicSprite
 
 struct SsVic6569
 {
+	bit32 CurrentClock;
 	bit8 cpu_next_op_code;
 	// control reg 1
 	bit8 vicECM;
@@ -454,6 +455,7 @@ struct SsDiskInterface
 struct SsViaCommon
 {
 	bit32s ID;
+	bit32 CurrentClock;
 	bit32 DevicesClock;
 	
 	bit8 bLatchA;

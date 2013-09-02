@@ -1127,6 +1127,7 @@ void VIA::GetState(SsViaCommon &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.ID = ID;
+	state.CurrentClock = CurrentClock;	
 	state.DevicesClock = DevicesClock;	
 	state.bLatchA = bLatchA;
 	state.bLatchB = bLatchB;
@@ -1174,6 +1175,7 @@ void VIA::GetState(SsViaCommon &state)
 void VIA::SetState(const SsViaCommon &state)
 {
 	ID = state.ID;
+	CurrentClock = state.CurrentClock;	
 	DevicesClock = state.DevicesClock;	
 	bLatchA = state.bLatchA != 0;
 	bLatchB = state.bLatchB != 0;

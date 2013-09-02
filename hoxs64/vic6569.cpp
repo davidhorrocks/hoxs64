@@ -4773,7 +4773,7 @@ int i = -1;
 void VIC6569::GetState(SsVic6569 &state)
 {
 	ZeroMemory(&state, sizeof(state));
-
+	state.CurrentClock = CurrentClock;
 	state.cpu_next_op_code = cpu_next_op_code;
 	state.vicECM = vicECM;
 	state.vicBMM = vicBMM;
@@ -4890,7 +4890,8 @@ void VIC6569::GetState(SsVic6569 &state)
 
 void VIC6569::SetState(const SsVic6569 &state)
 {
-	cpu_next_op_code = cpu_next_op_code;
+	CurrentClock = state.CurrentClock;
+	cpu_next_op_code = state.cpu_next_op_code;
 	vicECM = state.vicECM;
 	vicBMM = state.vicBMM;
 	vicDEN = state.vicDEN;
