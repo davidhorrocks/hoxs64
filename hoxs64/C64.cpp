@@ -1641,6 +1641,12 @@ bit32 *pTrackBuffer = NULL;
 		if (FAILED(hr))
 			break;
 
+		SsCpuDisk sbCpuDisk;
+		this->diskdrive.cpu.GetState(sbCpuDisk);
+		hr = SaveState::SaveSection(pfs, sbCpuDisk, SsLib::SectionType::DriveCpu);
+		if (FAILED(hr))
+			break;
+
 		SsDiskInterface sbDiskInterface;
 		this->diskdrive.GetState(sbDiskInterface);
 		hr = SaveState::SaveSection(pfs, sbDiskInterface, SsLib::SectionType::DriveController);
@@ -1786,6 +1792,7 @@ SsSid sbSid;
 SsDiskInterface sbDriveController;
 SsVia1 sbDriveVia1;
 SsVia2 sbDriveVia2;
+SsCpuDisk sbCpuDisk;
 bit8 *pC64Ram = NULL;
 bit8 *pC64ColourRam = NULL;
 bit8 *pC64KernelRom = NULL;
@@ -1812,6 +1819,7 @@ bool bC64BasicRom = false;
 bool bC64CharRom = false;
 bool bTapePlayer = false;
 bool bTapeData = false;
+bool bDriveCpu = false;
 bool bDriveController = false;
 bool bDriveVia1 = false;
 bool bDriveVia2 = false;
@@ -1822,11 +1830,11 @@ bool bDriveDiskData = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 LARGE_INTEGER spos_zero;
 LARGE_INTEGER spos_next;
-ULARGE_INTEGER pos_current_section_header;
-ULARGE_INTEGER pos_next_section_header;
+//ULARGE_INTEGER pos_current_section_header;
+//ULARGE_INTEGER pos_next_section_header;
 ULARGE_INTEGER pos_current_track_header;
 ULARGE_INTEGER pos_next_track_header;
-ULARGE_INTEGER pos_dummy;
+//ULARGE_INTEGER pos_dummy;
 
 	diskdrive.WaitThreadReady();
 
@@ -2003,6 +2011,13 @@ ULARGE_INTEGER pos_dummy;
 				}
 				bDriveRom = true;
 				break;
+			case SsLib::SectionType::DriveCpu:
+				hr = pfs->Read(&sbCpuDisk, sizeof(sbCpuDisk), &bytesWritten);
+				if (SUCCEEDED(hr))
+				{
+					bDriveCpu = true;
+				}
+				break;
 			case SsLib::SectionType::DriveController:
 				hr = pfs->Read(&sbDriveController, sizeof(sbDriveController), &bytesWritten);
 				if (SUCCEEDED(hr))
@@ -2045,21 +2060,25 @@ ULARGE_INTEGER pos_dummy;
 					hr = pfs->Read(&trackHeader, sizeof(trackHeader), &bytesWritten);
 					if (FAILED(hr))
 						break;
-					if (trackHeader.gap_count > DISK_RAW_TRACK_SIZE)
+					if (trackHeader.gap_count > DISK_RAW_TRACK_SIZE || (trackHeader.number >= G64_MAX_TRACKS))
 					{
 						hr = E_FAIL;
 						break;
 					}
 					pos_next_track_header.QuadPart = pos_current_track_header.QuadPart + trackHeader.size;
-					if (trackHeader.gap_count > 0 && trackHeader.number >=0 && trackHeader.number < G64_MAX_TRACKS)
+					pTrack = diskdrive.m_rawTrackData[trackHeader.number];
+					if (pTrack)
 					{
-						pTrack = diskdrive.m_rawTrackData[trackHeader.number];
-						if (pTrack)
+						if (trackHeader.gap_count > 0)
 						{
 							hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
 							if (FAILED(hr))
 								break;
 							this->LoadTrackState(pTrackBuffer, pTrack, trackHeader.gap_count);
+						}
+						else
+						{
+							ZeroMemory(pTrack, DISK_RAW_TRACK_SIZE);
 						}
 					}
 					spos_next.QuadPart = pos_next_track_header.QuadPart;
@@ -2101,6 +2120,10 @@ ULARGE_INTEGER pos_dummy;
 		vic.SetState(sbVic6569);
 		sid.SetState(sbSid);
 
+		if (bDriveCpu)
+		{
+			diskdrive.cpu.SetState(sbCpuDisk);
+		}
 		if (bDriveController)
 		{
 			diskdrive.SetState(sbDriveController);
@@ -2142,7 +2165,7 @@ ULARGE_INTEGER pos_dummy;
 		//sid.SetCurrentClock(c);
 		//cart.SetCurrentClock(c);
 		//diskdrive.SetCurrentClock(c);
-		
+		cpu.cpu_port();
 		cpu.ConfigureMemoryMap();
 
 		hr = S_OK;

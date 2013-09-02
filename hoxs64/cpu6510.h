@@ -62,10 +62,9 @@ public:
 	virtual int GetCurrentCpuMmuMemoryMap();
 	virtual MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
 	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
-
 	void AddClockDelay();
 	virtual void PreventClockOverflow();
-
+	void cpu_port();
 	void GetState(SsCpuMain &state);
 	void SetState(const SsCpuMain &state);
 private:
@@ -105,7 +104,6 @@ private:
 	virtual void check_interrupts1();
 	virtual void check_interrupts0();
 	virtual void CheckForCartFreeze();
-	void cpu_port();
 	void write_cpu_io_data(bit8 data);
 	void write_cpu_io_ddr(bit8 data, ICLK sysclock);
 };

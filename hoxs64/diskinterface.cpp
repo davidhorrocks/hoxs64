@@ -1173,6 +1173,7 @@ bit8 DiskInterface::GetHalfTrackIndex()
 void DiskInterface::GetState(SsDiskInterface &state)
 {
 	ZeroMemory(&state, sizeof(state));
+	state.CurrentClock = CurrentClock;
 	state.m_d64_serialbus = m_d64_serialbus;
 	state.m_d64_dipswitch = m_d64_dipswitch;
 	state.m_d64_protectOff = m_d64_protectOff;
@@ -1221,6 +1222,7 @@ void DiskInterface::GetState(SsDiskInterface &state)
 
 void DiskInterface::SetState(const SsDiskInterface &state)
 {
+	CurrentClock = state.CurrentClock;
 	m_d64_serialbus = state.m_d64_serialbus;
 	m_d64_dipswitch = state.m_d64_dipswitch;
 	m_d64_protectOff = state.m_d64_protectOff;

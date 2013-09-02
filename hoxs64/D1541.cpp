@@ -266,3 +266,18 @@ void CPUDisk::SetCurrentClock(ICLK sysclock)
 ICLK v = sysclock - CurrentClock;
 	CPU6502::SetCurrentClock(sysclock);
 }
+
+void CPUDisk::GetState(SsCpuDisk &state)
+{
+	ZeroMemory(&state, sizeof(state));
+	CPU6502::GetState(state.common);
+	state.IRQ_VIA1 = IRQ_VIA1;
+	state.IRQ_VIA2 = IRQ_VIA2;
+}
+
+void CPUDisk::SetState(const SsCpuDisk &state)
+{
+	CPU6502::SetState(state.common);
+	IRQ_VIA1 = state.IRQ_VIA1;
+	IRQ_VIA2 = state.IRQ_VIA2;
+}

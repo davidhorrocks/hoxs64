@@ -23,13 +23,14 @@ namespace SsLib
 			C64Tape = 10,
 			C64TapeData = 11,
 			DriveRam = 12,
-			DriveVia1 = 13,
-			DriveVia2 = 14,
-			DriveController = 15,
-			DriveDiskImage = 16,
-			DriveRom = 17,
-			DriveTrackData = 18,
-			Cart = 19,
+			DriveCpu = 13,
+			DriveVia1 = 14,
+			DriveVia2 = 15,
+			DriveController = 16,
+			DriveDiskImage = 17,
+			DriveRom = 18,
+			DriveTrackData = 19,
+			Cart = 20,
 		};
 	}
 };
@@ -126,6 +127,8 @@ struct SsCpuMain
 struct SsCpuDisk
 {
 	SsCpuCommon common;
+	bit8 IRQ_VIA1;
+	bit8 IRQ_VIA2;
 };
 
 struct SsVicSprite
@@ -410,6 +413,7 @@ struct SsSid
 
 struct SsDiskInterface
 {
+	bit32 CurrentClock;
 	bit8 m_d64_serialbus;
 	bit8 m_d64_dipswitch;
 	bit8 m_d64_protectOff;

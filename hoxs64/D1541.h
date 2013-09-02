@@ -44,6 +44,9 @@ public:
 	virtual ICLK GetCurrentClock();
 	virtual void SetCurrentClock(ICLK sysclock);
 
+	void GetState(SsCpuDisk &state);
+	void SetState(const SsCpuDisk &state);
+
 	//
 	virtual bit8 ReadByte(bit16 address);
 	virtual void WriteByte(bit16 address, bit8 data);
