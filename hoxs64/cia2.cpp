@@ -183,7 +183,7 @@ void CIA2::GetState(SsCia2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	CIA::GetState(state.cia);
-
+	
 	state.c64_serialbus = c64_serialbus;
 	state.m_commandedVicBankIndex = m_commandedVicBankIndex;
 }

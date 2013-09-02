@@ -1312,6 +1312,8 @@ void CIA::GetState(SsCia &state)
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
 	state.DevicesClock = DevicesClock;
+	state.ClockNextWakeUpClock = ClockNextWakeUpClock;
+	state.ClockNextTODWakeUpClock = ClockNextTODWakeUpClock;
 	state.delay = delay;
 	state.feed = feed;
 	state.old_delay = old_delay;
@@ -1368,6 +1370,8 @@ void CIA::SetState(const SsCia &state)
 {
 	CurrentClock = state.CurrentClock;
 	DevicesClock = state.DevicesClock;
+	ClockNextWakeUpClock = state.ClockNextWakeUpClock;
+	ClockNextTODWakeUpClock = state.ClockNextTODWakeUpClock;
 	delay = state.delay;
 	feed = state.feed;
 	old_delay = state.old_delay;

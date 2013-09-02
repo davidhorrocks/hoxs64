@@ -1008,9 +1008,11 @@ void CIA1::GetState(SsCia1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	CIA::GetState(state.cia);
+	state.nextKeyboardScanClock = nextKeyboardScanClock;
 }
 
 void CIA1::SetState(const SsCia1 &state)
 {
 	CIA::SetState(state.cia);
+	nextKeyboardScanClock = state.nextKeyboardScanClock;
 }

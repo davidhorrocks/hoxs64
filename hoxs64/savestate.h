@@ -287,6 +287,8 @@ struct SsCia
 {
 	bit32 CurrentClock;
 	bit32 DevicesClock;
+	bit32 ClockNextWakeUpClock;
+	bit32 ClockNextTODWakeUpClock;
 	bit32 delay;
 	bit32 feed;
 	bit32 old_delay,old_feed;
@@ -340,6 +342,7 @@ struct SsCia
 struct SsCia1
 {
 	SsCia cia;
+	bit32 nextKeyboardScanClock;
 };
 
 struct SsCia2
