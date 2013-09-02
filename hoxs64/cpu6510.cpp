@@ -197,24 +197,13 @@ bit8 *t;
 	}
 }
 
-#define USECPU6510WRITEOPTIMISATION (0)
-
 void CPU6510::WriteByte(bit16 address, bit8 data)
 {
 bit8 *t;
 
-#if USECPU6510WRITEOPTIMISATION == 1 
-	if ((ICLKS)(pVic->nextWakeUpClock - CurrentClock) <=0 || ((address >> 14) == pVic->vicMemoryBankIndex))
-	{
-		m_bIsWriteCycle = true;
-		vic->ExecuteCycle(CurrentClock);
-		m_bIsWriteCycle = false;
-	}
-#else
-		m_bIsWriteCycle = true;
-		vic->ExecuteCycle(CurrentClock);
-		m_bIsWriteCycle = false;
-#endif
+	m_bIsWriteCycle = true;
+	vic->ExecuteCycle(CurrentClock);
+	m_bIsWriteCycle = false;
 	if (address>1)
 	{
 		t=m_ppMemory_map_write[address >> 12];
@@ -242,26 +231,12 @@ bit8 *t;
 			case 0xD9:
 			case 0xDA:
 			case 0xDB:
-#if USECPU6510WRITEOPTIMISATION == 1 
-				m_bIsWriteCycle = true;
-				vic->ExecuteCycle(CurrentClock);
-				m_bIsWriteCycle = false;
-#endif
 				m_piColourRAM[address] = (data & 0x0f);
 				break;
 			case 0xDC:
 				cia1->WriteRegister(address, CurrentClock, data);
 				break;
 			case 0xDD:
-#if USECPU6510WRITEOPTIMISATION == 1 
-				if (address == 0xDD00)
-				{
-					//Possible vic memory bank change
-					m_bIsWriteCycle = true;
-					vic->ExecuteCycle(CurrentClock);
-					m_bIsWriteCycle = false;
-				}
-#endif
 				cia2->WriteRegister(address, CurrentClock, data);
 				break;
 			case 0xDE:
@@ -296,12 +271,6 @@ bit8 *t;
 	}
 	else
 	{
-#if USECPU6510WRITEOPTIMISATION == 1 
-		//de00_byte must be up to date.
-		m_bIsWriteCycle = true;
-		vic->ExecuteCycle(CurrentClock);
-		m_bIsWriteCycle = false;
-#endif
 		WriteRegister(address, CurrentClock, data);
 		ram->miMemory[address & 1] = pVic->de00_byte;
 	}
