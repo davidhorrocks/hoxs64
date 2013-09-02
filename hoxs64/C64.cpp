@@ -2112,12 +2112,12 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 			memcpy(diskdrive.m_pD1541_rom, pDriveRom, SaveState::SIZEDRIVEROM);
 		}
 		ICLK c = sbCpuMain.common.CurrentClock;
-		cia1.SetCurrentClock(c);
-		cia2.SetCurrentClock(c);
-		vic.SetCurrentClock(c);
-		sid.SetCurrentClock(c);
-		cart.SetCurrentClock(c);
-		diskdrive.SetCurrentClock(c);
+		//cia1.SetCurrentClock(c);
+		//cia2.SetCurrentClock(c);
+		//vic.SetCurrentClock(c);
+		//sid.SetCurrentClock(c);
+		//cart.SetCurrentClock(c);
+		//diskdrive.SetCurrentClock(c);
 		
 		cpu.ConfigureMemoryMap();
 
