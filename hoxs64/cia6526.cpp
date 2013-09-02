@@ -1310,7 +1310,7 @@ void CIA::init_bitcount()
 void CIA::GetState(SsCia &state)
 {
 	ZeroMemory(&state, sizeof(state));
-
+	state.CurrentClock = CurrentClock;
 	state.DevicesClock = DevicesClock;
 	state.delay = delay;
 	state.feed = feed;
@@ -1366,6 +1366,7 @@ void CIA::GetState(SsCia &state)
 
 void CIA::SetState(const SsCia &state)
 {
+	CurrentClock = state.CurrentClock;
 	DevicesClock = state.DevicesClock;
 	delay = state.delay;
 	feed = state.feed;

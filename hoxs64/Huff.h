@@ -87,6 +87,7 @@ private:
 	bit32 path;
 	bit8 pathLength;
 	bit32 outLength;
+	bit32 totalBytesToWrite;
 };
 
 class HuffDecompression

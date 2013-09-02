@@ -24,6 +24,8 @@ public:
 
 	void ExecuteDevices(ICLK sysclock);
 
+	void SetCurrentClock(ICLK sysclock);
+
 	void GetState(SsCia2 &state);
 	void SetState(const SsCia2 &state);
 

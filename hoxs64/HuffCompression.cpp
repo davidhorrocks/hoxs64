@@ -58,15 +58,17 @@ void HuffCompression::HuffWriteBit(bit8 data)
 bit8 i,m,v;
 HRESULT hr;
 DWORD bytes_written;
-
+ULONG bytes_to_write;
 	if (bufferPos +1 > HUFFBUFFERSIZE*8)
 	{
+		bytes_to_write = HUFFBUFFERSIZE;
 		if (!writeError && m_pStream!=NULL)
 		{
-			hr = m_pStream->Write(buffer, HUFFBUFFERSIZE, &bytes_written);
+			hr = m_pStream->Write(buffer, bytes_to_write, &bytes_written);
 			if (FAILED(hr))
 				writeError = true;
 		}
+		totalBytesToWrite += bytes_to_write;
 		bufferPos = 0;
 	}
 	i = buffer[bufferPos/8];
@@ -82,15 +84,18 @@ void HuffCompression::HuffWriteByte(bit8 data)
 bit8 i,m,*p,shift,v;
 DWORD bytes_written;
 HRESULT hr;
-	
+ULONG bytes_to_write;
+
 	if (bufferPos +8 > HUFFBUFFERSIZE*8)
 	{
+		bytes_to_write = bufferPos/8;
 		if (!writeError && m_pStream!=0)
 		{
-			hr = m_pStream->Write(buffer, bufferPos/8, &bytes_written);
+			hr = m_pStream->Write(buffer, bytes_to_write, &bytes_written);
 			if (FAILED(hr))
 				writeError = true;
 		}
+		totalBytesToWrite += bytes_to_write;
 		buffer[0] = buffer[HUFFBUFFERSIZE-1];
 		bufferPos &= 7;
 	}
@@ -121,9 +126,10 @@ void HuffCompression::HuffWriteWord(bit16 data)
 
 void HuffCompression::HuffEndWrite()
 {
-bit8 i,m,*p,shift;
+bit8 i,m,*p,shift,padding;
 HRESULT hr;
 DWORD bytes_written;
+ULONG bytes_to_write;
 
 	shift = (bit8)bufferPos & 7;
 	if (shift>0)
@@ -132,14 +138,18 @@ DWORD bytes_written;
 		i = *p;
 		m = 0xff << (8-shift);
 		*p = (i & m);
-		bufferPos = (bufferPos + (8-shift));
+		padding = 8-shift;
+		bufferPos += padding;
+		outLength += padding;
 	}
+	bytes_to_write = bufferPos/8;
 	if (!writeError && m_pStream!=0)
 	{
-		hr = m_pStream->Write(buffer, bufferPos/8, &bytes_written);
+		hr = m_pStream->Write(buffer, bytes_to_write, &bytes_written);
 		if (FAILED(hr))
 			writeError = true;
 	}
+	totalBytesToWrite += bytes_to_write;
 	bufferPos=0;
 }
 
@@ -248,8 +258,9 @@ HRESULT hr;
 	pathLength=0;
 	path=0;
 	bufferPos = 0;
-	writeError=0;
-	outLength=0;
+	writeError = 0;
+	outLength = 0;
+	totalBytesToWrite = 0;
 	hr = nodeHolder.Init(0x20000);
 	if (FAILED(hr))
 		return hr;
@@ -403,6 +414,8 @@ HRESULT hr;
 
 	if (writeError)
 		return E_FAIL;
-	*dstSize= (outLength+7)/8;
+	if (dstSize)
+		*dstSize = totalBytesToWrite;
+	assert(((outLength + 7) / 8) == totalBytesToWrite);
 	return S_OK;
 }

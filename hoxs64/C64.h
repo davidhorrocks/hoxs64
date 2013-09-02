@@ -94,8 +94,8 @@ public:
 
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
 	HRESULT SaveFDIToFile(TCHAR *filename);
-	HRESULT SaveTrackState(bit32 *pTrackBuffer, bit8 *pTrack, int track_size, int *p_pulse_count);
-	HRESULT LoadTrackState(const bit32 *pTrackBuffer, bit8 *pTrack, int pulse_count);
+	HRESULT SaveTrackState(bit32 *pTrackBuffer, bit8 *pTrack, int track_size, int *p_gap_count);
+	HRESULT LoadTrackState(const bit32 *pTrackBuffer, bit8 *pTrack, int gap_count);
 	HRESULT SaveC64StateToFile(TCHAR *filename);
 	HRESULT LoadC64StateFromFile(TCHAR *filename);
 

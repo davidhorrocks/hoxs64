@@ -162,8 +162,6 @@ void CIA2::Reset(ICLK sysclock)
 	m_commandedVicBankIndex = (t & 3) ^ 3;
 }
 
-
-
 void CIA2::SetSystemInterrupt()
 {
 	cpu->Set_CIA_NMI(CurrentClock);
@@ -172,6 +170,13 @@ void CIA2::SetSystemInterrupt()
 void CIA2::ClearSystemInterrupt()
 {
 	cpu->Clear_CIA_NMI();
+}
+
+void CIA2::SetCurrentClock(ICLK sysclock)
+{
+ICLK v = sysclock - CurrentClock;
+	CIA::SetCurrentClock(sysclock);
+	DevicesClock+=v;
 }
 
 void CIA2::GetState(SsCia2 &state)

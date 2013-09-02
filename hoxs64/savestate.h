@@ -55,7 +55,7 @@ struct SsTrackHeader
 	bit32 size;
 	bit32 number;
 	bit32 version;
-	bit32 pulse_count;
+	bit32 gap_count;
 	//bit32 crc;
 };
 
@@ -284,6 +284,7 @@ struct SsVic6569
 
 struct SsCia
 {
+	bit32 CurrentClock;
 	bit32 DevicesClock;
 	bit32 delay;
 	bit32 feed;
@@ -381,6 +382,7 @@ struct SsSidVoice
 
 struct SsSid
 {
+	bit32 CurrentClock;
 	SsSidVoice voice1;
 	SsSidVoice voice2;
 	SsSidVoice voice3;

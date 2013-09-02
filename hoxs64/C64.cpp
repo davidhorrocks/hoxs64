@@ -1454,14 +1454,14 @@ HRESULT hr;
 	return S_OK;	
 }
 
-HRESULT C64::SaveTrackState(bit32 *pTrackBuffer, bit8 *pTrack, int track_size, int *p_pulse_count)
+HRESULT C64::SaveTrackState(bit32 *pTrackBuffer, bit8 *pTrack, int track_size, int *p_gap_count)
 {
 int i;
 int delay = 0;
-int pulseCount = 0;
+int gapCount = 0;
 
-	if (p_pulse_count)
-		*p_pulse_count = 0;
+	if (p_gap_count)
+		*p_gap_count = 0;
 
 	for (i=0; i<DISK_RAW_TRACK_SIZE; i++)
 	{
@@ -1472,8 +1472,8 @@ int pulseCount = 0;
 			//The first delay value represents the gap from the start of the track to the first pulse.
 			delay += k;
 			
-			pTrackBuffer[pulseCount] = delay;
-			pulseCount++;
+			pTrackBuffer[gapCount] = delay;
+			gapCount++;
 		
 			delay = (16 - k);
 		}
@@ -1481,27 +1481,29 @@ int pulseCount = 0;
 			delay += 16;
 	}
 
-	if (pulseCount > 0)
+	if (gapCount > 0)
 	{
-		pTrackBuffer[pulseCount] = delay;
-		//The last delay value represents the between the last pulse and the end of the track.
+		pTrackBuffer[gapCount++] = delay;
+		//The last delay value represents the gap between the last pulse and the end of the track.
 	}
 
-	if (p_pulse_count)
-		*p_pulse_count = pulseCount;
+	if (p_gap_count)
+		*p_gap_count = gapCount;
 
 	return S_OK;
 }
 
-HRESULT C64::LoadTrackState(const bit32 *pTrackBuffer, bit8 *pTrack, int pulse_count)
+HRESULT C64::LoadTrackState(const bit32 *pTrackBuffer, bit8 *pTrack, int gap_count)
 {
 const int MAXTIME = DISK_RAW_TRACK_SIZE * 16;
-	if (pulse_count < 0)
+	if (gap_count < 0)
 		return S_OK;
 	int i;
 	bit32 delay = 0;
 	ZeroMemory(pTrack, DISK_RAW_TRACK_SIZE);
-	for (i=0; i < pulse_count; i++)
+	//The last value at pTrackBuffer[gap_count - 1] represents the gap between the last pulse and the end of the track.
+	//The number of pulses is equal to gap_count - 1;
+	for (i=0; i < gap_count - 1; i++)
 	{
 		delay += pTrackBuffer[i];
 		if (delay > MAXTIME)
@@ -1509,7 +1511,7 @@ const int MAXTIME = DISK_RAW_TRACK_SIZE * 16;
 		int q = delay / 16;
 		pTrack[q] = (delay % 16) + 1;
 	}
-	return S_OK
+	return S_OK;
 }
 
 HRESULT C64::SaveC64StateToFile(TCHAR *filename)
@@ -1663,6 +1665,11 @@ bit32 *pTrackBuffer = NULL;
 			if (FAILED(hr))
 				break;
 			pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32));
+			if (!pTrackBuffer)
+			{
+				hr = E_OUTOFMEMORY;
+				break;
+			}
 			LARGE_INTEGER spos_zero;
 			LARGE_INTEGER spos_next;
 			ULARGE_INTEGER pos_current_section_header;
@@ -1675,7 +1682,7 @@ bit32 *pTrackBuffer = NULL;
 			if (FAILED(hr))
 				break;
 			sh.id = SsLib::SectionType::DriveDiskImage;
-			sh.size = sizeof(sh) + 0;
+			sh.size = sizeof(sh);
 			sh.version = 0;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
@@ -1689,22 +1696,22 @@ bit32 *pTrackBuffer = NULL;
 			{
 				SsTrackHeader th;
 				th.number = i;
-				th.size = sizeof(th) + 0;
+				th.size = sizeof(th);
 				th.version = 0;
-				th.pulse_count = 0;
+				th.gap_count = 0;
 				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
 				if (FAILED(hr))
 					break;
-				int pulse_count = 0;
+				int gap_count = 0;
 				bit32 compressed_size = 0;
 				bit8 *pTrack = diskdrive.m_rawTrackData[i];
-				SaveTrackState(pTrackBuffer, pTrack, DISK_RAW_TRACK_SIZE, &pulse_count);
+				SaveTrackState(pTrackBuffer, pTrack, DISK_RAW_TRACK_SIZE, &gap_count);
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
 					break;
-				if (pulse_count > 0)
+				if (gap_count > 0)
 				{
-					hr = hw.Compress(pTrackBuffer, pulse_count + 1, &compressed_size);
+					hr = hw.Compress(pTrackBuffer, gap_count, &compressed_size);
 					if (FAILED(hr))
 						break;
 				}
@@ -1716,8 +1723,10 @@ bit32 *pTrackBuffer = NULL;
 				hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 				if (FAILED(hr))
 					break;
-				th.size = sizeof(th) + (bit32)(pos_next_track_header.QuadPart - pos_current_track_header.QuadPart);
-				th.pulse_count = pulse_count;
+				bit32 sectionSize = (bit32)(pos_next_track_header.QuadPart - pos_current_track_header.QuadPart);
+				assert(sectionSize == compressed_size+sizeof(SsTrackHeader));
+				th.size = sectionSize;
+				th.gap_count = gap_count;
 				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
 				if (FAILED(hr))
 					break;
@@ -1726,6 +1735,7 @@ bit32 *pTrackBuffer = NULL;
 				if (FAILED(hr))
 					break;
 
+				pos_current_track_header = pos_next_track_header;
 				pos_next_section_header = pos_next_track_header;
 			}
 			if (FAILED(hr))
@@ -1735,7 +1745,7 @@ bit32 *pTrackBuffer = NULL;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
 				break;
-			sh.size = sizeof(sh) + (bit32)(pos_current_section_header.QuadPart - pos_next_section_header.QuadPart);
+			sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
 				break;
@@ -1787,6 +1797,7 @@ bool done = false;
 bool eof = false;
 HuffDecompression hw;
 bit32 *pTrackBuffer = NULL;
+bit8 *pTrack = NULL;
 bool bC64Cpu = false;
 bool bC64Ram = false;
 bool bC64ColourRam = false;
@@ -2005,21 +2016,36 @@ const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 				break;
 			case SsLib::SectionType::DriveDiskImage:
 				if (!pTrackBuffer)
+				{
 					pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32));
+					if (!pTrackBuffer)
+					{
+						hr = E_OUTOFMEMORY;
+						break;
+					}
+				}
 				hr = pfs->Read(&trackHeader, sizeof(trackHeader), &bytesWritten);
 				if (FAILED(hr))
 					break;
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
 					break;
-				if (trackHeader.pulse_count > DISK_RAW_TRACK_SIZE)
+				if (trackHeader.gap_count > DISK_RAW_TRACK_SIZE)
 				{
 					hr = E_FAIL;
 					break;
 				}
-				hr = hw.Decompress(trackHeader.pulse_count, &pTrackBuffer);
-				if (FAILED(hr))
-					break;
+				if (trackHeader.gap_count > 0 && trackHeader.number >=0 && trackHeader.number < G64_MAX_TRACKS)
+				{
+					pTrack = diskdrive.m_rawTrackData[trackHeader.number];
+					if (pTrack)
+					{
+						hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
+						if (FAILED(hr))
+							break;
+						this->LoadTrackState(pTrackBuffer, pTrack, trackHeader.gap_count);
+					}
+				}
 				break;
 			}
 			if (FAILED(hr))

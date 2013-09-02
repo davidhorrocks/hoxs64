@@ -1359,6 +1359,7 @@ void SID64::GetState(SsSid &state)
 	voice1.GetState(state.voice1);
 	voice2.GetState(state.voice2);
 	voice3.GetState(state.voice3);
+	state.CurrentClock = CurrentClock;
 	state.sidVolume = sidVolume;
 	state.sidFilter = sidFilter;
 	state.sidVoice_though_filter = sidVoice_though_filter;
@@ -1374,6 +1375,7 @@ void SID64::SetState(const SsSid &state)
 	voice1.SetState(state.voice1);
 	voice2.SetState(state.voice2);
 	voice3.SetState(state.voice3);
+	CurrentClock = state.CurrentClock;
 	sidVolume = state.sidVolume;
 	sidFilter = state.sidFilter;
 	sidVoice_though_filter = state.sidVoice_though_filter;
