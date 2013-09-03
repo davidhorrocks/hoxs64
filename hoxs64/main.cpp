@@ -1143,11 +1143,12 @@ TCHAR initfilename[MAX_PATH];
 BOOL b;
 HRESULT hr;
 
+	TCHAR title[] = TEXT("Load State Image");
 	initfilename[0] = 0;
 
 	G::InitOfn(of, 
 		hWnd, 
-		TEXT("Choose a C64 state image file"),
+		title,
 		initfilename,
 		MAX_PATH,
 		TEXT("State Image file (*.64s)\0*.64s\0All files (*.*)\0*.*\0\0"),
@@ -1158,12 +1159,8 @@ HRESULT hr;
 	if (b)
 	{
 		hr = c64.LoadC64StateFromFile(initfilename);
-		if (SUCCEEDED(hr))
-		{
-			//ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("State Image") , TEXT("OK"));
-		}
-		else
-			c64.DisplayError(hWnd, TEXT("State Image"));
+		if (FAILED(hr))
+			c64.DisplayError(hWnd, title);
 	}
 }
 
