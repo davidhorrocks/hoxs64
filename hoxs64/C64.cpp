@@ -2117,6 +2117,12 @@ ULARGE_INTEGER pos_next_track_header;
 			memcpy(ram.mColorRAM, pC64ColourRam, SaveState::SIZECOLOURAM);
 		cia1.SetState(sbCia1);
 		cia2.SetState(sbCia2);
+		cfg->m_bTimerBbug = sbCia1.cia.bTimerBbug != 0;
+		if (sbCia1.cia.bEarlyIRQ)
+			cfg->m_CIAMode = HCFG::CM_CIA6526A;
+		else
+			cfg->m_CIAMode = HCFG::CM_CIA6526;
+		appStatus->SetUserConfig(*cfg);
 		vic.SetState(sbVic6569);
 		sid.SetState(sbSid);
 

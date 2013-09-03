@@ -1077,8 +1077,11 @@ ICLK DiskInterface::GetCurrentClock()
 
 void DiskInterface::SetCurrentClock(ICLK sysclock)
 {
-ICLK v = sysclock - CurrentClock;
-	CurrentClock = sysclock;
+ICLK w = sysclock - CurrentPALClock;
+ICLK c = cpu.CurrentClock;
+ICLK v = c - CurrentClock;
+	CurrentPALClock += w;
+	CurrentClock += v;
 	m_changing_c64_serialbus_diskview_diskclock += v;
 	m_driveWriteChangeClock += v;
 	m_busDataUpdateClock += v;
