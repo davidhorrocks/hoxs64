@@ -82,7 +82,10 @@ HRESULT ErrorMsg::SetErrorFromGetLastError(HRESULT hRet, LPCTSTR szError)
 
 void ErrorMsg::DisplayError(HWND hWnd, const TCHAR title[])
 {
-	MessageBox(hWnd, errorText, title, MB_OK | MB_ICONEXCLAMATION);
+	if (errorText[0] != 0)
+		MessageBox(hWnd, errorText, title, MB_OK | MB_ICONEXCLAMATION);
+	else
+		MessageBox(hWnd, TEXT("An error occurred."), title, MB_OK | MB_ICONEXCLAMATION);
 }
 
 void ErrorMsg::ShowMessage(HWND hWnd, UINT uType, LPCTSTR szTitle, LPCTSTR szError, ...)

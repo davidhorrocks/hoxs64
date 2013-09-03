@@ -1522,6 +1522,7 @@ ULONG bytesWritten;
 SsSectionHeader sh;
 bit32 *pTrackBuffer = NULL;
 
+	ClearError();
 	SynchroniseDevicesWithVIC();
 
 	IStream *pfs = NULL;
@@ -1529,7 +1530,10 @@ bit32 *pTrackBuffer = NULL;
 	{
 		hr = FileStream::CreateObject(filename, &pfs, true);
 		if (FAILED(hr))
+		{
+			this->SetErrorFromGetLastError(hr);
 			break;
+		}
 
 		SsHeader hdr;
 		ZeroMemory(&hdr, sizeof(hdr));
@@ -1773,6 +1777,9 @@ bit32 *pTrackBuffer = NULL;
 		GlobalFree(pTrackBuffer);
 		pTrackBuffer = NULL;
 	}
+	
+	if(FAILED(hr) && errorText[0] == 0)
+		this->SetErrorFromGetLastError(hr);
 	return hr;
 }
 
@@ -1836,6 +1843,7 @@ ULARGE_INTEGER pos_current_track_header;
 ULARGE_INTEGER pos_next_track_header;
 //ULARGE_INTEGER pos_dummy;
 
+	ClearError();
 	diskdrive.WaitThreadReady();
 
 	spos_zero.QuadPart = 0;
@@ -2221,6 +2229,8 @@ ULARGE_INTEGER pos_next_track_header;
 		free(pDriveRom);
 		pDriveRom = NULL;
 	}
+	if(FAILED(hr) && errorText[0] == 0)
+		this->SetErrorFromGetLastError(hr);
 	return hr;
 }
 

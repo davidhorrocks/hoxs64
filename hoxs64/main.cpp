@@ -1129,14 +1129,7 @@ HRESULT hr;
 		SetBusy(true);
 		hr =  c64.SaveC64StateToFile(initfilename);
 		SetBusy(false);
-		if (SUCCEEDED(hr))
-		{
-			MessageBox(hWnd,
-			TEXT("State saved."), 
-			title, 
-			MB_OK | MB_ICONINFORMATION);
-		}
-		else
+		if (FAILED(hr))
 		{
 			c64.DisplayError(hWnd, title);
 		}
