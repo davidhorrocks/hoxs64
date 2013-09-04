@@ -1265,7 +1265,7 @@ HRESULT hr;
 	hr = tape64.InsertTAPFile(filename);
 	if (FAILED(hr))
 	{
-		return SetError(hr,tape64.errorText);
+		return SetError(tape64);
 	}
 	return S_OK;
 }
@@ -1624,6 +1624,25 @@ bit32 *pTrackBuffer = NULL;
 		hr = pfs->Write(this->ram.mCharGen, SaveState::SIZEC64CHARGEN, &bytesWritten);
 		if (FAILED(hr))
 			break;
+
+		if (this->tape64.pTapeData)
+		{
+			SsTape sbTape;
+			this->tape64.GetState(sbTape);
+			hr = SaveState::SaveSection(pfs, sbTape, SsLib::SectionType::C64Tape);
+			if (FAILED(hr))
+				break;
+
+			sh.id = SsLib::SectionType::C64TapeData;
+			sh.size = sizeof(sh) + tape64.tape_length;
+			sh.version = 0;
+			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			if (FAILED(hr))
+				break;
+			hr = pfs->Write(this->tape64.pTapeData, this->tape64.tape_length, &bytesWritten);
+			if (FAILED(hr))
+				break;
+		}
 
 		sh.id = SsLib::SectionType::DriveRam;
 		sh.size = sizeof(sh) + SaveState::SIZEDRIVERAM;

@@ -528,6 +528,18 @@ struct SsVia2
 	bit8 oldDiskControl;
 };
 
+struct SsTape
+{
+	bit32 CurrentClock;
+	bit32 tape_position;
+	bit32 tape_pulse_length;
+	bit32 nextTapeTickClock;
+	bit32 bMotorOn;
+	bit8 bPlayDown;
+	bit8 bEOT;
+	bit8 bEOD;
+};
+
 # pragma pack ()
 
 class SaveState

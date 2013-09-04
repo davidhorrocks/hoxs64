@@ -16,6 +16,7 @@
 #include "util.h"
 #include "utils.h"
 #include "errormsg.h"
+#include "savestate.h"
 #include "register.h"
 #include "tap.h"
 
@@ -153,6 +154,7 @@ HRESULT Tape64::InsertTAPFile(TCHAR *filename)
 {
 HRESULT hr;
 
+	ClearError();
 	Eject();
 	
 	hr = LoadTAPFile(filename);
@@ -232,3 +234,28 @@ ICLK clocks;
 	}
 	nextTapeTickClock = sysclock + tape_pulse_length;
 }
+
+void Tape64::GetState(SsTape &state)
+{
+	state.CurrentClock = CurrentClock;
+	state.tape_position = tape_position;
+	state.tape_pulse_length = tape_pulse_length;
+	state.nextTapeTickClock = nextTapeTickClock;
+	state.bMotorOn = bMotorOn;
+	state.bPlayDown = bPlayDown;
+	state.bEOT = bEOT;
+	state.bEOD = bEOD;
+}
+
+void Tape64::SetState(const SsTape &state)
+{
+	CurrentClock = state.CurrentClock;
+	tape_position = state.tape_position;
+	tape_pulse_length = state.tape_pulse_length;
+	nextTapeTickClock = state.nextTapeTickClock;
+	bMotorOn = state.bMotorOn != 0;
+	bPlayDown = state.bPlayDown != 0;
+	bEOT = state.bEOT != 0;
+	bEOD = state.bEOD != 0;
+}
+

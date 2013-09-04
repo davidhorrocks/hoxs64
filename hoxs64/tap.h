@@ -43,10 +43,11 @@ public:
 	virtual void PressStop();
 	virtual void Rewind();
 	virtual void Eject();
-
-
-
 	void Tick(ICLK sysclock);
+
+	void GetState(SsTape &state);
+	void SetState(const SsTape &state);
+
 	ITapeEvent *TapeEvent;
 private:
 	bool bMotorOn;
