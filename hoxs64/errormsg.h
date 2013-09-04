@@ -9,8 +9,8 @@ public:
 	void ClearError();
 	HRESULT SetError(HRESULT hRet, LPCTSTR szError, ...);
 	HRESULT SetError(ErrorMsg& err);
-	HRESULT SetErrorFromGetLastError(HRESULT hRet);
-	HRESULT SetErrorFromGetLastError(HRESULT hRet, LPCTSTR szError);
+	HRESULT SetErrorFromGetLastError();
+	HRESULT SetErrorFromGetLastError(DWORD err, LPCTSTR szError);
 	TCHAR errorText[300];
 	HRESULT errorValue;
 	void DisplayError(HWND hWnd, const TCHAR title[]);

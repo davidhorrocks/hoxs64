@@ -140,6 +140,7 @@ public:
 	static DLGTEMPLATE * WINAPI DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName);
 	static void ShowLastError(HWND);
 	static TCHAR *GetLastWin32ErrorString();
+	static TCHAR *GetLastWin32ErrorString(DWORD err);
 	static void ArrangeOKCancel(HWND hwndDlg);
 	static LPTSTR GetStringRes (int id);
 	static BOOL CenterWindow (HWND hwndChild, HWND hwndParent);

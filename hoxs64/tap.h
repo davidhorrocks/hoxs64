@@ -20,10 +20,13 @@ public:
 	HRESULT LoadTAPFile(TCHAR *s);
 	void UnloadTAP();
 
-	RAWTAPE *pTapeHeader;
-	bit8 *pTapeData;
-	TCHAR errorText[300];
-	DWORD tape_length;
+	RAWTAPE TapeHeader;
+	bit32 *pData;
+	DWORD tape_max_counter;
+	static const int DEFAULTDELAY = 32768;
+
+private:
+	HRESULT ReadTapeData(HANDLE hfile,int version, bit32 *buffer, int bufferlen, int *count);
 };
 
 
@@ -47,7 +50,6 @@ public:
 
 	void GetState(SsTape &state);
 	void SetState(const SsTape &state);
-
 	ITapeEvent *TapeEvent;
 private:
 	bool bMotorOn;

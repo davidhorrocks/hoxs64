@@ -22,8 +22,8 @@
 
 TAP64::TAP64()
 {
-	pTapeHeader=NULL;
-	tape_length=0;
+	pData=NULL;
+	tape_max_counter=0;
 }
 TAP64::~TAP64()
 {
@@ -32,67 +32,197 @@ TAP64::~TAP64()
 
 void TAP64::UnloadTAP()
 {
-	if (pTapeHeader)
-		GlobalFree(pTapeHeader);
-	pTapeHeader=NULL;
-	pTapeData=NULL;
-	tape_length=0;
+	if (pData)
+		GlobalFree(pData);
+	pData=NULL;
+	tape_max_counter=0;
 }
 
 HRESULT TAP64::LoadTAPFile(TCHAR *filename)
 {
-HANDLE hfile=0;
+HANDLE hfile = INVALID_HANDLE_VALUE;
 DWORD file_size;
 BOOL r;
 DWORD bytes_read;
+RAWTAPE header;
+HRESULT hr = E_FAIL;
+int c;
+bit32 *buffer = NULL;
 
-	UnloadTAP();
-
-	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
-	if (hfile==INVALID_HANDLE_VALUE)
+	ClearError();
+	do
 	{
-		return SetError(E_FAIL,TEXT("Could not open tape file %s."),filename);
-	}
+		hfile = CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
+		if (hfile == INVALID_HANDLE_VALUE)
+		{
+			hr = SetError(E_FAIL,TEXT("Could not open tape file %s."),filename);
+			break;
+		}
 
-	file_size = GetFileSize(hfile, 0);
-	if (INVALID_FILE_SIZE == file_size || file_size > 5000000L || file_size < 50L){
+		file_size = GetFileSize(hfile, 0);
+		if (INVALID_FILE_SIZE == file_size || file_size > 5000000L || file_size < sizeof(RAWTAPE) + sizeof(bit32))
+		{
+			hr = SetError(E_FAIL,TEXT("%s is not a valid raw tape file."), filename);
+			break;
+		}
+
+		ZeroMemory(&header, sizeof(header));
+		r = ReadFile(hfile, &header, sizeof(header) - sizeof(header.data), &bytes_read, NULL);
+		if (r==0)
+		{
+			hr = SetError(E_FAIL,TEXT("Could not read from tape file %s."), filename);
+			break;
+		}
+
+		if (_strnicmp((char *)&header.Signature[0],"C64-TAPE-RAW", sizeof(header.Signature))!=0)
+		{
+			hr = SetError(E_FAIL,TEXT("%s is not a valid raw tape file."), filename);
+			break;
+		}
+
+		if (header.Version !=0 && header.Version !=1)
+		{		
+			hr = SetError(E_FAIL,TEXT("%s is in version %d format.\nOnly versions 0 and 1 are supported.")
+				, filename ,(int)header.Version);
+			break;
+		}
+
+		LARGE_INTEGER spos_zero;
+		LARGE_INTEGER spos;
+		ULARGE_INTEGER spos_dummy;
+		spos_zero.QuadPart = 0;
+
+		hr = S_OK;
+		if (FAILED(hr))
+			break;
+
+		hr = ReadTapeData(hfile, header.Version, NULL, 0, &c);
+		if (FAILED(hr))
+		{
+			this->SetErrorFromGetLastError();
+			break;
+		}
+		if (c==0)
+		{
+			hr = E_FAIL;
+			break;
+		}
+
+		buffer = (bit32 *) GlobalAlloc(GMEM_FIXED, c * sizeof(bit32));
+		if (buffer == NULL)
+		{
+			hr = SetError(E_FAIL,TEXT("Could not allocate memory for tape file %s."), filename);
+			break;
+		}
+		spos.QuadPart = sizeof(RAWTAPE) - 1;
+		if (SetFilePointerEx(hfile, spos, (PLARGE_INTEGER) &spos_dummy, FILE_BEGIN) == 0)
+		{
+			hr = this->SetErrorFromGetLastError();
+			break;
+		}
+		hr = ReadTapeData(hfile, header.Version, buffer, c, NULL);
+		if (FAILED(hr))
+		{
+			this->SetErrorFromGetLastError();
+			break;
+		}
+		hr = S_OK;
+	}
+	while (false);
+	if (hfile != INVALID_HANDLE_VALUE)
+	{
 		CloseHandle(hfile);
-		return SetError(E_FAIL,TEXT("%s is not a valid raw tape file."),filename);
+		hfile = INVALID_HANDLE_VALUE;
 	}
-
-	pTapeHeader = (RAWTAPE *) GlobalAlloc(GMEM_FIXED, file_size);
-	if (pTapeHeader == NULL)
+	if (FAILED(hr))
 	{
-		CloseHandle(hfile);
-		return SetError(E_FAIL,TEXT("Could not allocate memory for tape file %s."),filename);
+		if (buffer)
+		{
+			GlobalFree(buffer);
+			buffer=NULL;
+		}
 	}
-	r=ReadFile(hfile, pTapeHeader, file_size, &bytes_read,NULL);
-	CloseHandle(hfile);
-	if (r==0 || bytes_read!=file_size)
+	else
 	{
-		GlobalFree(pTapeHeader);
-		pTapeHeader=NULL;
-		return SetError(E_FAIL,TEXT("Could not read from tape file %s."),filename);
+		UnloadTAP();
+		this->tape_max_counter = c;
+		this->TapeHeader = header;
+		this->pData = buffer;
+		buffer = NULL;
 	}
-	if (_strnicmp((char *)&pTapeHeader->Signature[0],"C64-TAPE-RAW", sizeof(pTapeHeader->Signature))!=0)
-	{
-		GlobalFree(pTapeHeader);
-		pTapeHeader=NULL;
-		return SetError(E_FAIL,TEXT("%s is not a valid raw tape file."),filename);
-	}
-
-	if (pTapeHeader->Version !=0 && pTapeHeader->Version !=1)
-	{		
-		GlobalFree(pTapeHeader);
-		pTapeHeader=NULL;
-		return SetError(E_FAIL,TEXT("%s is in version %d format.\nOnly versions 0 and 1 are supported.")
-			, filename ,(int)pTapeHeader->Version);
-	}
-	pTapeData = &pTapeHeader->data[0];
-	tape_length = file_size - sizeof(RAWTAPE) + 1;
-	return S_OK;
+	return hr;
 }
 
+HRESULT TAP64::ReadTapeData(HANDLE hfile, int version, bit32 *buffer, int bufferlen, int *count)
+{
+BOOL r;
+DWORD bytes_read;
+HRESULT hr = E_FAIL;
+
+	int c = 0;
+	bool eof = false;
+	for (c=0; !eof; c++)
+	{
+		bit8 v;
+		bit32 w;
+		r = ReadFile(hfile, &v, 1, &bytes_read, NULL);
+		if (r==0)
+		{
+			hr = SetErrorFromGetLastError();
+			break;
+		}
+		else if (bytes_read == 0)
+		{
+			eof = true;
+			break;
+		}
+		if (buffer)
+		{
+			if (c == bufferlen)
+				return E_FAIL;
+		}
+		if (v == 0)
+		{
+			if (version == 0)
+			{
+				buffer[c] = DEFAULTDELAY;
+			}
+			else
+			{
+				//LITTLE ENDIAN
+				w = 0;
+				r = ReadFile(hfile, &w, 3, &bytes_read, NULL);
+				if (r == 0)
+				{
+					hr = SetErrorFromGetLastError();
+					break;
+				}
+				else if (bytes_read == 0)
+				{
+					eof = true;
+					break;
+				}
+				if (buffer)
+					buffer[c] = w;
+			}
+		}
+		else
+		{
+			if (buffer)
+			{
+				if (c == bufferlen)
+					return E_FAIL;
+				buffer[c] = v * 8;
+			}
+		}
+	}
+	if (eof)
+		hr = S_OK;
+	
+	if (count)
+		*count = c;
+	return hr;
+}
 
 /*********************************************************************************/
 
@@ -118,14 +248,13 @@ void Tape64::PressStop()
 
 void Tape64::Eject()
 {
-	if (pTapeHeader)
+	if (pData)
 	{
-		GlobalFree(pTapeHeader);
-		pTapeHeader=NULL;
-		pTapeData=NULL;
+		GlobalFree(pData);
+		pData=NULL;
 	}
 	tape_position=0;
-	tape_length=0;
+	tape_max_counter=0;
 	tape_pulse_length=0;
 	bEOT = true;
 	nextTapeTickClock=0;
@@ -136,19 +265,17 @@ void Tape64::SetMotorWrite(bool motor, bit8 write)
 	bMotorOn = motor;
 }
 
-
 void Tape64::Rewind()
 {
 	tape_position=0;
 	tape_pulse_length=0;
-	if (tape_length > 0 && pTapeHeader!=NULL)
+	if (tape_max_counter > 0 && pData!=NULL)
 	{
 		bEOT = false;
 	}
 	else
 		bEOT = true;
 }
-
 
 HRESULT Tape64::InsertTAPFile(TCHAR *filename)
 {
@@ -168,7 +295,7 @@ HRESULT hr;
 void Tape64::Tick(ICLK sysclock)
 {
 ICLK clocks;
-	if (!bMotorOn || pTapeHeader==NULL || !bPlayDown || bEOT)
+	if (!bMotorOn || pData==NULL || !bPlayDown || bEOT)
 	{
 		CurrentClock = sysclock;
 		nextTapeTickClock = sysclock + 0x10000000;
@@ -190,27 +317,10 @@ ICLK clocks;
 		if (TapeEvent && !bEOD)
 			TapeEvent->Pulse(CurrentClock);
 		
-		if (tape_position < tape_length)
+		if (tape_position < tape_max_counter)
 		{
-			tape_pulse_length = (bit32)pTapeData[tape_position] * (bit32)8;
-			if (tape_pulse_length == 0)
-			{
-				if (pTapeHeader->Version==0)
-				{
-					tape_position++;
-					tape_pulse_length = 32768;
-				}
-				else
-				{
-					tape_pulse_length =*( (bit32 *) (&pTapeData[tape_position]));
-					tape_pulse_length>>=8;
-					tape_position+=4;
-					if (tape_pulse_length == 0)
-						tape_pulse_length = 1;
-				}
-			}
-			else
-				tape_position++;
+			tape_pulse_length = (bit32)pData[tape_position];
+			tape_position++;
 		}
 		else
 		{

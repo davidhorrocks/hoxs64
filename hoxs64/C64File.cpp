@@ -18,6 +18,7 @@
 #include "carray.h"
 #include "resource.h"
 #include "errormsg.h"
+#include "savestate.h"
 #include "register.h"
 #include "FDI.h"
 #include "d64.h"

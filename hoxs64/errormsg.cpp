@@ -55,17 +55,18 @@ HRESULT ErrorMsg::SetError(ErrorMsg& err)
     return errorValue;
 }
 
-HRESULT ErrorMsg::SetErrorFromGetLastError(HRESULT hRet)
+HRESULT ErrorMsg::SetErrorFromGetLastError()
 {
-	return SetErrorFromGetLastError(hRet, NULL);
+	return HRESULT_FROM_WIN32(SetErrorFromGetLastError(::GetLastError(), NULL));
 }
 
-HRESULT ErrorMsg::SetErrorFromGetLastError(HRESULT hRet, LPCTSTR szError)
+HRESULT ErrorMsg::SetErrorFromGetLastError(DWORD err, LPCTSTR szError)
 {
-	TCHAR *s = G::GetLastWin32ErrorString();
+HRESULT hRet = HRESULT_FROM_WIN32(err);
+	TCHAR *s = G::GetLastWin32ErrorString(err);
 	if (s == NULL)
 	{
-		SetError(hRet, szError);
+		SetError(hRet, TEXT("An error occurred."));
 	}
 	else if (szError == NULL)
 	{

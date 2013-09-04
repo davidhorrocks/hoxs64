@@ -1531,7 +1531,7 @@ bit32 *pTrackBuffer = NULL;
 		hr = FileStream::CreateObject(filename, &pfs, true);
 		if (FAILED(hr))
 		{
-			this->SetErrorFromGetLastError(hr);
+			this->SetErrorFromGetLastError();
 			break;
 		}
 
@@ -1625,7 +1625,7 @@ bit32 *pTrackBuffer = NULL;
 		if (FAILED(hr))
 			break;
 
-		if (this->tape64.pTapeData)
+		if (this->tape64.pData)
 		{
 			SsTape sbTape;
 			this->tape64.GetState(sbTape);
@@ -1634,12 +1634,12 @@ bit32 *pTrackBuffer = NULL;
 				break;
 
 			sh.id = SsLib::SectionType::C64TapeData;
-			sh.size = sizeof(sh) + tape64.tape_length;
+			sh.size = sizeof(sh) + tape64.tape_max_counter * sizeof(bit32);
 			sh.version = 0;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
 				break;
-			hr = pfs->Write(this->tape64.pTapeData, this->tape64.tape_length, &bytesWritten);
+			hr = pfs->Write(this->tape64.pData, this->tape64.tape_max_counter * sizeof(bit32), &bytesWritten);
 			if (FAILED(hr))
 				break;
 		}
@@ -1798,7 +1798,7 @@ bit32 *pTrackBuffer = NULL;
 	}
 	
 	if(FAILED(hr) && errorText[0] == 0)
-		this->SetErrorFromGetLastError(hr);
+		this->SetErrorFromGetLastError();
 	return hr;
 }
 
@@ -2249,7 +2249,7 @@ ULARGE_INTEGER pos_next_track_header;
 		pDriveRom = NULL;
 	}
 	if(FAILED(hr) && errorText[0] == 0)
-		this->SetErrorFromGetLastError(hr);
+		this->SetErrorFromGetLastError();
 	return hr;
 }
 

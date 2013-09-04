@@ -1096,12 +1096,16 @@ DWORD err,r;
 
 TCHAR *G::GetLastWin32ErrorString()
 {
-TCHAR *lpMsgBuf=NULL;
-DWORD err,r;
+	DWORD err = GetLastError();
+	return GetLastWin32ErrorString(err);
+}
 
-	err = GetLastError();
+TCHAR *G::GetLastWin32ErrorString(DWORD err)
+{
+TCHAR *lpMsgBuf = NULL;
+DWORD r;
 
-	if (err!=0)
+	if (err != 0)
 	{
 		r = FormatMessage( 
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | 
