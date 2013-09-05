@@ -531,13 +531,20 @@ struct SsVia2
 struct SsTape
 {
 	bit32 CurrentClock;
+	bit32 tape_max_counter;
 	bit32 tape_position;
 	bit32 tape_pulse_length;
 	bit32 nextTapeTickClock;
 	bit32 bMotorOn;
 	bit8 bPlayDown;
+	bit8 bRecordDown;
 	bit8 bEOT;
 	bit8 bEOD;
+};
+
+struct SsTapeData
+{
+	bit32 tape_max_counter;
 };
 
 # pragma pack ()

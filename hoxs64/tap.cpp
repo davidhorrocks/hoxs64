@@ -101,7 +101,6 @@ bit32 *buffer = NULL;
 		hr = ReadTapeData(hfile, header.Version, NULL, 0, &c);
 		if (FAILED(hr))
 		{
-			this->SetErrorFromGetLastError();
 			break;
 		}
 		if (c==0)
@@ -125,7 +124,6 @@ bit32 *buffer = NULL;
 		hr = ReadTapeData(hfile, header.Version, buffer, c, NULL);
 		if (FAILED(hr))
 		{
-			this->SetErrorFromGetLastError();
 			break;
 		}
 		hr = S_OK;
@@ -357,6 +355,7 @@ void Tape64::GetState(SsTape &state)
 {
 	state.CurrentClock = CurrentClock;
 	state.tape_max_counter = tape_max_counter;
+	state.bRecordDown = 0;
 	state.tape_position = tape_position;
 	state.tape_pulse_length = tape_pulse_length;
 	state.nextTapeTickClock = nextTapeTickClock;
@@ -369,6 +368,7 @@ void Tape64::GetState(SsTape &state)
 void Tape64::SetState(const SsTape &state)
 {
 	CurrentClock = state.CurrentClock;
+	//state.bRecordDown;
 	tape_max_counter = state.tape_max_counter;
 	tape_position = state.tape_position;
 	tape_pulse_length = state.tape_pulse_length;

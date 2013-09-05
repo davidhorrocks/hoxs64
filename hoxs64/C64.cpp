@@ -1625,21 +1625,67 @@ bit32 *pTrackBuffer = NULL;
 		if (FAILED(hr))
 			break;
 
-		if (this->tape64.pData)
+		SsTape sbTapePlayer;
+		this->tape64.GetState(sbTapePlayer);
+		hr = SaveState::SaveSection(pfs, sbTapePlayer, SsLib::SectionType::C64Tape);
+		if (FAILED(hr))
+			break;
+
+		if (this->tape64.pData && this->tape64.tape_max_counter > 0 && this->tape64.tape_max_counter <= TAP64::MAX_COUNTERS)
 		{
-			SsTape sbTape;
-			this->tape64.GetState(sbTape);
-			hr = SaveState::SaveSection(pfs, sbTape, SsLib::SectionType::C64Tape);
+			LARGE_INTEGER spos_zero;
+			LARGE_INTEGER spos_next;
+			ULARGE_INTEGER pos_current;
+			ULARGE_INTEGER pos_next;
+			ULARGE_INTEGER pos_dummy;
+			spos_zero.QuadPart = 0;
+			bit32 compressed_size = 0;
+
+			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current);
 			if (FAILED(hr))
 				break;
 
 			sh.id = SsLib::SectionType::C64TapeData;
-			sh.size = sizeof(sh) + tape64.tape_max_counter * sizeof(bit32);
+			sh.size = 0;
 			sh.version = 0;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
 				break;
-			hr = pfs->Write(this->tape64.pData, this->tape64.tape_max_counter * sizeof(bit32), &bytesWritten);
+
+			SsTapeData tapeDataHeader;
+			tapeDataHeader.tape_max_counter = tape64.tape_max_counter;
+			hr = pfs->Write(&tapeDataHeader, sizeof(tapeDataHeader), &bytesWritten);
+			if (FAILED(hr))
+				break;
+
+			HuffCompression hw;
+			hr = hw.Init();
+			if (FAILED(hr))
+				break;
+
+			hr = hw.SetFile(pfs);
+			if (FAILED(hr))
+				break;
+			hr = hw.Compress(this->tape64.pData, this->tape64.tape_max_counter, &compressed_size);
+			if (FAILED(hr))
+				break;
+
+			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next);
+			if (FAILED(hr))
+				break;
+
+			spos_next.QuadPart = pos_current.QuadPart;
+			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+			if (FAILED(hr))
+				break;
+			bit32 sectionSize = (bit32)(pos_next.QuadPart - pos_current.QuadPart);
+			assert(sectionSize == compressed_size+sizeof(SsSectionHeader)+sizeof(SsTapeData));
+			sh.size = sectionSize;
+			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			if (FAILED(hr))
+				break;
+			spos_next.QuadPart = pos_next.QuadPart;
+			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
 				break;
 		}
@@ -1735,7 +1781,9 @@ bit32 *pTrackBuffer = NULL;
 				int gap_count = 0;
 				bit32 compressed_size = 0;
 				bit8 *pTrack = diskdrive.m_rawTrackData[i];
-				SaveTrackState(pTrackBuffer, pTrack, DISK_RAW_TRACK_SIZE, &gap_count);
+				hr = SaveTrackState(pTrackBuffer, pTrack, DISK_RAW_TRACK_SIZE, &gap_count);
+				if (FAILED(hr))
+					break;
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
 					break;
@@ -1797,8 +1845,6 @@ bit32 *pTrackBuffer = NULL;
 		pTrackBuffer = NULL;
 	}
 	
-	if(FAILED(hr) && errorText[0] == 0)
-		this->SetErrorFromGetLastError();
 	return hr;
 }
 
@@ -1809,13 +1855,13 @@ ULONG bytesRead;
 ULONG bytesToRead;
 SsSectionHeader sh;
 STATSTG stat;
-LARGE_INTEGER pos_next;
-ULARGE_INTEGER pos_out;
 SsCpuMain sbCpuMain;
 SsCia1 sbCia1;
 SsCia2 sbCia2;
 SsVic6569 sbVic6569;
 SsSid sbSid;
+SsTape sbTapePlayer;
+SsTapeData sbTapeDataHeader;
 SsDiskInterface sbDriveController;
 SsVia1 sbDriveVia1;
 SsVia2 sbDriveVia2;
@@ -1827,6 +1873,7 @@ bit8 *pC64BasicRom = NULL;
 bit8 *pC64CharRom = NULL;
 bit8 *pDriveRam = NULL;
 bit8 *pDriveRom = NULL;
+bit32 *pTapeData = NULL;
 bool hasC64 = false;
 bool done = false;
 bool eof = false;
@@ -1857,6 +1904,8 @@ bool bDriveDiskData = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 LARGE_INTEGER spos_zero;
 LARGE_INTEGER spos_next;
+ULARGE_INTEGER pos_next_header;
+ULARGE_INTEGER pos_dummy;
 ULARGE_INTEGER pos_current_track_header;
 ULARGE_INTEGER pos_next_track_header;
 
@@ -1899,21 +1948,22 @@ ULARGE_INTEGER pos_next_track_header;
 			break;
 		}
 
-		pos_next.QuadPart = 0;
-		hr = pfs->Seek(pos_next, STREAM_SEEK_CUR, &pos_out);
+		spos_next.QuadPart = 0;
+		hr = pfs->Seek(spos_next, STREAM_SEEK_CUR, &pos_next_header);
 		if (FAILED(hr))
 			break;
-		pos_next.QuadPart = pos_out.QuadPart;
+		//pos_next.QuadPart = pos_out.QuadPart;
 		
 		SsTrackHeader trackHeader;
 		while (!eof && !done)
 		{
-			if ((ULONGLONG)pos_next.QuadPart + sizeof(sh) >= stat.cbSize.QuadPart)
+			if (pos_next_header.QuadPart + sizeof(sh) >= stat.cbSize.QuadPart)
 			{
 				eof = true;
 				break;
 			}
-			hr = pfs->Seek(pos_next, STREAM_SEEK_SET, &pos_out);
+			spos_next.QuadPart = pos_next_header.QuadPart;
+			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
 				break;
 			bytesToRead = sizeof(sh);
@@ -1933,7 +1983,7 @@ ULARGE_INTEGER pos_next_track_header;
 			{
 				break;
 			}
-			pos_next.QuadPart = pos_next.QuadPart + sh.size;
+			pos_next_header.QuadPart = pos_next_header.QuadPart + sh.size;
 			switch(sh.id)
 			{
 			case SsLib::SectionType::C64Cpu:
@@ -2135,6 +2185,67 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_OUTOFMEMORY;
 				}
 				bC64CharRom = true;
+				break;
+			case SsLib::SectionType::C64Tape:
+				bytesToRead = sizeof(sbTapePlayer);
+				hr = pfs->Read(&sbTapePlayer, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				if (sbTapePlayer.tape_max_counter > TAP64::MAX_COUNTERS && sbTapePlayer.tape_position >= sbTapePlayer.tape_max_counter)
+				{
+					hr = E_FAIL;
+					break;
+				}
+				bTapePlayer = true;
+				break;
+			case SsLib::SectionType::C64TapeData:
+				if (pTapeData || bTapeData)
+				{
+					hr = E_FAIL;
+					break;
+				}
+				ZeroMemory(&sbTapeDataHeader, sizeof(sbTapeDataHeader));				
+				bytesToRead = sizeof(sbTapeDataHeader);
+				hr = pfs->Read(&sbTapeDataHeader, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				if (sbTapeDataHeader.tape_max_counter > TAP64::MAX_COUNTERS)
+				{
+					hr = E_FAIL;
+					break;
+				}
+
+				pTapeData = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sbTapeDataHeader.tape_max_counter * sizeof(bit32));
+				if (!pTapeData)
+				{
+					hr = E_OUTOFMEMORY;
+					break;
+				}
+				hr = hw.SetFile(pfs);
+				if (FAILED(hr))
+					break;
+				hr = hw.Decompress(sbTapeDataHeader.tape_max_counter, &pTapeData);
+				if (FAILED(hr))
+					break;
+				bTapeData = true;
 				break;
 			case SsLib::SectionType::DriveRam:
 				pDriveRam = (bit8 *)malloc(SaveState::SIZEDRIVERAM);
@@ -2345,6 +2456,24 @@ ULARGE_INTEGER pos_next_track_header;
 		vic.SetState(sbVic6569);
 		sid.SetState(sbSid);
 
+		tape64.UnloadTAP();
+		if (bTapePlayer && bTapeData && sbTapeDataHeader.tape_max_counter > 0)
+		{
+			sbTapePlayer.tape_max_counter = sbTapeDataHeader.tape_max_counter;
+			sbTapePlayer.tape_position = min(sbTapePlayer.tape_position, sbTapeDataHeader.tape_max_counter - 1);
+			this->tape64.SetState(sbTapePlayer);
+			this->tape64.pData = pTapeData;
+			pTapeData = NULL;
+		}
+		else if (bTapePlayer)
+		{
+			sbTapePlayer.tape_max_counter = 0;
+			sbTapePlayer.tape_position = 0;
+			this->tape64.SetState(sbTapePlayer);
+			this->tape64.pData = pTapeData;
+			pTapeData = NULL;
+		}
+
 		if (bDriveCpu)
 		{
 			diskdrive.cpu.SetState(sbCpuDisk);
@@ -2440,8 +2569,11 @@ ULARGE_INTEGER pos_next_track_header;
 		free(pDriveRom);
 		pDriveRom = NULL;
 	}
-	if(FAILED(hr) && errorText[0] == 0)
-		this->SetErrorFromGetLastError();
+	if (pTapeData)
+	{
+		GlobalFree(pTapeData);
+		pTapeData = NULL;
+	}
 	return hr;
 }
 
