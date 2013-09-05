@@ -1805,7 +1805,8 @@ bit32 *pTrackBuffer = NULL;
 HRESULT C64::LoadC64StateFromFile(TCHAR *filename)
 {
 HRESULT hr;
-ULONG bytesWritten;
+ULONG bytesRead;
+ULONG bytesToRead;
 SsSectionHeader sh;
 STATSTG stat;
 LARGE_INTEGER pos_next;
@@ -1856,11 +1857,8 @@ bool bDriveDiskData = false;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 LARGE_INTEGER spos_zero;
 LARGE_INTEGER spos_next;
-//ULARGE_INTEGER pos_current_section_header;
-//ULARGE_INTEGER pos_next_section_header;
 ULARGE_INTEGER pos_current_track_header;
 ULARGE_INTEGER pos_next_track_header;
-//ULARGE_INTEGER pos_dummy;
 
 	ClearError();
 	diskdrive.WaitThreadReady();
@@ -1881,7 +1879,17 @@ ULARGE_INTEGER pos_next_track_header;
 
 		SsHeader hdr;
 		ZeroMemory(&hdr, sizeof(hdr));
-		hr = pfs->Read(&hdr, sizeof(hdr), &bytesWritten);
+		bytesToRead = sizeof(hdr);
+		hr = pfs->Read(&hdr, bytesToRead, &bytesRead);
+		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+		{
+			break;
+		}
+		else if (bytesRead < bytesToRead)
+		{
+			eof = true;
+			hr = E_FAIL;
+		}
 		if (FAILED(hr))
 			break;
 
@@ -1908,29 +1916,59 @@ ULARGE_INTEGER pos_next_track_header;
 			hr = pfs->Seek(pos_next, STREAM_SEEK_SET, &pos_out);
 			if (FAILED(hr))
 				break;
-			hr = pfs->Read(&sh, sizeof(sh), &bytesWritten);
+			bytesToRead = sizeof(sh);
+			hr = pfs->Read(&sh, bytesToRead, &bytesRead);
+			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+			{
+				break;
+			}
+			else if (bytesRead < bytesToRead)
+			{
+				eof = true;
+				break;
+			}
 			if (FAILED(hr))
 				break;
 			if (sh.size == 0)
 			{
-				eof = true;
 				break;
 			}
 			pos_next.QuadPart = pos_next.QuadPart + sh.size;
 			switch(sh.id)
 			{
 			case SsLib::SectionType::C64Cpu:
-				hr = pfs->Read(&sbCpuMain, sizeof(sbCpuMain), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbCpuMain);
+				hr = pfs->Read(&sbCpuMain, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bC64Cpu = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bC64Cpu = true;
 				break;
 			case SsLib::SectionType::C64Ram:
 				pC64Ram = (bit8 *)malloc(SaveState::SIZE64K);
 				if (pC64Ram)
 				{
-					hr = pfs->Read(pC64Ram, SaveState::SIZE64K, &bytesWritten);
+					bytesToRead = SaveState::SIZE64K;
+					hr = pfs->Read(pC64Ram, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
 				}
 				else
 				{
@@ -1942,7 +1980,19 @@ ULARGE_INTEGER pos_next_track_header;
 				pC64ColourRam = (bit8 *)malloc(SaveState::SIZECOLOURAM);
 				if (pC64ColourRam)
 				{
-					hr = pfs->Read(pC64ColourRam, SaveState::SIZECOLOURAM, &bytesWritten);
+					bytesToRead = SaveState::SIZECOLOURAM;
+					hr = pfs->Read(pC64ColourRam, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
 				}
 				else
 				{
@@ -1951,38 +2001,86 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64ColourRam = true;
 				break;
 			case SsLib::SectionType::C64Cia1:
-				hr = pfs->Read(&sbCia1, sizeof(sbCia1), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbCia1);
+				hr = pfs->Read(&sbCia1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bC64Cia1 = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bC64Cia1 = true;
 				break;
 			case SsLib::SectionType::C64Cia2:
-				hr = pfs->Read(&sbCia2, sizeof(sbCia2), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbCia2);
+				hr = pfs->Read(&sbCia2, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bC64Cia2 = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bC64Cia2 = true;
 				break;
 			case SsLib::SectionType::C64Vic:
-				hr = pfs->Read(&sbVic6569, sizeof(sbVic6569), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbVic6569);
+				hr = pfs->Read(&sbVic6569, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bC64Vic6569 = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bC64Vic6569 = true;
 				break;
 			case SsLib::SectionType::C64Sid:
-				hr = pfs->Read(&sbSid, sizeof(sbSid), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbSid);
+				hr = pfs->Read(&sbSid, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bC64Sid = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bC64Sid = true;
 				break;
 			case SsLib::SectionType::C64KernelRom:
 				pC64KernelRom = (bit8 *)malloc(SaveState::SIZEC64KERNEL);
 				if (pC64KernelRom)
 				{
-					hr = pfs->Read(pC64KernelRom, SaveState::SIZEC64KERNEL, &bytesWritten);
+					bytesToRead = SaveState::SIZEC64KERNEL;
+					hr = pfs->Read(pC64KernelRom, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
 				}
 				else
 				{
@@ -1994,7 +2092,19 @@ ULARGE_INTEGER pos_next_track_header;
 				pC64BasicRom = (bit8 *)malloc(SaveState::SIZEC64BASIC);
 				if (pC64BasicRom)
 				{
-					hr = pfs->Read(pC64BasicRom, SaveState::SIZEC64BASIC, &bytesWritten);
+					bytesToRead = SaveState::SIZEC64BASIC;
+					hr = pfs->Read(pC64BasicRom, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
 				}
 				else
 				{
@@ -2006,7 +2116,19 @@ ULARGE_INTEGER pos_next_track_header;
 				pC64CharRom = (bit8 *)malloc(SaveState::SIZEC64CHARGEN);
 				if (pC64CharRom)
 				{
-					hr = pfs->Read(pC64CharRom, SaveState::SIZEC64CHARGEN, &bytesWritten);
+					bytesToRead = SaveState::SIZEC64CHARGEN;
+					hr = pfs->Read(pC64CharRom, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
 				}
 				else
 				{
@@ -2018,7 +2140,19 @@ ULARGE_INTEGER pos_next_track_header;
 				pDriveRam = (bit8 *)malloc(SaveState::SIZEDRIVERAM);
 				if (pDriveRam)
 				{
-					hr = pfs->Read(pDriveRam, SaveState::SIZEDRIVERAM, &bytesWritten);
+					bytesToRead = SaveState::SIZEDRIVERAM;
+					hr = pfs->Read(pDriveRam, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
 				}
 				else
 				{
@@ -2030,7 +2164,19 @@ ULARGE_INTEGER pos_next_track_header;
 				pDriveRom = (bit8 *)malloc(SaveState::SIZEDRIVEROM);
 				if (pDriveRom)
 				{
-					hr = pfs->Read(pDriveRom, SaveState::SIZEDRIVEROM, &bytesWritten);
+					bytesToRead = SaveState::SIZEDRIVEROM;
+					hr = pfs->Read(pDriveRom, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
 				}
 				else
 				{
@@ -2039,32 +2185,68 @@ ULARGE_INTEGER pos_next_track_header;
 				bDriveRom = true;
 				break;
 			case SsLib::SectionType::DriveCpu:
-				hr = pfs->Read(&sbCpuDisk, sizeof(sbCpuDisk), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbCpuDisk);
+				hr = pfs->Read(&sbCpuDisk, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bDriveCpu = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bDriveCpu = true;
 				break;
 			case SsLib::SectionType::DriveController:
-				hr = pfs->Read(&sbDriveController, sizeof(sbDriveController), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbDriveController);
+				hr = pfs->Read(&sbDriveController, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bDriveController = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveVia1:
-				hr = pfs->Read(&sbDriveVia1, sizeof(sbDriveVia1), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbDriveVia1);
+				hr = pfs->Read(&sbDriveVia1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bDriveVia1 = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bDriveVia1 = true;
 				break;
 			case SsLib::SectionType::DriveVia2:
-				hr = pfs->Read(&sbDriveVia2, sizeof(sbDriveVia2), &bytesWritten);
-				if (SUCCEEDED(hr))
+				bytesToRead = sizeof(sbDriveVia2);
+				hr = pfs->Read(&sbDriveVia2, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
-					bDriveVia2 = true;
+					break;
 				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				bDriveVia2 = true;
 				break;
 			case SsLib::SectionType::DriveDiskImage:
 				if (!pTrackBuffer)
@@ -2084,7 +2266,17 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				for (i=0; i<G64_MAX_TRACKS;i++)
 				{
-					hr = pfs->Read(&trackHeader, sizeof(trackHeader), &bytesWritten);
+					bytesToRead = sizeof(trackHeader);
+					hr = pfs->Read(&trackHeader, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
 					if (FAILED(hr))
 						break;
 					if (trackHeader.gap_count > DISK_RAW_TRACK_SIZE || (trackHeader.number >= G64_MAX_TRACKS))

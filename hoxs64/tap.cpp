@@ -43,7 +43,8 @@ HRESULT TAP64::LoadTAPFile(TCHAR *filename)
 HANDLE hfile = INVALID_HANDLE_VALUE;
 DWORD file_size;
 BOOL r;
-DWORD bytes_read;
+DWORD bytesRead;
+DWORD bytesToRead;
 RAWTAPE header;
 HRESULT hr = E_FAIL;
 int c;
@@ -67,7 +68,8 @@ bit32 *buffer = NULL;
 		}
 
 		ZeroMemory(&header, sizeof(header));
-		r = ReadFile(hfile, &header, sizeof(header) - sizeof(header.data), &bytes_read, NULL);
+		bytesToRead = sizeof(header) - sizeof(header.data);
+		r = ReadFile(hfile, &header, bytesToRead, &bytesRead, NULL);
 		if (r==0)
 		{
 			hr = SetError(E_FAIL,TEXT("Could not read from tape file %s."), filename);
@@ -156,7 +158,8 @@ bit32 *buffer = NULL;
 HRESULT TAP64::ReadTapeData(HANDLE hfile, int version, bit32 *buffer, int bufferlen, int *count)
 {
 BOOL r;
-DWORD bytes_read;
+DWORD bytesRead;
+DWORD byteToRead;
 HRESULT hr = E_FAIL;
 
 	int c = 0;
@@ -165,13 +168,14 @@ HRESULT hr = E_FAIL;
 	{
 		bit8 v;
 		bit32 w;
-		r = ReadFile(hfile, &v, 1, &bytes_read, NULL);
-		if (r==0)
+		byteToRead = 1;
+		r = ReadFile(hfile, &v, byteToRead, &bytesRead, NULL);
+		if (r==0 && GetLastError() != ERROR_HANDLE_EOF)
 		{
 			hr = SetErrorFromGetLastError();
 			break;
 		}
-		else if (bytes_read == 0)
+		else if (bytesRead < byteToRead)
 		{
 			eof = true;
 			break;
@@ -191,13 +195,14 @@ HRESULT hr = E_FAIL;
 			{
 				//LITTLE ENDIAN
 				w = 0;
-				r = ReadFile(hfile, &w, 3, &bytes_read, NULL);
+				byteToRead = 3;
+				r = ReadFile(hfile, &w, byteToRead, &bytesRead, NULL);
 				if (r == 0)
 				{
 					hr = SetErrorFromGetLastError();
 					break;
 				}
-				else if (bytes_read == 0)
+				else if (bytesRead < byteToRead)
 				{
 					eof = true;
 					break;
