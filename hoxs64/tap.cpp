@@ -189,7 +189,10 @@ HRESULT hr = E_FAIL;
 		{
 			if (version == 0)
 			{
-				buffer[c] = DEFAULTDELAY;
+				if (buffer)
+				{
+					buffer[c] = DEFAULTDELAY;
+				}
 			}
 			else
 			{
@@ -353,6 +356,7 @@ ICLK clocks;
 void Tape64::GetState(SsTape &state)
 {
 	state.CurrentClock = CurrentClock;
+	state.tape_max_counter = tape_max_counter;
 	state.tape_position = tape_position;
 	state.tape_pulse_length = tape_pulse_length;
 	state.nextTapeTickClock = nextTapeTickClock;
@@ -365,6 +369,7 @@ void Tape64::GetState(SsTape &state)
 void Tape64::SetState(const SsTape &state)
 {
 	CurrentClock = state.CurrentClock;
+	tape_max_counter = state.tape_max_counter;
 	tape_position = state.tape_position;
 	tape_pulse_length = state.tape_pulse_length;
 	nextTapeTickClock = state.nextTapeTickClock;

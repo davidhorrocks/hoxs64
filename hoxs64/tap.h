@@ -24,6 +24,7 @@ public:
 	bit32 *pData;
 	DWORD tape_max_counter;
 	static const int DEFAULTDELAY = 32768;
+	static const int MAX_COUNTERS = 0x280000;
 
 private:
 	HRESULT ReadTapeData(HANDLE hfile,int version, bit32 *buffer, int bufferlen, int *count);
