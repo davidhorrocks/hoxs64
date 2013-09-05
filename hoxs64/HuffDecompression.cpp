@@ -77,6 +77,7 @@ CHuffNodeArray nodeArray;
 HuffNodeHolder nodeHolder;
 int cnt = 0;
 ULONG bytesRead = 0;
+ULONG bytesToRead = 0;
 
 	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, numberOfDoubleWords * 4);
 	if (!fdiStream.data)
@@ -99,11 +100,29 @@ ULONG bytesRead = 0;
 			return E_OUTOFMEMORY;
 		currentNode = rootNode;
 
-		hr = m_pStream->Read((char *)&subStreamHeader1, 1, &bytesRead);
+		bytesToRead = 1;
+		hr = m_pStream->Read((char *)&subStreamHeader1, bytesToRead, &bytesRead);
+		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+		{
+			break;
+		}
+		else if (bytesRead < bytesToRead)
+		{
+			hr = E_FAIL;
+		}
 		if (FAILED(hr))
 			return hr;
 
-		hr = m_pStream->Read((char *)&subStreamHeader2, 1, &bytesRead);
+		bytesToRead = 1;
+		hr = m_pStream->Read((char *)&subStreamHeader2, bytesToRead, &bytesRead);
+		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+		{
+			break;
+		}
+		else if (bytesRead < bytesToRead)
+		{
+			hr = E_FAIL;
+		}
 		if (FAILED(hr))
 			return hr;
 
@@ -132,7 +151,16 @@ ULONG bytesRead = 0;
 			if (frame == 0)
 			{
 				frame = 8;
-				hr = m_pStream->Read((char *)&currentByte, 1, &bytesRead);
+				bytesToRead = 1;
+				hr = m_pStream->Read((char *)&currentByte, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					hr = E_FAIL;
+				}
 				if (FAILED(hr))
 					return hr;
 			}
@@ -173,7 +201,16 @@ ULONG bytesRead = 0;
 		{
 			if (fdiStream.bitSize == 16)
 			{
-				hr = m_pStream->Read((char *)&currentWord, 2, &bytesRead);
+				bytesToRead = 2;
+				hr = m_pStream->Read((char *)&currentWord, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					hr = E_FAIL;
+				}
 				if (FAILED(hr))
 					return hr;
 
@@ -190,7 +227,16 @@ ULONG bytesRead = 0;
 			}
 			else
 			{
-				hr = m_pStream->Read((char *)&currentByte, 1, &bytesRead);
+				bytesToRead = 1;
+				hr = m_pStream->Read((char *)&currentByte, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					hr = E_FAIL;
+				}
 				if (FAILED(hr))
 					return hr;
 
@@ -213,7 +259,16 @@ ULONG bytesRead = 0;
 				if (frame == 0)
 				{
 					frame = 8;
-					hr = m_pStream->Read((char *)&currentByte, 1, &bytesRead);
+					bytesToRead = 1;
+					hr = m_pStream->Read((char *)&currentByte, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						hr = E_FAIL;
+					}
 					if (FAILED(hr))
 						return hr;
 				}
