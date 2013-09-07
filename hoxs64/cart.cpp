@@ -448,6 +448,7 @@ HRESULT Cart::LoadCrtFile(LPCTSTR filename)
 HRESULT hr = E_FAIL;
 HANDLE hFile = NULL;
 DWORD nBytesRead;
+DWORD nBytesToRead;
 BOOL br;
 LPCTSTR S_READFAILED = TEXT("Could not read file %s.");
 LPCTSTR S_OUTOFMEMORY = TEXT("Out of memory.");
@@ -485,8 +486,9 @@ __int64 iFileIndex = 0;
 			}
 
 			//Read header.
-			br = ReadFile(hFile, &hdr, sizeof(hdr), &nBytesRead, NULL);
-			if (!br)
+			nBytesToRead = sizeof(hdr);
+			br = ReadFile(hFile, &hdr, nBytesToRead, &nBytesRead, NULL);
+			if (!br || nBytesRead < nBytesToRead)
 			{
 				hr = SetError(E_FAIL, S_READFAILED, filename);
 				ok = false;
@@ -533,8 +535,9 @@ __int64 iFileIndex = 0;
 				}
 
 				//Read chip header
-				br = ReadFile(hFile, &chip, sizeof(chip), &nBytesRead, NULL);
-				if (!br)
+				nBytesToRead = sizeof(chip);
+				br = ReadFile(hFile, &chip, nBytesToRead, &nBytesRead, NULL);
+				if (!br || nBytesRead < nBytesToRead)
 				{
 					hr = SetError(E_FAIL, S_READFAILED, filename);
 					ok = false;
@@ -689,7 +692,7 @@ __int64 iFileIndex = 0;
 								ok = false;
 								break;
 							}
-							DWORD nBytesToRead = pChipAndData->chip.ROMImageSize;
+							nBytesToRead = pChipAndData->chip.ROMImageSize;
 							if ((DWORD)pChipAndData->romOffset + (DWORD)pChipAndData->chip.ROMImageSize > (DWORD)pChipAndData->allocatedSize)
 							{
 								nBytesToRead = (DWORD)pChipAndData->allocatedSize - (DWORD)pChipAndData->romOffset;
@@ -697,7 +700,7 @@ __int64 iFileIndex = 0;
 							if (nBytesToRead > 0)
 							{
 								br = ReadFile(hFile, &p[pChipAndData->romOffset], nBytesToRead, &nBytesRead, NULL);
-								if (!br)
+								if (!br || nBytesRead < nBytesToRead)
 								{
 									hr = SetError(E_FAIL, S_READFAILED, filename);
 									ok = false;
