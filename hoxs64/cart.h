@@ -1,6 +1,8 @@
 #ifndef __CART_H__
 #define __CART_H__
 
+#include "savestate.h"
+
 #define APPWARN_UNKNOWNCARTTYPE MAKE_HRESULT(0, 0xa00, 2)
 
 class ICartInterface : public IRegister
@@ -43,6 +45,10 @@ public:
 
 	virtual bit8 *Get_RomH()=0;
 	virtual void PreventClockOverflow() = 0;
+
+	virtual HRESULT LoadState(IStream *pfs) = 0;
+	virtual HRESULT SaveState(IStream *pfs) = 0;
+	//virtual void ApplyState() = 0;
 };
 
 class Cart;
@@ -69,6 +75,51 @@ struct CrtChip
 	bit16 BankLocation;
 	bit16 LoadAddressRange;
 	bit16 ROMImageSize;
+};
+
+struct SsCartStateHeader
+{
+	bit32 size;
+}
+;
+struct SsCartMemoryHeader
+{
+	bit32 size;
+	bit32 banks;
+};
+
+struct SsCartChip
+{
+	CrtChip chip;
+	bit16 allocatedSize;
+};
+
+struct SsCartBank
+{
+	bit32 bank;
+	SsCartChip roml;
+	SsCartChip romh;
+};
+
+struct SsCartCommon
+{
+	CrtHeader header;
+
+	bit8 reg1;
+	bit8 reg2;
+
+	bit8 GAME;
+	bit8 EXROM;
+	bit8 m_bIsCartAttached;
+	bit8 m_bIsCartIOActive;
+	bit8 m_bIsCartRegActive;
+	bit8 m_iSelectedBank;
+
+	bit8 m_bEnableRAM;
+	bit8 m_bAllowBank;
+	bit8 m_bREUcompatible;
+	bit8 m_bFreezePending;
+	bit8 m_bFreezeDone;
 };
 
 # pragma pack ()
@@ -157,9 +208,14 @@ public:
 	virtual bit8 *Get_RomH();
 	virtual void PreventClockOverflow();
 
+	virtual HRESULT LoadState(IStream *pfs);
+	virtual HRESULT SaveState(IStream *pfs);
+	virtual HRESULT SaveMemoryState(IStream *pfs);
+
 protected:
 	virtual void UpdateIO()=0;
 	void BankRom();
+	virtual int GetStateBytes(bit8 *pstate);
 
 	Cart *m_pCart;
 	CrtHeader& m_crtHeader;
@@ -191,6 +247,8 @@ protected:
 	IC6510 *m_pCpu;
 	bit8 *m_pC64RamMemory;
 	bool m_bEffects;
+
+	CrtBankList m_lstStateBank;
 };
 
 class Cart : public ICartInterface, public ErrorMsg
@@ -234,7 +292,7 @@ public:
 	~Cart();
 	void Init(IC6510 *pCpu, bit8 *pC64RamMemory);
 	HRESULT LoadCrtFile(LPCTSTR filename);
-	shared_ptr<ICartInterface> CreateCartInterface(IC6510 *pCpu, bit8 *pC64RamMemory);
+	shared_ptr<ICartInterface> CreateCartInterface(bit16 hardwareType, IC6510 *pCpu, bit8 *pC64RamMemory);
 	int GetTotalCartMemoryRequirement();
 	static bool IsSupported(CartType::ECartType hardwareType);
 	bool IsSupported();
@@ -283,6 +341,10 @@ public:
 	void ConfigureMemoryMap();
 	bit8 *Get_RomH();
 	void PreventClockOverflow();
+
+	HRESULT LoadState(IStream *pfs);
+	HRESULT SaveState(IStream *pfs);
+	void ApplyState();
 
 	CrtHeader m_crtHeader;//Cart head information
 	CrtBankList m_lstBank;//A list of cart ROM/EPROM banks that index the cart memory data.

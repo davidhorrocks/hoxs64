@@ -19,6 +19,7 @@
 #include "util.h"
 #include "utils.h"
 #include "register.h"
+#include "Huff.h"
 #include "cart.h"
 
 const int Cart::RAMRESERVEDSIZE = 64 * 1024 + 8 * 1024;//Assume 64K cart RAM + 8K zero byte bank
@@ -68,6 +69,177 @@ bit8 *CartCommon::Get_RomH()
 
 void CartCommon::PreventClockOverflow()
 {
+}
+
+int CartCommon::GetStateBytes(bit8 *pstate)
+{
+	SsCartCommon *p = (SsCartCommon *)pstate;
+	if (pstate)
+	{	
+		p->header = this->m_crtHeader;
+
+		p->reg1 = reg1;
+		p->reg2 = reg2;
+
+		p->GAME = GAME;
+		p->EXROM = EXROM;
+		p->m_bIsCartAttached = m_bIsCartAttached;
+		p->m_bIsCartIOActive = m_bIsCartIOActive;
+		p->m_bIsCartRegActive = m_bIsCartRegActive;
+		p->m_iSelectedBank = m_iSelectedBank;
+
+		p->m_bEnableRAM = m_bEnableRAM;
+		p->m_bAllowBank = m_bAllowBank;
+		p->m_bREUcompatible = m_bREUcompatible;
+		p->m_bFreezePending = m_bFreezePending;
+		p->m_bFreezeDone = m_bFreezeDone;
+	}
+	return sizeof(SsCartCommon);
+}
+
+HRESULT CartCommon::LoadState(IStream *pfs)
+{
+	return E_FAIL;
+}
+
+HRESULT CartCommon::SaveState(IStream *pfs)
+{
+HRESULT hr;
+ULONG bytesToWrite;
+ULONG bytesWritten;
+SsCartStateHeader hdr;
+bit8* pstate;
+int statesize;
+
+	statesize = GetStateBytes(NULL);
+	pstate = (bit8*)malloc(statesize);
+	statesize = GetStateBytes(pstate);
+	hr = S_OK;
+	do
+	{
+		ZeroMemory(&hdr, sizeof(hdr));
+		hdr.size = sizeof(hdr) + sizeof(this->m_crtHeader) + statesize;
+		bytesToWrite = sizeof(hdr);
+		hr = pfs->Write(&hdr, bytesToWrite, &bytesWritten);
+		if (FAILED(hr))
+			break;
+		bytesToWrite = sizeof(this->m_crtHeader);
+		hr = pfs->Write(&this->m_crtHeader, bytesToWrite, &bytesWritten);
+		if (FAILED(hr))
+			break;
+		bytesToWrite = statesize;
+		hr = pfs->Write(pstate, bytesToWrite, &bytesWritten);
+		if (FAILED(hr))
+			break;
+		hr = this->SaveMemoryState(pfs);
+		if (FAILED(hr))
+			return hr;
+	}
+	while (false);
+	if (pstate)
+	{
+		free(pstate);
+		pstate = NULL;
+	}
+	return hr;
+}
+
+HRESULT CartCommon::SaveMemoryState(IStream *pfs)
+{
+HRESULT hr;
+ULONG bytesToWrite;
+ULONG bytesWritten;
+SsCartMemoryHeader hdr;
+int dwordCount = 0;
+	hr = S_OK;
+	do
+	{
+
+		LARGE_INTEGER spos_zero;
+		LARGE_INTEGER spos_next;
+		ULARGE_INTEGER pos_current_section_header;
+		ULARGE_INTEGER pos_next_section_header;
+		ULARGE_INTEGER pos_dummy;
+		spos_zero.QuadPart = 0;
+		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_section_header);
+		if (FAILED(hr))
+			break;
+
+		ZeroMemory(&hdr, sizeof(hdr));
+		hdr.size = sizeof(hdr) + 0;
+		bytesToWrite = sizeof(hdr);
+		hr = pfs->Write(&hdr, bytesToWrite, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		HuffCompression hw;
+		hr = hw.Init();
+		if (FAILED(hr))
+			break;
+
+		hr = hw.SetFile(pfs);
+		if (FAILED(hr))
+			break;
+		bit32 compressedSize;
+		int banks = 0;
+		for (CrtBankListIter it = m_lstBank.begin(); it != m_lstBank.end(); it++)
+		{
+			Sp_CrtBank sp = *it;
+			if (!sp)
+				continue;
+			SsCartBank bank;
+			bank.bank = sp->bank;
+			bank.roml.allocatedSize = sp->chipAndDataLow.allocatedSize;
+			bank.roml.chip =  sp->chipAndDataLow.chip;
+			bank.romh.allocatedSize = sp->chipAndDataHigh.allocatedSize;
+			bank.romh.chip =  sp->chipAndDataHigh.chip;
+			banks++;
+
+			dwordCount = sp->chipAndDataLow.allocatedSize / sizeof(bit32);
+			bytesToWrite = sizeof(dwordCount);
+			hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+			if (FAILED(hr))
+				break;
+
+			if (dwordCount > 0)
+			{
+				hr = hw.Compress((bit32 *)sp->chipAndDataLow.pData, dwordCount, &compressedSize);
+				if (FAILED(hr))
+					break;
+			}
+			dwordCount = sp->chipAndDataHigh.allocatedSize / sizeof(bit32);
+			bytesToWrite = sizeof(dwordCount);
+			hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+			if (FAILED(hr))
+				break;
+
+			if (dwordCount > 0)
+			{
+				hr = hw.Compress((bit32 *)sp->chipAndDataHigh.pData, dwordCount, &compressedSize);
+				if (FAILED(hr))
+					break;
+			}
+		}
+
+		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next_section_header);
+		if (FAILED(hr))
+			break;
+
+		spos_next.QuadPart = pos_current_section_header.QuadPart;
+		hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+		if (FAILED(hr))
+			break;
+		hdr.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
+		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
+		if (FAILED(hr))
+			break;
+		spos_next.QuadPart = pos_next_section_header.QuadPart;
+		hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+		if (FAILED(hr))
+			break;
+	}
+	while (false);
+	return hr;
 }
 
 ICLK CartCommon::GetCurrentClock()
@@ -785,12 +957,12 @@ __int64 iFileIndex = 0;
 	return hr;
 }
 
-shared_ptr<ICartInterface> Cart::CreateCartInterface(IC6510 *pCpu, bit8 *pC64RamMemory)
+shared_ptr<ICartInterface> Cart::CreateCartInterface(bit16 hardwareType, IC6510 *pCpu, bit8 *pC64RamMemory)
 {
 shared_ptr<ICartInterface> p;
 	try
 	{
-		switch(this->m_crtHeader.HardwareType)
+		switch(hardwareType)
 		{
 		case CartType::Normal_Cartridge:
 			p = shared_ptr<ICartInterface>(new CartNormalCartridge(this, pCpu, pC64RamMemory));
@@ -1007,7 +1179,7 @@ void Cart::AttachCart()
 {
 	if (this->m_bIsCartDataLoaded)
 	{
-		m_spCurrentCart = this->CreateCartInterface(this->m_pCpu, this->m_pC64RamMemory);
+		m_spCurrentCart = this->CreateCartInterface(this->m_crtHeader.HardwareType, this->m_pCpu, this->m_pC64RamMemory);
 		if (m_spCurrentCart)
 		{
 			m_spCurrentCart->AttachCart();
@@ -1043,6 +1215,31 @@ void Cart::PreventClockOverflow()
 {
 	if (m_spCurrentCart)
 		m_spCurrentCart->PreventClockOverflow();
+}
+
+HRESULT Cart::LoadState(IStream *pfs)
+{
+	if (m_spCurrentCart)
+	{
+		return m_spCurrentCart->LoadState(pfs);
+	}
+	else
+	{
+		return S_FALSE;
+	}
+}
+
+HRESULT Cart::SaveState(IStream *pfs)
+{
+	if (m_spCurrentCart)
+		return m_spCurrentCart->SaveState(pfs);
+	else
+		return S_FALSE;
+}
+
+void Cart::ApplyState()
+{
+
 }
 
 ICLK Cart::GetCurrentClock()

@@ -1833,6 +1833,53 @@ bit32 *pTrackBuffer = NULL;
 				break;
 		}
 
+		if (cart.IsCartAttached())
+		{
+			LARGE_INTEGER spos_zero;
+			LARGE_INTEGER spos_next;
+			ULARGE_INTEGER pos_current_section_header;
+			ULARGE_INTEGER pos_next_section_header;
+			ULARGE_INTEGER pos_dummy;
+			spos_zero.QuadPart = 0;
+			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_section_header);
+			if (FAILED(hr))
+				break;
+			sh.id = SsLib::SectionType::Cart;
+			sh.size = sizeof(sh);
+			sh.version = 0;
+			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			if (FAILED(hr))
+				break;
+
+			hr = cart.SaveState(pfs);
+			if (FAILED(hr))
+				break;
+
+			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next_section_header);
+			if (FAILED(hr))
+				break;
+
+			spos_next.QuadPart = pos_current_section_header.QuadPart;
+			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+			if (FAILED(hr))
+				break;
+			sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
+			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			if (FAILED(hr))
+				break;
+			spos_next.QuadPart = pos_next_section_header.QuadPart;
+			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
+			if (FAILED(hr))
+				break;
+		}
+
+		sh.size = 0;
+		sh.id = 0;
+		sh.version = 0;
+		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		if (FAILED(hr))
+			break;
+
 	} while (false);
 	if (pfs)
 	{
