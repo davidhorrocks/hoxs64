@@ -1386,6 +1386,7 @@ CrtChipAndData::~CrtChipAndData()
 			GlobalFree(pData);
 			pData = NULL;
 		}
+		ownData = false;
 	}
 }
 
