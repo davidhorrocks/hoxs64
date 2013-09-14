@@ -28,7 +28,6 @@ const int Cart::ZEROBANKOFFSET = 64 * 1024;
 CartCommon::CartCommon(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory)
 	: m_crtHeader(crtHeader), m_plstBank(plstBank)
 {
-	//this->m_pCart = pCart;
 	this->m_pCpu = pCpu;
 	this->m_pC64RamMemory = pC64RamMemory;
 
@@ -1372,9 +1371,22 @@ CrtChipAndData::CrtChipAndData()
 {
 	ZeroMemory(&chip, sizeof(chip));
 	pData = NULL;
+	ownData = false;
 	iFileIndex = 0;
 	allocatedSize = 0;
 	romOffset = 0;
+}
+
+CrtChipAndData::~CrtChipAndData()
+{
+	if (ownData)
+	{
+		if (pData)
+		{
+			GlobalFree(pData);
+			pData = NULL;
+		}
+	}
 }
 
 CrtBank::CrtBank()

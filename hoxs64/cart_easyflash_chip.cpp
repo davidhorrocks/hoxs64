@@ -23,10 +23,8 @@
 
 EasyFlashChip::EasyFlashChip()
 {
-	m_pBlankData = NULL;
 	m_chipNumber = 0;
 	m_vecPendingSectorErase.reserve(MAXBANKS);
-	m_vecBanks.resize(MAXBANKS);
 }
 
 EasyFlashChip::~EasyFlashChip()
@@ -41,12 +39,6 @@ void EasyFlashChip::Detach()
 
 void EasyFlashChip::CleanUp()
 {
-	m_vecBanks.clear();
-	if (m_pBlankData)
-	{
-		GlobalFree(m_pBlankData);
-		m_pBlankData = NULL;
-	}
 
 }
 
@@ -58,82 +50,43 @@ void EasyFlashChip::Init(CartEasyFlash *pCartEasyFlash, int chipNumber)
 */
 int i;
 const int BANKSIZE = 0x2000;
-bit8 *pBlankData = NULL;
 	try
 	{
+		m_plstBank = pCartEasyFlash->m_plstBank;
 		m_pCartEasyFlash = pCartEasyFlash;
 		m_chipNumber = chipNumber;
-		m_vecBanks.clear();
 
 		int iBlankChipsTotalBytes = 0;
 		i = 0;
 		for (CrtBankListIter it = m_pCartEasyFlash->m_plstBank->begin(); it != m_pCartEasyFlash->m_plstBank->end() && i < MAXBANKS; it++,i++)
 		{
+			CrtChipAndData *pcd;
 			if (chipNumber == 0)
 			{
-				if (!*it || (*it)->chipAndDataLow.pData==NULL)
-				{
-					iBlankChipsTotalBytes += BANKSIZE;
-				}
+				pcd = &it->get()->chipAndDataLow;
 			}
 			else
 			{
-				if (!*it || (*it)->chipAndDataHigh.pData==NULL)
-				{
-					iBlankChipsTotalBytes += BANKSIZE;
-				}
+				pcd = &it->get()->chipAndDataHigh;
+			}
+			if (pcd->pData == NULL)
+			{
+				if (!(pcd->pData = (bit8 *)GlobalAlloc(GPTR, BANKSIZE)))
+					throw std::bad_alloc();
+				pcd->ownData = true;
+				pcd->allocatedSize = BANKSIZE;
+				pcd->chip.BankLocation = i;
+				pcd->chip.ChipType = Cart::ChipType::EPROM;
+				pcd->chip.ROMImageSize = BANKSIZE;
+				if (chipNumber == 0)
+					pcd->chip.LoadAddressRange = 0x8000;
+				else
+					pcd->chip.LoadAddressRange = 0xA000;
 			}
 		}
-		bit8 *pBlankData = NULL;
-		if (iBlankChipsTotalBytes > 0)
-			pBlankData = (bit8 *)GlobalAlloc(GPTR, iBlankChipsTotalBytes);
-		bit8 *p = pBlankData;
-		int k = 0;
-		i = 0;
-		for (CrtBankListIter it = m_pCartEasyFlash->m_plstBank->begin(); it!=m_pCartEasyFlash->m_plstBank->end() && i < MAXBANKS; it++,i++)
-		{
-			if (chipNumber == 0)
-			{
-				if (*it && (*it)->chipAndDataLow.pData != NULL)
-				{
-					m_vecBanks.push_back((*it)->chipAndDataLow);
-					continue;
-				}
-			}
-			else
-			{
-				if (*it && (*it)->chipAndDataHigh.pData != NULL)
-				{
-					m_vecBanks.push_back((*it)->chipAndDataHigh);
-					continue;
-				}
-			}
-			if (pBlankData == NULL)
-				continue;
-			CrtChipAndData def;
-			def.allocatedSize = BANKSIZE;
-			def.pData = p;
-			def.chip.BankLocation = i;
-			def.chip.ChipType = Cart::ChipType::EPROM;
-			def.chip.ROMImageSize = BANKSIZE;
-			if (chipNumber == 0)
-				def.chip.LoadAddressRange = 0x8000;
-			else
-				def.chip.LoadAddressRange = 0xA000;
-
-			p+=BANKSIZE;
-			m_vecBanks.push_back(def);
-		}
-		m_pBlankData = pBlankData;
-		pBlankData = NULL;
 	}
 	catch (std::exception&)
 	{
-		if (pBlankData)
-		{
-			GlobalFree(pBlankData);
-			pBlankData = pBlankData;
-		}
 		throw;
 	}
 }
@@ -160,11 +113,15 @@ int k;
 	ICLK clock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
 	CheckForPendingWrite(clock);
 	k = (m_pCartEasyFlash->m_iSelectedBank) & 0x3f;
-	if ((unsigned int)k < m_vecBanks.size())
+	if ((unsigned int)k < m_plstBank->size())
 	{
-		CrtChipAndData &pc = m_vecBanks[k];
-		if (pc.pData && address < pc.chip.ROMImageSize)
-			pc.pData[address] &= data;
+		CrtChipAndData *pc;
+		if (m_chipNumber == 0)
+			pc = &m_plstBank->at(k)->chipAndDataLow;
+		else
+			pc = &m_plstBank->at(k)->chipAndDataHigh;
+		if (pc->pData && address < pc->chip.ROMImageSize)
+			pc->pData[address] &= data;
 	}
 }
 
@@ -193,11 +150,15 @@ int k;
 		break;
 	case ByteProgram:
 		k = (m_pCartEasyFlash->m_iSelectedBank) & 0x3f;
-		if ((unsigned int)k < m_vecBanks.size())
+		if ((unsigned int)k < m_plstBank->size())
 		{
-			CrtChipAndData &pc = m_vecBanks[k];
-			if (pc.pData && address < pc.chip.ROMImageSize)
-				pc.pData[address] &= data;
+			CrtChipAndData *pc;
+			if (m_chipNumber == 0)
+				pc = &m_plstBank->at(k)->chipAndDataLow;
+			else
+				pc = &m_plstBank->at(k)->chipAndDataHigh;
+			if (pc->pData && address < pc->chip.ROMImageSize)
+				pc->pData[address] &= data;
 		}
 		m_mode = Read;
 		m_iCommandCycle = 0;
@@ -362,11 +323,15 @@ int k;
 	ICLK clock = m_pCartEasyFlash->m_pCpu->Get6510CurrentClock();
 	CheckForPendingWrite(clock);
 	k = (m_pCartEasyFlash->m_iSelectedBank)  & 0x3f;
-	if ((unsigned int)k < m_vecBanks.size())
+	if ((unsigned int)k < m_plstBank->size())
 	{
-		CrtChipAndData &pc = m_vecBanks[k];
-		if (pc.pData && address < pc.chip.ROMImageSize)
-			return pc.pData[address];
+		CrtChipAndData *pc;
+		if (m_chipNumber == 0)
+			pc = &m_plstBank->at(k)->chipAndDataLow;
+		else
+			pc = &m_plstBank->at(k)->chipAndDataHigh;
+		if (pc->pData && address < pc->chip.ROMImageSize)
+			return pc->pData[address];
 	}
 	return 0;
 }
@@ -384,11 +349,15 @@ const bit8 Am29F040 = 0xA4;
 	{
 	case Read:
 		k = (m_pCartEasyFlash->m_iSelectedBank)  & 0x3f;
-		if ((unsigned int)k < m_vecBanks.size())
+		if ((unsigned int)k < m_plstBank->size())
 		{
-			CrtChipAndData &pc = m_vecBanks[k];
-			if (pc.pData && address < pc.chip.ROMImageSize)
-				return pc.pData[address];
+			CrtChipAndData *pc;
+			if (m_chipNumber == 0)
+				pc = &m_plstBank->at(k)->chipAndDataLow;
+			else
+				pc = &m_plstBank->at(k)->chipAndDataHigh;
+			if (pc->pData && address < pc->chip.ROMImageSize)
+				return pc->pData[address];
 		}
 		return 0;
 	case AutoSelect:
@@ -422,11 +391,15 @@ int k;
 		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 80)
 		{
 			m_iCommandCycle = 0;
-			for (int i = 0; (unsigned int)i < m_vecBanks.size(); i++)
+			for (k = 0; (unsigned int)k < m_plstBank->size(); k++)
 			{
-				CrtChipAndData &pc = m_vecBanks[i];
-				if (pc.pData)
-					FillMemory(pc.pData, pc.chip.ROMImageSize, 0xff);
+				CrtChipAndData *pc;
+				if (m_chipNumber == 0)
+					pc = &m_plstBank->at(k)->chipAndDataLow;
+				else
+					pc = &m_plstBank->at(k)->chipAndDataHigh;
+				if (pc->pData)
+					FillMemory(pc->pData, pc->chip.ROMImageSize, 0xff);
 			}
 		}
 		m_mode = Read;
@@ -441,11 +414,15 @@ int k;
 				for (int i = 0; i < 8; i++)
 				{
 					k = ((*it) +i ) & 0x3f;
-					if ((unsigned int)k < m_vecBanks.size())
+					if ((unsigned int)k < m_plstBank->size())
 					{
-						CrtChipAndData &pc = m_vecBanks[k];
-						if (pc.pData)
-							FillMemory(pc.pData, pc.chip.ROMImageSize, 0xff);
+						CrtChipAndData *pc;
+						if (m_chipNumber == 0)
+							pc = &m_plstBank->at(k)->chipAndDataLow;
+						else
+							pc = &m_plstBank->at(k)->chipAndDataHigh;
+						if (pc->pData)
+							FillMemory(pc->pData, pc->chip.ROMImageSize, 0xff);
 					}
 				}
 			}

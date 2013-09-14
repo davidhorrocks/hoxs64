@@ -43,7 +43,7 @@ private:
 	bit8 m_iSectorWrite;
 	EEasyFlashMode m_mode;
 	std::vector<bit8> m_vecPendingSectorErase;
-	std::vector<CrtChipAndData> m_vecBanks;
+	CrtBankList *m_plstBank;
 	int m_chipNumber;
 	bit8 *m_pBlankData;
 };

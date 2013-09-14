@@ -127,8 +127,10 @@ struct SsCartCommon
 struct CrtChipAndData
 {
 	CrtChipAndData();
+	~CrtChipAndData();
 	CrtChip chip;
 	bit8 *pData;
+	bool ownData;
 	bit16 allocatedSize;
 	bit16 romOffset;
 	__int64 iFileIndex;
@@ -217,7 +219,6 @@ protected:
 	void BankRom();
 	virtual int GetStateBytes(bit8 *pstate);
 
-	//Cart *m_pCart;
 	CrtHeader m_crtHeader;
 	CrtBankList *m_plstBank;
 	bit8 *m_pCartData;
