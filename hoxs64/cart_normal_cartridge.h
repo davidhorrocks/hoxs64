@@ -5,7 +5,7 @@ class Cart;
 class CartNormalCartridge : public CartCommon
 {
 public:
-	CartNormalCartridge(Cart *pCart, IC6510 *pCpu, bit8 *pC64RamMemory);
+	CartNormalCartridge(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory);
 
 	//virtual void ExecuteCycle(ICLK sysclock);
 	//virtual void Reset(ICLK sysclock);

@@ -158,7 +158,7 @@ typedef std::vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
 class CartCommon : public ICartInterface
 {
 public:
-	CartCommon(Cart *pCart, IC6510 *pCpu, bit8 *pC64RamMemory);
+	CartCommon(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory);
 	virtual ~CartCommon();
 
 	void InitReset(ICLK sysclock);
@@ -217,9 +217,9 @@ protected:
 	void BankRom();
 	virtual int GetStateBytes(bit8 *pstate);
 
-	Cart *m_pCart;
-	CrtHeader& m_crtHeader;
-	CrtBankList& m_lstBank;
+	//Cart *m_pCart;
+	CrtHeader m_crtHeader;
+	CrtBankList *m_plstBank;
 	bit8 *m_pCartData;
 	bit8 *m_pZeroBankData;
 	bit8 *m_ipROML_8000;
@@ -292,7 +292,7 @@ public:
 	~Cart();
 	void Init(IC6510 *pCpu, bit8 *pC64RamMemory);
 	HRESULT LoadCrtFile(LPCTSTR filename);
-	shared_ptr<ICartInterface> CreateCartInterface(bit16 hardwareType, IC6510 *pCpu, bit8 *pC64RamMemory);
+	shared_ptr<ICartInterface> CreateCartInterface(bit16 hardwareType);
 	int GetTotalCartMemoryRequirement();
 	static bool IsSupported(CartType::ECartType hardwareType);
 	bool IsSupported();
@@ -347,7 +347,7 @@ public:
 	void ApplyState();
 
 	CrtHeader m_crtHeader;//Cart head information
-	CrtBankList m_lstBank;//A list of cart ROM/EPROM banks that index the cart memory data.
+	CrtBankList *m_plstBank;//A list of cart ROM/EPROM banks that index the cart memory data.
 	bit8 *m_pCartData; //Pointer to the cart memory data. This a block of RAM followed by 1 or more ROM/EPROM banks.
 	bit8 *m_pZeroBankData; //An offset into the cart memory data that points past the initial block of RAM to the first ROM/EPROM bank.
 
@@ -362,7 +362,7 @@ private:
 	static const int ZEROBANKOFFSET;
 
 	void CleanUp();
-	int GetTotalCartMemoryRequirement(CrtBankList lstBank);
+	int GetTotalCartMemoryRequirement(CrtBankList *plstBank);
 	void BankRom();
 	IC6510 *m_pCpu;
 	bit8 *m_pC64RamMemory;

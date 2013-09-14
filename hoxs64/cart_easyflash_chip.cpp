@@ -67,7 +67,7 @@ bit8 *pBlankData = NULL;
 
 		int iBlankChipsTotalBytes = 0;
 		i = 0;
-		for (CrtBankListIter it = m_pCartEasyFlash->m_lstBank.begin(); it != m_pCartEasyFlash->m_lstBank.end() && i < MAXBANKS; it++,i++)
+		for (CrtBankListIter it = m_pCartEasyFlash->m_plstBank->begin(); it != m_pCartEasyFlash->m_plstBank->end() && i < MAXBANKS; it++,i++)
 		{
 			if (chipNumber == 0)
 			{
@@ -90,7 +90,7 @@ bit8 *pBlankData = NULL;
 		bit8 *p = pBlankData;
 		int k = 0;
 		i = 0;
-		for (CrtBankListIter it = m_pCartEasyFlash->m_lstBank.begin(); it!=m_pCartEasyFlash->m_lstBank.end() && i < MAXBANKS; it++,i++)
+		for (CrtBankListIter it = m_pCartEasyFlash->m_plstBank->begin(); it!=m_pCartEasyFlash->m_plstBank->end() && i < MAXBANKS; it++,i++)
 		{
 			if (chipNumber == 0)
 			{

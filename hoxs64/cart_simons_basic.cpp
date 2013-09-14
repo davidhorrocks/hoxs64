@@ -21,8 +21,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartSimonsBasic::CartSimonsBasic(Cart *pCart, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(pCart, pCpu, pC64RamMemory)
+CartSimonsBasic::CartSimonsBasic(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(crtHeader, plstBank, pCartData, pZeroBankData, pCpu, pC64RamMemory)
 {
 }
 

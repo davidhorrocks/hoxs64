@@ -21,8 +21,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartActionReplayMk3::CartActionReplayMk3(Cart *pCart, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(pCart, pCpu, pC64RamMemory)
+CartActionReplayMk3::CartActionReplayMk3(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(crtHeader, plstBank, pCartData, pZeroBankData, pCpu, pC64RamMemory)
 {
 }
 

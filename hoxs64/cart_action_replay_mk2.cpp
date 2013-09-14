@@ -27,8 +27,8 @@
 #define ACTIONREPLAYMK2ENABLEROMCOUNT (20)
 #define ACTIONREPLAYMK2ENABLEROMTRIGGER (12)
 
-CartActionReplayMk2::CartActionReplayMk2(Cart *pCart, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(pCart, pCpu, pC64RamMemory)
+CartActionReplayMk2::CartActionReplayMk2(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(crtHeader, plstBank, pCartData, pZeroBankData, pCpu, pC64RamMemory)
 {
 }
 
