@@ -150,7 +150,10 @@ HRESULT hr;
 ULONG bytesToWrite;
 ULONG bytesWritten;
 SsCartMemoryHeader hdr;
+SsDataChunkHeader chdr;
+bit32 compressedSize;
 int dwordCount = 0;
+
 	hr = S_OK;
 	do
 	{
@@ -180,7 +183,6 @@ int dwordCount = 0;
 		hr = hw.SetFile(pfs);
 		if (FAILED(hr))
 			break;
-		bit32 compressedSize;
 		int banks = 0;
 		for (CrtBankListIter it = m_lstBank.begin(); it != m_lstBank.end(); it++)
 		{
@@ -195,29 +197,67 @@ int dwordCount = 0;
 			bank.romh.chip =  sp->chipAndDataHigh.chip;
 			banks++;
 
-			dwordCount = sp->chipAndDataLow.allocatedSize / sizeof(bit32);
-			bytesToWrite = sizeof(dwordCount);
-			hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+			chdr.byteCount = sp->chipAndDataLow.allocatedSize;
+			chdr.compressionType = Cart::NOCOMPRESSION;
+
+			bytesToWrite = sizeof(chdr);
+			hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
 			if (FAILED(hr))
 				break;
 
-			if (dwordCount > 0)
+			if (chdr.compressionType == Cart::NOCOMPRESSION)
 			{
-				hr = hw.Compress((bit32 *)sp->chipAndDataLow.pData, dwordCount, &compressedSize);
+				bytesToWrite = chdr.byteCount;
+				hr = pfs->Write(sp->chipAndDataLow.pData, bytesToWrite, &bytesWritten);
 				if (FAILED(hr))
 					break;
 			}
-			dwordCount = sp->chipAndDataHigh.allocatedSize / sizeof(bit32);
-			bytesToWrite = sizeof(dwordCount);
-			hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+			else
+			{
+				dwordCount = chdr.byteCount / sizeof(bit32);
+
+				bytesToWrite = sizeof(dwordCount);
+				hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+				if (FAILED(hr))
+					break;
+				if (dwordCount > 0)
+				{
+					hr = hw.Compress((bit32 *)sp->chipAndDataLow.pData, dwordCount, &compressedSize);
+					if (FAILED(hr))
+						break;
+				}
+			}
+
+			chdr.byteCount = sp->chipAndDataHigh.allocatedSize;
+			chdr.compressionType = Cart::NOCOMPRESSION;
+
+			bytesToWrite = sizeof(chdr);
+			hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
 			if (FAILED(hr))
 				break;
 
-			if (dwordCount > 0)
+			if (chdr.compressionType == Cart::NOCOMPRESSION)
 			{
-				hr = hw.Compress((bit32 *)sp->chipAndDataHigh.pData, dwordCount, &compressedSize);
+				bytesToWrite = chdr.byteCount;
+				hr = pfs->Write(sp->chipAndDataHigh.pData, bytesToWrite, &bytesWritten);
 				if (FAILED(hr))
 					break;
+			}
+			else
+			{
+				dwordCount = chdr.byteCount / sizeof(bit32);
+
+				bytesToWrite = sizeof(dwordCount);
+				hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+				if (FAILED(hr))
+					break;
+
+				if (dwordCount > 0)
+				{
+					hr = hw.Compress((bit32 *)sp->chipAndDataHigh.pData, dwordCount, &compressedSize);
+					if (FAILED(hr))
+						break;
+				}
 			}
 		}
 

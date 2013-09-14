@@ -61,6 +61,9 @@ public:
 	DiskInterface diskdrive;
 	Cart cart;
 
+	static const bit32 NOCOMPRESSION = 0;
+	static const bit32 HUFFCOMPRESSION = 1;
+
 	CAppStatus *appStatus;
 	CConfig *cfg;
 	IC64Event *pIC64Event;

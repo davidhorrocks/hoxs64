@@ -352,12 +352,15 @@ public:
 	bit8 *m_pZeroBankData; //An offset into the cart memory data that points past the initial block of RAM to the first ROM/EPROM bank.
 
 	bool m_bIsCartDataLoaded;
+	static const bit32 NOCOMPRESSION = 0;
+	static const bit32 HUFFCOMPRESSION = 1;
 
 protected:
 	
 private:
 	static const int RAMRESERVEDSIZE;
 	static const int ZEROBANKOFFSET;
+
 	void CleanUp();
 	int GetTotalCartMemoryRequirement(CrtBankList lstBank);
 	void BankRom();

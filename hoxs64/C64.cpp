@@ -1518,9 +1518,13 @@ const int MAXTIME = DISK_RAW_TRACK_SIZE * 16;
 HRESULT C64::SaveC64StateToFile(TCHAR *filename)
 {
 HRESULT hr;
+ULONG bytesToWrite;
 ULONG bytesWritten;
 SsSectionHeader sh;
 bit32 *pTrackBuffer = NULL;
+bit32 trackbufferLength = 0;
+SsDataChunkHeader chdr;
+bit32 dwordCount;
 
 	ClearError();
 	SynchroniseDevicesWithVIC();
@@ -1666,9 +1670,20 @@ bit32 *pTrackBuffer = NULL;
 			hr = hw.SetFile(pfs);
 			if (FAILED(hr))
 				break;
-			hr = hw.Compress(this->tape64.pData, this->tape64.tape_max_counter, &compressed_size);
+
+			chdr.byteCount = this->tape64.tape_max_counter * sizeof(bit32);
+			chdr.compressionType = HUFFCOMPRESSION;
+			dwordCount = this->tape64.tape_max_counter;
+			bytesToWrite = sizeof(chdr);
+			hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
 			if (FAILED(hr))
 				break;
+			if (dwordCount > 0)
+			{
+				hr = hw.Compress(this->tape64.pData, dwordCount, &compressed_size);
+				if (FAILED(hr))
+					break;
+			}
 
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next);
 			if (FAILED(hr))
@@ -1679,7 +1694,7 @@ bit32 *pTrackBuffer = NULL;
 			if (FAILED(hr))
 				break;
 			bit32 sectionSize = (bit32)(pos_next.QuadPart - pos_current.QuadPart);
-			assert(sectionSize == compressed_size+sizeof(SsSectionHeader)+sizeof(SsTapeData));
+			assert(sectionSize == compressed_size+sizeof(SsSectionHeader)+sizeof(SsTapeData)+sizeof(SsDataChunkHeader));
 			sh.size = sectionSize;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
@@ -1740,7 +1755,8 @@ bit32 *pTrackBuffer = NULL;
 			hr = hw.Init();
 			if (FAILED(hr))
 				break;
-			pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32));
+			trackbufferLength = (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32);
+			pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, trackbufferLength);
 			if (!pTrackBuffer)
 			{
 				hr = E_OUTOFMEMORY;
@@ -1787,9 +1803,16 @@ bit32 *pTrackBuffer = NULL;
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
 					break;
-				if (gap_count > 0)
+				chdr.byteCount = gap_count * sizeof(bit32);
+				chdr.compressionType = HUFFCOMPRESSION;
+				dwordCount = gap_count;
+				bytesToWrite = sizeof(chdr);
+				hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
+				if (FAILED(hr))
+					break;
+				if (dwordCount > 0)
 				{
-					hr = hw.Compress(pTrackBuffer, gap_count, &compressed_size);
+					hr = hw.Compress(pTrackBuffer, dwordCount, &compressed_size);
 					if (FAILED(hr))
 						break;
 				}
@@ -1802,7 +1825,7 @@ bit32 *pTrackBuffer = NULL;
 				if (FAILED(hr))
 					break;
 				bit32 sectionSize = (bit32)(pos_next_track_header.QuadPart - pos_current_track_header.QuadPart);
-				assert(sectionSize == compressed_size+sizeof(SsTrackHeader));
+				assert(sectionSize == compressed_size+sizeof(SsTrackHeader)+sizeof(SsDataChunkHeader));
 				th.size = sectionSize;
 				th.gap_count = gap_count;
 				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
@@ -1897,6 +1920,7 @@ bit32 *pTrackBuffer = NULL;
 
 HRESULT C64::LoadC64StateFromFile(TCHAR *filename)
 {
+SsDataChunkHeader chdr;
 HRESULT hr;
 ULONG bytesRead;
 ULONG bytesToRead;
@@ -1926,6 +1950,7 @@ bool done = false;
 bool eof = false;
 HuffDecompression hw;
 bit32 *pTrackBuffer = NULL;
+bit32 trackbufferLength = 0;
 bit8 *pTrack = NULL;
 int i;
 bool bC64Cpu = false;
@@ -2274,6 +2299,8 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				if (FAILED(hr))
 					break;
+				if (sbTapeDataHeader.tape_max_counter == 0)
+					break;
 				if (sbTapeDataHeader.tape_max_counter > TAP64::MAX_COUNTERS)
 				{
 					hr = E_FAIL;
@@ -2289,9 +2316,47 @@ ULARGE_INTEGER pos_next_track_header;
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
 					break;
-				hr = hw.Decompress(sbTapeDataHeader.tape_max_counter, &pTapeData);
+
+				bytesToRead = sizeof(chdr);
+				hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
 				if (FAILED(hr))
 					break;
+				if (chdr.byteCount != sbTapeDataHeader.tape_max_counter * sizeof(bit32))
+				{
+					hr = E_FAIL;
+					break;
+				}
+				if (chdr.compressionType == NOCOMPRESSION)
+				{
+					bytesToRead = chdr.byteCount;
+					hr = pfs->Read(pTapeData, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
+				}
+				else
+				{
+					hr = hw.Decompress(sbTapeDataHeader.tape_max_counter, &pTapeData);
+					if (FAILED(hr))
+						break;
+				}
 				bTapeData = true;
 				break;
 			case SsLib::SectionType::DriveRam:
@@ -2407,9 +2472,10 @@ ULARGE_INTEGER pos_next_track_header;
 				bDriveVia2 = true;
 				break;
 			case SsLib::SectionType::DriveDiskImage:
+				trackbufferLength = (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32);
 				if (!pTrackBuffer)
 				{
-					pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32));
+					pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, trackbufferLength);
 					if (!pTrackBuffer)
 					{
 						hr = E_OUTOFMEMORY;
@@ -2446,16 +2512,50 @@ ULARGE_INTEGER pos_next_track_header;
 					pTrack = diskdrive.m_rawTrackData[trackHeader.number];
 					if (pTrack)
 					{
+						ZeroMemory(pTrack, DISK_RAW_TRACK_SIZE);
 						if (trackHeader.gap_count > 0)
 						{
-							hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
+							bytesToRead = sizeof(chdr);
+							hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+							if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+							{
+								break;
+							}
+							else if (bytesRead < bytesToRead)
+							{
+								eof = true;
+								hr = E_FAIL;
+							}
 							if (FAILED(hr))
 								break;
+							if (chdr.byteCount != trackHeader.gap_count * sizeof(bit32))
+							{
+								hr = E_FAIL;
+								break;
+							}
+							if (chdr.compressionType == NOCOMPRESSION)
+							{
+								bytesToRead = chdr.byteCount;
+								hr = pfs->Read(pTrackBuffer, bytesToRead, &bytesRead);
+								if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+								{
+									break;
+								}
+								else if (bytesRead < bytesToRead)
+								{
+									eof = true;
+									hr = E_FAIL;
+								}
+								if (FAILED(hr))
+									break;
+							}
+							else
+							{
+								hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
+								if (FAILED(hr))
+									break;
+							}
 							this->LoadTrackState(pTrackBuffer, pTrack, trackHeader.gap_count);
-						}
-						else
-						{
-							ZeroMemory(pTrack, DISK_RAW_TRACK_SIZE);
 						}
 					}
 					spos_next.QuadPart = pos_next_track_header.QuadPart;

@@ -359,15 +359,25 @@ HRESULT hr;
 			}
 		}
 
+/*
+First byte: bits 0-6: low-order bit number (included) of the stream values
+                      that is encoded into the sub-stream.
+            bit 7: 0=decoded values must be zero-extended. 1=decoded values
+                   must be sign-extended, from bit 7 or bit 15.
+
+Second byte: bits 0-6: high-order bit number (included) of the stream values
+                       that is encoded into the sub-stream.
+             bit 7: 0=8-bit values in the tree. 1=16-bit values in the tree.
+*/
 		if (streamNumber==0)
 		{
-			HuffWriteByte(0x00);
-			HuffWriteByte(0x8f);
+			HuffWriteByte(0x00);//Start at bit 0. Zero extended bit pattern.
+			HuffWriteByte(0x8f);//Finish at bit 15. 16bit values in the tree.
 		}
 		else
 		{
-			HuffWriteByte(0x10);
-			HuffWriteByte(0x9f);
+			HuffWriteByte(0x10);//Start at bit 16. Zero extended bit pattern.
+			HuffWriteByte(0x9f);//Finish at bit 31. Zero extended bit pattern.
 		}
 
 		hn = list.Head()->m_data;

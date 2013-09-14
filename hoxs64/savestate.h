@@ -35,6 +35,12 @@ namespace SsLib
 	}
 };
 
+struct SsDataChunkHeader
+{
+	bit32 byteCount;
+	bit32 compressionType;
+};
+
 struct SsHeader
 {
 	char Signature[0x1C];
