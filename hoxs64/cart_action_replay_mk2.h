@@ -5,7 +5,7 @@ class Cart;
 class CartActionReplayMk2 : public CartCommon
 {
 public:
-	 CartActionReplayMk2(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory);
+	 CartActionReplayMk2(IC6510 *pCpu, bit8 *pC64RamMemory);
 
 	virtual void Reset(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);

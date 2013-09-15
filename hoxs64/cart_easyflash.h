@@ -52,7 +52,7 @@ private:
 class CartEasyFlash : public CartCommon
 {
 public:
-	CartEasyFlash(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory);
+	CartEasyFlash(IC6510 *pCpu, bit8 *pC64RamMemory);
 	~CartEasyFlash();
 	virtual void Reset(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);

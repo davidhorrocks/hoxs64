@@ -21,8 +21,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartEasyFlash::CartEasyFlash(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, plstBank, pCartData, pZeroBankData, pCpu, pC64RamMemory)
+CartEasyFlash::CartEasyFlash(IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(pCpu, pC64RamMemory)
 {
 	m_EasyFlashChipROML.Init(this, 0);
 	m_EasyFlashChipROMH.Init(this, 1);

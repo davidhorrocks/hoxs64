@@ -103,8 +103,7 @@ struct SsCartBank
 
 struct SsCartCommon
 {
-	CrtHeader header;
-
+	bit32 size;
 	bit8 reg1;
 	bit8 reg2;
 
@@ -160,8 +159,10 @@ typedef std::vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
 class CartCommon : public ICartInterface
 {
 public:
-	CartCommon(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory);
+	CartCommon(IC6510 *pCpu, bit8 *pC64RamMemory);
 	virtual ~CartCommon();
+
+	void InitCart(const CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData);
 
 	void InitReset(ICLK sysclock);
 
@@ -217,7 +218,8 @@ public:
 protected:
 	virtual void UpdateIO()=0;
 	void BankRom();
-	virtual int GetStateBytes(bit8 *pstate);
+	virtual unsigned int GetStateBytes(void *pstate);
+	virtual HRESULT SetStateBytes(void *pstate, unsigned int size);
 
 	CrtHeader m_crtHeader;
 	CrtBankList *m_plstBank;
@@ -291,6 +293,8 @@ public:
 	};
 	Cart();
 	~Cart();
+	static const int MAXBANKS = 256;
+
 	void Init(IC6510 *pCpu, bit8 *pC64RamMemory);
 	HRESULT LoadCrtFile(LPCTSTR filename);
 	shared_ptr<ICartInterface> CreateCartInterface(bit16 hardwareType);

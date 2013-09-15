@@ -21,8 +21,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartRetroReplay::CartRetroReplay(CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, plstBank, pCartData, pZeroBankData, pCpu, pC64RamMemory)
+CartRetroReplay::CartRetroReplay(IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(pCpu, pC64RamMemory)
 {
 }
 
