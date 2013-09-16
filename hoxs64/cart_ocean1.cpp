@@ -21,8 +21,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartOcean1::CartOcean1(IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(pCpu, pC64RamMemory)
+CartOcean1::CartOcean1(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pC64RamMemory)
 {
 }
 

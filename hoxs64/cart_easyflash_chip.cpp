@@ -42,7 +42,7 @@ void EasyFlashChip::CleanUp()
 
 }
 
-void EasyFlashChip::Init(CartEasyFlash *pCartEasyFlash, int chipNumber)
+HRESULT EasyFlashChip::Init(CartEasyFlash *pCartEasyFlash, int chipNumber)
 {
 /*
 	Easy Flash has two 512 KB chips that provide a total of 1 MB.
@@ -50,6 +50,7 @@ void EasyFlashChip::Init(CartEasyFlash *pCartEasyFlash, int chipNumber)
 */
 int i;
 const int BANKSIZE = 0x2000;
+HRESULT hr = E_FAIL;
 	try
 	{
 		m_plstBank = pCartEasyFlash->m_plstBank;
@@ -84,11 +85,13 @@ const int BANKSIZE = 0x2000;
 					pcd->chip.LoadAddressRange = 0xA000;
 			}
 		}
+		hr = S_OK;
 	}
 	catch (std::exception&)
 	{
-		throw;
+		hr = E_FAIL;
 	}
+	return hr;
 }
 
 void EasyFlashChip::Reset(ICLK sysclock)

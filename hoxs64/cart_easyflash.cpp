@@ -21,17 +21,41 @@
 #include "register.h"
 #include "cart.h"
 
-CartEasyFlash::CartEasyFlash(IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(pCpu, pC64RamMemory)
+CartEasyFlash::CartEasyFlash(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pC64RamMemory)
 {
-	m_EasyFlashChipROML.Init(this, 0);
-	m_EasyFlashChipROMH.Init(this, 1);
+
 }
 
 CartEasyFlash::~CartEasyFlash()
 {
 	m_EasyFlashChipROML.Detach();
 	m_EasyFlashChipROMH.Detach();
+}
+
+HRESULT CartEasyFlash::InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData)
+{
+HRESULT hr=E_FAIL;
+	do
+	{
+		m_plstBank = plstBank;
+		m_pCartData = pCartData;
+		m_pZeroBankData = pZeroBankData;
+
+		hr = m_EasyFlashChipROML.Init(this, 0);
+		if (FAILED(hr))
+			break;
+		hr = m_EasyFlashChipROMH.Init(this, 1);
+		if (FAILED(hr))
+			break;
+	} while (false);
+	if (FAILED(hr))
+	{
+		m_plstBank = NULL;
+		m_pCartData = NULL;
+		m_pZeroBankData = NULL;
+	}
+	return hr;
 }
 
 void CartEasyFlash::Reset(ICLK sysclock)

@@ -1945,6 +1945,7 @@ bit8 *pC64CharRom = NULL;
 bit8 *pDriveRam = NULL;
 bit8 *pDriveRom = NULL;
 bit32 *pTapeData = NULL;
+shared_ptr<ICartInterface> spCartInterface;
 bool hasC64 = false;
 bool done = false;
 bool eof = false;
@@ -2567,6 +2568,11 @@ ULARGE_INTEGER pos_next_track_header;
 				if (FAILED(hr))
 					break;
 				break;
+			case SsLib::SectionType::Cart:
+				hr = cart.LoadCartInterface(pfs, spCartInterface);
+				if (FAILED(hr))
+					break;
+				break;
 			}
 			if (FAILED(hr))
 				break;
@@ -2668,7 +2674,10 @@ ULARGE_INTEGER pos_next_track_header;
 		//diskdrive.SetCurrentClock(c);
 		cpu.cpu_port();
 		cpu.ConfigureMemoryMap();
-
+		if (spCartInterface)
+		{
+			cart.AttachCart(spCartInterface);
+		}
 		hr = S_OK;
 	}
 	else

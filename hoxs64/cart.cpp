@@ -22,11 +22,12 @@
 #include "Huff.h"
 #include "cart.h"
 
-const int Cart::RAMRESERVEDSIZE = 64 * 1024 + 8 * 1024;//Assume 64K cart RAM + 8K zero byte bank
-const int Cart::ZEROBANKOFFSET = 64 * 1024;
-
-CartCommon::CartCommon(IC6510 *pCpu, bit8 *pC64RamMemory)
+CartCommon::CartCommon(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
 {
+	m_crtHeader = crtHeader;
+	m_plstBank = NULL;
+	m_pCartData = NULL;
+	m_pZeroBankData = NULL;
 	this->m_pCpu = pCpu;
 	this->m_pC64RamMemory = pC64RamMemory;
 	m_bIsCartAttached = false;	
@@ -34,19 +35,39 @@ CartCommon::CartCommon(IC6510 *pCpu, bit8 *pC64RamMemory)
 
 CartCommon::~CartCommon()
 {
+	CleanUp();
 }
 
-void CartCommon::InitCart(const CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData)
+void CartCommon::CleanUp()
 {
-	m_crtHeader = crtHeader;
+	m_bIsCartAttached = false;
+	if (m_plstBank)
+	{
+		m_plstBank->clear();
+		delete m_plstBank;
+		m_plstBank = NULL;
+	}
+	if (m_pCartData)
+	{
+		GlobalFree(m_pCartData);
+		m_pCartData = 0;
+		m_pZeroBankData = 0;
+	}
+}
+
+HRESULT CartCommon::InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData)
+{
+	CleanUp();
 	m_plstBank = plstBank;
-	this->m_pZeroBankData = pZeroBankData;
+	m_pCartData = pCartData;
+	m_pZeroBankData = pZeroBankData;
 
 	this->m_ipROML_8000 = pZeroBankData - 0x8000;
 	this->m_ipROMH_A000 = pZeroBankData - 0xA000;
 	this->m_ipROMH_E000 = pZeroBankData - 0xE000;
 
 	InitReset(m_pCpu->Get6510CurrentClock());
+	return S_OK;
 }
 
 void CartCommon::ConfigureMemoryMap()
@@ -130,29 +151,43 @@ HRESULT CartCommon::LoadState(IStream *pfs)
 ULONG bytesRead;
 ULONG bytesToRead;
 ULARGE_INTEGER pos_dummy;
-ULARGE_INTEGER pos_current;
+ULARGE_INTEGER pos_startstate;
+ULARGE_INTEGER pos_startmem;
 LARGE_INTEGER spos_next;
 LARGE_INTEGER spos_zero = {0};
 bool eof = false;
 void *pstate = NULL;
-CrtBankList *lstBank = 0;
+CrtBankList *plstBank = 0;
+bit8 *pCartData = NULL;
+bit8 *pZeroBankData = NULL;
+bit32 dwordCount;
+bit32 sizeofstatedata;
+unsigned int cartstatesize;
 
 	HRESULT hr;
 	hr = S_OK;
 	do
 	{
-		lstBank = new CrtBankList();
+		pCartData = (bit8 *)GlobalAlloc(GPTR, Cart::RAMRESERVEDSIZE);
+		if (!pCartData)
+		{
+			hr = E_OUTOFMEMORY;
+			break;
+		}
+		pZeroBankData = &pCartData[Cart::ZEROBANKOFFSET];
 
-		unsigned int statesize = this->GetStateBytes(NULL);
+		plstBank = new CrtBankList();
+		plstBank->resize(Cart::MAXBANKS);
+
+		cartstatesize = this->GetStateBytes(NULL);
 
 		spos_zero.QuadPart = 0;
-		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current);
+		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_startstate);
 		if (FAILED(hr))
 			break;
 
-		bit32 sizeofdata;
-		bytesToRead = sizeof(sizeofdata);
-		hr = pfs->Read(&sizeofdata, bytesToRead, &bytesRead);
+		bytesToRead = sizeof(sizeofstatedata);
+		hr = pfs->Read(&sizeofstatedata, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 		{
 			break;
@@ -165,25 +200,25 @@ CrtBankList *lstBank = 0;
 		if (FAILED(hr))
 			break;
 
-		if (sizeofdata != statesize)
+		if (sizeofstatedata != cartstatesize)
 		{
 			hr = E_FAIL;
 			break;
 		}
 
-		spos_next.QuadPart = pos_current.QuadPart;
+		spos_next.QuadPart = pos_startstate.QuadPart;
 		hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 		if (FAILED(hr))
 			break;
 		
-		pstate = malloc(statesize);
+		pstate = malloc(cartstatesize);
 		if (!pstate)
 		{
 			hr = E_OUTOFMEMORY;
 			break;
 		}
 
-		bytesToRead = sizeofdata;
+		bytesToRead = sizeofstatedata;
 		hr = pfs->Read(pstate, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 		{
@@ -196,7 +231,6 @@ CrtBankList *lstBank = 0;
 		}
 		if (FAILED(hr))
 			break;
-
 		
 		SsCartMemoryHeader mhdr;
 		bytesToRead = sizeof(mhdr);
@@ -219,18 +253,176 @@ CrtBankList *lstBank = 0;
 			break;
 		}
 
-		for (int i=0; i<Cart::MAXBANKS; i++)
+		HuffDecompression hw;
+
+		spos_zero.QuadPart = 0;
+		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_startmem);
+		if (FAILED(hr))
+			break;
+		for (int i = 0; i < Cart::MAXBANKS; i++)
 		{
+			SsCartBank bank;
+
+			bytesToRead = sizeofstatedata;
+			hr = pfs->Read(&bank, bytesToRead, &bytesRead);
+			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+			{
+				break;
+			}
+			else if (bytesRead < bytesToRead)
+			{
+				eof = true;
+				hr = E_FAIL;
+			}
+			if (FAILED(hr))
+				break;
+
+			if (bank.bank > Cart::MAXBANKS)
+			{
+				hr = E_FAIL;
+				break;
+			}
+			if (bank.bank != bank.roml.chip.BankLocation || bank.bank != bank.romh.chip.BankLocation)
+			{
+				hr = E_FAIL;
+				break;
+			}
+
+			if (bank.roml.allocatedSize != 0 && bank.roml.allocatedSize != 0x2000 && bank.roml.allocatedSize != 0x4000)
+			{
+				hr = E_FAIL;
+				break;
+			}
+
+			if (bank.romh.allocatedSize != 0 && bank.romh.allocatedSize != 0x2000)
+			{
+				hr = E_FAIL;
+				break;
+			}
+
+			if (bank.roml.allocatedSize == 0x4000 && bank.romh.allocatedSize != 0)
+			{
+				hr = E_FAIL;
+				break;
+			}
+
+			if (bank.roml.chip.ROMImageSize > bank.roml.allocatedSize || bank.romh.chip.ROMImageSize > bank.romh.allocatedSize)
+			{
+				hr = E_FAIL;
+				break;
+			}
+
+			Sp_CrtBank sp = plstBank->at(bank.bank);
+			if (!sp)
+			{
+				sp = Sp_CrtBank(new CrtBank());
+				if (sp == 0)
+					throw std::bad_alloc();
+				plstBank->at(bank.bank) = sp;
+			}
+
+			sp->bank = (bit16)bank.bank;
+			sp->chipAndDataLow.allocatedSize = bank.roml.allocatedSize;
+			sp->chipAndDataLow.chip = bank.roml.chip;
+			sp->chipAndDataHigh.allocatedSize = bank.romh.allocatedSize;
+			sp->chipAndDataHigh.chip = bank.romh.chip;
+			
+			SsDataChunkHeader chdr;
+
+			CrtChipAndData *pcd;
+
+			pcd = &sp->chipAndDataLow;
+
+			CrtChipAndData *cds[2] = {&sp->chipAndDataLow, &sp->chipAndDataHigh};
+			for (int n=0; n < _countof(cds); n++)
+			{
+				pcd = cds[n];
+				bytesToRead = sizeof(SsDataChunkHeader);
+				hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+
+				if (chdr.byteCount != pcd->allocatedSize)
+				{
+					hr = E_FAIL;
+					break;
+				}
+
+				if (chdr.compressionType == Cart::NOCOMPRESSION)
+				{
+					pcd->pData = (bit8 *)GlobalAlloc(GPTR, pcd->allocatedSize);
+					if (!pcd->pData)
+					{
+						hr = E_FAIL;
+						break;
+					}
+					pcd->ownData = true;
+					bytesToRead = chdr.byteCount;
+					hr = pfs->Read(pcd->pData, bytesToRead, &bytesRead);
+					if (FAILED(hr))
+						break;
+				}
+				else
+				{
+					dwordCount = chdr.byteCount / sizeof(bit32);
+
+					bytesToRead = sizeof(dwordCount);
+					hr = pfs->Read(&dwordCount, bytesToRead, &bytesRead);
+					if (FAILED(hr))
+						break;
+
+					if (dwordCount * sizeof(bit32) != chdr.byteCount)
+					{
+						hr = E_FAIL;
+						break;
+					}
+
+					if (dwordCount > 0)
+					{
+						hr = hw.Decompress(dwordCount, (DWORD **)&pcd->pData);
+						if (FAILED(hr))
+							break;
+						pcd->ownData = true;
+					}
+				}
+			}
+			if (FAILED(hr))
+				break;
 
 		}
-		//SetStateBytes(pstate, sizeofdata);
 	} while (false);
-
-	if (lstBank)
+	if (SUCCEEDED(hr))
 	{
-		lstBank->clear();
-		delete lstBank;
-		lstBank = NULL;
+		hr = this->InitCart(plstBank, pCartData, pZeroBankData);
+		if (SUCCEEDED(hr))
+		{
+			plstBank = NULL;
+			pCartData = NULL;
+			pZeroBankData = NULL;
+			this->SetStateBytes(pstate, sizeofstatedata);
+		}
+	}
+
+	if (pCartData)
+	{
+		GlobalFree(pCartData);
+		pCartData = 0;
+		pZeroBankData = 0;
+	}
+	if (plstBank)
+	{
+		plstBank->clear();
+		delete plstBank;
+		plstBank = NULL;
 	}
 	if (pstate)
 	{
@@ -247,16 +439,16 @@ ULONG bytesToWrite;
 ULONG bytesWritten;
 SsCartStateHeader hdr;
 bit8* pstate;
-unsigned int statesize;
+unsigned int cartstatesize;
 
-	statesize = GetStateBytes(NULL);
-	pstate = (bit8*)malloc(statesize);
-	statesize = GetStateBytes(pstate);
+	cartstatesize = GetStateBytes(NULL);
+	pstate = (bit8*)malloc(cartstatesize);
+	cartstatesize = GetStateBytes(pstate);
 	hr = S_OK;
 	do
 	{
 		ZeroMemory(&hdr, sizeof(hdr));
-		hdr.size = sizeof(hdr) + sizeof(this->m_crtHeader) + statesize;
+		hdr.size = sizeof(hdr) + sizeof(this->m_crtHeader) + cartstatesize;
 		bytesToWrite = sizeof(hdr);
 		hr = pfs->Write(&hdr, bytesToWrite, &bytesWritten);
 		if (FAILED(hr))
@@ -265,7 +457,7 @@ unsigned int statesize;
 		hr = pfs->Write(&this->m_crtHeader, bytesToWrite, &bytesWritten);
 		if (FAILED(hr))
 			break;
-		bytesToWrite = statesize;
+		bytesToWrite = cartstatesize;
 		hr = pfs->Write(pstate, bytesToWrite, &bytesWritten);
 		if (FAILED(hr))
 			break;
@@ -915,7 +1107,7 @@ __int64 iFileIndex = 0;
 					//ok
 					break;
 				}
-				if (nChipCount > 2*MAXBANKS)
+				if (nChipCount >= 2*MAXBANKS)
 				{
 					hr = SetError(E_FAIL, S_READFAILED, filename);
 					ok = false;
@@ -943,9 +1135,12 @@ __int64 iFileIndex = 0;
 					ok = false;
 					break;
 				}
-				if (chip.BankLocation >= plstBank->size())
+				if (chip.BankLocation >= plstBank->size() || chip.BankLocation >= MAXBANKS)
 				{
-					plstBank->resize(chip.BankLocation + 1);
+					//plstBank->resize(chip.BankLocation + 1);
+					hr = SetError(E_FAIL, S_READFAILED, filename);
+					ok = false;
+					break;
 				}
 
 				Sp_CrtBank spBank = plstBank->at(chip.BankLocation);
@@ -1136,11 +1331,18 @@ __int64 iFileIndex = 0;
 			m_pCartData = pCartData;
 			m_pZeroBankData = &pCartData[ZEROBANKOFFSET];
 			pCartData = NULL;
+			plstBank = NULL;
 			m_bIsCartDataLoaded = true;
 
 			if (!IsSupported())
 				hr = SetError(APPWARN_UNKNOWNCARTTYPE, TEXT("The hardware type for this cartridge is not supported. The emulator will attempt to run the ROM images with generic hardware. The cartridge software may not run correctly."));
 		}
+	}
+	if (plstBank)
+	{
+		plstBank->clear();
+		delete plstBank;
+		plstBank = NULL;
 	}
 	if (pCartData)
 	{
@@ -1151,63 +1353,63 @@ __int64 iFileIndex = 0;
 	return hr;
 }
 
-shared_ptr<ICartInterface> Cart::CreateCartInterface(bit16 hardwareType)
+shared_ptr<ICartInterface> Cart::CreateCartInterface(const CrtHeader &crtHeader)
 {
 shared_ptr<ICartInterface> p;
 	try
 	{
-		switch(hardwareType)
+		switch(crtHeader.HardwareType)
 		{
 		case CartType::Normal_Cartridge:
-			p = shared_ptr<ICartInterface>(new CartNormalCartridge(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartNormalCartridge(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Action_Replay:
-			p = shared_ptr<ICartInterface>(new CartActionReplay(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartActionReplay(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Final_Cartridge_III:
-			p = shared_ptr<ICartInterface>(new CartFinalCartridgeIII(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartFinalCartridgeIII(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Simons_Basic:
-			p = shared_ptr<ICartInterface>(new CartSimonsBasic(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartSimonsBasic(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Ocean_1:
-			p = shared_ptr<ICartInterface>(new CartOcean1(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartOcean1(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Fun_Play:
-			p = shared_ptr<ICartInterface>(new CartFunPlay(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartFunPlay(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Super_Games:
-			p = shared_ptr<ICartInterface>(new CartSuperGames(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartSuperGames(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::System_3:
-			p = shared_ptr<ICartInterface>(new CartSystem3(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartSystem3(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Dinamic:
-			p = shared_ptr<ICartInterface>(new CartDinamic(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartDinamic(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Zaxxon:
-			p = shared_ptr<ICartInterface>(new CartZaxxon(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartZaxxon(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Magic_Desk:
-			p = shared_ptr<ICartInterface>(new CartMagicDesk(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartMagicDesk(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Action_Replay_4:
-			p = shared_ptr<ICartInterface>(new CartActionReplayMk4(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartActionReplayMk4(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::EasyFlash:
-			p = shared_ptr<ICartInterface>(new CartEasyFlash(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartEasyFlash(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Action_Replay_3:
-			p = shared_ptr<ICartInterface>(new CartActionReplayMk3(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartActionReplayMk3(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Retro_Replay:
-			p = shared_ptr<ICartInterface>(new CartRetroReplay(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartRetroReplay(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		case CartType::Action_Replay_2:
-			p = shared_ptr<ICartInterface>(new CartActionReplayMk2(this->m_pCpu, this->m_pC64RamMemory));			
+			p = shared_ptr<ICartInterface>(new CartActionReplayMk2(crtHeader, this->m_pCpu, this->m_pC64RamMemory));			
 			break;
 		case CartType::Epyx_FastLoad:
-			p = shared_ptr<ICartInterface>(new CartEpyxFastLoad(this->m_pCpu, this->m_pC64RamMemory));
+			p = shared_ptr<ICartInterface>(new CartEpyxFastLoad(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
 		}
 	}
@@ -1338,17 +1540,17 @@ void Cart::MonWriteUltimaxROMH(bit16 address, bit8 data)
 
 bool Cart::IsUltimax()
 {
-	return m_bIsCartDataLoaded && m_spCurrentCart && m_spCurrentCart->IsUltimax();
+	return m_spCurrentCart && m_spCurrentCart->IsUltimax();
 }
 
 bool Cart::IsCartIOActive()
 {
-	return m_bIsCartDataLoaded && m_spCurrentCart && m_spCurrentCart->IsCartIOActive();
+	return m_spCurrentCart && m_spCurrentCart->IsCartIOActive();
 }
 
 bool Cart::IsCartAttached()
 {
-	return m_bIsCartDataLoaded && m_spCurrentCart && m_spCurrentCart->IsCartAttached();
+	return m_spCurrentCart && m_spCurrentCart->IsCartAttached();
 }
 
 void Cart::CartFreeze()
@@ -1369,14 +1571,28 @@ void Cart::CheckForCartFreeze()
 		m_spCurrentCart->CheckForCartFreeze();
 }
 
+void Cart::AttachCart(shared_ptr<ICartInterface> spCartInterface)
+{
+	CleanUp();
+	m_spCurrentCart = spCartInterface;
+	m_spCurrentCart->AttachCart();
+}
+
 void Cart::AttachCart()
 {
 	if (this->m_bIsCartDataLoaded)
 	{
-		m_spCurrentCart = this->CreateCartInterface(this->m_crtHeader.HardwareType);
-		if (m_spCurrentCart)
+		shared_ptr<ICartInterface> spCartInterface = this->CreateCartInterface(this->m_crtHeader);
+		if (spCartInterface)
 		{
-			m_spCurrentCart->AttachCart();
+			HRESULT hr = spCartInterface->InitCart(this->m_plstBank, this->m_pCartData, this->m_pZeroBankData);
+			if (SUCCEEDED(hr))
+			{
+				this->m_plstBank = NULL;
+				this->m_pCartData = NULL;
+				this->m_pZeroBankData = NULL;
+				AttachCart(spCartInterface);
+			}
 		}
 	}
 }
@@ -1413,6 +1629,11 @@ void Cart::PreventClockOverflow()
 
 HRESULT Cart::LoadState(IStream *pfs)
 {
+	return E_NOTIMPL;
+}
+
+HRESULT Cart::LoadCartInterface(IStream *pfs, shared_ptr<ICartInterface> &spCartInterface)
+{
 CrtHeader crtHeader;
 ULONG bytesRead;
 ULONG bytesToRead;
@@ -1437,16 +1658,27 @@ bool eof = false;
 		if (FAILED(hr))
 			break;
 		
-		shared_ptr<ICartInterface> spCartInterface = this->CreateCartInterface(crtHeader.HardwareType);
+		shared_ptr<ICartInterface> spLocalCartInterface = this->CreateCartInterface(crtHeader);
 		if (!spCartInterface)
 		{
 			hr = E_FAIL;
 			break;
 		}
-		hr = spCartInterface->LoadState(pfs);
+
+		hr = spLocalCartInterface->LoadState(pfs);
 		if (FAILED(hr))
 			break;
+
+		spCartInterface = spLocalCartInterface;
 	} while (false);
+	return hr;
+}
+
+HRESULT Cart::InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData)
+{
+HRESULT hr=E_FAIL;
+	if (m_spCurrentCart)
+		hr = m_spCurrentCart->InitCart(plstBank, pCartData, pZeroBankData);
 	return hr;
 }
 
@@ -1456,11 +1688,6 @@ HRESULT Cart::SaveState(IStream *pfs)
 		return m_spCurrentCart->SaveState(pfs);
 	else
 		return S_FALSE;
-}
-
-void Cart::ApplyState()
-{
-
 }
 
 ICLK Cart::GetCurrentClock()

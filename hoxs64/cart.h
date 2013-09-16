@@ -5,54 +5,6 @@
 
 #define APPWARN_UNKNOWNCARTTYPE MAKE_HRESULT(0, 0xa00, 2)
 
-class ICartInterface : public IRegister
-{
-public:
-	virtual bit8 Get_GAME()=0;
-	virtual bit8 Get_EXROM()=0;
-
-	virtual bit8 ReadROML(bit16 address)=0;
-	virtual bit8 ReadROMH(bit16 address)=0;
-	virtual bit8 ReadUltimaxROML(bit16 address)=0;
-	virtual bit8 ReadUltimaxROMH(bit16 address)=0;
-
-	virtual void WriteROML(bit16 address, bit8 data)=0;
-	virtual void WriteROMH(bit16 address, bit8 data)=0;
-	virtual void WriteUltimaxROML(bit16 address, bit8 data)=0;
-	virtual void WriteUltimaxROMH(bit16 address, bit8 data)=0;
-
-	virtual bit8 MonReadROML(bit16 address)=0;
-	virtual bit8 MonReadROMH(bit16 address)=0;
-	virtual bit8 MonReadUltimaxROML(bit16 address)=0;
-	virtual bit8 MonReadUltimaxROMH(bit16 address)=0;
-
-	virtual void MonWriteROML(bit16 address, bit8 data)=0;
-	virtual void MonWriteROMH(bit16 address, bit8 data)=0;
-	virtual void MonWriteUltimaxROML(bit16 address, bit8 data)=0;
-	virtual void MonWriteUltimaxROMH(bit16 address, bit8 data)=0;
-
-	virtual bool IsUltimax()=0;
-	virtual bool IsCartIOActive()=0;
-	virtual bool IsCartAttached()=0;
-
-	virtual void CartFreeze()=0;
-	virtual void CartReset()=0;
-	virtual void CheckForCartFreeze()=0;
-
-	virtual void AttachCart()=0;
-	virtual void DetachCart()=0;
-	virtual void ConfigureMemoryMap()=0;
-
-	virtual bit8 *Get_RomH()=0;
-	virtual void PreventClockOverflow() = 0;
-
-	virtual HRESULT LoadState(IStream *pfs) = 0;
-	virtual HRESULT SaveState(IStream *pfs) = 0;
-	//virtual void ApplyState() = 0;
-};
-
-class Cart;
-
 # pragma pack (1)
 
 struct CrtHeader
@@ -156,13 +108,60 @@ typedef std::vector<Sp_CrtBank> CrtBankList;
 typedef std::vector<Sp_CrtBank>::iterator CrtBankListIter;
 typedef std::vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
 
+class ICartInterface : public IRegister
+{
+public:
+	virtual bit8 Get_GAME()=0;
+	virtual bit8 Get_EXROM()=0;
+
+	virtual bit8 ReadROML(bit16 address)=0;
+	virtual bit8 ReadROMH(bit16 address)=0;
+	virtual bit8 ReadUltimaxROML(bit16 address)=0;
+	virtual bit8 ReadUltimaxROMH(bit16 address)=0;
+
+	virtual void WriteROML(bit16 address, bit8 data)=0;
+	virtual void WriteROMH(bit16 address, bit8 data)=0;
+	virtual void WriteUltimaxROML(bit16 address, bit8 data)=0;
+	virtual void WriteUltimaxROMH(bit16 address, bit8 data)=0;
+
+	virtual bit8 MonReadROML(bit16 address)=0;
+	virtual bit8 MonReadROMH(bit16 address)=0;
+	virtual bit8 MonReadUltimaxROML(bit16 address)=0;
+	virtual bit8 MonReadUltimaxROMH(bit16 address)=0;
+
+	virtual void MonWriteROML(bit16 address, bit8 data)=0;
+	virtual void MonWriteROMH(bit16 address, bit8 data)=0;
+	virtual void MonWriteUltimaxROML(bit16 address, bit8 data)=0;
+	virtual void MonWriteUltimaxROMH(bit16 address, bit8 data)=0;
+
+	virtual bool IsUltimax()=0;
+	virtual bool IsCartIOActive()=0;
+	virtual bool IsCartAttached()=0;
+
+	virtual void CartFreeze()=0;
+	virtual void CartReset()=0;
+	virtual void CheckForCartFreeze()=0;
+
+	virtual void AttachCart()=0;
+	virtual void DetachCart()=0;
+	virtual void ConfigureMemoryMap()=0;
+
+	virtual bit8 *Get_RomH()=0;
+	virtual void PreventClockOverflow() = 0;
+
+	virtual HRESULT LoadState(IStream *pfs) = 0;
+	virtual HRESULT SaveState(IStream *pfs) = 0;
+
+	virtual HRESULT InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData) = 0;
+};
+
+class Cart;
+
 class CartCommon : public ICartInterface
 {
 public:
-	CartCommon(IC6510 *pCpu, bit8 *pC64RamMemory);
+	CartCommon(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory);
 	virtual ~CartCommon();
-
-	void InitCart(const CrtHeader &crtHeader, CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData);
 
 	void InitReset(ICLK sysclock);
 
@@ -215,6 +214,7 @@ public:
 	virtual HRESULT SaveState(IStream *pfs);
 	virtual HRESULT SaveMemoryState(IStream *pfs);
 
+	virtual HRESULT InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData);
 protected:
 	virtual void UpdateIO()=0;
 	void BankRom();
@@ -252,6 +252,8 @@ protected:
 	bool m_bEffects;
 
 	CrtBankList m_lstStateBank;
+private:
+	void CleanUp();
 };
 
 class Cart : public ICartInterface, public ErrorMsg
@@ -297,7 +299,7 @@ public:
 
 	void Init(IC6510 *pCpu, bit8 *pC64RamMemory);
 	HRESULT LoadCrtFile(LPCTSTR filename);
-	shared_ptr<ICartInterface> CreateCartInterface(bit16 hardwareType);
+	shared_ptr<ICartInterface> CreateCartInterface(const CrtHeader &crtHeader);
 	int GetTotalCartMemoryRequirement();
 	static bool IsSupported(CartType::ECartType hardwareType);
 	bool IsSupported();
@@ -340,16 +342,17 @@ public:
 	void CartFreeze();
 	void CartReset();
 	void CheckForCartFreeze();
-
+	void AttachCart(shared_ptr<ICartInterface> spCartInterface);
 	void AttachCart();
 	void DetachCart();
 	void ConfigureMemoryMap();
 	bit8 *Get_RomH();
 	void PreventClockOverflow();
 
+	HRESULT LoadCartInterface(IStream *pfs, shared_ptr<ICartInterface> &spCartInterface);
 	HRESULT LoadState(IStream *pfs);
 	HRESULT SaveState(IStream *pfs);
-	void ApplyState();
+	HRESULT InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData);
 
 	CrtHeader m_crtHeader;//Cart head information
 	CrtBankList *m_plstBank;//A list of cart ROM/EPROM banks that index the cart memory data.
@@ -363,11 +366,11 @@ public:
 protected:
 	
 private:
-	static const int RAMRESERVEDSIZE;
-	static const int ZEROBANKOFFSET;
+	static const int RAMRESERVEDSIZE = 64 * 1024 + 8 * 1024;//Assume 64K cart RAM + 8K zero byte bank
+	static const int ZEROBANKOFFSET = 64 * 1024;
 
 	void CleanUp();
-	int GetTotalCartMemoryRequirement(CrtBankList *plstBank);
+	static int GetTotalCartMemoryRequirement(CrtBankList *plstBank);
 	void BankRom();
 	IC6510 *m_pCpu;
 	bit8 *m_pC64RamMemory;

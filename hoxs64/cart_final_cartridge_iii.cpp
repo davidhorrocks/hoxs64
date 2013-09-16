@@ -21,8 +21,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartFinalCartridgeIII::CartFinalCartridgeIII(IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(pCpu, pC64RamMemory)
+CartFinalCartridgeIII::CartFinalCartridgeIII(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pC64RamMemory)
 {
 }
 

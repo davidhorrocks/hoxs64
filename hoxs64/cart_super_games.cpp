@@ -21,8 +21,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartSuperGames::CartSuperGames(IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(pCpu, pC64RamMemory)
+CartSuperGames::CartSuperGames(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pC64RamMemory)
 {
 }
 
