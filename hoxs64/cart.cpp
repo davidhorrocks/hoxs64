@@ -134,7 +134,6 @@ SsCartCommon *p;
 	reg2 = p->reg2;
 	GAME = p->GAME;
 	EXROM = p->EXROM;
-	m_bIsCartAttached = p->m_bIsCartAttached != 0;
 	m_bIsCartIOActive = p->m_bIsCartIOActive != 0;
 	m_bIsCartRegActive = p->m_bIsCartRegActive != 0;
 	m_iSelectedBank = p->m_iSelectedBank;
@@ -259,11 +258,11 @@ unsigned int cartstatesize;
 		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_startmem);
 		if (FAILED(hr))
 			break;
-		for (int i = 0; i < Cart::MAXBANKS; i++)
+		for (int i = 0; i < (int)mhdr.banks; i++)
 		{
 			SsCartBank bank;
 
-			bytesToRead = sizeofstatedata;
+			bytesToRead = sizeof(bank);
 			hr = pfs->Read(&bank, bytesToRead, &bytesRead);
 			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 			{
@@ -282,23 +281,34 @@ unsigned int cartstatesize;
 				hr = E_FAIL;
 				break;
 			}
-			if (bank.bank != bank.roml.chip.BankLocation || bank.bank != bank.romh.chip.BankLocation)
+
+			if (bank.roml.allocatedSize != 0)
 			{
-				hr = E_FAIL;
-				break;
+				if (bank.bank != bank.roml.chip.BankLocation)
+				{
+					hr = E_FAIL;
+					break;
+				}
+				if (bank.roml.allocatedSize != 0x2000 && bank.roml.allocatedSize != 0x4000)
+				{
+					hr = E_FAIL;
+					break;
+				}
+			}
+			if (bank.romh.allocatedSize != 0)
+			{
+				if (bank.bank != bank.romh.chip.BankLocation)
+				{
+					hr = E_FAIL;
+					break;
+				}
+				if (bank.romh.allocatedSize != 0x2000)
+				{
+					hr = E_FAIL;
+					break;
+				}
 			}
 
-			if (bank.roml.allocatedSize != 0 && bank.roml.allocatedSize != 0x2000 && bank.roml.allocatedSize != 0x4000)
-			{
-				hr = E_FAIL;
-				break;
-			}
-
-			if (bank.romh.allocatedSize != 0 && bank.romh.allocatedSize != 0x2000)
-			{
-				hr = E_FAIL;
-				break;
-			}
 
 			if (bank.roml.allocatedSize == 0x4000 && bank.romh.allocatedSize != 0)
 			{
@@ -357,41 +367,44 @@ unsigned int cartstatesize;
 					break;
 				}
 
-				if (chdr.compressionType == Cart::NOCOMPRESSION)
+				if (chdr.byteCount > 0)
 				{
-					pcd->pData = (bit8 *)GlobalAlloc(GPTR, pcd->allocatedSize);
-					if (!pcd->pData)
+					if (chdr.compressionType == Cart::NOCOMPRESSION)
 					{
-						hr = E_FAIL;
-						break;
-					}
-					pcd->ownData = true;
-					bytesToRead = chdr.byteCount;
-					hr = pfs->Read(pcd->pData, bytesToRead, &bytesRead);
-					if (FAILED(hr))
-						break;
-				}
-				else
-				{
-					dwordCount = chdr.byteCount / sizeof(bit32);
-
-					bytesToRead = sizeof(dwordCount);
-					hr = pfs->Read(&dwordCount, bytesToRead, &bytesRead);
-					if (FAILED(hr))
-						break;
-
-					if (dwordCount * sizeof(bit32) != chdr.byteCount)
-					{
-						hr = E_FAIL;
-						break;
-					}
-
-					if (dwordCount > 0)
-					{
-						hr = hw.Decompress(dwordCount, (DWORD **)&pcd->pData);
+						pcd->pData = (bit8 *)GlobalAlloc(GPTR, pcd->allocatedSize);
+						if (!pcd->pData)
+						{
+							hr = E_FAIL;
+							break;
+						}
+						pcd->ownData = true;
+						bytesToRead = chdr.byteCount;
+						hr = pfs->Read(pcd->pData, bytesToRead, &bytesRead);
 						if (FAILED(hr))
 							break;
-						pcd->ownData = true;
+					}
+					else
+					{
+						dwordCount = chdr.byteCount / sizeof(bit32);
+
+						bytesToRead = sizeof(dwordCount);
+						hr = pfs->Read(&dwordCount, bytesToRead, &bytesRead);
+						if (FAILED(hr))
+							break;
+
+						if (dwordCount * sizeof(bit32) != chdr.byteCount)
+						{
+							hr = E_FAIL;
+							break;
+						}
+
+						if (dwordCount > 0)
+						{
+							hr = hw.Decompress(dwordCount, (DWORD **)&pcd->pData);
+							if (FAILED(hr))
+								break;
+							pcd->ownData = true;
+						}
 					}
 				}
 			}
@@ -525,6 +538,11 @@ int dwordCount = 0;
 			bank.roml.chip =  sp->chipAndDataLow.chip;
 			bank.romh.allocatedSize = sp->chipAndDataHigh.allocatedSize;
 			bank.romh.chip =  sp->chipAndDataHigh.chip;
+
+			bytesToWrite = sizeof(bank);
+			hr = pfs->Write(&bank, bytesToWrite, &bytesWritten);
+			if (FAILED(hr))
+				break;
 			banks++;
 
 			chdr.byteCount = sp->chipAndDataLow.allocatedSize;
@@ -600,6 +618,7 @@ int dwordCount = 0;
 		if (FAILED(hr))
 			break;
 		hdr.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
+		hdr.banks = banks;
 		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
 		if (FAILED(hr))
 			break;
@@ -1638,12 +1657,28 @@ CrtHeader crtHeader;
 ULONG bytesRead;
 ULONG bytesToRead;
 bool eof = false;
+SsCartStateHeader hdr;
 
 	HRESULT hr;
 	hr = S_OK;
 	do
 	{
 		ZeroMemory(&crtHeader, sizeof(crtHeader));
+
+		bytesToRead = sizeof(hdr);
+		hr = pfs->Read(&hdr, bytesToRead, &bytesRead);
+		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+		{
+			break;
+		}
+		else if (bytesRead < bytesToRead)
+		{
+			eof = true;
+			hr = E_FAIL;
+		}
+		if (FAILED(hr))
+			break;
+
 		bytesToRead = sizeof(crtHeader);
 		hr = pfs->Read(&crtHeader, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
@@ -1659,7 +1694,7 @@ bool eof = false;
 			break;
 		
 		shared_ptr<ICartInterface> spLocalCartInterface = this->CreateCartInterface(crtHeader);
-		if (!spCartInterface)
+		if (!spLocalCartInterface)
 		{
 			hr = E_FAIL;
 			break;

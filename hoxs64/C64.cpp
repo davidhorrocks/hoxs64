@@ -2591,7 +2591,7 @@ ULARGE_INTEGER pos_next_track_header;
 		pfs->Release();
 		pfs = NULL;
 	}
-	if (hasC64)
+	if (SUCCEEDED(hr) && hasC64)
 	{
 		cpu.SetState(sbCpuMain);
 		if (ram.mMemory && pC64Ram)

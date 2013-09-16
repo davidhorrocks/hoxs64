@@ -4947,7 +4947,7 @@ void VIC6569::SetState(const SsVic6569 &state)
 	vicVC = state.vicVC;
 	vicRC = state.vicRC;
 	vicVCBASE = state.vicVCBASE;
-	vicVMLI = state.vicVMLI;
+	vicVMLI = min(state.vicVMLI, NUM_SCREEN_COLUMNS);
 	vicAEC = state.vicAEC;
 	vicIDLE = state.vicIDLE;
 	vicIDLE_DELAY = state.vicIDLE_DELAY;
@@ -4984,7 +4984,7 @@ void VIC6569::SetState(const SsVic6569 &state)
 	vic_border_part_40 = state.vic_border_part_40;
 	vic_allow_c_access = state.vic_allow_c_access != 0;
 	m_bVicModeChanging = state.m_bVicModeChanging != 0;
-	vicMemoryBankIndex = state.vicMemoryBankIndex;
+	vicMemoryBankIndex = state.vicMemoryBankIndex & 3;
 	m_iLastBackedUpFrameNumber = state.m_iLastBackedUpFrameNumber;
 
 	for (int i = 0; i < _countof(vicSprite); i++)
