@@ -228,3 +228,52 @@ ICLK v = sysclock - this->m_pCpu->Get6510CurrentClock();
 	m_EasyFlashChipROMH.SetCurrentClock(sysclock);
 }
 
+unsigned int CartEasyFlash::GetStateBytes(void *pstate)
+{
+int k, c;
+bit8 *p = (bit8 *)pstate;
+
+	c = 0;
+	k = CartCommon::GetStateBytes(p);
+	if (p)
+		p += k;
+	c += k;
+	k = m_EasyFlashChipROML.GetStateBytes(p);
+	if (p)
+		p += k;
+	c += k;
+	k = m_EasyFlashChipROMH.GetStateBytes(p);
+	c += k;
+	return c;
+}
+
+HRESULT CartEasyFlash::SetStateBytes(void *pstate, unsigned int size)
+{
+HRESULT hr;
+unsigned int k;
+	int totalsize = GetStateBytes(NULL);
+
+	if (!pstate || size != totalsize)
+		return E_FAIL;
+
+	bit8 *p = (bit8 *)pstate;
+
+	k = CartCommon::GetStateBytes(NULL);
+	hr = CartCommon::SetStateBytes(p, k);
+	if (FAILED(hr))
+		return hr;
+
+	p+=k;
+	k = m_EasyFlashChipROML.GetStateBytes(NULL);
+	hr = m_EasyFlashChipROML.SetStateBytes(p, k);
+	if (FAILED(hr))
+		return hr;
+
+	p+=k;
+	k = m_EasyFlashChipROMH.GetStateBytes(NULL);
+	hr = m_EasyFlashChipROMH.SetStateBytes(p, k);
+	if (FAILED(hr))
+		return hr;
+
+	return S_OK;
+}

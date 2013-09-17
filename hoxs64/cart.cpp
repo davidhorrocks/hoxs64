@@ -149,19 +149,13 @@ HRESULT CartCommon::LoadState(IStream *pfs)
 {
 ULONG bytesRead;
 ULONG bytesToRead;
-ULARGE_INTEGER pos_dummy;
-ULARGE_INTEGER pos_startstate;
-ULARGE_INTEGER pos_startmem;
-LARGE_INTEGER spos_next;
-LARGE_INTEGER spos_zero = {0};
 bool eof = false;
 void *pstate = NULL;
 CrtBankList *plstBank = 0;
 bit8 *pCartData = NULL;
 bit8 *pZeroBankData = NULL;
 bit32 dwordCount;
-bit32 sizeofstatedata;
-unsigned int cartstatesize;
+unsigned int cartstatesize, cartfullstatesize;
 
 	HRESULT hr;
 	hr = S_OK;
@@ -180,13 +174,8 @@ unsigned int cartstatesize;
 
 		cartstatesize = this->GetStateBytes(NULL);
 
-		spos_zero.QuadPart = 0;
-		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_startstate);
-		if (FAILED(hr))
-			break;
-
-		bytesToRead = sizeof(sizeofstatedata);
-		hr = pfs->Read(&sizeofstatedata, bytesToRead, &bytesRead);
+		bytesToRead = sizeof(bit32);
+		hr = pfs->Read(&cartfullstatesize, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 		{
 			break;
@@ -199,16 +188,11 @@ unsigned int cartstatesize;
 		if (FAILED(hr))
 			break;
 
-		if (sizeofstatedata != cartstatesize)
+		if (cartfullstatesize != cartstatesize + sizeof(bit32))
 		{
 			hr = E_FAIL;
 			break;
 		}
-
-		spos_next.QuadPart = pos_startstate.QuadPart;
-		hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
-		if (FAILED(hr))
-			break;
 		
 		pstate = malloc(cartstatesize);
 		if (!pstate)
@@ -217,7 +201,7 @@ unsigned int cartstatesize;
 			break;
 		}
 
-		bytesToRead = sizeofstatedata;
+		bytesToRead = cartstatesize;
 		hr = pfs->Read(pstate, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 		{
@@ -231,9 +215,9 @@ unsigned int cartstatesize;
 		if (FAILED(hr))
 			break;
 		
-		SsCartMemoryHeader mhdr;
-		bytesToRead = sizeof(mhdr);
-		hr = pfs->Read(&mhdr, bytesToRead, &bytesRead);
+		SsCartMemoryHeader memoryheader;
+		bytesToRead = sizeof(memoryheader);
+		hr = pfs->Read(&memoryheader, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 		{
 			break;
@@ -246,19 +230,38 @@ unsigned int cartstatesize;
 		if (FAILED(hr))
 			break;
 
-		if (mhdr.banks > Cart::MAXBANKS)
+		if (memoryheader.banks > Cart::MAXBANKS)
 		{
 			hr = E_FAIL;
 			break;
 		}
 
+		if (memoryheader.ramsize > Cart::CARTRAMSIZE)
+		{
+			hr = E_FAIL;
+			break;
+		}
+
+		if (memoryheader.ramsize > 0)
+		{
+			bytesToRead = memoryheader.ramsize;
+			hr = pfs->Read(pCartData, bytesToRead, &bytesRead);
+			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+			{
+				break;
+			}
+			else if (bytesRead < bytesToRead)
+			{
+				eof = true;
+				hr = E_FAIL;
+			}
+			if (FAILED(hr))
+				break;
+		}
+
 		HuffDecompression hw;
 
-		spos_zero.QuadPart = 0;
-		hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_startmem);
-		if (FAILED(hr))
-			break;
-		for (int i = 0; i < (int)mhdr.banks; i++)
+		for (int i = 0; i < (int)memoryheader.banks; i++)
 		{
 			SsCartBank bank;
 
@@ -337,7 +340,7 @@ unsigned int cartstatesize;
 			sp->chipAndDataHigh.allocatedSize = bank.romh.allocatedSize;
 			sp->chipAndDataHigh.chip = bank.romh.chip;
 			
-			SsDataChunkHeader chdr;
+			SsDataChunkHeader dataheader;
 
 			CrtChipAndData *pcd;
 
@@ -348,7 +351,7 @@ unsigned int cartstatesize;
 			{
 				pcd = cds[n];
 				bytesToRead = sizeof(SsDataChunkHeader);
-				hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+				hr = pfs->Read(&dataheader, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -361,15 +364,15 @@ unsigned int cartstatesize;
 				if (FAILED(hr))
 					break;
 
-				if (chdr.byteCount != pcd->allocatedSize)
+				if (dataheader.byteCount != pcd->allocatedSize)
 				{
 					hr = E_FAIL;
 					break;
 				}
 
-				if (chdr.byteCount > 0)
+				if (dataheader.byteCount > 0)
 				{
-					if (chdr.compressionType == Cart::NOCOMPRESSION)
+					if (dataheader.compressionType == Cart::NOCOMPRESSION)
 					{
 						pcd->pData = (bit8 *)GlobalAlloc(GPTR, pcd->allocatedSize);
 						if (!pcd->pData)
@@ -378,21 +381,21 @@ unsigned int cartstatesize;
 							break;
 						}
 						pcd->ownData = true;
-						bytesToRead = chdr.byteCount;
+						bytesToRead = dataheader.byteCount;
 						hr = pfs->Read(pcd->pData, bytesToRead, &bytesRead);
 						if (FAILED(hr))
 							break;
 					}
 					else
 					{
-						dwordCount = chdr.byteCount / sizeof(bit32);
+						dwordCount = dataheader.byteCount / sizeof(bit32);
 
 						bytesToRead = sizeof(dwordCount);
 						hr = pfs->Read(&dwordCount, bytesToRead, &bytesRead);
 						if (FAILED(hr))
 							break;
 
-						if (dwordCount * sizeof(bit32) != chdr.byteCount)
+						if (dwordCount * sizeof(bit32) != dataheader.byteCount)
 						{
 							hr = E_FAIL;
 							break;
@@ -421,7 +424,7 @@ unsigned int cartstatesize;
 			plstBank = NULL;
 			pCartData = NULL;
 			pZeroBankData = NULL;
-			this->SetStateBytes(pstate, sizeofstatedata);
+			this->SetStateBytes(pstate, cartstatesize);
 		}
 	}
 
@@ -453,6 +456,7 @@ ULONG bytesWritten;
 SsCartStateHeader hdr;
 bit8* pstate;
 unsigned int cartstatesize;
+unsigned int cartfullstatesize;
 
 	cartstatesize = GetStateBytes(NULL);
 	pstate = (bit8*)malloc(cartstatesize);
@@ -460,8 +464,10 @@ unsigned int cartstatesize;
 	hr = S_OK;
 	do
 	{
+		cartfullstatesize = sizeof(bit32) + cartstatesize;
+
 		ZeroMemory(&hdr, sizeof(hdr));
-		hdr.size = sizeof(hdr) + sizeof(this->m_crtHeader) + cartstatesize;
+		hdr.size = sizeof(hdr) + sizeof(this->m_crtHeader) + cartfullstatesize;
 		bytesToWrite = sizeof(hdr);
 		hr = pfs->Write(&hdr, bytesToWrite, &bytesWritten);
 		if (FAILED(hr))
@@ -470,6 +476,12 @@ unsigned int cartstatesize;
 		hr = pfs->Write(&this->m_crtHeader, bytesToWrite, &bytesWritten);
 		if (FAILED(hr))
 			break;
+
+		bytesToWrite = sizeof(bit32);
+		hr = pfs->Write(&cartfullstatesize, bytesToWrite, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
 		bytesToWrite = cartstatesize;
 		hr = pfs->Write(pstate, bytesToWrite, &bytesWritten);
 		if (FAILED(hr))
@@ -492,8 +504,8 @@ HRESULT CartCommon::SaveMemoryState(IStream *pfs)
 HRESULT hr;
 ULONG bytesToWrite;
 ULONG bytesWritten;
-SsCartMemoryHeader hdr;
-SsDataChunkHeader chdr;
+SsCartMemoryHeader memoryheader;
+SsDataChunkHeader dataheader;
 bit32 compressedSize;
 int dwordCount = 0;
 
@@ -511,10 +523,16 @@ int dwordCount = 0;
 		if (FAILED(hr))
 			break;
 
-		ZeroMemory(&hdr, sizeof(hdr));
-		hdr.size = sizeof(hdr) + 0;
-		bytesToWrite = sizeof(hdr);
-		hr = pfs->Write(&hdr, bytesToWrite, &bytesWritten);
+		ZeroMemory(&memoryheader, sizeof(memoryheader));
+		memoryheader.size = sizeof(memoryheader) + 0;
+		memoryheader.ramsize = Cart::CARTRAMSIZE; 
+		bytesToWrite = sizeof(memoryheader);
+		hr = pfs->Write(&memoryheader, bytesToWrite, &bytesWritten);
+		if (FAILED(hr))
+			break;
+
+		bytesToWrite = memoryheader.ramsize;
+		hr = pfs->Write(m_pCartData, bytesToWrite, &bytesWritten);
 		if (FAILED(hr))
 			break;
 
@@ -545,24 +563,24 @@ int dwordCount = 0;
 				break;
 			banks++;
 
-			chdr.byteCount = sp->chipAndDataLow.allocatedSize;
-			chdr.compressionType = Cart::NOCOMPRESSION;
+			dataheader.byteCount = sp->chipAndDataLow.allocatedSize;
+			dataheader.compressionType = Cart::NOCOMPRESSION;
 
-			bytesToWrite = sizeof(chdr);
-			hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
+			bytesToWrite = sizeof(dataheader);
+			hr = pfs->Write(&dataheader, bytesToWrite, &bytesWritten);
 			if (FAILED(hr))
 				break;
 
-			if (chdr.compressionType == Cart::NOCOMPRESSION)
+			if (dataheader.compressionType == Cart::NOCOMPRESSION)
 			{
-				bytesToWrite = chdr.byteCount;
+				bytesToWrite = dataheader.byteCount;
 				hr = pfs->Write(sp->chipAndDataLow.pData, bytesToWrite, &bytesWritten);
 				if (FAILED(hr))
 					break;
 			}
 			else
 			{
-				dwordCount = chdr.byteCount / sizeof(bit32);
+				dwordCount = dataheader.byteCount / sizeof(bit32);
 
 				bytesToWrite = sizeof(dwordCount);
 				hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
@@ -576,24 +594,24 @@ int dwordCount = 0;
 				}
 			}
 
-			chdr.byteCount = sp->chipAndDataHigh.allocatedSize;
-			chdr.compressionType = Cart::NOCOMPRESSION;
+			dataheader.byteCount = sp->chipAndDataHigh.allocatedSize;
+			dataheader.compressionType = Cart::NOCOMPRESSION;
 
-			bytesToWrite = sizeof(chdr);
-			hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
+			bytesToWrite = sizeof(dataheader);
+			hr = pfs->Write(&dataheader, bytesToWrite, &bytesWritten);
 			if (FAILED(hr))
 				break;
 
-			if (chdr.compressionType == Cart::NOCOMPRESSION)
+			if (dataheader.compressionType == Cart::NOCOMPRESSION)
 			{
-				bytesToWrite = chdr.byteCount;
+				bytesToWrite = dataheader.byteCount;
 				hr = pfs->Write(sp->chipAndDataHigh.pData, bytesToWrite, &bytesWritten);
 				if (FAILED(hr))
 					break;
 			}
 			else
 			{
-				dwordCount = chdr.byteCount / sizeof(bit32);
+				dwordCount = dataheader.byteCount / sizeof(bit32);
 
 				bytesToWrite = sizeof(dwordCount);
 				hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
@@ -617,9 +635,9 @@ int dwordCount = 0;
 		hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 		if (FAILED(hr))
 			break;
-		hdr.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
-		hdr.banks = banks;
-		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
+		memoryheader.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
+		memoryheader.banks = banks;
+		hr = pfs->Write(&memoryheader, sizeof(memoryheader), &bytesWritten);
 		if (FAILED(hr))
 			break;
 		spos_next.QuadPart = pos_next_section_header.QuadPart;
@@ -741,7 +759,6 @@ void CartCommon::CartReset()
 	}
 }
 
-
 void CartCommon::AttachCart()
 {
 	if (!m_bIsCartAttached)
@@ -783,6 +800,11 @@ bool CartCommon::IsCartIOActive()
 bool CartCommon::IsCartAttached()
 {
 	return this->m_bIsCartAttached;
+}
+
+void CartCommon::Set_IsCartAttached(bool isAttached)
+{
+	m_bIsCartAttached = isAttached;
 }
 
 bool CartCommon::IsUltimax()
@@ -1572,6 +1594,12 @@ bool Cart::IsCartAttached()
 	return m_spCurrentCart && m_spCurrentCart->IsCartAttached();
 }
 
+void Cart::Set_IsCartAttached(bool isAttached)
+{
+	if (m_spCurrentCart)
+		m_spCurrentCart->Set_IsCartAttached(isAttached);
+}
+
 void Cart::CartFreeze()
 {
 	if (this->IsCartAttached())
@@ -1592,9 +1620,11 @@ void Cart::CheckForCartFreeze()
 
 void Cart::AttachCart(shared_ptr<ICartInterface> spCartInterface)
 {
-	CleanUp();
+	if (m_spCurrentCart)
+		m_spCurrentCart->Set_IsCartAttached(false);
 	m_spCurrentCart = spCartInterface;
-	m_spCurrentCart->AttachCart();
+	if (m_spCurrentCart)
+		m_spCurrentCart->Set_IsCartAttached(true);
 }
 
 void Cart::AttachCart()
@@ -1610,7 +1640,8 @@ void Cart::AttachCart()
 				this->m_plstBank = NULL;
 				this->m_pCartData = NULL;
 				this->m_pZeroBankData = NULL;
-				AttachCart(spCartInterface);
+				m_spCurrentCart = spCartInterface;
+				m_spCurrentCart->AttachCart();			
 			}
 		}
 	}

@@ -24,12 +24,77 @@
 EasyFlashChip::EasyFlashChip()
 {
 	m_chipNumber = 0;
-	m_vecPendingSectorErase.reserve(MAXBANKS);
+	m_vecPendingSectorErase.reserve(MAXEASYFLASHBANKS);
 }
 
 EasyFlashChip::~EasyFlashChip()
 {
 	CleanUp();
+}
+
+unsigned int EasyFlashChip::GetStateBytes(void *pstate)
+{
+int totalsize = sizeof(SsState) + sizeof(bit32) + EasyFlashChip::MAXEASYFLASHBANKS;
+bit8 *p;
+
+	if (pstate)
+	{
+		ZeroMemory(pstate, totalsize);
+		SsState *s = (SsState *)pstate;
+		s->size = totalsize;
+		s->m_iLastCommandWriteClock = m_iLastCommandWriteClock;
+		s->m_iCommandByte = m_iCommandByte;
+		s->m_iCommandCycle = m_iCommandCycle;
+		s->m_iStatus = m_iStatus;
+		s->m_iByteWritten = m_iByteWritten;
+		//s->m_iAddressWrite = m_iAddressWrite;
+		//s->m_iSectorWrite = m_iSectorWrite;
+		s->m_mode = m_mode;
+		
+		p = &(((bit8 *)s)[sizeof(SsState)]);
+
+		bit32 n = (bit32)min(this->m_vecPendingSectorErase.size(), EasyFlashChip::MAXEASYFLASHBANKS);
+		*((bit32 *)p) = n;
+		p++;
+		for (unsigned int i=0; i<n; i++, p++)
+		{
+			*p = m_vecPendingSectorErase[i];
+		}
+
+	}
+	return totalsize;
+}
+
+HRESULT EasyFlashChip::SetStateBytes(void *pstate, unsigned int size)
+{
+int totalsize = sizeof(SsState) + sizeof(bit32) + EasyFlashChip::MAXEASYFLASHBANKS;
+SsState *s;
+	if (!pstate || size != totalsize)
+		return E_FAIL;
+
+	s = (SsState *)pstate;
+	if (s->size != totalsize)
+		return E_FAIL;
+
+	m_iLastCommandWriteClock = s->m_iLastCommandWriteClock;
+	m_iCommandByte = s->m_iCommandByte;
+	m_iCommandCycle = s->m_iCommandCycle;
+	m_iStatus = s->m_iStatus;
+	m_iByteWritten = s->m_iByteWritten;
+	//m_iAddressWrite = s->m_iAddressWrite;
+	//m_iSectorWrite = s->m_iSectorWrite;
+	m_mode = (EEasyFlashMode)s->m_mode;
+
+	bit8 *p = &(((bit8 *)s)[sizeof(SsState)]);
+	bit32 n = (bit32)min(this->m_vecPendingSectorErase.size(), EasyFlashChip::MAXEASYFLASHBANKS);
+
+	m_vecPendingSectorErase.resize(n);
+	for (unsigned int i=0; i<n; i++)
+	{
+		m_vecPendingSectorErase.at(i) = p[i];
+	}
+	return S_OK;
+
 }
 
 void EasyFlashChip::Detach()
@@ -51,6 +116,7 @@ HRESULT EasyFlashChip::Init(CartEasyFlash *pCartEasyFlash, int chipNumber)
 int i;
 const int BANKSIZE = 0x2000;
 HRESULT hr = E_FAIL;
+
 	try
 	{
 		m_plstBank = pCartEasyFlash->m_plstBank;
@@ -59,7 +125,7 @@ HRESULT hr = E_FAIL;
 
 		int iBlankChipsTotalBytes = 0;
 		i = 0;
-		for (CrtBankListIter it = m_pCartEasyFlash->m_plstBank->begin(); it != m_pCartEasyFlash->m_plstBank->end() && i < MAXBANKS; it++,i++)
+		for (CrtBankListIter it = m_pCartEasyFlash->m_plstBank->begin(); it != m_pCartEasyFlash->m_plstBank->end() && i < MAXEASYFLASHBANKS; it++,i++)
 		{
 			CrtChipAndData *pcd;
 			if (chipNumber == 0)
@@ -103,8 +169,8 @@ void EasyFlashChip::Reset(ICLK sysclock)
 	m_iByteWritten = 0;
 
 	m_mode = Read;
-	m_iAddressWrite = 0;
-	m_iSectorWrite = 0;
+	//m_iAddressWrite = 0;
+	//m_iSectorWrite = 0;
 	m_iStatus = 0;
 	m_vecPendingSectorErase.clear();
 }

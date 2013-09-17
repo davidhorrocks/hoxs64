@@ -37,6 +37,7 @@ struct SsCartStateHeader
 struct SsCartMemoryHeader
 {
 	bit32 size;
+	bit32 ramsize;
 	bit32 banks;
 };
 
@@ -137,6 +138,7 @@ public:
 	virtual bool IsUltimax()=0;
 	virtual bool IsCartIOActive()=0;
 	virtual bool IsCartAttached()=0;
+	virtual void Set_IsCartAttached(bool isAttached) = 0;
 
 	virtual void CartFreeze()=0;
 	virtual void CartReset()=0;
@@ -199,6 +201,7 @@ public:
 	virtual bool IsUltimax();
 	virtual bool IsCartIOActive();
 	virtual bool IsCartAttached();
+	virtual void Set_IsCartAttached(bool isAttached);
 
 	virtual void CartFreeze();
 	virtual void CartReset();
@@ -338,6 +341,7 @@ public:
 	bool IsUltimax();
 	bool IsCartIOActive();
 	bool IsCartAttached();
+	void Set_IsCartAttached(bool isAttached);
 	
 	void CartFreeze();
 	void CartReset();
@@ -368,6 +372,7 @@ protected:
 private:
 	static const int RAMRESERVEDSIZE = 64 * 1024 + 8 * 1024;//Assume 64K cart RAM + 8K zero byte bank
 	static const int ZEROBANKOFFSET = 64 * 1024;
+	static const int CARTRAMSIZE = 64 * 1024;
 
 	void CleanUp();
 	static int GetTotalCartMemoryRequirement(CrtBankList *plstBank);

@@ -2593,6 +2593,7 @@ ULARGE_INTEGER pos_next_track_header;
 	}
 	if (SUCCEEDED(hr) && hasC64)
 	{
+
 		cpu.SetState(sbCpuMain);
 		if (ram.mMemory && pC64Ram)
 			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
@@ -2672,12 +2673,9 @@ ULARGE_INTEGER pos_next_track_header;
 		//sid.SetCurrentClock(c);
 		//cart.SetCurrentClock(c);
 		//diskdrive.SetCurrentClock(c);
-		cpu.cpu_port();
+		//cpu.cpu_port();
+		cart.AttachCart(spCartInterface);
 		cpu.ConfigureMemoryMap();
-		if (spCartInterface)
-		{
-			cart.AttachCart(spCartInterface);
-		}
 		hr = S_OK;
 	}
 	else

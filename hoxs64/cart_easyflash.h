@@ -8,17 +8,17 @@ class EasyFlashChip
 public:
 	enum EEasyFlashMode
 	{
-		Read,
-		AutoSelect,
-		ByteProgram,	
-		ChipErase,
-		SectorErase,
-		SectorEraseSuspend,
-		ChipEraseSuspend,
+		Read = 0,
+		AutoSelect = 1,
+		ByteProgram = 2,	
+		ChipErase = 3,
+		SectorErase = 4,
+		SectorEraseSuspend = 5,
+		ChipEraseSuspend = 6,
 	};
 	EasyFlashChip();
 	~EasyFlashChip();
-	static const int MAXBANKS = 64;
+	static const int MAXEASYFLASHBANKS = 64;
 	HRESULT Init(CartEasyFlash *pCartEasyFlash, int chipNumber);
 	void CleanUp();
 	void Detach();
@@ -32,6 +32,26 @@ public:
 	void PreventClockOverflow();
 	void SetCurrentClock(ICLK sysclock);
 
+protected:
+	struct SsState
+	{
+		bit32 size;
+		bit32 m_iLastCommandWriteClock;
+		bit8 m_iCommandByte;
+		bit8 m_iCommandCycle;
+		bit8 m_iStatus;
+		bit8 m_iByteWritten;
+		//bit16 m_iAddressWrite;
+		//bit8 m_iSectorWrite;
+		bit8 m_mode;
+		//std::vector<bit8> m_vecPendingSectorErase;
+		//CrtBankList *m_plstBank;
+		//int m_chipNumber;
+		//bit8 *m_pBlankData;
+	};
+	virtual unsigned int GetStateBytes(void *pstate);
+	virtual HRESULT SetStateBytes(void *pstate, unsigned int size);
+
 private:
 	CartEasyFlash *m_pCartEasyFlash;
 	ICLK m_iLastCommandWriteClock;
@@ -39,13 +59,15 @@ private:
 	bit8 m_iCommandCycle;
 	bit8 m_iStatus;
 	bit8 m_iByteWritten;
-	bit16 m_iAddressWrite;
-	bit8 m_iSectorWrite;
+	//bit16 m_iAddressWrite;
+	//bit8 m_iSectorWrite;
 	EEasyFlashMode m_mode;
 	std::vector<bit8> m_vecPendingSectorErase;
 	CrtBankList *m_plstBank;
 	int m_chipNumber;
 	bit8 *m_pBlankData;
+
+	friend CartEasyFlash;
 };
 
 
@@ -84,6 +106,9 @@ public:
 	virtual void SetCurrentClock(ICLK sysclock);
 
 	virtual HRESULT InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData);
+
+	virtual unsigned int GetStateBytes(void *pstate);
+	virtual HRESULT SetStateBytes(void *pstate, unsigned int size);
 
 protected:
 	virtual void UpdateIO();
