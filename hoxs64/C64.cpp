@@ -994,15 +994,25 @@ void C64::EndOfTape(ICLK sysclock)
 HRESULT C64::AutoLoad(TCHAR *filename, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64FileName[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks)
 {
 HRESULT hr = S_OK;
-TCHAR *p;
 C64File c64file;
+TCHAR drive[_MAX_DRIVE];
+TCHAR dir[_MAX_DIR];
+TCHAR fname[_MAX_FNAME];
+TCHAR ext[_MAX_EXT];
+errno_t errno;
 
 	ClearError();
 	autoLoadCommand.CleanUp();
 
+	errno = _tsplitpath_s(filename, drive, _countof(drive), dir, _countof(dir), fname, _countof(fname), ext, _countof(ext));
+	if (errno!=0)
+	{
+		return SetError(E_FAIL, TEXT("Could not parse the file name."));
+	}
+
 	hr = c64file.Init();
 	if (FAILED(hr))
-		return SetError(hr, TEXT("Could initialise autoload."));
+		return SetError(hr, TEXT("Could not initialise autoload."));
 
 	autoLoadCommand.type = C64::AUTOLOAD_NONE;
 	autoLoadCommand.sequence = C64::AUTOSEQ_RESET;
@@ -1029,10 +1039,22 @@ C64File c64file;
 	if (FAILED(hr))
 		return SetError(hr, TEXT("%s too long."), filename);
 
-	if (lstrlen(filename) >= 4)
+	if (lstrlen(ext) > 0)
 	{
-		p= &(filename[lstrlen(filename) - 4]);
-		if (lstrcmpi(p, TEXT(".crt"))==0)
+		if (lstrcmpi(ext, TEXT(".64s"))==0)
+		{
+			pIC64Event->SetBusy(true);
+			hr = this->LoadC64StateFromFile(filename);
+			pIC64Event->SetBusy(false);
+			if (FAILED(hr))
+			{
+				SetError(hr, TEXT("Unable to load."));
+			}
+			autoLoadCommand.type = C64::AUTOLOAD_NONE;
+			appStatus->m_bAutoload = FALSE;
+			return hr;
+		}
+		else if (lstrcmpi(ext, TEXT(".crt"))==0)
 		{
 			hr = LoadCrtFile(filename);
 			if (SUCCEEDED(hr))
@@ -1045,7 +1067,7 @@ C64File c64file;
 			}
 			return hr;
 		}
-		else if (lstrcmpi(p, TEXT(".tap"))==0)
+		else if (lstrcmpi(ext, TEXT(".tap"))==0)
 		{
 			hr = LoadTAPFile(filename);
 			if (SUCCEEDED(hr))
@@ -1054,17 +1076,17 @@ C64File c64file;
 				appStatus->m_bAutoload = TRUE;
 			}
 		}
-		else if (lstrcmpi(p, TEXT(".prg"))==0 || lstrcmpi(p, TEXT(".p00"))==0)
+		else if (lstrcmpi(ext, TEXT(".prg"))==0 || lstrcmpi(ext, TEXT(".p00"))==0)
 		{
 			autoLoadCommand.type = C64::AUTOLOAD_PRG_FILE;
 			appStatus->m_bAutoload = TRUE;
 		}		
-		else if (lstrcmpi(p, TEXT(".t64"))==0)
+		else if (lstrcmpi(ext, TEXT(".t64"))==0)
 		{
 			autoLoadCommand.type = C64::AUTOLOAD_T64_FILE;
 			appStatus->m_bAutoload = TRUE;
 		}		
-		else if (lstrcmpi(p, TEXT(".d64"))==0 || lstrcmpi(p, TEXT(".g64"))==0 || lstrcmpi(p, TEXT(".fdi"))==0)
+		else if (lstrcmpi(ext, TEXT(".d64"))==0 || lstrcmpi(ext, TEXT(".g64"))==0 || lstrcmpi(ext, TEXT(".fdi"))==0)
 		{
 			if (!cfg->m_bD1541_Emulation_Enable)
 			{
@@ -1107,7 +1129,7 @@ C64File c64file;
 				return hr;
 			}
 		}
-		else if (lstrcmpi(p, TEXT(".sid"))==0)
+		else if (lstrcmpi(ext, TEXT(".sid"))==0)
 		{
 			autoLoadCommand.pSidFile = new SIDLoader();
 			if (autoLoadCommand.pSidFile == 0)

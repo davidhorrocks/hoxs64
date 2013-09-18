@@ -855,7 +855,7 @@ CPRGBrowse prgBrowse;
 		TEXT("Choose a C64 program file"),
 		initfilename,
 		MAX_PATH,
-		TEXT("C64 file (*.fdi;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt)\0*.fdi;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt\0\0"),
+		TEXT("C64 file (*.fdi;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s)\0*.fdi;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s\0\0"),
 		NULL,
 		0);
 	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::ALL);
@@ -1158,8 +1158,12 @@ HRESULT hr;
 	b = GetOpenFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
+		SetBusy(true);
 		hr = c64.LoadC64StateFromFile(initfilename);
-		if (FAILED(hr))
+		SetBusy(false);
+		if (SUCCEEDED(hr))
+			UpdateApplication();
+		else
 			c64.DisplayError(hWnd, title);
 	}
 }
