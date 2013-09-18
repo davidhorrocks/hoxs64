@@ -1057,14 +1057,8 @@ errno_t errno;
 		else if (lstrcmpi(ext, TEXT(".crt"))==0)
 		{
 			hr = LoadCrtFile(filename);
-			if (SUCCEEDED(hr))
-			{
-				cart.AttachCart();
-				Reset(0);
-				autoLoadCommand.type = C64::AUTOLOAD_NONE;
-				appStatus->m_bAutoload = FALSE;
-				
-			}
+			autoLoadCommand.type = C64::AUTOLOAD_NONE;
+			appStatus->m_bAutoload = FALSE;
 			return hr;
 		}
 		else if (lstrcmpi(ext, TEXT(".tap"))==0)

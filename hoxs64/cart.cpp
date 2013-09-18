@@ -1640,6 +1640,7 @@ void Cart::AttachCart()
 				this->m_plstBank = NULL;
 				this->m_pCartData = NULL;
 				this->m_pZeroBankData = NULL;
+				m_bIsCartDataLoaded = false;
 				m_spCurrentCart = spCartInterface;
 				m_spCurrentCart->AttachCart();			
 			}
