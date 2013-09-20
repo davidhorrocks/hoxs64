@@ -1217,6 +1217,8 @@ TCHAR *p;
 
 	*pStartAddress = (bit16)start;
 	*pSize = (bit16)code_size;
+
+	this->pIC64Event->MemoryChanged();
 	return S_OK;
 
 }
@@ -1256,6 +1258,7 @@ HRESULT hr;
 
 	*pStartAddress = (bit16)start;
 	*pSize = (bit16)code_size;
+	this->pIC64Event->MemoryChanged();
 	return S_OK;
 }
 
@@ -2771,10 +2774,10 @@ void C64::SoftReset(bool bCancelAutoload)
 	}
 	ICLK sysclock = cpu.CurrentClock;
 	cpu.InitReset(sysclock);
-
 	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
 	cpu.Reset(sysclock);
 	cart.Reset(sysclock);
+	this->pIC64Event->Reset();
 }
 
 void C64::HardReset(bool bCancelAutoload)
@@ -2782,6 +2785,7 @@ void C64::HardReset(bool bCancelAutoload)
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
 	Reset(0);
+	this->pIC64Event->Reset();
 }
 
 void C64::CartFreeze(bool bCancelAutoload)
@@ -2792,8 +2796,8 @@ void C64::CartFreeze(bool bCancelAutoload)
 	{
 		ExecuteRandomClocks();
 	}
-
 	cart.CartFreeze();
+	this->pIC64Event->Reset();
 }
 
 void C64::CartReset(bool bCancelAutoload)
@@ -2805,6 +2809,7 @@ void C64::CartReset(bool bCancelAutoload)
 		ExecuteRandomClocks();
 	}
 	cart.CartReset();
+	this->pIC64Event->Reset();
 }
 
 void C64::PostSoftReset(bool bCancelAutoload)

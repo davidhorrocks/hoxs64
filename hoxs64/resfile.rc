@@ -53,6 +53,7 @@ END
 HOXS64 ACCELERATORS
 BEGIN
     "F",            IDM_CART_FREEZE,        VIRTKEY, ALT, NOINVERT
+    "R",            IDM_CART_RESET,         VIRTKEY, ALT, NOINVERT
     VK_F9,          IDM_FILE_MONITOR,       VIRTKEY, NOINVERT
     "P",            IDM_FILE_PAUSE,         VIRTKEY, ALT, NOINVERT
     "/",            IDM_HELP_ABOUT,         ASCII,  ALT, NOINVERT
@@ -64,7 +65,7 @@ BEGIN
     VK_F5,          IDM_STEP_TRACE,         VIRTKEY, NOINVERT
     VK_F6,          IDM_STEP_TRACEFRAME,    VIRTKEY, NOINVERT
     VK_RETURN,      IDM_TOGGLEFULLSCREEN,   VIRTKEY, ALT, NOINVERT
-    "R",            IDM_CART_RESET,         VIRTKEY, ALT, NOINVERT
+    VK_HOME,        IDM_DEBUG_HOMETOPC,     VIRTKEY, NOINVERT
 END
 
 
@@ -192,14 +193,16 @@ END
 
 MENU_CPUDISASSEMBLY MENU
 BEGIN
-    POPUP "Step"
+    POPUP "Debug"
     BEGIN
-        MENUITEM "Clock\tF7",                   IDM_STEP_ONECLOCK
-        MENUITEM "Instruction\tF8",             IDM_STEP_ONEINSTRUCTION
+        MENUITEM "Home to PC\tHome",            IDM_DEBUG_HOMETOPC
+        MENUITEM SEPARATOR
+        MENUITEM "Excecute 1 Clock\tF7",        IDM_STEP_ONECLOCK
+        MENUITEM "Excecute 1 Instruction\tF8",  IDM_STEP_ONEINSTRUCTION
         MENUITEM SEPARATOR
         MENUITEM "Trace\tF5",                   IDM_STEP_TRACE
-        MENUITEM "Trace Frame\tF6",             IDM_STEP_TRACEFRAME
-        MENUITEM "Trace Interrupt Taken",       IDM_STEP_TRACEINTERRUPTTAKEN
+        MENUITEM "Trace 1 Frame\tF6",           IDM_STEP_TRACEFRAME
+        MENUITEM "Trace Till Interrupt Taken",  IDM_STEP_TRACEINTERRUPTTAKEN
         MENUITEM "Stop\tF9",                    IDM_STEP_STOP
     END
 END

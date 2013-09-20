@@ -218,6 +218,8 @@ public:
 	virtual void BreakExecuteCpuDisk()=0;
 	virtual void BreakVicRasterCompare()=0;
 	virtual void BreakpointChanged()=0;
+	virtual void Reset()=0;
+	virtual void MemoryChanged()=0;
 };
 
 typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;

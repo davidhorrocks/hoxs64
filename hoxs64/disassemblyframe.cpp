@@ -677,10 +677,6 @@ bool CDisassemblyFrame::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	case VK_PRIOR: 
 		SendMessage(m_pWinDisassemblyChild->GetHwnd(), WM_VSCROLL, SB_PAGEUP, 0L);
 		break; 
-	case VK_HOME:
-		SetHome();
-		UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
-		break; 
 	default:
 		return false;
 	}
@@ -796,6 +792,8 @@ void CDisassemblyFrame::SetMenuState()
 		stateTb = TBSTATE_ENABLED;
 		stateTbOpp = 0;
 	}
+	
+	EnableMenuItem(hMenu, IDM_DEBUG_HOMETOPC, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_ONECLOCK, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_ONEINSTRUCTION, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_TRACE, MF_BYCOMMAND | state);
@@ -805,6 +803,7 @@ void CDisassemblyFrame::SetMenuState()
 	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
 	if (m_hWndTooBarStep!=NULL)
 	{
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_DEBUG_HOMETOPC, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_ONECLOCK, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_ONEINSTRUCTION, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
@@ -939,73 +938,66 @@ int wmId, wmEvent;
 
 	wmId    = LOWORD(wParam);
 	wmEvent = HIWORD(wParam);
+	if (!m_pAppCommand)
+		return true;		
 	switch (wmId) 
 	{
-	case IDM_STEP_ONECLOCK:
-		if (!m_pAppCommand)
-			return true;
+	case IDM_DEBUG_HOMETOPC:
 		if (m_pAppCommand->IsRunning())
-			return true;
+			break;
+		SetHome();
+		UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
+		break;
+	case IDM_STEP_ONECLOCK:
+		if (m_pAppCommand->IsRunning())
+			break;
 		CancelEditing();
 		if (this->GetCpuId() == CPUID_MAIN)
 			m_pAppCommand->ExecuteC64Clock();
 		else
 			m_pAppCommand->ExecuteDiskClock();
 		m_pAppCommand->UpdateApplication();
-		return true;
+		break;
 	case IDM_STEP_ONEINSTRUCTION:
-		if (!m_pAppCommand)
-			return true;
 		if (m_pAppCommand->IsRunning())
-			return true;
+			break;
 		CancelEditing();
 		if (this->GetCpuId() == CPUID_MAIN)
 			m_pAppCommand->ExecuteC64Instruction();
 		else
 			m_pAppCommand->ExecuteDiskInstruction();
 		m_pAppCommand->UpdateApplication();
-		return true;
+		break;
 	case IDM_STEP_TRACEFRAME:
-		if (!m_pAppCommand)
-			return true;
 		if (m_pAppCommand->IsRunning())
-			return true;
+			break;
 		CancelEditing();
 		m_pAppCommand->TraceFrame();
 		m_pAppCommand->UpdateApplication();
-		return true;
+		break;
 	case IDM_STEP_TRACE:
-		if (!m_pAppCommand)
-			return true;
 		if (m_pAppCommand->IsRunning())
-			return true;
+			break;
 		CancelEditing();
 		m_pAppCommand->Trace();
-		return true;
+		break;
 	case IDM_STEP_TRACEINTERRUPTTAKEN:
-		if (!m_pAppCommand)
-			return true;
 		if (m_pAppCommand->IsRunning())
-			return true;
+			break;
 		this->GetCpu()->SetBreakOnInterruptTaken();
 		m_pAppCommand->Trace();
-		return true;
+		break;
 	case IDM_FILE_MONITOR:
 	case IDM_STEP_STOP:
-		if (!m_pAppCommand)
-			return true;
 		CancelEditing();
 		m_pAppCommand->ShowDevelopment();
 		::SetForegroundWindow(m_hWnd);
-		return true;
+		break;
 	case IDM_VIEW_ADDRESS:
-		if (!m_pAppCommand)
-			return true;		
 		OnEnterGotoAddress();
-		return true;
-	default:
-		return true;
+		break;
 	}
+	return true;
 }
 
 bool CDisassemblyFrame::OnEnterGotoAddress()

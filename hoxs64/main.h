@@ -77,6 +77,8 @@ public:
 	virtual void BreakExecuteCpuDisk();
 	virtual void BreakVicRasterCompare();
 	virtual void BreakpointChanged();
+	virtual void Reset();
+	virtual void MemoryChanged();
 	virtual void SetBusy(bool bBusy);
 	virtual void DiskMotorLed(bool bOn);
 	virtual void DiskDriveLed(bool bOn);

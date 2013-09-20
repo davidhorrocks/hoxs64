@@ -1329,6 +1329,18 @@ void CApp::BreakpointChanged()
 	this->EsBreakpointChanged.Raise(NULL, e);	
 }
 
+void CApp::Reset()
+{
+EventArgs e;
+	this->EsTraceFrame.Raise(NULL, e);
+}
+
+void CApp::MemoryChanged()
+{
+EventArgs e;
+	this->EsMemoryChanged.Raise(NULL, e);
+}
+
 void CApp::DiskMotorLed(bool bOn)
 {
 	m_bDiskLedMotor = bOn;

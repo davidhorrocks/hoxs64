@@ -279,13 +279,16 @@
 #define ID_FILE_SAVESTATE               40175
 #define IDM_FILE_LOADSTATE              40176
 #define IDM_FILE_SAVESTATE              40177
+#define ID_DEBUG_HOMETOPC               40178
+#define IDM_DEBUG_HOMETOPC              40179
+#define ID_ACCELERATOR40180             40180
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        188
-#define _APS_NEXT_COMMAND_VALUE         40178
+#define _APS_NEXT_COMMAND_VALUE         40182
 #define _APS_NEXT_CONTROL_VALUE         1322
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
