@@ -47,6 +47,10 @@ struct SsHeader
 	bit32 Version;
 	bit32 HeaderSize;
 	char EmulatorName[0x20];
+	bit32 reserved1;
+	bit32 reserved2;
+	bit32 reserved3;
+	bit32 reserved4;
 };
 
 struct SsSectionHeader
@@ -54,7 +58,8 @@ struct SsSectionHeader
 	bit32 size;
 	bit32 id;
 	bit32 version;
-	//bit32 crc;
+	bit32 reserved1;
+	bit32 reserved2;
 };
 
 struct SsTrackHeader
@@ -63,7 +68,7 @@ struct SsTrackHeader
 	bit32 number;
 	bit32 version;
 	bit32 gap_count;
-	//bit32 crc;
+	bit32 reserved1;
 };
 
 struct SsEmulation
@@ -579,6 +584,7 @@ HRESULT hr;
 ULONG bytesWritten;
 SsSectionHeader sh;
 
+	ZeroMemory(&sh, sizeof(sh));
 	sh.size = sizeof(section) + sizeof(sh);
 	sh.id = sectionType;
 	sh.version = 0;

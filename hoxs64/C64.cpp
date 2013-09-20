@@ -1565,6 +1565,7 @@ bit32 dwordCount;
 		if (FAILED(hr))
 			break;
 
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64Ram;
 		sh.size = sizeof(sh) + SaveState::SIZE64K;
 		sh.version = 0;
@@ -1575,6 +1576,7 @@ bit32 dwordCount;
 		if (FAILED(hr))
 			break;
 
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64ColourRam;
 		sh.size = sizeof(sh) + SaveState::SIZECOLOURAM;
 		sh.version = 0;
@@ -1615,6 +1617,7 @@ bit32 dwordCount;
 		if (FAILED(hr))
 			break;
 
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64KernelRom;
 		sh.size = sizeof(sh) + SaveState::SIZEC64KERNEL;
 		sh.version = 0;
@@ -1625,6 +1628,7 @@ bit32 dwordCount;
 		if (FAILED(hr))
 			break;
 
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64BasicRom;
 		sh.size = sizeof(sh) + SaveState::SIZEC64BASIC;
 		sh.version = 0;
@@ -1635,6 +1639,7 @@ bit32 dwordCount;
 		if (FAILED(hr))
 			break;
 
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64CharRom;
 		sh.size = sizeof(sh) + SaveState::SIZEC64CHARGEN;
 		sh.version = 0;
@@ -1665,6 +1670,7 @@ bit32 dwordCount;
 			if (FAILED(hr))
 				break;
 
+			ZeroMemory(&sh, sizeof(sh));
 			sh.id = SsLib::SectionType::C64TapeData;
 			sh.size = 0;
 			sh.version = 0;
@@ -1721,6 +1727,7 @@ bit32 dwordCount;
 				break;
 		}
 
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::DriveRam;
 		sh.size = sizeof(sh) + SaveState::SIZEDRIVERAM;
 		sh.version = 0;
@@ -1731,6 +1738,7 @@ bit32 dwordCount;
 		if (FAILED(hr))
 			break;
 
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::DriveRom;
 		sh.size = sizeof(sh) + SaveState::SIZEDRIVEROM;
 		sh.version = 0;
@@ -1789,6 +1797,8 @@ bit32 dwordCount;
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_section_header);
 			if (FAILED(hr))
 				break;
+
+			ZeroMemory(&sh, sizeof(sh));
 			sh.id = SsLib::SectionType::DriveDiskImage;
 			sh.size = sizeof(sh);
 			sh.version = 0;
@@ -1803,6 +1813,7 @@ bit32 dwordCount;
 			for(int i=0; i<G64_MAX_TRACKS; i++)
 			{
 				SsTrackHeader th;
+				ZeroMemory(&th, sizeof(th));
 				th.number = i;
 				th.size = sizeof(th);
 				th.version = 0;
@@ -1883,6 +1894,8 @@ bit32 dwordCount;
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_section_header);
 			if (FAILED(hr))
 				break;
+
+			ZeroMemory(&sh, sizeof(sh));
 			sh.id = SsLib::SectionType::Cart;
 			sh.size = sizeof(sh);
 			sh.version = 0;
@@ -1912,8 +1925,9 @@ bit32 dwordCount;
 				break;
 		}
 
-		sh.size = 0;
+		ZeroMemory(&sh, sizeof(sh));
 		sh.id = 0;
+		sh.size = 0;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
