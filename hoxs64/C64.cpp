@@ -1217,8 +1217,6 @@ TCHAR *p;
 
 	*pStartAddress = (bit16)start;
 	*pSize = (bit16)code_size;
-
-	this->pIC64Event->MemoryChanged();
 	return S_OK;
 
 }
@@ -1258,7 +1256,6 @@ HRESULT hr;
 
 	*pStartAddress = (bit16)start;
 	*pSize = (bit16)code_size;
-	this->pIC64Event->MemoryChanged();
 	return S_OK;
 }
 

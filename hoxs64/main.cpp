@@ -805,7 +805,12 @@ BOOL b;
 	if (b)
 	{
 		HRESULT hr = c64.LoadCrtFile(initfilename);
-		if (hr != S_OK)
+		if (SUCCEEDED(hr))
+		{
+			UpdateApplication();
+			Reset();
+		}
+		else
 			c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
 	}
 }
@@ -894,7 +899,10 @@ HRESULT hr;
 	{
 		hr = c64.LoadImageFile(initfilename, &start, &loadSize);
 		if (SUCCEEDED(hr))
+		{
+			MemoryChanged();
 			ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("Load Image") , TEXT("START=%d"), (int)start);
+		}
 		else
 			c64.DisplayError(hWnd, TEXT("Load Image"));
 
@@ -932,7 +940,10 @@ int i;
 		i = (prgBrowse.SelectedDirectoryIndex < 0) ? 0 : prgBrowse.SelectedDirectoryIndex;
 		hr = c64.LoadT64ImageFile(initfilename, i, &start, &loadSize);
 		if (SUCCEEDED(hr))
+		{
+			MemoryChanged();
 			ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("Load T64"), TEXT("START=%d"), (int)start);
+		}
 		else
 			c64.DisplayError(hWnd, TEXT("Load T64"));
 
@@ -1162,7 +1173,10 @@ HRESULT hr;
 		hr = c64.LoadC64StateFromFile(initfilename);
 		SetBusy(false);
 		if (SUCCEEDED(hr))
+		{
 			UpdateApplication();
+			Reset();
+		}
 		else
 			c64.DisplayError(hWnd, title);
 	}
