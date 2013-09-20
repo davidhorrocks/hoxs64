@@ -1353,7 +1353,7 @@ __int64 iFileIndex = 0;
 			if (this->m_spCurrentCart)
 			{
 				m_spCurrentCart->DetachCart();
-				m_spCurrentCart = 0;
+				m_spCurrentCart.reset();
 			}
 			if (m_plstBank)
 			{
@@ -1457,7 +1457,7 @@ shared_ptr<ICartInterface> p;
 	catch(std::bad_alloc&)
 	{
 		SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
-		p = 0;
+		p.reset();
 	}
 	return p;
 }
@@ -1653,7 +1653,7 @@ void Cart::DetachCart()
 	if (m_spCurrentCart)
 	{
 		m_spCurrentCart->DetachCart();
-		m_spCurrentCart = 0;
+		m_spCurrentCart.reset();
 	}
 	CleanUp();
 }

@@ -1525,7 +1525,7 @@ const int MAXTIME = DISK_RAW_TRACK_SIZE * 16;
 		if (delay >= MAXTIME)
 			break;
 		int q = delay / 16;
-		pTrack[q] = (delay % 16) + 1;
+		pTrack[q] = (bit8)(((delay % 16) + 1) & 0xff);
 	}
 	assert(delay + pTrackBuffer[i] == MAXTIME);
 	return S_OK;

@@ -178,6 +178,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\bits.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\break_point.cpp"
 				>
 			</File>
@@ -191,10 +195,6 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\C6502.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\cart.cpp"
 				>
 			</File>
 			<File
@@ -278,6 +278,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\FDI.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\filestream.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\filter.cpp"
 				>
 			</File>
@@ -291,6 +299,14 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\Huff.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\HuffCompression.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\HuffDecompression.cpp"
 				>
 			</File>
 			<File
@@ -449,6 +465,94 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="cart"
+				>
+				<File
+					RelativePath="..\hoxs64\cart.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay_mk2.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay_mk3.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay_mk4.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_dinamic.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_easyflash.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_easyflash_chip.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_epyx_fastload.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_final_cartridge_iii.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_fun_play.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_magic_desk.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_normal_cartridge.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_ocean1.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_retro_replay.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_simons_basic.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_super_games.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_system_3.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_zaxxon.cpp"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="savestate"
+				>
+				<File
+					RelativePath="..\hoxs64\savestate.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -489,10 +593,6 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\CArray.h"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\cart.h"
 				>
 			</File>
 			<File
@@ -760,6 +860,90 @@
 				</File>
 				<File
 					RelativePath="..\hoxs64\wpccli.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="cart"
+				>
+				<File
+					RelativePath="..\hoxs64\cart.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay_mk2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay_mk3.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_action_replay_mk4.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_dinamic.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_easyflash.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_epyx_fastload.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_final_cartridge_iii.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_fun_play.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_magic_desk.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_normal_cartridge.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_ocean1.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_retro_replay.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_simons_basic.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_super_games.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_system_3.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\cart_zaxxon.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="savestate"
+				>
+				<File
+					RelativePath="..\hoxs64\savestate.h"
 					>
 				</File>
 			</Filter>
