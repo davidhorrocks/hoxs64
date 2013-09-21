@@ -2051,6 +2051,13 @@ ULARGE_INTEGER pos_next_track_header;
 			break;
 		}
 
+		//Version 1.0.8.5 reads state version 0
+		if (hdr.Version != 0)
+		{			
+			hr = SetError(E_FAIL, TEXT("This state file was saved with a higher version the emulator and cannot be read by this version of the emulator."));
+			break;
+		}
+
 		spos_next.QuadPart = 0;
 		hr = pfs->Seek(spos_next, STREAM_SEEK_CUR, &pos_next_header);
 		if (FAILED(hr))
