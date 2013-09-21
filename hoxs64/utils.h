@@ -538,6 +538,11 @@ protected:
 /*C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C
 C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C---C-C*/
 
-
+class ComboTextAndValue
+{
+public:
+	LPCTSTR Text;
+	DWORD Value;
+};
 
 #endif

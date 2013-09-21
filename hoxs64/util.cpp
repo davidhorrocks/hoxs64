@@ -42,6 +42,27 @@ void C64WindowDimensions::SetBorder(HCFG::EMUBORDERSIZE border)
 		FirstRasterLine = iSmallFirstRaster;
 		LastRasterLine = iSmallLastRaster;
 		break;
+	case HCFG::EMUBORDER_NOSIDE:
+		Width = iNoBorderWidth;
+		Height = iTVHeight;
+		Start = iNoBorderStart;
+		FirstRasterLine = iTVFirstRaster;
+		LastRasterLine = iTVLastRaster;
+		break;
+	case HCFG::EMUBORDER_NOTOP:
+		Width = iTVWidth;
+		Height = iNoBorderHeight;
+		Start = iTVStart;
+		FirstRasterLine = iNoBorderFirstRaster;
+		LastRasterLine = iNoBorderLastRaster;
+		break;
+	case HCFG::EMUBORDER_NOBORDER:
+		Width = iNoBorderWidth;
+		Height = iNoBorderHeight;
+		Start = iNoBorderStart;
+		FirstRasterLine = iNoBorderFirstRaster;
+		LastRasterLine = iNoBorderLastRaster;
+		break;
 	default:
 		Width = iFullWidth;
 		Height = iFullHeight;

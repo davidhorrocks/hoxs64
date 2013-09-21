@@ -772,36 +772,40 @@ LRESULT currentSelection = -1;
 	if (hWndCboBorder == NULL)
 		return;
 
+	ComboTextAndValue lst[] = 
+	{
+		{
+			TEXT("Full"), HCFG::EMUBORDER_FULL
+		},
+		{
+			TEXT("TV"), HCFG::EMUBORDER_TV
+		},
+		{
+			TEXT("Small"), HCFG::EMUBORDER_SMALL
+		},
+		{
+			TEXT("No Side"), HCFG::EMUBORDER_NOSIDE
+		},
+		{
+			TEXT("No Upper/Lower"), HCFG::EMUBORDER_NOTOP
+		},
+		{
+			TEXT("None"), HCFG::EMUBORDER_NOBORDER
+		},
+	};
 	SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_RESETCONTENT, 0, 0);
 
 	
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_ADDSTRING, 0, (LPARAM) TEXT("Full"));
-	if (lr >= 0)
+	for (int i = 0; i<_countof(lst); i++)
 	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUBORDER_FULL);
-		if (NewCfg.m_borderSize == HCFG::EMUBORDER_FULL)
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_ADDSTRING, 0, (LPARAM) lst[i].Text);
+		if (lr >= 0)
 		{
-			currentSelection = lr;
-		}
-	}
-
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_ADDSTRING, 0, (LPARAM) TEXT("TV"));
-	if (lr >= 0)
-	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUBORDER_TV);
-		if (NewCfg.m_borderSize == HCFG::EMUBORDER_TV)
-		{
-			currentSelection = lr;
-		}
-	}
-
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_ADDSTRING, 0, (LPARAM) TEXT("Small"));
-	if (lr >= 0)
-	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUBORDER_SMALL);
-		if (NewCfg.m_borderSize == HCFG::EMUBORDER_SMALL)
-		{
-			currentSelection = lr;
+			SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_SETITEMDATA, lr, (LPARAM) lst[i].Value);
+			if (NewCfg.m_borderSize == (HCFG::EMUBORDERSIZE)lst[i].Value)
+			{
+				currentSelection = lr;
+			}
 		}
 	}
 
@@ -1213,6 +1217,9 @@ LRESULT index;
 	case HCFG::EMUBORDER_FULL:
 	case HCFG::EMUBORDER_TV:
 	case HCFG::EMUBORDER_SMALL:
+	case HCFG::EMUBORDER_NOSIDE:
+	case HCFG::EMUBORDER_NOTOP:
+	case HCFG::EMUBORDER_NOBORDER:
 		break;
 	default:
 		*pBorder = HCFG::EMUBORDER_FULL;
