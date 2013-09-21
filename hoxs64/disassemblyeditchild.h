@@ -168,7 +168,7 @@ private:
 	void GetRect_Bar(const RECT& rcClient, LPRECT rc);
 	void GetRect_Status(const RECT& rcClient, LPRECT rc);
 	void GetRect_Edit(const RECT& rcClient, LPRECT rc);
-	void ShowEditMnemonic(AssemblyLineBuffer *pAlb);
+	HRESULT ShowEditMnemonic(AssemblyLineBuffer *pAlb);
 	void HideEditMnemonic();
 	bool IsEditing();
 	HRESULT UpdateMetrics();

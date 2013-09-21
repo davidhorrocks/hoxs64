@@ -764,11 +764,11 @@ void CDisassemblyEditChild::OnEditFocusedMnemonic()
 	}
 }
 
-void CDisassemblyEditChild::ShowEditMnemonic(AssemblyLineBuffer *pAlb)
+HRESULT CDisassemblyEditChild::ShowEditMnemonic(AssemblyLineBuffer *pAlb)
 {
 RECT rcEdit;
 	if (m_hWndEditText==NULL)
-		return;
+		return E_FAIL;
 	CopyRect(&rcEdit, &pAlb->MnemonicRect);
 	m_CurrentEditLineBuffer = pAlb;
 	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
@@ -786,6 +786,7 @@ RECT rcEdit;
 	}
 	SendMessage(m_hWndEditText, EM_SETSEL, 0, -1);
 	SetFocus(m_hWndEditText);
+	return S_OK;
 }
 
 void CDisassemblyEditChild::HideEditMnemonic()
@@ -877,7 +878,14 @@ bool CDisassemblyEditChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 bool CDisassemblyEditChild::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	//SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
+	if (wParam >= TEXT(' ') && wParam < TEXT('~'))
+	{
+		this->OnEditFocusedMnemonic();
+		if (IsEditing())
+		{
+			SendMessage(m_hWndEditText, uMsg, wParam, lParam);
+		}
+	}
 	return true;
 }
 
