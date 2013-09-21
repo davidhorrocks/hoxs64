@@ -36,19 +36,30 @@ CartEasyFlash::~CartEasyFlash()
 HRESULT CartEasyFlash::InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData)
 {
 HRESULT hr=E_FAIL;
-	do
-	{
-		m_plstBank = plstBank;
-		m_pCartData = pCartData;
-		m_pZeroBankData = pZeroBankData;
 
-		hr = m_EasyFlashChipROML.Init(this, 0);
-		if (FAILED(hr))
-			break;
-		hr = m_EasyFlashChipROMH.Init(this, 1);
-		if (FAILED(hr))
-			break;
-	} while (false);
+	try
+	{
+		do
+		{
+			m_plstBank = plstBank;
+			m_pCartData = pCartData;
+			m_pZeroBankData = pZeroBankData;
+			if (plstBank->size() < EasyFlashChip::MAXEASYFLASHBANKS)
+			{
+				plstBank->resize(EasyFlashChip::MAXEASYFLASHBANKS);
+			}
+			hr = m_EasyFlashChipROML.Init(this, 0);
+			if (FAILED(hr))
+				break;
+			hr = m_EasyFlashChipROMH.Init(this, 1);
+			if (FAILED(hr))
+				break;
+		} while (false);
+	}
+	catch (std::exception&)
+	{
+		hr = E_FAIL;
+	}
 	if (FAILED(hr))
 	{
 		m_plstBank = NULL;

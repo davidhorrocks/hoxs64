@@ -123,18 +123,31 @@ HRESULT hr = E_FAIL;
 		m_pCartEasyFlash = pCartEasyFlash;
 		m_chipNumber = chipNumber;
 
-		int iBlankChipsTotalBytes = 0;
+		CrtBankList *plstBank = m_pCartEasyFlash->m_plstBank;
+		
 		i = 0;
-		for (CrtBankListIter it = m_pCartEasyFlash->m_plstBank->begin(); it != m_pCartEasyFlash->m_plstBank->end() && i < MAXEASYFLASHBANKS; it++,i++)
+		for (CrtBankListIter it = plstBank->begin(); it != plstBank->end() && i < MAXEASYFLASHBANKS; it++,i++)
 		{
 			CrtChipAndData *pcd;
-			if (chipNumber == 0)
+			Sp_CrtBank spBank;
+			if (*it == NULL)
 			{
-				pcd = &it->get()->chipAndDataLow;
+				spBank = Sp_CrtBank(new CrtBank());
+				if (!spBank)
+					throw std::bad_alloc();
+				*it = spBank;
 			}
 			else
 			{
-				pcd = &it->get()->chipAndDataHigh;
+				spBank = *it;
+			}
+			if (chipNumber == 0)
+			{
+				pcd = &spBank.get()->chipAndDataLow;
+			}
+			else
+			{
+				pcd = &spBank.get()->chipAndDataHigh;
 			}
 			if (pcd->pData == NULL)
 			{
