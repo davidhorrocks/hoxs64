@@ -228,7 +228,7 @@ int k;
 			pc = &pBank->chipAndDataLow;
 		else
 			pc = &pBank->chipAndDataHigh;
-		if (pc->pData && address < pc->chip.ROMImageSize)
+		if (pc->pData && address < pc->allocatedSize)
 			pc->pData[address] &= data;
 	}
 }
@@ -266,7 +266,7 @@ int k;
 				pc = &pBank->chipAndDataLow;
 			else
 				pc = &pBank->chipAndDataHigh;
-			if (pc->pData && address < pc->chip.ROMImageSize)
+			if (pc->pData && address < pc->allocatedSize)
 				pc->pData[address] &= data;
 		}
 		m_mode = Read;
@@ -440,7 +440,7 @@ int k;
 			pc = &pBank->chipAndDataLow;
 		else
 			pc = &pBank->chipAndDataHigh;
-		if (pc->pData && address < pc->chip.ROMImageSize)
+		if (pc->pData && address < pc->allocatedSize)
 			return pc->pData[address];
 	}
 	return 0;
@@ -467,7 +467,7 @@ const bit8 Am29F040 = 0xA4;
 				pc = &pBank->chipAndDataLow;
 			else
 				pc = &pBank->chipAndDataHigh;
-			if (pc->pData && address < pc->chip.ROMImageSize)
+			if (pc->pData && address < pc->allocatedSize)
 				return pc->pData[address];
 		}
 		return 0;
