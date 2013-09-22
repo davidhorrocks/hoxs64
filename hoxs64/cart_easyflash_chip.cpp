@@ -136,6 +136,7 @@ HRESULT hr = E_FAIL;
 				if (!spBank)
 					throw std::bad_alloc();
 				*it = spBank;
+				spBank->bank = i;
 			}
 			else
 			{
