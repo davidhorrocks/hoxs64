@@ -159,114 +159,25 @@ unsigned int cartstatesize, cartfullstatesize;
 
 	HRESULT hr;
 	hr = S_OK;
-	do
+	try
 	{
-		pCartData = (bit8 *)GlobalAlloc(GPTR, Cart::RAMRESERVEDSIZE);
-		if (!pCartData)
+		do
 		{
-			hr = E_OUTOFMEMORY;
-			break;
-		}
-		pZeroBankData = &pCartData[Cart::ZEROBANKOFFSET];
-
-		plstBank = new CrtBankList();
-		plstBank->resize(Cart::MAXBANKS);
-
-		cartstatesize = this->GetStateBytes(NULL);
-
-		bytesToRead = sizeof(bit32);
-		hr = pfs->Read(&cartfullstatesize, bytesToRead, &bytesRead);
-		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
-		{
-			break;
-		}
-		else if (bytesRead < bytesToRead)
-		{
-			eof = true;
-			hr = E_FAIL;
-		}
-		if (FAILED(hr))
-			break;
-
-		if (cartfullstatesize != cartstatesize + sizeof(bit32))
-		{
-			hr = E_FAIL;
-			break;
-		}
-		
-		pstate = malloc(cartstatesize);
-		if (!pstate)
-		{
-			hr = E_OUTOFMEMORY;
-			break;
-		}
-
-		bytesToRead = cartstatesize;
-		hr = pfs->Read(pstate, bytesToRead, &bytesRead);
-		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
-		{
-			break;
-		}
-		else if (bytesRead < bytesToRead)
-		{
-			eof = true;
-			hr = E_FAIL;
-		}
-		if (FAILED(hr))
-			break;
-		
-		SsCartMemoryHeader memoryheader;
-		bytesToRead = sizeof(memoryheader);
-		hr = pfs->Read(&memoryheader, bytesToRead, &bytesRead);
-		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
-		{
-			break;
-		}
-		else if (bytesRead < bytesToRead)
-		{
-			eof = true;
-			hr = E_FAIL;
-		}
-		if (FAILED(hr))
-			break;
-
-		if (memoryheader.banks > Cart::MAXBANKS)
-		{
-			hr = E_FAIL;
-			break;
-		}
-
-		if (memoryheader.ramsize > Cart::CARTRAMSIZE)
-		{
-			hr = E_FAIL;
-			break;
-		}
-
-		if (memoryheader.ramsize > 0)
-		{
-			bytesToRead = memoryheader.ramsize;
-			hr = pfs->Read(pCartData, bytesToRead, &bytesRead);
-			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+			pCartData = (bit8 *)GlobalAlloc(GPTR, Cart::RAMRESERVEDSIZE);
+			if (!pCartData)
 			{
+				hr = E_OUTOFMEMORY;
 				break;
 			}
-			else if (bytesRead < bytesToRead)
-			{
-				eof = true;
-				hr = E_FAIL;
-			}
-			if (FAILED(hr))
-				break;
-		}
+			pZeroBankData = &pCartData[Cart::ZEROBANKOFFSET];
 
-		HuffDecompression hw;
+			plstBank = new CrtBankList();
+			plstBank->resize(Cart::MAXBANKS);
 
-		for (int i = 0; i < (int)memoryheader.banks; i++)
-		{
-			SsCartBank bank;
+			cartstatesize = this->GetStateBytes(NULL);
 
-			bytesToRead = sizeof(bank);
-			hr = pfs->Read(&bank, bytesToRead, &bytesRead);
+			bytesToRead = sizeof(bit32);
+			hr = pfs->Read(&cartfullstatesize, bytesToRead, &bytesRead);
 			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 			{
 				break;
@@ -279,79 +190,85 @@ unsigned int cartstatesize, cartfullstatesize;
 			if (FAILED(hr))
 				break;
 
-			if (bank.bank > Cart::MAXBANKS)
+			if (cartfullstatesize != cartstatesize + sizeof(bit32))
+			{
+				hr = E_FAIL;
+				break;
+			}
+		
+			pstate = malloc(cartstatesize);
+			if (!pstate)
+			{
+				hr = E_OUTOFMEMORY;
+				break;
+			}
+
+			bytesToRead = cartstatesize;
+			hr = pfs->Read(pstate, bytesToRead, &bytesRead);
+			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+			{
+				break;
+			}
+			else if (bytesRead < bytesToRead)
+			{
+				eof = true;
+				hr = E_FAIL;
+			}
+			if (FAILED(hr))
+				break;
+		
+			SsCartMemoryHeader memoryheader;
+			bytesToRead = sizeof(memoryheader);
+			hr = pfs->Read(&memoryheader, bytesToRead, &bytesRead);
+			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+			{
+				break;
+			}
+			else if (bytesRead < bytesToRead)
+			{
+				eof = true;
+				hr = E_FAIL;
+			}
+			if (FAILED(hr))
+				break;
+
+			if (memoryheader.banks > Cart::MAXBANKS)
 			{
 				hr = E_FAIL;
 				break;
 			}
 
-			if (bank.roml.allocatedSize != 0)
-			{
-				if (bank.bank != bank.roml.chip.BankLocation)
-				{
-					hr = E_FAIL;
-					break;
-				}
-				if (bank.roml.allocatedSize != 0x2000 && bank.roml.allocatedSize != 0x4000)
-				{
-					hr = E_FAIL;
-					break;
-				}
-			}
-			if (bank.romh.allocatedSize != 0)
-			{
-				if (bank.bank != bank.romh.chip.BankLocation)
-				{
-					hr = E_FAIL;
-					break;
-				}
-				if (bank.romh.allocatedSize != 0x2000)
-				{
-					hr = E_FAIL;
-					break;
-				}
-			}
-
-
-			if (bank.roml.allocatedSize == 0x4000 && bank.romh.allocatedSize != 0)
+			if (memoryheader.ramsize > Cart::CARTRAMSIZE)
 			{
 				hr = E_FAIL;
 				break;
 			}
 
-			if (bank.roml.chip.ROMImageSize > bank.roml.allocatedSize || bank.romh.chip.ROMImageSize > bank.romh.allocatedSize)
+			if (memoryheader.ramsize > 0)
 			{
-				hr = E_FAIL;
-				break;
+				bytesToRead = memoryheader.ramsize;
+				hr = pfs->Read(pCartData, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
 			}
 
-			Sp_CrtBank sp = plstBank->at(bank.bank);
-			if (!sp)
+			HuffDecompression hw;
+
+			for (int i = 0; i < (int)memoryheader.banks; i++)
 			{
-				sp = Sp_CrtBank(new CrtBank());
-				if (sp == 0)
-					throw std::bad_alloc();
-				plstBank->at(bank.bank) = sp;
-			}
+				SsCartBank bank;
 
-			sp->bank = (bit16)bank.bank;
-			sp->chipAndDataLow.allocatedSize = bank.roml.allocatedSize;
-			sp->chipAndDataLow.chip = bank.roml.chip;
-			sp->chipAndDataHigh.allocatedSize = bank.romh.allocatedSize;
-			sp->chipAndDataHigh.chip = bank.romh.chip;
-			
-			SsDataChunkHeader dataheader;
-
-			CrtChipAndData *pcd;
-
-			pcd = &sp->chipAndDataLow;
-
-			CrtChipAndData *cds[2] = {&sp->chipAndDataLow, &sp->chipAndDataHigh};
-			for (int n=0; n < _countof(cds); n++)
-			{
-				pcd = cds[n];
-				bytesToRead = sizeof(SsDataChunkHeader);
-				hr = pfs->Read(&dataheader, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(bank);
+				hr = pfs->Read(&bank, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -364,58 +281,148 @@ unsigned int cartstatesize, cartfullstatesize;
 				if (FAILED(hr))
 					break;
 
-				if (dataheader.byteCount != pcd->allocatedSize)
+				if (bank.bank > Cart::MAXBANKS)
 				{
 					hr = E_FAIL;
 					break;
 				}
 
-				if (dataheader.byteCount > 0)
+				if (bank.roml.allocatedSize != 0)
 				{
-					if (dataheader.compressionType == Cart::NOCOMPRESSION)
+					if (bank.bank != bank.roml.chip.BankLocation)
 					{
-						pcd->pData = (bit8 *)GlobalAlloc(GPTR, pcd->allocatedSize);
-						if (!pcd->pData)
-						{
-							hr = E_FAIL;
-							break;
-						}
-						pcd->ownData = true;
-						bytesToRead = dataheader.byteCount;
-						hr = pfs->Read(pcd->pData, bytesToRead, &bytesRead);
-						if (FAILED(hr))
-							break;
+						hr = E_FAIL;
+						break;
 					}
-					else
+					if (bank.roml.allocatedSize != 0x2000 && bank.roml.allocatedSize != 0x4000)
 					{
-						dwordCount = dataheader.byteCount / sizeof(bit32);
+						hr = E_FAIL;
+						break;
+					}
+				}
+				if (bank.romh.allocatedSize != 0)
+				{
+					if (bank.bank != bank.romh.chip.BankLocation)
+					{
+						hr = E_FAIL;
+						break;
+					}
+					if (bank.romh.allocatedSize != 0x2000)
+					{
+						hr = E_FAIL;
+						break;
+					}
+				}
 
-						bytesToRead = sizeof(dwordCount);
-						hr = pfs->Read(&dwordCount, bytesToRead, &bytesRead);
-						if (FAILED(hr))
-							break;
 
-						if (dwordCount * sizeof(bit32) != dataheader.byteCount)
+				if (bank.roml.allocatedSize == 0x4000 && bank.romh.allocatedSize != 0)
+				{
+					hr = E_FAIL;
+					break;
+				}
+
+				if (bank.roml.chip.ROMImageSize > bank.roml.allocatedSize || bank.romh.chip.ROMImageSize > bank.romh.allocatedSize)
+				{
+					hr = E_FAIL;
+					break;
+				}
+
+				Sp_CrtBank sp = plstBank->at(bank.bank);
+				if (!sp)
+				{
+					sp = Sp_CrtBank(new CrtBank());
+					if (sp == 0)
+						throw std::bad_alloc();
+					plstBank->at(bank.bank) = sp;
+				}
+
+				sp->bank = (bit16)bank.bank;
+				sp->chipAndDataLow.allocatedSize = bank.roml.allocatedSize;
+				sp->chipAndDataLow.chip = bank.roml.chip;
+				sp->chipAndDataHigh.allocatedSize = bank.romh.allocatedSize;
+				sp->chipAndDataHigh.chip = bank.romh.chip;
+			
+				SsDataChunkHeader dataheader;
+
+				CrtChipAndData *pcd;
+
+				pcd = &sp->chipAndDataLow;
+
+				CrtChipAndData *cds[2] = {&sp->chipAndDataLow, &sp->chipAndDataHigh};
+				for (int n=0; n < _countof(cds); n++)
+				{
+					pcd = cds[n];
+					bytesToRead = sizeof(SsDataChunkHeader);
+					hr = pfs->Read(&dataheader, bytesToRead, &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+						break;
+
+					if (dataheader.byteCount != pcd->allocatedSize)
+					{
+						hr = E_FAIL;
+						break;
+					}
+
+					if (dataheader.byteCount > 0)
+					{
+						if (dataheader.compressionType == Cart::NOCOMPRESSION)
 						{
-							hr = E_FAIL;
-							break;
-						}
-
-						if (dwordCount > 0)
-						{
-							hr = hw.Decompress(dwordCount, (DWORD **)&pcd->pData);
+							pcd->pData = (bit8 *)GlobalAlloc(GPTR, pcd->allocatedSize);
+							if (!pcd->pData)
+							{
+								hr = E_FAIL;
+								break;
+							}
+							pcd->ownData = true;
+							bytesToRead = dataheader.byteCount;
+							hr = pfs->Read(pcd->pData, bytesToRead, &bytesRead);
 							if (FAILED(hr))
 								break;
-							pcd->ownData = true;
+						}
+						else
+						{
+							dwordCount = dataheader.byteCount / sizeof(bit32);
+
+							bytesToRead = sizeof(dwordCount);
+							hr = pfs->Read(&dwordCount, bytesToRead, &bytesRead);
+							if (FAILED(hr))
+								break;
+
+							if (dwordCount * sizeof(bit32) != dataheader.byteCount)
+							{
+								hr = E_FAIL;
+								break;
+							}
+
+							if (dwordCount > 0)
+							{
+								hr = hw.Decompress(dwordCount, (DWORD **)&pcd->pData);
+								if (FAILED(hr))
+									break;
+								pcd->ownData = true;
+							}
 						}
 					}
 				}
-			}
-			if (FAILED(hr))
-				break;
+				if (FAILED(hr))
+					break;
 
-		}
-	} while (false);
+			}
+		} while (false);
+	}
+	catch (std::exception&)
+	{
+		hr = E_FAIL;
+	}
 	if (SUCCEEDED(hr))
 	{
 		hr = this->InitCart(plstBank, pCartData, pZeroBankData);
@@ -571,26 +578,29 @@ int dwordCount = 0;
 			if (FAILED(hr))
 				break;
 
-			if (dataheader.compressionType == Cart::NOCOMPRESSION)
+			if (dataheader.byteCount > 0)
 			{
-				bytesToWrite = dataheader.byteCount;
-				hr = pfs->Write(sp->chipAndDataLow.pData, bytesToWrite, &bytesWritten);
-				if (FAILED(hr))
-					break;
-			}
-			else
-			{
-				dwordCount = dataheader.byteCount / sizeof(bit32);
-
-				bytesToWrite = sizeof(dwordCount);
-				hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
-				if (FAILED(hr))
-					break;
-				if (dwordCount > 0)
+				if (dataheader.compressionType == Cart::NOCOMPRESSION)
 				{
-					hr = hw.Compress((bit32 *)sp->chipAndDataLow.pData, dwordCount, &compressedSize);
+					bytesToWrite = dataheader.byteCount;
+					hr = pfs->Write(sp->chipAndDataLow.pData, bytesToWrite, &bytesWritten);
 					if (FAILED(hr))
 						break;
+				}
+				else
+				{
+					dwordCount = dataheader.byteCount / sizeof(bit32);
+
+					bytesToWrite = sizeof(dwordCount);
+					hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+					if (FAILED(hr))
+						break;
+					if (dwordCount > 0)
+					{
+						hr = hw.Compress((bit32 *)sp->chipAndDataLow.pData, dwordCount, &compressedSize);
+						if (FAILED(hr))
+							break;
+					}
 				}
 			}
 
@@ -602,27 +612,30 @@ int dwordCount = 0;
 			if (FAILED(hr))
 				break;
 
-			if (dataheader.compressionType == Cart::NOCOMPRESSION)
+			if (dataheader.byteCount > 0)
 			{
-				bytesToWrite = dataheader.byteCount;
-				hr = pfs->Write(sp->chipAndDataHigh.pData, bytesToWrite, &bytesWritten);
-				if (FAILED(hr))
-					break;
-			}
-			else
-			{
-				dwordCount = dataheader.byteCount / sizeof(bit32);
-
-				bytesToWrite = sizeof(dwordCount);
-				hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
-				if (FAILED(hr))
-					break;
-
-				if (dwordCount > 0)
+				if (dataheader.compressionType == Cart::NOCOMPRESSION)
 				{
-					hr = hw.Compress((bit32 *)sp->chipAndDataHigh.pData, dwordCount, &compressedSize);
+					bytesToWrite = dataheader.byteCount;
+					hr = pfs->Write(sp->chipAndDataHigh.pData, bytesToWrite, &bytesWritten);
 					if (FAILED(hr))
 						break;
+				}
+				else
+				{
+					dwordCount = dataheader.byteCount / sizeof(bit32);
+
+					bytesToWrite = sizeof(dwordCount);
+					hr = pfs->Write(&dwordCount, bytesToWrite, &bytesWritten);
+					if (FAILED(hr))
+						break;
+
+					if (dwordCount > 0)
+					{
+						hr = hw.Compress((bit32 *)sp->chipAndDataHigh.pData, dwordCount, &compressedSize);
+						if (FAILED(hr))
+							break;
+					}
 				}
 			}
 		}

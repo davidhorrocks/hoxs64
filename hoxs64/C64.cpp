@@ -2712,7 +2712,14 @@ ULARGE_INTEGER pos_next_track_header;
 		//diskdrive.SetCurrentClock(c);
 		//cpu.cpu_port();
 		cart.AttachCart(spCartInterface);
-		cpu.ConfigureMemoryMap();
+		if (cart.IsCartAttached())
+		{
+			cart.ConfigureMemoryMap();
+		}
+		else
+		{
+			cpu.ConfigureMemoryMap();
+		}
 		hr = S_OK;
 	}
 	else
