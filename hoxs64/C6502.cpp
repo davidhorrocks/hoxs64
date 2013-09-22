@@ -1207,6 +1207,8 @@ unsigned int v;
 			ReadByte(mSP + 0x0100);
 			CHECK_BA;
 			mSP--;
+			PROCESSOR_INTERRUPT = 0;
+			NMI_TRIGGER = 0;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_5:
