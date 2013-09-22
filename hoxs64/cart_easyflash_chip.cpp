@@ -128,7 +128,8 @@ HRESULT hr = E_FAIL;
 		i = 0;
 		for (CrtBankListIter it = plstBank->begin(); it != plstBank->end() && i < MAXEASYFLASHBANKS; it++,i++)
 		{
-			CrtChipAndData *pcd;
+			CrtChipAndData *pcdLo;
+			CrtChipAndData *pcdHi;
 			Sp_CrtBank spBank;
 			if (*it == NULL)
 			{
@@ -142,27 +143,48 @@ HRESULT hr = E_FAIL;
 			{
 				spBank = *it;
 			}
+			pcdLo = &spBank.get()->chipAndDataLow;
+			pcdHi = &spBank.get()->chipAndDataHigh;
 			if (chipNumber == 0)
 			{
-				pcd = &spBank.get()->chipAndDataLow;
+				if (pcdLo->pData == NULL)
+				{
+					if (!(pcdLo->pData = (bit8 *)GlobalAlloc(GPTR, BANKSIZE)))
+						throw std::bad_alloc();
+					pcdLo->ownData = true;
+					pcdLo->allocatedSize = BANKSIZE;
+					pcdLo->chip.BankLocation = i;
+					pcdLo->chip.ChipType = Cart::ChipType::EPROM;
+					pcdLo->chip.ROMImageSize = BANKSIZE;
+					pcdLo->chip.LoadAddressRange = 0x8000;
+				}
 			}
 			else
 			{
-				pcd = &spBank.get()->chipAndDataHigh;
-			}
-			if (pcd->pData == NULL)
-			{
-				if (!(pcd->pData = (bit8 *)GlobalAlloc(GPTR, BANKSIZE)))
-					throw std::bad_alloc();
-				pcd->ownData = true;
-				pcd->allocatedSize = BANKSIZE;
-				pcd->chip.BankLocation = i;
-				pcd->chip.ChipType = Cart::ChipType::EPROM;
-				pcd->chip.ROMImageSize = BANKSIZE;
-				if (chipNumber == 0)
-					pcd->chip.LoadAddressRange = 0x8000;
-				else
-					pcd->chip.LoadAddressRange = 0xA000;
+				if (pcdHi->pData == NULL)
+				{
+					if (pcdLo->allocatedSize == 0x4000 && pcdLo->pData != NULL)
+					{
+						pcdHi->pData = &pcdLo->pData[0x2000];
+						pcdHi->ownData = false;
+						pcdHi->allocatedSize = BANKSIZE;
+						pcdHi->chip.BankLocation = i;
+						pcdHi->chip.ChipType = Cart::ChipType::EPROM;
+						pcdHi->chip.ROMImageSize = BANKSIZE;
+						pcdHi->chip.LoadAddressRange = 0xA000;
+					}
+					else
+					{
+						if (!(pcdHi->pData = (bit8 *)GlobalAlloc(GPTR, BANKSIZE)))
+							throw std::bad_alloc();
+						pcdHi->ownData = true;
+						pcdHi->allocatedSize = BANKSIZE;
+						pcdHi->chip.BankLocation = i;
+						pcdHi->chip.ChipType = Cart::ChipType::EPROM;
+						pcdHi->chip.ROMImageSize = BANKSIZE;
+						pcdHi->chip.LoadAddressRange = 0xA000;
+					}
+				}
 			}
 		}
 		hr = S_OK;
@@ -199,10 +221,11 @@ int k;
 	if ((unsigned int)k < m_plstBank->size())
 	{
 		CrtChipAndData *pc;
+		CrtBank *pBank = m_plstBank->at(k).get();
 		if (m_chipNumber == 0)
-			pc = &m_plstBank->at(k)->chipAndDataLow;
+			pc = &pBank->chipAndDataLow;
 		else
-			pc = &m_plstBank->at(k)->chipAndDataHigh;
+			pc = &pBank->chipAndDataHigh;
 		if (pc->pData && address < pc->chip.ROMImageSize)
 			pc->pData[address] &= data;
 	}
@@ -236,10 +259,11 @@ int k;
 		if ((unsigned int)k < m_plstBank->size())
 		{
 			CrtChipAndData *pc;
+			CrtBank *pBank = m_plstBank->at(k).get();
 			if (m_chipNumber == 0)
-				pc = &m_plstBank->at(k)->chipAndDataLow;
+				pc = &pBank->chipAndDataLow;
 			else
-				pc = &m_plstBank->at(k)->chipAndDataHigh;
+				pc = &pBank->chipAndDataHigh;
 			if (pc->pData && address < pc->chip.ROMImageSize)
 				pc->pData[address] &= data;
 		}
@@ -409,10 +433,11 @@ int k;
 	if ((unsigned int)k < m_plstBank->size())
 	{
 		CrtChipAndData *pc;
+		CrtBank *pBank = m_plstBank->at(k).get();
 		if (m_chipNumber == 0)
-			pc = &m_plstBank->at(k)->chipAndDataLow;
+			pc = &pBank->chipAndDataLow;
 		else
-			pc = &m_plstBank->at(k)->chipAndDataHigh;
+			pc = &pBank->chipAndDataHigh;
 		if (pc->pData && address < pc->chip.ROMImageSize)
 			return pc->pData[address];
 	}
@@ -435,10 +460,11 @@ const bit8 Am29F040 = 0xA4;
 		if ((unsigned int)k < m_plstBank->size())
 		{
 			CrtChipAndData *pc;
+			CrtBank *pBank = m_plstBank->at(k).get();
 			if (m_chipNumber == 0)
-				pc = &m_plstBank->at(k)->chipAndDataLow;
+				pc = &pBank->chipAndDataLow;
 			else
-				pc = &m_plstBank->at(k)->chipAndDataHigh;
+				pc = &pBank->chipAndDataHigh;
 			if (pc->pData && address < pc->chip.ROMImageSize)
 				return pc->pData[address];
 		}
@@ -477,10 +503,11 @@ int k;
 			for (k = 0; (unsigned int)k < m_plstBank->size(); k++)
 			{
 				CrtChipAndData *pc;
+				CrtBank *pBank = m_plstBank->at(k).get();
 				if (m_chipNumber == 0)
-					pc = &m_plstBank->at(k)->chipAndDataLow;
+					pc = &pBank->chipAndDataLow;
 				else
-					pc = &m_plstBank->at(k)->chipAndDataHigh;
+					pc = &pBank->chipAndDataHigh;
 				if (pc->pData)
 					FillMemory(pc->pData, pc->chip.ROMImageSize, 0xff);
 			}
@@ -500,10 +527,11 @@ int k;
 					if ((unsigned int)k < m_plstBank->size())
 					{
 						CrtChipAndData *pc;
+						CrtBank *pBank = m_plstBank->at(k).get();
 						if (m_chipNumber == 0)
-							pc = &m_plstBank->at(k)->chipAndDataLow;
+							pc = &pBank->chipAndDataLow;
 						else
-							pc = &m_plstBank->at(k)->chipAndDataHigh;
+							pc = &pBank->chipAndDataHigh;
 						if (pc->pData)
 							FillMemory(pc->pData, pc->chip.ROMImageSize, 0xff);
 					}

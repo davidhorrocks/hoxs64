@@ -307,18 +307,11 @@ unsigned int cartstatesize, cartfullstatesize;
 						hr = E_FAIL;
 						break;
 					}
-					if (bank.romh.allocatedSize != 0x2000)
+					if (bank.romh.allocatedSize != 0x2000 && bank.romh.allocatedSize != 0x4000)
 					{
 						hr = E_FAIL;
 						break;
 					}
-				}
-
-
-				if (bank.roml.allocatedSize == 0x4000 && bank.romh.allocatedSize != 0)
-				{
-					hr = E_FAIL;
-					break;
 				}
 
 				if (bank.roml.chip.ROMImageSize > bank.roml.allocatedSize || bank.romh.chip.ROMImageSize > bank.romh.allocatedSize)

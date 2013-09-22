@@ -73,7 +73,8 @@ void CartEasyFlash::Reset(ICLK sysclock)
 {
 	InitReset(sysclock);
 	reg1 = 0;
-	reg2 = 5;
+	//reg2 = 5;
+	reg2 = 0;
 	m_EasyFlashChipROML.Reset(sysclock);
 	m_EasyFlashChipROMH.Reset(sysclock);
 	ConfigureMemoryMap();
@@ -215,8 +216,16 @@ void CartEasyFlash::MonWriteUltimaxROMH(bit16 address, bit8 data)
 void CartEasyFlash::UpdateIO()
 {
 	m_iSelectedBank = reg1 & 0x3f;
-	GAME = (reg2 & 0x1) == 0;
-	EXROM = (reg2 & 0x2) == 0;
+	if (reg2 & 4)
+	{
+		GAME = (reg2 & 0x1) == 0;
+		EXROM = (reg2 & 0x2) == 0;
+	}
+	else
+	{
+		GAME = 0;
+		EXROM = (reg2 & 0x2) == 0;
+	}
 	m_bIsCartIOActive = true;
 	BankRom();
 }
