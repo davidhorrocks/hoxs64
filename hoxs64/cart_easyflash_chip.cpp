@@ -172,6 +172,8 @@ HRESULT hr = E_FAIL;
 						pcdHi->chip.ChipType = Cart::ChipType::EPROM;
 						pcdHi->chip.ROMImageSize = BANKSIZE;
 						pcdHi->chip.LoadAddressRange = 0xA000;
+						pcdLo->allocatedSize = 0x2000;
+						pcdLo->chip.ROMImageSize = 0x2000;
 					}
 					else
 					{

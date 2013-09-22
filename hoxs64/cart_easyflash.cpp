@@ -73,7 +73,6 @@ void CartEasyFlash::Reset(ICLK sysclock)
 {
 	InitReset(sysclock);
 	reg1 = 0;
-	//reg2 = 5;
 	reg2 = 0;
 	m_EasyFlashChipROML.Reset(sysclock);
 	m_EasyFlashChipROMH.Reset(sysclock);
