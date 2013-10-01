@@ -315,6 +315,9 @@
     <ClCompile Include="bits.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cart_kcs_power.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -610,6 +613,9 @@
     </ClInclude>
     <ClInclude Include="FDI.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_kcs_power.h">
+      <Filter>Header Files\cart</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

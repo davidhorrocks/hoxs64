@@ -269,6 +269,7 @@ public:
 		{
 			Normal_Cartridge = 0,
 			Action_Replay = 1,//AR5 + AR6 + AR4.x
+			KCS_Power = 2,
 			Final_Cartridge_III = 3,
 			Simons_Basic = 4,
 			Ocean_1 = 5,
@@ -401,4 +402,5 @@ private:
 #include "cart_zaxxon.h"
 #include "cart_magic_desk.h"
 #include "cart_epyx_fastload.h"
+#include "cart_kcs_power.h"
 #endif

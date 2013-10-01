@@ -1458,6 +1458,9 @@ shared_ptr<ICartInterface> p;
 		case CartType::Epyx_FastLoad:
 			p = shared_ptr<ICartInterface>(new CartEpyxFastLoad(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
 			break;
+		case CartType::KCS_Power:
+			p = shared_ptr<ICartInterface>(new CartKcsPower(crtHeader, this->m_pCpu, this->m_pC64RamMemory));
+			break;
 		}
 	}
 	catch(std::bad_alloc&)
