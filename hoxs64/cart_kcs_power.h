@@ -16,4 +16,5 @@ public:
 protected:
 	virtual void UpdateIO();
 private:
+	void LatchShift();
 };
