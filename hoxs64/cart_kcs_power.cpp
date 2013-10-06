@@ -32,6 +32,14 @@ void CartKcsPower::LatchShift()
 	reg1 = ((reg1 & ~5) | ((reg1 & 0xA) >> 1)) & 0xff;//Move old EXROM in bit 3 to bit 2. Move old GAME in bit 1 to bit 0
 }
 
+void CartKcsPower::Reset(ICLK sysclock)
+{
+	InitReset(sysclock);
+	reg1 = 0;
+	reg2 = 0;
+	ConfigureMemoryMap();
+}
+
 bit8 CartKcsPower::ReadRegister(bit16 address, ICLK sysclock)
 {
 bit16 addr;
@@ -82,7 +90,7 @@ bit16 addr;
 		{
 			reg1 &= ~8;//Writing with (A1 == 0 && IO1 == 0). Clear EXROM
 		}
-		reg1 &= ((~2) & 0xff);//Writing with (IO1 == 0). Clear GAME
+		reg1 &= 0xfd;//Writing with (IO1 == 0). Clear GAME
 	}
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
@@ -112,7 +120,6 @@ void CartKcsPower::CheckForCartFreeze()
 		LatchShift();
 		reg1 |= 8;//Set EXROM in bit 3.
 		reg1 &= 0xFD;//Clear GAME in bit 1
-		m_pCpu->Clear_CRT_IRQ();
 		m_pCpu->Clear_CRT_NMI();
 		ConfigureMemoryMap();
 	}
