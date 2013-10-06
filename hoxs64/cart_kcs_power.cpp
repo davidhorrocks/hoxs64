@@ -54,13 +54,16 @@ bit8 v;
 			LatchShift();
 			if (addr & 2)
 			{
-				reg1 |= 8;//Reading with (IO1 == 0 && A1 == 1). Set EXROM
+				//Reading with (IO1 == 0 && A1 == 1). 
+				reg1 |= 8;//Set EXROM
+				reg1 |= 2;//Set GAME
 			}
 			else
 			{
-				reg1 &= ((~8) & 0xff);//Reading with (IO1 == 0 && A1 == 0). Clear EXROM
+				//Reading with (IO1 == 0 && A1 == 0). 
+				reg1 &= ((~8) & 0xff);//Clear EXROM
+				reg1 |= 2;//Set GAME
 			}
-			reg1 |= 2;//Reading with (IO1 == 0). Set GAME
 			if (old1 != reg1)
 				ConfigureMemoryMap();
 		}
@@ -68,6 +71,17 @@ bit8 v;
 	}
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
+		if (m_bEffects)
+		{
+			if (address & 0x80)
+			{
+				reg1 |= 8;
+				reg1 &= ~2;
+				m_bFreezePending = false;
+				m_bFreezeDone = false;
+				m_pCpu->Clear_CRT_NMI();
+			}
+		}
 		addr = (address - 0xDF00) & 0x7f;
 		return m_pCartData[addr];
 	}
@@ -84,16 +98,31 @@ bit16 addr;
 		LatchShift();
 		if (addr & 2)
 		{
-			reg1 |= 8;//Writing with (A1 == 1 && IO1 == 0). Set EXROM
+			//Writing with (A1 == 1 && IO1 == 0).
+			//reg1 |= 8;//Set EXROM
+
+			reg1 &= ~8;//Clear EXROM
+			reg1 |= 2;//Set GAME
 		}
 		else
 		{
-			reg1 &= ~8;//Writing with (A1 == 0 && IO1 == 0). Clear EXROM
+			//Writing with (A1 == 0 && IO1 == 0). 
+			reg1 &= ~8;//Clear EXROM
+
+			reg1 &= ~2;//Clear GAME
 		}
-		reg1 &= 0xfd;//Writing with (IO1 == 0). Clear GAME
+		//reg1 &= 0xfd;//Writing with (IO1 == 0). Clear GAME
 	}
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
+		if (address & 0x80)
+		{
+			reg1 |= 8;
+			reg1 &= ~2;
+			m_bFreezePending = false;
+			m_bFreezeDone = false;
+			m_pCpu->Clear_CRT_NMI();
+		}
 		addr = (address - 0xDF00) & 0x7f;
 		m_pCartData[addr] = data;
 	}
@@ -119,7 +148,7 @@ void CartKcsPower::CheckForCartFreeze()
 		m_bFreezeDone = false;
 		LatchShift();
 		reg1 |= 8;//Set EXROM in bit 3.
-		reg1 &= 0xFD;//Clear GAME in bit 1
+		reg1 &= ~2;//Clear GAME in bit 1
 		m_pCpu->Clear_CRT_NMI();
 		ConfigureMemoryMap();
 	}
