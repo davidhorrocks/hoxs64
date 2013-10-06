@@ -38,47 +38,30 @@ bit16 addr;
 bit8 v;
 	if (address >= 0xDE00 && address < 0xDF00)
 	{
-		bit8 old1 = reg1;
-		LatchShift();
 		addr = address - 0xDE00 + 0x9E00;
 		v = this->m_ipROML_8000[addr];
-		if (addr & 1)
+		if (m_bEffects)
 		{
-			reg1 |= 8;
+			bit8 old1 = reg1;
+			LatchShift();
+			if (addr & 2)
+			{
+				reg1 |= 8;
+			}
+			else
+			{
+				reg1 &= ((~8) & 0xff);
+			}
+			reg1 |= 2;//Reading with (IO1==0). Set GAME
+			if (old1 != reg1)
+				ConfigureMemoryMap();
 		}
-		else
-		{
-			reg1 &= ((~8) & 0xff);
-		}
-		reg1 |= 2;//Reading with (IO1==0). Set GAME
-		if (old1 != reg1)
-			ConfigureMemoryMap();
 		return v;
 	}
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
 		addr = (address - 0xDF00) & 0x7f;
-		if (addr & 0x80)
-		{
-			////TEST {
-			//m_pCpu->Clear_CRT_NMI();
-			//LatchShift();
-			//
-			////Ultimax
-			//reg1 &= ((~2) & 0xff);//Clear GAME
-			//reg1 |= 8;//Set EXROM 
-
-			//ConfigureMemoryMap();
-			////TEST }
-		}
-		//if (addr & 0x10)
-		//{
-		//	return ((reg1 & 4) << 5) || ((reg1 & 1) << 6);
-		//}
-		//else
-		{
-			return m_pCartData[addr];
-		}	
+		return m_pCartData[addr];
 	}
 	return 0;
 }
@@ -91,7 +74,7 @@ bit16 addr;
 	{
 		addr = address - 0xDE00 + 0x9E00;
 		LatchShift();
-		if (addr & 1)
+		if (addr & 2)
 		{
 			reg1 |= 8;//Writing with (A1==1 && IO1==0). Set EXROM
 		}
