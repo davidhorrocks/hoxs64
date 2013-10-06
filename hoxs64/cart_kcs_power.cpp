@@ -46,13 +46,13 @@ bit8 v;
 			LatchShift();
 			if (addr & 2)
 			{
-				reg1 |= 8;
+				reg1 |= 8;//Reading with (IO1 == 0 && A1 == 1). Set EXROM
 			}
 			else
 			{
-				reg1 &= ((~8) & 0xff);
+				reg1 &= ((~8) & 0xff);//Reading with (IO1 == 0 && A1 == 0). Clear EXROM
 			}
-			reg1 |= 2;//Reading with (IO1==0). Set GAME
+			reg1 |= 2;//Reading with (IO1 == 0). Set GAME
 			if (old1 != reg1)
 				ConfigureMemoryMap();
 		}
@@ -76,36 +76,18 @@ bit16 addr;
 		LatchShift();
 		if (addr & 2)
 		{
-			reg1 |= 8;//Writing with (A1==1 && IO1==0). Set EXROM
+			reg1 |= 8;//Writing with (A1 == 1 && IO1 == 0). Set EXROM
 		}
 		else
 		{
-			reg1 &= ~8;//Writing with (A1==0 && IO1==0). Clear EXROM
+			reg1 &= ~8;//Writing with (A1 == 0 && IO1 == 0). Clear EXROM
 		}
-		reg1 &= ((~2) & 0xff);//Writing with (IO1==0). Clear GAME
+		reg1 &= ((~2) & 0xff);//Writing with (IO1 == 0). Clear GAME
 	}
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
 		addr = (address - 0xDF00) & 0x7f;
-		////TEST {
-		//LatchShift();
-		//if (addr & 1)
-		//{
-		//	reg1 |= 8;//Writing with (A1==1 && IO1==0). Set EXROM
-		//}
-		//else
-		//{
-		//	reg1 &= ~8;//Writing with (A1==0 && IO1==0). Clear EXROM
-		//}
-		//reg1 &= ((~2) & 0xff);//Writing with (IO1==0). Clear GAME
-		//TEST }
-		//if (addr & 0x10)
-		//{
-		//}
-		//else
-		{
-			m_pCartData[addr] = data;
-		}
+		m_pCartData[addr] = data;
 	}
 	if (old1 != reg1)
 		ConfigureMemoryMap();
@@ -115,7 +97,6 @@ void CartKcsPower::CartFreeze()
 {
 	if (m_bIsCartAttached)
 	{
-		//m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
 		m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bFreezePending = true;
 		m_bFreezeDone = false;
@@ -129,7 +110,8 @@ void CartKcsPower::CheckForCartFreeze()
 		m_bFreezePending = false;
 		m_bFreezeDone = false;
 		LatchShift();
-		reg1 = 8;//Set EXROM in bit 2.
+		reg1 |= 8;//Set EXROM in bit 3.
+		reg1 &= 0xFD;//Clear GAME in bit 1
 		m_pCpu->Clear_CRT_IRQ();
 		m_pCpu->Clear_CRT_NMI();
 		ConfigureMemoryMap();
@@ -138,6 +120,8 @@ void CartKcsPower::CheckForCartFreeze()
 
 void CartKcsPower::UpdateIO()
 {
+	int v=4;
+	v &= 2+2;
 	m_iSelectedBank = 0;
 	m_bEnableRAM = false;
 	m_iRamBankOffsetIO = 0;
@@ -146,13 +130,4 @@ void CartKcsPower::UpdateIO()
 	GAME = (reg1 & 2) != 0;//bit 1 sets GAME. bit 0 reads GAME on latching.
 	EXROM = (reg1 & 8) != 0;//bit 3 sets EXROM. bit 2 reads EXROM on latching.
 	BankRom();
-	//if (m_bFreezePending)
-	//{
-	//}
-	//else if (m_bFreezeDone)	
-	//{
-	//}
-	//else
-	//{
-	//}			
 }
