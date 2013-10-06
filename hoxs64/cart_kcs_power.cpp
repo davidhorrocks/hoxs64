@@ -120,8 +120,6 @@ void CartKcsPower::CheckForCartFreeze()
 
 void CartKcsPower::UpdateIO()
 {
-	int v=4;
-	v &= 2+2;
 	m_iSelectedBank = 0;
 	m_bEnableRAM = false;
 	m_iRamBankOffsetIO = 0;
