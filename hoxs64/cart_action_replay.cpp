@@ -53,12 +53,12 @@ void CartActionReplay::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 	if (address >= 0xDE00 && address < 0xDF00)
 	{
-		if (m_bFreezeDone)
+		if (m_bFreezeMode)
 		{
 			if (data & 0x40)
 			{
 				m_bFreezePending = false;
-				m_bFreezeDone = false;
+				m_bFreezeMode = false;
 			}
 		}
 		reg1 = data;
@@ -80,7 +80,7 @@ void CartActionReplay::CartFreeze()
 		m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
 		m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bFreezePending = true;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 	}
 }
 
@@ -89,7 +89,7 @@ void CartActionReplay::CheckForCartFreeze()
 	if (m_bFreezePending)
 	{
 		m_bFreezePending = false;
-		m_bFreezeDone = true;
+		m_bFreezeMode = true;
 		reg1 &= 0x20;
 		reg2 &= 0x43;
 		m_pCpu->Clear_CRT_IRQ();
@@ -104,7 +104,7 @@ void CartActionReplay::UpdateIO()
 	{
 		BankRom();
 	}
-	else if (m_bFreezeDone)	
+	else if (m_bFreezeMode)	
 	{
 		m_iSelectedBank = ((reg1 >> 3) & 3) | ((reg1 >> 5) & 4);
 		m_bEnableRAM = (reg1 & 0x20) != 0;

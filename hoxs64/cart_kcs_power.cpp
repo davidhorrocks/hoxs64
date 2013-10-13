@@ -44,13 +44,13 @@ bit8 CartKcsPower::ReadRegister(bit16 address, ICLK sysclock)
 {
 bit16 addr;
 bit8 v;
+	bit8 old1 = reg1;
 	if (address >= 0xDE00 && address < 0xDF00)
 	{
 		addr = address - 0xDE00 + 0x9E00;
 		v = this->m_ipROML_8000[addr];
 		if (m_bEffects)
 		{
-			bit8 old1 = reg1;
 			LatchShift();
 			if (addr & 2)
 			{
@@ -73,14 +73,16 @@ bit8 v;
 	{
 		if (m_bEffects)
 		{
-			if (address & 0x80)
+			if (m_bFreezeMode && ((address & 0x80) != 0))
 			{
-				reg1 |= 8;
-				reg1 &= ~2;
+				reg1 |= 8;//Set EXROM
+				reg1 &= ~2;//Clear GAME
 				m_bFreezePending = false;
-				m_bFreezeDone = false;
+				m_bFreezeMode = false;
 				m_pCpu->Clear_CRT_NMI();
 			}
+			if (old1 != reg1)
+				ConfigureMemoryMap();
 		}
 		addr = (address - 0xDF00) & 0x7f;
 		return m_pCartData[addr];
@@ -99,29 +101,29 @@ bit16 addr;
 		if (addr & 2)
 		{
 			//Writing with (A1 == 1 && IO1 == 0).
+			//reg1 &= ~8;//Clear EXROM
+			//reg1 |= 2;//Set GAME
+
 			//reg1 |= 8;//Set EXROM
+			//reg1 &= ~2;//Clear GAME
 
 			reg1 &= ~8;//Clear EXROM
-			reg1 |= 2;//Set GAME
+			reg1 &= ~2;//Clear GAME
 		}
 		else
 		{
 			//Writing with (A1 == 0 && IO1 == 0). 
 			reg1 &= ~8;//Clear EXROM
-
 			reg1 &= ~2;//Clear GAME
 		}
 		//reg1 &= 0xfd;//Writing with (IO1 == 0). Clear GAME
 	}
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
-		if (address & 0x80)
+		if (!m_bFreezeMode && ((address & 0x80) != 0))
 		{
-			reg1 |= 8;
-			reg1 &= ~2;
-			m_bFreezePending = false;
-			m_bFreezeDone = false;
-			m_pCpu->Clear_CRT_NMI();
+			reg1 &= ~8;//Clear EXROM
+			reg1 &= ~2;//Clear GAME
 		}
 		addr = (address - 0xDF00) & 0x7f;
 		m_pCartData[addr] = data;
@@ -136,7 +138,7 @@ void CartKcsPower::CartFreeze()
 	{
 		m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bFreezePending = true;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 	}
 }
 
@@ -145,7 +147,7 @@ void CartKcsPower::CheckForCartFreeze()
 	if (m_bFreezePending)
 	{
 		m_bFreezePending = false;
-		m_bFreezeDone = false;
+		m_bFreezeMode = true;
 		LatchShift();
 		reg1 |= 8;//Set EXROM in bit 3.
 		reg1 &= ~2;//Clear GAME in bit 1
@@ -161,7 +163,15 @@ void CartKcsPower::UpdateIO()
 	m_iRamBankOffsetIO = 0;
 	m_iRamBankOffsetRomL = 0;
 	m_bIsCartIOActive = true;
-	GAME = (reg1 & 2) != 0;//bit 1 sets GAME. bit 0 reads GAME on latching.
-	EXROM = (reg1 & 8) != 0;//bit 3 sets EXROM. bit 2 reads EXROM on latching.
+	if (m_bFreezeMode)
+	{
+		GAME = 0;
+		EXROM= 1;
+	}
+	else
+	{
+		GAME = (reg1 & 2) != 0;//bit 1 sets GAME. bit 0 reads GAME on latching.
+		EXROM = (reg1 & 8) != 0;//bit 3 sets EXROM. bit 2 reads EXROM on latching.
+	}
 	BankRom();
 }

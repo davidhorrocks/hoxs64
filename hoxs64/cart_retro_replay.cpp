@@ -78,12 +78,12 @@ void CartRetroReplay::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		return;
 	if (address == 0xDE00)
 	{
-		if (m_bFreezeDone)
+		if (m_bFreezeMode)
 		{
 			if (data & 0x40)
 			{
 				m_bFreezePending = false;
-				m_bFreezeDone = false;
+				m_bFreezeMode = false;
 			}
 		}
 		reg1 = data;
@@ -128,7 +128,7 @@ void CartRetroReplay::CartFreeze()
 			m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
 			m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 			m_bFreezePending = true;
-			m_bFreezeDone = false;
+			m_bFreezeMode = false;
 		}
 	}
 }
@@ -138,7 +138,7 @@ void CartRetroReplay::CheckForCartFreeze()
 	if (m_bFreezePending)
 	{
 		m_bFreezePending = false;
-		m_bFreezeDone = true;
+		m_bFreezeMode = true;
 		reg1 &= 0x20;
 		reg2 &= 0x43;
 		m_pCpu->Clear_CRT_IRQ();
@@ -153,7 +153,7 @@ void CartRetroReplay::UpdateIO()
 	{
 		BankRom();
 	}
-	else if (m_bFreezeDone)
+	else if (m_bFreezeMode)
 	{
 		m_bREUcompatible = (reg2 & 0x40) != 0;
 		m_bAllowBank = (reg2 & 0x2) != 0;

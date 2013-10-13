@@ -53,7 +53,7 @@ void CartFinalCartridgeIII::CartFreeze()
 		m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
 		m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bFreezePending = true;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 	}
 }
 
@@ -62,7 +62,7 @@ void CartFinalCartridgeIII::CheckForCartFreeze()
 	if (m_bFreezePending)
 	{
 		m_bFreezePending = false;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 		reg1 = (reg1 & 0x1C) | 0x10;
 		//Clear cart IRQ but leave cart NMI active.
 		m_pCpu->Clear_CRT_IRQ();

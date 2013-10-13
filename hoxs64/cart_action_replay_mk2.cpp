@@ -117,7 +117,7 @@ void CartActionReplayMk2::CartFreeze()
 		m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
 		m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bFreezePending = true;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 	}
 }
 
@@ -127,7 +127,7 @@ void CartActionReplayMk2::CheckForCartFreeze()
 	{
 		m_iSelectedBank = 0;
 		m_bFreezePending = false;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 		m_pCpu->Clear_CRT_IRQ();
 		m_pCpu->Clear_CRT_NMI();			
 		ConfigureMemoryMap();

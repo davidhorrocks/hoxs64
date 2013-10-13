@@ -115,7 +115,7 @@ unsigned int CartCommon::GetStateBytes(void *pstate)
 		p->m_bAllowBank = m_bAllowBank;
 		p->m_bREUcompatible = m_bREUcompatible;
 		p->m_bFreezePending = m_bFreezePending;
-		p->m_bFreezeDone = m_bFreezeDone;
+		p->m_bFreezeMode = m_bFreezeMode;
 	}
 	return sizeof(SsCartCommon);
 }
@@ -141,7 +141,7 @@ SsCartCommon *p;
 	m_bAllowBank = p->m_bAllowBank != 0;
 	m_bREUcompatible = p->m_bREUcompatible != 0;
 	m_bFreezePending = p->m_bFreezePending;
-	m_bFreezeDone = p->m_bFreezeDone;
+	m_bFreezeMode = p->m_bFreezeMode;
 	return S_OK;
 }
 
@@ -736,7 +736,7 @@ void CartCommon::InitReset(ICLK sysclock)
 	m_bEffects = true;
 	m_iSelectedBank = 0;
 	m_bFreezePending = false;
-	m_bFreezeDone = false;
+	m_bFreezeMode = false;
 	m_bREUcompatible = false;
 	m_bAllowBank = false;
 	m_iRamBankOffsetIO = 0;

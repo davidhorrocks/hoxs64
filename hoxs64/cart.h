@@ -71,7 +71,7 @@ struct SsCartCommon
 	bit8 m_bAllowBank;
 	bit8 m_bREUcompatible;
 	bit8 m_bFreezePending;
-	bit8 m_bFreezeDone;
+	bit8 m_bFreezeMode;
 };
 
 # pragma pack ()
@@ -246,7 +246,7 @@ protected:
 	bool m_bAllowBank;
 	bool m_bREUcompatible;
 	bit8 m_bFreezePending;
-	bit8 m_bFreezeDone;
+	bit8 m_bFreezeMode;
 	bit16 m_iRamBankOffsetIO;
 	bit16 m_iRamBankOffsetRomL;
 	

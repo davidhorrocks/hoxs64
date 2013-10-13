@@ -57,7 +57,7 @@ void CartActionReplayMk3::CartFreeze()
 		m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
 		m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
 		m_bFreezePending = true;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 	}
 }
 
@@ -66,7 +66,7 @@ void CartActionReplayMk3::CheckForCartFreeze()
 	if (m_bFreezePending)
 	{
 		m_bFreezePending = false;
-		m_bFreezeDone = false;
+		m_bFreezeMode = false;
 		reg1 = 0x00;
 		m_pCpu->Clear_CRT_IRQ();
 		m_pCpu->Clear_CRT_NMI();
