@@ -1013,6 +1013,7 @@ bool Cart::IsSupported(CartType::ECartType hardwareType)
 	case CartType::Action_Replay_3:
 	case CartType::Retro_Replay:
 	case CartType::Action_Replay_2:
+	case CartType::KCS_Power:
 		return true;
 	}
 	return false;
