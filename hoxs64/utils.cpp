@@ -1854,7 +1854,7 @@ bool fail = false;
 					{
 						if (tbImageList[i].BitmapImageResourceId!=0)
 						{
-							hbmpImage = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapImageResourceId));
+							hbmpImage = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapImageResourceId), IMAGE_BITMAP, 0, 0, 0);
 							if (hbmpImage == NULL)
 							{
 								fail = true;
@@ -1870,7 +1870,7 @@ bool fail = false;
 							}
 							if (tbImageList[i].BitmapMaskResourceId!=0)
 							{
-								hbmpMask = LoadBitmap(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapMaskResourceId));
+								hbmpMask = (HBITMAP)LoadImage(hInst, MAKEINTRESOURCE(tbImageList[i].BitmapMaskResourceId), IMAGE_BITMAP, 0, 0, 0);
 								if (hbmpMask)
 								{
 									r = GetObject(hbmpMask, sizeof(BITMAP), &bitmapMask);
@@ -1901,15 +1901,20 @@ bool fail = false;
 							HBITMAP hOld_BmpSrc = (HBITMAP)SelectObject(hMemDC_Src, hbmpImage);
 							if (hOld_BmpDest && hOld_BmpSrc)
 							{
-								StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
-
+								if (tool_dx != bitmapImage.bmWidth || tool_dy != bitmapImage.bmHeight)
+									StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapImage.bmWidth, bitmapImage.bmHeight, SRCCOPY);
+								else
+									BitBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, SRCCOPY);
 								if (hbmpMask && hBmpMaskSz)
 								{
 									HBITMAP hOld_BmpDest2 = (HBITMAP)SelectObject(hMemDC_Dest, hBmpMaskSz);
 									HBITMAP hOld_BmpSrc2 = (HBITMAP)SelectObject(hMemDC_Src, hbmpMask);
 									if (hOld_BmpDest2 && hOld_BmpSrc2)
 									{
-										StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
+										if (tool_dx != bitmapImage.bmWidth || tool_dy != bitmapImage.bmHeight)
+											StretchBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, bitmapMask.bmWidth, bitmapMask.bmHeight, SRCCOPY);
+										else
+											BitBlt(hMemDC_Dest, 0, 0, tool_dx, tool_dy, hMemDC_Src, 0, 0, SRCCOPY);
 										bOK = true;
 									}
 								}
@@ -1951,7 +1956,7 @@ bool fail = false;
 						}
 						else
 						{
-							hIconImage = LoadIcon(hInst, MAKEINTRESOURCE(tbImageList[i].IconResourceId));
+							hIconImage = (HICON)LoadImage(hInst, MAKEINTRESOURCE(tbImageList[i].IconResourceId), IMAGE_ICON, 0, 0, 0);
 							if (hIconImage == NULL)
 							{
 								fail = true;
