@@ -596,6 +596,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\cart_kcs_power.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\cevent.h"
 				>
 			</File>
@@ -967,6 +971,10 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\candy_clock.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\cart_kcs_power.cpp"
 				>
 			</File>
 			<File
