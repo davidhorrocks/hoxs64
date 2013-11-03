@@ -1239,7 +1239,7 @@ bit8 gData;
 
 bit8 VIC6569::vic_ph1_read_byte(bit16 address)
 {
-	return (de00_byte=vic_memory_map_read[(address & 0x3fff)>>12][address & 0x3fff]);
+	return (de00_byte=vic_memory_map_read[(address>>12) & 3][address & 0x0fff]);
 }
 
 bit8 VIC6569::vic_ph1_read_3fff_byte()
@@ -1254,7 +1254,7 @@ bit8 VIC6569::vic_ph2_read_byte(bit16 address)
 		m_bVicBankChanging = false;
 		SetMMU(vicBankChangeByte);
 	}
-	return (vic_memory_map_read[(address & 0x3fff)>>12][address & 0x3fff]);
+	return (vic_memory_map_read[(address>>12) & 3][address & 0x0fff]);
 }
 
 
@@ -1266,7 +1266,7 @@ bit8 VIC6569::vic_ph2_read_aec_byte(bit16 address)
 		SetMMU(vicBankChangeByte);
 	}
 	if (vicAEC<0)
-		return vic_memory_map_read[(address & 0x3fff)>>12][address & 0x3fff];
+		return vic_memory_map_read[(address>>12) & 3][address & 0x0fff];
 	else
 		return 0xFF;
 }
