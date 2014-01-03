@@ -39,8 +39,6 @@ public:
 	bool					m_bDiskLedWrite;
 	bool					m_bSerialTooBusyForSeparateThread;
 
-	int m_lastAudioVBLCatchUpCounter;
-
 	virtual LPTSTR GetAppTitle() = 0;
 	virtual LPTSTR GetAppName() = 0;
 	virtual LPTSTR GetMonitorTitle() = 0;

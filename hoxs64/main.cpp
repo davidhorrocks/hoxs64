@@ -105,8 +105,8 @@ CApp::CApp()
 	m_bMaxSpeed   = FALSE;
 	m_syncMode = HCFG::FSSM_LINE;
 	m_bAutoload = FALSE;
-	m_bFixWindowSize = FALSE;
-	m_bWindowSizing = FALSE;
+	m_bFixWindowSize = false;
+	m_bWindowSizing = false;
 	m_bClosing = false;
 	m_bBusy = false;
 	hCursorBusy = LoadCursor(0L, IDC_WAIT);
@@ -704,7 +704,7 @@ TCHAR ext[_MAX_EXT];
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
-	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, m_bUseBlitStretch);
+	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, false, 0, 0, m_bUseBlitStretch);
 	if (S_OK != hr) 
 	{
 		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
@@ -1249,7 +1249,7 @@ bool bNeedSoundFilterInit = false;
 	{
 		if (hWnd)
 		{
-			hRet = m_pWinAppWindow->SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, newcfg.m_bUseBlitStretch);
+			hRet = m_pWinAppWindow->SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, newcfg.m_bWindowedCustomSize, newcfg.m_windowedModeWidth, newcfg.m_windowedModeHeight, newcfg.m_bUseBlitStretch);
 		}
 	}
 

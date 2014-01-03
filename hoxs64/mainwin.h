@@ -24,11 +24,11 @@ public:
 	void GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h);
 	void SaveMainWindowSize();
 	HRESULT ResetDirect3D();
-	HRESULT SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch);
-	HRESULT InitSurfaces(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch);
+	HRESULT SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch);
+	HRESULT InitSurfaces(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch);
 	void ClearSurfaces();
 	HRESULT ToggleFullScreen();
-	HRESULT SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch);
+	HRESULT SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch);
 	void UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed);
 	HWND ShowDevelopment();
 

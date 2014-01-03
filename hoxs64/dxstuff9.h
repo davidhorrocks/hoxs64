@@ -31,7 +31,7 @@ public:
 	~CDX9();
 	
 	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, bit32 vicColorTable[]);
-	HRESULT InitD3D(HWND hWndDevice, HWND hWndFocus, BOOL bWindowedMode, BOOL bDoubleSizedWindow, HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, BOOL bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, GUID fullscreenAdapterId, const D3DDISPLAYMODE &displayMode);
+	HRESULT InitD3D(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, bool bDoubleSizedWindow, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, GUID fullscreenAdapterId, const D3DDISPLAYMODE &displayMode);
 	HRESULT Reset();
 	void CheckFilterCap(bool bIsMagnifying, D3DTEXTUREFILTERTYPE filter);
 
@@ -43,7 +43,7 @@ public:
 	HRESULT CreateSmallSurface(int Width, int Height, D3DFORMAT Format);
 	void ClearTargets(D3DCOLOR dwSolidColourFill);
 	void ClearSurfaces(D3DCOLOR colour);
-	HRESULT UpdateBackbuffer(D3DTEXTUREFILTERTYPE filter);
+	HRESULT UpdateBackBuffer(D3DTEXTUREFILTERTYPE filter);
 	IDirect3DSurface9 *GetSmallSurface();
 	IDirect3DSurface9 *GetSysMemSurface();
 
@@ -115,7 +115,7 @@ public:
 	D3DRECT m_drcStatusBar;
 
 private:
-	HRESULT SetRenderStyle(BOOL bWindowedMode, BOOL bDoubleSizedWindow, HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, BOOL bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, D3DDISPLAYMODE currentDisplayMode);
+	HRESULT SetRenderStyle(bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, D3DDISPLAYMODE currentDisplayMode);
 	void SetClearingRects(D3DRECT [], int);
 
 public:
@@ -216,15 +216,17 @@ public:
 	static D3DTEXTUREFILTERTYPE GetDxFilterFromEmuFilter(HCFG::EMUWINDOWFILTER emuFilter);
 	
 private:
-	BOOL m_bWindowedMode;;
-	BOOL m_bDoubleSizedWindow;
+	HWND m_hWndDevice;
+	bool m_bWindowedMode;
+	bool m_bDoubleSizedWindow;
 	HCFG::EMUBORDERSIZE m_borderSize;
-	BOOL m_bShowFloppyLed;
-	BOOL m_bUseBlitStretch;
+	bool m_bShowFloppyLed;
+	bool m_bUseBlitStretch;
 	D3DTEXTUREFILTERTYPE m_filter;
 	HCFG::EMUWINDOWSTRETCH m_stretch;
 public:
 	static const D3DFORMAT Formats[];
+	bool m_bWindowedCustomSize; 
 
 	static int GetToolBarHeight(BOOL bShowFloppyLed);
 private:

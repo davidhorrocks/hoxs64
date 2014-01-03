@@ -125,26 +125,26 @@ C64WindowDimensions dims;
 
 	if (bDoubleSizedWindow)
 	{
-		*w=dims.Width*2 + GetSystemMetrics(SM_CXFIXEDFRAME)*2;
-		*h=dims.Height*2 + GetSystemMetrics(SM_CYFIXEDFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) +  CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
+		*w=dims.Width*2 + GetSystemMetrics(SM_CXSIZEFRAME)*2;
+		*h=dims.Height*2 + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) +  CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
 	}
 	else
 	{
-		*w=dims.Width + GetSystemMetrics(SM_CXFIXEDFRAME)*2;
-		*h=dims.Height + GetSystemMetrics(SM_CYFIXEDFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) +  CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
+		*w=dims.Width + GetSystemMetrics(SM_CXSIZEFRAME)*2;
+		*h=dims.Height + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) +  CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
 	}
 }
 
 HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	this->m_hInst = hInstance;
-	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
+	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
 	return hWnd;
 }
 
 LRESULT CAppWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-int w, h;
+int x, y, w, h;
 MINMAXINFO *pMinMax;
 bool bOK;
 const int iStatusParts = 1;
@@ -159,6 +159,7 @@ bool bIsWindowActive;
 bool bIsWindowMinimised;
 HWND hWndDebuggerFrame;
 LRESULT lr;
+RECT rcClient;
 /*Dialogs*/
 shared_ptr<CDiagKeyboard> pDiagKeyboard;
 shared_ptr<CDiagJoystick> pDiagJoystick;
@@ -247,47 +248,60 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		break;
 	case WM_SIZE:
         // Check to see if we are losing our window...
+		w = (int)(DWORD)LOWORD(lParam);
+		h = (int)(DWORD)HIWORD(lParam);
         if (SIZE_MAXHIDE==wParam || SIZE_MINIMIZED==wParam)
 		{
 			appStatus->SoundHalt();
-            appStatus->m_bActive = FALSE;
+            appStatus->m_bActive = false;
 		}
         else
-            appStatus->m_bActive = TRUE;
-
-		if (appStatus->m_bActive && appStatus->m_bWindowed && appStatus->m_bReady)
 		{
-			SaveMainWindowSize();
-		}
+            appStatus->m_bActive = true;
+			if (appStatus->m_bWindowed)
+			{
+				GetClientRect(hWnd, &rcClient);
+				y = rcClient.top;
+				x = rcClient.left;
+				w = rcClient.right - rcClient.left - x;
+				h = rcClient.bottom - rcClient.top - y - m_iStatusBarHeight;
+				SetRect(&dx->m_rcTargetRect, x, y, x + w, y + h - CDX9::GetToolBarHeight(cfg->m_bShowFloppyLed));
+				SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, x, y, w, h, SWP_NOZORDER);
+				dx->m_bWindowedCustomSize = true;
+				dx->Reset();
+			}
+			if (appStatus->m_bWindowed && appStatus->m_bReady)
+			{
+				SaveMainWindowSize();
+			}
 
-		if (appStatus->m_bWindowed)
-		{
-			if (m_hWndStatusBar != NULL)				
-				SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
+			if (appStatus->m_bWindowed)
+			{
+				if (m_hWndStatusBar != NULL)				
+					SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
+			}
 		}
-		appStatus->m_lastAudioVBLCatchUpCounter = 0;
 		return 0;
 	case WM_MOVE:
 		// Retrieve the window position after a move
 		if (appStatus->m_bActive && appStatus->m_bReady && appStatus->m_bWindowed)
 		{
 			SaveMainWindowSize();
-			appStatus->m_lastAudioVBLCatchUpCounter = 0;
 		}
 		return 0;
-	case WM_GETMINMAXINFO:
-		// Fix the size of the window
+	//case WM_GETMINMAXINFO:
+	//	// Fix the size of the window
 
-		GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, cfg->m_bDoubleSizedWindow, &w, &h);
-		if (appStatus->m_bWindowed && appStatus->m_bFixWindowSize)
-		{
-			pMinMax = (MINMAXINFO *)lParam;
-			pMinMax->ptMinTrackSize.x = w;
-			pMinMax->ptMinTrackSize.y = h;
-			pMinMax->ptMaxTrackSize.x = w;
-			pMinMax->ptMaxTrackSize.y = h;
-		}
-		return 0;
+	//	GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, cfg->m_bDoubleSizedWindow, &w, &h);
+	//	if (appStatus->m_bWindowed && appStatus->m_bFixWindowSize)
+	//	{
+	//		pMinMax = (MINMAXINFO *)lParam;
+	//		pMinMax->ptMinTrackSize.x = w;
+	//		pMinMax->ptMinTrackSize.y = h;
+	//		pMinMax->ptMaxTrackSize.x = w;
+	//		pMinMax->ptMaxTrackSize.y = h;
+	//	}
+	//	return 0;
 	case WM_DISPLAYCHANGE:
 		if (appStatus->m_bWindowed)
 		{
@@ -505,6 +519,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SoundHalt();
 			appStatus->GetUserConfig(tCfg);
 			tCfg.m_bDoubleSizedWindow = !tCfg.m_bDoubleSizedWindow;
+			tCfg.m_bWindowedCustomSize = false;
 			appStatus->SetUserConfig(tCfg);
 			appStatus->ApplyConfig(tCfg);
 			appStatus->SoundResume();
@@ -591,8 +606,8 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SoundHalt();
             if (appStatus->m_bActive && appStatus->m_bReady && !appStatus->m_bDebug)
             {
-				appStatus->m_bPaused= FALSE;
-				appStatus->m_bReady = FALSE;
+				appStatus->m_bPaused= false;
+				appStatus->m_bReady = false;
 				hRet = ToggleFullScreen();
 				if (FAILED(hRet))
 					DisplayError(hWnd, appStatus->GetAppName());
@@ -813,13 +828,18 @@ void CAppWindow::SaveMainWindowSize()
 
 HRESULT CAppWindow::ResetDirect3D()
 {
-	return SetWindowedMode(appStatus->m_bWindowed, cfg->m_bDoubleSizedWindow, cfg->m_bUseBlitStretch);	
+RECT m_rcMainWindow;
+	if (appStatus->m_bWindowed)
+	{
+		GetWindowRect(m_hWnd, &m_rcMainWindow);
+	}
+	return SetWindowedMode(appStatus->m_bWindowed, cfg->m_bDoubleSizedWindow, cfg->m_bWindowedCustomSize, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, cfg->m_bUseBlitStretch);	
 }
 
 
 HRESULT CAppWindow::ToggleFullScreen()
 {
-	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, cfg->m_bDoubleSizedWindow, cfg->m_bUseBlitStretch);
+	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, cfg->m_bDoubleSizedWindow, cfg->m_bWindowedCustomSize, cfg->m_windowedModeWidth, cfg->m_windowedModeHeight , cfg->m_bUseBlitStretch);
 
 	if (G::IsWin98OrLater())
 	{
@@ -831,15 +851,15 @@ HRESULT CAppWindow::ToggleFullScreen()
 	return r;
 }
 
-HRESULT CAppWindow::SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch)
+HRESULT CAppWindow::SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
 {
 HRESULT hr;
 static HMENU hMenuOld=NULL,hMt;
 LONG_PTR lp;
 
 	ClearError();
-	appStatus->m_bFixWindowSize = FALSE;
-	appStatus->m_bReady = FALSE;
+	//appStatus->m_bFixWindowSize = false;
+	appStatus->m_bReady = false;
 	appStatus->m_fskip = -1;
 
     if (appStatus->m_bWindowed)
@@ -866,13 +886,13 @@ LONG_PTR lp;
 		}
 	}
 
-	hr = SetCoopLevel(bWindowed, bDoubleSizedWindow, bUseBlitStretch);
+	hr = SetCoopLevel(bWindowed, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
 	if (FAILED(hr))
 	{
 		TCHAR errorTextSave[300];
 		_tcscpy_s(errorTextSave, _countof(errorText), errorText);
 
-		SetCoopLevel(TRUE, bDoubleSizedWindow, bUseBlitStretch);
+		SetCoopLevel(TRUE, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
 		_tcscpy_s(errorText, _countof(errorText), errorTextSave);
 	}
 
@@ -901,13 +921,12 @@ LONG_PTR lp;
 
 		this->m_pWinEmuWin->UpdateC64Window();
 	}
-	appStatus->m_bFixWindowSize = TRUE;
-	appStatus->m_lastAudioVBLCatchUpCounter = 0;
+	//appStatus->m_bFixWindowSize = true;
 	return hr;
 }
 
 
-HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch)
+HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
 {
 HRESULT hRet;
 	BOOL bIsDwmOn = FALSE;
@@ -922,7 +941,7 @@ HRESULT hRet;
 		}
 	}
 
-	hRet = InitSurfaces(bWindowed, bDoubleSizedWindow, bUseBlitStretch);
+	hRet = InitSurfaces(bWindowed, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
 	if (SUCCEEDED(hRet))
 	{
 		appStatus->m_bWindowed = bWindowed;
@@ -942,12 +961,13 @@ HRESULT hRet;
     return hRet;
 }
 
-HRESULT CAppWindow::InitSurfaces(bool bWindowed, bool bDoubleSizedWindow, bool bUseBlitStretch)
+HRESULT CAppWindow::InitSurfaces(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
 {
 HRESULT		        hRet;
 int w,h;
 D3DDISPLAYMODE displayModeRequested;
 D3DTEXTUREFILTERTYPE filter;
+RECT rcClient;
 
 	ClearError();
 	ZeroMemory(&displayModeRequested, sizeof(D3DDISPLAYMODE));
@@ -957,11 +977,22 @@ D3DTEXTUREFILTERTYPE filter;
 
 	if (bWindowed)
 	{
-		m_pWinEmuWin->GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-		SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+		if (bWindowedCustomSize)
+		{
+			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, width, height, SWP_NOMOVE);
+			GetClientRect(m_hWnd, &rcClient);
+			w = min(0, rcClient.right - rcClient.left);
+			h = max(0, rcClient.bottom - rcClient.top);
+			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+		}
+		else
+		{
+			m_pWinEmuWin->GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+			GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
+		}
 
-		GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-		SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 		
 		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, cfg->m_borderSize, cfg->m_bShowFloppyLed, bUseBlitStretch, cfg->m_fullscreenStretch, filter, cfg->m_syncMode, cfg->m_fullscreenAdapterNumber, cfg->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
@@ -969,10 +1000,11 @@ D3DTEXTUREFILTERTYPE filter;
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
 
-		GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-		SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
+		//TEST
+		//GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+		//SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 
-		appStatus->m_bWindowed = TRUE;
+		appStatus->m_bWindowed = true;
 
 	}
 	else
@@ -987,7 +1019,7 @@ D3DTEXTUREFILTERTYPE filter;
 		{
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
-		appStatus->m_bWindowed = FALSE;
+		appStatus->m_bWindowed = false;
 	}
 
 	ClearSurfaces();

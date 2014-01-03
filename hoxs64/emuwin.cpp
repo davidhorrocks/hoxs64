@@ -392,7 +392,7 @@ HRESULT hr;
 	if(SUCCEEDED(hr = dx->m_pd3dDevice->BeginScene()))
 	{
 		//Draw from the dx small surface to the dx backbuffer
-		hr = dx->UpdateBackbuffer((D3DTEXTUREFILTERTYPE)appStatus->m_blitFilter);
+		hr = dx->UpdateBackBuffer((D3DTEXTUREFILTERTYPE)appStatus->m_blitFilter);
 		if (cfg->m_bShowFloppyLed)
 			DrawDriveSprites();
 		dx->m_pd3dDevice->EndScene();

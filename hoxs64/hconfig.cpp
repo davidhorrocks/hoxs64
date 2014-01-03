@@ -22,28 +22,31 @@ CConfig::CConfig()
 	ZeroMemory(&m_joy1config.joystickID, sizeof(m_joy1config.joystickID));
 	ZeroMemory(&m_joy2config.joystickID, sizeof(m_joy2config.joystickID));
 
-	m_bD1541_Thread_Enable = FALSE;
-	m_bAllowOpposingJoystick = FALSE;
-	m_bDisableDwmFullscreen = FALSE;
+	m_bD1541_Thread_Enable = false;
+	m_bAllowOpposingJoystick = false;
+	m_bDisableDwmFullscreen = false;
 
-	m_bUseBlitStretch = TRUE;
+	m_bWindowedCustomSize = false;
+	m_windowedModeWidth = 0;
+	m_windowedModeHeight = 0;
+	m_bUseBlitStretch = true;
 
-	m_joy1config.bEnabled = FALSE;
-	m_joy2config.bEnabled = FALSE;
+	m_joy1config.bEnabled = false;
+	m_joy2config.bEnabled = false;
 
-	m_joy1config.bValid = FALSE;
-	m_joy2config.bValid = FALSE;
+	m_joy1config.bValid = false;
+	m_joy2config.bValid = false;
 
-	m_joy1config.bXReverse = FALSE;
-	m_joy2config.bYReverse = FALSE;
+	m_joy1config.bXReverse = false;
+	m_joy2config.bYReverse = false;
 
-	m_bSwapJoysticks = FALSE;
-	m_bCPUFriendly = TRUE;
-	m_bAudioClockSync = TRUE;
-	m_bSidDigiBoost = TRUE;
+	m_bSwapJoysticks = false;
+	m_bCPUFriendly = true;
+	m_bAudioClockSync = true;
+	m_bSidDigiBoost = true;
 
-	m_bMaxSpeed = FALSE;
-	m_bSkipFrames = FALSE;
+	m_bMaxSpeed = false;
+	m_bSkipFrames = false;
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;

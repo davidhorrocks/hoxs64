@@ -10,17 +10,17 @@
 
 CAppStatus::CAppStatus()
 {
-	m_bSoundOK=FALSE;
-	m_bSoundMute=FALSE;
+	m_bSoundOK=false;
+	m_bSoundMute=false;
 	m_bFilterOK=false;
-	m_bActive=FALSE;				// App is running/active
-	m_bReady=FALSE;				// App is ready for updates
-	m_bWindowed=TRUE;			// App is in windowed mode
-	m_bRunning=FALSE;
-	m_bDebug=FALSE;
-	m_bBreak=FALSE;
-	m_bPaused=FALSE;
-	m_bFixWindowSize=FALSE;
+	m_bActive=false;				// App is running/active
+	m_bReady=false;				// App is ready for updates
+	m_bWindowed=true;			// App is in windowed mode
+	m_bRunning=false;
+	m_bDebug=false;
+	m_bBreak=false;
+	m_bPaused=false;
+	//m_bFixWindowSize=true;
 	m_bClosing=false;
 	m_bInitDone=false;
 
@@ -36,5 +36,4 @@ CAppStatus::CAppStatus()
 	m_bDiskLedMotor = false;
 	m_bDiskLedDrive = false;
 	m_bSerialTooBusyForSeparateThread = false;
-	m_lastAudioVBLCatchUpCounter = 0;	
 }

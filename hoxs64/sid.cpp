@@ -110,8 +110,6 @@ DWORD gap;
 DWORD soundplay_pos;
 DWORD soundwrite_pos;
 
-	int refLastAudioVBLCatchUpCounter = this->appStatus->m_lastAudioVBLCatchUpCounter;
-
 	hRet = dx->pSecondarySoundBuffer->GetCurrentPosition(&soundplay_pos, &soundwrite_pos);
 	if (FAILED(hRet))
 		return hRet;
