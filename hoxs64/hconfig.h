@@ -25,7 +25,7 @@ struct joyconfig
 	DWORD dwOfs_firebutton;
 };
 
-class CConfig// : public ErrorMsg
+class CConfig
 {
 public:
 	CConfig();

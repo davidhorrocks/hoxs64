@@ -145,7 +145,7 @@ HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[
 LRESULT CAppWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 int x, y, w, h;
-MINMAXINFO *pMinMax;
+//MINMAXINFO *pMinMax;
 bool bOK;
 const int iStatusParts = 1;
 RECT rcStatusBar;

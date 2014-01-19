@@ -1220,10 +1220,10 @@ bool bNeedSoundFilterInit = false;
 	c64.cia1.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
 	c64.cia2.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
 
-	if (newcfg.m_bSID_Emulation_Enable!=FALSE && cfg.m_bSID_Emulation_Enable==FALSE)
+	if (newcfg.m_bSID_Emulation_Enable!=false && cfg.m_bSID_Emulation_Enable==false)
 		c64.sid.CurrentClock = c64.cpu.CurrentClock;
 
-	if (newcfg.m_bD1541_Emulation_Enable!=FALSE && cfg.m_bD1541_Emulation_Enable==FALSE)
+	if (newcfg.m_bD1541_Emulation_Enable!=false && cfg.m_bD1541_Emulation_Enable==false)
 		c64.diskdrive.CurrentPALClock = c64.cpu.CurrentClock;
 
 	if (newcfg.m_bUseBlitStretch != cfg.m_bUseBlitStretch 
@@ -1267,7 +1267,7 @@ bool bNeedSoundFilterInit = false;
 
 	status.m_fskip = -1;
 	
-	m_bUseKeymap = FALSE;
+	m_bUseKeymap = false;
 
 	dx.InitJoys(hWnd, cfg.m_joy1config, cfg.m_joy2config);
 

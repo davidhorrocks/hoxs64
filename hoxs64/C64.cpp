@@ -2062,7 +2062,6 @@ ULARGE_INTEGER pos_next_track_header;
 		hr = pfs->Seek(spos_next, STREAM_SEEK_CUR, &pos_next_header);
 		if (FAILED(hr))
 			break;
-		//pos_next.QuadPart = pos_out.QuadPart;
 		
 		SsTrackHeader trackHeader;
 		while (!eof && !done)

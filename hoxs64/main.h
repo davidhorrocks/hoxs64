@@ -90,10 +90,9 @@ public:
 
 	C64 c64;
 
-	//mainCfg is a CConfig that holds the users preferred settings (when Quick Speed is off).
-	//CApp also derives from CConfig and hold the "in-play" setting. These "in-play" setting in (CConfig)CApp can differ from the normal user setting in CApp::mainCfg.
-	//such as when Quick Speed is toggled on. Quick speed keep the users preferred settings intact and makes a change to the temporary "in play" setting to 
-	//help optimise the function.
+	//mainCfg is a CConfig that holds the user preferred settings (when Quick Speed is off).
+	//CApp also derives from CConfig and holds the transient in-play setting. The transient in-play setting in (CConfig)CApp can differ from the user preferred setting in CApp::mainCfg.
+	//such as when Quick Speed is toggled on. Quick speed keeps the user preferred settings intact and makes a change to the temporary "in play" setting.
 	CConfig mainCfg;
 	HHOOK m_hKeyboardHook;
 	EXECUTION_STATE m_Prevstate;
