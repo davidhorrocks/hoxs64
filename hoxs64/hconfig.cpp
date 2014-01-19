@@ -50,7 +50,6 @@ CConfig::CConfig()
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
-	SaveSpeedSettings();
 }
 
 
@@ -578,7 +577,6 @@ const int maxbutton = 31;
 		
 		RegCloseKey(hKey1);
 	}
-	SaveSpeedSettings();
 	return S_OK;
 }
 
@@ -1083,7 +1081,6 @@ BOOL bGuidOK;
 
 void CConfig::LoadDefaultSetting()
 {
-
 	ZeroMemory(&m_KeyMap[0], sizeof(m_KeyMap));
 
 	m_KeyMap[C64K_PLUS]=	DIK_MINUS;
@@ -1216,41 +1213,6 @@ void CConfig::LoadDefaultSetting()
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
-
-	SaveSpeedSettings();
-}
-
-void CConfig::SaveSpeedSettings()
-{
-	m_bSaveSkipFrames = m_bSkipFrames;
-	m_bSaveLimitSpeed = m_bLimitSpeed;
-	m_bSaveUseBlitStretch = m_bUseBlitStretch;
-	m_SaveSyncMode = m_syncMode;
-}
-
-void CConfig::RestoreSpeedSettings()
-{
-	m_bSkipFrames = m_bSaveSkipFrames;
-	m_bLimitSpeed = m_bSaveLimitSpeed;
-	m_bUseBlitStretch = m_bSaveUseBlitStretch;
-	m_syncMode = m_SaveSyncMode;
-}
-
-void CConfig::ToggleMaxSpeed()
-{
-	if (!m_bMaxSpeed)
-	{
-		SaveSpeedSettings();
-		m_bSkipFrames = TRUE;
-		m_bLimitSpeed = FALSE;
-		//m_syncMode = HCFG::FSSM_LINE;
-		m_bMaxSpeed = TRUE;
-	}
-	else
-	{
-		RestoreSpeedSettings();
-		m_bMaxSpeed = FALSE;
-	}
 }
 
 int CConfig::GetKeyScanCode(UINT ch)

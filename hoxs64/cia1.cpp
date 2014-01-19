@@ -40,7 +40,6 @@
 
 CIA1::CIA1()
 {
-	cfg = 0L;
 	appStatus = 0L;
 	dx = 0L;
 	cpu = 0L;
@@ -54,10 +53,9 @@ CIA1::CIA1()
 	ResetKeyboard();
 }
 
-HRESULT CIA1::Init(CConfig *cfg, CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx, IAutoLoad *pAutoLoad)
+HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx, IAutoLoad *pAutoLoad)
 {
 	ClearError();
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->dx = dx;
 	this->cpu = cpu;
@@ -433,8 +431,8 @@ bit8 localjoyport2;
 		}
 		if (SUCCEEDED(hr))
 		{
-			xpos1 = *((LONG *)(((BYTE *)&js1) + cfg->m_joy1config.dwOfs_X));
-			ypos1 = *((LONG *)(((BYTE *)&js1) + cfg->m_joy1config.dwOfs_Y));
+			xpos1 = *((LONG *)(((BYTE *)&js1) + appStatus->m_joy1config.dwOfs_X));
+			ypos1 = *((LONG *)(((BYTE *)&js1) + appStatus->m_joy1config.dwOfs_Y));
 		}
 		else
 			joy1ok = FALSE;
@@ -451,8 +449,8 @@ bit8 localjoyport2;
 		}
 		if (SUCCEEDED(hr))
 		{
-			xpos2 = *((LONG *)(((BYTE *)&js2) + cfg->m_joy2config.dwOfs_X));
-			ypos2 = *((LONG *)(((BYTE *)&js2) + cfg->m_joy2config.dwOfs_Y));
+			xpos2 = *((LONG *)(((BYTE *)&js2) + appStatus->m_joy2config.dwOfs_X));
+			ypos2 = *((LONG *)(((BYTE *)&js2) + appStatus->m_joy2config.dwOfs_Y));
 		}
 		else
 			joy2ok = FALSE;
@@ -460,35 +458,35 @@ bit8 localjoyport2;
 
 	if (joy1ok)
 	{
-		if (cfg->m_joy1config.bXReverse)
+		if (appStatus->m_joy1config.bXReverse)
 		{
-			if (xpos1 < cfg->m_joy1config.xLeft) 
+			if (xpos1 < appStatus->m_joy1config.xLeft) 
 				localjoyport1 &= (bit8) ~8;
-			else if (xpos1 > cfg->m_joy1config.xRight)
+			else if (xpos1 > appStatus->m_joy1config.xRight)
 				localjoyport1 &= (bit8) ~4;
 		}
 		else
 		{
-			if (xpos1 < cfg->m_joy1config.xLeft) //LEFT   
+			if (xpos1 < appStatus->m_joy1config.xLeft) //LEFT   
 				localjoyport1 &= (bit8) ~4;
-			else if (xpos1 > cfg->m_joy1config.xRight) //RIGHT   
+			else if (xpos1 > appStatus->m_joy1config.xRight) //RIGHT   
 				localjoyport1 &= (bit8) ~8;
 		}
-		if (cfg->m_joy1config.bYReverse)
+		if (appStatus->m_joy1config.bYReverse)
 		{
-			if (ypos1 < cfg->m_joy1config.yUp) 
+			if (ypos1 < appStatus->m_joy1config.yUp) 
 				localjoyport1 &= (bit8) ~2;
-			else if (ypos1 > cfg->m_joy1config.yDown)
+			else if (ypos1 > appStatus->m_joy1config.yDown)
 				localjoyport1 &= (bit8) ~1;
 		}
 		else
 		{
-			if (ypos1 < cfg->m_joy1config.yUp) //UP
+			if (ypos1 < appStatus->m_joy1config.yUp) //UP
 				localjoyport1 &= (bit8) ~1;
-			else if (ypos1 > cfg->m_joy1config.yDown) //DOWN
+			else if (ypos1 > appStatus->m_joy1config.yDown) //DOWN
 				localjoyport1 &= (bit8) ~2;
 		}
-		if (((BYTE *)&js1)[cfg->m_joy1config.dwOfs_firebutton] & 0x80) //FIRE
+		if (((BYTE *)&js1)[appStatus->m_joy1config.dwOfs_firebutton] & 0x80) //FIRE
 		{
 			localjoyport1 &= (bit8) ~16; //FIRE
 		}
@@ -496,35 +494,35 @@ bit8 localjoyport2;
 
 	if (joy2ok)
 	{
-		if (cfg->m_joy2config.bXReverse)
+		if (appStatus->m_joy2config.bXReverse)
 		{
-			if (xpos2 < cfg->m_joy2config.xLeft)
+			if (xpos2 < appStatus->m_joy2config.xLeft)
 				localjoyport2 &= (bit8) ~8;
-			else if (xpos2 > cfg->m_joy2config.xRight)
+			else if (xpos2 > appStatus->m_joy2config.xRight)
 				localjoyport2 &= (bit8) ~4;
 		}
 		else
 		{
-			if (xpos2 < cfg->m_joy2config.xLeft) //LEFT   
+			if (xpos2 < appStatus->m_joy2config.xLeft) //LEFT   
 				localjoyport2 &= (bit8) ~4;
-			else if (xpos2 > cfg->m_joy2config.xRight) //RIGHT   
+			else if (xpos2 > appStatus->m_joy2config.xRight) //RIGHT   
 				localjoyport2 &= (bit8) ~8;
 		}
-		if (cfg->m_joy2config.bYReverse)
+		if (appStatus->m_joy2config.bYReverse)
 		{
-			if (ypos2 < cfg->m_joy2config.yUp)
+			if (ypos2 < appStatus->m_joy2config.yUp)
 				localjoyport2 &= (bit8) ~2;
-			else if (ypos2 > cfg->m_joy2config.yDown)
+			else if (ypos2 > appStatus->m_joy2config.yDown)
 				localjoyport2 &= (bit8) ~1;
 		}
 		else
 		{
-			if (ypos2 < cfg->m_joy2config.yUp) //UP
+			if (ypos2 < appStatus->m_joy2config.yUp) //UP
 				localjoyport2 &= (bit8) ~1;
-			else if (ypos2 > cfg->m_joy2config.yDown) //DOWN
+			else if (ypos2 > appStatus->m_joy2config.yDown) //DOWN
 				localjoyport2 &= (bit8) ~2;
 		}
-		if (((BYTE *)&js2)[cfg->m_joy2config.dwOfs_firebutton] & 0x80) //FIRE
+		if (((BYTE *)&js2)[appStatus->m_joy2config.dwOfs_firebutton] & 0x80) //FIRE
 		{
 			localjoyport2 &= (bit8) ~16; //FIRE
 		}
@@ -941,7 +939,7 @@ bit8 localjoyport2;
 		}
 	}
 
-	if (cfg->m_bAllowOpposingJoystick)
+	if (appStatus->m_bAllowOpposingJoystick)
 	{
 		if (KEYDOWN(buffer, C64K_JOY1UP))
 			localjoyport1 &= (bit8) ~1;
@@ -990,7 +988,7 @@ bit8 localjoyport2;
 	{
 		localjoyport1 &= (bit8) ~16;
 	}
-	if (cfg->m_bSwapJoysticks)
+	if (appStatus->m_bSwapJoysticks)
 	{
 		joyport1 = localjoyport2;
 		joyport2 = localjoyport1;

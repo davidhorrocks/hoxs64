@@ -45,16 +45,14 @@
 
 VIA1::VIA1()
 {
-	cfg=0;
 	appStatus=0;
 	cpu=0;
 	disk=0;
 }
 
-HRESULT VIA1::Init(int ID, CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
+HRESULT VIA1::Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
 {
 	this->ID = ID;
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->cpu = cpu;
 	this->disk = disk;
@@ -78,7 +76,7 @@ void VIA1::ExecuteDevices(ICLK sysclock)
 
 bit8 VIA1::ReadPinsPortA()
 {
-	switch (cfg->m_TrackZeroSensorStyle)
+	switch (appStatus->m_TrackZeroSensorStyle)
 	{
 		case HCFG::TZSSPullHigh:
 			return 0xFF;

@@ -28,7 +28,7 @@ CAppStatus::CAppStatus()
 	m_displayFormat = 0;
 	m_ScreenDepth = 0;
 	m_bUseCPUDoubler = false;
-	m_blitFilter = 0;
+	m_blitFilterDX = 0;
 
 	m_audioSpeedStatus = HCFG::AUDIO_OK;
 
@@ -36,4 +36,24 @@ CAppStatus::CAppStatus()
 	m_bDiskLedMotor = false;
 	m_bDiskLedDrive = false;
 	m_bSerialTooBusyForSeparateThread = false;
+
+	SaveSpeedSettings();
 }
+
+
+void CAppStatus::SaveSpeedSettings()
+{
+	m_bSaveSkipFrames = m_bSkipFrames;
+	m_bSaveLimitSpeed = m_bLimitSpeed;
+	m_bSaveUseBlitStretch = m_bUseBlitStretch;
+	m_SaveSyncMode = m_syncMode;
+}
+
+void CAppStatus::RestoreSpeedSettings()
+{
+	m_bSkipFrames = m_bSaveSkipFrames;
+	m_bLimitSpeed = m_bSaveLimitSpeed;
+	m_bUseBlitStretch = m_bSaveUseBlitStretch;
+	m_syncMode = m_SaveSyncMode;
+}
+

@@ -14,7 +14,7 @@ class DiskInterface : public IRegister, public IMonitorDisk, public ErrorMsg
 public:
 	DiskInterface();
 	~DiskInterface();
-	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager, TCHAR *szAppDirectory);
+	HRESULT Init(CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager, TCHAR *szAppDirectory);
 	HRESULT InitDiskThread();
 	static DWORD WINAPI DiskThreadProc( LPVOID lpParam );
 	DWORD DiskThreadProc();
@@ -136,7 +136,6 @@ public:
 
 	IC64Event *pIC64Event;
 
-	CConfig *cfg;
 	CAppStatus *appStatus;
 
 	static const long DISKCLOCKSPERSECOND = 1000000;

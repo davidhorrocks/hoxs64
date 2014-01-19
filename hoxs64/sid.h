@@ -35,7 +35,7 @@ class SID64;
 struct SIDVoice
 {
 	~SIDVoice();
-	HRESULT Init(CConfig *cfg, CAppStatus *appStatus);
+	HRESULT Init(CAppStatus *appStatus);
 	void Envelope();
 	void Modulate();
 	void SyncRecheck();
@@ -47,7 +47,6 @@ struct SIDVoice
 	void GetState(SsSidVoice &state);
 	void SetState(const SsSidVoice &state);
 
-	CConfig *cfg;
 	CAppStatus *appStatus;
 	SID64 *sid;
 	bit32 counter;
@@ -88,9 +87,8 @@ public:
 	SID64();
 	~SID64();
 	CDX9 *dx;
-	CConfig *cfg;
 	CAppStatus *appStatus;
-	HRESULT Init(CConfig *, CAppStatus *, CDX9 *, HCFG::EMUFPS fps);
+	HRESULT Init(CAppStatus *, CDX9 *, HCFG::EMUFPS fps);
 	HRESULT InitResamplingFilters(HCFG::EMUFPS fps);
 	DWORD UpdateSoundBufferLockSize(HCFG::EMUFPS fps);
 

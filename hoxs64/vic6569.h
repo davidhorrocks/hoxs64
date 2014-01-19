@@ -101,7 +101,6 @@ public:
 
 	CDX9 *dx;
 	CAppStatus *appStatus;
-	CConfig *cfg;
 
 	RAM64 *ram;
 	CPU6510 *cpu;
@@ -211,7 +210,7 @@ public:
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount); 
 	virtual int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt);
 
-	HRESULT Init(CConfig *, CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager);
+	HRESULT Init(CAppStatus *, CDX9 *dx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager);
 	void Cleanup();
 	void setup_color_tables(D3DFORMAT format);
 	void SetMMU(bit8 index);

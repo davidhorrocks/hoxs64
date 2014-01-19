@@ -17,7 +17,7 @@ public:
 
 	CIA1();
 
-	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx, IAutoLoad *pAutoLoad);
+	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx, IAutoLoad *pAutoLoad);
 
 	void InitReset(ICLK sysclock);
 	//IRegister
@@ -57,7 +57,6 @@ public:
 protected:
 	bool m_bAltLatch;
 private:
-	CConfig *cfg;
 	CAppStatus *appStatus;
 	CDX9 *dx;
 };

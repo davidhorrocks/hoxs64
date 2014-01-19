@@ -196,7 +196,7 @@ int i;
 	}
 }
 
-HRESULT DiskInterface::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager,TCHAR *szAppDirectory)
+HRESULT DiskInterface::Init(CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager,TCHAR *szAppDirectory)
 {
 int i;
 HANDLE hfile=0;
@@ -220,7 +220,6 @@ HRESULT hr;
 	else
 		_tcscpy_s(m_szAppDirectory, _countof(m_szAppDirectory), szAppDirectory);
 
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->pIC64Event = pIC64Event;
 
@@ -273,8 +272,8 @@ HRESULT hr;
 		}
 	}
 	
-	via1.Init(1, cfg, appStatus, &cpu, this);
-	via2.Init(2, cfg, appStatus, &cpu, this);
+	via1.Init(1, appStatus, &cpu, this);
+	via2.Init(2, appStatus, &cpu, this);
 	cpu.Init(pIC64Event, CPUID_DISK, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom, pIBreakpointManager);
 
 	m_d64_protectOff=1;//1=no protect;0=protected;

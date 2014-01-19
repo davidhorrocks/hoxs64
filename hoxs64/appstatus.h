@@ -1,7 +1,7 @@
 #ifndef __APPSTATUS_H__
 #define __APPSTATUS_H__
 
-class CAppStatus
+class CAppStatus : public CConfig
 {
 public:
 	CAppStatus();
@@ -22,7 +22,7 @@ public:
 
 	signed int				m_fskip;
 	DWORD					m_displayFormat;	//Direct 3D9 Display format
-	DWORD					m_blitFilter;	//Direct 3D9 Blit filter
+	DWORD					m_blitFilterDX;	//Direct 3D9 Blit filter
 	//eScreenType m_ScreenType;
 	long					m_ScreenDepth;
 	bool					m_bUseCPUDoubler;
@@ -64,7 +64,15 @@ public:
 	virtual void SaveCurrentSetting() = 0;
 	virtual void GetUserConfig(CConfig& cfg) = 0;
 	virtual void SetUserConfig(const CConfig& newcfg) = 0;
-	virtual void ApplyConfig(const CConfig& newcfg) = 0;	
+	virtual void ApplyConfig(const CConfig& newcfg) = 0;
+
+	void SaveSpeedSettings();
+	void RestoreSpeedSettings();
+private:
+	bool m_bSaveSkipFrames;;
+	bool m_bSaveLimitSpeed;
+	bool m_bSaveUseBlitStretch;
+	HCFG::FULLSCREENSYNCMODE m_SaveSyncMode;
 };
 
 #endif

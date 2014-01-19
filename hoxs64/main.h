@@ -1,7 +1,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-class CApp : CConfig, CAppStatus, IAppCommand, IC64Event, CEmuWindow::INotify, public ErrorMsg
+class CApp : CAppStatus, IAppCommand, IC64Event, CEmuWindow::INotify, public ErrorMsg
 {
 public:
 	CApp();

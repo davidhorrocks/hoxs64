@@ -218,10 +218,9 @@ const WORD SID64::sidAttackRate[16]=
 /*f*/	31251
 };
 
-HRESULT SID64::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, HCFG::EMUFPS fps)
+HRESULT SID64::Init(CAppStatus *appStatus, CDX9 *dx, HCFG::EMUFPS fps)
 {
 HRESULT hr;
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->dx = dx;
 			
@@ -253,9 +252,9 @@ HRESULT hr;
 		ZeroMemory(pOverflowBuffer, overflowBufferSampleLen * BYTES_PER_SAMPLE);
 	}
 
-	voice1.Init(cfg, appStatus);
-	voice2.Init(cfg, appStatus);
-	voice3.Init(cfg, appStatus);
+	voice1.Init(appStatus);
+	voice2.Init(appStatus);
+	voice3.Init(appStatus);
 
 	if (trig.init(131072L ) !=0)
 		return SetError(E_OUTOFMEMORY, TEXT("Out of memory."));
@@ -445,9 +444,8 @@ SIDVoice::~SIDVoice()
 {
 }
 
-HRESULT SIDVoice::Init(CConfig *cfg, CAppStatus *appStatus)
+HRESULT SIDVoice::Init(CAppStatus *appStatus)
 {
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	return S_OK;
 }
@@ -648,7 +646,7 @@ short sample,temp;
 		sampleHoldDelay--;
 	lastSample = CalcWave(wavetype);
 	sample = ((short)(lastSample & 0xfff) - 0x800);
-	if (cfg->m_bSidDigiBoost)
+	if (appStatus->m_bSidDigiBoost)
 	{
 		temp = (short)(((long)sample * volume) / 255) + SIDVOLMUL;
 		fVolSample = (double)SIDBOOST * (((double)sid->sidVolume / 15.0) * ((double)temp) -  (double)SIDVOLSUB);
@@ -665,7 +663,7 @@ short sample,temp;
 
 void SID64::ExecuteCycle(ICLK sysclock)
 {
-	if (cfg->m_bSIDResampleMode)
+	if (appStatus->m_bSIDResampleMode)
 		ClockSidResample(sysclock);
 	else
 		ClockSidDownSample(sysclock);
@@ -710,7 +708,7 @@ long sampleOffset;
 		voice2.SyncRecheck();
 		voice3.SyncRecheck();
 
-		if (cfg->m_bMaxSpeed)
+		if (appStatus->m_bMaxSpeed)
 			continue;
 
 		voice1.Modulate();
@@ -767,7 +765,7 @@ long sampleOffset;
 			sidSampler = sidSampler - filterDecimationFactor;
 
 #ifdef ALLOW_EMUFPS_50_12_MULTI
-			if (cfg->m_fps == HCFG::EMUFPS_50_12_MULTI)
+			if (appStatus->m_fps == HCFG::EMUFPS_50_12_MULTI)
 			{
 				int offset1;
 				offset1 = sampleOffset % STAGE1X;
@@ -849,7 +847,7 @@ short dxsample;
 		voice2.SyncRecheck();
 		voice3.SyncRecheck();
 
-		if (cfg->m_bMaxSpeed)
+		if (appStatus->m_bMaxSpeed)
 			continue;
 
 		sidSampler = sidSampler + filterInterpolationFactor;
@@ -1174,7 +1172,7 @@ double cutoff;
 
 void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
-	if (cfg->m_bSID_Emulation_Enable)
+	if (appStatus->m_bSID_Emulation_Enable)
 		ExecuteCycle(sysclock);
 
 	sidLastWrite = data;
@@ -1303,7 +1301,7 @@ bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
 {
 	if ((address & 0x1f) == 0x1b)
 		sysclock--;
-	if (cfg->m_bSID_Emulation_Enable)
+	if (appStatus->m_bSID_Emulation_Enable)
 		ExecuteCycle(sysclock);
 	switch (address & 0x1f)
 	{
@@ -1325,7 +1323,7 @@ bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
 
 bit8 SID64::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
-	if (cfg->m_bSID_Emulation_Enable)
+	if (appStatus->m_bSID_Emulation_Enable)
 		ExecuteCycle(sysclock);
 	return ReadRegister(address, sysclock);
 }

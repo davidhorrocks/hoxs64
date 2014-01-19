@@ -259,10 +259,9 @@ void CDX9::CleanupD3D()
 	m_pD3D = NULL;
 }
 
-HRESULT CDX9::Init(CConfig *cfg, CAppStatus *appStatus, bit32 vicColorTable[])
+HRESULT CDX9::Init(CAppStatus *appStatus, bit32 vicColorTable[])
 {
 	int i;
-	m_cfg = cfg;
 	m_appStatus = appStatus;
 
 
@@ -1095,27 +1094,27 @@ DWORD MagOrMinFilterCapLinear;
 		switch(filter)
 		{
 		case D3DTEXF_NONE:
-			m_appStatus->m_blitFilter = D3DTEXF_NONE;
+			m_appStatus->m_blitFilterDX = D3DTEXF_NONE;
 			break;
 		case D3DTEXF_POINT:
 			if (caps.StretchRectFilterCaps & MagOrMinFilterCapPoint)
-				m_appStatus->m_blitFilter = D3DTEXF_POINT;
+				m_appStatus->m_blitFilterDX = D3DTEXF_POINT;
 			else
-				m_appStatus->m_blitFilter = D3DTEXF_NONE;
+				m_appStatus->m_blitFilterDX = D3DTEXF_NONE;
 			break;
 		default:
 			if (caps.StretchRectFilterCaps & MagOrMinFilterCapLinear)
-				m_appStatus->m_blitFilter = D3DTEXF_LINEAR;
+				m_appStatus->m_blitFilterDX = D3DTEXF_LINEAR;
 			else if (caps.StretchRectFilterCaps & MagOrMinFilterCapPoint)
-				m_appStatus->m_blitFilter = D3DTEXF_POINT;
+				m_appStatus->m_blitFilterDX = D3DTEXF_POINT;
 			else
-				m_appStatus->m_blitFilter = D3DTEXF_NONE;
+				m_appStatus->m_blitFilterDX = D3DTEXF_NONE;
 			break;
 		}
 	}
 	else
 	{
-		m_appStatus->m_blitFilter = D3DTEXF_POINT;
+		m_appStatus->m_blitFilterDX = D3DTEXF_POINT;
 	}
 }
 

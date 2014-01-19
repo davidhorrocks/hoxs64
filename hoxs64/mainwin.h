@@ -6,12 +6,11 @@ class CEmuWindow;
 class CAppWindow : public CVirWindow, public ErrorMsg
 {
 public:
-	CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *, CAppStatus *, IC64 *);
+	CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CAppStatus *, IC64 *);
 	~CAppWindow();
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	CAppStatus *appStatus;
-	CConfig *cfg;
 	RECT m_rcMainWindow;				// Saves the window size & pos while in windowed mode.
 	int spareFillCounter;
 	HWND m_hWndStatusBar;

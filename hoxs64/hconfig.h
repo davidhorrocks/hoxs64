@@ -33,10 +33,12 @@ public:
 	static HRESULT SaveMDIWindowSetting(HWND hWnd);
 	static HRESULT LoadWindowSetting(POINT& pos);
 	static HRESULT LoadMDIWindowSetting(POINT& pos, SIZE& size);
+	static int GetKeyScanCode(UINT ch);
 
 	HRESULT LoadCurrentSetting();
 	HRESULT SaveCurrentSetting();
 	void LoadDefaultSetting();
+
 	unsigned char m_KeyMap[256];
 	struct joyconfig m_joy1config;
 	struct joyconfig m_joy2config;
@@ -79,18 +81,6 @@ public:
 	HCFG::ETRACKZEROSENSORSTYLE m_TrackZeroSensorStyle;
 	HCFG::CIAMODE m_CIAMode;
 	bool m_bTimerBbug;
-
-	void ToggleMaxSpeed();
-
-	static int GetKeyScanCode(UINT ch);
-
-private:
-	void SaveSpeedSettings();
-	void RestoreSpeedSettings();
-	bool m_bSaveSkipFrames;;
-	bool m_bSaveLimitSpeed;
-	bool m_bSaveUseBlitStretch;
-	HCFG::FULLSCREENSYNCMODE m_SaveSyncMode;
 };
 
 #endif

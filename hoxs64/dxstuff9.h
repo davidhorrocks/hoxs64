@@ -30,7 +30,7 @@ public:
 	CDX9();
 	~CDX9();
 	
-	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, bit32 vicColorTable[]);
+	HRESULT Init(CAppStatus *appStatus, bit32 vicColorTable[]);
 	HRESULT InitD3D(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, bool bDoubleSizedWindow, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, GUID fullscreenAdapterId, const D3DDISPLAYMODE &displayMode);
 	HRESULT Reset();
 	void CheckFilterCap(bool bIsMagnifying, D3DTEXTUREFILTERTYPE filter);
@@ -74,7 +74,6 @@ public:
 
 
 	CAppStatus *m_appStatus;
-	CConfig *m_cfg;
 
 	PALETTEENTRY m_paletteEntry[256];
 

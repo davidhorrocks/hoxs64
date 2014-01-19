@@ -44,7 +44,6 @@
 
 CIA2::CIA2()
 {
-	cfg = 0L;
 	appStatus = 0L;
 	cpu = 0L;
 	vic = 0L;
@@ -52,10 +51,9 @@ CIA2::CIA2()
 	c64_serialbus = 0;
 }
 
-HRESULT CIA2::Init(CConfig *cfg, CAppStatus *appStatus, CPU6510 *cpu, VIC6569 *vic, DiskInterface *disk)
+HRESULT CIA2::Init(CAppStatus *appStatus, CPU6510 *cpu, VIC6569 *vic, DiskInterface *disk)
 {
 	ClearError();
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->cpu = cpu;
 	this->vic = vic;
@@ -72,10 +70,10 @@ void CIA2::ExecuteDevices(ICLK sysclock)
 bit8 CIA2::ReadPortA()
 {
 bit8 t;
-	if (cfg->m_bD1541_Emulation_Enable)
+	if (appStatus->m_bD1541_Emulation_Enable)
 	{
 		//The c64 sees the disk affect the serial bus one cycle behind
-		if (cfg->m_bD1541_Thread_Enable && !appStatus->m_bSerialTooBusyForSeparateThread)
+		if (appStatus->m_bD1541_Thread_Enable && !appStatus->m_bSerialTooBusyForSeparateThread)
 		{
 			appStatus->m_bSerialTooBusyForSeparateThread = true;
 			disk->ThreadSignalCommandExecuteClock(CurrentClock-1);
@@ -109,10 +107,10 @@ bit8 t;
 	c64_serialbus = ((~t <<2) & 0x20) //ATN
 		| ((~t <<2) & t & 0x40) // CLK
 		| ((~t <<2) & t & 0x80); //DATA
-	if (cfg->m_bD1541_Emulation_Enable)
+	if (appStatus->m_bD1541_Emulation_Enable)
 	{
 		//The disk sees the c64 affect the serial bus one cycle behind
-		if (cfg->m_bD1541_Thread_Enable && !appStatus->m_bSerialTooBusyForSeparateThread)
+		if (appStatus->m_bD1541_Thread_Enable && !appStatus->m_bSerialTooBusyForSeparateThread)
 		{
 			appStatus->m_bSerialTooBusyForSeparateThread = true;
 			disk->ThreadSignalCommandExecuteClock(CurrentClock-1);

@@ -30,11 +30,10 @@ C64::~C64()
 {
 }
 
-HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR *szAppDirectory)
+HRESULT C64::Init(CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR *szAppDirectory)
 {
 	ClearError();
 
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->pIC64Event = pIC64Event;
 	this->dx = dx;
@@ -49,14 +48,14 @@ HRESULT C64::Init(CConfig *cfg, CAppStatus *appStatus, IC64Event *pIC64Event, CD
 
 	if (cpu.Init(pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
 	cart.Init(&cpu, ram.mMemory);
-	if (cia1.Init(cfg, appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx, static_cast<IAutoLoad *>(this))!=S_OK) return SetError(cia1);
-	if (cia2.Init(cfg, appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
+	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx, static_cast<IAutoLoad *>(this))!=S_OK) return SetError(cia1);
+	if (cia2.Init(appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
 
-	if (vic.Init(cfg, appStatus, dx, &ram, &cpu, &mon)!=S_OK) return SetError(vic);
+	if (vic.Init(appStatus, dx, &ram, &cpu, &mon)!=S_OK) return SetError(vic);
 
-	if (sid.Init(cfg, appStatus, dx, cfg->m_fps)!=S_OK) return SetError(sid);
+	if (sid.Init(appStatus, dx, appStatus->m_fps)!=S_OK) return SetError(sid);
 
-	if (diskdrive.Init(cfg, appStatus, pIC64Event, &mon, szAppDirectory)!=S_OK) return SetError(diskdrive);
+	if (diskdrive.Init(appStatus, pIC64Event, &mon, szAppDirectory)!=S_OK) return SetError(diskdrive);
 
 	if (mon.Init(pIC64Event, &cpu, &diskdrive.cpu, &vic, &diskdrive)!=S_OK) return SetError(E_FAIL, TEXT("C64 monitor initialisation failed"));
 
@@ -138,9 +137,9 @@ void C64::EnterDebugRun(bool bWithSound)
 	assert(vic.CurrentClock == cpu.CurrentClock);
 	assert(vic.CurrentClock == cia1.CurrentClock);
 	assert(vic.CurrentClock == cia2.CurrentClock);
-	assert(vic.CurrentClock == diskdrive.CurrentPALClock || cfg->m_bD1541_Emulation_Enable==0);
+	assert(vic.CurrentClock == diskdrive.CurrentPALClock || appStatus->m_bD1541_Emulation_Enable==0);
 
-	if (cfg->m_bD1541_Emulation_Enable==0)
+	if (appStatus->m_bD1541_Emulation_Enable==0)
 		diskdrive.CurrentPALClock = vic.CurrentClock;
 
 	if (bWithSound && appStatus->m_bSoundOK && appStatus->m_bFilterOK)
@@ -176,11 +175,11 @@ ICLK sysclock;
 	//cart.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
 	cia2.ExecuteCycle(sysclock);
-	if (cfg->m_bSID_Emulation_Enable)
+	if (appStatus->m_bSID_Emulation_Enable)
 	{
 		sid.ExecuteCycle(sysclock);
 	}
-	if (cfg->m_bD1541_Emulation_Enable)
+	if (appStatus->m_bD1541_Emulation_Enable)
 	{
 		diskdrive.ExecutePALClock(sysclock);
 	}
@@ -192,7 +191,7 @@ void C64::ExecuteDiskClock()
 {
 ICLK sysclock;
 
-	if (!cfg->m_bD1541_Emulation_Enable)
+	if (!appStatus->m_bD1541_Emulation_Enable)
 		return;
 
 	EnterDebugRun(false);
@@ -203,7 +202,7 @@ ICLK sysclock;
 		if (diskdrive.m_pendingclocks == 0)
 			sysclock++;
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
 			if (diskdrive.m_pendingclocks>1)
@@ -219,7 +218,7 @@ ICLK sysclock;
 		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock);
 			if (diskdrive.m_pendingclocks>0)
@@ -227,7 +226,7 @@ ICLK sysclock;
 				diskdrive.ExecuteOnePendingDiskCpuClock();
 			}
 		}
-		if (cfg->m_bSID_Emulation_Enable)
+		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
@@ -240,7 +239,7 @@ void C64::ExecuteDiskInstruction()
 ICLK sysclock;
 bool bBreak;
 
-	if (!cfg->m_bD1541_Emulation_Enable)
+	if (!appStatus->m_bD1541_Emulation_Enable)
 		return;
 
 	EnterDebugRun(false);
@@ -252,7 +251,7 @@ bool bBreak;
 		if (diskdrive.m_pendingclocks == 0)
 			sysclock++;
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
 			while (diskdrive.m_pendingclocks>1)
@@ -274,7 +273,7 @@ bool bBreak;
 		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock);
 			while (diskdrive.m_pendingclocks>0)
@@ -287,7 +286,7 @@ bool bBreak;
 				}
 			}
 		}
-		if (cfg->m_bSID_Emulation_Enable)
+		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
@@ -309,7 +308,7 @@ ICLK sysclock;
 	{
 		sysclock++;
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
 			while (diskdrive.m_pendingclocks>1)
@@ -324,7 +323,7 @@ ICLK sysclock;
 		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock);
 			while (diskdrive.m_pendingclocks>0)
@@ -332,7 +331,7 @@ ICLK sysclock;
 				diskdrive.ExecuteOnePendingDiskCpuClock();
 			}
 		}
-		if (cfg->m_bSID_Emulation_Enable)
+		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
@@ -353,7 +352,7 @@ bool bBreak;
 	{
 		sysclock++;
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
 			while (diskdrive.m_pendingclocks>1)
@@ -375,7 +374,7 @@ bool bBreak;
 			bBreak = true;
 		}
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock);
 			while (diskdrive.m_pendingclocks>0)
@@ -383,7 +382,7 @@ bool bBreak;
 				diskdrive.ExecuteOnePendingDiskCpuClock();
 			}
 		}
-		if (cfg->m_bSID_Emulation_Enable)
+		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
@@ -421,7 +420,7 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 		cycles--;
 		sysclock++;
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
 			while (diskdrive.m_pendingclocks > 1)
@@ -479,7 +478,7 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 				bBreakC64 = true;
 		}
 
-		if (cfg->m_bD1541_Emulation_Enable)
+		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock);
 			while (diskdrive.m_pendingclocks>0)
@@ -504,7 +503,7 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 				}
 			}
 		}
-		if (cfg->m_bSID_Emulation_Enable)
+		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
@@ -550,8 +549,8 @@ ICLK cycles,sysclock;
 	if (appStatus->m_bSoundOK && appStatus->m_bFilterOK)
 		sid.LockSoundBuffer();
 
-	BOOL bIsDiskEnabled = cfg->m_bD1541_Emulation_Enable;
-	BOOL bIsDiskThreadEnabled = cfg->m_bD1541_Thread_Enable;
+	BOOL bIsDiskEnabled = appStatus->m_bD1541_Emulation_Enable;
+	BOOL bIsDiskThreadEnabled = appStatus->m_bD1541_Thread_Enable;
 	if (bIsDiskEnabled && !bIsDiskThreadEnabled)
 	{
 		diskdrive.ExecuteAllPendingDiskCpuClocks();
@@ -574,7 +573,7 @@ ICLK cycles,sysclock;
 			appStatus->m_bSerialTooBusyForSeparateThread = false;
 		}
 	}
-	if (cfg->m_bSID_Emulation_Enable)
+	if (appStatus->m_bSID_Emulation_Enable)
 	{
 		sid.ExecuteCycle(sysclock);
 	}
@@ -1082,10 +1081,10 @@ errno_t errno;
 		}		
 		else if (lstrcmpi(ext, TEXT(".d64"))==0 || lstrcmpi(ext, TEXT(".g64"))==0 || lstrcmpi(ext, TEXT(".fdi"))==0)
 		{
-			if (!cfg->m_bD1541_Emulation_Enable)
+			if (!appStatus->m_bD1541_Emulation_Enable)
 			{
 				diskdrive.CurrentPALClock = cpu.CurrentClock;
-				cfg->m_bD1541_Emulation_Enable = TRUE;
+				appStatus->m_bD1541_Emulation_Enable = TRUE;
 			}
 			
 			pIC64Event->SetBusy(true);
@@ -2637,12 +2636,12 @@ ULARGE_INTEGER pos_next_track_header;
 			memcpy(ram.mColorRAM, pC64ColourRam, SaveState::SIZECOLOURAM);
 		cia1.SetState(sbCia1);
 		cia2.SetState(sbCia2);
-		cfg->m_bTimerBbug = sbCia1.cia.bTimerBbug != 0;
+		appStatus->m_bTimerBbug = sbCia1.cia.bTimerBbug != 0;
 		if (sbCia1.cia.bEarlyIRQ)
-			cfg->m_CIAMode = HCFG::CM_CIA6526A;
+			appStatus->m_CIAMode = HCFG::CM_CIA6526A;
 		else
-			cfg->m_CIAMode = HCFG::CM_CIA6526;
-		appStatus->SetUserConfig(*cfg);
+			appStatus->m_CIAMode = HCFG::CM_CIA6526;
+		appStatus->SetUserConfig(*appStatus);
 		vic.SetState(sbVic6569);
 		sid.SetState(sbSid);
 

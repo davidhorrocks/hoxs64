@@ -1554,7 +1554,7 @@ shared_ptr<CTabPageDialog> pPage;
 			cfg->m_bTimerBbug = false;
 	}
 
-	cfg->m_bMaxSpeed = FALSE;
+	cfg->m_bMaxSpeed = false;
 }
 
 

@@ -92,19 +92,19 @@ CApp::CApp()
 	_tcsncpy_s(m_szMonitorDisassembleWndClsName, _countof(m_szMonitorDisassembleWndClsName), HOXS_MONITOR_DISS_WND_CLASS, _TRUNCATE);
 
 	m_bStartFullScreen = false;
-	m_bShowSpeed = TRUE;
-	m_bLimitSpeed = TRUE;
-	m_bSkipFrames = TRUE;
+	m_bShowSpeed = true;
+	m_bLimitSpeed = true;
+	m_bSkipFrames = true;
 	
-	m_bActive     = FALSE;
-	m_bReady      = FALSE;
-	m_bRunning    = FALSE;
-	m_bWindowed   = TRUE;
-	m_bDebug      = FALSE;
-	m_bPaused      = FALSE;
-	m_bMaxSpeed   = FALSE;
+	m_bActive     = false;
+	m_bReady      = false;
+	m_bRunning    = false;
+	m_bWindowed   = true;
+	m_bDebug      = false;
+	m_bPaused      = false;
+	m_bMaxSpeed   = false;
 	m_syncMode = HCFG::FSSM_LINE;
-	m_bAutoload = FALSE;
+	m_bAutoload = false;
 	m_bFixWindowSize = false;
 	m_bWindowSizing = false;
 	m_bClosing = false;
@@ -142,14 +142,14 @@ BOOL bRet;
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
 	{
 		G::InitFail(0,0,TEXT("The system does not support a high performance timer."));
-		return FALSE;
+		return false;
 	}
 	else
 	{
 		if (m_systemfrequency.QuadPart < 60)
 		{
 			G::InitFail(0, 0, TEXT("The system does not support a high performance timer."));
-			return FALSE;
+			return false;
 		}
 	}
 	frequency.QuadPart = m_framefrequency.QuadPart;
@@ -159,13 +159,13 @@ BOOL bRet;
 
 	if (FAILED(RegisterWindowClasses(hInstance)))
 	{
-		return (FALSE);
+		return (0);
 	}
 
 	if (FAILED(InitInstance(nCmdShow, lpCmdLine)))
 	{
 		G::InitFail(0, 0, TEXT("InitInstance() failed."));
-		return (FALSE);
+		return (0);
 	}
 	
 
@@ -176,7 +176,7 @@ BOOL bRet;
 #endif
 	AllowAccessibilityShortcutKeys(false);
 	
-	m_bReady = TRUE;
+	m_bReady = true;
 	m_bRunning=1;
 	m_bPaused=0;
 	m_bInitDone = true;
@@ -633,7 +633,7 @@ TCHAR ext[_MAX_EXT];
 
 	try
 	{
-		m_pWinAppWindow = shared_ptr<CAppWindow>(new CAppWindow(&dx, this, this, this, &c64));
+		m_pWinAppWindow = shared_ptr<CAppWindow>(new CAppWindow(&dx, this, this, &c64));
 	}
 	catch (...)
 	{
@@ -670,7 +670,7 @@ TCHAR ext[_MAX_EXT];
 	G::EnsureWindowPosition(hWndMain);
 
 	//Initialise directx
-	hr = dx.Init(thisCfg, thisAppStatus, VIC6569::vic_color_array);
+	hr = dx.Init(thisAppStatus, VIC6569::vic_color_array);
 	if (FAILED(hr))
 	{
 		MessageBox(0L, TEXT("Initialisation failed for direct 3D."), m_szAppName, MB_ICONWARNING);
@@ -689,16 +689,16 @@ TCHAR ext[_MAX_EXT];
 	hr = dx.OpenDirectSound(hWndMain, m_fps);
 	if (FAILED(hr))
 	{
-		m_bSoundOK = FALSE;
+		m_bSoundOK = false;
 		MessageBox(hWndMain, TEXT("Direct Sound has failed to initialise with the primary sound driver. Sound will be unavailable."), m_szAppName, MB_ICONWARNING);
 	}
 	else
 	{
-		m_bSoundOK = TRUE;
+		m_bSoundOK = true;
 	}
 
 	//Initialise the c64 emulation.
-	if (S_OK != c64.Init(thisCfg, thisAppStatus, thisC64Event, &dx, m_szAppDirectory)) 
+	if (S_OK != c64.Init(thisAppStatus, thisC64Event, &dx, m_szAppDirectory)) 
 	{
 		c64.DisplayError(0, m_szAppName);
 		DestroyWindow(hWndMain);
@@ -754,7 +754,7 @@ TCHAR ext[_MAX_EXT];
 }
 
 void CApp::FreeDirectX(){
-	m_bReady = FALSE;
+	m_bReady = false;
 	dx.CloseDirectSound();
 	dx.CloseDirectInput();
 	dx.CleanupD3D();
@@ -780,8 +780,18 @@ void CApp::SaveCurrentSetting()
 void CApp::ToggleMaxSpeed()
 {
 	CConfig tCfg = *(static_cast<CConfig *>(this));
-	tCfg.ToggleMaxSpeed();
-	ApplyConfig(tCfg);
+	if (!m_bMaxSpeed)
+	{
+		SaveSpeedSettings();
+		m_bSkipFrames = true;
+		m_bLimitSpeed = false;
+		m_bMaxSpeed = true;
+	}
+	else
+	{
+		RestoreSpeedSettings();
+		m_bMaxSpeed = false;
+	}
 }
 
 void CApp::LoadCrtFile(HWND hWnd)
@@ -1306,8 +1316,8 @@ HWND hWnd;
 	hWnd = m_pWinAppWindow->GetHwnd();
 	if (hWnd != 0)
 	{
-		m_bBreak = TRUE;
-		m_bRunning = FALSE;
+		m_bBreak = true;
+		m_bRunning = false;
 		PostMessage(hWnd, WM_MONITOR_BREAK_CPU64, 0, 0);
 	}
 }
@@ -1318,8 +1328,8 @@ HWND hWnd;
 	hWnd = m_pWinAppWindow->GetHwnd();
 	if (hWnd != 0)
 	{
-		m_bBreak = TRUE;
-		m_bRunning = FALSE;
+		m_bBreak = true;
+		m_bRunning = false;
 		PostMessage(hWnd, WM_MONITOR_BREAK_CPUDISK, 0, 0);
 	}
 }
@@ -1330,8 +1340,8 @@ HWND hWnd;
 	hWnd = m_pWinAppWindow->GetHwnd();
 	if (hWnd != 0)
 	{
-		m_bBreak = TRUE;
-		m_bRunning = FALSE;
+		m_bBreak = true;
+		m_bRunning = false;
 		PostMessage(hWnd, WM_MONITOR_BREAK_VICRASTER, 0, 0);
 	}
 }
@@ -1381,10 +1391,10 @@ void CApp::Resume()
 HWND hWnd;
 EventArgs e;
 	c64.GetMon()->QuitCommands();
-	m_bDebug = FALSE;
-	m_bBreak = FALSE;
-	m_bRunning = TRUE;
-	m_bPaused = FALSE;
+	m_bDebug = false;
+	m_bBreak = false;
+	m_bRunning = true;
+	m_bPaused = false;
 	if (!m_bClosing)
 	{
 		hWnd = m_pWinAppWindow->GetHwnd();
@@ -1401,10 +1411,10 @@ HWND hWnd;
 EventArgs e;
 	c64.GetMon()->QuitCommands();
 	hWnd = m_pWinAppWindow->GetHwnd();
-	m_bDebug = TRUE;
-	m_bBreak = FALSE;
-	m_bRunning = TRUE;
-	m_bPaused = FALSE;
+	m_bDebug = true;
+	m_bBreak = false;
+	m_bRunning = true;
+	m_bPaused = false;
 	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 	if (hWnd)
 		SetForegroundWindow(hWnd);
@@ -1473,7 +1483,7 @@ void CApp::UpdateEmulationDisplay()
 
 bool CApp::IsRunning()
 {
-	return m_bRunning!=FALSE;
+	return m_bRunning!=false;
 }
 
 void CApp::SoundOff()

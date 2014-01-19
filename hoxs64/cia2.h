@@ -9,7 +9,7 @@ class CIA2 : public CIA , public ErrorMsg
 public:
 
 	CIA2();
-	HRESULT Init(CConfig *cfg, CAppStatus *appStatus, CPU6510 *cpu, VIC6569 *vic, DiskInterface *disk);
+	HRESULT Init(CAppStatus *appStatus, CPU6510 *cpu, VIC6569 *vic, DiskInterface *disk);
 
 	void InitReset(ICLK sysclock);
 	//IRegister
@@ -29,7 +29,6 @@ public:
 	void GetState(SsCia2 &state);
 	void SetState(const SsCia2 &state);
 
-	CConfig *cfg;
 	CAppStatus *appStatus;
 	CPU6510 *cpu;
 	VIC6569 *vic;

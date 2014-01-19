@@ -10,7 +10,7 @@ public:
 
 	VIA1();
 
-	HRESULT Init(int ID, CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk);
+	HRESULT Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk);
 	virtual void ExecuteDevices(ICLK sysclock);
 	void SetCA2Output(bit8 value);
 	void SetCB2Output(bit8 value);
@@ -28,7 +28,6 @@ public:
 
 	CPUDisk *cpu;
 	DiskInterface *disk;
-	CConfig *cfg;
 	CAppStatus *appStatus;
 };
 

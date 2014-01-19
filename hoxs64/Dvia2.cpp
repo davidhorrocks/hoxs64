@@ -45,16 +45,14 @@
 
 VIA2::VIA2()
 {
-	cfg=0;
 	appStatus=0;
 	cpu=0;
 	disk=0;
 	oldDiskControl=0;
 }
-HRESULT VIA2::Init(int ID, CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
+HRESULT VIA2::Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
 {
 	this->ID = ID;
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->cpu = cpu;
 	this->disk = disk;

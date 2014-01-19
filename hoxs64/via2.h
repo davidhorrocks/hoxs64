@@ -7,7 +7,7 @@ class VIA2 : public VIA
 public:
 	VIA2();
 
-	HRESULT Init(int ID, CConfig *cfg, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk);
+	HRESULT Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk);
 	virtual void ExecuteDevices(ICLK sysclock);
 	void SetCA2Output(bit8 value);
 	void SetCB2Output(bit8 value);
@@ -31,7 +31,6 @@ public:
 	bit8 oldDiskControl;
 	DiskInterface *disk;
 	CPUDisk *cpu;
-	CConfig *cfg;
 	CAppStatus *appStatus;
 };
 

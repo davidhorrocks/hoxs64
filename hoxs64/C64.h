@@ -65,11 +65,10 @@ public:
 	static const bit32 HUFFCOMPRESSION = 1;
 
 	CAppStatus *appStatus;
-	CConfig *cfg;
 	IC64Event *pIC64Event;
 	CDX9 *dx;
 	Monitor mon;
-	HRESULT Init(CConfig *, CAppStatus *, IC64Event *, CDX9 *, TCHAR *szAppDirectory);
+	HRESULT Init(CAppStatus *, IC64Event *, CDX9 *, TCHAR *szAppDirectory);
 	void InitReset(ICLK sysclock);
 	void Reset(ICLK sysclock);
 	void ExecuteDiskInstruction();

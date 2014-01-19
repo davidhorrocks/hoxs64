@@ -1705,7 +1705,6 @@ VIC6569::VIC6569()
 	ram=NULL;
 	cpu=NULL;
 	dx=NULL;
-	cfg=NULL;
 	appStatus=NULL;
 	vic_pixelbuffer=NULL;
 	//vic_borderbuffer=NULL;
@@ -1930,11 +1929,10 @@ VIC6569::~VIC6569()
 	Cleanup();
 }
 
-HRESULT VIC6569::Init(CConfig *cfg, CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager)
+HRESULT VIC6569::Init(CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager)
 {
 	Cleanup();
 
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->dx = dx;
 	this->ram = ram;

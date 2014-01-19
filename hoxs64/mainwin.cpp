@@ -52,14 +52,13 @@ const LPTSTR CAppWindow::lpszMenuName = APPMENUNAME;
 
 
 
-CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus, IC64 *c64)
+CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CAppStatus *appStatus, IC64 *c64)
 {
 	m_hOldCursor = NULL;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
 
 	this->dx = dx;
-	this->cfg = cfg;
 	this->appStatus = appStatus;
 	this->c64 = c64;
 	this->m_pAppCommand = pAppCommand;
@@ -69,7 +68,7 @@ CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CConfig *cfg, CAppSta
 	m_hCursorBusy = LoadCursor(0L, IDC_WAIT);
 	if (!m_hCursorBusy)
 		throw std::runtime_error("LoadCursor failed.");
-	m_pWinEmuWin = shared_ptr<CEmuWindow>(new CEmuWindow(dx, cfg, appStatus, c64));
+	m_pWinEmuWin = shared_ptr<CEmuWindow>(new CEmuWindow(dx, appStatus, appStatus, c64));
 	if (m_pWinEmuWin == 0)
 		throw std::bad_alloc();
 }
@@ -113,7 +112,7 @@ void CAppWindow::SetMainWindowSize(bool bDoubleSizedWindow)
 {
 int w,h;
 
-	GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+	GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 	SetWindowPos(m_hWnd,0,0,0,w,h, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOOWNERZORDER|SWP_NOZORDER);
 }
 
@@ -171,7 +170,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	{
 	case WM_CREATE:
 		bOK = false;
-		m_pWinEmuWin->GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, cfg->m_bDoubleSizedWindow, &w, &h);
+		m_pWinEmuWin->GetRequiredWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_bDoubleSizedWindow, &w, &h);
 		if (m_pWinEmuWin->Create(m_hInst, m_hWnd, NULL, 0, 0, w, h, (HMENU) LongToPtr(IDC_MAIN_WINEMULATION)) == 0)
 			return -1;
 		/*
@@ -228,7 +227,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		if (!appStatus->m_bWindowed && bIsWindowMinimised)
 		{
 			appStatus->SoundHalt();
-			if (G::IsDwmApiOk() && cfg->m_bDisableDwmFullscreen)
+			if (G::IsDwmApiOk() && appStatus->m_bDisableDwmFullscreen)
 			{
 				if (!appStatus->m_bWindowed)
 				{
@@ -265,7 +264,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 				x = rcClient.left;
 				w = rcClient.right - rcClient.left - x;
 				h = rcClient.bottom - rcClient.top - y - m_iStatusBarHeight;
-				SetRect(&dx->m_rcTargetRect, x, y, x + w, y + h - CDX9::GetToolBarHeight(cfg->m_bShowFloppyLed));
+				SetRect(&dx->m_rcTargetRect, x, y, x + w, y + h - CDX9::GetToolBarHeight(appStatus->m_bShowFloppyLed));
 				SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, x, y, w, h, SWP_NOZORDER);
 				dx->m_bWindowedCustomSize = true;
 				dx->Reset();
@@ -292,7 +291,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	//case WM_GETMINMAXINFO:
 	//	// Fix the size of the window
 
-	//	GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, cfg->m_bDoubleSizedWindow, &w, &h);
+	//	GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_bDoubleSizedWindow, &w, &h);
 	//	if (appStatus->m_bWindowed && appStatus->m_bFixWindowSize)
 	//	{
 	//		pMinMax = (MINMAXINFO *)lParam;
@@ -638,7 +637,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		}
 		else
 		{
-			cfg->SaveWindowSetting(hWnd);
+			appStatus->SaveWindowSetting(hWnd);
 		}
 		break;
 	case WM_SYSCOMMAND:
@@ -787,7 +786,7 @@ HMENU hMenu;
 			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_ON, MF_BYCOMMAND | MF_UNCHECKED);
 			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_OFF, MF_BYCOMMAND | MF_CHECKED);
 		}
-		if (cfg->m_bDoubleSizedWindow)
+		if (appStatus->m_bDoubleSizedWindow)
 		{
 			CheckMenuItem (hMenu, IDM_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_CHECKED);
 		}
@@ -797,12 +796,12 @@ HMENU hMenu;
 		}
 
 	
-		if (cfg->m_bSwapJoysticks)
+		if (appStatus->m_bSwapJoysticks)
 			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_CHECKED);
 		else
 			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_UNCHECKED);
 
-		if (cfg->m_bMaxSpeed)
+		if (appStatus->m_bMaxSpeed)
 			CheckMenuItem (hMenu, IDM_SETTING_MAXSPEED, MF_BYCOMMAND | MF_CHECKED);
 		else
 			CheckMenuItem (hMenu, IDM_SETTING_MAXSPEED, MF_BYCOMMAND | MF_UNCHECKED);
@@ -833,13 +832,13 @@ RECT m_rcMainWindow;
 	{
 		GetWindowRect(m_hWnd, &m_rcMainWindow);
 	}
-	return SetWindowedMode(appStatus->m_bWindowed, cfg->m_bDoubleSizedWindow, cfg->m_bWindowedCustomSize, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, cfg->m_bUseBlitStretch);	
+	return SetWindowedMode(appStatus->m_bWindowed, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, appStatus->m_bUseBlitStretch);	
 }
 
 
 HRESULT CAppWindow::ToggleFullScreen()
 {
-	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, cfg->m_bDoubleSizedWindow, cfg->m_bWindowedCustomSize, cfg->m_windowedModeWidth, cfg->m_windowedModeHeight , cfg->m_bUseBlitStretch);
+	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, appStatus->m_windowedModeWidth, appStatus->m_windowedModeHeight , appStatus->m_bUseBlitStretch);
 
 	if (G::IsWin98OrLater())
 	{
@@ -916,7 +915,7 @@ LONG_PTR lp;
 		G::EnsureWindowPosition(m_hWnd);
 		SaveMainWindowSize();
 
-		if (cfg->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
+		if (appStatus->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
 			appStatus->m_fskip = 1;
 
 		this->m_pWinEmuWin->UpdateC64Window();
@@ -931,7 +930,7 @@ HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool b
 HRESULT hRet;
 	BOOL bIsDwmOn = FALSE;
 
-	if (G::IsDwmApiOk() && cfg->m_bDisableDwmFullscreen)
+	if (G::IsDwmApiOk() && appStatus->m_bDisableDwmFullscreen)
 	{
 		if (!bWindowed)
 		{			
@@ -947,7 +946,7 @@ HRESULT hRet;
 		appStatus->m_bWindowed = bWindowed;
 	}
 
-	if (G::IsDwmApiOk() && cfg->m_bDisableDwmFullscreen)
+	if (G::IsDwmApiOk() && appStatus->m_bDisableDwmFullscreen)
 	{
 		if (bWindowed)
 		{
@@ -972,7 +971,7 @@ RECT rcClient;
 	ClearError();
 	ZeroMemory(&displayModeRequested, sizeof(D3DDISPLAYMODE));
 
-	filter = CDX9::GetDxFilterFromEmuFilter(cfg->m_blitFilter);
+	filter = CDX9::GetDxFilterFromEmuFilter(appStatus->m_blitFilter);
 
 
 	if (bWindowed)
@@ -987,21 +986,21 @@ RECT rcClient;
 		}
 		else
 		{
-			m_pWinEmuWin->GetRequiredWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+			m_pWinEmuWin->GetRequiredWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
-			GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+			GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 		}
 
 		
-		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, cfg->m_borderSize, cfg->m_bShowFloppyLed, bUseBlitStretch, cfg->m_fullscreenStretch, filter, cfg->m_syncMode, cfg->m_fullscreenAdapterNumber, cfg->m_fullscreenAdapterId, displayModeRequested);
+		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
 
 		//TEST
-		//GetRequiredMainWindowSize(cfg->m_borderSize, cfg->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+		//GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 		//SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 
 		appStatus->m_bWindowed = true;
@@ -1009,12 +1008,12 @@ RECT rcClient;
 	}
 	else
 	{
-		displayModeRequested.Format = (D3DFORMAT)cfg->m_fullscreenFormat;
-		displayModeRequested.Height = cfg->m_fullscreenHeight;
-		displayModeRequested.Width = cfg->m_fullscreenWidth;
-		displayModeRequested.RefreshRate = cfg->m_fullscreenRefresh;
+		displayModeRequested.Format = (D3DFORMAT)appStatus->m_fullscreenFormat;
+		displayModeRequested.Height = appStatus->m_fullscreenHeight;
+		displayModeRequested.Width = appStatus->m_fullscreenWidth;
+		displayModeRequested.RefreshRate = appStatus->m_fullscreenRefresh;
 
-		hRet = dx->InitD3D(m_hWnd, m_hWnd, FALSE, TRUE, cfg->m_borderSize, cfg->m_bShowFloppyLed, bUseBlitStretch, cfg->m_fullscreenStretch, filter, cfg->m_syncMode, cfg->m_fullscreenAdapterNumber, cfg->m_fullscreenAdapterId, displayModeRequested);
+		hRet = dx->InitD3D(m_hWnd, m_hWnd, FALSE, TRUE, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
 			return SetError(hRet, TEXT("InitD3D failed."));
@@ -1036,9 +1035,9 @@ void CAppWindow::UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed)
 {
 TCHAR szBuff[300];
 	szBuff[0];
-	if (cfg==NULL || appStatus==NULL)
+	if (appStatus==NULL || appStatus==NULL)
 		return;
-	if (cfg->m_bShowSpeed && (long)emulationSpeed>=0)
+	if (appStatus->m_bShowSpeed && (long)emulationSpeed>=0)
 	{
 		_sntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, TEXT("%s at %d%%"), szTitle, emulationSpeed);
 	}
@@ -1048,7 +1047,7 @@ TCHAR szBuff[300];
 	}
 	if (appStatus->m_bSoundMute)
 		_tcscat_s(szBuff, _countof(szBuff), TEXT(" - Mute"));
-	if (cfg->m_bMaxSpeed)
+	if (appStatus->m_bMaxSpeed)
 		_tcscat_s(szBuff, _countof(szBuff), TEXT(" - Max Speed"));
 	if (appStatus->m_bDebug)
 		_tcscat_s(szBuff, _countof(szBuff), TEXT(" - Debug"));
@@ -1143,7 +1142,7 @@ bool ok = false;
 	{
 		if (m_pMDIDebugger.expired() || m_pMDIDebugger.lock()->GetHwnd() == 0)
 		{
-			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->m_pAppCommand, this->cfg, this->appStatus));
+			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->m_pAppCommand, this->appStatus, this->appStatus));
 			if (pwin != NULL)
 			{
 				int x,y,w,h;
