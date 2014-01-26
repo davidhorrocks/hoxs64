@@ -139,14 +139,47 @@ HRESULT FileStream::Seek(LARGE_INTEGER liDistanceToMove, DWORD dwOrigin, ULARGE_
 		break;
 	}
 
-	if (SetFilePointerEx(_hFile, liDistanceToMove, (PLARGE_INTEGER) lpNewFilePointer, dwMoveMethod) == 0)
+	if (FileStream::SetFilePointerEx(_hFile, liDistanceToMove, (PLARGE_INTEGER) lpNewFilePointer, dwMoveMethod) == 0)
 		return HRESULT_FROM_WIN32(GetLastError());
 	return S_OK;
 }
 
 HRESULT FileStream::Stat(STATSTG* pStatstg, DWORD grfStatFlag) 
 {
-	if (GetFileSizeEx(_hFile, (PLARGE_INTEGER) &pStatstg->cbSize) == 0)
+	if (FileStream::GetFileSizeEx(_hFile, (PLARGE_INTEGER) &pStatstg->cbSize) == 0)
 		return HRESULT_FROM_WIN32(GetLastError());
 	return S_OK;
+}
+
+BOOL FileStream::GetFileSizeEx(HANDLE hFile, PLARGE_INTEGER lpFileSize)
+{
+DWORD loSize, hiSize;
+	loSize = ::GetFileSize(hFile, &hiSize);
+	if (INVALID_FILE_SIZE == loSize && GetLastError() != NOERROR)
+	{
+		return FALSE;
+	}
+	else
+	{
+		lpFileSize->LowPart = loSize;
+		lpFileSize->HighPart = (LONG)hiSize;
+		return TRUE;
+	}
+}
+
+BOOL FileStream::SetFilePointerEx(HANDLE hFile, LARGE_INTEGER liDistanceToMove, PLARGE_INTEGER lpNewFilePointer, DWORD dwMoveMethod)
+{
+LONG hiValue;
+	hiValue = liDistanceToMove.HighPart;
+	DWORD loValue = ::SetFilePointer(hFile, liDistanceToMove.LowPart, &hiValue, dwMoveMethod);
+	if (loValue == INVALID_SET_FILE_POINTER && GetLastError() != NOERROR)
+	{
+		return FALSE;
+	}
+	else
+	{
+		lpNewFilePointer->LowPart = loValue;
+		lpNewFilePointer->HighPart = hiValue;
+		return TRUE;
+	}
 }

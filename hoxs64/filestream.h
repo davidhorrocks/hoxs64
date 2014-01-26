@@ -46,4 +46,7 @@ private:
     HANDLE _hFile;
     LONG _refcount;
 	bool _bOwnFileHandle;
+public:
+	static BOOL GetFileSizeEx(HANDLE hFile, PLARGE_INTEGER lpFileSize);
+	static BOOL SetFilePointerEx(HANDLE hFile, LARGE_INTEGER liDistanceToMove, PLARGE_INTEGER lpNewFilePointer, DWORD dwMoveMethod);
 };

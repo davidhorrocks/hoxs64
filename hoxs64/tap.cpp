@@ -7,6 +7,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <assert.h>
+#include "filestream.h"
 #include "boost2005.h"
 #include "defines.h"
 #include "mlist.h"
@@ -116,7 +117,7 @@ bit32 *buffer = NULL;
 			break;
 		}
 		spos.QuadPart = sizeof(RAWTAPE) - 1;
-		if (SetFilePointerEx(hfile, spos, (PLARGE_INTEGER) &spos_dummy, FILE_BEGIN) == 0)
+		if (FileStream::SetFilePointerEx(hfile, spos, (PLARGE_INTEGER) &spos_dummy, FILE_BEGIN) == 0)
 		{
 			hr = this->SetErrorFromGetLastError();
 			break;
