@@ -105,7 +105,6 @@ CApp::CApp()
 	m_bMaxSpeed   = false;
 	m_syncMode = HCFG::FSSM_LINE;
 	m_bAutoload = false;
-	m_bFixWindowSize = false;
 	m_bWindowSizing = false;
 	m_bClosing = false;
 	m_bBusy = false;

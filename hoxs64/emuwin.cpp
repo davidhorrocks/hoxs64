@@ -183,11 +183,19 @@ void CEmuWindow::GetDisplayRectFromVicRect(const RECT rcVicCycle, RECT& rcDispla
 	int wp = dx->m_rcTargetRect.right - dx->m_rcTargetRect.left;
 	int hp = dx->m_rcTargetRect.bottom - dx->m_rcTargetRect.top;
 		
-	rcDisplay.left = (rcVicCycle.left - s) * wp / wc;
-	rcDisplay.right = (rcVicCycle.right - s) * wp / wc;
+	double left = ::ceil((double)(rcVicCycle.left - s) * (double)wp / (double)wc);
+	double right = ::floor((double)(rcVicCycle.right - s) * (double)wp / (double)wc);
+	rcDisplay.left = (LONG)left;
+	rcDisplay.right = (LONG)right;
+	if (right <= left)
+		right = left + 1;
 
-	rcDisplay.top = (rcVicCycle.top - st) * hp / hc;
-	rcDisplay.bottom = (rcVicCycle.bottom - st) * hp / hc;
+	double top = ::ceil((double)(rcVicCycle.top - st) * (double)hp / (double)hc);
+	double bottom = ::floor((double)(rcVicCycle.bottom - st) * (double)hp / (double)hc);
+	if (bottom <= top)
+		bottom = top + 1;
+	rcDisplay.top = (LONG)top;
+	rcDisplay.bottom = (LONG)bottom;
 
 	OffsetRect(&rcDisplay, dx->m_rcTargetRect.left, dx->m_rcTargetRect.top);
 }
@@ -444,34 +452,37 @@ void CEmuWindow::DrawDriveSprites()
 {
 HRESULT hr;
 
-	if (SUCCEEDED(hr = dx->m_psprLedMotor->Begin(0)))
+	if (dx->m_bStatusBarOk)
 	{
-		if (appStatus->m_bDiskLedMotor)
-			dx->m_psprLedMotor->Draw(dx->m_ptxLedGreenOn, NULL, NULL, &dx->m_vecPositionLedMotor, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
-		else
-			dx->m_psprLedMotor->Draw(dx->m_ptxLedGreenOff, NULL, NULL, &dx->m_vecPositionLedMotor, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+		if (SUCCEEDED(hr = dx->m_psprLedMotor->Begin(0)))
+		{
+			if (appStatus->m_bDiskLedMotor)
+				dx->m_psprLedMotor->Draw(dx->m_ptxLedGreenOn, NULL, NULL, &dx->m_vecPositionLedMotor, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+			else
+				dx->m_psprLedMotor->Draw(dx->m_ptxLedGreenOff, NULL, NULL, &dx->m_vecPositionLedMotor, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
 
-		dx->m_psprLedMotor->End();
-	}
+			dx->m_psprLedMotor->End();
+		}
 
-	if (SUCCEEDED(hr = dx->m_psprLedDrive->Begin(0)))
-	{
-		if (appStatus->m_bDiskLedDrive)
-			dx->m_psprLedDrive->Draw(dx->m_ptxLedBlueOn, NULL, NULL, &dx->m_vecPositionLedDrive, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
-		else
-			dx->m_psprLedDrive->Draw(dx->m_ptxLedBlueOff, NULL, NULL, &dx->m_vecPositionLedDrive, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+		if (SUCCEEDED(hr = dx->m_psprLedDrive->Begin(0)))
+		{
+			if (appStatus->m_bDiskLedDrive)
+				dx->m_psprLedDrive->Draw(dx->m_ptxLedBlueOn, NULL, NULL, &dx->m_vecPositionLedDrive, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+			else
+				dx->m_psprLedDrive->Draw(dx->m_ptxLedBlueOff, NULL, NULL, &dx->m_vecPositionLedDrive, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
 
-		dx->m_psprLedDrive->End();
-	}
+			dx->m_psprLedDrive->End();
+		}
 
-	if (SUCCEEDED(hr = dx->m_psprLedDrive->Begin(0)))
-	{
-		if (appStatus->m_bDiskLedWrite)
-			dx->m_psprLedDrive->Draw(dx->m_ptxLedRedOn, NULL, NULL, &dx->m_vecPositionLedWrite, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
-		else
-			dx->m_psprLedDrive->Draw(dx->m_ptxLedRedOff, NULL, NULL, &dx->m_vecPositionLedWrite, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+		if (SUCCEEDED(hr = dx->m_psprLedDrive->Begin(0)))
+		{
+			if (appStatus->m_bDiskLedWrite)
+				dx->m_psprLedDrive->Draw(dx->m_ptxLedRedOn, NULL, NULL, &dx->m_vecPositionLedWrite, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+			else
+				dx->m_psprLedDrive->Draw(dx->m_ptxLedRedOff, NULL, NULL, &dx->m_vecPositionLedWrite, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
 
-		dx->m_psprLedDrive->End();
+			dx->m_psprLedDrive->End();
+		}
 	}
 }
 

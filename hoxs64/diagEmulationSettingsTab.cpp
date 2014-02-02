@@ -1399,34 +1399,34 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_HOSTCPU_FRIENDLY))
-			cfg->m_bCPUFriendly=TRUE;
+			cfg->m_bCPUFriendly=true;
 		else
-			cfg->m_bCPUFriendly=FALSE;
+			cfg->m_bCPUFriendly=false;
 		if (IsDlgButtonChecked(hWnd, IDC_SHOWSPEED))
-			cfg->m_bShowSpeed = TRUE;
+			cfg->m_bShowSpeed = true;
 		else
 		{
-			cfg->m_bShowSpeed = FALSE;
+			cfg->m_bShowSpeed = false;
 		}
 		if (IsDlgButtonChecked(hWnd, IDC_LIMITSPEED))
-			cfg->m_bLimitSpeed = TRUE;
+			cfg->m_bLimitSpeed = true;
 		else
-			cfg->m_bLimitSpeed = FALSE;
+			cfg->m_bLimitSpeed = false;
 
 		if (IsDlgButtonChecked(hWnd, IDC_DISKONSEPARATETHREAD))
-			cfg->m_bD1541_Thread_Enable = TRUE;
+			cfg->m_bD1541_Thread_Enable = true;
 		else
-			cfg->m_bD1541_Thread_Enable = FALSE;
+			cfg->m_bD1541_Thread_Enable = false;
 
 		if (IsDlgButtonChecked(hWnd, IDC_ALLOWOPPOSINGJOYSTICK))
-			cfg->m_bAllowOpposingJoystick = TRUE;
+			cfg->m_bAllowOpposingJoystick = true;
 		else
-			cfg->m_bAllowOpposingJoystick = FALSE;
+			cfg->m_bAllowOpposingJoystick = false;
 
 		if (IsDlgButtonChecked(hWnd, IDC_DISABLE_DWM_FULLSCREEN))
-			cfg->m_bDisableDwmFullscreen = TRUE;
+			cfg->m_bDisableDwmFullscreen = true;
 		else
-			cfg->m_bDisableDwmFullscreen = FALSE;
+			cfg->m_bDisableDwmFullscreen = false;
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
@@ -1434,20 +1434,20 @@ shared_ptr<CTabPageDialog> pPage;
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_SKIPFRAMES))
 		{
-			cfg->m_bSkipFrames = TRUE;
+			cfg->m_bSkipFrames = true;
 		}
 		else
 		{
-			cfg->m_bSkipFrames = FALSE;
+			cfg->m_bSkipFrames = false;
 		}
 		if (IsDlgButtonChecked(hWnd, IDC_VBLSYNC))
 			cfg->m_syncMode = HCFG::FSSM_VBL;
 		else
 			cfg->m_syncMode = HCFG::FSSM_LINE;
 		if (IsDlgButtonChecked(hWnd, IDC_DOUBLER_BLIT))
-			cfg->m_bUseBlitStretch = TRUE;
+			cfg->m_bUseBlitStretch = true;
 		else
-			cfg->m_bUseBlitStretch = FALSE;
+			cfg->m_bUseBlitStretch = false;
 
 		GUID zeroGuid;
 		DWORD adapterOrdinal;
@@ -1503,37 +1503,37 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_AUDIOCLOCKSYNC))
-			cfg->m_bAudioClockSync=TRUE;
+			cfg->m_bAudioClockSync=true;
 		else
-			cfg->m_bAudioClockSync=FALSE;
+			cfg->m_bAudioClockSync=false;
 		if (IsDlgButtonChecked(hWnd, IDC_SIDDIGIBOOT))
-			cfg->m_bSidDigiBoost=TRUE;
+			cfg->m_bSidDigiBoost=true;
 		else
-			cfg->m_bSidDigiBoost=FALSE;
+			cfg->m_bSidDigiBoost=false;
 		if (IsDlgButtonChecked(hWnd, IDC_SID_EMULATION))
 		{
-			cfg->m_bSID_Emulation_Enable = TRUE;
+			cfg->m_bSID_Emulation_Enable = true;
 		}
 		else
-			cfg->m_bSID_Emulation_Enable = FALSE;
+			cfg->m_bSID_Emulation_Enable = false;
 		if (IsDlgButtonChecked(hWnd, IDC_SID_RESAMPLE))
-			cfg->m_bSIDResampleMode = TRUE;
+			cfg->m_bSIDResampleMode = true;
 		else
-			cfg->m_bSIDResampleMode = FALSE;
+			cfg->m_bSIDResampleMode = false;
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
 	{
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_1541_EMULATION))
-			cfg->m_bD1541_Emulation_Enable=TRUE;
+			cfg->m_bD1541_Emulation_Enable=true;
 		else
-			cfg->m_bD1541_Emulation_Enable=FALSE;
+			cfg->m_bD1541_Emulation_Enable=false;
 
 		if (IsDlgButtonChecked(hWnd, IDC_CHK_SHOWFLOPPYLED))
-			cfg->m_bShowFloppyLed=TRUE;
+			cfg->m_bShowFloppyLed=true;
 		else
-			cfg->m_bShowFloppyLed=FALSE;
+			cfg->m_bShowFloppyLed=false;
 
 		ReadTrackZeroSensor(&cfg->m_TrackZeroSensorStyle);
 	}

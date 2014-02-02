@@ -102,13 +102,6 @@ public:
 	static const int iTVStart = 20;
 	static const int iTVFirstRaster = 23;
 	static const int iTVLastRaster = 292;
-	/*
-	static const int iTVHeight = 272;
-	static const int iTVWidth = 384;
-	static const int iTVStart = 16;
-	static const int iTVFirstRaster = 19;
-	static const int iTVLastRaster = 290;
-	*/
 
 	static const int iSmallHeight = 232;
 	static const int iSmallWidth = 352;

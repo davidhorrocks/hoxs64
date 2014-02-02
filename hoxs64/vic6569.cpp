@@ -2317,11 +2317,7 @@ D3DLOCKED_RECT lrLockRect;
 		if (m_iLastBackedUpFrameNumber != FrameNumber)
 			BackupMainPixelBuffers();
 	}
-#ifdef USESYSMEMSURFACE
-	IDirect3DSurface9 *pBackBuffer = dx->GetSysMemSurface();
-#else
 	IDirect3DSurface9 *pBackBuffer = dx->GetSmallSurface();
-#endif
 	if (pBackBuffer)
 	{
 		hr = pBackBuffer->LockRect(&lrLockRect, NULL, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK);

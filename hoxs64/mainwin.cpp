@@ -137,7 +137,7 @@ C64WindowDimensions dims;
 HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	this->m_hInst = hInstance;
-	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
+	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX  | WS_MINIMIZEBOX | WS_SIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
 	return hWnd;
 }
 
@@ -147,7 +147,7 @@ int x, y, w, h;
 //MINMAXINFO *pMinMax;
 bool bOK;
 const int iStatusParts = 1;
-RECT rcStatusBar;
+//RECT rcStatusBar;
 HMENU hMenu  = 0;
 int wmId, wmEvent;
 HRESULT hRet;
@@ -193,17 +193,15 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			}
 			LocalFree(hloc);
 		}
-		*/
-		
-		bOK = true;
 		if (m_hWndStatusBar)
 		{
-			GetWindowRect(m_hWndStatusBar , &rcStatusBar);
+			GetWindowRect(m_hWndStatusBar, &rcStatusBar);
 			m_iStatusBarHeight = rcStatusBar.bottom - rcStatusBar.top;
 			if (m_iStatusBarHeight < 0)
 				m_iStatusBarHeight = 0;
-			SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
 		}
+		*/		
+		bOK = true;
 		return bOK ? 0 : -1;
 	case WM_ENTERMENULOOP:
 		appStatus->SoundHalt();
@@ -256,43 +254,45 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		}
         else
 		{
-            appStatus->m_bActive = true;
 			if (appStatus->m_bWindowed)
 			{
-				GetClientRect(hWnd, &rcClient);
-				y = rcClient.top;
-				x = rcClient.left;
-				w = rcClient.right - rcClient.left - x;
-				h = rcClient.bottom - rcClient.top - y - m_iStatusBarHeight;
-				SetRect(&dx->m_rcTargetRect, x, y, x + w, y + h - CDX9::GetToolBarHeight(appStatus->m_bShowFloppyLed));
-				SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, x, y, w, h, SWP_NOZORDER);
-				dx->m_bWindowedCustomSize = true;
-				dx->Reset();
-			}
-			if (appStatus->m_bWindowed && appStatus->m_bReady)
-			{
-				SaveMainWindowSize();
-			}
-
-			if (appStatus->m_bWindowed)
-			{
-				if (m_hWndStatusBar != NULL)				
-					SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
+				if (appStatus->m_bReady && !appStatus->m_bClosing)
+				{
+					RECT rcWindow;
+					if (GetWindowRect(hWnd, &rcWindow))
+					{
+						if (!appStatus->m_bActive || EqualRect(&m_rcMainWindow, &rcWindow) == FALSE)
+						{
+							appStatus->m_bActive = true;
+							SaveMainWindowSize();
+							if (GetClientRect(hWnd, &rcClient))
+							{
+								y = rcClient.top;
+								x = rcClient.left;
+								w = rcClient.right - rcClient.left - x;
+								h = rcClient.bottom - rcClient.top - y - m_iStatusBarHeight;
+								if (w > 0 && h > 0)
+								{
+									SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, x, y, w, h, SWP_NOZORDER);
+									dx->m_bWindowedCustomSize = true;
+									dx->Reset();
+								}
+							}
+						}
+					}
+				}
+				//if (m_hWndStatusBar != NULL)				
+				//	SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
 			}
 		}
 		return 0;
 	case WM_MOVE:
-		// Retrieve the window position after a move
-		if (appStatus->m_bActive && appStatus->m_bReady && appStatus->m_bWindowed)
-		{
-			SaveMainWindowSize();
-		}
 		return 0;
 	//case WM_GETMINMAXINFO:
 	//	// Fix the size of the window
 
 	//	GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_bDoubleSizedWindow, &w, &h);
-	//	if (appStatus->m_bWindowed && appStatus->m_bFixWindowSize)
+	//	if (appStatus->m_bWindowed)
 	//	{
 	//		pMinMax = (MINMAXINFO *)lParam;
 	//		pMinMax->ptMinTrackSize.x = w;
@@ -304,7 +304,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	case WM_DISPLAYCHANGE:
 		if (appStatus->m_bWindowed)
 		{
-			appStatus->m_bReady=FALSE;
+			appStatus->m_bReady = false;
 		}
 		break;
 	case WM_COMMAND:
@@ -605,7 +605,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SoundHalt();
             if (appStatus->m_bActive && appStatus->m_bReady && !appStatus->m_bDebug)
             {
-				appStatus->m_bPaused= false;
+				appStatus->m_bPaused = false;
 				appStatus->m_bReady = false;
 				hRet = ToggleFullScreen();
 				if (FAILED(hRet))
@@ -719,7 +719,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		}
 		return 0;
 	case WM_DESTROY:
-		appStatus->m_bReady = FALSE;
+		appStatus->m_bReady = false;
 		appStatus->FreeDirectX();
 		PostQuitMessage(0);
 		return 0;
@@ -857,7 +857,6 @@ static HMENU hMenuOld=NULL,hMt;
 LONG_PTR lp;
 
 	ClearError();
-	//appStatus->m_bFixWindowSize = false;
 	appStatus->m_bReady = false;
 	appStatus->m_fskip = -1;
 
@@ -920,7 +919,6 @@ LONG_PTR lp;
 
 		this->m_pWinEmuWin->UpdateC64Window();
 	}
-	//appStatus->m_bFixWindowSize = true;
 	return hr;
 }
 
@@ -991,7 +989,6 @@ RECT rcClient;
 			GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 		}
-
 		
 		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
@@ -999,12 +996,7 @@ RECT rcClient;
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
 
-		//TEST
-		//GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-		//SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
-
 		appStatus->m_bWindowed = true;
-
 	}
 	else
 	{

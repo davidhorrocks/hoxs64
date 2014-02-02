@@ -20,7 +20,6 @@ CAppStatus::CAppStatus()
 	m_bDebug=false;
 	m_bBreak=false;
 	m_bPaused=false;
-	//m_bFixWindowSize=true;
 	m_bClosing=false;
 	m_bInitDone=false;
 

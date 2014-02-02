@@ -37,12 +37,14 @@ int i;
 	m_pD3D       = NULL; // Used to create the D3DDevice
 	m_pd3dDevice = NULL; // Our rendering device
 	m_pDiplaymodes = NULL;
-	m_pSysMemSurface = NULL;
 	for (int i=0; i < _countof(m_pSmallSurface); i++)
 		m_pSmallSurface[i] = NULL;
 	m_iIndexSmallSurface = 0;
 	ZeroMemory(&m_sizeSmallSurface, sizeof(m_sizeSmallSurface));
-
+	m_bTargetRectOk = false;
+	SetRect(&m_rcTargetRect, 0, 0, 0, 0);
+	m_bStatusBarOk = false;
+	ZeroMemory(&m_drcStatusBar, sizeof(m_drcStatusBar));
 	m_displayFirstVicRaster = 0;
 	m_displayLastVicRaster = 0;
 	m_displayWidth = 0;
@@ -103,26 +105,17 @@ void CDX9::CleanupD3D_Surfaces()
 	FreeTextures();
 
 	FreeSmallSurface();
-	FreeSysMemSurface();
 }
 
 void CDX9::FreeSmallSurface()
 {
+	m_bTargetRectOk = false;
+	SetRect(&m_rcTargetRect, 0, 0, 0, 0);
 	for (int i=0; i < _countof(m_pSmallSurface); i++)
 	{
 		if (m_pSmallSurface[i])
 			m_pSmallSurface[i]->Release();
 		m_pSmallSurface[i] = NULL;
-	}
-}
-
-void CDX9::FreeSysMemSurface()
-{
-	if (m_pSysMemSurface!=NULL)
-	{		
-		if (m_pSysMemSurface)
-			m_pSysMemSurface->Release();
-		m_pSysMemSurface = NULL;
 	}
 }
 
@@ -132,10 +125,6 @@ void CDX9::ClearSurfaces(D3DCOLOR colour)
 	{
 		m_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET, colour, 0.0, 0);
 
-		if (m_pSysMemSurface!=NULL)
-		{
-			m_pd3dDevice->ColorFill(m_pSysMemSurface, NULL, colour);			
-		}
 		for (int i=0; i < _countof(m_pSmallSurface); i++)
 		{
 			if (m_pSmallSurface[i])
@@ -150,15 +139,9 @@ HRESULT CDX9::CreateSmallSurface(int Width, int Height, D3DFORMAT Format)
 HRESULT hr;
 int i;
 	FreeSmallSurface();
-	FreeSysMemSurface();
 	m_sizeSmallSurface.cx = Width;
 	m_sizeSmallSurface.cy = Height;
-
-#ifdef USESYSMEMSURFACE
-	hr = m_pd3dDevice->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_SYSTEMMEM, &m_pSysMemSurface, NULL);
-#else
 	hr = S_OK;
-#endif
 	if (SUCCEEDED(hr))
 	{
 		for (i = 0; i < _countof(m_pSmallSurface); i++)
@@ -171,7 +154,6 @@ int i;
 	if (FAILED(hr))
 	{
 		FreeSmallSurface();
-		FreeSysMemSurface();
 	}
 	return hr;
 }
@@ -187,17 +169,11 @@ void CDX9::ClearTargets(D3DCOLOR color)
 HRESULT CDX9::UpdateBackBuffer(D3DTEXTUREFILTERTYPE filter)
 {
 HRESULT hr = E_FAIL;
-	if (m_pd3dDevice)
+	if (m_pd3dDevice && m_bTargetRectOk)
 	{
 		IDirect3DSurface9 *pSmallSuface = m_pSmallSurface[m_iIndexSmallSurface];
 		if (pSmallSuface != NULL)
 		{
-#ifdef USESYSMEMSURFACE
-			if (m_pSysMemSurface != NULL)
-			{
-				m_pd3dDevice->UpdateSurface(m_pSysMemSurface, NULL, pSmallSuface, NULL);
-			}
-#endif
 			LPDIRECT3DSURFACE9 pBackBuffer;
 			if (D3D_OK == m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
 			{
@@ -213,16 +189,6 @@ HRESULT hr = E_FAIL;
 IDirect3DSurface9 *CDX9::GetSmallSurface()
 {
 	IDirect3DSurface9 *surface = m_pSmallSurface[m_iIndexSmallSurface];
-	if (surface)
-	{
-		surface->AddRef();
-	}
-	return surface;
-}
-
-IDirect3DSurface9 *CDX9::GetSysMemSurface()
-{
-	IDirect3DSurface9 *surface = m_pSysMemSurface;
 	if (surface)
 	{
 		surface->AddRef();
@@ -264,7 +230,6 @@ HRESULT CDX9::Init(CAppStatus *appStatus, bit32 vicColorTable[])
 	int i;
 	m_appStatus = appStatus;
 
-
 	for (i = 0; i < 256; i++)
 	{
 		m_paletteEntry[i].peRed = (BYTE) (((i >> 5) & 0x07) * 255 / 7);
@@ -305,7 +270,7 @@ BOOL CDX9::DXUTGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpMonitorInfo)
 
 HRESULT CDX9::Reset()
 {
-HRESULT hr;
+HRESULT hr = E_FAIL;
 	if (!m_pD3D)
 		return E_FAIL;
 	if (!m_pd3dDevice)
@@ -316,32 +281,39 @@ HRESULT hr;
 	if (m_hWndDevice)
 	{
 		RECT rcClient;
-		GetClientRect(m_hWndDevice, &rcClient);
-		m_d3dpp.BackBufferWidth = rcClient.right - rcClient.left;
-		m_d3dpp.BackBufferHeight = rcClient.bottom - rcClient.top;
+		int w = 0;
+		int h = 0;
+		if (GetClientRect(m_hWndDevice, &rcClient))
+		{
+			w = min(rcClient.right - rcClient.left, 0);
+			h = min(rcClient.bottom - rcClient.top, 0);
+		}
+		m_d3dpp.BackBufferWidth = w;
+		m_d3dpp.BackBufferHeight = h;
+
+		hr = m_pd3dDevice->Reset(&m_d3dpp); 
+		if (FAILED(hr))
+			return hr;
+	
+		D3DDISPLAYMODE currentDisplayMode;
+		hr = m_pd3dDevice->GetDisplayMode(0, &currentDisplayMode);
+		if (FAILED(hr))
+			return hr;
+	
+		hr = SetRenderStyle(m_d3dpp.Windowed != FALSE, m_bDoubleSizedWindow, m_bWindowedCustomSize, m_borderSize, m_bShowFloppyLed, m_bUseBlitStretch, m_stretch, m_filter, currentDisplayMode);
+		if(FAILED(hr))
+		{
+			return hr;
+		}
+		hr = LoadTextures(currentDisplayMode.Format);
+		if(FAILED(hr))
+		{
+			return hr;
+		}
+		hr = S_OK;
 	}
 
-	hr = m_pd3dDevice->Reset(&m_d3dpp);
-	if (FAILED(hr))
-		return hr;
-	
-	D3DDISPLAYMODE currentDisplayMode;
-	hr = m_pd3dDevice->GetDisplayMode(0, &currentDisplayMode);
-	if (FAILED(hr))
-		return hr;
-	
-	hr = SetRenderStyle(m_d3dpp.Windowed != FALSE, m_bDoubleSizedWindow, m_bWindowedCustomSize, m_borderSize, m_bShowFloppyLed, m_bUseBlitStretch, m_stretch, m_filter, currentDisplayMode);
-	if(FAILED(hr))
-	{
-		return hr;
-	}
-	hr = LoadTextures(currentDisplayMode.Format);
-	if(FAILED(hr))
-	{
-		return hr;
-	}
-
-	return S_OK;
+	return hr;
 }
 
 HRESULT CDX9::GetAdapterFromWindow(IDirect3D9 *pD3D, HWND hWndDevice, UINT& adapterNumber)
@@ -529,14 +501,23 @@ GUID empty;
 
 HRESULT CDX9::SetRenderStyle(bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, D3DDISPLAYMODE currentDisplayMode)
 {
-HRESULT hr;
+HRESULT hr = E_FAIL;
 C64WindowDimensions  dims;
+bool bTargetRectOk = false;
+bool bStatusBarOk = false;
+RECT rcTargetRect;
+D3DRECT drcStatusBar;
+
 	m_iEraseCount = 0;
+	m_bTargetRectOk = false;
+	m_bStatusBarOk = false;
 	SetRect(&m_rcTargetRect, 0, 0, 0, 0);
+	SetRect(&rcTargetRect, 0, 0, 0, 0);
+	ZeroMemory(&m_drcStatusBar, sizeof(m_drcStatusBar));
+	ZeroMemory(&drcStatusBar, sizeof(drcStatusBar));
 	D3DRECT drcEraseRects[5];//Top,Bottom,Left,Right,optional toolbar
 	ZeroMemory(&drcEraseRects[0], sizeof(D3DRECT) * _countof(drcEraseRects));
 	FreeSmallSurface();
-	FreeSysMemSurface();
 
 	dims.SetBorder(borderSize);
 	m_displayWidth = dims.Width;
@@ -552,74 +533,98 @@ C64WindowDimensions  dims;
 	m_bUseBlitStretch = bUseBlitStretch;
 	m_filter = filter;
 	m_stretch = stretch;
-
+	int heightToolbar = GetToolBarHeight(bShowFloppyLed);
+	hr = E_FAIL;
 	if (bWindowedMode)
 	{
 		if (bWindowedCustomSize)
 		{
+			m_appStatus->m_bUseCPUDoubler = false;
 			if (m_hWndDevice)
 			{
-				GetClientRect(m_hWndDevice, &m_rcTargetRect);
-				m_rcTargetRect.bottom -= GetToolBarHeight(bShowFloppyLed);
+				if (GetClientRect(m_hWndDevice, &rcTargetRect))
+				{
+					hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
+					if (SUCCEEDED(hr))
+					{
+						CheckFilterCap(true, filter);
+						if (rcTargetRect.bottom - rcTargetRect.top > 0 && rcTargetRect.right - rcTargetRect.left > 0)
+						{
+							if (heightToolbar > 0 && rcTargetRect.bottom - rcTargetRect.top >= heightToolbar)
+							{
+								rcTargetRect.bottom -= heightToolbar;
+								drcStatusBar.x1 = 0;
+								drcStatusBar.y1 = rcTargetRect.bottom;
+								drcStatusBar.x2 = rcTargetRect.right - rcTargetRect.left;
+								drcStatusBar.y2 = rcTargetRect.bottom + heightToolbar;
+								bStatusBarOk = true;
+							}
+							if (rcTargetRect.bottom - rcTargetRect.top > 0 && rcTargetRect.right - rcTargetRect.left > 0)
+							{
+								bTargetRectOk = true;
+							}
+						}
+					}
+				}
 			}
-			hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
-			if (FAILED(hr))
-				return hr;
-
-			CheckFilterCap(true, filter);
-			m_appStatus->m_bUseCPUDoubler = false;
-
-			m_drcStatusBar.x1 = 0;
-			m_drcStatusBar.y1 = m_rcTargetRect.bottom;
-			m_drcStatusBar.x2 = m_rcTargetRect.right - m_rcTargetRect.left;
-			m_drcStatusBar.y2 = m_rcTargetRect.bottom + GetToolBarHeight(bShowFloppyLed);
 		}
 		else
 		{
 			if (bDoubleSizedWindow)
 			{
-				SetRect(&m_rcTargetRect, 0, 0, dims.Width *2, dims.Height *2);
+				SetRect(&rcTargetRect, 0, 0, dims.Width *2, dims.Height *2);
 				if (bUseBlitStretch) // bWindowedMode && bDoubleSizedWindow && bUseBlitStretch
 				{
 					hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
-					if (FAILED(hr))
-						return hr;
-					CheckFilterCap(true, filter);
-
-					m_appStatus->m_bUseCPUDoubler = false;
-
+					if (SUCCEEDED(hr))
+					{
+						CheckFilterCap(true, filter);
+						m_appStatus->m_bUseCPUDoubler = false;
+						bTargetRectOk = true;
+					}
 				}
 				else // bWindowedMode && bDoubleSizedWindow && !bUseBlitStretch
 				{
 					hr = CreateSmallSurface(dims.Width*2, dims.Height*2, currentDisplayMode.Format);
-					if (FAILED(hr))
-						return hr;
-
-					m_appStatus->m_bUseCPUDoubler = true;
+					if (SUCCEEDED(hr))
+					{
+						m_appStatus->m_bUseCPUDoubler = true;
+						bTargetRectOk = true;
+					}
 				}
-
-				m_drcStatusBar.x1 = 0;
-				m_drcStatusBar.y1 = dims.Height*2;
-				m_drcStatusBar.x2 = dims.Width*2;
-				m_drcStatusBar.y2 = dims.Height*2 + GetToolBarHeight(bShowFloppyLed);
-
+				if SUCCEEDED(hr)
+				{
+					if (heightToolbar > 0)
+					{
+						drcStatusBar.x1 = 0;
+						drcStatusBar.y1 = dims.Height*2;
+						drcStatusBar.x2 = dims.Width*2;
+						drcStatusBar.y2 = dims.Height*2 + heightToolbar;
+						bStatusBarOk = true;
+					}
+				}
 			}
 			else // bWindowedMode && !bDoubleSizedWindow
 			{
-				SetRect(&m_rcTargetRect, 0, 0, dims.Width, dims.Height);
+				SetRect(&rcTargetRect, 0, 0, dims.Width, dims.Height);
 				hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
-				if (FAILED(hr))
-					return hr;
-
-				m_appStatus->m_bUseCPUDoubler = false;
-
-				m_drcStatusBar.x1 = 0;
-				m_drcStatusBar.y1 = dims.Height;
-				m_drcStatusBar.x2 = dims.Width;
-				m_drcStatusBar.y2 = dims.Height + GetToolBarHeight(bShowFloppyLed);
+				if SUCCEEDED(hr)
+				{				
+					m_appStatus->m_bUseCPUDoubler = false;
+					bTargetRectOk = true;
+					if (heightToolbar > 0)
+					{
+						drcStatusBar.x1 = 0;
+						drcStatusBar.y1 = dims.Height;
+						drcStatusBar.x2 = dims.Width;
+						drcStatusBar.y2 = dims.Height + heightToolbar;
+						bStatusBarOk = true;
+					}
+				}
 			}
 		}
-		memcpy(&drcEraseRects[0], &m_drcStatusBar, sizeof(D3DRECT));
+		if (bStatusBarOk)
+			memcpy(&drcEraseRects[0], &drcStatusBar, sizeof(D3DRECT));
 	}
 	else //Fullscreen
 	{
@@ -643,107 +648,122 @@ C64WindowDimensions  dims;
 			if (bUseBlitStretch) // DirectX Stretch
 			{ 
 				hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
-				if (FAILED(hr))
-					return hr;
-
-				CheckFilterCap(true, filter);
-
-				m_appStatus->m_bUseCPUDoubler = false;
+				if (SUCCEEDED(hr))
+				{
+					CheckFilterCap(true, filter);
+					m_appStatus->m_bUseCPUDoubler = false;
+				}
 			}
 			else //CPU Stretch
 			{ 
 				hr = CreateSmallSurface(dims.Width*2, dims.Height*2, currentDisplayMode.Format);
-				if (FAILED(hr))
-					return hr;
-				m_appStatus->m_bUseCPUDoubler = true;
+				if (SUCCEEDED(hr))
+				{
+					m_appStatus->m_bUseCPUDoubler = true;
+				}
 			}
-			CalcClearingRects(currentDisplayMode, dims, 2L, bShowFloppyLed, m_rcTargetRect, drcEraseRects, m_drcStatusBar);
+			if (SUCCEEDED(hr))
+			{
+				CalcClearingRects(currentDisplayMode, dims, 2L, bShowFloppyLed, rcTargetRect, drcEraseRects, drcStatusBar);
+				bStatusBarOk = bShowFloppyLed;
+				bTargetRectOk = true;
+			}
 		}
 		else if (((stretch == HCFG::EMUWINSTR_1X) || (stretch == HCFG::EMUWINSTR_2X)) && CanMode1X(currentDisplayMode, dims, bShowFloppyLed)) // Fullscreen no pixel doubling
 		{
 			hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
-			if (FAILED(hr))
-				return hr;
-
-			m_appStatus->m_bUseCPUDoubler = false;
-
-			CalcClearingRects(currentDisplayMode, dims, 1L, bShowFloppyLed, m_rcTargetRect, drcEraseRects, m_drcStatusBar);
+			if (SUCCEEDED(hr))
+			{
+				m_appStatus->m_bUseCPUDoubler = false;
+				CalcClearingRects(currentDisplayMode, dims, 1L, bShowFloppyLed, rcTargetRect, drcEraseRects, drcStatusBar);
+				bStatusBarOk = bShowFloppyLed;
+				bTargetRectOk = true;
+			}
 		}
 		else if ((stretch == HCFG::EMUWINSTR_1X) || (stretch == HCFG::EMUWINSTR_2X)) // Fullscreen no pixel doubling cut fit
 		{
-			dims.SetBorder(currentDisplayMode.Width, currentDisplayMode.Height, GetToolBarHeight(bShowFloppyLed));
+			dims.SetBorder(currentDisplayMode.Width, currentDisplayMode.Height, heightToolbar);
 			m_displayFirstVicRaster = dims.FirstRasterLine;
 			m_displayLastVicRaster = dims.LastRasterLine;
 			m_displayWidth = dims.Width;
 			m_displayHeight = dims.Height;
 			m_displayStart = dims.Start;
 			m_appStatus->m_bUseCPUDoubler = false;
-		
 			hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
-			if (FAILED(hr))
-				return hr;
-
-			CalcClearingRects(currentDisplayMode, dims, 1L, bShowFloppyLed, m_rcTargetRect, drcEraseRects, m_drcStatusBar);
+			if (SUCCEEDED(hr))
+			{
+				CalcClearingRects(currentDisplayMode, dims, 1L, bShowFloppyLed, rcTargetRect, drcEraseRects, drcStatusBar);
+				bStatusBarOk = bShowFloppyLed;
+				bTargetRectOk = true;
+			}
 		}
 		else // Aspect Stretch
 		{
 			hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
-			if (FAILED(hr))
-				return hr;
-			CheckFilterCap(currentDisplayMode.Width >= (UINT)dims.Width, filter);
-			m_appStatus->m_bUseCPUDoubler = false;
-			
-			CalcStretchToFitClearingRects(currentDisplayMode, dims, bShowFloppyLed, m_rcTargetRect, drcEraseRects, m_drcStatusBar);
+			if (SUCCEEDED(hr))
+			{
+				CheckFilterCap(currentDisplayMode.Width >= (UINT)dims.Width, filter);
+				m_appStatus->m_bUseCPUDoubler = false;			
+				CalcStretchToFitClearingRects(currentDisplayMode, dims, bShowFloppyLed, rcTargetRect, drcEraseRects, drcStatusBar);
+				bStatusBarOk = bShowFloppyLed;
+				bTargetRectOk = true;
+			}
 		}
-
 	}
-	SetClearingRects(&drcEraseRects[0], _countof(drcEraseRects));
-
-	m_appStatus->m_displayFormat = (DWORD)currentDisplayMode.Format;
-	m_appStatus->m_ScreenDepth = GetBitsPerPixel(currentDisplayMode.Format);
-
-
-	m_vecPositionLedMotor.x = (FLOAT)m_drcStatusBar.x1;
-	m_vecPositionLedMotor.y = (FLOAT)(m_drcStatusBar.y1 + 1);
-	m_vecPositionLedMotor.z = 0;
-
-	m_vecPositionLedDrive.x = (FLOAT)(16 + m_drcStatusBar.x1);
-	m_vecPositionLedDrive.y = (FLOAT)( m_drcStatusBar.y1 + 1);
-	m_vecPositionLedDrive.z = 0;
-
-	m_vecPositionLedWrite.x = (FLOAT)(32 + m_drcStatusBar.x1);
-	m_vecPositionLedWrite.y = (FLOAT)( m_drcStatusBar.y1 + 1);
-	m_vecPositionLedWrite.z = 0;	
-
-    // Device state would normally be set here
-    // Turn off culling
-    m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
-
-    // Turn off D3D lighting
-    m_pd3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
-
-    // Turn off the zbuffer
-    m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
-
-	if (currentDisplayMode.Format == D3DFMT_P8)
+	if (SUCCEEDED(hr))
 	{
-		if(FAILED(m_pd3dDevice->SetPaletteEntries(0, &m_paletteEntry[0])))
+		SetClearingRects(&drcEraseRects[0], _countof(drcEraseRects));
+		m_appStatus->m_displayFormat = (DWORD)currentDisplayMode.Format;
+		m_appStatus->m_ScreenDepth = GetBitsPerPixel(currentDisplayMode.Format);
+		m_bStatusBarOk = bStatusBarOk;
+		m_bTargetRectOk = bTargetRectOk;
+		if (bTargetRectOk)
 		{
-			return E_FAIL;
+			CopyRect(&m_rcTargetRect, &rcTargetRect);
+		}
+		if (bStatusBarOk)
+		{
+			m_drcStatusBar = drcStatusBar;
+			m_vecPositionLedMotor.x = (FLOAT)drcStatusBar.x1;
+			m_vecPositionLedMotor.y = (FLOAT)(drcStatusBar.y1 + 1);
+			m_vecPositionLedMotor.z = 0;
+
+			m_vecPositionLedDrive.x = (FLOAT)(16 + drcStatusBar.x1);
+			m_vecPositionLedDrive.y = (FLOAT)( drcStatusBar.y1 + 1);
+			m_vecPositionLedDrive.z = 0;
+
+			m_vecPositionLedWrite.x = (FLOAT)(32 + drcStatusBar.x1);
+			m_vecPositionLedWrite.y = (FLOAT)( drcStatusBar.y1 + 1);
+			m_vecPositionLedWrite.z = 0;	
+		}
+
+		// Device state would normally be set here
+		// Turn off culling
+		m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
+
+		// Turn off D3D lighting
+		m_pd3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
+
+		// Turn off the zbuffer
+		m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
+
+		if (currentDisplayMode.Format == D3DFMT_P8)
+		{
+			m_pd3dDevice->SetPaletteEntries(0, &m_paletteEntry[0]);
 		}
 	}
-
-	return S_OK;
+	return hr;
 }
 
-void CDX9::CalcClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, const DWORD scale, BOOL bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar)
+void CDX9::CalcClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, const DWORD scale, bool bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar)
 {
-	int tHeight = GetToolBarHeight(bShowFloppyLed);
-
-	rcTargetRect.top = ((dims.Height * scale + tHeight)) < mode.Height ? (mode.Height - (dims.Height * scale + tHeight)) / 2 : 0;
-	rcTargetRect.bottom = (rcTargetRect.top + dims.Height *scale) < mode.Height ? rcTargetRect.top + dims.Height *scale : mode.Height;
-	rcTargetRect.left = (dims.Width*scale) < mode.Width ? (mode.Width - dims.Width*scale) / 2 : 0;
-	rcTargetRect.right = (rcTargetRect.left + dims.Width *scale) < mode.Width ? rcTargetRect.left + dims.Width *scale : mode.Width;
+	unsigned int tHeight = GetToolBarHeight(bShowFloppyLed);
+	unsigned int h = dims.Height * scale;
+	unsigned int w = dims.Width * scale;
+	rcTargetRect.top = (h + tHeight) < mode.Height ? (mode.Height - (h + tHeight)) / 2 : 0;
+	rcTargetRect.bottom = (rcTargetRect.top + h + tHeight) < mode.Height ? rcTargetRect.top + h : mode.Height - tHeight;
+	rcTargetRect.left = w < mode.Width ? (mode.Width - w) / 2 : 0;
+	rcTargetRect.right = (rcTargetRect.left + w) < mode.Width ? rcTargetRect.left + w : mode.Width;
 
 	//Top
 	drcEraseRects[0].x1 = 0;
@@ -799,7 +819,7 @@ void CDX9::SetClearingRects(D3DRECT rects[], int count)
 	}
 }
 
-void CDX9::CalcStretchToFitClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, BOOL bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar)
+void CDX9::CalcStretchToFitClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, bool bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar)
 {
 	int tHeight = GetToolBarHeight(bShowFloppyLed);
 	double c64ratio, screenratio;
@@ -810,12 +830,12 @@ void CDX9::CalcStretchToFitClearingRects(const D3DDISPLAYMODE& mode, const C64Wi
 		rcTargetRect.top = 0;
 		rcTargetRect.bottom = mode.Height - tHeight;
 		rcTargetRect.left = (mode.Width - ((DWORD)(c64ratio * ((double)(mode.Height - tHeight))))) / 2L;
-		rcTargetRect.right = mode.Width - m_rcTargetRect.left;
+		rcTargetRect.right = mode.Width - rcTargetRect.left;
 	}
 	else
 	{
 		rcTargetRect.top = (mode.Height - tHeight - ((DWORD)((1.0 / c64ratio) * ((double)(mode.Width))))) / 2L;
-		rcTargetRect.bottom = mode.Height - tHeight - m_rcTargetRect.top;
+		rcTargetRect.bottom = mode.Height - tHeight - rcTargetRect.top;
 		rcTargetRect.left = 0;
 		rcTargetRect.right = mode.Width;
 	}
@@ -865,8 +885,6 @@ bool CDX9::CanDisplayManualMode(DWORD adapterNumber, const D3DDISPLAYMODE &displ
 HRESULT hr;
 D3DDISPLAYMODE currentDisplayMode , mode;
 	//Manually select display mode.
-
-
 	if(FAILED(m_pD3D->GetAdapterDisplayMode(adapterNumber, &currentDisplayMode)))
 	{
 		return false;

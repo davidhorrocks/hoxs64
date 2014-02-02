@@ -39,13 +39,11 @@ public:
 	void CleanupD3D_Devices();
 	void CleanupD3D();
 	void FreeSmallSurface();
-	void FreeSysMemSurface();
 	HRESULT CreateSmallSurface(int Width, int Height, D3DFORMAT Format);
 	void ClearTargets(D3DCOLOR dwSolidColourFill);
 	void ClearSurfaces(D3DCOLOR colour);
 	HRESULT UpdateBackBuffer(D3DTEXTUREFILTERTYPE filter);
 	IDirect3DSurface9 *GetSmallSurface();
-	IDirect3DSurface9 *GetSysMemSurface();
 
 	HRESULT LoadTextures(D3DFORMAT format);
 	void FreeTextures();
@@ -81,13 +79,13 @@ public:
 	IDirect3D9            *m_pD3D; // Used to create the D3DDevice
 	IDirect3DDevice9      *m_pd3dDevice; // Our rendering device
 	IDirect3DSurface9       *m_pSmallSurface[1];
-	IDirect3DSurface9       *m_pSysMemSurface;
 	SIZE m_sizeSmallSurface;
 	int	m_iIndexSmallSurface;
 
 	//The rectangle (in device pixels) of the C64 display with in the scaled dx backbuffer.
 	//This is used for a blit from the dx small surface to the dx backbuffer.
 	RECT m_rcTargetRect;
+	bool m_bTargetRectOk;
 
 	//The first C64 raster line to be displayed [0-311] at the top most edge of the display window.
 	unsigned int m_displayFirstVicRaster;
@@ -112,7 +110,7 @@ public:
 
 	//Status bar dimensions
 	D3DRECT m_drcStatusBar;
-
+	bool m_bStatusBarOk;
 private:
 	HRESULT SetRenderStyle(bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, D3DDISPLAYMODE currentDisplayMode);
 	void SetClearingRects(D3DRECT [], int);
@@ -151,8 +149,8 @@ public:
 	bool CanMode1X(const D3DDISPLAYMODE &displayMode, const C64WindowDimensions &dims, BOOL bShowFloppyLed);
 	bool CanMode2X(const D3DDISPLAYMODE &displayMode, const C64WindowDimensions &dims, BOOL bShowFloppyLed);
 	int GetAdapterOrdinalFromGuid(const GUID &id);
-	void CalcStretchToFitClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, BOOL bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar);
-	void CalcClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, const DWORD scale, BOOL bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar);
+	void CalcStretchToFitClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, bool bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar);
+	void CalcClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, const DWORD scale, bool bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar);
 
 	/*Direct Sound*/
 	HRESULT RestoreSoundBuffers();

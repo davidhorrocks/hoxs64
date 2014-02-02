@@ -16,7 +16,6 @@ public:
 	bool					m_bDebug;
 	bool					m_bBreak;
 	bool					m_bPaused;
-	bool					m_bFixWindowSize;
 	bool					m_bWindowSizing;
 	bool					m_bClosing;
 
