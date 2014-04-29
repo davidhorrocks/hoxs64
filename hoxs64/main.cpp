@@ -349,31 +349,41 @@ BOOL bRet;
 			if (m_bActive && !m_bReady && !m_bClosing)
 			{
 				hRet = E_FAIL;
-
-				hRet = dx.m_pd3dDevice->TestCooperativeLevel();
-				if (hRet == D3DERR_DEVICENOTRESET)
+				if (dx.m_pd3dDevice != NULL)
 				{
-					hRet = dx.Reset();
-					if (SUCCEEDED(hRet))
+					hRet = dx.m_pd3dDevice->TestCooperativeLevel();
+					if (hRet == D3DERR_DEVICENOTRESET)
 					{
-						m_pWinAppWindow->SetColours();
+						hRet = dx.Reset();
+						if (SUCCEEDED(hRet))
+						{
+							m_pWinAppWindow->SetColours();
+							m_bReady = true;
+						}
+						else
+						{
+							if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+								m_bReady = true;
+							else
+								G::WaitMessageTimeout(1000);
+						}					
+					}
+					else if (hRet == D3DERR_DEVICELOST)
+					{
+						G::WaitMessageTimeout(1000);
+					}
+					else if (hRet == D3D_OK)
+					{
 						m_bReady = true;
 					}
-					else
-					{
-						if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
-							m_bReady = true;
-						else
-							G::WaitMessageTimeout(1000);
-					}					
 				}
-				else if (hRet == D3DERR_DEVICELOST)
+				else
 				{
 					G::WaitMessageTimeout(1000);
-				}
-				else if (hRet == D3D_OK)
-				{
-					m_bReady = true;
+					//if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+					//	m_bReady = true;
+					//else
+					//	G::WaitMessageTimeout(5000);
 				}
 			}
 			else

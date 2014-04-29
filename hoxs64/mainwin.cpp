@@ -160,7 +160,7 @@ HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[
 LRESULT CAppWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 int x, y, w, h;
-//MINMAXINFO *pMinMax;
+MINMAXINFO *pMinMax;
 bool bOK;
 const int iStatusParts = 1;
 //RECT rcStatusBar;
@@ -307,19 +307,25 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		return 0;
 	case WM_MOVE:
 		return 0;
-	//case WM_GETMINMAXINFO:
-	//	// Fix the size of the window
-
-	//	GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_bDoubleSizedWindow, &w, &h);
-	//	if (appStatus->m_bWindowed)
-	//	{
-	//		pMinMax = (MINMAXINFO *)lParam;
-	//		pMinMax->ptMinTrackSize.x = w;
-	//		pMinMax->ptMinTrackSize.y = h;
-	//		pMinMax->ptMaxTrackSize.x = w;
-	//		pMinMax->ptMaxTrackSize.y = h;
-	//	}
-	//	return 0;
+	case WM_GETMINMAXINFO:
+		if (appStatus->m_bWindowed)
+		{
+			RECT rcClient;
+			RECT rcFrame;
+			const int MINPIXELS = 64;
+			pMinMax = (MINMAXINFO *)lParam;
+			pMinMax->ptMinTrackSize.x = MINPIXELS + GetSystemMetrics(SM_CXSIZEFRAME)*2;
+			pMinMax->ptMinTrackSize.y = MINPIXELS + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU);
+			if (GetClientRect(hWnd, &rcClient))
+			{
+				if (GetWindowRect(hWnd, &rcFrame))
+				{
+					pMinMax->ptMinTrackSize.x = max(pMinMax->ptMinTrackSize.x, (rcFrame.right - rcFrame.left) -  (rcClient.right - rcClient.left - MINPIXELS));
+					pMinMax->ptMinTrackSize.y = max(pMinMax->ptMinTrackSize.y, (rcFrame.bottom - rcFrame.top) -  (rcClient.bottom - rcClient.top - MINPIXELS));
+				}
+			}
+		}
+		return 0;
 	case WM_DISPLAYCHANGE:
 		if (appStatus->m_bWindowed)
 		{
@@ -846,16 +852,7 @@ void CAppWindow::SaveMainWindowSize()
 
 HRESULT CAppWindow::ResetDirect3D()
 {
-RECT m_rcMainWindow;
-	if (appStatus->m_bWindowed)
-	{
-		GetWindowRect(m_hWnd, &m_rcMainWindow);
-		return SetWindowedMode(true, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, appStatus->m_bUseBlitStretch);	
-	}
-	else
-	{
-		return SetWindowedMode(false, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, 0, 0, appStatus->m_bUseBlitStretch);	
-	}
+	return SetWindowedMode(true, true, false, 0, 0, appStatus->m_bUseBlitStretch);
 }
 
 
@@ -1022,6 +1019,8 @@ RECT rc;
 		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, true, bDoubleSizedWindow, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
+			appStatus->m_bWindowed = true;
+			appStatus->m_bWindowedCustomSize = false;
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
 		appStatus->m_bWindowed = true;		
@@ -1036,6 +1035,8 @@ RECT rc;
 		hRet = dx->InitD3D(m_hWnd, m_hWnd, false, true, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
+			appStatus->m_bWindowed = true;
+			appStatus->m_bWindowedCustomSize = false;
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
 		appStatus->m_bWindowed = false;
