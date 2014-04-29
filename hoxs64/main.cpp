@@ -1240,6 +1240,7 @@ bool bNeedSoundFilterInit = false;
 		c64.diskdrive.CurrentPALClock = c64.cpu.CurrentClock;
 
 	if (newcfg.m_bUseBlitStretch != this->m_bUseBlitStretch 
+		|| newcfg.m_bWindowedCustomSize != this->m_bWindowedCustomSize 
 		|| newcfg.m_bDoubleSizedWindow != this->m_bDoubleSizedWindow 
 		|| newcfg.m_blitFilter != this->m_blitFilter
 		|| newcfg.m_borderSize != this->m_borderSize
@@ -1256,9 +1257,9 @@ bool bNeedSoundFilterInit = false;
 		bNeedSoundFilterInit = true;
 	}
 
-	bool bWindowedCustomSize = this->m_bWindowedCustomSize;
 	cfg = newcfg;
 
+	bool bWindowedCustomSize = newcfg.m_bWindowedCustomSize;
 	if (bNeedDisplayReset)
 	{
 		if (hWnd)
