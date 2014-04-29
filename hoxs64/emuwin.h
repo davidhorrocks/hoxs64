@@ -52,8 +52,7 @@ private:
 	HBRUSH m_hBrushBrkOuter;
 
 	HRESULT RenderWindow();
-	void DrawDriveSprites();
-
+	
 	void OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

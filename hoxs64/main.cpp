@@ -335,7 +335,6 @@ BOOL bRet;
 			if (bDrawThisFrame)
 			{
 				m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
-
 			}				
 			//Handle frame skip
 			if (m_bSkipFrames && bDrawThisFrame)
@@ -347,14 +346,15 @@ BOOL bRet;
 		{
 			//Handle paused or non ready states in a CPU friendly manner.
 			SoundHalt();
-			if (m_bActive && !m_bReady && !m_bPaused && !m_bClosing)
+			if (m_bActive && !m_bReady && !m_bClosing)
 			{
 				hRet = E_FAIL;
 
 				hRet = dx.m_pd3dDevice->TestCooperativeLevel();
 				if (hRet == D3DERR_DEVICENOTRESET)
 				{
-					if (SUCCEEDED(dx.Reset()))
+					hRet = dx.Reset();
+					if (SUCCEEDED(hRet))
 					{
 						m_pWinAppWindow->SetColours();
 						m_bReady = true;
@@ -363,11 +363,13 @@ BOOL bRet;
 					{
 						if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
 							m_bReady = true;
+						else
+							G::WaitMessageTimeout(1000);
 					}					
 				}
 				else if (hRet == D3DERR_DEVICELOST)
 				{
-					G::WaitMessageTimeout(100);
+					G::WaitMessageTimeout(1000);
 				}
 				else if (hRet == D3D_OK)
 				{
@@ -376,9 +378,13 @@ BOOL bRet;
 			}
 			else
 			{
-				if (m_bPaused && m_bWindowed && !m_bClosing)
+				if (!m_bClosing)
 				{
-					m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
+					m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
+					if (m_bWindowed)
+					{
+						m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
+					}
 				}
 				if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 					WaitMessage();
@@ -1218,8 +1224,6 @@ void CApp::ApplyConfig(const CConfig& newcfg)
 {	
 HWND hWnd = 0;
 CConfig &cfg= *(static_cast<CConfig *>(this));
-CAppStatus &status= *(static_cast<CAppStatus *>(this));
-HRESULT hRet;
 bool bNeedDisplayReset = false;
 bool bNeedSoundFilterInit = false;
 
@@ -1229,36 +1233,49 @@ bool bNeedSoundFilterInit = false;
 	c64.cia1.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
 	c64.cia2.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
 
-	if (newcfg.m_bSID_Emulation_Enable!=false && cfg.m_bSID_Emulation_Enable==false)
+	if (newcfg.m_bSID_Emulation_Enable!=false && this->m_bSID_Emulation_Enable==false)
 		c64.sid.CurrentClock = c64.cpu.CurrentClock;
 
-	if (newcfg.m_bD1541_Emulation_Enable!=false && cfg.m_bD1541_Emulation_Enable==false)
+	if (newcfg.m_bD1541_Emulation_Enable!=false && this->m_bD1541_Emulation_Enable==false)
 		c64.diskdrive.CurrentPALClock = c64.cpu.CurrentClock;
 
-	if (newcfg.m_bUseBlitStretch != cfg.m_bUseBlitStretch 
-		|| newcfg.m_bDoubleSizedWindow != cfg.m_bDoubleSizedWindow 
-		|| newcfg.m_blitFilter != cfg.m_blitFilter
-		|| newcfg.m_borderSize != cfg.m_borderSize
-		|| newcfg.m_bShowFloppyLed != cfg.m_bShowFloppyLed
-		|| newcfg.m_syncMode != cfg.m_syncMode
-		|| newcfg.m_fullscreenAdapterNumber != cfg.m_fullscreenAdapterNumber)
+	if (newcfg.m_bUseBlitStretch != this->m_bUseBlitStretch 
+		|| newcfg.m_bDoubleSizedWindow != this->m_bDoubleSizedWindow 
+		|| newcfg.m_blitFilter != this->m_blitFilter
+		|| newcfg.m_borderSize != this->m_borderSize
+		|| newcfg.m_bShowFloppyLed != this->m_bShowFloppyLed
+		|| newcfg.m_syncMode != this->m_syncMode
+		|| newcfg.m_fullscreenAdapterNumber != this->m_fullscreenAdapterNumber)
 	{
 		bNeedDisplayReset = true;
 	}
 
-	if (newcfg.m_fps != cfg.m_fps
-		|| newcfg.m_bSIDResampleMode != cfg.m_bSIDResampleMode)
+	if (newcfg.m_fps != this->m_fps
+		|| newcfg.m_bSIDResampleMode != this->m_bSIDResampleMode)
 	{
 		bNeedSoundFilterInit = true;
 	}
 
+	bool bWindowedCustomSize = this->m_bWindowedCustomSize;
 	cfg = newcfg;
 
 	if (bNeedDisplayReset)
 	{
 		if (hWnd)
 		{
-			hRet = m_pWinAppWindow->SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, newcfg.m_bWindowedCustomSize, newcfg.m_windowedModeWidth, newcfg.m_windowedModeHeight, newcfg.m_bUseBlitStretch);
+			int w = 0;
+			int h = 0;
+			if (m_bWindowed && bWindowedCustomSize)
+			{
+				bWindowedCustomSize = true;
+				RECT rc;
+				if (GetWindowRect(hWnd, &rc))
+				{
+					w = max(0, rc.right - rc.left);
+					h = max(0, rc.bottom - rc.top);
+				}
+			}
+			m_pWinAppWindow->SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, bWindowedCustomSize, w, h, newcfg.m_bUseBlitStretch);
 		}
 	}
 
@@ -1266,25 +1283,25 @@ bool bNeedSoundFilterInit = false;
 	frequency.QuadPart = 1;
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&frequency)!=0)
 	{
-		if (cfg.m_fps == HCFG::EMUFPS_50)
-			status.m_framefrequency.QuadPart = frequency.QuadPart / PAL50FRAMESPERSECOND;
+		if (this->m_fps == HCFG::EMUFPS_50)
+			this->m_framefrequency.QuadPart = frequency.QuadPart / PAL50FRAMESPERSECOND;
 		else 
-			status.m_framefrequency.QuadPart = (ULONGLONG)(((double)frequency.QuadPart / ((double)PALCLOCKSPERSECOND/((double)PAL_LINES_PER_FRAME * (double)PAL_CLOCKS_PER_LINE))));
+			this->m_framefrequency.QuadPart = (ULONGLONG)(((double)frequency.QuadPart / ((double)PALCLOCKSPERSECOND/((double)PAL_LINES_PER_FRAME * (double)PAL_CLOCKS_PER_LINE))));
 
 	}
 	CopyMemory(&c64.cia1.c64KeyMap[0], &newcfg.m_KeyMap[0], sizeof(c64.cia1.c64KeyMap));
 
-	status.m_fskip = -1;
+	this->m_fskip = -1;
 	
 	m_bUseKeymap = false;
 
-	dx.InitJoys(hWnd, cfg.m_joy1config, cfg.m_joy2config);
+	dx.InitJoys(hWnd, this->m_joy1config, this->m_joy2config);
 
-	if (status.m_bSoundOK)
+	if (this->m_bSoundOK)
 	{
-		c64.sid.UpdateSoundBufferLockSize(cfg.m_fps);
+		c64.sid.UpdateSoundBufferLockSize(this->m_fps);
 		if (bNeedSoundFilterInit)
-			c64.sid.InitResamplingFilters(cfg.m_fps);
+			c64.sid.InitResamplingFilters(this->m_fps);
 	}
 
 	if (hWnd)

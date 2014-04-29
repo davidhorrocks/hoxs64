@@ -61,6 +61,8 @@
 #define IDI_CHIP1                       182
 #define IDI_GREENFIND                   183
 #define IDD_BRKVICRASTER                187
+#define IDB_PNG1                        188
+#define IDB_PNG_WINDOWFULLSCREEN        188
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
 #define IDC_INFO2                       1002
@@ -287,7 +289,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        188
+#define _APS_NEXT_RESOURCE_VALUE        189
 #define _APS_NEXT_COMMAND_VALUE         40182
 #define _APS_NEXT_CONTROL_VALUE         1322
 #define _APS_NEXT_SYMED_VALUE           117

@@ -61,8 +61,6 @@ public:
 	bool m_bSkipFrames;
 	bool m_bDoubleSizedWindow;
 	bool m_bWindowedCustomSize;
-	int m_windowedModeWidth;
-	int m_windowedModeHeight;
 	bool m_bUseBlitStretch;
 	//POINT m_winpos;
 	//POINT m_mdidebuggerwinpos;

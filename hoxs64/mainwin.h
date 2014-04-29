@@ -21,6 +21,7 @@ public:
 	void UpdateMenu();
 	void SetMainWindowSize(bool bDoubleSizedWindow);
 	void GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h);
+	bool CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h);
 	void SaveMainWindowSize();
 	HRESULT ResetDirect3D();
 	HRESULT SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch);
@@ -28,6 +29,7 @@ public:
 	void ClearSurfaces();
 	HRESULT ToggleFullScreen();
 	HRESULT SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch);
+	void SetWindowedStyle(bool bWindowed);
 	void UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed);
 	HWND ShowDevelopment();
 
@@ -39,7 +41,7 @@ protected:
 	const static LPTSTR lpszMenuName;
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 private:
-
+	HMENU m_hMenuOld;
 	HCURSOR m_hCursorBusy;
 	HCURSOR m_hOldCursor;
 	static struct tabpageitem m_tabPagesKeyboard[4];

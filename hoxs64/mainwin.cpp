@@ -54,6 +54,7 @@ const LPTSTR CAppWindow::lpszMenuName = APPMENUNAME;
 
 CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CAppStatus *appStatus, IC64 *c64)
 {
+	m_hMenuOld=NULL;
 	m_hOldCursor = NULL;
 	m_hWndStatusBar = 0;
 	m_iStatusBarHeight = 0;
@@ -132,6 +133,21 @@ C64WindowDimensions dims;
 		*w=dims.Width + GetSystemMetrics(SM_CXSIZEFRAME)*2;
 		*h=dims.Height + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) +  CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
 	}
+}
+
+bool CAppWindow::CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h)
+{
+	int padw = GetSystemMetrics(SM_CXSIZEFRAME)*2;
+	int padh = GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + m_iStatusBarHeight;
+	if (w)
+	{
+		*w = max(0, rcMainWindow.right - rcMainWindow.left - padw);
+	}
+	if (h)
+	{
+		*h = max(0, rcMainWindow.bottom - rcMainWindow.top - padh);
+	}
+	return true;
 }
 
 HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
@@ -269,13 +285,16 @@ shared_ptr<CDiagAbout> pDiagAbout;
 							{
 								y = rcClient.top;
 								x = rcClient.left;
-								w = rcClient.right - rcClient.left - x;
-								h = rcClient.bottom - rcClient.top - y - m_iStatusBarHeight;
+								w = max(0, rcClient.right - rcClient.left) - x;
+								h = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
 								if (w > 0 && h > 0)
 								{
-									SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, x, y, w, h, SWP_NOZORDER);
-									dx->m_bWindowedCustomSize = true;
-									dx->Reset();
+									if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER | SWP_NOMOVE))
+									{
+										appStatus->m_bWindowedCustomSize = true;
+										dx->m_bWindowedCustomSize = true;
+										dx->Reset();
+									}
 								}
 							}
 						}
@@ -605,7 +624,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SoundHalt();
             if (appStatus->m_bActive && appStatus->m_bReady && !appStatus->m_bDebug)
             {
-				appStatus->m_bPaused = false;
+				//appStatus->m_bPaused = false;
 				appStatus->m_bReady = false;
 				hRet = ToggleFullScreen();
 				if (FAILED(hRet))
@@ -831,14 +850,18 @@ RECT m_rcMainWindow;
 	if (appStatus->m_bWindowed)
 	{
 		GetWindowRect(m_hWnd, &m_rcMainWindow);
+		return SetWindowedMode(true, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, appStatus->m_bUseBlitStretch);	
 	}
-	return SetWindowedMode(appStatus->m_bWindowed, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, appStatus->m_bUseBlitStretch);	
+	else
+	{
+		return SetWindowedMode(false, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, 0, 0, appStatus->m_bUseBlitStretch);	
+	}
 }
 
 
 HRESULT CAppWindow::ToggleFullScreen()
 {
-	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, appStatus->m_windowedModeWidth, appStatus->m_windowedModeHeight , appStatus->m_bUseBlitStretch);
+	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, this->m_rcMainWindow.right - this->m_rcMainWindow.left, this->m_rcMainWindow.bottom - this->m_rcMainWindow.top, appStatus->m_bUseBlitStretch);
 
 	if (G::IsWin98OrLater())
 	{
@@ -853,8 +876,6 @@ HRESULT CAppWindow::ToggleFullScreen()
 HRESULT CAppWindow::SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
 {
 HRESULT hr;
-static HMENU hMenuOld=NULL,hMt;
-LONG_PTR lp;
 
 	ClearError();
 	appStatus->m_bReady = false;
@@ -862,28 +883,12 @@ LONG_PTR lp;
 
     if (appStatus->m_bWindowed)
 	{
-        GetWindowRect(m_hWnd, &m_rcMainWindow);
+		SaveMainWindowSize();
 		if (!bWindowed)
 		{
-			hMt=GetMenu(m_hWnd);
-			if (hMt)
-			{
-				SetMenu(m_hWnd, NULL);
-				hMenuOld = hMt;
-			}
-			if (m_hWndStatusBar)
-				ShowWindow(m_hWndStatusBar, SW_HIDE);
-
-			//TEST
-			lp = GetWindowLongPtr(m_hWnd, GWL_STYLE);
-			lp &= ~CAppWindow::StylesWindowed;
-			lp |= CAppWindow::StylesNonWindowed;
-			#pragma warning(disable:4244)
-			SetWindowLongPtr(m_hWnd, GWL_STYLE, lp);
-			#pragma warning(default:4244)
+			SetWindowedStyle(false);
 		}
 	}
-
 	hr = SetCoopLevel(bWindowed, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
 	if (FAILED(hr))
 	{
@@ -896,19 +901,7 @@ LONG_PTR lp;
 
 	if (appStatus->m_bWindowed)
 	{
-		lp = GetWindowLongPtr(m_hWnd, GWL_STYLE);
-		lp |= CAppWindow::StylesWindowed;
-		#pragma warning(disable:4244)
-		SetWindowLongPtr(m_hWnd, GWL_STYLE, lp);
-		#pragma warning(default:4244)
-		if (hMenuOld)
-		{
-			SetMenu(m_hWnd, hMenuOld);
-			hMenuOld = NULL;
-		}
-
-		if (m_hWndStatusBar)
-			ShowWindow(m_hWndStatusBar, SW_SHOW);
+		SetWindowedStyle(true);
 
 		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 		G::EnsureWindowPosition(m_hWnd);
@@ -922,6 +915,44 @@ LONG_PTR lp;
 	return hr;
 }
 
+void CAppWindow::SetWindowedStyle(bool bWindowed)
+{
+HMENU hMt;
+LONG_PTR lp;
+
+	if (bWindowed)
+	{
+		lp = GetWindowLongPtr(m_hWnd, GWL_STYLE);
+		lp |= CAppWindow::StylesWindowed;
+		#pragma warning(disable:4244)
+		SetWindowLongPtr(m_hWnd, GWL_STYLE, lp);
+		#pragma warning(default:4244)
+		if (m_hMenuOld)
+		{
+			SetMenu(m_hWnd, m_hMenuOld);
+			m_hMenuOld = NULL;
+		}
+		if (m_hWndStatusBar)
+			ShowWindow(m_hWndStatusBar, SW_SHOW);
+	}
+	else
+	{
+		hMt=GetMenu(m_hWnd);
+		if (hMt)
+		{
+			SetMenu(m_hWnd, NULL);
+			m_hMenuOld = hMt;
+		}
+		if (m_hWndStatusBar)
+			ShowWindow(m_hWndStatusBar, SW_HIDE);
+		lp = GetWindowLongPtr(m_hWnd, GWL_STYLE);
+		lp &= ~CAppWindow::StylesWindowed;
+		lp |= CAppWindow::StylesNonWindowed;
+		#pragma warning(disable:4244)
+		SetWindowLongPtr(m_hWnd, GWL_STYLE, lp);
+		#pragma warning(default:4244)
+	}
+}
 
 HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
 {
@@ -964,8 +995,7 @@ HRESULT		        hRet;
 int w,h;
 D3DDISPLAYMODE displayModeRequested;
 D3DTEXTUREFILTERTYPE filter;
-RECT rcClient;
-
+RECT rc;
 	ClearError();
 	ZeroMemory(&displayModeRequested, sizeof(D3DDISPLAYMODE));
 
@@ -977,9 +1007,8 @@ RECT rcClient;
 		if (bWindowedCustomSize)
 		{
 			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, width, height, SWP_NOMOVE);
-			GetClientRect(m_hWnd, &rcClient);
-			w = min(0, rcClient.right - rcClient.left);
-			h = max(0, rcClient.bottom - rcClient.top);
+			SetRect(&rc, 0, 0, width, height);
+			CalcEmuWindowSize(rc, &w, &h);
 			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
 		}
 		else
@@ -990,13 +1019,12 @@ RECT rcClient;
 			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 		}
 		
-		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, TRUE, bDoubleSizedWindow, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
+		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, true, bDoubleSizedWindow, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
-
-		appStatus->m_bWindowed = true;
+		appStatus->m_bWindowed = true;		
 	}
 	else
 	{
@@ -1005,7 +1033,7 @@ RECT rcClient;
 		displayModeRequested.Width = appStatus->m_fullscreenWidth;
 		displayModeRequested.RefreshRate = appStatus->m_fullscreenRefresh;
 
-		hRet = dx->InitD3D(m_hWnd, m_hWnd, FALSE, TRUE, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
+		hRet = dx->InitD3D(m_hWnd, m_hWnd, false, true, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
 			return SetError(hRet, TEXT("InitD3D failed."));

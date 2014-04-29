@@ -27,8 +27,6 @@ CConfig::CConfig()
 	m_bDisableDwmFullscreen = false;
 
 	m_bWindowedCustomSize = false;
-	m_windowedModeWidth = 0;
-	m_windowedModeHeight = 0;
 	m_bUseBlitStretch = true;
 
 	m_joy1config.bEnabled = false;

@@ -30,6 +30,8 @@
 #include "dxstuff9.h"
 #include "resource.h"
 
+#define ASSUMED_DPI_DEFAULT (96)
+
 CDX9::CDX9()
 {
 int i;
@@ -71,9 +73,7 @@ int i;
 
 	m_iEraseCount = 0;
 
-	m_psprLedMotor = NULL;
 	m_psprLedDrive = NULL;
-	m_psprLedWrite = NULL;
 
 	m_ptxLedGreenOn = NULL;
 	m_ptxLedGreenOff = NULL;
@@ -82,9 +82,18 @@ int i;
 	m_ptxLedBlueOn = NULL;
 	m_ptxLedBlueOff = NULL;
 
+	m_dxfont = NULL;
+	m_sprMessageText = NULL;
+
 	m_soundResumeDelay = 0;
 	m_soundVolumeDelay = 0;
 	m_hWndDevice = NULL;
+	m_hWndFocus = NULL;
+	m_iAdapterNumber = 0;
+	m_bWindowedCustomSize = false;
+	ZeroMemory(&m_displayModeActual, sizeof(m_displayModeActual));
+	m_assumed_dpi_y = ASSUMED_DPI_DEFAULT;
+	m_assumed_dpi_x = ASSUMED_DPI_DEFAULT;
 }
 
 CDX9::~CDX9()
@@ -92,7 +101,7 @@ CDX9::~CDX9()
 	CleanupD3D();
 }
 
-void CDX9::CleanupD3D_Surfaces()
+void CDX9::FreeSurfaces()
 {
 	m_iEraseCount = 0;
 	if (m_appStatus)
@@ -101,9 +110,6 @@ void CDX9::CleanupD3D_Surfaces()
 		m_appStatus->m_ScreenDepth = 0;
 		m_appStatus->m_bUseCPUDoubler = false;
 	}
-
-	FreeTextures();
-
 	FreeSmallSurface();
 }
 
@@ -117,6 +123,88 @@ void CDX9::FreeSmallSurface()
 			m_pSmallSurface[i]->Release();
 		m_pSmallSurface[i] = NULL;
 	}
+}
+
+void CDX9::FreeFonts()
+{
+	if (m_dxfont != NULL)
+	{
+		m_dxfont->Release();
+		m_dxfont = NULL;
+	}
+}
+
+HRESULT CDX9::LoadFonts()
+{
+HRESULT hr;
+LPD3DXFONT dxfont = NULL;
+
+	do
+	{
+		double pts = 100.0;
+		hr = D3DXCreateFont(this->m_pd3dDevice, (INT)floor(pts * m_assumed_dpi_y / 72.0), 0, FW_NORMAL, 1, FALSE, ANSI_CHARSET, OUT_TT_ONLY_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, TEXT("ARIEL"), &dxfont);		
+		if (FAILED(hr))
+			break;
+
+		hr = m_lblPaused.SetFont(TEXT("ARIEL"), (INT)floor(pts * m_assumed_dpi_y / 72.0));
+		if (FAILED(hr))
+			break;
+	}
+	while (false);
+	if (SUCCEEDED(hr))
+	{
+		m_dxfont = dxfont;
+		dxfont = NULL;
+	}
+	else
+	{
+		if (dxfont != NULL)
+		{
+			dxfont->Release();
+			dxfont = NULL;
+		}
+	}	
+	return hr;
+}
+
+HRESULT CDX9::LoadSprites()
+{
+HRESULT hr = E_FAIL;
+LPD3DXSPRITE sprMessageText = NULL;
+
+	do
+	{
+		hr = D3DXCreateSprite(this->m_pd3dDevice, &sprMessageText);
+		if (FAILED(hr))
+			break;
+
+		m_lblPaused.SetText(TEXT("Paused"));
+		
+	} while (false);
+	if (SUCCEEDED(hr))
+	{
+		m_sprMessageText = sprMessageText;
+		sprMessageText = NULL;
+	}
+	else
+	{
+		if (sprMessageText != NULL)
+		{
+			sprMessageText->Release();
+			sprMessageText = NULL;
+		}
+	}	
+	return hr;
+}
+
+void CDX9::FreeSprites()
+{
+	if (m_sprMessageText != NULL)
+	{
+		m_sprMessageText->Release();
+		m_sprMessageText = NULL;
+	}
+	m_lblPaused.SetDevice(NULL);
 }
 
 void CDX9::ClearSurfaces(D3DCOLOR colour)
@@ -198,7 +286,10 @@ IDirect3DSurface9 *CDX9::GetSmallSurface()
 
 void CDX9::CleanupD3D_Devices()
 {
-	CleanupD3D_Surfaces();
+	FreeSurfaces();
+	FreeTextures();
+	FreeFonts();
+	FreeSprites();
 
 	if (m_pDiplaymodes)
 	{
@@ -209,7 +300,6 @@ void CDX9::CleanupD3D_Devices()
 	if( m_pd3dDevice != NULL) 
         m_pd3dDevice->Release();
 	m_pd3dDevice = NULL;
-	m_hWndDevice = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -229,7 +319,6 @@ HRESULT CDX9::Init(CAppStatus *appStatus, bit32 vicColorTable[])
 {
 	int i;
 	m_appStatus = appStatus;
-
 	for (i = 0; i < 256; i++)
 	{
 		m_paletteEntry[i].peRed = (BYTE) (((i >> 5) & 0x07) * 255 / 7);
@@ -266,54 +355,6 @@ BOOL CDX9::DXUTGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpMonitorInfo)
         return TRUE;
     }
     return FALSE;
-}
-
-HRESULT CDX9::Reset()
-{
-HRESULT hr = E_FAIL;
-	if (!m_pD3D)
-		return E_FAIL;
-	if (!m_pd3dDevice)
-		return E_FAIL;
-
-	CleanupD3D_Surfaces();
-
-	if (m_hWndDevice)
-	{
-		RECT rcClient;
-		int w = 0;
-		int h = 0;
-		if (GetClientRect(m_hWndDevice, &rcClient))
-		{
-			w = min(rcClient.right - rcClient.left, 0);
-			h = min(rcClient.bottom - rcClient.top, 0);
-		}
-		m_d3dpp.BackBufferWidth = w;
-		m_d3dpp.BackBufferHeight = h;
-
-		hr = m_pd3dDevice->Reset(&m_d3dpp); 
-		if (FAILED(hr))
-			return hr;
-	
-		D3DDISPLAYMODE currentDisplayMode;
-		hr = m_pd3dDevice->GetDisplayMode(0, &currentDisplayMode);
-		if (FAILED(hr))
-			return hr;
-	
-		hr = SetRenderStyle(m_d3dpp.Windowed != FALSE, m_bDoubleSizedWindow, m_bWindowedCustomSize, m_borderSize, m_bShowFloppyLed, m_bUseBlitStretch, m_stretch, m_filter, currentDisplayMode);
-		if(FAILED(hr))
-		{
-			return hr;
-		}
-		hr = LoadTextures(currentDisplayMode.Format);
-		if(FAILED(hr))
-		{
-			return hr;
-		}
-		hr = S_OK;
-	}
-
-	return hr;
 }
 
 HRESULT CDX9::GetAdapterFromWindow(IDirect3D9 *pD3D, HWND hWndDevice, UINT& adapterNumber)
@@ -353,7 +394,139 @@ UINT iNumberOfAdapters = pD3D->GetAdapterCount();
 	return E_FAIL;
 }
 
-HRESULT CDX9::InitD3D(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, bool bDoubleSizedWindow, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, GUID fullscreenAdapterId, const D3DDISPLAYMODE &displayMode)
+HRESULT CDX9::GetPresentationParams(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, const D3DDISPLAYMODE &displayMode, D3DPRESENT_PARAMETERS& d3dpp)
+{
+	if (bWindowedMode)
+	{
+		ZeroMemory( &d3dpp, sizeof(d3dpp) );
+		d3dpp.Windowed = TRUE;
+		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+		d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
+		d3dpp.hDeviceWindow = hWndDevice;
+		d3dpp.Flags = 0;//D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+		if (syncMode == HCFG::FSSM_VBL)
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+		else
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+	}
+	else
+	{
+		ZeroMemory( &d3dpp, sizeof(d3dpp) );
+		d3dpp.Windowed = FALSE;
+		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+		d3dpp.Flags = 0;//D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+		d3dpp.BackBufferCount = 1;
+		d3dpp.BackBufferHeight = displayMode.Height;
+		d3dpp.BackBufferWidth = displayMode.Width;
+		d3dpp.BackBufferFormat = displayMode.Format;
+		d3dpp.FullScreen_RefreshRateInHz = displayMode.RefreshRate;
+		if (syncMode == HCFG::FSSM_VBL)
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+		else
+			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+	}
+	return S_OK;
+}
+
+
+void CDX9::OnLostDevice()
+{
+	FreeSurfaces();
+	FreeTextures();
+	if (m_sprMessageText!=NULL)
+		m_sprMessageText->OnLostDevice();
+	if (m_dxfont!=NULL)
+		m_dxfont->OnLostDevice();
+	m_lblPaused.OnLostDevice();
+}
+
+HRESULT CDX9::OnResetDevice()
+{
+HRESULT hr = S_OK;
+	bool isWindowSize = false;
+	double oldx = this->m_assumed_dpi_x;
+	double oldy = this->m_assumed_dpi_y;
+
+	if (m_sprMessageText!=NULL)
+		m_sprMessageText->OnResetDevice();
+	if (m_dxfont!=NULL)
+		m_dxfont->OnResetDevice();
+	m_lblPaused.OnResetDevice();
+
+	D3DDISPLAYMODE currentDisplayMode;
+	hr = m_pd3dDevice->GetDisplayMode(0, &currentDisplayMode);
+	if (FAILED(hr))
+		return hr;
+	
+	hr = SetRenderStyle(m_bWindowedMode, m_bDoubleSizedWindow, m_bWindowedCustomSize, m_borderSize, m_bShowFloppyLed, m_bUseBlitStretch, m_stretch, m_filter, currentDisplayMode);
+	if(FAILED(hr))
+	{
+		return hr;
+	}
+	if (oldx != this->m_assumed_dpi_x || oldy != this->m_assumed_dpi_y)
+	{
+		isWindowSize = true;
+	}
+
+	hr = LoadTextures(currentDisplayMode.Format);
+	if(FAILED(hr))
+	{
+		return hr;
+	}
+	if (isWindowSize)
+	{
+		FreeFonts();
+	}
+	if (m_dxfont == NULL)
+	{
+		hr = LoadFonts();
+		if(FAILED(hr))
+		{
+			return hr;
+		}
+	}
+	if (m_sprMessageText == NULL)
+	{
+		hr = LoadSprites();
+		if(FAILED(hr))
+		{
+			return hr;
+		}
+	}
+	return hr;
+}
+
+HRESULT CDX9::OnInitaliseDevice(IDirect3DDevice9 *pd3dDevice)
+{
+HRESULT hr;
+	hr = m_lblPaused.SetDevice(pd3dDevice);
+	return hr;
+}
+
+HRESULT CDX9::Reset()
+{
+HRESULT hr = E_FAIL;
+	if (!m_pD3D)
+		return E_FAIL;
+	if (!m_pd3dDevice || !m_hWndDevice)
+		return E_FAIL;
+
+	OnLostDevice();
+	D3DPRESENT_PARAMETERS d3dpp;
+	hr = GetPresentationParams(m_hWndDevice, m_hWndFocus, m_bWindowedMode, this->m_appStatus->m_syncMode, m_iAdapterNumber, m_displayModeActual, d3dpp);
+	if (FAILED(hr))
+		return hr;
+
+	hr = m_pd3dDevice->Reset(&d3dpp); 
+	if (FAILED(hr))
+		return hr;
+	m_d3dpp = d3dpp;
+	OnResetDevice();
+
+	return hr;
+}
+
+HRESULT CDX9::InitD3D(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, GUID fullscreenAdapterId, const D3DDISPLAYMODE &displayMode)
 {
 D3DPRESENT_PARAMETERS d3dpp;
 D3DDISPLAYMODE chooseDisplayMode;
@@ -362,6 +535,8 @@ UINT iNumberOfAdapters;
 GUID empty;
 
 	ZeroMemory(&empty, sizeof(empty));
+	m_hWndDevice = hWndDevice;
+	m_hWndFocus = hWndFocus;
 
 	// Create the D3D object, which is needed to create the D3DDevice.
 	if (m_pD3D == NULL)
@@ -377,53 +552,41 @@ GUID empty;
 	if (adapterNumber < 0 || adapterNumber >= iNumberOfAdapters)
 		adapterNumber = D3DADAPTER_DEFAULT;
 
-	if (!bWindowedMode && fullscreenAdapterId == empty || adapterNumber < 0 || adapterNumber >= iNumberOfAdapters)
+	if (bWindowedMode)
 	{
 		UINT autoSelectAdapter = D3DADAPTER_DEFAULT;
 		hr = GetAdapterFromWindow(m_pD3D, hWndDevice, autoSelectAdapter);
 		if (SUCCEEDED(hr))
+		{
 			adapterNumber = autoSelectAdapter;
-	}
+		}
 
-	if (bWindowedMode)
-	{
-		// Set up the structure used to create the D3DDevice. Most parameters are
-		// zeroed out. We set Windowed to TRUE, since we want to do D3D in a
-		// window, and then set the SwapEffect to "discard", which is the most
-		// efficient method of presenting the back buffer to the display.  And 
-		// we request a back buffer format that matches the current desktop display 
-		// format.
-		ZeroMemory( &d3dpp, sizeof(d3dpp) );
-		d3dpp.Windowed = TRUE;
-		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;//D3DSWAPEFFECT_COPY;//D3DSWAPEFFECT_FLIP;//D3DSWAPEFFECT_DISCARD;
-		d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
-		d3dpp.hDeviceWindow = hWndDevice;
-		d3dpp.Flags = 0;//D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-		if (syncMode == HCFG::FSSM_VBL)
-			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
-		else
-			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-
-		// Create the Direct3D device. Here we are using the default adapter (most
-		// systems only have one, unless they have multiple graphics hardware cards
-		// installed) and requesting the HAL (which is saying we want the hardware
-		// device rather than a software one). Software vertex processing is 
-		// specified since we know it will work on all cards. On cards that support 
-		// hardware vertex processing, though, we would see a big performance gain 
-		// by specifying hardware vertex processing.
+		HRESULT hr = GetPresentationParams(hWndDevice, hWndFocus, bWindowedMode, syncMode, adapterNumber, displayMode, d3dpp);
+		if (FAILED(hr))
+			return hr;
 		if (m_pd3dDevice != NULL)
 		{
-			if (FAILED(m_pd3dDevice->Reset(&d3dpp)))
+			D3DDEVICE_CREATION_PARAMETERS dcp;
+			hr = m_pd3dDevice->GetCreationParameters(&dcp);
+			if (FAILED(hr))
+				return hr;		
+			if (dcp.AdapterOrdinal == adapterNumber)
 			{
-				CleanupD3D_Devices();
+				OnLostDevice();
+				hr = m_pd3dDevice->Reset(&d3dpp);
+				if (FAILED(hr))
+					this->CleanupD3D_Devices();
+			}
+			else
+			{
+				this->CleanupD3D_Devices();
 			}
 		}
 		if (m_pd3dDevice == NULL)
 		{
 			if (FAILED(hr = m_pD3D->CreateDevice(adapterNumber, D3DDEVTYPE_HAL, hWndFocus, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &m_pd3dDevice ) ) )
 			{
-				if (FAILED(m_pD3D->CreateDevice(adapterNumber, D3DDEVTYPE_REF, hWndFocus, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &m_pd3dDevice ) ) )
-					return E_FAIL;
+				return E_FAIL;
 			}
 		}
 		if(FAILED(m_pD3D->GetAdapterDisplayMode(adapterNumber, &chooseDisplayMode)))
@@ -433,6 +596,15 @@ GUID empty;
 	}
 	else
 	{
+		if (fullscreenAdapterId == empty)
+		{
+			UINT autoSelectAdapter = D3DADAPTER_DEFAULT;
+			hr = GetAdapterFromWindow(m_pD3D, hWndDevice, autoSelectAdapter);
+			if (SUCCEEDED(hr))
+			{
+				adapterNumber = autoSelectAdapter;
+			}
+		}
 		if (!CanDisplayManualMode(adapterNumber, displayMode, chooseDisplayMode))
 			if (!CanDisplayCurrentMode(adapterNumber, chooseDisplayMode, adapterNumber))
 				if (!CanDisplayOtherMode(adapterNumber, chooseDisplayMode))
@@ -451,25 +623,25 @@ GUID empty;
 			SetWindowPos(hWndFocus, HWND_TOPMOST, 0, 0, chooseDisplayMode.Width, chooseDisplayMode.Height, SWP_SHOWWINDOW);
 		}
 
-		ZeroMemory( &d3dpp, sizeof(d3dpp) );
-		d3dpp.Windowed = FALSE;
-		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-		d3dpp.Flags = 0;//D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-		d3dpp.BackBufferCount = 1;
-		d3dpp.BackBufferHeight = chooseDisplayMode.Height;
-		d3dpp.BackBufferWidth = chooseDisplayMode.Width;
-		d3dpp.BackBufferFormat = chooseDisplayMode.Format;
-		d3dpp.FullScreen_RefreshRateInHz = chooseDisplayMode.RefreshRate;
-		if (syncMode == HCFG::FSSM_VBL)
-			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
-		else
-			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-
+		HRESULT hr = GetPresentationParams(hWndDevice, hWndFocus, bWindowedMode, syncMode, adapterNumber, chooseDisplayMode, d3dpp);
+		if (FAILED(hr))
+			return hr;		
 		if (m_pd3dDevice != NULL)
 		{
-			if (FAILED(m_pd3dDevice->Reset(&d3dpp)))
+			D3DDEVICE_CREATION_PARAMETERS dcp;
+			hr = m_pd3dDevice->GetCreationParameters(&dcp);
+			if (FAILED(hr))
+				return hr;		
+			if (dcp.AdapterOrdinal == adapterNumber)
 			{
-				CleanupD3D_Devices();
+				OnLostDevice();
+				hr = m_pd3dDevice->Reset(&d3dpp);
+				if (FAILED(hr))
+					this->CleanupD3D_Devices();
+			}
+			else
+			{
+				this->CleanupD3D_Devices();
 			}
 		}
 		if (m_pd3dDevice == NULL)
@@ -480,23 +652,26 @@ GUID empty;
 			}
 		}
 	}
-
+	m_iAdapterNumber = adapterNumber;
 	m_d3dpp = d3dpp;
-	m_hWndDevice = hWndDevice;
+	m_displayModeActual = chooseDisplayMode;	
 
-	hr = SetRenderStyle(bWindowedMode, bDoubleSizedWindow, m_bWindowedCustomSize, borderSize, bShowFloppyLed, bUseBlitStretch, stretch, filter, chooseDisplayMode);
+	m_bWindowedMode = bWindowedMode;
+	m_bDoubleSizedWindow = bDoubleSizedWindow;
+	m_bWindowedCustomSize = bWindowedCustomSize;
+	m_borderSize = borderSize;
+	m_bShowFloppyLed = bShowFloppyLed;
+	m_bUseBlitStretch = bUseBlitStretch;
+	m_stretch = stretch;
+	m_filter = filter;
+
+	hr = OnInitaliseDevice(m_pd3dDevice);
 	if (FAILED(hr))
 	{
 		return E_FAIL;
 	}
-
-	hr = LoadTextures(chooseDisplayMode.Format);
-	if(FAILED(hr))
-	{
-		return hr;
-	}
-
-    return S_OK;
+	hr = OnResetDevice();
+    return hr;
 }
 
 HRESULT CDX9::SetRenderStyle(bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, D3DDISPLAYMODE currentDisplayMode)
@@ -528,11 +703,14 @@ D3DRECT drcStatusBar;
 
 	m_bWindowedMode = bWindowedMode;
 	m_bDoubleSizedWindow = bDoubleSizedWindow;
+	m_bWindowedCustomSize = bWindowedCustomSize;
 	m_borderSize = borderSize;
 	m_bShowFloppyLed = bShowFloppyLed;
 	m_bUseBlitStretch = bUseBlitStretch;
-	m_filter = filter;
 	m_stretch = stretch;
+	m_filter = filter;
+	m_assumed_dpi_y = ASSUMED_DPI_DEFAULT;
+	m_assumed_dpi_x = ASSUMED_DPI_DEFAULT;
 	int heightToolbar = GetToolBarHeight(bShowFloppyLed);
 	hr = E_FAIL;
 	if (bWindowedMode)
@@ -717,10 +895,7 @@ D3DRECT drcStatusBar;
 		m_appStatus->m_ScreenDepth = GetBitsPerPixel(currentDisplayMode.Format);
 		m_bStatusBarOk = bStatusBarOk;
 		m_bTargetRectOk = bTargetRectOk;
-		if (bTargetRectOk)
-		{
-			CopyRect(&m_rcTargetRect, &rcTargetRect);
-		}
+		CopyRect(&m_rcTargetRect, &rcTargetRect);
 		if (bStatusBarOk)
 		{
 			m_drcStatusBar = drcStatusBar;
@@ -752,6 +927,9 @@ D3DRECT drcStatusBar;
 			m_pd3dDevice->SetPaletteEntries(0, &m_paletteEntry[0]);
 		}
 	}
+
+	m_assumed_dpi_x = (double)(m_rcTargetRect.bottom - m_rcTargetRect.top) / 10;
+	m_assumed_dpi_y = m_assumed_dpi_x;
 	return hr;
 }
 
@@ -1088,6 +1266,35 @@ int CDX9::GetToolBarHeight(BOOL bShowFloppyLed)
 {
 	return bShowFloppyLed ? m_iToolbarHeight : 0;
 }
+
+int CDX9::GetDisplayRect(LPRECT pDisplayRect)
+{
+HRESULT hr = E_FAIL;
+	if (m_bWindowedMode)
+	{
+		if (m_hWndDevice)
+		{
+			if (GetClientRect(m_hWndDevice, pDisplayRect) !=0)
+			{
+				hr = S_OK;
+			}
+		}
+	}
+	else
+	{
+		D3DDISPLAYMODE displayMode;
+		if (m_pd3dDevice)
+		{
+			hr = m_pd3dDevice->GetDisplayMode(0, &displayMode);
+			if (SUCCEEDED(hr))
+			{
+				SetRect(pDisplayRect, 0, 0, displayMode.Width, displayMode.Height);
+			}
+		}
+	}
+	return hr;
+}
+
 
 void CDX9::CheckFilterCap(bool bIsMagnifying, D3DTEXTUREFILTERTYPE filter)
 {
@@ -2602,39 +2809,19 @@ PALETTEENTRY *pPal = NULL;
 		return hr;
 	}
 
-	if (FAILED(hr = D3DXCreateSprite(m_pd3dDevice,  &m_psprLedMotor)))
-	{
-		return hr;
-	}
 	if (FAILED(hr = D3DXCreateSprite(m_pd3dDevice,  &m_psprLedDrive)))
 	{
 		return hr;
 	}
-	if (FAILED(hr = D3DXCreateSprite(m_pd3dDevice,  &m_psprLedWrite)))
-	{
-		return hr;
-	}
-
-
 	return D3D_OK;
 }
 
 void CDX9::FreeTextures()
 {
-	if (m_psprLedMotor)
-	{
-		m_psprLedMotor->Release();
-		m_psprLedMotor = NULL;
-	}
 	if (m_psprLedDrive)
 	{
 		m_psprLedDrive->Release();
 		m_psprLedDrive = NULL;
-	}
-	if (m_psprLedWrite)
-	{
-		m_psprLedWrite->Release();
-		m_psprLedWrite = NULL;
 	}
 
 	if (m_ptxLedGreenOn)
@@ -2671,6 +2858,50 @@ void CDX9::FreeTextures()
 	{
 		m_ptxLedBlueOff->Release();
 		m_ptxLedBlueOff = NULL;
+	}
+}
+
+void CDX9::DrawDriveSprites()
+{
+HRESULT hr;
+
+	if (this->m_bStatusBarOk)
+	{
+		if (SUCCEEDED(hr = this->m_psprLedDrive->Begin(0)))
+		{
+			if (m_appStatus->m_bDiskLedMotor)
+				this->m_psprLedDrive->Draw(this->m_ptxLedGreenOn, NULL, NULL, &this->m_vecPositionLedMotor, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+			else
+				this->m_psprLedDrive->Draw(this->m_ptxLedGreenOff, NULL, NULL, &this->m_vecPositionLedMotor, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+
+			if (m_appStatus->m_bDiskLedDrive)
+				this->m_psprLedDrive->Draw(this->m_ptxLedBlueOn, NULL, NULL, &this->m_vecPositionLedDrive, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+			else
+				this->m_psprLedDrive->Draw(this->m_ptxLedBlueOff, NULL, NULL, &this->m_vecPositionLedDrive, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+
+			if (m_appStatus->m_bDiskLedWrite)
+				this->m_psprLedDrive->Draw(this->m_ptxLedRedOn, NULL, NULL, &this->m_vecPositionLedWrite, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+			else
+				this->m_psprLedDrive->Draw(this->m_ptxLedRedOff, NULL, NULL, &this->m_vecPositionLedWrite, D3DCOLOR_RGBA(0xff, 0xff, 0xff, 0xff ));
+
+			this->m_psprLedDrive->End();
+		}
+	}
+}
+
+void CDX9::DrawUi()
+{
+	RECT rc;
+	if (m_appStatus->m_bPaused)
+	{
+		if (SUCCEEDED(m_lblPaused.GetTextRect(&rc)))
+		{
+			int x = (m_rcTargetRect.right - m_rcTargetRect.left - (rc.right - rc.left)) / 2 + m_rcTargetRect.left;
+			int y = (m_rcTargetRect.bottom - m_rcTargetRect.top - (rc.bottom - rc.top)) / 2 + m_rcTargetRect.top;
+			m_lblPaused.xpos = x;
+			m_lblPaused.ypos = y;
+			m_lblPaused.Draw();
+		}
 	}
 }
 

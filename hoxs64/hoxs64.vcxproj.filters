@@ -318,6 +318,9 @@
     <ClCompile Include="cart_kcs_power.cpp">
       <Filter>Source Files\cart</Filter>
     </ClCompile>
+    <ClCompile Include="DxWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -617,6 +620,9 @@
     <ClInclude Include="cart_kcs_power.h">
       <Filter>Header Files\cart</Filter>
     </ClInclude>
+    <ClInclude Include="DxWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="c64def.asm">
@@ -730,6 +736,7 @@
     <None Include="img\greenfind.ico">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="img\window_fullscreen.png" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resfile.rc">

@@ -543,6 +543,7 @@
     <ClCompile Include="cart_zaxxon.cpp" />
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="cart_final_cartridge_iii.cpp" />
+    <ClCompile Include="DxWindow.cpp" />
     <ClCompile Include="FDI.cpp" />
     <ClCompile Include="filestream.cpp" />
     <ClCompile Include="HuffCompression.cpp" />
@@ -880,6 +881,7 @@
     <ClInclude Include="commandresult.h" />
     <ClInclude Include="diagbreakpointvicraster.h" />
     <ClInclude Include="cart_final_cartridge_iii.h" />
+    <ClInclude Include="DxWindow.h" />
     <ClInclude Include="FDI.h" />
     <ClInclude Include="filestream.h" />
     <ClInclude Include="IC64.h" />
@@ -1025,6 +1027,7 @@
     <None Include="img\greenfind.ico" />
     <None Include="img\icon1.ico" />
     <None Include="img\icon_sma.ico" />
+    <None Include="img\window_fullscreen.png" />
     <None Include="Kernal.rom">
       <DeploymentContent>true</DeploymentContent>
     </None>
