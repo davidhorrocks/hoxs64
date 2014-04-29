@@ -9,6 +9,9 @@
 #include <string.h>
 #include "DxWindow.h"
 
+#ifndef CLEARTYPE_QUALITY
+#define CLEARTYPE_QUALITY (5)
+#endif
 
 DxObject::DxObject()
 {

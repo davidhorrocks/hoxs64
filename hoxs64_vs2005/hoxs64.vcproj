@@ -270,6 +270,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\DxWindow.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\emuwin.cpp"
 				>
 			</File>
@@ -513,6 +517,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\hoxs64\cart_kcs_power.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\hoxs64\cart_magic_desk.cpp"
 					>
 				</File>
@@ -673,6 +681,10 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\dxstuff9.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\DxWindow.h"
 				>
 			</File>
 			<File
@@ -971,10 +983,6 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\candy_clock.bmp"
-				>
-			</File>
-			<File
-				RelativePath="..\hoxs64\cart_kcs_power.cpp"
 				>
 			</File>
 			<File
