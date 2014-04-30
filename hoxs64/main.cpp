@@ -346,58 +346,49 @@ BOOL bRet;
 		{
 			//Handle paused or non ready states in a CPU friendly manner.
 			SoundHalt();
-			if (m_bActive && !m_bReady && !m_bClosing)
+			if (!m_bClosing)
 			{
-				hRet = E_FAIL;
-				if (dx.m_pd3dDevice != NULL)
+				if (m_bActive && !m_bReady)
 				{
-					hRet = dx.m_pd3dDevice->TestCooperativeLevel();
-					if (hRet == D3DERR_DEVICENOTRESET)
+					hRet = E_FAIL;
+					if (dx.m_pd3dDevice != NULL)
 					{
-						hRet = dx.Reset();
-						if (SUCCEEDED(hRet))
+						hRet = dx.m_pd3dDevice->TestCooperativeLevel();
+						if (hRet == D3DERR_DEVICENOTRESET)
 						{
-							m_pWinAppWindow->SetColours();
+							hRet = dx.Reset();
+							if (SUCCEEDED(hRet))
+							{
+								m_pWinAppWindow->SetColours();
+								m_bReady = true;
+							}
+							else
+							{
+								if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+									m_bReady = true;
+								else
+									G::WaitMessageTimeout(1000);
+							}					
+						}
+						else if (hRet == D3DERR_DEVICELOST)
+						{
+							G::WaitMessageTimeout(1000);
+						}
+						else if (hRet == D3D_OK)
+						{
 							m_bReady = true;
 						}
-						else
-						{
-							if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
-								m_bReady = true;
-							else
-								G::WaitMessageTimeout(1000);
-						}					
 					}
-					else if (hRet == D3DERR_DEVICELOST)
+					else
 					{
 						G::WaitMessageTimeout(1000);
-					}
-					else if (hRet == D3D_OK)
-					{
-						m_bReady = true;
 					}
 				}
 				else
 				{
-					G::WaitMessageTimeout(1000);
-					//if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
-					//	m_bReady = true;
-					//else
-					//	G::WaitMessageTimeout(5000);
+					if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+						WaitMessage();
 				}
-			}
-			else
-			{
-				if (!m_bClosing)
-				{
-					m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
-					if (m_bWindowed)
-					{
-						m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
-					}
-				}
-				if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
-					WaitMessage();
 			}
 		}
 	}

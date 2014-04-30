@@ -382,7 +382,7 @@ LRESULT CEmuWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 /*
-Function: UpdateC64Window
+Function: RenderWindow
 Description:
 Draws the small dx surface to the dx back buffer.
 Draws the drive sprites to the dx back buffer.
