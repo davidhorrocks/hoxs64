@@ -135,6 +135,31 @@ C64WindowDimensions dims;
 	}
 }
 
+void CAppWindow::GetMinimumWindowedSize(int *w, int *h)
+{
+	RECT rcClient;
+	RECT rcFrame;
+	const int MINPIXELS = 64;
+	int width = MINPIXELS + GetSystemMetrics(SM_CXSIZEFRAME)*2;
+	int height = MINPIXELS + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU);
+	HWND hWnd = this->m_hWnd;
+	if (IsWindow(hWnd))
+	{
+		if (GetClientRect(hWnd, &rcClient))
+		{
+			if (GetWindowRect(hWnd, &rcFrame))
+			{
+				width = max(width, (rcFrame.right - rcFrame.left) - (rcClient.right - rcClient.left - MINPIXELS));
+				height = max(height, (rcFrame.bottom - rcFrame.top) - (rcClient.bottom - rcClient.top - MINPIXELS));
+			}
+		}
+	}
+	if (w)
+		*w = width;
+	if (h)
+		*h = height;
+}
+
 bool CAppWindow::CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h)
 {
 	int padw = GetSystemMetrics(SM_CXSIZEFRAME)*2;
@@ -310,20 +335,12 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	case WM_GETMINMAXINFO:
 		if (appStatus->m_bWindowed)
 		{
-			RECT rcClient;
-			RECT rcFrame;
-			const int MINPIXELS = 64;
+			int w;
+			int h;
+			GetMinimumWindowedSize(&w, &h);
 			pMinMax = (MINMAXINFO *)lParam;
-			pMinMax->ptMinTrackSize.x = MINPIXELS + GetSystemMetrics(SM_CXSIZEFRAME)*2;
-			pMinMax->ptMinTrackSize.y = MINPIXELS + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU);
-			if (GetClientRect(hWnd, &rcClient))
-			{
-				if (GetWindowRect(hWnd, &rcFrame))
-				{
-					pMinMax->ptMinTrackSize.x = max(pMinMax->ptMinTrackSize.x, (rcFrame.right - rcFrame.left) -  (rcClient.right - rcClient.left - MINPIXELS));
-					pMinMax->ptMinTrackSize.y = max(pMinMax->ptMinTrackSize.y, (rcFrame.bottom - rcFrame.top) -  (rcClient.bottom - rcClient.top - MINPIXELS));
-				}
-			}
+			pMinMax->ptMinTrackSize.x = w;
+			pMinMax->ptMinTrackSize.y = h;
 		}
 		return 0;
 	case WM_DISPLAYCHANGE:

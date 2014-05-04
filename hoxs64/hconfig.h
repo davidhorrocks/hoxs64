@@ -29,9 +29,9 @@ class CConfig
 {
 public:
 	CConfig();
-	static HRESULT SaveWindowSetting(HWND);
+	HRESULT SaveWindowSetting(HWND);
 	static HRESULT SaveMDIWindowSetting(HWND hWnd);
-	static HRESULT LoadWindowSetting(POINT& pos);
+	HRESULT LoadWindowSetting(POINT& pos, bool& bWindowedCustomSize, int& winWidth, int& winHeight);
 	static HRESULT LoadMDIWindowSetting(POINT& pos, SIZE& size);
 	static int GetKeyScanCode(UINT ch);
 

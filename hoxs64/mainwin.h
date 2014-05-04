@@ -21,6 +21,7 @@ public:
 	void UpdateMenu();
 	void SetMainWindowSize(bool bDoubleSizedWindow);
 	void GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h);
+	void GetMinimumWindowedSize(int *w, int *h);
 	bool CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h);
 	void SaveMainWindowSize();
 	HRESULT ResetDirect3D();

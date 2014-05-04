@@ -116,6 +116,8 @@ public:
 	VS_FIXEDFILEINFO m_Vinfo;
 	bool m_bStartFullScreen;
 	CDX9 dx;
+private:
+	POINT GetCenteredPos(int w, int h);
 };
 
 

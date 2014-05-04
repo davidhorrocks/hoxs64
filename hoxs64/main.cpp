@@ -386,6 +386,10 @@ BOOL bRet;
 				}
 				else
 				{
+					if (m_bReady)
+					{
+						UpdateEmulationDisplay();
+					}
 					if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 						WaitMessage();
 				}
@@ -532,7 +536,6 @@ VS_FIXEDFILEINFO *CApp::GetVersionInfo()
 
 HRESULT CApp::InitInstance(int nCmdShow, LPTSTR lpCmdLine)
 {
-int w,h;
 BOOL br;
 HRESULT hr;
 DWORD lr;
@@ -648,25 +651,38 @@ TCHAR ext[_MAX_EXT];
 	}
 	m_pWinAppWindow->m_pWinEmuWin->SetNotify(this);
 
-	m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &w, &h);
-
+	int minWidth;
+	int minHeight;
+	m_pWinAppWindow->GetMinimumWindowedSize(&minWidth, &minHeight);
 	POINT winpos = {0,0};
-	hr = mainCfg.LoadWindowSetting(winpos);
+	bool bWindowedCustomSize = false;
+	int winWidth;
+	int winHeight;
+
+	//Look for saved x,y position and custom window size.
+	hr = mainCfg.LoadWindowSetting(winpos, bWindowedCustomSize, winWidth, winHeight);
 	if (FAILED(hr))
 	{
-		RECT rcWorkArea;
-		br = SystemParametersInfo(SPI_GETWORKAREA, sizeof(RECT), &rcWorkArea, 0);
-		if (!br) 
-		{
-			rcWorkArea.left = rcWorkArea.top = 0;
-			rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
-			rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
-		}
-		winpos.x = max(0, (rcWorkArea.right - rcWorkArea.left - w) / 2);
-		winpos.y = max(0, (rcWorkArea.bottom - rcWorkArea.top - h) / 2);
+		bWindowedCustomSize = false;
+		m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &winWidth, &winHeight);
+		winpos = GetCenteredPos(winWidth, winHeight);
 	}
+	else
+	{
+		if (bWindowedCustomSize)
+		{
+			winWidth = max(minWidth, winWidth);
+			winHeight = max(minHeight, winHeight);		
+		}
+		else
+		{
+			m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &winWidth, &winHeight);
+		}
+	}
+	//Apply custom window size flag.
+	m_bWindowedCustomSize = bWindowedCustomSize;
 
-	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, w, h, NULL);
+	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, winWidth, winHeight, NULL);
 	if (!hWndMain)
 	{
 		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
@@ -710,7 +726,8 @@ TCHAR ext[_MAX_EXT];
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
-	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, false, 0, 0, m_bUseBlitStretch);
+
+	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, m_bWindowedCustomSize, winWidth, winHeight, m_bUseBlitStretch);
 	if (S_OK != hr) 
 	{
 		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
@@ -757,6 +774,22 @@ TCHAR ext[_MAX_EXT];
 	ShowWindow(hWndMain, nCmdShow);
 	UpdateWindow(hWndMain);
 	return (S_OK);
+}
+
+POINT CApp::GetCenteredPos(int w, int h)
+{
+	POINT r = {0,0};
+	RECT rcWorkArea;
+	BOOL br = SystemParametersInfo(SPI_GETWORKAREA, sizeof(RECT), &rcWorkArea, 0);
+	if (!br) 
+	{
+		rcWorkArea.left = rcWorkArea.top = 0;
+		rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
+		rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
+	}
+	r.x = max(0, (rcWorkArea.right - rcWorkArea.left - w) / 2);
+	r.y = max(0, (rcWorkArea.bottom - rcWorkArea.top - h) / 2);
+	return r;
 }
 
 void CApp::FreeDirectX(){

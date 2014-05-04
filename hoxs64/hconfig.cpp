@@ -611,12 +611,24 @@ WINDOWPLACEMENT wp;
 		G::ShowLastError(NULL);
 		return E_FAIL;
 	} 
-
-	wsprintf(szValue, TEXT("%ld"), (DWORD) (pt_winpos.x));
+	
+	wsprintf(szValue, TEXT("%d"), (int) (pt_winpos.x));
 	RegSetValueEx(hKey1, TEXT("MainWinPosX"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%ld"), (DWORD) (pt_winpos.y));
+	wsprintf(szValue, TEXT("%d"), (int) (pt_winpos.y));
 	RegSetValueEx(hKey1, TEXT("MainWinPosY"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+
+	DWORD dwWindowedCustomSize = this->m_bWindowedCustomSize ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("WindowedCustomSize"), 0, REG_DWORD, (LPBYTE) &dwWindowedCustomSize, sizeof(dwWindowedCustomSize));
+
+	int w = max(0, wp.rcNormalPosition.right - wp.rcNormalPosition.left);
+	int h = max(0, wp.rcNormalPosition.bottom - wp.rcNormalPosition.top);		
+
+	_sntprintf_s(szValue, _TRUNCATE, TEXT("%d"), w);
+	RegSetValueEx(hKey1, TEXT("MainWinWidth"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+
+	_sntprintf_s(szValue, _TRUNCATE, TEXT("%d"), h);
+	RegSetValueEx(hKey1, TEXT("MainWinHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 	
 	RegCloseKey(hKey1);
 
@@ -674,57 +686,91 @@ WINDOWPLACEMENT wp;
 	return S_OK;
 }
 
-HRESULT CConfig::LoadWindowSetting(POINT& pos)
+HRESULT CConfig::LoadWindowSetting(POINT& pos, bool& bWindowedCustomSize, int& winWidth, int& winHeight)
 {
 TCHAR szValue[20];
 HKEY  hKey1; 
 LONG   lRetCode; 
 ULONG tempLenValue,lenValue;
 
-	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
-		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"),
-		0, KEY_READ,
-		&hKey1);	
-
-	int top = 0;
-	int left = 0;
-
-	int max_x = GetSystemMetrics(SM_CXMAXTRACK);
-	int max_y = GetSystemMetrics(SM_CYMAXTRACK);
-
-	pos.x = left;
-	pos.y = top;
-	bool bFound = false;
-	if (lRetCode == ERROR_SUCCESS)
+	DWORD _WindowedCustomSize = 0;
+	POINT _pos = {0, 0};
+	int w = 0;
+	int h = 0;
+	bool ok = false;
+	bool customok = false;
+	do
 	{
-		bFound = true;
-		lenValue = sizeof(szValue);
+		lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
+			TEXT("SOFTWARE\\Hoxs64\\1.0\\General"),
+			0, KEY_READ,
+			&hKey1);	
+		if (lRetCode != ERROR_SUCCESS)
+			break;
 
+		const int max_width = GetSystemMetrics(SM_CXMAXTRACK);
+		const int max_height = GetSystemMetrics(SM_CYMAXTRACK);
+		const int min_width = GetSystemMetrics(SM_CXMINTRACK);
+		const int min_height = GetSystemMetrics(SM_CYMINTRACK);
+
+		lenValue = sizeof(szValue);
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			pos.x = max(min(_ttol(szValue), max_x), left);
-		}
-		else
-			bFound = false;
+		if (lRetCode != ERROR_SUCCESS)
+			break;
+		_pos.x = _ttol(szValue);
+		if (errno != 0)
+			break;
 		
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
+		if (lRetCode != ERROR_SUCCESS)
+			break;
+		_pos.y = _ttol(szValue);
+		if (errno != 0)
+			break;
+		ok = true;
+
+		tempLenValue = sizeof(_WindowedCustomSize);
+		lRetCode = RegQueryValueEx(hKey1, TEXT("WindowedCustomSize"), NULL, NULL, (PBYTE) &_WindowedCustomSize, &tempLenValue);
+		if (lRetCode != ERROR_SUCCESS)
+			break;
+
+		if (_WindowedCustomSize)
 		{
-			pos.y = max(min(_ttol(szValue), max_y), top);
+			tempLenValue = lenValue;
+			lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+			if (lRetCode != ERROR_SUCCESS)
+				break;
+			w = max(min(_ttol(szValue), max_width), min_width);
+			if (errno != 0)
+				break;
+			tempLenValue = lenValue;
+			lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+			if (lRetCode != ERROR_SUCCESS)
+				break;
+			h = max(min(_ttol(szValue), max_height), min_height);
+			if (errno != 0)
+				break;
+			customok = true;
+
+		}		
+	} while(false);
+	if (ok)
+	{
+		if (!customok)
+		{
+			_WindowedCustomSize = false;
+			w = 0;
+			h = 0;
 		}
-		else
-			bFound = false;
-
+		pos = _pos;
+		winWidth = w;
+		winHeight = h;
+		bWindowedCustomSize = _WindowedCustomSize != 0;
+		m_bWindowedCustomSize = bWindowedCustomSize;
 	}
-
-	if (bFound)
-		return S_OK;
-	else
-		return E_FAIL;
-
+	return ok ? S_OK : E_FAIL;
 }
 
 HRESULT CConfig::LoadMDIWindowSetting(POINT& pos, SIZE& size)
@@ -1175,7 +1221,7 @@ void CConfig::LoadDefaultSetting()
 	m_bLimitSpeed = true;
 	m_bSIDResampleMode = true;
 	m_syncMode = HCFG::FSSM_VBL;
-	m_bDoubleSizedWindow = false;
+	m_bDoubleSizedWindow = true;
 	m_bUseBlitStretch = true;
 
 	m_bUseKeymap = false;
@@ -1207,7 +1253,7 @@ void CConfig::LoadDefaultSetting()
 	m_blitFilter = HCFG::EMUWINFILTER_AUTO;
 	m_borderSize = HCFG::EMUBORDER_TV;
 	m_bShowFloppyLed = true;
-	m_fps = HCFG::EMUFPS_50;
+	m_fps = HCFG::EMUFPS_50_12;
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
