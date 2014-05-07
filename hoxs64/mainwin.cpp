@@ -442,14 +442,16 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		case IDM_SETTING_RESTOREDEFAULT:
 			appStatus->SoundHalt();
 			appStatus->RestoreDefaultSettings();
-			this->m_pWinEmuWin->UpdateC64Window();
+			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+				this->m_pWinEmuWin->Present(0);
 			MessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			return 0;
 		case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
 			appStatus->SoundHalt();
 			appStatus->RestoreUserSettings();
-			this->m_pWinEmuWin->UpdateC64Window();
+			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+				this->m_pWinEmuWin->Present(0);
 			MessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			return 0;
@@ -924,7 +926,8 @@ HRESULT hr;
 		if (appStatus->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
 			appStatus->m_fskip = 1;
 
-		this->m_pWinEmuWin->UpdateC64Window();
+		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+			this->m_pWinEmuWin->Present(0);
 	}
 	return hr;
 }

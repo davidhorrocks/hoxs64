@@ -295,7 +295,11 @@ int cycle, line;
 
 void CEmuWindow::UpdateC64WindowWithObjects()
 {
-	this->UpdateC64Window();
+	HRESULT hr = this->UpdateC64Window();
+	if (SUCCEEDED(hr))
+	{
+		this->Present(0);
+	}
 	if (appStatus->m_bWindowed && appStatus->m_bDebug && !appStatus->m_bRunning && m_bDrawVicRasterBreakpoints)
 	{
 		HWND hWnd = this->GetHwnd();
@@ -432,18 +436,22 @@ HRESULT hr = E_FAIL;
 	{
 		//CEmuWindow::RenderWindow Stretch-blits from the dx small surface to the dx backbuffer.
 		hr = RenderWindow();
-		if (SUCCEEDED(hr))
+	}
+	return hr;
+}
+
+HRESULT CEmuWindow::Present(DWORD dwFlags)
+{
+	HRESULT hr = dx->Present(dwFlags);
+	if (FAILED(hr))
+	{
+		if (hr == D3DERR_WASSTILLDRAWING)
+			return hr;
+		HRESULT hr = dx->m_pd3dDevice->TestCooperativeLevel();
+		if (FAILED(hr))
 		{
-			hr = dx->m_pd3dDevice->Present(NULL, NULL, NULL, NULL);
-			if (FAILED(hr))// D3DERR_DEVICELOST
-			{
-				hr = dx->m_pd3dDevice->TestCooperativeLevel();
-				if (FAILED(hr))// D3DERR_DEVICELOST)
-				{
-					appStatus->m_bReady = false;
-					appStatus->SoundHalt();
-				}
-			}
+			appStatus->m_bReady = false;
+			appStatus->SoundHalt();
 		}
 	}
 	return hr;

@@ -20,7 +20,7 @@ public:
 	void ClearSurfaces();
 	HRESULT UpdateC64Window();
 	void UpdateC64WindowWithObjects();
-
+	HRESULT Present(DWORD dwFlags);
 
 	void SetNotify(INotify *pINotify);
 

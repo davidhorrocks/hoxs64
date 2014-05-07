@@ -56,6 +56,7 @@ public:
 	IDirect3DSurface9 *GetSmallSurface();
 	void DrawDriveSprites();
 	void DrawUi();
+	HRESULT Present(DWORD dwFlags);
 	HRESULT EnumDevices(DWORD, LPDIENUMDEVICESCALLBACK, LPVOID, DWORD);
 	HRESULT InitJoys(HWND , struct joyconfig &,struct joyconfig &);
 	void ReleaseJoy();
@@ -119,7 +120,7 @@ public:
 	CAppStatus *m_appStatus;
 	IDirect3D9            *m_pD3D; // Used to create the D3DDevice
 	IDirect3DDevice9      *m_pd3dDevice; // Our rendering device
-
+	IDirect3DSwapChain9   *m_pd3dSwapChain;
 	//The rectangle (in device pixels) of the C64 display with in the scaled dx backbuffer.
 	//This is used for a blit from the dx small surface to the dx backbuffer.
 	RECT m_rcTargetRect;
@@ -186,7 +187,6 @@ private:
 	bool m_bStatusBarOk;
 	LPDIRECTINPUT7		pDI;
 	int m_soundResumeDelay;
-	int m_soundVolumeDelay;
 	HINSTANCE DIHinst;
 	DIRECTDRAWCREATEEX pDirectDrawCreateEx;
 	DIRECTINPUTCREATEEX pDirectInputCreateEx;
@@ -206,7 +206,6 @@ private:
 	HCFG::EMUWINDOWSTRETCH m_stretch;
 	static const int SOUNDRESUMEDELAY = 25;
 	static const int SOUNDVOLUMEDELAY = 25;
-	static const int SOUNDVOLUMEDELAYZERO = 26;
 	static const int m_iToolbarHeight = 10;
 };
 

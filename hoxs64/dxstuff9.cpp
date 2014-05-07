@@ -38,6 +38,7 @@ int i;
 
 	m_pD3D       = NULL; // Used to create the D3DDevice
 	m_pd3dDevice = NULL; // Our rendering device
+	m_pd3dSwapChain = NULL;
 	m_pDiplaymodes = NULL;
 	for (int i=0; i < _countof(m_pSmallSurface); i++)
 		m_pSmallSurface[i] = NULL;
@@ -86,7 +87,6 @@ int i;
 	m_sprMessageText = NULL;
 
 	m_soundResumeDelay = 0;
-	m_soundVolumeDelay = 0;
 	m_hWndDevice = NULL;
 	m_hWndFocus = NULL;
 	m_iAdapterNumber = 0;
@@ -296,6 +296,11 @@ void CDX9::CleanupD3D_Devices()
 		LocalFree(m_pDiplaymodes);
 		m_pDiplaymodes = NULL;
 	}
+	if (m_pd3dSwapChain != NULL)
+	{
+		m_pd3dSwapChain->Release();
+		m_pd3dSwapChain = NULL;
+	}
 
 	if( m_pd3dDevice != NULL) 
         m_pd3dDevice->Release();
@@ -392,6 +397,14 @@ UINT iNumberOfAdapters = pD3D->GetAdapterCount();
 		}
 	}
 	return E_FAIL;
+}
+
+HRESULT CDX9::Present(DWORD dwFlags)
+{
+	if (m_pd3dSwapChain!=NULL)
+		return m_pd3dSwapChain->Present(NULL, NULL, NULL, NULL, dwFlags);
+	else
+		return E_FAIL;
 }
 
 HRESULT CDX9::GetPresentationParams(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, const D3DDISPLAYMODE &displayMode, D3DPRESENT_PARAMETERS& d3dpp)
@@ -500,6 +513,11 @@ HRESULT CDX9::OnInitaliseDevice(IDirect3DDevice9 *pd3dDevice)
 {
 HRESULT hr;
 	hr = m_lblPaused.SetDevice(pd3dDevice);
+	if (pd3dDevice!=NULL)
+	{
+		if (m_pd3dSwapChain == NULL)
+			hr = pd3dDevice->GetSwapChain(0, &m_pd3dSwapChain);
+	}
 	return hr;
 }
 
@@ -2282,8 +2300,6 @@ HRESULT CDX9::OpenDirectSound(HWND hWnd, HCFG::EMUFPS fps)
 {
 HRESULT hr;
 DSBUFFERDESC dsbdesc;
-//LPVOID ptr1;
-//DWORD size1;
 
 	ClearError();
 	CloseDirectSound();
@@ -2329,7 +2345,7 @@ DSBUFFERDESC dsbdesc;
 	pPrimarySoundBuffer->Release();
 	pPrimarySoundBuffer = NULL;
 	
-	SoundBufferSize = m_wfx.nSamplesPerSec * m_wfx.nBlockAlign / 50  * 6;
+	SoundBufferSize = m_wfx.nSamplesPerSec * m_wfx.nBlockAlign;// / 50  * 6;
 
 	ZeroMemory(&dsbdesc, sizeof(DSBUFFERDESC));
 	dsbdesc.dwSize = sizeof(DSBUFFERDESC);
@@ -2433,14 +2449,9 @@ int i;
 
 void CDX9::SoundHalt(short value)
 {
-	//TEST
-	//m_soundResumeDelay = SOUNDRESUMEDELAY;
 	m_soundResumeDelay = 0;
-	m_soundVolumeDelay = SOUNDVOLUMEDELAYZERO;
 	if (pSecondarySoundBuffer)
 	{
-		//TEST
-		//pSecondarySoundBuffer->SetVolume(DSBVOLUME_MIN);
 		ClearSoundBuffer(value);
 		pSecondarySoundBuffer->Stop();
 	}
@@ -2448,21 +2459,10 @@ void CDX9::SoundHalt(short value)
 
 void CDX9::SoundResume()
 {
-DWORD SoundStatus;
+DWORD soundStatus;
 LONG vol;
-//HRESULT hr;
 	if (pSecondarySoundBuffer)
 	{
-		//TEST
-		if (m_soundVolumeDelay > 0)
-		{
-			--m_soundVolumeDelay;
-			if (m_soundVolumeDelay<SOUNDVOLUMEDELAYZERO)
-				vol = (LONG) ceil ((double)(DSBVOLUME_MIN - DSBVOLUME_MAX) * ((double)m_soundVolumeDelay / (double)(SOUNDVOLUMEDELAY-1)));
-			else
-				vol = DSBVOLUME_MIN;
-			//hr = pSecondarySoundBuffer->SetVolume(vol);
-		}
 		if (m_soundResumeDelay > 0)
 		{
 			--m_soundResumeDelay;
@@ -2470,19 +2470,20 @@ LONG vol;
 		else
 		{
 			m_soundResumeDelay = SOUNDRESUMEDELAY;
-			if (S_OK == pSecondarySoundBuffer->GetStatus(&SoundStatus))
+			if (S_OK == pSecondarySoundBuffer->GetStatus(&soundStatus))
 			{
-				if (SoundStatus & DSBSTATUS_BUFFERLOST)
+				if (soundStatus & DSBSTATUS_BUFFERLOST)
 				{
 					if (S_OK == pSecondarySoundBuffer->Restore())
 					{
 						pSecondarySoundBuffer->Play(0,0,DSBPLAY_LOOPING);
 					}
+					m_soundResumeDelay = 0;
 				}
-				else if ((SoundStatus & DSBSTATUS_PLAYING) == 0)
+				else if ((soundStatus & DSBSTATUS_PLAYING) == 0)
 				{
 					pSecondarySoundBuffer->Play(0,0,DSBPLAY_LOOPING);
-					//pSecondarySoundBuffer->SetVolume(DSBVOLUME_MAX);
+					m_soundResumeDelay = 0;
 				}
 			}
 		}

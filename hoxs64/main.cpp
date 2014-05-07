@@ -133,7 +133,7 @@ HRESULT hRet;
 ULARGE_INTEGER frequency, last_counter, new_counter, tSlice;
 DWORD emulationSpeed = FRAMEUPDATEFREQ * 100;
 ULARGE_INTEGER start_counter,end_counter;
-WORD frameCount = 1;
+short captionUpdateCounter = 0;
 BOOL bRet;
 
 	m_hInstance = hInstance;
@@ -179,11 +179,14 @@ BOOL bRet;
 	m_bRunning=1;
 	m_bPaused=0;
 	m_bInitDone = true;
+	bool bExecuteFrameDone = false;
     //-------------------------------------------------------------------------
     //                          The Message Pump
     //-------------------------------------------------------------------------
 	while (true)
 	{
+		bExecuteFrameDone = false;
+msgloop:
 		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
 			bRet = GetMessage(&msg, NULL, 0, 0 );
@@ -244,10 +247,19 @@ BOOL bRet;
 		if (m_bActive && m_bReady && m_bRunning && !m_bPaused)
 		{
 			SoundResume();
-			frameCount--;
-			if (frameCount==0)
+			////Execute one frame.
+			//if (!bExecuteFrameDone)
+			//{
+			//	bExecuteFrameDone = true;
+			//	if (!m_bDebug)
+			//		c64.ExecuteFrame();
+			//	else
+			//		c64.ExecuteDebugFrame();
+			//}
+
+			if (captionUpdateCounter<=0)
 			{
-				frameCount = FRAMEUPDATEFREQ;
+				captionUpdateCounter = FRAMEUPDATEFREQ;
 				QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
 				emulationSpeed =(ULONG) (((ULONGLONG)100) * (frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ) / (end_counter.QuadPart - start_counter.QuadPart));
 				m_pWinAppWindow->UpdateWindowTitle(m_szTitle, emulationSpeed);
@@ -256,14 +268,18 @@ BOOL bRet;
 			}
 			QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
 			tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-			if ((LONGLONG)tSlice.QuadPart <= 0) // prevent timer overflow. A large negative "tSlice" would cause a long delay before "tSlice"s value would surpass the value of "frequency".
-				last_counter.QuadPart = new_counter.QuadPart;
+			if ((LONGLONG)tSlice.QuadPart <= 0)
+			{
+				// prevent timer overflow. A large negative "tSlice" would cause a long delay before "tSlice"s value would surpass the value of "frequency".
+				last_counter.QuadPart = new_counter.QuadPart - frequency.QuadPart;
+				tSlice.QuadPart = frequency.QuadPart;
+			}
 			if (m_bLimitSpeed)
 			{
 				if (m_bAudioClockSync && m_bSID_Emulation_Enable)
 				{
 					if (m_audioSpeedStatus == HCFG::AUDIO_QUICK)
-					{
+					{						
 						last_counter.QuadPart = last_counter.QuadPart - frequency.QuadPart/4;
 						tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 					}
@@ -276,12 +292,30 @@ BOOL bRet;
 				}
 				if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 				{
+					//while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
+					//{
+					//	if (m_bCPUFriendly)
+					//	{
+					//		if (frequency.QuadPart > tSlice.QuadPart)
+					//			Sleep(1);
+					//	}
+					//	QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
+					//	tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
+					//}				
 					while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 					{
 						if (m_bCPUFriendly)
 						{
 							if (frequency.QuadPart > tSlice.QuadPart)
-								Sleep(1);
+							{
+								if (!G::WaitMessageTimeout(1))
+									goto msgloop;
+							}
+						}
+						else
+						{
+							if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+								goto msgloop;
 						}
 						QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
 						tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
@@ -323,18 +357,37 @@ BOOL bRet;
 				}
 			}
 			
-			//
 			//Execute one frame.
-			if (!m_bDebug)
-				c64.ExecuteFrame();
-			else
-				c64.ExecuteDebugFrame();
+			if (!bExecuteFrameDone)
+			{
+				bExecuteFrameDone = true;
+				if (!m_bDebug)
+					c64.ExecuteFrame();
+				else
+					c64.ExecuteDebugFrame();
+			}
 
+			captionUpdateCounter--;
 			bool bDrawThisFrame = (m_fskip < 0) || m_bDebug;
 
 			if (bDrawThisFrame)
 			{
-				m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
+				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
+				if (SUCCEEDED(hRet))
+				{
+					//if (dx.m_pd3dDevice)
+					//{
+					//	D3DRASTER_STATUS rasterStatus;
+					//	if (dx.m_pd3dDevice->GetRasterStatus(0, &rasterStatus) == S_OK)
+					//	{
+					//		if (rasterStatus.InVBlank)
+					//		{
+					//			//goto msgloop;
+					//		}
+					//	}
+					//}
+					m_pWinAppWindow->m_pWinEmuWin->Present(0);
+				}
 			}				
 			//Handle frame skip
 			if (m_bSkipFrames && bDrawThisFrame)

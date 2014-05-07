@@ -109,20 +109,32 @@ HRESULT hRet;
 DWORD gap;
 DWORD soundplay_pos;
 DWORD soundwrite_pos;
-
+//DWORD soundStatus;
+	//if (S_OK == dx->pSecondarySoundBuffer->GetStatus(&soundStatus))
+	//{
+	//	if ((soundStatus & (DSBSTATUS_PLAYING | DSBSTATUS_BUFFERLOST | DSBSTATUS_LOCHARDWARE | DSBSTATUS_LOCSOFTWARE | DSBSTATUS_TERMINATED)) != DSBSTATUS_PLAYING)
+	//	{
+	//		return E_FAIL;
+	//	}
+	//}
 	hRet = dx->pSecondarySoundBuffer->GetCurrentPosition(&soundplay_pos, &soundwrite_pos);
 	if (FAILED(hRet))
 		return hRet;
 
 	if (soundwrite_pos > bufferLockPoint) 
-		gap = soundBufferSize - soundwrite_pos + bufferLockPoint;
+	{
+		gap = soundBufferSize - soundwrite_pos + bufferLockPoint;		
+	}
 	else
+	{
 		gap = bufferLockPoint - soundwrite_pos;
+	}
 
 	if (gap < (DSGAP1 * bufferLockSize/8))
 	{
 		/*audio is getting ahead of us*/
-		bufferLockPoint =  (bufferLockPoint + bufferLockSize) % soundBufferSize;
+		bufferLockPoint =  (soundwrite_pos + 4 * bufferLockSize) % soundBufferSize;
+		//return E_FAIL;
 		//bufferLockPoint =  (soundplay_pos + 4 * bufferLockSize) % soundBufferSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
@@ -145,8 +157,7 @@ DWORD soundwrite_pos;
 	else
 	{
 		/*audio is getting behind of us*/
-		//the addition of  +soundBufferSize is to prevent bufferLockPoint going negative
-		bufferLockPoint =  (bufferLockPoint - bufferLockSize + soundBufferSize) % soundBufferSize;
+		bufferLockPoint =  (soundwrite_pos + 4 * bufferLockSize) % soundBufferSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
 

@@ -846,10 +846,6 @@ DWORD  dwDisposition;
 LONG   lRetCode; 
 BOOL bGuidOK;
 
-	//lstrcpy(sz_sectionname, TEXT("KEYBOARD"));
-	//wsprintf(szValue, TEXT("%lu"), (DWORD) (KeyMap[C64K_0]));
-	//WritePrivateProfileString(sz_sectionname, TEXT("0"), szValue, app_config_path);
-
 	lRetCode = RegCreateKeyEx (HKEY_CURRENT_USER, 
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Keyboard"), 
 		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
