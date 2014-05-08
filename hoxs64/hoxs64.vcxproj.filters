@@ -736,7 +736,9 @@
     <None Include="img\greenfind.ico">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="img\window_fullscreen.png" />
+    <None Include="img\window_fullscreen.png">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resfile.rc">
