@@ -442,19 +442,7 @@ HRESULT hr = E_FAIL;
 
 HRESULT CEmuWindow::Present(DWORD dwFlags)
 {
-	HRESULT hr = dx->Present(dwFlags);
-	if (FAILED(hr))
-	{
-		if (hr == D3DERR_WASSTILLDRAWING)
-			return hr;
-		HRESULT hr = dx->m_pd3dDevice->TestCooperativeLevel();
-		if (FAILED(hr))
-		{
-			appStatus->m_bReady = false;
-			appStatus->SoundHalt();
-		}
-	}
-	return hr;
+	return dx->Present(dwFlags);
 }
 
 void CEmuWindow::GetRequiredWindowSize(HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, BOOL bDoubleSizedWindow, int *w, int *h)

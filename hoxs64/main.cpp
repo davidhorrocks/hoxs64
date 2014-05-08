@@ -246,120 +246,101 @@ msgloop:
 
 		if (m_bActive && m_bReady && m_bRunning && !m_bPaused)
 		{
-			SoundResume();
-			////Execute one frame.
-			//if (!bExecuteFrameDone)
-			//{
-			//	bExecuteFrameDone = true;
-			//	if (!m_bDebug)
-			//		c64.ExecuteFrame();
-			//	else
-			//		c64.ExecuteDebugFrame();
-			//}
+			if (!bExecuteFrameDone)
+			{
+				SoundResume();
 
-			if (captionUpdateCounter<=0)
-			{
-				captionUpdateCounter = FRAMEUPDATEFREQ;
-				QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
-				emulationSpeed =(ULONG) (((ULONGLONG)100) * (frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ) / (end_counter.QuadPart - start_counter.QuadPart));
-				m_pWinAppWindow->UpdateWindowTitle(m_szTitle, emulationSpeed);
-				QueryPerformanceCounter((PLARGE_INTEGER)&start_counter);
-				c64.PreventClockOverflow();
-			}
-			QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
-			tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-			if ((LONGLONG)tSlice.QuadPart <= 0)
-			{
-				// prevent timer overflow. A large negative "tSlice" would cause a long delay before "tSlice"s value would surpass the value of "frequency".
-				last_counter.QuadPart = new_counter.QuadPart - frequency.QuadPart;
-				tSlice.QuadPart = frequency.QuadPart;
-			}
-			if (m_bLimitSpeed)
-			{
-				if (m_bAudioClockSync && m_bSID_Emulation_Enable)
+				if (captionUpdateCounter<=0)
 				{
-					if (m_audioSpeedStatus == HCFG::AUDIO_QUICK)
-					{						
-						last_counter.QuadPart = last_counter.QuadPart - frequency.QuadPart/4;
-						tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-					}
-					else if (m_audioSpeedStatus == HCFG::AUDIO_SLOW)
-					{
-						last_counter.QuadPart = last_counter.QuadPart + frequency.QuadPart/4;
-						tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-					}
-					m_audioSpeedStatus = HCFG::AUDIO_OK;
+					captionUpdateCounter = FRAMEUPDATEFREQ;
+					QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
+					emulationSpeed =(ULONG) (((ULONGLONG)100) * (frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ) / (end_counter.QuadPart - start_counter.QuadPart));
+					m_pWinAppWindow->UpdateWindowTitle(m_szTitle, emulationSpeed);
+					QueryPerformanceCounter((PLARGE_INTEGER)&start_counter);
+					c64.PreventClockOverflow();
 				}
-				if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
+				QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
+				tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
+				if ((LONGLONG)tSlice.QuadPart <= 0)
 				{
-					//while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
-					//{
-					//	if (m_bCPUFriendly)
-					//	{
-					//		if (frequency.QuadPart > tSlice.QuadPart)
-					//			Sleep(1);
-					//	}
-					//	QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
-					//	tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-					//}				
-					while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
+					// prevent timer overflow. A large negative "tSlice" would cause a long delay before "tSlice"s value would surpass the value of "frequency".
+					last_counter.QuadPart = new_counter.QuadPart - frequency.QuadPart;
+					tSlice.QuadPart = frequency.QuadPart;
+				}
+				if (m_bLimitSpeed)
+				{
+					if (m_bAudioClockSync && m_bSID_Emulation_Enable)
 					{
-						if (m_bCPUFriendly)
-						{
-							if (frequency.QuadPart > tSlice.QuadPart)
-							{
-								if (!G::WaitMessageTimeout(1))
-									goto msgloop;
-							}
+						if (m_audioSpeedStatus == HCFG::AUDIO_QUICK)
+						{						
+							last_counter.QuadPart = last_counter.QuadPart - frequency.QuadPart/4;
+							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 						}
-						else
+						else if (m_audioSpeedStatus == HCFG::AUDIO_SLOW)
 						{
-							if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
-								goto msgloop;
+							last_counter.QuadPart = last_counter.QuadPart + frequency.QuadPart/4;
+							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 						}
-						QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
-						tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-					}				
-				}
-				else
-				{
-					//If we get here is means we took a very large time slice.
-					if (tSlice.QuadPart > 4*frequency.QuadPart)
-					{
-						tSlice.QuadPart = 4*frequency.QuadPart;
+						m_audioSpeedStatus = HCFG::AUDIO_OK;
 					}
-				}
-				last_counter.QuadPart = new_counter.QuadPart-(tSlice.QuadPart-frequency.QuadPart);
-			}
-			else
-			{
-				//No limit speed
-				if (m_bSkipFrames)
-				{
-					//No limit speed and skip frames.
 					if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 					{
-						//We were quick so skip this frame.
-						m_fskip = 1;
+						while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
+						{
+							if (m_bCPUFriendly)
+							{
+								if (frequency.QuadPart > tSlice.QuadPart)
+								{
+									if (!G::WaitMessageTimeout(1))
+										goto msgloop;
+								}
+							}
+							else
+							{
+								if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+									goto msgloop;
+							}
+							QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
+							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
+						}				
 					}
 					else
 					{
-						//We were slow so show this frame.
+						//If we get here is means we took a very large time slice.
+						if (tSlice.QuadPart > 4*frequency.QuadPart)
+						{
+							tSlice.QuadPart = 4*frequency.QuadPart;
+						}
+					}
+					last_counter.QuadPart = new_counter.QuadPart-(tSlice.QuadPart-frequency.QuadPart);
+				}
+				else
+				{
+					//No limit speed
+					if (m_bSkipFrames)
+					{
+						//No limit speed and skip frames.
+						if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
+						{
+							//We were quick so skip this frame.
+							m_fskip = 1;
+						}
+						else
+						{
+							//We were slow so show this frame.
+							last_counter.QuadPart = new_counter.QuadPart;
+							m_fskip = -1;
+						}
+					}
+					else
+					{
+						//No limit speed but want every frame
 						last_counter.QuadPart = new_counter.QuadPart;
 						m_fskip = -1;
 					}
 				}
-				else
-				{
-					//No limit speed but want every frame
-					last_counter.QuadPart = new_counter.QuadPart;
-					m_fskip = -1;
-				}
-			}
 			
-			//Execute one frame.
-			if (!bExecuteFrameDone)
-			{
+				//Execute one frame.
 				bExecuteFrameDone = true;
 				if (!m_bDebug)
 					c64.ExecuteFrame();
@@ -375,18 +356,7 @@ msgloop:
 				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
 				if (SUCCEEDED(hRet))
 				{
-					//if (dx.m_pd3dDevice)
-					//{
-					//	D3DRASTER_STATUS rasterStatus;
-					//	if (dx.m_pd3dDevice->GetRasterStatus(0, &rasterStatus) == S_OK)
-					//	{
-					//		if (rasterStatus.InVBlank)
-					//		{
-					//			//goto msgloop;
-					//		}
-					//	}
-					//}
-					m_pWinAppWindow->m_pWinEmuWin->Present(0);
+					dx.Present(0);
 				}
 			}				
 			//Handle frame skip

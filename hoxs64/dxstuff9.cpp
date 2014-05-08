@@ -401,10 +401,25 @@ UINT iNumberOfAdapters = pD3D->GetAdapterCount();
 
 HRESULT CDX9::Present(DWORD dwFlags)
 {
+HRESULT hr;
 	if (m_pd3dSwapChain!=NULL)
-		return m_pd3dSwapChain->Present(NULL, NULL, NULL, NULL, dwFlags);
+	{
+		hr = m_pd3dSwapChain->Present(NULL, NULL, NULL, NULL, dwFlags);
+		if (FAILED(hr))
+		{
+			if (hr == D3DERR_WASSTILLDRAWING)
+				return hr;
+			HRESULT hr = m_pd3dDevice->TestCooperativeLevel();
+			if (FAILED(hr))
+			{				
+				m_appStatus->m_bReady = false;
+				m_appStatus->SoundHalt();
+			}		
+		}
+	}
 	else
-		return E_FAIL;
+		hr = E_FAIL;
+	return hr;
 }
 
 HRESULT CDX9::GetPresentationParams(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, const D3DDISPLAYMODE &displayMode, D3DPRESENT_PARAMETERS& d3dpp)
@@ -2460,7 +2475,6 @@ void CDX9::SoundHalt(short value)
 void CDX9::SoundResume()
 {
 DWORD soundStatus;
-LONG vol;
 	if (pSecondarySoundBuffer)
 	{
 		if (m_soundResumeDelay > 0)
