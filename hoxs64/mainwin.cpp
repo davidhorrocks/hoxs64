@@ -316,9 +316,21 @@ shared_ptr<CDiagAbout> pDiagAbout;
 								{
 									if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER | SWP_NOMOVE))
 									{
-										appStatus->m_bWindowedCustomSize = true;
-										dx->m_bWindowedCustomSize = true;
-										dx->Reset();
+										if (appStatus != NULL)
+										{
+											CConfig tCfg;
+											appStatus->GetUserConfig(tCfg);
+											tCfg.m_bWindowedCustomSize = true;
+											appStatus->SetUserConfig(tCfg);
+
+											//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.
+											appStatus->m_bWindowedCustomSize = true;
+											if (dx != NULL)
+											{
+												dx->m_bWindowedCustomSize = true;
+												dx->Reset();
+											}
+										}
 									}
 								}
 							}
