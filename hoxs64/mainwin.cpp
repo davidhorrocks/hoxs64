@@ -54,6 +54,7 @@ const LPTSTR CAppWindow::lpszMenuName = APPMENUNAME;
 
 CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CAppStatus *appStatus, IC64 *c64)
 {
+	SetRect(&m_rcMainWindow, 0, 0, 0, 0);
 	m_hMenuOld=NULL;
 	m_hOldCursor = NULL;
 	m_hWndStatusBar = 0;
@@ -107,14 +108,6 @@ WNDCLASSEX  wc;
 void CAppWindow::SetColours()
 {
 	m_pWinEmuWin->SetColours();
-}
-
-void CAppWindow::SetMainWindowSize(bool bDoubleSizedWindow)
-{
-int w,h;
-
-	GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-	SetWindowPos(m_hWnd,0,0,0,w,h, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOOWNERZORDER|SWP_NOZORDER);
 }
 
 void CAppWindow::GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h)
@@ -877,7 +870,11 @@ HMENU hMenu;
 
 void CAppWindow::SaveMainWindowSize()
 {
-	GetWindowRect(m_hWnd, &m_rcMainWindow);
+WINDOWPLACEMENT wp;
+	if (GetWindowPlacement(m_hWnd, &wp))
+	{
+		CopyRect(&m_rcMainWindow, &wp.rcNormalPosition);
+	}
 }
 
 
@@ -931,7 +928,7 @@ HRESULT hr;
 	{
 		SetWindowedStyle(true);
 
-		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_FRAMECHANGED);
 		G::EnsureWindowPosition(m_hWnd);
 		SaveMainWindowSize();
 
@@ -1033,19 +1030,19 @@ RECT rc;
 
 	if (bWindowed)
 	{
-		if (bWindowedCustomSize)
+  		if (bWindowedCustomSize)
 		{
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, width, height, SWP_NOMOVE);
+			SetWindowPos(m_hWnd, HWND_NOTOPMOST, m_rcMainWindow.left, m_rcMainWindow.top, width, height, SWP_NOMOVE);
 			SetRect(&rc, 0, 0, width, height);
 			CalcEmuWindowSize(rc, &w, &h);
 			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
 		}
 		else
 		{
+			GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
+			SetWindowPos(m_hWnd, HWND_NOTOPMOST, m_rcMainWindow.left, m_rcMainWindow.top, w, h,  SWP_NOMOVE);
 			m_pWinEmuWin->GetRequiredWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
-			GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE);
 		}
 		
 		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, true, bDoubleSizedWindow, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);

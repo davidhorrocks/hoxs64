@@ -649,11 +649,11 @@ GUID empty;
 		mi.cbSize = sizeof(mi);
 		if (this->DXUTGetMonitorInfo(hMonitorAdapter, &mi))
 		{
-			SetWindowPos(hWndFocus, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top , mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_SHOWWINDOW);
+			SetWindowPos(hWndFocus, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top , mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_SHOWWINDOW | SWP_FRAMECHANGED);
 		}
 		else
 		{
-			SetWindowPos(hWndFocus, HWND_TOPMOST, 0, 0, chooseDisplayMode.Width, chooseDisplayMode.Height, SWP_SHOWWINDOW);
+			SetWindowPos(hWndFocus, HWND_TOPMOST, 0, 0, chooseDisplayMode.Width, chooseDisplayMode.Height, SWP_SHOWWINDOW | SWP_FRAMECHANGED);
 		}
 
 		HRESULT hr = GetPresentationParams(hWndDevice, hWndFocus, bWindowedMode, syncMode, adapterNumber, chooseDisplayMode, d3dpp);

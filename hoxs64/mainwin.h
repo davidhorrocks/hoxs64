@@ -19,7 +19,6 @@ public:
 	void SetColours();
 	void SetDriveMotorLed(bool bOn);
 	void UpdateMenu();
-	void SetMainWindowSize(bool bDoubleSizedWindow);
 	void GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h);
 	void GetMinimumWindowedSize(int *w, int *h);
 	bool CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h);
@@ -42,6 +41,7 @@ protected:
 	const static LPTSTR lpszMenuName;
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 private:
+	LONG_PTR m_dwStyle;
 	HMENU m_hMenuOld;
 	HCURSOR m_hCursorBusy;
 	HCURSOR m_hOldCursor;
@@ -50,7 +50,7 @@ private:
 	IAppCommand *m_pAppCommand;
 	CDX9 *dx;
 	IC64 *c64;
-	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_SYSMENU;
+	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX  | WS_MINIMIZEBOX | WS_SIZEBOX;
 	static const DWORD StylesNonWindowed = WS_POPUP | WS_SYSMENU;
 
 
