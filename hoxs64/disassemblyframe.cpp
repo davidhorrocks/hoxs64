@@ -257,7 +257,6 @@ HWND hWnd;
 
 		ZeroMemory(&wp, sizeof(wp));
 		wp.length = sizeof(wp);
-
 		br = GetWindowPlacement(hWndParent, &wp);
 		if (!br)
 			return E_FAIL;
@@ -294,6 +293,8 @@ HWND hWnd;
 	else
 	{
 		WINDOWPLACEMENT wp;
+		ZeroMemory(&wp, sizeof(wp));
+		wp.length = sizeof(wp);
 		if (GetWindowPlacement(hWnd, &wp))
 		{
 			x = wp.rcNormalPosition.left;

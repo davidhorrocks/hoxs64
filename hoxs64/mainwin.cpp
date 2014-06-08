@@ -871,6 +871,8 @@ HMENU hMenu;
 void CAppWindow::SaveMainWindowSize()
 {
 WINDOWPLACEMENT wp;
+	ZeroMemory(&wp, sizeof(wp));
+	wp.length = sizeof(wp);
 	if (GetWindowPlacement(m_hWnd, &wp))
 	{
 		CopyRect(&m_rcMainWindow, &wp.rcNormalPosition);
