@@ -102,6 +102,7 @@ private:
 	static const TCHAR szVideoFilter_1X[];
 	static const TCHAR szVideoFilter_2X[];
 	static const TCHAR szVideoFilter_StretchToFit[];
+	static const TCHAR szVideoFilter_StretchWithBorderClip[];
 };
 
 

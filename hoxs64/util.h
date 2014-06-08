@@ -30,7 +30,8 @@ namespace HCFG
 		EMUWINSTR_AUTO = 0,
 		EMUWINSTR_1X = 1,
 		EMUWINSTR_2X = 2,
-		EMUWINSTR_ASPECTSTRETCH = 3
+		EMUWINSTR_ASPECTSTRETCH = 3,
+		EMUWINSTR_ASPECTSTRETCHBORDERCLIP = 4
 	} EMUWINDOWSTRETCH;
 
 
@@ -88,33 +89,34 @@ public:
 	int LastRasterLine;
 	void SetBorder(HCFG::EMUBORDERSIZE border);
 	void SetBorder(int screenWidth, int screenHeight, int toolbarHeight);
+	void SetBorder2(int screenWidth, int screenHeight, int toolbarHeight);
 
-	static const int iToolbarHeight = 10;
+	static const int WDToolbarHeight = 10;
 
-	static const int iFullHeight = HEIGHT_64;
-	static const int iFullWidth = WIDTH_64;
-	static const int iFullStart = 0;
-	static const int iFullFirstRaster = 16;
-	static const int iFullLastRaster = 299;
+	static const int WDFullHeight = HEIGHT_64;
+	static const int WDFullWidth = WIDTH_64;
+	static const int WDFullStart = 0;
+	static const int WDFullFirstRaster = 16;
+	static const int WDFullLastRaster = 299;
 
-	static const int iTVHeight = 270;
-	static const int iTVWidth = 376;
-	static const int iTVStart = 20;
-	static const int iTVFirstRaster = 23;
-	static const int iTVLastRaster = 292;
+	static const int WDTVHeight = 270;
+	static const int WDTVWidth = 376;
+	static const int WDTVStart = 20;
+	static const int WDTVFirstRaster = 23;
+	static const int WDTVLastRaster = 292;
 
-	static const int iSmallHeight = 232;
-	static const int iSmallWidth = 352;
-	static const int iSmallStart = 32;
-	static const int iSmallFirstRaster = 35;
-	static const int iSmallLastRaster = 266;
+	static const int WDSmallHeight = 232;
+	static const int WDSmallWidth = 352;
+	static const int WDSmallStart = 32;
+	static const int WDSmallFirstRaster = 35;
+	static const int WDSmallLastRaster = 266;
 
 
-	static const int iNoBorderHeight = 200;
-	static const int iNoBorderWidth = 320;
-	static const int iNoBorderStart = 48;
-	static const int iNoBorderFirstRaster = 51;
-	static const int iNoBorderLastRaster = 250;
+	static const int WDNoBorderHeight = 200;
+	static const int WDNoBorderWidth = 320;
+	static const int WDNoBorderStart = 48;
+	static const int WDNoBorderFirstRaster = 51;
+	static const int WDNoBorderLastRaster = 250;
 
 };
 

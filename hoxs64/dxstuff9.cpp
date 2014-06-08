@@ -908,8 +908,32 @@ D3DRECT drcStatusBar;
 				bTargetRectOk = true;
 			}
 		}
-		else // Aspect Stretch
+		else if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCH)// Aspect stretch 
 		{
+			//dims.SetBorder(currentDisplayMode.Width, currentDisplayMode.Height, heightToolbar);
+			//m_displayFirstVicRaster = dims.FirstRasterLine;
+			//m_displayLastVicRaster = dims.LastRasterLine;
+			//m_displayWidth = dims.Width;
+			//m_displayHeight = dims.Height;
+			//m_displayStart = dims.Start;
+			hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
+			if (SUCCEEDED(hr))
+			{
+				CheckFilterCap(currentDisplayMode.Width >= (UINT)dims.Width, filter);
+				m_appStatus->m_bUseCPUDoubler = false;			
+				CalcStretchToFitClearingRects(currentDisplayMode, dims, bShowFloppyLed, rcTargetRect, drcEraseRects, drcStatusBar);
+				bStatusBarOk = bShowFloppyLed;
+				bTargetRectOk = true;
+			}
+		}
+		else 
+		{
+			dims.SetBorder2(currentDisplayMode.Width, currentDisplayMode.Height, heightToolbar);
+			m_displayFirstVicRaster = dims.FirstRasterLine;
+			m_displayLastVicRaster = dims.LastRasterLine;
+			m_displayWidth = dims.Width;
+			m_displayHeight = dims.Height;
+			m_displayStart = dims.Start;
 			hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
 			if (SUCCEEDED(hr))
 			{

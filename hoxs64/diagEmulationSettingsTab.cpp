@@ -26,7 +26,8 @@
 const TCHAR CDiagEmulationSettingsTab::szAuto[] = TEXT("Auto");
 const TCHAR CDiagEmulationSettingsTab::szVideoFilter_1X[] = TEXT("1X");
 const TCHAR CDiagEmulationSettingsTab::szVideoFilter_2X[] = TEXT("2X");
-const TCHAR CDiagEmulationSettingsTab::szVideoFilter_StretchToFit[] = TEXT("Stretch To Fit");
+const TCHAR CDiagEmulationSettingsTab::szVideoFilter_StretchToFit[] = TEXT("Stretch to fit");
+const TCHAR CDiagEmulationSettingsTab::szVideoFilter_StretchWithBorderClip[] = TEXT("Stretch with border clip");
 
 struct StringAndInt
 {
@@ -605,6 +606,15 @@ bool bShowFloppyLed;
 				currentSelection = lr;
 			}
 		}
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
+		if (lr >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP);
+			if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
+			{
+				currentSelection = lr;
+			}
+		}
 	}
 
 	if (currentSelection >= 0)
@@ -982,12 +992,17 @@ LRESULT lr;
 		{
 			//Remove 'stretch to fit' if there.
 			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_FINDSTRING, 0, (LPARAM) szVideoFilter_StretchToFit);
-			if (lr >=0)
+			if (lr != CB_ERR && lr >= 0)
+			{
+				SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_DELETESTRING, lr, 0);				
+			}
+			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_FINDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
+			if (lr != CB_ERR && lr >= 0)
 			{
 				SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_DELETESTRING, lr, 0);				
 			}
 			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_GETCURSEL, 0, 0);
-			if (lr < 0)
+			if (lr == CB_ERR)
 			{
 				SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETCURSEL, 0, 0);
 			}
@@ -1003,6 +1018,15 @@ LRESULT lr;
 				if (lr >= 0)
 				{
 					SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_ASPECTSTRETCH);
+				}
+			}
+			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_FINDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
+			if (lr == CB_ERR || lr < 0)
+			{
+				lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
+				if (lr >= 0)
+				{
+					SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP);
 				}
 			}
 		}
