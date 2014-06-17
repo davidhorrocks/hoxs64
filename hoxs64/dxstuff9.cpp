@@ -617,7 +617,7 @@ GUID empty;
 		}
 		if (m_pd3dDevice == NULL)
 		{
-			if (FAILED(hr = m_pD3D->CreateDevice(adapterNumber, D3DDEVTYPE_HAL, hWndFocus, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &m_pd3dDevice ) ) )
+			if (FAILED(hr = CreateDxDevice(adapterNumber, hWndFocus, &d3dpp, &m_pd3dDevice)))
 			{
 				return E_FAIL;
 			}
@@ -679,7 +679,7 @@ GUID empty;
 		}
 		if (m_pd3dDevice == NULL)
 		{
-			if( FAILED( m_pD3D->CreateDevice(adapterNumber, D3DDEVTYPE_HAL, hWndFocus, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &m_pd3dDevice ) ) )
+			if (FAILED(hr = CreateDxDevice(adapterNumber, hWndFocus, &d3dpp, &m_pd3dDevice)))
 			{
 				return E_FAIL;
 			}
@@ -705,6 +705,28 @@ GUID empty;
 	}
 	hr = OnResetDevice();
     return hr;
+}
+
+HRESULT CDX9::CreateDxDevice(UINT adapterNumber, HWND hFocusWindow, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
+{
+	HRESULT hr;
+	D3DCAPS9 d3dCaps;
+	if (ppReturnedDeviceInterface == NULL)
+		return E_POINTER;
+	if (m_pD3D == NULL)
+		return E_POINTER;
+	*ppReturnedDeviceInterface = NULL;
+	DWORD behaviorFlags = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+	hr = m_pD3D->GetDeviceCaps(adapterNumber, D3DDEVTYPE_HAL, &d3dCaps);
+	if (SUCCEEDED(hr))
+	{
+		if (d3dCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)
+		{
+			behaviorFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+		}
+	}
+	hr = m_pD3D->CreateDevice(adapterNumber, D3DDEVTYPE_HAL, hFocusWindow, behaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+	return hr;
 }
 
 HRESULT CDX9::SetRenderStyle(bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, D3DDISPLAYMODE currentDisplayMode)

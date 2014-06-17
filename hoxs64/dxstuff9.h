@@ -33,6 +33,7 @@ public:
 	
 	HRESULT Init(CAppStatus *appStatus, bit32 vicColorTable[]);
 	HRESULT InitD3D(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, GUID fullscreenAdapterId, const D3DDISPLAYMODE &displayMode);
+	HRESULT CreateDxDevice(UINT adapterNumber, HWND hFocusWindow, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface);
 	HRESULT GetPresentationParams(HWND hWndDevice, HWND hWndFocus, bool bWindowedMode, HCFG::FULLSCREENSYNCMODE syncMode, DWORD adapterNumber, const D3DDISPLAYMODE &displayMode, D3DPRESENT_PARAMETERS& d3dpp);
 	HRESULT Reset();
 	void CheckFilterCap(bool bIsMagnifying, D3DTEXTUREFILTERTYPE filter);
