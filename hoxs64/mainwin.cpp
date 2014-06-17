@@ -283,48 +283,45 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		h = (int)(DWORD)HIWORD(lParam);
         if (SIZE_MAXHIDE==wParam || SIZE_MINIMIZED==wParam)
 		{
-			appStatus->SoundHalt();
-            appStatus->m_bActive = false;
+			if (appStatus != NULL)
+			{
+				appStatus->SoundHalt();
+				appStatus->m_bActive = false;
+			}
 		}
         else
 		{
-			if (appStatus->m_bWindowed)
+			if (appStatus != NULL && appStatus->m_bWindowed)
 			{
 				if (appStatus->m_bReady && !appStatus->m_bClosing)
 				{
-					RECT rcWindow;
-					if (GetWindowRect(hWnd, &rcWindow))
+					//appStatus->m_bReady will be false whilst we are transiting between windowed mode and fullscreen mode.
+					appStatus->m_bActive = true;
+					if (wParam == SIZE_RESTORED)
 					{
-						appStatus->m_bActive = true;
-						if (wParam == SIZE_RESTORED)
+						SaveMainWindowSize();
+					}
+					if (GetClientRect(hWnd, &rcClient))
+					{
+						y = rcClient.top;
+						x = rcClient.left;
+						w = max(0, rcClient.right - rcClient.left) - x;
+						h = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
+						if (w > 0 && h > 0)
 						{
-							SaveMainWindowSize();
-						}
-						if (GetClientRect(hWnd, &rcClient))
-						{
-							y = rcClient.top;
-							x = rcClient.left;
-							w = max(0, rcClient.right - rcClient.left) - x;
-							h = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
-							if (w > 0 && h > 0)
+							if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER | SWP_NOMOVE))
 							{
-								if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER | SWP_NOMOVE))
-								{
-									if (appStatus != NULL)
-									{
-										CConfig tCfg;
-										appStatus->GetUserConfig(tCfg);
-										tCfg.m_bWindowedCustomSize = true;
-										appStatus->SetUserConfig(tCfg);
+								CConfig tCfg;
+								appStatus->GetUserConfig(tCfg);
+								tCfg.m_bWindowedCustomSize = true;
+								appStatus->SetUserConfig(tCfg);
 
-										//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.
-										appStatus->m_bWindowedCustomSize = true;
-										if (dx != NULL)
-										{
-											dx->m_bWindowedCustomSize = true;
-											dx->Reset();
-										}
-									}
+								//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.
+								appStatus->m_bWindowedCustomSize = true;
+								if (dx != NULL)
+								{
+									dx->m_bWindowedCustomSize = true;
+									dx->Reset();
 								}
 							}
 						}
