@@ -127,12 +127,11 @@ private:
 	static const WORD SID64::sidAttackRate[16];
 
 	Filter filterPreFilterStage2;
-	Filter filterNoFilterStage2;
 
 	Filter filterPreFilterResample;
-	Filter filterNoFilterResample;
 	Filter filterUpSample2xSample;
-	Filter svfilter;
+	Filter svfilterForResample;
+	Filter svfilterForDownSample;
 
 	DWORD soundBufferSize;
 	DWORD bufferLockSize;

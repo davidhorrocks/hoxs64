@@ -23,9 +23,9 @@
 #include "sid.h"
 #include "sidwavetable.h"
 
-#define SIDBOOST 2.0
+#define SIDBOOST_8580 2.6
+#define SIDBOOST_6581 2.0
 #define SIDVOLMUL (1730)
-#define SIDVOLSUB (1730)
 #define SHIFTERTESTDELAY (0x49300)
 #define SAMPLEHOLDTIME 0x00000fff
 #define SAMPLEHOLDRESETTIME 0x001fffff
@@ -38,6 +38,7 @@
 #define DECIMATION_FACTOR_50 (156)
 #define INTERPOLATION_FACTOR_50 (7)
 
+//Resample from 985248 to 44100L
 #define SIDRESAMPLEFIRLENGTH_50_12 (74900 +1)
 #define DECIMATION_FACTOR_50_12 (27368)
 #define INTERPOLATION_FACTOR_50_12 (1225)
@@ -109,14 +110,7 @@ HRESULT hRet;
 DWORD gap;
 DWORD soundplay_pos;
 DWORD soundwrite_pos;
-//DWORD soundStatus;
-	//if (S_OK == dx->pSecondarySoundBuffer->GetStatus(&soundStatus))
-	//{
-	//	if ((soundStatus & (DSBSTATUS_PLAYING | DSBSTATUS_BUFFERLOST | DSBSTATUS_LOCHARDWARE | DSBSTATUS_LOCSOFTWARE | DSBSTATUS_TERMINATED)) != DSBSTATUS_PLAYING)
-	//	{
-	//		return E_FAIL;
-	//	}
-	//}
+
 	hRet = dx->pSecondarySoundBuffer->GetCurrentPosition(&soundplay_pos, &soundwrite_pos);
 	if (FAILED(hRet))
 		return hRet;
@@ -315,10 +309,8 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 
 	appStatus->m_bFilterOK = false;
 	long interpolatedSamplesPerSecond;
-	filterNoFilterResample.CleanSync();
 	filterPreFilterResample.CleanSync();
 	filterPreFilterStage2.CleanSync();
-	filterNoFilterStage2.CleanSync();
 
 	if (fps == HCFG::EMUFPS_50)
 	{
@@ -328,12 +320,9 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 
 		interpolatedSamplesPerSecond = PAL50CLOCKSPERSECOND * filterInterpolationFactor;
 
-		if (filterNoFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
-			return E_OUTOFMEMORY;
-		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor, filterNoFilterResample.GetCoefficient()) !=0)
+		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
 			return E_OUTOFMEMORY;
 
-		filterNoFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
 		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
 
 	}
@@ -346,14 +335,8 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		filterPreFilterResample.AllocSync(1528, STAGE1X);
 		filterPreFilterStage2.AllocSync(392, STAGE2X);
 
-		filterNoFilterResample.AllocSync(1528, STAGE1X, filterPreFilterResample.GetCoefficient());
-		filterNoFilterStage2.AllocSync(392, STAGE2X, filterPreFilterStage2.GetCoefficient());
-
 		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X);
 		filterPreFilterStage2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X * STAGE2X);
-
-		filterNoFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X);
-		filterNoFilterStage2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X * STAGE2X);
 	}
 #endif
 	else
@@ -364,13 +347,9 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 
 		interpolatedSamplesPerSecond = PALCLOCKSPERSECOND * filterInterpolationFactor;
 
-		if (filterNoFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
-			return E_OUTOFMEMORY;
-		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor, filterNoFilterResample.GetCoefficient()) !=0)
+		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
 			return E_OUTOFMEMORY;
 
-
-		filterNoFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
 		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
 	}
 
@@ -384,11 +363,19 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 	else if (sidSampler < filterDecimationFactor)
 		sidSampler = -filterDecimationFactor;
 
-	svfilter.lp = 0.0;
-	svfilter.hp = 0.0;
-	svfilter.bp = 0.0;
-	svfilter.np = 0.0;
-	svfilter.peek = 0.0;
+	svfilterForResample.lp = 0.0;
+	svfilterForResample.hp = 0.0;
+	svfilterForResample.bp = 0.0;
+	svfilterForResample.np = 0.0;
+	svfilterForResample.peek = 0.0;
+
+	svfilterForDownSample.lp = 0.0;
+	svfilterForDownSample.hp = 0.0;
+	svfilterForDownSample.bp = 0.0;
+	svfilterForDownSample.np = 0.0;
+	svfilterForDownSample.peek = 0.0;
+
+	SetFilter();
 
 	sidSampler=-1;
 	appStatus->m_bFilterOK = true;
@@ -637,9 +624,13 @@ DWORD dwMsb;
 		return (unsigned short)sidWave_ST[counter >> 12] << 4;
 	case sidWAVNONE:
 		if (sampleHoldDelay > 0)
+		{
 			return sampleHold;
+		}
 		else
+		{
 			return 0;
+		}
 	default:
 		return 0;
 	}
@@ -652,25 +643,22 @@ unsigned short SIDVoice::WaveRegister()
 
 void SIDVoice::Modulate()
 {
-short sample,temp;
+short sample;
 	if (sampleHoldDelay>0)
 		sampleHoldDelay--;
 	lastSample = CalcWave(wavetype);
 	sample = ((short)(lastSample & 0xfff) - 0x800);
 	if (appStatus->m_bSidDigiBoost)
 	{
-		temp = (short)(((long)sample * volume) / 255) + SIDVOLMUL;
-		fVolSample = (double)SIDBOOST * (((double)sid->sidVolume / 15.0) * ((double)temp) -  (double)SIDVOLSUB);
+		fVolSample = ((double)((long)sample * (long)volume) / (255.0));
+		fVolSample += (double)SIDVOLMUL;
+		fVolSample = SIDBOOST_6581 * ((fVolSample * (double)sid->sidVolume) / (15.0));
 	}
 	else
 	{
-		temp = (short)(((long)sample * volume) / 255);
-		fVolSample = (((double)temp * SIDBOOST * (double)sid->sidVolume) / 15.0 );
+		fVolSample = SIDBOOST_8580 * ((double)((long)sample * (long)volume * (long)sid->sidVolume) / (255.0 * 15.0));
 	}
 }
-
-//Every 312 PAL clocks, 7 samples need to be sent to a direct sound 22050Hz buffer.
-//Every 312 PAL clocks, 14 samples need to be sent to a direct sound 44100Hz buffer.
 
 void SID64::ExecuteCycle(ICLK sysclock)
 {
@@ -695,7 +683,6 @@ double prefilter;
 double nofilter;
 double voice3nofilter;
 double fsample;
-double fsample2;
 double hp_out;
 double bp_out;
 double lp_out;
@@ -727,9 +714,13 @@ long sampleOffset;
 		voice3.Modulate();
 
 		if (sidBlock_Voice3)
+		{
 			voice3nofilter = 0;
+		}
 		else
+		{
 			voice3nofilter = voice3.fVolSample;
+		}
 
 		switch (sidVoice_though_filter)
 		{
@@ -766,10 +757,22 @@ long sampleOffset;
 			nofilter = 0;
 			break;
 		}
+		fsample = nofilter;
+		svfilterForResample.SVF_ProcessSample(prefilter);
+		lp_out = svfilterForResample.lp;
+		bp_out = svfilterForResample.bp;
+		hp_out = svfilterForResample.hp;
+		if (sidFilter & 0x10)
+			fsample = fsample - lp_out; 
+
+		if (sidFilter & 0x20)
+			fsample = fsample - bp_out;
+
+		if (sidFilter & 0x40)
+			fsample = fsample - hp_out;
 
 		sidSampler = sidSampler + filterInterpolationFactor;
-		filterNoFilterResample.fir_buffer_sampleNx(nofilter);
-		filterPreFilterResample.fir_buffer_sampleNx(prefilter);
+		filterPreFilterResample.fir_buffer_sampleNx(fsample);
 		if (sidSampler >= 0)
 		{
 			sampleOffset = (filterInterpolationFactor-1)-sidSampler;
@@ -780,42 +783,25 @@ long sampleOffset;
 			{
 				int offset1;
 				offset1 = sampleOffset % STAGE1X;
-				filterNoFilterResample.FIR_ProcessSampleNx_IndexTo8(offset1, filterNoFilterStage2.buf);
 				filterPreFilterResample.FIR_ProcessSampleNx_IndexTo8(offset1, filterPreFilterStage2.buf);
 
 				offset1 = sampleOffset % STAGE2X;
-				nofilter = filterNoFilterStage2.fir_process_sampleNx_index(offset1);
-				prefilter = filterPreFilterStage2.fir_process_sampleNx_index(offset1);
+				fsample = filterPreFilterStage2.fir_process_sampleNx_index(offset1);
 			}
 			else
 			{
 #endif
-				nofilter = filterNoFilterResample.fir_process_sampleNx_index(sampleOffset);
-				prefilter = filterPreFilterResample.fir_process_sampleNx_index(sampleOffset);
+				fsample = filterPreFilterResample.fir_process_sampleNx_index(sampleOffset);
 #ifdef ALLOW_EMUFPS_50_12_MULTI
 			}
 #endif
 
 			if (pBuffer1==NULL)
 				return;				
-
-			svfilter.SVF_ProcessSample(filterUpSample2xSample.FIR_ProcessSample2x(2.0 * prefilter, &fsample2));
-			svfilter.SVF_ProcessSample(fsample2);
-
-			fsample = nofilter;
-			lp_out = svfilter.lp;
-			bp_out = svfilter.bp;
-			hp_out = svfilter.hp;
-			if (sidFilter & 0x10)
-				fsample = fsample + lp_out;
-
-			if (sidFilter & 0x20)
-				fsample = fsample + bp_out;
-
-			if (sidFilter & 0x40)
-				fsample = fsample + hp_out;
 			
 			fsample = fsample * (double)filterInterpolationFactor * MasterVolume;
+			//fsample = fsample * SIDBOOST;
+
 			if (fsample > 32767.0)
 				fsample = 32767.0;
 			else if (fsample < -32767.0)
@@ -823,7 +809,6 @@ long sampleOffset;
 
 			dxsample = (short)(fsample);
 
-			
 			if (pBuffer1!=0)
 				WriteSample(dxsample);
 		}
@@ -913,23 +898,27 @@ short dxsample;
 				nofilter = 0;
 				break;
 			}
-			svfilter.SVF_ProcessSample(filterUpSample2xSample.FIR_ProcessSample2x(2.0 * prefilter, &fsample2));
-			svfilter.SVF_ProcessSample(fsample2);
+			svfilterForDownSample.SVF_ProcessSample(filterUpSample2xSample.FIR_ProcessSample2x(2.0 * prefilter, &fsample2));
+			svfilterForDownSample.SVF_ProcessSample(fsample2);
 
 			fsample = 0.0;
-			lp_out = svfilter.lp;
-			bp_out = svfilter.bp;
-			hp_out = svfilter.hp;
+			lp_out = svfilterForDownSample.lp;
+			bp_out = svfilterForDownSample.bp;
+			hp_out = svfilterForDownSample.hp;
 			if (sidFilter & 0x10)
-				fsample = fsample + lp_out;
+				fsample = fsample - lp_out;
 
 			if (sidFilter & 0x20)
-				fsample = fsample + bp_out;
+				fsample = fsample - bp_out;
 
 			if (sidFilter & 0x40)
-				fsample = fsample + hp_out;
+				fsample = fsample - hp_out;
 			
 			fsample = fsample + nofilter;
+
+			fsample = fsample * MasterVolume;
+			//fsample = fsample * SIDBOOST;
+
 			if (fsample > 32767.0)
 				fsample = 32767.0;
 			else if (fsample < -32767.0)
@@ -1178,7 +1167,23 @@ void SID64::SetFilter()
 double cutoff;
 
 	cutoff = GetCutOff(sidFilterFrequency);
-	svfilter.Set_SVF(cutoff, SAMPLES_PER_SEC*2, sidResonance);
+	if (appStatus->m_bSIDResampleMode)
+	{
+		if (appStatus->m_fps == HCFG::EMUFPS_50)
+		{
+			svfilterForResample.Set_SVF(cutoff, PAL50CLOCKSPERSECOND, sidResonance);
+		}
+		else
+		{
+			svfilterForResample.Set_SVF(cutoff, PALCLOCKSPERSECOND, sidResonance);
+		}
+	}
+	else
+	{
+		//The down sample version is feed a doubled sample rate to keep the filter stable below the stable PI/3 cutoff frequency.
+		svfilterForDownSample.Set_SVF(cutoff, 2 * SAMPLES_PER_SEC, sidResonance);
+	}
+
 }
 
 void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
