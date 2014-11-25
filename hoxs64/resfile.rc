@@ -197,8 +197,8 @@ BEGIN
     BEGIN
         MENUITEM "Home to PC\tHome",            IDM_DEBUG_HOMETOPC
         MENUITEM SEPARATOR
-        MENUITEM "Excecute 1 Clock\tF7",        IDM_STEP_ONECLOCK
-        MENUITEM "Excecute 1 Instruction\tF8",  IDM_STEP_ONEINSTRUCTION
+        MENUITEM "Step 1 Clock\tF7",            IDM_STEP_ONECLOCK
+        MENUITEM "Step 1 Instruction\tF8",      IDM_STEP_ONEINSTRUCTION
         MENUITEM SEPARATOR
         MENUITEM "Trace\tF5",                   IDM_STEP_TRACE
         MENUITEM "Trace 1 Frame\tF6",           IDM_STEP_TRACEFRAME
