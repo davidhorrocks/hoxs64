@@ -88,7 +88,6 @@ void C64::InitReset(ICLK sysclock)
 	cia1.InitReset(sysclock);
 	cia2.InitReset(sysclock);
 	sid.InitReset(sysclock);
-	//cart.InitReset(sysclock);
 	cpu.InitReset(sysclock);
 	diskdrive.InitReset(sysclock);
 }
@@ -2702,13 +2701,6 @@ ULARGE_INTEGER pos_next_track_header;
 			memcpy(diskdrive.m_pD1541_rom, pDriveRom, SaveState::SIZEDRIVEROM);
 		}
 		ICLK c = sbCpuMain.common.CurrentClock;
-		//cia1.SetCurrentClock(c);
-		//cia2.SetCurrentClock(c);
-		//vic.SetCurrentClock(c);
-		//sid.SetCurrentClock(c);
-		//cart.SetCurrentClock(c);
-		//diskdrive.SetCurrentClock(c);
-		//cpu.cpu_port();
 		cart.AttachCart(spCartInterface);
 		if (cart.IsCartAttached())
 		{
@@ -2773,6 +2765,18 @@ ULARGE_INTEGER pos_next_track_header;
 	return hr;
 }
 
+void C64::SharedSoftReset()
+{
+	ICLK sysclock = cpu.CurrentClock;
+	cpu.InitReset(sysclock);
+	cia1.Reset(sysclock);
+	cia2.Reset(sysclock);
+	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
+	cpu.Reset(sysclock);
+	cart.Reset(sysclock);
+	this->pIC64Event->Reset();
+}
+
 void C64::SoftReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
@@ -2781,12 +2785,7 @@ void C64::SoftReset(bool bCancelAutoload)
 	{
 		ExecuteRandomClocks();
 	}
-	ICLK sysclock = cpu.CurrentClock;
-	cpu.InitReset(sysclock);
-	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
-	cpu.Reset(sysclock);
-	cart.Reset(sysclock);
-	this->pIC64Event->Reset();
+	SharedSoftReset();
 }
 
 void C64::HardReset(bool bCancelAutoload)
@@ -2817,8 +2816,7 @@ void C64::CartReset(bool bCancelAutoload)
 	{
 		ExecuteRandomClocks();
 	}
-	cart.CartReset();
-	this->pIC64Event->Reset();
+	SharedSoftReset();
 }
 
 void C64::PostSoftReset(bool bCancelAutoload)

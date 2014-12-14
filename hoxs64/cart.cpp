@@ -761,7 +761,6 @@ void CartCommon::CartReset()
 	if (m_bIsCartAttached)
 	{
 		this->Reset(m_pCpu->Get6510CurrentClock());
-		m_pCpu->Reset6510(m_pCpu->Get6510CurrentClock());
 	}
 }
 
