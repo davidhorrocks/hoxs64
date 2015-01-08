@@ -543,6 +543,8 @@
     <ClCompile Include="cart_zaxxon.cpp" />
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="cart_final_cartridge_iii.cpp" />
+    <ClCompile Include="DxLabel.cpp" />
+    <ClCompile Include="DxTexture.cpp" />
     <ClCompile Include="DxWindow.cpp" />
     <ClCompile Include="FDI.cpp" />
     <ClCompile Include="filestream.cpp" />
