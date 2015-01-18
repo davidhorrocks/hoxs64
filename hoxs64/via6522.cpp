@@ -257,30 +257,10 @@ bit8 t;
 		case 0://cb2 int on neg edge, clear int on port b access
 			ifr &= ~(VIA_INT_CB2);
 			break;
-		case 1://cb2 independent int on neg edge
-			break;
 		case 2://cb2 int on pos edge, clear int on port b access
 			ifr &= ~(VIA_INT_CB2);
 			break;
 		case 3://cb2 independent int on pos edge
-			break;
-			/* No read handshake on port b
-		case 4://handshake, cb2 goes low
-			ifr &= ~(VIA_INT_CB2);
-			delay |= VIACB2Low0;
-			feed |= VIACB2Low0;
-			WakeUp();
-			break;
-		case 5://pulse cb2 for 1 clock (not on read)
-			ifr &= ~(VIA_INT_CB2);
-			delay |= VIACB2Low0;
-			feed &= ~VIACB2Low0;
-			WakeUp();
-			break;
-			*/
-		case 6://hold cb2 low
-			break;
-		case 7://hold cb2 hi
 			break;
 		}
 		ifr &= ~(VIA_INT_CB1);
