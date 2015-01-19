@@ -143,9 +143,6 @@ ICLKS clocks;
 		if (delay & VIALoadA2)
 		{
 			timer1_counter.word = timer1_latch.word;
-			//Is this right?
-			//simulate the loss of a timer tick on the loading of the latch.
-			//delay = delay & ~(VIACountA2);
 		}
 
 		if (delay & VIACountB3)
@@ -160,10 +157,8 @@ ICLKS clocks;
 
 		if (delay & VIALoadB2)
 		{
-			timer2_counter.word = timer2_latch.word;
-			//Is this right?
-			//simulate the loss of a timer tick on the loading of the latch.
-			delay = delay & ~(VIACountB2);  
+			timer2_counter.byte.hiByte = 0;
+			timer2_counter.byte.hiByte = timer2_latch.byte.loByte;
 		}
 
 		if ((pcr & 0x0C) == 0x08)
@@ -625,7 +620,9 @@ void VIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		//Load T2 latch high then load T2 counter from the T2 latch
 		WakeUp();
 		timer2_latch.byte.hiByte = data;
-		timer2_counter.word = timer2_latch.word;
+		//timer2_counter.word = timer2_latch.word;
+		timer2_counter.byte.hiByte = data;
+		timer2_counter.byte.loByte = timer2_latch.byte.loByte;
 		ifr &= ~(VIA_INT_T2);
 		if ((ifr & ier) == 0)
 			ClearSystemInterrupt();
