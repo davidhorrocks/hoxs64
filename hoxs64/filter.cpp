@@ -125,168 +125,6 @@ int m;
 	return y;
 }
 
-void Filter::Set_LowPass(double frequency, long samplerate, double qFactor)
-{
-double a0,a1,a2,b0,b1,b2,w0,alpha;
-double sinw0,cosw0;
-double sinhq;
-
-	w0 = frequency * 2.0 * PI / (double) samplerate;
-	cosw0 = trig.cos(w0);
-	sinw0 = trig.sin(w0);
-	sinhq = trig.sinh(1.0 / (2.0 * qFactor));
-
-	//alpha = sinw0 / (2.0 * qFactor);
-	alpha = sinw0 * sinhq;
-
-	b0 = (1.0 - cosw0)/2.0;
-	b1 = 1.0 - cosw0;
-	b2 = (1.0 - cosw0)/2.0;
-	
-	a0 = (1.0 + alpha);
-	a1 = -2.0 * cosw0;
-	a2 = (1.0 - alpha);
-
-	num_set[0] = b0 / a0;
-	num_set[1] = b1 / a0;
-	num_set[2] = b2 / a0;
-
-	den_set[0] = 0;
-	den_set[1] = a1 / a0;
-	den_set[2] = a2 / a0;
-
-	iirfilterchange = 1;
-}
-
-void Filter::Set_HiPass(double frequency, long samplerate, double qFactor)
-{
-double a0,a1,a2,b0,b1,b2,w0,alpha;
-double sinw0,cosw0;
-double sinhq;
-
-	w0 = frequency * 2.0 * PI / (double) samplerate;
-	cosw0 = trig.cos(w0);
-	sinw0 = trig.sin(w0);
-	sinhq = trig.sinh(1.0 / (2.0 * qFactor));
-	alpha = sinw0 * sinhq;
-
-	b0 = (1.0 + cosw0)/2.0;
-	b1 = -(1.0 + cosw0);
-	b2 = (1.0 + cosw0)/2.0;
-
-	a0 = 1.0 + alpha;
-	a1 = -2.0*cosw0;
-	a2 = 1.0 - alpha;
-
-	num_set[0] = b0 / a0;
-	num_set[1] = b1 / a0;
-	num_set[2] = b2 / a0;
-
-	den_set[0] = 0;
-	den_set[1] = a1 / a0;
-	den_set[2] = a2 / a0;
-
-	iirfilterchange = 1;
-}
-
-void Filter::Set_BandPass(double frequency, long samplerate, double qFactor)
-{
-double a0,a1,a2,b0,b1,b2,w0,alpha;
-double sinw0,cosw0;
-double sinhq;
-double k,r,bw;
-k,r,bw;
-
-	w0 = frequency * 2.0 * PI / (double) samplerate;
-	w0=w0/1;
-	cosw0 = trig.cos(w0);
-	sinw0 = trig.sin(w0);
-
-	sinhq = trig.sinh(1.0 / (2.0 * qFactor));
-	alpha = sinw0 * sinhq;
-
-	b0 = alpha;
-	b1 = 0;
-	b2 = -alpha;
-
-	a0 = 1 + alpha;
-	a1 = -2*cosw0;
-	a2 = 1 - alpha;
-
-	num_set[0] = b0 / a0;
-	num_set[1] = b1 / a0;
-	num_set[2] = b2 / a0;
-
-	den_set[0] = 0;
-	den_set[1] = a1 / a0;
-	den_set[2] = a2 / a0;
-
-	iirfilterchange = 1;
-}
-
-void Filter::Set_Resonance(double frequency,long samplerate, double qFactor,double dBgain)
-{
-double a0,a1,a2,b0,b1,b2,w0,alpha,A;
-double sinw0,cosw0;
-double sinhq;
-
-	w0 = frequency * 2.0 * PI / (double) samplerate;
-	cosw0 = trig.cos(w0);
-	sinw0 = trig.sin(w0);
-	sinhq = trig.sinh(1.0 / (2.0 * qFactor));
-	
-	alpha = sinw0 / (2.0 * qFactor);
-	
-	A = sqrt(pow(10, dBgain / 20));
-
-	b0 = 1 + alpha * A;
-	b1 = -2*cosw0;
-	b2 = 1 - alpha * A;
-
-	a0 = 1 + alpha / A;
-	a1 = -2*cosw0;
-	a2 = 1 - alpha / A;
-
-	num_set[0] = b0 / a0;
-	num_set[1] = b1 / a0;
-	num_set[2] = b2 / a0;
-
-	den_set[0] = 0;
-	den_set[1] = a1 / a0;
-	den_set[2] = a2 / a0;
-
-	iirfilterchange = 1;
-}
-
-void Filter::Set_HighShelf(double frequency,long samplerate, double slope,double dBgain)
-{
-double a0,a1,a2,b0,b1,b2,w0,beta,A;
-double sinw0,cosw0;
-
-	w0 = frequency * 2.0 * PI / (double) samplerate;
-	cosw0 = trig.cos(w0);
-	sinw0 = trig.sin(w0);
-
-	A = sqrt(pow(10, dBgain / 20));
-	beta = sqrt( (A*A + 1)/slope - (A-1)*(A-1));
-
-	b0 =    A*( (A+1) + (A-1)*cosw0 + beta*sinw0);
-	b1 = -2*A*( (A-1) + (A+1)*cosw0);
-	b2 =    A*( (A+1) + (A-1)*cosw0 - beta*sinw0);
-	a0 =        (A+1) - (A-1)*cosw0 + beta*sinw0;
-	a1 =    2*( (A-1) - (A+1)*cosw0);
-	a2 =        (A+1) - (A-1)*cosw0 - beta*sinw0;
-
-	num_set[0] = b0 / a0;
-	num_set[1] = b1 / a0;
-	num_set[2] = b2 / a0;
-
-	den_set[0] = 0;
-	den_set[1] = a1 / a0;
-	den_set[2] = a2 / a0;
-	iirfilterchange = 1;
-}
-
 void Filter::CleanSync()
 {
 	if (coef)
@@ -369,7 +207,7 @@ double f,m;
 double g;
 int fpError=_FPCLASS_ND | _FPCLASS_PD | _FPCLASS_NINF | _FPCLASS_PINF;
 
-	fc = f = frequency * 2.0 * PI / (double) samplerate;
+	f = frequency * 2.0 * PI / (double) samplerate;
 
 	m = firLength;
 	g=0;
@@ -458,7 +296,7 @@ unsigned fircount;
 
 void Filter::FIR_ProcessSampleNx_IndexTo8(unsigned long index, double *sampleout)
 {
-double t;//,y;//,y2;
+double t;
 unsigned long i;
 double *c;
 double *b;
@@ -472,7 +310,6 @@ int STDBUFFERSIZE = 9;
 	fircount = (firLength -1 -interp) / interp;
 	databuflen = bufferLength;
 
-	//assert(STDBUFFERSIZE <= interp);
 	if (STDBUFFERSIZE > (signed int) interp)
 		STDBUFFERSIZE = interp;
 

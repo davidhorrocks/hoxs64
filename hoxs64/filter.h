@@ -35,11 +35,6 @@ public:
 	Filter();
 	~Filter();
 	HRESULT Init();
-	void Set_LowPass(double frequency,long samplerate, double qFactor);
-	void Set_HiPass(double frequency,long samplerate, double qFactor);
-	void Set_BandPass(double frequency,long samplerate, double qFactor);
-	void Set_Resonance(double frequency,long samplerate, double qFactor,double dBgain);
-	void Set_HighShelf(double frequency,long samplerate, double slope,double dBgain);
 
 	double ProcessSample(double sample);
 	double FIR_ProcessSample(double sample);
@@ -66,9 +61,10 @@ public:
 
 	double *GetCoefficient();
 
+	double *buf;
+	unsigned long bufferLength;
+
 private:
-
-
 	int iirfilterchange;
 	double num_set[FILTERLENGTH];
 	double den_set[FILTERLENGTH];
@@ -86,17 +82,13 @@ private:
 	unsigned char findex;
 
 	double *coef;
-public:
-	double *buf;
-	unsigned long bufferLength;
-private:
+
 	int bufferPos;
 	bool m_bCoefNeedClean;
 	
 	unsigned long firLength;
 
 	unsigned long interpolation;
-	double fc;
 
 	double svfQ,svfF;
 };
