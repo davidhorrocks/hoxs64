@@ -1557,7 +1557,7 @@ bit32 dwordCount;
 		ZeroMemory(&hdr, sizeof(hdr));
 		strcpy(hdr.Signature, SaveState::SIGNATURE);
 		strcpy(hdr.EmulatorName, SaveState::NAME);
-		hdr.Version = 0;
+		hdr.Version = SaveState::VERSION;
 		hdr.HeaderSize = sizeof(hdr);
 		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
 		if (FAILED(hr))
@@ -2013,6 +2013,8 @@ ULARGE_INTEGER pos_next_track_header;
 	ClearError();
 	diskdrive.WaitThreadReady();
 
+	SsHeader hdr;
+	ZeroMemory(&hdr, sizeof(hdr));
 	spos_zero.QuadPart = 0;
 	IStream *pfs = NULL;
 	do
@@ -2027,8 +2029,6 @@ ULARGE_INTEGER pos_next_track_header;
 		if (FAILED(hr))
 			break;
 
-		SsHeader hdr;
-		ZeroMemory(&hdr, sizeof(hdr));
 		bytesToRead = sizeof(hdr);
 		hr = pfs->Read(&hdr, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
@@ -2049,8 +2049,8 @@ ULARGE_INTEGER pos_next_track_header;
 			break;
 		}
 
-		//Version 1.0.8.5 reads state version 0
-		if (hdr.Version != 0)
+		//Version 1.0.8.5 - 1.0.8.7 reads state version 0
+		if (hdr.Version > SaveState::VERSION)
 		{			
 			hr = SetError(E_FAIL, TEXT("This state file was saved with a higher version the emulator and cannot be read by this version of the emulator."));
 			break;
@@ -2676,7 +2676,7 @@ ULARGE_INTEGER pos_next_track_header;
 		}
 		if (bDriveVia2)
 		{
-			diskdrive.via2.SetState(sbDriveVia2);
+            diskdrive.via2.SetState(sbDriveVia2);
 		}
 
 		if (pC64KernelRom && ram.mKernal)
