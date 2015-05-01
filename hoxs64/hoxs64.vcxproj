@@ -143,7 +143,7 @@
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">D:\DirectX2006Oct\Lib\x64;$(LibraryPath)</LibraryPath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\DirectX2006Oct\Lib\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\DirectX2006Oct\Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\DirectX2006Oct\Lib\x64;$(LibraryPath)</LibraryPath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">D:\DirectX2006Oct\Lib\x86;$(LibraryPath)</LibraryPath>
