@@ -22,7 +22,6 @@ CDisassemblyReg::CDisassemblyReg(int cpuid, IC64 *c64, IAppCommand *pAppCommand,
 	m_MinSizeDone = false;
 	m_hdc = NULL;
 	m_pAppCommand = pAppCommand;
-
 	m_hFont = hFont;
 }
 
@@ -282,6 +281,8 @@ BOOL br;
 		return 0;
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    case WM_GETDLGCODE:
+        return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_WANTCHARS | DLGC_WANTMESSAGE | DLGC_WANTTAB;
 	default:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
@@ -758,7 +759,7 @@ HFONT prevFont = NULL;
 		SelectObject(hdc, prevFont);
 	if (prevMapMode)
 		SetMapMode(hdc, prevMapMode);
-
+    m_iShowCaretCount = 0;
 	hr = PC.Init(hWnd, CTRLID_PC, 1, hFont, TEXT("PC"), EdLn::HexAddress, true, true, 4);
 	if (FAILED(hr))
 		return hr;

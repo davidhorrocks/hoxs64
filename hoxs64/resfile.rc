@@ -65,7 +65,6 @@ BEGIN
     VK_F5,          IDM_STEP_TRACE,         VIRTKEY, NOINVERT
     VK_F6,          IDM_STEP_TRACEFRAME,    VIRTKEY, NOINVERT
     VK_RETURN,      IDM_TOGGLEFULLSCREEN,   VIRTKEY, ALT, NOINVERT
-    VK_HOME,        IDM_DEBUG_HOMETOPC,     VIRTKEY, NOINVERT
 END
 
 
@@ -228,8 +227,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,8,7
- PRODUCTVERSION 1,0,8,7
+ FILEVERSION 1,0,8,8
+ PRODUCTVERSION 1,0,8,8
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -247,12 +246,12 @@ BEGIN
             VALUE "Comments", "A Commodore 64 cycle based emulation."
             VALUE "CompanyName", "David Horrocks Enterprises"
             VALUE "FileDescription", "Hoxs64 C64 Emulator"
-            VALUE "FileVersion", "1.0.8.7"
+            VALUE "FileVersion", "1.0.8.8"
             VALUE "InternalName", "Hoxs64"
             VALUE "LegalCopyright", "Copyright © 2001"
             VALUE "OriginalFilename", "hoxs64.exe"
             VALUE "ProductName", "Hoxs64"
-            VALUE "ProductVersion", "1.0.8.7"
+            VALUE "ProductVersion", "1.0.8.8"
         END
     END
     BLOCK "VarFileInfo"

@@ -459,6 +459,8 @@ HRESULT hr;
 	case WM_NOTIFY:
 		if (OnNotify(hWnd, uMsg, wParam, lParam))
 			return 0;
+    case WM_GETDLGCODE:
+        return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_WANTCHARS;
 	}
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }

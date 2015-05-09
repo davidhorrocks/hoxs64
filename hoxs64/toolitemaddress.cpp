@@ -150,6 +150,8 @@ LRESULT CToolItemAddress::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam
 				return 0;
 			}
 			break;
+        case WM_GETDLGCODE:
+            return DLGC_WANTALLKEYS | DLGC_WANTCHARS | DLGC_WANTMESSAGE;
 		}
 	}
 	if (m_wpOrigEditProc)

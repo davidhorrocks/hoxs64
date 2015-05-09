@@ -192,7 +192,6 @@ msgloop:
 			bRet = GetMessage(&msg, NULL, 0, 0 );
 			if (bRet==-1 || bRet==0)
 				goto finish;
-
 			if (!m_pWinAppWindow->m_pMDIDebugger.expired())
 			{
 				HWND hWndDebug = 0;
@@ -225,9 +224,12 @@ msgloop:
 				{
 					hWndDefaultAccelerator =pWinDebugger->GetHwnd();
 				}
-				HWND hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();
+				HWND hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();					
 				if (
-					(!IsWindow(hWndDlgVicRaster) || !IsDialogMessage(hWndDlgVicRaster, &msg)) &&
+					//(!IsWindow(hWndDlgVicRaster) || !IsDialogMessage(hWndDlgVicRaster, &msg)) &&
+                    //(!IsWindow(hWndDebugCpuC64) || !IsDialogMessage(hWndDebugCpuC64, &msg)) &&                    
+                    //(!IsWindow(hWndDebugCpuDisk) || !IsDialogMessage(hWndDebugCpuDisk, &msg)) &&
+                    //(!IsWindow(hWndDebuggerMdiClient) || !IsDialogMessage(hWndDebuggerMdiClient, &msg)) &&
 					(!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) &&
 					(!TranslateAccelerator(hWndDefaultAccelerator, app.m_hAccelTable, &msg)))
 				{
