@@ -281,8 +281,6 @@ BOOL br;
 		return 0;
 	case WM_CLOSE:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-    case WM_GETDLGCODE:
-        return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_WANTCHARS | DLGC_WANTMESSAGE | DLGC_WANTTAB;
 	default:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}

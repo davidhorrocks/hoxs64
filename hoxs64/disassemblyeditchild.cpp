@@ -440,8 +440,6 @@ BOOL br;
 		InvalidateFocus();
 		UpdateWindow(m_hWnd);
 		break;
-    case WM_GETDLGCODE:
-        return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_WANTCHARS | DLGC_WANTMESSAGE;
 	}
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
@@ -486,8 +484,6 @@ HRESULT hr;
 				}
 			}
 			break;
-        case WM_GETDLGCODE:
-            return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_WANTCHARS | DLGC_WANTMESSAGE;
 		}
 		if (m_wpOrigEditProc)
 		{

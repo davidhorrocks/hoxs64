@@ -1086,8 +1086,6 @@ HRESULT hr;
 	case WM_EXITSIZEMOVE:
 		m_pAppCommand->SoundOn();
 		return 0;
-    case WM_GETDLGCODE:
-        return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_WANTCHARS;
 	}
 	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 };
