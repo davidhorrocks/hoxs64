@@ -2507,7 +2507,9 @@ bit8 data8;
 					}
 				}
 				else
+                {
 					bVicRasterMatch = false;
+                }
 			}
 
 			init_line_start();
@@ -2560,7 +2562,9 @@ bit8 data8;
 					}
 				}
 				else
+                {
 					bVicRasterMatch = false;
+                }
 
 			}
 			SetBA(clocks, cycle);
@@ -3351,7 +3355,6 @@ void VIC6569::SpriteXChange(bit8 spriteNo, bit16 x_new, bit8 cycle)
 
 void VIC6569::CheckRasterCompare(bit8 cycle)
 {
-
 	//Edge triggered raster IRQ noticed in Octopus In Red Wine demo.
 	if (!vic_check_irq_in_cycle2)
 	{
@@ -3362,12 +3365,17 @@ void VIC6569::CheckRasterCompare(bit8 cycle)
 				vicINTERRUPT_STATUS |= 0x1; // Raster Interrupt Flag
 				if ((vicINTERRUPT_STATUS & vicINTERRUPT_ENABLE & 0x1)!=0)
 				{
-					SetSystemInterrupt();
+					//SetSystemInterrupt();
+                    //vandalismnews64 wants a 1 clock deplay.
+                    //passes the rastercompareirq beta test.
+                    cpu->Set_VIC_IRQ(CurrentClock + 1);
 				}
 				bVicRasterMatch = true;
 			}
 			else 
+            {
 				bVicRasterMatch = false;
+            }
 		}
 	}
 	else
@@ -3380,11 +3388,15 @@ void VIC6569::CheckRasterCompare(bit8 cycle)
 				bVicRasterMatch = true;
 				if ((vicINTERRUPT_STATUS & vicINTERRUPT_ENABLE & 0x1)!=0)
 				{
-					SetSystemInterrupt();
+					//SetSystemInterrupt();
+                    //vandalismnews64 wants a 1 clock deplay.
+                    cpu->Set_VIC_IRQ(CurrentClock + 1);
 				}
 			}
 			else 
+            {
 				bVicRasterMatch = false;
+            }
 		}
 	}
 }
@@ -4343,7 +4355,9 @@ bit8 modeOld;
 	case 0x19:	//interrupt status
 		vicINTERRUPT_STATUS = vicINTERRUPT_STATUS & 0xF & ~data;
 		if ((vicINTERRUPT_STATUS & vicINTERRUPT_ENABLE & 0xF)==0)
+        {
 			ClearSystemInterrupt();
+        }
 		break;
 	case 0x1a:	//interrupt enable
 		vicINTERRUPT_ENABLE = data & 0xF;
@@ -4352,7 +4366,9 @@ bit8 modeOld;
 			SetSystemInterrupt();
 		}
 		else
+        {
 			ClearSystemInterrupt();
+        }
 		break;
 	case 0x1b:	//sprite data priority
 		vicSpriteDataPriorityPrev = vicSpriteDataPriority;
