@@ -266,7 +266,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\DxLabel.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\dxstuff9.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\DxTexture.cpp"
 				>
 			</File>
 			<File
