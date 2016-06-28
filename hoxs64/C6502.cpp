@@ -766,41 +766,42 @@ void CPU6502::ConfigureMemoryMap()
 {
 }
 
-bit8 CPU6502::code_arr(unsigned int _a, unsigned int _s)
+bit8 CPU6502::code_arr(unsigned int a, unsigned int s)
 {
-unsigned int _al;
-unsigned int _ah;
-unsigned int _r;
+unsigned int al;
+unsigned int ah;
+unsigned int r;
+unsigned int t;
 
 	SyncVFlag();
 	if (fDECIMAL==0)
 	{
-		_a = _a & _s;
-		_a >>= 1;
-		_a |= (fCARRY ? 0x80 : 0);
+		a = a & s;
+		a >>= 1;
+		a |= (fCARRY ? 0x80 : 0);
 		fNEGATIVE = fCARRY;
-		fZERO = (_a==0);
-		fCARRY = (_a & 0x40) >> 6;
-		fOVERFLOW = fCARRY ^ ((_a & 0x20) >> 5);
-		return _a & 0xff;
+		fZERO = (a==0);
+		fCARRY = (a & 0x40) >> 6;
+		fOVERFLOW = fCARRY ^ ((a & 0x20) >> 5);
+		return a & 0xff;
 	}
 	else
 	{
-		_a = _a & _s;
-		_al = _a >> 4;
-		_ah = _a & 15;
+		t = a & s;
+		al = t >> 4;
+		ah = t & 15;
 		fNEGATIVE = fCARRY;
-		_r = (_a >> 1);
-		_r |= (fCARRY ? 0x80 : 0);
-		fZERO = (_r==0);
-		fOVERFLOW = ((_r ^ _a) & 0x40) >> 6;
+		r = (t >> 1);
+		r |= (fCARRY ? 0x80 : 0);
+		fZERO = (r==0);
+		fOVERFLOW = ((t ^ r) & 0x40) >> 6;
 
-		if ((_al + (_al & 1)) > 5)
-			_r = (_r & 0xf0) | ((_r + 6) & 0xf);
-		if (fCARRY = (_ah + (_ah & 1) > 5))
-			_r = (_r + 0x60) & 0xff;
+		if ((al + (al & 1)) > 5)
+			r = (r & 0xf0) | ((r + 6) & 0xf);
+		if (fCARRY = (ah + (ah & 1) > 5))
+			r = (r + 0x60) & 0xff;
 
-		return _r & 0xff;
+		return r & 0xff;
 	}	
 }
 
