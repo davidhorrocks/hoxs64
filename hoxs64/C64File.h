@@ -45,6 +45,7 @@ class C64File : public ErrorMsg
 public:
 	enum eC64FileType
 	{
+        ef_P64,
 		ef_FDI,
 		ef_G64,
 		ef_D64,
@@ -59,6 +60,7 @@ public:
 	~C64File();
 	HRESULT Init();
 	HRESULT IsFDI(TCHAR filename[], bool &result);
+	HRESULT IsP64(TCHAR filename[], bool &result);
 	HRESULT IsG64(TCHAR filename[], bool &result);
 	HRESULT IsD64(TCHAR filename[], bool &result);
 	HRESULT IsT64(TCHAR filename[], bool &result);

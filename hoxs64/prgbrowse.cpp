@@ -155,7 +155,7 @@ RGBQUAD rgb;
 	return S_OK;
 }
 
-BOOL CPRGBrowse::Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum filetype filetypes)
+BOOL CPRGBrowse::Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum FileTypeFlag::filetype filetypes)
 {
 BOOL r = 0;
 	CPRGBrowse::m_hInstance = hInstance;
@@ -237,7 +237,7 @@ HRESULT hr;
 
 	InspectorStart();
 
-	if (mAllowTypes != ALL)
+	if (mAllowTypes != FileTypeFlag::ALL)
 	{
 		hr = m_c64file.GetC64FileType(mptsFileName, ftype);
 		if (FAILED(hr))
@@ -249,40 +249,62 @@ HRESULT hr;
 		switch(ftype)
 		{
 		case C64File::ef_FDI:
-			if (mAllowTypes & FDI)
+			if (mAllowTypes & FileTypeFlag::FDI)
+			{
 				bTypeOK=true;
+			}
+			break;
+		case C64File::ef_P64:
+			if (mAllowTypes & FileTypeFlag::P64)
+			{
+				bTypeOK=true;
+			}
 			break;
 		case C64File::ef_G64:
-			if (mAllowTypes & G64)
+			if (mAllowTypes & FileTypeFlag::G64)
+			{
 				bTypeOK=true;
+			}
 			break;
 		case C64File::ef_D64:
-			if (mAllowTypes & D64)
+			if (mAllowTypes & FileTypeFlag::D64)
+			{
 				bTypeOK=true;
+			}
 			break;
 		case C64File::ef_PRG:
-			if (mAllowTypes & PRG)
+			if (mAllowTypes & FileTypeFlag::PRG)
+			{
 				bTypeOK=true;
+			}
 			break;
 		case C64File::ef_P00:
-			if (mAllowTypes & P00)
+			if (mAllowTypes & FileTypeFlag::P00)
+			{
 				bTypeOK=true;
+			}
 			break;
 		case C64File::ef_T64:
-			if (mAllowTypes & T64)
+			if (mAllowTypes & FileTypeFlag::T64)
+			{
 				bTypeOK=true;
+			}
 			break;
 		case C64File::ef_TAP:
-			if (mAllowTypes & TAP)
+			if (mAllowTypes & FileTypeFlag::TAP)
+			{
 				bTypeOK=true;
+			}
 			break;
 		case C64File::ef_SID:
-			if (mAllowTypes & SID)
+			if (mAllowTypes & FileTypeFlag::SID)
+			{
 				bTypeOK=true;
+			}
 			break;
 		}
 	}
-	if (bTypeOK || mAllowTypes == ALL)
+	if (bTypeOK || mAllowTypes == FileTypeFlag::ALL)
 	{
 		int i;
 		hr = m_c64file.LoadDirectory(mptsFileName, MAXT64LIST, i, false, mhEvtQuit);

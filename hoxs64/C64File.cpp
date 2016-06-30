@@ -79,7 +79,9 @@ HRESULT C64File::GetC64FileType(TCHAR filename[],enum eC64FileType &filetype)
 	filetype = ef_UNKNOWN;
 	hr = IsFDI(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_FDI;
@@ -88,7 +90,9 @@ HRESULT C64File::GetC64FileType(TCHAR filename[],enum eC64FileType &filetype)
 
 	hr = IsT64(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_T64;
@@ -97,7 +101,9 @@ HRESULT C64File::GetC64FileType(TCHAR filename[],enum eC64FileType &filetype)
 
 	hr = IsTAP(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_TAP;
@@ -106,7 +112,9 @@ HRESULT C64File::GetC64FileType(TCHAR filename[],enum eC64FileType &filetype)
 
 	hr = IsP00(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_P00;
@@ -115,16 +123,31 @@ HRESULT C64File::GetC64FileType(TCHAR filename[],enum eC64FileType &filetype)
 
 	hr = IsG64(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_G64;
 		return S_OK;
 	}
 	
+	hr = IsP64(filename, br);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+	if (br)
+	{
+		filetype = ef_P64;
+		return S_OK;
+	}
+
 	hr = IsSID(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_SID;
@@ -133,7 +156,9 @@ HRESULT C64File::GetC64FileType(TCHAR filename[],enum eC64FileType &filetype)
 
 	hr = IsD64(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_D64;
@@ -142,15 +167,15 @@ HRESULT C64File::GetC64FileType(TCHAR filename[],enum eC64FileType &filetype)
 
 	hr = IsPRG(filename, br);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (br)
 	{
 		filetype = ef_PRG;
 		return S_OK;
 	}
-
 	return S_OK;
-
 }
 
 C64File::eC64FileType C64File::GetFileType()
@@ -163,6 +188,7 @@ int C64File::GetFileCount()
 	switch(_FileType)
 	{
 	case ef_FDI:
+	case ef_P64:
 	case ef_G64:
 	case ef_D64:
 		return (int)directory.aItems.Count();
@@ -194,6 +220,7 @@ int C64File::GetC64DisknameLength()
 	switch(_FileType)
 	{
 	case ef_FDI:
+	case ef_P64:
 	case ef_G64:
 	case ef_D64:
 		return GetC64FileNameLength(directory.Name, sizeof(directory.Name));
@@ -218,6 +245,7 @@ int i,j;
 	switch(_FileType)
 	{
 	case ef_FDI:
+	case ef_P64:
 	case ef_G64:
 	case ef_D64:
 		i = GetC64DisknameLength();
@@ -254,6 +282,7 @@ int i;
 	switch(_FileType)
 	{
 	case ef_FDI:
+	case ef_P64:
 	case ef_G64:
 	case ef_D64:
 		if (index < 0 || index >= (int)directory.aItems.Count())
@@ -287,6 +316,7 @@ int i,j;
 	switch(_FileType)
 	{
 	case ef_FDI:
+	case ef_P64:
 	case ef_G64:
 	case ef_D64:
 		if (index < 0 || index >= (int)directory.aItems.Count())
@@ -330,6 +360,7 @@ const bit8 *C64File::GetDirectoryItemTypeName(int index)
 	switch(_FileType)
 	{
 	case ef_FDI:
+	case ef_P64:
 	case ef_G64:
 	case ef_D64:
 		if (index < 0 || index >= (int)directory.aItems.Count())
@@ -370,24 +401,19 @@ int C64File::GetOriginalDirectoryIndex(int index)
 	switch(_FileType)
 	{
 	case ef_FDI:
-		return index;
+	case ef_P64:
 	case ef_G64:
-		return index;
 	case ef_D64:
-		return index;
 	case ef_PRG:
-		return index;
 	case ef_P00:
+	case ef_TAP:
+	case ef_SID:
 		return index;
 	case ef_T64:
 		if (index<0 || index > t64.numberItems)
 			return 0;
 		else
 			return t64.filteredDirectory[index]->orginalIndex;
-	case ef_TAP:
-		return index;
-	case ef_SID:
-		return index;
 	default:
 		return 0;
 	}
@@ -418,39 +444,58 @@ eC64FileType filetype;
 		}
 		break;
 	case ef_FDI:
-	case ef_G64:
-	case ef_D64:
 		disk.mhevtQuit = hevtQuit;
-		if (filetype==ef_FDI)
+		hr = disk.LoadFDIFromFile(filename);
+		if (SUCCEEDED(hr))
 		{
-			hr = disk.LoadFDIFromFile(filename);
-			if (SUCCEEDED(hr))
+			disk.ConvertRAWtoGCR();
+			hr = S_OK;
+			if (hevtQuit)
 			{
-				disk.ConvertRAWtoGCR();
-				hr = S_OK;
-				if (hevtQuit)
-				{
-					if (WaitForSingleObject(hevtQuit, 0) == WAIT_OBJECT_0)
-						hr = E_FAIL;
-				}
-				if (SUCCEEDED(hr))
-				{
-					hr = disk.ConvertGCRToD64(disk.m_d64TrackCount);
-				}
+				if (WaitForSingleObject(hevtQuit, 0) == WAIT_OBJECT_0)
+					hr = E_FAIL;
 			}
-		}
-		else if (filetype==ef_G64)
-		{
-			hr = disk.LoadG64FromFile(filename, false);
 			if (SUCCEEDED(hr))
 			{
 				hr = disk.ConvertGCRToD64(disk.m_d64TrackCount);
 			}
-
 		}
-		else if (filetype==ef_D64)
-			hr = disk.LoadD64FromFile(filename, false, false);
-		
+		directory.LoadDirectory(disk.m_pD64Binary, bPrgFilesOnly);
+		disk.mhevtQuit = NULL;
+		break;
+	case ef_P64:
+		disk.mhevtQuit = hevtQuit;
+		hr = disk.LoadP64FromFile(filename);
+		if (SUCCEEDED(hr))
+		{
+			disk.ConvertRAWtoGCR();
+			hr = S_OK;
+			if (hevtQuit)
+			{
+				if (WaitForSingleObject(hevtQuit, 0) == WAIT_OBJECT_0)
+					hr = E_FAIL;
+			}
+			if (SUCCEEDED(hr))
+			{
+				hr = disk.ConvertGCRToD64(disk.m_d64TrackCount);
+			}
+		}
+		directory.LoadDirectory(disk.m_pD64Binary, bPrgFilesOnly);
+		disk.mhevtQuit = NULL;
+		break;
+	case ef_G64:
+		disk.mhevtQuit = hevtQuit;
+		hr = disk.LoadG64FromFile(filename, false);
+		if (SUCCEEDED(hr))
+		{
+			hr = disk.ConvertGCRToD64(disk.m_d64TrackCount);
+		}
+		directory.LoadDirectory(disk.m_pD64Binary, bPrgFilesOnly);
+		disk.mhevtQuit = NULL;
+		break;
+	case ef_D64:
+		disk.mhevtQuit = hevtQuit;
+		hr = disk.LoadD64FromFile(filename, false, false);
 		directory.LoadDirectory(disk.m_pD64Binary, bPrgFilesOnly);
 		disk.mhevtQuit = NULL;
 		break;
@@ -486,45 +531,42 @@ eC64FileType filetype;
 	switch(filetype)
 	{
 	case ef_FDI:
-	case ef_G64:
-	case ef_D64:
-
-		if (filetype==ef_FDI)
+		hr = disk.LoadFDIFromFile(filename);
+		if (SUCCEEDED(hr))
 		{
-			hr = disk.LoadFDIFromFile(filename);
-			if (SUCCEEDED(hr))
-			{
-				disk.ConvertRAWtoGCR();
-				disk.ConvertGCRToD64(disk.m_d64TrackCount);
-			}
-		}
-		else if (filetype==ef_G64)
-		{
-			hr = disk.LoadG64FromFile(filename, false);
-			if (SUCCEEDED(hr))
-			{
-				disk.ConvertGCRToD64(disk.m_d64TrackCount);
-			}
-
-		}
-		else if (filetype==ef_D64)
-			hr = disk.LoadD64FromFile(filename, false, false);
-
-		if (FAILED(hr))
-		{
-			return SetError(disk);
-		}
-		hr = C64Directory::LoadFileImage(disk.m_pD64Binary, c64FileName, ppFileData, pFileSize);
-		if (FAILED(hr))
-		{
-			return SetError(disk);
+			disk.ConvertRAWtoGCR();
+			disk.ConvertGCRToD64(disk.m_d64TrackCount);
 		}
 		break;
-
+	case ef_P64:
+		hr = disk.LoadP64FromFile(filename);
+		if (SUCCEEDED(hr))
+		{
+			disk.ConvertRAWtoGCR();
+			disk.ConvertGCRToD64(disk.m_d64TrackCount);
+		}
+		break;
+	case ef_G64:
+		hr = disk.LoadG64FromFile(filename, false);
+		if (SUCCEEDED(hr))
+		{
+			disk.ConvertGCRToD64(disk.m_d64TrackCount);
+		}
+		break;
+	case ef_D64:
+		hr = disk.LoadD64FromFile(filename, false, false);
+		break;
 	default:
-		return E_FAIL;
+		hr = E_FAIL;
 	}	
-
+	if (SUCCEEDED(hr))
+	{
+		hr = C64Directory::LoadFileImage(disk.m_pD64Binary, c64FileName, ppFileData, pFileSize);
+	}
+	if (FAILED(hr))
+	{
+		return SetError(disk);
+	}
 	return S_OK;
 }
 
@@ -743,6 +785,7 @@ HANDLE hfile=0;
 	result = true;
 	return S_OK;
 }
+
 HRESULT C64File::IsG64(TCHAR filename[], bool &result)
 {
 DWORD file_size, bytes_read, byteCount;
@@ -785,6 +828,51 @@ struct G64Header g64Header;
 	result = true;
 	return S_OK;
 }
+
+HRESULT C64File::IsP64(TCHAR filename[], bool &result)
+{
+DWORD file_size, bytes_read, byteCount;
+HANDLE hfile=0;
+DWORD r;
+const char signature[] = "P64-1541";
+char signaturebuffer[8];
+
+	result = false;
+	if (!FilenameHasExtention(filename, TEXT(".p64")))
+		return S_OK;
+
+	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	if (hfile==INVALID_HANDLE_VALUE)
+	{
+		return SetError(E_FAIL, TEXT("Could not open %s."),filename);
+	}
+
+	file_size = GetFileSize(hfile, 0);
+	if (INVALID_FILE_SIZE == file_size)
+	{
+		CloseHandle(hfile);
+		return SetError(E_FAIL,TEXT("Could not open %s."),filename);
+	}
+
+	byteCount = sizeof(signaturebuffer);
+	r = ReadFile(hfile, &signaturebuffer[0], byteCount, &bytes_read, NULL);
+	if (r==0 || bytes_read!=byteCount)
+	{
+		CloseHandle(hfile);
+		return S_OK;
+	}
+
+	if (_memicmp(signature, signaturebuffer, byteCount)!=0)
+	{
+		return SetError(E_FAIL,TEXT("%s is not a valid P64 file."), filename);
+	}
+
+	CloseHandle(hfile);
+
+	result = true;
+	return S_OK;
+}
+
 HRESULT C64File::IsTAP(TCHAR filename[], bool &result)
 {
 DWORD r;

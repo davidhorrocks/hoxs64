@@ -13,8 +13,6 @@
 #define G64_MAX_BYTES_PER_TRACK 7928
 
 //Correct for 300rpm at 16Mhz disk internal clock
-//define DISK_RAW_TRACK_SIZE 200000L
-//define DISK_RAW_TRACK_SIZE 208000L
 #define DISK_RAW_TRACK_SIZE 200000L
 
 
@@ -58,6 +56,8 @@ public:
 	HRESULT LoadG64FromFileHandle(HANDLE hfile, TCHAR *filename, bool bConvertToRAW);
 	HRESULT LoadFDIFromFile(TCHAR *filename);
 	HRESULT LoadFDIFromFileHandle(HANDLE hfile, TCHAR *filename);
+    HRESULT LoadP64FromFile(TCHAR *filename);
+    HRESULT LoadP64FromFileHandle(HANDLE hfile, TCHAR *filename);
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
 	HRESULT SaveG64ToFile(TCHAR *filename);
 	HRESULT SaveFDIToFile(TCHAR *filename);
@@ -76,9 +76,7 @@ public:
 	void WriteGCRBit(bit8 trackNumber, bit32 index, bit8 v);
 	void WriteGCRByte(bit8 trackNumber, bit32 index, bit8 v);
 
-
 	HRESULT ConvertGCRToD64(bit32 tracks);
-	//HRESULT LoadSector(bit8 track_num, bit8 sector_num, struct sector_header *sec_header, struct sector_data *sec_data);
 
 	void InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks);
 	void MakeNewD64Image(TCHAR *, bit8, bit8);

@@ -1078,7 +1078,7 @@ errno_t errno;
 			autoLoadCommand.type = C64::AUTOLOAD_T64_FILE;
 			appStatus->m_bAutoload = TRUE;
 		}		
-		else if (lstrcmpi(ext, TEXT(".d64"))==0 || lstrcmpi(ext, TEXT(".g64"))==0 || lstrcmpi(ext, TEXT(".fdi"))==0)
+		else if (lstrcmpi(ext, TEXT(".d64"))==0 || lstrcmpi(ext, TEXT(".g64"))==0 || lstrcmpi(ext, TEXT(".fdi"))==0  || lstrcmpi(ext, TEXT(".p64"))==0)
 		{
 			if (!appStatus->m_bD1541_Emulation_Enable)
 			{
@@ -1306,6 +1306,8 @@ TCHAR *p;
 		return LoadG64FromFile(filename);
 	else if (lstrcmpi(p, TEXT(".fdi"))==0)
 		return LoadFDIFromFile(filename);
+	else if (lstrcmpi(p, TEXT(".p64"))==0)
+		return LoadP64FromFile(filename);
 	else
 		return E_FAIL;
 	return S_OK;
@@ -1352,19 +1354,40 @@ HRESULT hr;
 		SetError(dsk);
 		return hr;
 	}
-
 	hr = dsk.LoadG64FromFile(filename, true);
-
 	if (FAILED(hr))
 	{
 		SetError(dsk);
 		return hr;
 	}
-
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadImageBits(&dsk);
-
 	diskdrive.SetDiskLoaded();
+	return hr;
+}
+
+HRESULT C64::LoadP64FromFile(TCHAR *filename)
+{
+GCRDISK dsk;
+HRESULT hr;
+
+	ClearError();
+	hr = dsk.Init();
+	if (FAILED(hr))
+	{
+		SetError(dsk);
+		return hr;
+	}
+	hr = dsk.LoadP64FromFile(filename);
+	if (FAILED(hr))
+	{
+		SetError(dsk);
+		return hr;
+	}
+	diskdrive.WaitThreadReady();
+	diskdrive.LoadImageBits(&dsk);
+	diskdrive.SetDiskLoaded();
+	diskdrive.D64_DiskProtect(!dsk.m_d64_protectOff);
 	return hr;
 }
 
@@ -1380,9 +1403,7 @@ HRESULT hr;
 		SetError(dsk);
 		return hr;
 	}
-
 	hr = dsk.LoadFDIFromFile(filename);
-
 	if (FAILED(hr))
 	{
 		SetError(dsk);
@@ -1392,12 +1413,10 @@ HRESULT hr;
 	{
 		SetError(dsk);
 	}
-
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadImageBits(&dsk);
-
 	diskdrive.SetDiskLoaded();
-
+	diskdrive.D64_DiskProtect(!dsk.m_d64_protectOff);
 	return hr;
 }
 
@@ -1413,9 +1432,7 @@ HRESULT hr;
 		SetError(dsk);
 		return hr;
 	}
-
 	dsk.InsertNewDiskImage(diskname, id1, id2, bAlignD64Tracks, numberOfTracks);
-
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadImageBits(&dsk);
 	diskdrive.SetDiskLoaded();

@@ -8,11 +8,16 @@ typedef class CArray<struct C64Filename> CDirectoryArray;
 class CPRGBrowse
 {
 public:
-	enum filetype {ALL=0,FDI=1,G64=2,D64=4,TAP=8,T64=16,PRG=32,P00=64,SID=128};
 	CPRGBrowse();
 	~CPRGBrowse();
+	class FileTypeFlag
+	{
+	public:
+		enum filetype {ALL=0,FDI=1,G64=2,D64=4,TAP=8,T64=16,PRG=32,P00=64,SID=128,P64=256};
+	};
+
 	HRESULT Init(bit8 *charGen);
-	BOOL Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum filetype filetypes);
+	BOOL Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum FileTypeFlag::filetype filetypes);
 	LRESULT ChildDialogProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 	void PopulateList(HWND hDlg);
 	HRESULT CreateControls(HWND hDlg);
@@ -29,7 +34,7 @@ public:
 	bit8 SelectedC64FileName[C64DISKFILENAMELENGTH];
 	int SelectedC64FileNameLength;
 
-	enum filetype mAllowTypes;
+	enum FileTypeFlag::filetype mAllowTypes;
 	static const int HEADERLINES = 1;
 	bool DisableQuickLoad;
 

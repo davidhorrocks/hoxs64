@@ -934,10 +934,10 @@ CPRGBrowse prgBrowse;
 		TEXT("Choose a C64 program file"),
 		initfilename,
 		MAX_PATH,
-		TEXT("C64 file (*.fdi;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s)\0*.fdi;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s\0\0"),
+		TEXT("C64 file (*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s)\0*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s\0\0"),
 		NULL,
 		0);
-	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::ALL);
+	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::ALL);
 	if (b)
 	{
 		HRESULT hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks);
@@ -1008,7 +1008,7 @@ int i;
 		NULL,
 		0);
 
-	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::T64);
+	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::T64);
 	if (b)
 	{
 		i = (prgBrowse.SelectedDirectoryIndex < 0) ? 0 : prgBrowse.SelectedDirectoryIndex;
@@ -1046,12 +1046,12 @@ CPRGBrowse prgBrowse;
 		TEXT("Choose a disk image file"),
 		initfilename,
 		MAX_PATH,
-		TEXT("Disk image file (*.d64;*.g64;*.fdi)\0*.d64;*.g64;*.fdi\0All files (*.*)\0*.*\0\0"),
+		TEXT("Disk image file (*.d64;*.g64;*.p64;*.fdi)\0*.d64;*.g64;*.p64;*.fdi\0All files (*.*)\0*.*\0\0"),
 		NULL,
 		0);
 
 	prgBrowse.DisableQuickLoad = true;
-	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, (CPRGBrowse::filetype)(CPRGBrowse::D64 | CPRGBrowse::G64 | CPRGBrowse::FDI) );
+	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, (CPRGBrowse::FileTypeFlag::filetype)(CPRGBrowse::FileTypeFlag::D64 | CPRGBrowse::FileTypeFlag::G64 | CPRGBrowse::FileTypeFlag::FDI | CPRGBrowse::FileTypeFlag::P64) );
 	if (b)
 	{
 		SetBusy(true);

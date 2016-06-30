@@ -92,6 +92,7 @@ public:
 	HRESULT InsertDiskImageFile(TCHAR *filename, bool bAlignD64Tracks);
 	HRESULT LoadD64FromFile(TCHAR *filename, bool bAlignD64Tracks);
 	HRESULT LoadG64FromFile(TCHAR *filename);
+	HRESULT LoadP64FromFile(TCHAR *filename);
 	HRESULT LoadFDIFromFile(TCHAR *filename);
 
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);

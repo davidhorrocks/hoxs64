@@ -37,6 +37,12 @@
     <Filter Include="Header Files\savestate">
       <UniqueIdentifier>{3bf91b0c-9382-492b-996e-54f62fcce9b2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\p64">
+      <UniqueIdentifier>{06177186-f764-4c3e-9674-267f62269adf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\p64">
+      <UniqueIdentifier>{6d935b69-a79b-4764-a2e4-79887c74bcc3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="appstatus.cpp">
@@ -326,6 +332,12 @@
     </ClCompile>
     <ClCompile Include="DxTexture.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="p64.cpp">
+      <Filter>Source Files\p64</Filter>
+    </ClCompile>
+    <ClCompile Include="p64ref.cpp">
+      <Filter>Source Files\p64</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -628,6 +640,12 @@
     </ClInclude>
     <ClInclude Include="DxWindow.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="p64.h">
+      <Filter>Header Files\p64</Filter>
+    </ClInclude>
+    <ClInclude Include="p64config.h">
+      <Filter>Header Files\p64</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
