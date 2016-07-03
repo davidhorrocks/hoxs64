@@ -647,6 +647,9 @@
     <ClInclude Include="p64config.h">
       <Filter>Header Files\p64</Filter>
     </ClInclude>
+    <ClInclude Include="IQuit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="c64def.asm">

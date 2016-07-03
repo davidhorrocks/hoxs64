@@ -27,6 +27,7 @@
 */
 
 #include "p64.h"
+#include "iquit.h"
 
 p64_uint32_t P64CRC32(p64_uint8_t* Data, p64_uint32_t Len) {
 
@@ -991,7 +992,14 @@ void P64ImageClear(PP64Image Instance) {
 	}
 }
 
-p64_uint32_t P64ImageReadFromStream(PP64Image Instance, PP64MemoryStream Stream) {
+p64_uint32_t P64ImageReadFromStream(PP64Image Instance, PP64MemoryStream Stream, IQuit *pIQuit) {
+	if (pIQuit)
+	{
+		if (pIQuit->IsQuit())
+		{
+			return 0;
+		}
+	}
 	TP64MemoryStream ChunksMemoryStream, ChunkMemoryStream;
 	p64_uint32_t Version, Flags, Size, Checksum, HalfTrack, OK;
 	TP64HeaderSignature HeaderSignature;
@@ -1014,6 +1022,14 @@ p64_uint32_t P64ImageReadFromStream(PP64Image Instance, PP64MemoryStream Stream)
 											if(P64MemoryStreamSeek(&ChunksMemoryStream, 0) == 0) {
 												OK = 1;
 												while(OK && (ChunksMemoryStream.Position < ChunksMemoryStream.Size)) {
+													if (pIQuit)
+													{
+														if (pIQuit->IsQuit())
+														{
+															OK = 0;
+															break;
+														}
+													}
 													if(P64MemoryStreamRead(&ChunksMemoryStream, (p64_uint8_t*)&ChunkSignature, sizeof(TP64ChunkSignature)) == sizeof(TP64ChunkSignature)) {
 														if(P64MemoryStreamReadDWord(&ChunksMemoryStream, &Size)) {
 															if(P64MemoryStreamReadDWord(&ChunksMemoryStream, &Checksum)) {

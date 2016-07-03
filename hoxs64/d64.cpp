@@ -11,6 +11,7 @@
 #include "huff.h"
 #include "FDI.h"
 #include "crc.h"
+#include "iquit.h"
 #include "p64config.h"
 #include "p64.h"
 #include "d64.h"
@@ -1248,7 +1249,7 @@ HRESULT hr = E_FAIL;
 			{
 				P64MemoryStreamWrite(&P64MemoryStreamInstance, (p64_uint8_t *)buffer, file_size);
 				P64MemoryStreamSeek(&P64MemoryStreamInstance, 0);
-				if (P64ImageReadFromStream(&P64Image, &P64MemoryStreamInstance))
+				if (P64ImageReadFromStream(&P64Image, &P64MemoryStreamInstance, this))
 				{
 					int hostTrackIndex;
 					int p64TrackIndex;
@@ -2059,9 +2060,9 @@ HuffDecompression hd;
 		//DISK_RAW_TRACK_SIZE is 200000. This is the number of cells or arc's of track in an emulated track.
 		//Take the current fdi distance from start of track (sumPulseTime) and re-scale it into our emulated track at arc trackIndex [0-199999] with the pulse position with in the that arc to be stored in delayIndex [1-16]
 		clockTime = (double)sumPulseTime / (double)totalTime * (double)(DISK_RAW_TRACK_SIZE * 16);
-		trackIndex = ((bit32)floor(clockTime)) / 16L;
+		trackIndex = ((bit32)floor(clockTime + 0.5)) / 16L;
 		trackIndex = trackIndex % DISK_RAW_TRACK_SIZE;
-		delayIndex = (bit8)(((bit32)floor(clockTime)) & 0xf) + 1;
+		delayIndex = (bit8)(((bit32)floor(clockTime + 0.5)) & 0xf) + 1;
 
 		assert(trackIndex < DISK_RAW_TRACK_SIZE);
 
@@ -2587,7 +2588,6 @@ bit32 startBitPos;
 	return byte;
 }
 
-
 bit8 GCRDISK::GetDisk16(bit8 trackNumber, bit32 headIndex)
 {
 	return m_rawTrackData[trackNumber][headIndex];
@@ -2595,13 +2595,26 @@ bit8 GCRDISK::GetDisk16(bit8 trackNumber, bit32 headIndex)
 
 void GCRDISK::PutDisk16(bit8 trackNumber, bit32 headIndex, bit8 data)
 {
-		m_rawTrackData[trackNumber][headIndex] = data;
+	m_rawTrackData[trackNumber][headIndex] = data;
 }
 
 bool GCRDISK::IsEventQuitSignalled()
 {
 	if (mhevtQuit)
+	{
 		return (WaitForSingleObject(mhevtQuit, 0) == WAIT_OBJECT_0);
+	}
 	else
+	{
 		return false;
+	}
+}
+
+bool GCRDISK::IsQuit()
+{
+	return this->IsEventQuitSignalled();
+}
+
+void GCRDISK::Quit()
+{
 }

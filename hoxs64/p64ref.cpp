@@ -27,7 +27,7 @@ int demo_tmain(int argc, _TCHAR* argv[])
         fclose(pFile);
         P64MemoryStreamWrite(&P64MemoryStreamInstance,buffer,lSize);
         P64MemoryStreamSeek(&P64MemoryStreamInstance,0);
-        if (P64ImageReadFromStream(&P64Image,&P64MemoryStreamInstance))
+        if (P64ImageReadFromStream(&P64Image,&P64MemoryStreamInstance, 0))
         {
             printf("Read ok!\n");
             P64MemoryStreamClear(&P64MemoryStreamInstance);

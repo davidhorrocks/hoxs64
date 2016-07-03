@@ -1,6 +1,8 @@
 #ifndef __D64_H__ 
 #define __D64_H__ 
 
+#include "iquit.h"
+
 #define D64_TRACK_SIZE_1_17 (7693L)
 #define D64_TRACK_SIZE_18_24 (7143L)
 #define D64_TRACK_SIZE_24_30 (6667L)
@@ -43,7 +45,7 @@ struct D64_Track_Info
 };
 
 
-class GCRDISK : public ErrorMsg
+class GCRDISK : public ErrorMsg, public IQuit
 {
 public:
 
@@ -119,6 +121,8 @@ public:
 	static const bit8 D64_BAM[256];
 	static const struct D64_Track_Info D64_info[D64_MAX_TRACKS+2];
 	bool IsEventQuitSignalled();
+	bool IsQuit();
+	void Quit();
 	HANDLE mhevtQuit;
 
 private:

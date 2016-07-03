@@ -30,6 +30,7 @@
 #define P64_H
 
 #include "p64config.h"
+#include "iquit.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -169,7 +170,7 @@ extern p64_uint32_t P64PulseStreamWriteToStream(PP64PulseStream Instance, PP64Me
 extern void P64ImageCreate(PP64Image Instance);
 extern void P64ImageDestroy(PP64Image Instance);
 extern void P64ImageClear(PP64Image Instance);
-extern p64_uint32_t P64ImageReadFromStream(PP64Image Instance, PP64MemoryStream Stream);
+extern p64_uint32_t P64ImageReadFromStream(PP64Image Instance, PP64MemoryStream Stream, IQuit *pIQuit);
 extern p64_uint32_t P64ImageWriteToStream(PP64Image Instance, PP64MemoryStream Stream);
 
 #endif

@@ -5,8 +5,6 @@
 #define DISKCHANGE2 20
 #define DISKCHANGE1 10
 
-#define DISKHEADFILTERWIDTH (40)
-
 class CIA2;
 
 class DiskInterface : public IRegister, public IMonitorDisk, public ErrorMsg
@@ -120,9 +118,10 @@ public:
 	bit8 m_writeStream;
 	unsigned int m_totalclocks_UE7;
 	unsigned int m_lastPulseTime;
-	//bit32 m_counterStartPulseFilter;
-	//bool m_bLastPulseRisingEdge;
-	//bool m_bCurrentPulseRisingEdge;
+	bit32 m_counterStartPulseFilter;
+	bool m_bPendingPulse;
+	bool m_bPulseState;
+	bool m_bLastPulseState;
 
 	bit8 *m_rawTrackData[G64_MAX_TRACKS];
 
