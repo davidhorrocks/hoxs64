@@ -885,7 +885,6 @@ bit8 bMotorRun = m_bDiskMotorOn;
 			}
 			else
 			{
-				bitTimeDelayed = 0;
 				ClockDividerAdd(DISK16CELLSPERCLOCK, speed, false);
 				if (m_d64_protectOff!=0 && m_diskLoaded)
 				{
@@ -895,22 +894,21 @@ bit8 bMotorRun = m_bDiskMotorOn;
 			MotorDisk16(m_currentTrackNumber, &m_currentHeadIndex);
 		}
 
-		if (m_bPendingPulse && m_counterStartPulseFilter > DISKHEADFILTERWIDTH && m_bPulseState != m_bLastPulseState)
-		{
-			if (m_counterStartPulseFilter - DISKHEADFILTERWIDTH <= DISK16CELLSPERCLOCK)
-			{
-				bitTimeDelayed = (bit8)(DISK16CELLSPERCLOCK + DISKHEADFILTERWIDTH - m_counterStartPulseFilter + 1);
-			}
-		}
-
-		if (bitTimeDelayed != 0 && (bitTime == 0 || bitTimeDelayed < bitTime))
+		if (m_bPendingPulse && (m_counterStartPulseFilter) > DISKHEADFILTERWIDTH)
 		{
 			m_bPendingPulse = false;
-			m_bLastPulseState = m_bPulseState;
-		}
-		else
-		{
-			bitTimeDelayed = 0;
+			if (m_counterStartPulseFilter - DISKHEADFILTERWIDTH <= DISK16CELLSPERCLOCK && m_bPulseState != m_bLastPulseState)
+			{
+				bitTimeDelayed = (bit8)(DISK16CELLSPERCLOCK + DISKHEADFILTERWIDTH - m_counterStartPulseFilter + 1);
+				if ((bitTime == 0 || bitTimeDelayed < bitTime))
+				{
+					m_bLastPulseState = m_bPulseState;
+				}
+				else
+				{
+					bitTimeDelayed = 0;
+				}
+			}
 		}
 
 		if (bitTime != 0)
