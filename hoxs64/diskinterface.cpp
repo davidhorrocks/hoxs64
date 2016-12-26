@@ -34,6 +34,7 @@
 #include "filter.h"
 #include "sid.h"
 #include "sidfile.h"
+#include "p64.h"
 #include "d64.h"
 #include "d1541.h"
 #include "via6522.h"
@@ -46,18 +47,15 @@
 #undef DEBUG_DISKPULSES
 
 #define DISK16CELLSPERCLOCK (16)
-#define DISKHEADFILTERWIDTH (39)
+#define DISKHEADFILTERWIDTH (40)
+#define DISKHEADSTEPWAITTIME (5000UL)
 
 DiskInterface::DiskInterface()
 {
-int i;
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
-	{
-		m_rawTrackData[i] = 0;
-	}
-
+	P64ImageCreate(&this->m_P64Image);
 	m_currentHeadIndex=0;
 	m_currentTrackNumber = 0;
+	m_previousTrackNumber = 0;
 	m_lastHeadStepDir = 0;
 	m_lastHeadStepPosition = 0;
 	m_shifterWriter_UD3 = 0;
@@ -82,6 +80,7 @@ int i;
 	m_bLastPulseState = false;
 	m_bPendingPulse = false;
 	m_counterStartPulseFilter = DISKHEADFILTERWIDTH;
+	m_nextP64PulsePosition = -1;
 
 	m_d64_soe_enable = 1;
 	m_d64_write_enable = 0;
@@ -107,14 +106,15 @@ int i;
 
 	m_motorOffClock = 0;
 	m_headStepClock = 0;
+	m_headStepClockUp = 0;
 
 	mThreadId = 0;
 	mhThread = 0;
-	mbDiskThreadCommandQuit = 0;
-	mevtDiskClocksDone = 0;
-	mevtDiskCommand = 0;
 	mbDiskThreadCommandQuit = false;
+	mbDiskThreadPause = false;
 	mbDiskThreadHasQuit = false;
+	mevtDiskReady = 0;
+	mevtDiskCommand = 0;
 }
 
 DiskInterface::~DiskInterface()
@@ -124,6 +124,7 @@ DiskInterface::~DiskInterface()
 
 void DiskInterface::InitReset(ICLK sysclock)
 {
+	ThreadSignalPause();
 	WaitThreadReady();
 
 	m_diskd64clk_xf = -Disk64clk_dy2 / 2;
@@ -150,6 +151,7 @@ void DiskInterface::InitReset(ICLK sysclock)
 	m_bLastPulseState = false;
 	m_bPendingPulse = false;
 	m_counterStartPulseFilter = DISKHEADFILTERWIDTH;
+	m_nextP64PulsePosition = -1;
 
 	m_d64_soe_enable = 1;
 	m_d64_write_enable = 0;
@@ -164,31 +166,30 @@ void DiskInterface::InitReset(ICLK sysclock)
 
 	m_motorOffClock = 0;
 	m_headStepClock = 0;
+	m_headStepClockUp =0;
 
 	SetRamPattern();
 
 	m_currentTrackNumber = 0x2;
+	m_previousTrackNumber = m_currentTrackNumber;
 	m_lastHeadStepDir = 0;
 	m_lastHeadStepPosition = 2;
 }
 
 void DiskInterface::Reset(ICLK sysclock)
 {
+	ThreadSignalPause();
 	WaitThreadReady();
-
 	CurrentClock = sysclock;
 	CurrentPALClock = sysclock;
 	m_pendingclocks = 0;
 	//CurrentPALClock must be set before calling ThreadSignalCommandResetClock
 	ThreadSignalCommandResetClock();
 	WaitThreadReady();
-
 	InitReset(sysclock);
-
 	via1.Reset(sysclock);
 	via2.Reset(sysclock);
 	cpu.Reset(sysclock);
-
 }
 
 void DiskInterface::SetRamPattern()
@@ -205,7 +206,6 @@ int i;
 
 HRESULT DiskInterface::Init(CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager,TCHAR *szAppDirectory)
 {
-int i;
 HANDLE hfile=0;
 BOOL r;
 DWORD bytes_read;
@@ -214,7 +214,7 @@ HRESULT hr;
 
 	ClearError();
 	Cleanup();
-
+	P64ImageCreate(&this->m_P64Image);
 	hr = InitDiskThread();
 	if (FAILED(hr))
 	{
@@ -267,22 +267,10 @@ HRESULT hr;
 		return SetError(E_FAIL, TEXT("Could not read 0x4000 bytes from C1541.rom"));
 	}
 
-	m_pIndexedD1541_rom = m_pD1541_rom-0xC000;
-
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
-	{
-		m_rawTrackData[i] = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, DISK_RAW_TRACK_SIZE);
-		if (m_rawTrackData[i] == 0)
-		{
-			Cleanup();
-			return SetError(E_OUTOFMEMORY, TEXT("Could not read 0x4000 bytes from C1541.rom"));
-		}
-	}
-	
+	m_pIndexedD1541_rom = m_pD1541_rom-0xC000;	
 	via1.Init(1, appStatus, &cpu, this);
 	via2.Init(2, appStatus, &cpu, this);
 	cpu.Init(pIC64Event, CPUID_DISK, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom, pIBreakpointManager);
-
 	m_d64_protectOff=1;//1=no protect;0=protected;
 	return S_OK;
 }
@@ -297,36 +285,49 @@ LPInitializeCriticalSectionAndSpinCount pInitializeCriticalSectionAndSpinCount =
 
 	mbDiskThreadCommandQuit = false;
 	mbDiskThreadHasQuit = false;
+	mbDiskThreadPause = false;
 
-	mevtDiskClocksDone = CreateEvent(0, TRUE, FALSE, NULL);
-	if (mevtDiskClocksDone == 0)
+	mevtDiskReady = CreateEvent(0, TRUE, FALSE, NULL);
+	if (mevtDiskReady == 0)
 	{
 		return E_FAIL;
 	}
-	mevtDiskCommand = CreateEvent(0, TRUE, FALSE, NULL);
+	mevtDiskCommand = CreateEvent(0, FALSE, FALSE, NULL);
 	if (mevtDiskCommand == 0)
 	{
 		return E_FAIL;
 	}
+	mevtDiskQuit = CreateEvent(0, TRUE, FALSE, NULL);
+	if (mevtDiskQuit == 0)
+	{
+		return E_FAIL;
+	}	
+	mevtDiskPause = CreateEvent(0, FALSE, FALSE, NULL);
+	if (mevtDiskPause == 0)
+	{
+		return E_FAIL;
+	}
+	this->m_waitCommand[0] = this->mevtDiskQuit;
+	this->m_waitCommand[1] = this->mevtDiskPause;
+	this->m_waitCommand[2] = this->mevtDiskCommand;
+	this->m_waitReady[0] = this->mevtDiskQuit;
+	this->m_waitReady[1] = this->mevtDiskReady;
+	if (G::IsWinVerSupportInitializeCriticalSectionAndSpinCount())
+	{
+		HMODULE hKernel32 = GetModuleHandle(TEXT("KERNEL32"));
+		if (hKernel32) 
+		{
+			pInitializeCriticalSectionAndSpinCount = (LPInitializeCriticalSectionAndSpinCount) (GetProcAddress(hKernel32, "InitializeCriticalSectionAndSpinCount") );
+		}
+	}
+
+	if (pInitializeCriticalSectionAndSpinCount!=0)
+	{
+		pInitializeCriticalSectionAndSpinCount(&mcrtDisk, 0x4000);
+	}
 	else
 	{
-		if (G::IsWinVerSupportInitializeCriticalSectionAndSpinCount())
-		{
-			HMODULE hKernel32 = GetModuleHandle(TEXT("KERNEL32"));
-			if (hKernel32) 
-			{
-				pInitializeCriticalSectionAndSpinCount = (LPInitializeCriticalSectionAndSpinCount) (GetProcAddress(hKernel32, "InitializeCriticalSectionAndSpinCount") );
-			}
-		}
-
-		if (pInitializeCriticalSectionAndSpinCount!=0)
-		{
-			pInitializeCriticalSectionAndSpinCount(&mcrtDisk, 0x4000);
-		}
-		else
-		{
-			InitializeCriticalSection(&mcrtDisk);
-		}
+		InitializeCriticalSection(&mcrtDisk);
 	}
 
 	mhThread = CreateThread(NULL, 0, DiskInterface::DiskThreadProc, this, 0, &mThreadId);
@@ -340,19 +341,14 @@ LPInitializeCriticalSectionAndSpinCount pInitializeCriticalSectionAndSpinCount =
 	return S_OK;
 }
 
-void DiskInterface::WaitThreadReady()
+bool DiskInterface::WaitThreadReady()
 {
-	while (1)
+	DWORD r = WaitForMultipleObjects(2, &m_waitReady[0], FALSE, INFINITE);
+	if (r == WAIT_OBJECT_0 + 1)
 	{
-		DWORD r;
-		r = WaitForSingleObject(mevtDiskClocksDone, 0);
-		if (r == WAIT_OBJECT_0)
-			return ;
-		else if (r == WAIT_TIMEOUT)
-			continue;
-		else
-			return ;
+		return true;
 	}
+	return false;
 }
 
 void DiskInterface::ThreadSignalCommandResetClock()
@@ -361,7 +357,7 @@ void DiskInterface::ThreadSignalCommandResetClock()
 	if (!mbDiskThreadHasQuit)
 	{
 		mbDiskThreadCommandResetClock = TRUE;
-		ResetEvent(mevtDiskClocksDone);
+		ResetEvent(mevtDiskReady);
 		SetEvent(mevtDiskCommand);
 	}
 	LeaveCriticalSection(&mcrtDisk);	
@@ -373,20 +369,43 @@ void DiskInterface::ThreadSignalCommandExecuteClock(ICLK PalClock)
 	if (!mbDiskThreadHasQuit)
 	{
 		m_DiskThreadCommandedPALClock = PalClock;
-		ResetEvent(mevtDiskClocksDone);
+		ResetEvent(mevtDiskReady);
 		SetEvent(mevtDiskCommand);
 	}
 	LeaveCriticalSection(&mcrtDisk);	
 }
 
-void DiskInterface::ThreadSignalCommandClose()
+void DiskInterface::ThreadSignalExecute()
 {
 	EnterCriticalSection(&mcrtDisk);
 	if (!mbDiskThreadHasQuit)
 	{
-		mbDiskThreadCommandQuit = true;
-		ResetEvent(mevtDiskClocksDone);
+		ResetEvent(mevtDiskReady);
 		SetEvent(mevtDiskCommand);
+	}
+	LeaveCriticalSection(&mcrtDisk);
+}
+
+void DiskInterface::ThreadSignalPause()
+{	
+	EnterCriticalSection(&mcrtDisk);
+	if (!mbDiskThreadHasQuit)
+	{
+		ResetEvent(mevtDiskReady);
+		SetEvent(mevtDiskPause);
+		mbDiskThreadPause = true;
+	}
+	LeaveCriticalSection(&mcrtDisk);
+}
+
+void DiskInterface::ThreadSignalQuit()
+{
+	EnterCriticalSection(&mcrtDisk);
+	if (!mbDiskThreadHasQuit)
+	{
+		ResetEvent(mevtDiskReady);
+		SetEvent(mevtDiskQuit);
+		mbDiskThreadCommandQuit = true;
 	}
 	LeaveCriticalSection(&mcrtDisk);
 }
@@ -395,19 +414,16 @@ void DiskInterface::CloseDiskThread()
 {
 	if (mhThread)
 	{
-		WaitThreadReady();
-		ThreadSignalCommandClose();
-
+		ThreadSignalQuit();
 		WaitForMultipleObjects(1, &mhThread, TRUE, INFINITE);
-		CloseHandle(mhThread);
-		
+		CloseHandle(mhThread);		
 		mhThread = 0;
 	}
 
-	if (mevtDiskClocksDone)
+	if (mevtDiskReady)
 	{
-		CloseHandle(mevtDiskClocksDone);
-		mevtDiskClocksDone = 0;
+		CloseHandle(mevtDiskReady);
+		mevtDiskReady = 0;
 	}
 	
 	if (mevtDiskCommand)
@@ -416,6 +432,12 @@ void DiskInterface::CloseDiskThread()
 		DeleteCriticalSection(&mcrtDisk);
 		mevtDiskCommand = 0;
 	}
+
+	if (mevtDiskQuit)
+	{
+		CloseHandle(mevtDiskQuit);
+		mevtDiskQuit = 0;
+	}	
 }
 
 DWORD WINAPI  DiskInterface::DiskThreadProc( LPVOID lpParam )
@@ -425,7 +447,7 @@ DWORD r;
 
 	pDisk = (DiskInterface *)lpParam;
 	r = pDisk->DiskThreadProc();
-	SetEvent(pDisk->mevtDiskClocksDone);
+	SetEvent(pDisk->mevtDiskReady);
 	pDisk->mbDiskThreadHasQuit = true;
 	return r;
 }
@@ -435,26 +457,34 @@ DWORD DiskInterface::DiskThreadProc()
 DWORD r;
 ICLK clk;
 bool bQuit;
+bool bPause;
 bool bCommand;
 
 	r = WAIT_OBJECT_0;
 	bCommand = false;
 	bQuit = false;
-	SetEvent(mevtDiskClocksDone);
+	SetEvent(mevtDiskReady);
 	while (!bQuit)
-	{
-		r = WaitForSingleObject(mevtDiskCommand, INFINITE);
-		if ( r == WAIT_OBJECT_0)
+	{		
+		r = WaitForMultipleObjects(3, &m_waitCommand[0], FALSE, INFINITE);
+		if ( r == WAIT_OBJECT_0 + 2)//Command
 		{
-			while (!bQuit)
+			bPause = false;
+			while (!bQuit || !bPause)
 			{
 				EnterCriticalSection(&mcrtDisk);
 
 				if (mbDiskThreadCommandQuit)
 				{
 					bQuit = true;
-					ResetEvent(mevtDiskCommand);
-					SetEvent(mevtDiskClocksDone);
+					LeaveCriticalSection(&mcrtDisk);
+					break;
+				}
+
+				if (mbDiskThreadPause)
+				{
+					mbDiskThreadPause = false;
+					bPause = true;
 					LeaveCriticalSection(&mcrtDisk);
 					break;
 				}
@@ -466,14 +496,17 @@ bool bCommand;
 					m_DiskThreadCurrentPALClock = CurrentPALClock; 
 				}
 
-
 				clk = m_DiskThreadCommandedPALClock;
 				m_DiskThreadCurrentPALClock = CurrentPALClock;
 
 				if ((ICLKS)(m_DiskThreadCurrentPALClock - clk) >= 0)
 				{
-					ResetEvent(mevtDiskCommand);
-					SetEvent(mevtDiskClocksDone);
+					//TEST
+					if ((ICLKS)(m_DiskThreadCurrentPALClock - clk) > 312*63*50)
+					{
+						clk=clk;
+					}
+					SetEvent(mevtDiskReady);
 					LeaveCriticalSection(&mcrtDisk);
 					break;
 				}
@@ -482,6 +515,18 @@ bool bCommand;
 				ExecuteAllPendingDiskCpuClocks();
 				ExecutePALClock(clk);
 			}
+		}
+		else if ( r == WAIT_OBJECT_0 + 1)//Pause
+		{
+			EnterCriticalSection(&mcrtDisk);
+			mbDiskThreadPause = false;
+			SetEvent(mevtDiskReady);
+			LeaveCriticalSection(&mcrtDisk);
+			continue;
+		}
+		else if ( r == WAIT_OBJECT_0)//Quit
+		{
+			return 0;
 		}
 		else if (r == WAIT_ABANDONED)
 		{			
@@ -501,18 +546,8 @@ bool bCommand;
 
 void DiskInterface::Cleanup()
 {
-int i;
 
 	CloseDiskThread();
-
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
-	{
-		if (m_rawTrackData[i])
-			GlobalFree(m_rawTrackData[i]);
-
-		m_rawTrackData[i] = 0;
-	}
-
 	if (m_pD1541_ram)
 	{
 		GlobalFree(m_pD1541_ram);
@@ -524,6 +559,7 @@ int i;
 		m_pD1541_rom=NULL;
 	}
 	m_pIndexedD1541_rom=NULL;
+	P64ImageDestroy(&m_P64Image);
 }
 
 void DiskInterface::D64_DiskProtect(bool bOn)
@@ -598,12 +634,14 @@ void DiskInterface::MoveHead(bit8 trackNo)
 
 bool DiskInterface::StepHeadIn()
 {
-  	if (m_currentTrackNumber < (G64_MAX_TRACKS-1))
+  	if (m_currentTrackNumber < (HOST_MAX_TRACKS-1))
 	{
-		m_currentTrackNumber++;
+		m_previousTrackNumber = m_currentTrackNumber++;
 		m_lastHeadStepDir = 1;
 		m_lastHeadStepPosition = (m_lastHeadStepPosition + 1) & 3;
-		m_headStepClock = 5000;
+		m_headStepClock = DISKHEADSTEPWAITTIME;
+		m_headStepClockUp = 0;
+		m_nextP64PulsePosition = -1;
 		return true;
 	}
 	else
@@ -617,10 +655,12 @@ bool DiskInterface::StepHeadOut()
 {
 	if (m_currentTrackNumber > 0)
 	{
-		m_currentTrackNumber--;
+		m_previousTrackNumber = m_currentTrackNumber--;
 		m_lastHeadStepDir = -1;
 		m_lastHeadStepPosition = (m_lastHeadStepPosition - 1) & 3;
-		m_headStepClock = 5000;
+		m_headStepClock = DISKHEADSTEPWAITTIME;
+		m_headStepClockUp = 0;
+		m_nextP64PulsePosition = -1;
 		return true;
 	}
 	else
@@ -762,7 +802,7 @@ bit8 bandpos;
 				m_shifterReader_UD2 <<= 1;
 				if ((clockDivider2_UF4 & 0xc) == 0)
 				{//reading a 1
-					if (m_headStepClock==0)
+					//if (m_headStepClock==0)
 					{
 						m_shifterReader_UD2 |= 1;
 					}
@@ -851,18 +891,25 @@ bit8 bandpos;
 void DiskInterface::SpinDisk(ICLK sysclock)
 {
 bit8 bitTime;
+bit8 bitTimeFirstInCell;
 bit8 bitTimeDelayed;
 ICLKS clocks;
 bit8 speed;
+p64_uint32_t position;
 bit8 bMotorRun = m_bDiskMotorOn;
+bool nextPulseState;
+int i;
 
+	PP64PulseStream track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + m_currentTrackNumber];
 	speed = m_clockDivider1_UE7_Reload;
 	clocks = (ICLKS)(sysclock - CurrentClock);
 	while (clocks-- > 0)
 	{
 		CurrentClock++;
 		bitTime = 0;
+		bitTimeFirstInCell = 0;
 		bitTimeDelayed = 0;
+		nextPulseState = m_bPulseState;
 		if (m_motorOffClock)
 		{
 			m_motorOffClock--;
@@ -871,75 +918,176 @@ bit8 bMotorRun = m_bDiskMotorOn;
 		if (m_headStepClock)
 		{
 			m_headStepClock--;
+			position = ((p64_uint32_t)m_currentHeadIndex) << 4;
+			if (m_headStepClockUp == 0)
+			{
+				if (track->CurrentIndex >= 0 && track->Pulses[track->CurrentIndex].Position > position)
+				{
+					track->CurrentIndex = track->UsedFirst;
+				}
+			}
+			else
+			{				
+				if (track->CurrentIndex >= 0)
+				{
+					for (i = 0; track->Pulses[track->CurrentIndex].Next >= 0 && track->Pulses[track->Pulses[track->CurrentIndex].Next].Position < position && i < 20; i++)
+					{
+						track->CurrentIndex = track->Pulses[track->CurrentIndex].Next;
+					}
+				}
+			}
+			m_headStepClockUp++;
+			if (m_headStepClock > 0)
+			{
+				track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + m_previousTrackNumber];
+			}
+			else
+			{
+				track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + m_currentTrackNumber];
+				m_previousTrackNumber = m_currentTrackNumber;
+				m_nextP64PulsePosition = -1;
+			}
 		}
 		m_counterStartPulseFilter += DISK16CELLSPERCLOCK;
 
 		if (bMotorRun && m_d64_diskchange_counter==0)
 		{
+			//Rotate disk 16 clocks;
+			m_currentHeadIndex++;
+			if (m_currentHeadIndex >= DISK_RAW_TRACK_SIZE)
+			{
+				m_currentHeadIndex = 0;
+			}
+			position = ((p64_uint32_t)m_currentHeadIndex) << 4;
+			if (m_nextP64PulsePosition < 0)
+			{
+				P64PulseStreamGetNextPulse(track, position);
+				if (track->CurrentIndex >= 0)
+				{
+					m_nextP64PulsePosition = (bit32s)track->Pulses[track->CurrentIndex].Position;
+				}
+				else
+				{
+					m_nextP64PulsePosition = P64PulseSamplesPerRotation;
+				}
+			}
 			if (m_d64_write_enable==0)
 			{				
-				if (m_diskLoaded)
+				if (m_diskLoaded && track->UsedFirst >= 0)
 				{
-					bitTime = GetDisk16(m_currentTrackNumber, m_currentHeadIndex);					
-				}								
+					if (m_nextP64PulsePosition >= 0 && m_nextP64PulsePosition < P64PulseSamplesPerRotation && track->CurrentIndex >= 0)
+					{
+						p64_uint32_t positionDelta = 0;
+						bool first = true;
+						if ((p64_uint32_t)m_nextP64PulsePosition >= position)
+						{
+							positionDelta = m_nextP64PulsePosition - position;
+						}
+						else
+						{
+							positionDelta = P64PulseSamplesPerRotation + m_nextP64PulsePosition - position;
+						}
+						for(i = 0; positionDelta < DISK16CELLSPERCLOCK && i < 16; i++)
+						{
+							if (track->Pulses[track->CurrentIndex].Strength >= 0x80000000)
+							{
+								bitTime = positionDelta + 1;
+								if (first)
+								{
+									first = false;
+									bitTimeFirstInCell = bitTime;
+								}
+								else
+								{
+									nextPulseState = !nextPulseState;
+								}
+							}
+							track->CurrentIndex = track->Pulses[track->CurrentIndex].Next;
+							if (track->CurrentIndex < 0)
+							{
+								track->CurrentIndex = track->UsedFirst;
+							}
+							if (track->CurrentIndex >= 0)
+							{
+								m_nextP64PulsePosition = track->Pulses[track->CurrentIndex].Position;										
+							}
+							else
+							{
+								m_nextP64PulsePosition = P64PulseSamplesPerRotation;
+							}
+							if ((p64_uint32_t)m_nextP64PulsePosition >= position)
+							{
+								positionDelta = m_nextP64PulsePosition - position;
+							}
+							else
+							{
+								positionDelta = P64PulseSamplesPerRotation + m_nextP64PulsePosition - position;
+							}
+						}
+					}
+				}
+
+				if (m_bPendingPulse && (m_counterStartPulseFilter) > DISKHEADFILTERWIDTH)
+				{
+					m_bPendingPulse = false;
+					//A pending pulse may be allowed through the DISKHEADFILTERWIDTH (40 clock) delay filter during this 16 disk clock band provide a new pulse is not received with in DISKHEADFILTERWIDTH (40 clock) period.
+					//m_counterStartPulseFilter here represent the end if the current 16 disk clock band.
+					if (m_counterStartPulseFilter - DISKHEADFILTERWIDTH <= DISK16CELLSPERCLOCK && m_bPulseState != m_bLastPulseState)
+					{
+						bitTimeDelayed = (bit8)(DISK16CELLSPERCLOCK + DISKHEADFILTERWIDTH - m_counterStartPulseFilter + 1);
+						if ((bitTimeFirstInCell == 0 || bitTimeDelayed < bitTimeFirstInCell))
+						{
+							m_bLastPulseState = m_bPulseState;
+						}
+						else
+						{
+							//Another new pulse (in bitTimeFirstInCell) was received before the previous older pulse in (bitTimeDelayed) could pass through the 40 disk clock filter.
+							bitTimeDelayed = 0;
+						}
+					}
+				}
+
+				if (bitTime != 0)
+				{
+					//A new pulse is received before the filter.
+					m_bPendingPulse = true;
+					m_bPulseState = !nextPulseState;
+					//Start the delay filter timer in m_counterStartPulseFilter.
+					m_counterStartPulseFilter = DISK16CELLSPERCLOCK - bitTime + 1;
+				}
+
+				if (bitTimeDelayed != 0)
+				{
+					//A pulse passed through the filter.
+					bitTimeDelayed--;
+					ClockDividerAdd(bitTimeDelayed, speed, false);
+
+					ClockDividerAdd(DISK16CELLSPERCLOCK-bitTimeDelayed, speed, true);
+				}
+				else
+				{
+					ClockDividerAdd(DISK16CELLSPERCLOCK, speed, false);
+				}
 			}
 			else
 			{
 				ClockDividerAdd(DISK16CELLSPERCLOCK, speed, false);
 				if (m_d64_protectOff!=0 && m_diskLoaded)
 				{
-					PutDisk16(m_currentTrackNumber, m_currentHeadIndex, m_writeStream);
+					P64PulseStreamGetNextPulse(track, position);
+					P64PulseStreamRemovePulses(track, position, DISK16CELLSPERCLOCK);
+					if (m_writeStream > 0)
+					{
+						P64PulseStreamAddPulse(track, position + m_writeStream - 1, 0xffffffff);
+					}
 				}
 			}
-			MotorDisk16(m_currentTrackNumber, &m_currentHeadIndex);
-		}
-
-		if (m_bPendingPulse && (m_counterStartPulseFilter) > DISKHEADFILTERWIDTH)
-		{
-			m_bPendingPulse = false;
-			if (m_counterStartPulseFilter - DISKHEADFILTERWIDTH <= DISK16CELLSPERCLOCK && m_bPulseState != m_bLastPulseState)
-			{
-				bitTimeDelayed = (bit8)(DISK16CELLSPERCLOCK + DISKHEADFILTERWIDTH - m_counterStartPulseFilter + 1);
-				if ((bitTime == 0 || bitTimeDelayed < bitTime))
-				{
-					m_bLastPulseState = m_bPulseState;
-				}
-				else
-				{
-					bitTimeDelayed = 0;
-				}
-			}
-		}
-
-		if (bitTime != 0)
-		{
-			m_bPendingPulse = true;
-			m_bPulseState = !m_bPulseState;
-			m_counterStartPulseFilter = DISK16CELLSPERCLOCK - bitTime + 1;
-		}
-
-		if (bitTimeDelayed != 0 && m_d64_write_enable == 0)
-		{
-			bitTimeDelayed--;
-			ClockDividerAdd(bitTimeDelayed, speed, false);
-
-			ClockDividerAdd(DISK16CELLSPERCLOCK-bitTimeDelayed, speed, true);
 		}
 		else
 		{
 			ClockDividerAdd(DISK16CELLSPERCLOCK, speed, false);
 		}
 	}
-}
-
-bit8 DiskInterface::GetDisk16(bit8 trackNumber, bit32 headIndex)
-{
-	return m_rawTrackData[trackNumber][headIndex];
-}
-
-void DiskInterface::PutDisk16(bit8 trackNumber, bit32 headIndex, bit8 data)
-{
-	m_rawTrackData[trackNumber][headIndex] = data;
 }
 
 void DiskInterface::MotorDisk16(bit8 trackNumber, bit32 *headIndex)
@@ -1107,42 +1255,69 @@ void DiskInterface::PreventClockOverflow()
 	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - m_changing_c64_serialbus_diskview_diskclock) >= CLOCKSYNCBAND_FAR)
+	{
 		m_changing_c64_serialbus_diskview_diskclock = ClockBehindNear;
-
+	}
 	if ((ICLKS)(CurrentClock - m_driveWriteChangeClock) >= CLOCKSYNCBAND_FAR)
+	{
 		m_driveWriteChangeClock = ClockBehindNear;
-
+	}
 	if ((ICLKS)(CurrentClock - m_busDataUpdateClock) >= CLOCKSYNCBAND_FAR)
+	{
 		m_busDataUpdateClock = ClockBehindNear;
-	
+	}
 	if (m_counterStartPulseFilter > CLOCKSYNCBAND_FAR)
 	{
 		m_counterStartPulseFilter = DISKHEADFILTERWIDTH + DISK16CELLSPERCLOCK + 1;
 	}
+	if (m_lastPulseTime > CLOCKSYNCBAND_FAR)
+	{
+		m_lastPulseTime = ClockBehindNear;
+	}
+	
 	cpu.PreventClockOverflow();
 }
 
-void DiskInterface::LoadImageBits(GCRDISK *dsk)
+void DiskInterface::LoadMoveP64Image(GCRDISK *dsk)
 {
-int i;
+int halfTrack;	
 	WaitThreadReady();
 	m_d64TrackCount = dsk->m_d64TrackCount;
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
+	this->m_P64Image = dsk->m_P64Image;
+	for (halfTrack=0; halfTrack < _countof(dsk->m_P64Image.PulseStreams); halfTrack++)
 	{
-		memcpy_s(m_rawTrackData[i], DISK_RAW_TRACK_SIZE, dsk->m_rawTrackData[i], DISK_RAW_TRACK_SIZE);
+		dsk->m_P64Image.PulseStreams[halfTrack].Pulses = 0;
 	}
+	P64ImageClear(&dsk->m_P64Image);
 }
 
-void DiskInterface::SaveImageBits(GCRDISK *dsk)
+void DiskInterface::SaveCopyP64Image(GCRDISK *dsk)
 {
-int i;
-
+int halfTrack;
 	WaitThreadReady();
 	dsk->m_d64TrackCount = m_d64TrackCount;
-
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
+	P64ImageClear(&dsk->m_P64Image);
+	dsk->m_P64Image = this->m_P64Image;
+	for (halfTrack=0; halfTrack < _countof(dsk->m_P64Image.PulseStreams); halfTrack++)
 	{
-		memcpy_s(dsk->m_rawTrackData[i], DISK_RAW_TRACK_SIZE, m_rawTrackData[i], DISK_RAW_TRACK_SIZE);
+		dsk->m_P64Image.PulseStreams[halfTrack].Pulses = 0;			
+	}
+	for (halfTrack=0; halfTrack < _countof(dsk->m_P64Image.PulseStreams); halfTrack++)
+	{
+		if (this->m_P64Image.PulseStreams[halfTrack].Pulses != 0 && this->m_P64Image.PulseStreams[halfTrack].PulsesAllocated > 0)
+		{
+			PP64Pulses p = (PP64Pulses)p64_malloc(this->m_P64Image.PulseStreams[halfTrack].PulsesAllocated * sizeof(TP64Pulse));
+			if (p)
+			{
+				dsk->m_P64Image.PulseStreams[halfTrack] = this->m_P64Image.PulseStreams[halfTrack];
+				dsk->m_P64Image.PulseStreams[halfTrack].Pulses = p;
+				memcpy(p, this->m_P64Image.PulseStreams[halfTrack].Pulses, this->m_P64Image.PulseStreams[halfTrack].PulsesAllocated * sizeof(TP64Pulse));
+			}
+			else
+			{
+				P64PulseStreamClear(&dsk->m_P64Image.PulseStreams[halfTrack]);
+			}
+		}
 	}
 }
 
@@ -1150,10 +1325,15 @@ void DiskInterface::SetDiskLoaded()
 {
 	WaitThreadReady();
 	if (m_diskLoaded)
+	{
 		m_d64_diskchange_counter=DISKCHANGE3;
+	}
 	else
+	{
 		m_d64_diskchange_counter=DISKCHANGE1;
+	}
 	m_diskLoaded = 1;
+	m_nextP64PulsePosition = -1;
 }
 
 void DiskInterface::RemoveDisk()
@@ -1164,6 +1344,7 @@ void DiskInterface::RemoveDisk()
 		m_diskLoaded = 0;
 		m_d64_diskchange_counter = DISKCHANGE1;
 	}
+	m_nextP64PulsePosition = -1;
 }
 
 bit8 DiskInterface::ReadRegister(bit16 address, ICLK sysclock)
@@ -1185,7 +1366,7 @@ bit8 DiskInterface::GetHalfTrackIndex()
 	return m_currentTrackNumber;
 }
 
-void DiskInterface::GetState(SsDiskInterface &state)
+void DiskInterface::GetState(SsDiskInterfaceV1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
@@ -1215,7 +1396,7 @@ void DiskInterface::GetState(SsDiskInterface &state)
 	state.m_bDriveWriteWasOn = m_bDriveWriteWasOn;
 	state.m_diskLoaded = m_diskLoaded;
 	state.m_currentHeadIndex = m_currentHeadIndex % DISK_RAW_TRACK_SIZE;
-	state.m_currentTrackNumber = m_currentTrackNumber % G64_MAX_TRACKS;
+	state.m_currentTrackNumber = m_currentTrackNumber % HOST_MAX_TRACKS;
 	state.m_lastHeadStepDir = m_lastHeadStepDir;
 	state.m_lastHeadStepPosition = m_lastHeadStepPosition;
 	state.m_shifterWriter_UD3 = m_shifterWriter_UD3;
@@ -1231,11 +1412,15 @@ void DiskInterface::GetState(SsDiskInterface &state)
 	state.m_writeStream = m_writeStream;
 	state.m_totalclocks_UE7 = m_totalclocks_UE7;
 	state.m_lastPulseTime = m_lastPulseTime;
-	state.m_diskd64clk_xf = m_diskd64clk_xf;
-	//*m_rawTrackData[G64_MAX_TRACKS];
+	state.m_diskd64clk_xf = m_diskd64clk_xf;	
+	state.m_bPendingPulse = m_bPendingPulse;
+	state.m_bPulseState = m_bPulseState;
+	state.m_bLastPulseState = m_bLastPulseState;
+	state.m_nextP64PulsePosition = m_nextP64PulsePosition;
+	state.m_headStepClockUp = m_headStepClockUp;
 }
 
-void DiskInterface::SetState(const SsDiskInterface &state)
+void DiskInterface::SetState(const SsDiskInterfaceV1 &state)
 {
 	CurrentClock = state.CurrentClock;
 	m_d64_serialbus = state.m_d64_serialbus;
@@ -1281,4 +1466,29 @@ void DiskInterface::SetState(const SsDiskInterface &state)
 	m_totalclocks_UE7 = state.m_totalclocks_UE7;
 	m_lastPulseTime = state.m_lastPulseTime;
 	m_diskd64clk_xf = state.m_diskd64clk_xf;
+	m_bPendingPulse = state.m_bPendingPulse != 0;
+	m_bPulseState = state.m_bPulseState != 0;
+	m_bLastPulseState = state.m_bLastPulseState != 0;
+	m_nextP64PulsePosition = state.m_nextP64PulsePosition;
+	m_headStepClockUp = state.m_headStepClockUp;
+}
+
+void DiskInterface::UpgradeStateV0ToV1(const SsDiskInterfaceV0 &in, SsDiskInterfaceV1 &out)
+{
+	ZeroMemory(&out, sizeof(SsDiskInterfaceV1));
+	*((SsDiskInterfaceV0 *)&out) = in;
+	if (in.m_lastPulseTime <= DISKHEADFILTERWIDTH)
+	{
+		out.m_bPendingPulse = true;
+		out.m_bPulseState = 1;
+		out.m_bLastPulseState = 0;
+	}
+	else
+	{
+		out.m_bPendingPulse = 0;
+		out.m_bPulseState = 0;
+		out.m_bLastPulseState = 0;
+	}
+	out.m_nextP64PulsePosition = -1;
+	out.m_headStepClockUp = DISKHEADSTEPWAITTIME - in.m_headStepClock;
 }

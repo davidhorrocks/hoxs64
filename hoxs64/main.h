@@ -36,6 +36,7 @@ public:
 	virtual void CAppStatus::InsertDiskImage(HWND hWnd);
 	virtual void CAppStatus::SaveD64Image(HWND hWnd);
 	virtual void CAppStatus::SaveFDIImage(HWND hWnd);
+	virtual void CAppStatus::SaveP64Image(HWND hWnd);
 	virtual void CAppStatus::SaveC64State(HWND hWnd);
 	virtual void CAppStatus::LoadC64State(HWND hWnd);
 	virtual void CAppStatus::RestoreUserSettings();

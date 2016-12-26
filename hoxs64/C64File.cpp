@@ -21,6 +21,7 @@
 #include "savestate.h"
 #include "register.h"
 #include "FDI.h"
+#include "p64.h"
 #include "d64.h"
 #include "t64.h"
 #include "tap.h"
@@ -448,7 +449,7 @@ eC64FileType filetype;
 		hr = disk.LoadFDIFromFile(filename);
 		if (SUCCEEDED(hr))
 		{
-			disk.ConvertRAWtoGCR();
+			disk.ConvertP64toGCR();
 			hr = S_OK;
 			if (hevtQuit)
 			{
@@ -468,7 +469,7 @@ eC64FileType filetype;
 		hr = disk.LoadP64FromFile(filename);
 		if (SUCCEEDED(hr))
 		{
-			disk.ConvertRAWtoGCR();
+			disk.ConvertP64toGCR();
 			hr = S_OK;
 			if (hevtQuit)
 			{
@@ -534,7 +535,7 @@ eC64FileType filetype;
 		hr = disk.LoadFDIFromFile(filename);
 		if (SUCCEEDED(hr))
 		{
-			disk.ConvertRAWtoGCR();
+			disk.ConvertP64toGCR();
 			disk.ConvertGCRToD64(disk.m_d64TrackCount);
 		}
 		break;
@@ -542,7 +543,7 @@ eC64FileType filetype;
 		hr = disk.LoadP64FromFile(filename);
 		if (SUCCEEDED(hr))
 		{
-			disk.ConvertRAWtoGCR();
+			disk.ConvertP64toGCR();
 			disk.ConvertGCRToD64(disk.m_d64TrackCount);
 		}
 		break;
@@ -627,23 +628,10 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 		return S_OK;
 	}
 
-	if (fdiHeader.lhead!=0)
+	if (fdiHeader.lhead != 0)
 	{
 		return S_OK;
 	}
-
-	if (fdiHeader.tpi == 0)
-	{
-		//if ((fdiHeader.tpi == 0) && ((fdiHeader.ltrack+1) * 2 > G64_MAX_TRACKS))
-		//	return S_OK;
-	}
-	else if (fdiHeader.tpi == 2)
-	{
-		//if ((fdiHeader.tpi == 2) && ((fdiHeader.ltrack+1) > G64_MAX_TRACKS))
-		//	return S_OK;
-	}
-	else
-		return S_OK;
 
 	result = true;
 	return S_OK;

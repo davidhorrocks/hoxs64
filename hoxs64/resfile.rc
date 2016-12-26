@@ -121,6 +121,7 @@ BEGIN
         BEGIN
             MENUITEM "Save As D64",                 IDM_DISK_SAVEDISK_D64
             MENUITEM "Save As FDI",                 IDM_DISK_SAVEDISK_FDI
+            MENUITEM "Save As P64",                 IDM_DISK_SAVEDISK_P64
         END
         POPUP "&Write Protect"
         BEGIN

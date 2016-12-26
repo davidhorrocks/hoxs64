@@ -12,6 +12,7 @@
 #define D64_MAX_TRACKS 40
 
 #define G64_MAX_TRACKS 84
+#define HOST_MAX_TRACKS 84
 #define G64_MAX_BYTES_PER_TRACK 7928
 
 //Correct for 300rpm at 16Mhz disk internal clock
@@ -63,6 +64,7 @@ public:
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
 	HRESULT SaveG64ToFile(TCHAR *filename);
 	HRESULT SaveFDIToFile(TCHAR *filename);
+	HRESULT SaveP64ToFile(TCHAR *filename);
 
 	HRESULT ReadFromFile(HANDLE hfile, TCHAR *filename, char *buffer, DWORD byteCount, DWORD *bytesRead);
 	HRESULT ReadFromFileQ(HANDLE hfile, char *buffer, DWORD byteCount, DWORD *bytesRead);
@@ -70,7 +72,7 @@ public:
 	void G64SetTrackSpeedZone(bit8 trackNumber, bit8 speed);
 	bit8 FDIDecodeBitRate(bit8 fdiTrackType);
 	HRESULT FDIReadTrackStream(HANDLE hfile, DWORD filePointer, bit8 trackNumber);
-	HRESULT FDIReadRawGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType);
+	HRESULT FDIReadGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType);
 	HRESULT FDIReadDecodedGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType);
 	HRESULT FDICopyTrackStream(HANDLE hfile, DWORD pulseCount, DWORD **data);
 	HRESULT FDICheckCRC(HANDLE hfile, TCHAR *filename, DWORD file_size);
@@ -78,7 +80,7 @@ public:
 	void WriteGCRBit(bit8 trackNumber, bit32 index, bit8 v);
 	void WriteGCRByte(bit8 trackNumber, bit32 index, bit8 v);
 
-	HRESULT ConvertGCRToD64(bit32 tracks);
+	HRESULT ConvertGCRToD64(unsigned int tracks);
 
 	void InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks);
 	void MakeNewD64Image(TCHAR *, bit8, bit8);
@@ -86,35 +88,39 @@ public:
 	bit8 GetSectorErrorCode(bit8 *d64Binary, bit16 errorBytes, bit8 trackNumber, bit8 sectorNumber);
 	bit16 GetD64TrackSize(bit8 track);
 	bit8 GetD64SpeedZone(bit8 track);
-	void CopyRawData(bit8 *buffer, bit8 trackNumber,bit16 byteIndex,bit8 bitIndex, bit16 count);
-	long SeekSync(bit8 trackNumber, bit16 byteIndex, bit8 bitIndex, bit32 bitScanLimit, bit8 *headerByte, bit16 *newByteIndex, bit8 *newBitIndex, bit32 *bitCounter);
+	void CopyRawData(bit8 *buffer, unsigned int trackNumber,unsigned int byteIndex,unsigned int bitIndex, unsigned int count);
+	HRESULT SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *headerByte, unsigned int *newByteIndex, unsigned int *newBitIndex, unsigned int *bitCounter);
 
-	bit8 GetByte(bit8 trackNumber,bit16 byteIndex,bit8 bitIndex);
+	bit8 GetByte(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex);
 	bit8 GetSpeedZone(bit8 trackNumber,bit16 byteIndex);
 	void SetSpeedZone(bit8 trackNumber, bit16 byteIndex, bit8 speed);
-	void JumpBits(bit8 trackNumber,bit16 &byteIndex,bit8 &bitIndex, bit32 bitCount);
+	void JumpBits(unsigned int trackNumber,unsigned int &byteIndex,unsigned int &bitIndex, unsigned int bitCount);
 
+	void ConvertGCRtoP64(bit8 trackNumber);
+	void ConvertP64toGCR(bit8 trackNumber);
+	void ConvertP64toGCR();
 
-	void ConvertGCRtoRAW(bit8 trackNumber);
-	void ConvertRAWtoGCR(bit8 trackNumber);
-	void ConvertRAWtoGCR();
+	void WriteByteToDebugger(bit8 dataByte);
+	void WriteLineToDebugger();
 
-	bit8 GetDisk16(bit8 m_currentTrackNumber, bit32 headIndex);
-	void PutDisk16(bit8 trackNumber, bit32 headIndex, bit8 data);
-
-	static bit8 D64_extract_binary_nibble (bit8 *src,unsigned long i);
+	static p64_uint32_t CountP64TrackPulses(const TP64PulseStream &track);
+	static p64_uint32_t CountP64ImageTrackPulses(const TP64Image &image, unsigned int trackNumber);
+	static p64_uint32_t CountP64ImageMaxTrackPulses(const TP64Image &image);
+	
+	static bit8 D64_extract_binary_nibble (bit8 *src, unsigned long i);
 	static long D64_GCR_to_Binary(bit8 *src, bit8 *dest, unsigned long length);
 	static void D64_Binary_to_GCR(bit8 *src, bit8 *dest, long length);
 
+	int linePrintCount;
 	bit16 d64Errors;
-	bit32 trackSize[G64_MAX_TRACKS];//Track size in bits.
-	bit8 *trackData[G64_MAX_TRACKS];
-	bit8 *speedZone[G64_MAX_TRACKS];
+	bit32 trackSize[HOST_MAX_TRACKS];//Track size in bits.
+	bit8 *trackData[HOST_MAX_TRACKS];
+	bit8 *speedZone[HOST_MAX_TRACKS];
 	bit8 *m_pD64Binary;
 	bit8 m_d64TrackCount;
 	bit8 m_d64_protectOff;
 
-	bit8 *m_rawTrackData[G64_MAX_TRACKS];
+	TP64Image m_P64Image;
 
 	static const bit8 gcr_table[16];
 	static const bit8 gcr_reverse_table[32];

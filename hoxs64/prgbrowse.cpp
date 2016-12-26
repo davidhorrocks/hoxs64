@@ -36,6 +36,7 @@
 #include "cpu6510.h"
 #include "vic6569.h"
 #include "t64.h"
+#include "p64.h"
 #include "d64.h"
 #include "sidfile.h"
 #include "c64file.h"
@@ -523,6 +524,10 @@ LRESULT lr;
 
 			switch (m_c64file.GetFileType())
 			{
+			case C64File::ef_P64:
+				EnableWindow(m_hCheckQuickLoad, TRUE);
+				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+				break;
 			case C64File::ef_FDI:
 				EnableWindow(m_hCheckQuickLoad, TRUE);
 				EnableWindow(m_hCheckAlignD64Tracks, FALSE);

@@ -31,6 +31,7 @@
 #include "filter.h"
 #include "sid.h"
 #include "sidfile.h"
+#include "p64.h"
 #include "d64.h"
 #include "d1541.h"
 #include "via6522.h"
@@ -97,8 +98,9 @@ public:
 
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
 	HRESULT SaveFDIToFile(TCHAR *filename);
-	HRESULT SaveTrackState(bit32 *pTrackBuffer, bit8 *pTrack, int track_size, int *p_gap_count);
-	HRESULT LoadTrackState(const bit32 *pTrackBuffer, bit8 *pTrack, int gap_count);
+	HRESULT SaveP64ToFile(TCHAR *filename);	
+	HRESULT SaveTrackStateV0(unsigned int trackNumber, bit32 *pTrackBuffer, TP64Image& diskP64Image, unsigned int track_size, unsigned  int *p_gap_count);
+	HRESULT LoadTrackStateV0(unsigned int trackNumber, const bit32 *pTrackBuffer, TP64Image& diskP64Image, unsigned int gap_count);
 	HRESULT SaveC64StateToFile(TCHAR *filename);
 	HRESULT LoadC64StateFromFile(TCHAR *filename);
 

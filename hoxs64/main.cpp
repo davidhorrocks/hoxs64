@@ -1182,6 +1182,57 @@ HRESULT hr;
 	}
 }
 
+void CApp::SaveP64Image(HWND hWnd)
+{
+OPENFILENAME_500EX of;
+TCHAR initfilename[MAX_PATH+1];
+TCHAR filename[MAX_PATH+1];
+BOOL b;
+HRESULT hr;
+
+	TCHAR title[] = TEXT("Save P64 Image");
+	if (c64.diskdrive.m_diskLoaded==0)
+	{
+		MessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
+		return;
+	}
+
+	ZeroMemory(&of, sizeof(of));
+	if (G::IsEnhancedWinVer())
+		of.lStructSize = sizeof(OPENFILENAME_500EX);
+	else
+		of.lStructSize = sizeof(OPENFILENAME);
+	of.hwndOwner = hWnd;
+	of.lpstrFilter = TEXT("Disk image file (*.p64)\0*.p64\0All files (*.*)\0*.*\0\0");
+	of.nFilterIndex = 1;
+	initfilename[0] = 0;
+	of.lpstrDefExt=TEXT("P64");
+	of.lpstrFile = initfilename;
+	of.nMaxFile = MAX_PATH-1;
+	of.lpstrFileTitle = filename;
+	of.nMaxFileTitle = MAX_PATH-1;
+	of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+	of.lpstrTitle = TEXT("Save a P64 disk image file");
+	b = GetSaveFileName((LPOPENFILENAME)&of);
+	if (b)
+	{
+		SetBusy(true);
+		hr =  c64.SaveP64ToFile(initfilename);
+		SetBusy(false);
+		if (SUCCEEDED(hr))
+		{
+			MessageBox(hWnd,
+			TEXT("Disk saved."), 
+			title, 
+			MB_OK | MB_ICONINFORMATION);
+		}
+		else
+		{
+			c64.DisplayError(hWnd, title);
+		}
+	}
+}
+
 void CApp::SaveC64State(HWND hWnd)
 {
 OPENFILENAME_500EX of;

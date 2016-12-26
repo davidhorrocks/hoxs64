@@ -4,6 +4,8 @@
 #include <math.h>
 #include <assert.h>
 #include "boost2005.h"
+#include <winuser.h>
+#include <commctrl.h>
 #include "bits.h"
 #include "carray.h"
 #include "mlist.h"
@@ -15,6 +17,10 @@
 #include "p64config.h"
 #include "p64.h"
 #include "d64.h"
+#include "CDPI.h"
+#include "utils.h"
+
+#define DISKHEADFILTERWIDTH (40)
 
 const bit8 GCRDISK::gcr_table[16]=
 {
@@ -273,8 +279,8 @@ struct sector_header
 	bit8 check_eor; 
 	bit8 sector;
 	bit8 track;
-	bit8 disk_id1;
 	bit8 disk_id2;
+	bit8 disk_id1;
 	bit8 pad1;
 	bit8 pad2;
 };
@@ -295,19 +301,19 @@ GCRDISK Class
 GCRDISK::GCRDISK()
 {
 int i;
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
+	for (i=0 ; i < HOST_MAX_TRACKS ; i++)
 	{
 		trackSize[i] = 0;
 		trackData[i] = 0;
-		m_rawTrackData[i] = 0;
 		speedZone[i] = 0;
 	}
-
+	P64ImageCreate(&this->m_P64Image);
 	d64Errors=0;
 	m_pD64Binary=0;
 	m_d64TrackCount=0;
 	m_d64_protectOff=0;
 	mhevtQuit = 0;
+	linePrintCount = 0;
 }
 
 GCRDISK::~GCRDISK()
@@ -315,24 +321,25 @@ GCRDISK::~GCRDISK()
 	Clean();
 }
 
-
-void GCRDISK::JumpBits(bit8 trackNumber,bit16 &byteIndex,bit8 &bitIndex, bit32 bitCount)
+void GCRDISK::JumpBits(unsigned int trackNumber,unsigned int &byteIndex,unsigned int &bitIndex, unsigned int bitCount)
 {
-bit32 startBitPos;
-bit32 endBitPos;
+unsigned int startBitPos;
+unsigned int endBitPos;
 
 	if (trackSize[trackNumber]==0)
+	{
 		return;
+	}
 	startBitPos = byteIndex * 8 + bitIndex;
 	endBitPos = (startBitPos + bitCount) % trackSize[trackNumber];
-	byteIndex = (bit16)(endBitPos / 8);
-	bitIndex = (bit8)endBitPos & 7;
+	byteIndex = (endBitPos / 8);
+	bitIndex = endBitPos & 7;
 }
 
-HRESULT GCRDISK::SeekSync(bit8 trackNumber, bit16 byteIndex, bit8 bitIndex, bit32 bitScanLimit, bit8 *headerByte, bit16 *newByteIndex, bit8 *newBitIndex, bit32* jumpedBitCount)
+HRESULT GCRDISK::SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *headerByte, unsigned int *newByteIndex, unsigned int *newBitIndex, unsigned int* jumpedBitCount)
 {
-bit32 bitsScannedCounter;
-bit32 sync_count;
+unsigned int bitsScannedCounter;
+unsigned int sync_count;
 bit8 data;
 bool bSyncFound;
 	
@@ -345,14 +352,18 @@ bool bSyncFound;
 	while (bitsScannedCounter < bitScanLimit)
 	{
 		if (IsEventQuitSignalled())
+		{
 			return E_FAIL;
+		}
 
 		data = GetByte(trackNumber, byteIndex, bitIndex);
-		if ( (signed char)data < 0)
+		if ((signed char)data < 0)
 		{
 			sync_count++;
 			if (sync_count >= 10)
+			{
 				bSyncFound = true;
+			}
 		}
 		else
 		{
@@ -364,6 +375,7 @@ bool bSyncFound;
 				*newBitIndex = bitIndex;
 				return S_OK;
 			}
+
 			bSyncFound = false;
 		}			
 		JumpBits(trackNumber, byteIndex, bitIndex, 1);
@@ -375,9 +387,9 @@ bool bSyncFound;
 }
 
 
-void GCRDISK::CopyRawData(bit8 *buffer, bit8 trackNumber,bit16 byteIndex,bit8 bitIndex, bit16 count)
+void GCRDISK::CopyRawData(bit8 *buffer, unsigned int trackNumber,unsigned int byteIndex, unsigned int bitIndex, unsigned int count)
 {
-int i;
+unsigned int i;
 	for (i=0 ; i < count ; i++)
 	{
 		buffer[i] = GetByte(trackNumber, byteIndex, bitIndex);
@@ -385,27 +397,30 @@ int i;
 	}
 }
 
-HRESULT GCRDISK::ConvertGCRToD64(bit32 tracks)
+HRESULT GCRDISK::ConvertGCRToD64(unsigned int tracks)
 {
-bit8 tr;
+unsigned int tr;
 long r;
 HRESULT st;
 struct sector_header sec_header;
 struct sector_data sec_data;
-bit16 byteIndex;
-bit8 bitIndex;
+unsigned int byteIndex;
+unsigned int bitIndex;
 HRESULT hr;
 const bit32 MAXBYTESTOSCAN = G64_MAX_BYTES_PER_TRACK * 2;
 const bit32 MAXBITSTOSCAN = MAXBYTESTOSCAN * 8L;
-bit32 bitCounter, jumpedBitCount;
+unsigned int bitCounter, jumpedBitCount;
 bit8 buffer[325];
-bit8 g64TrackNumber;
-bit16 bytesToCopy;
+unsigned int g64TrackNumber;
+unsigned int bytesToCopy;
 bit8 maxSectorsOnThisTrack;
 bit8 headerByte;
 
 	if (tracks > D64_MAX_TRACKS)
+	{
 		tracks = D64_MAX_TRACKS;
+	}
+
 	st = S_OK;
 	memset(m_pD64Binary, 0x0, MAX_D64_SIZE);
 	for(tr = 0; tr < tracks; tr++)
@@ -417,78 +432,117 @@ retryhalftrack:
 		bitIndex = 0;
 		bitCounter = 0;
 		maxSectorsOnThisTrack = (bit8) D64_info[tr].sector_count;
-
 		while (bitCounter < MAXBITSTOSCAN)
 		{
 			if (IsEventQuitSignalled())
+			{
 				return E_FAIL;
+			}
 
 			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &byteIndex, &bitIndex, &jumpedBitCount);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			bitCounter += jumpedBitCount;
 			if (hr != S_OK)
+			{
 				continue;
+			}
+
 			if (headerByte != 0x52)
+			{
 				continue;
+			}
 
 headerfound:
 			bytesToCopy = 10;
 			CopyRawData(buffer, g64TrackNumber, byteIndex, bitIndex, bytesToCopy);
 			bitCounter = bitCounter + bytesToCopy * 8;
-
 			r = D64_GCR_to_Binary(buffer, (bit8 *) &sec_header, bytesToCopy * 8);
 			if (r >= 0)
+			{
 				continue;//invalid GCR
+			}
 			
 			if (sec_header.sector > maxSectorsOnThisTrack)
+			{
 				continue;
+			}
 
 			if (sec_header.track != (tr + 1))
+			{
 				continue;
+			}
 
 			if (get_D64LoadStatus(sec_header.sector) == GCRDISK::OK)
+			{
 				continue;
+			}
 
 			if (bitCounter >= MAXBITSTOSCAN)
+			{
 				break;
+			}
+
 			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &byteIndex, &bitIndex, &jumpedBitCount);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			bitCounter += jumpedBitCount;
 			if (hr != S_OK)
+			{
 				continue;
+			}
 
 			if (headerByte == 0x52)
+			{
 				goto headerfound;
-			
+			}
+
 			if (headerByte != 0x55)
+			{
 				continue;
+			}
 
 			bytesToCopy = 325;
 			CopyRawData(buffer, g64TrackNumber, byteIndex, bitIndex, bytesToCopy);
 			bitCounter = bitCounter + bytesToCopy * 8;
 			r = D64_GCR_to_Binary(buffer, (bit8 *)&sec_data, bytesToCopy*8);
-			if (r >= 0) 
+			if (r >= 0)
+			{
 				set_D64LoadStatus(sec_header.sector, GCRDISK::Bad);
+			}
 			else
+			{
 				set_D64LoadStatus(sec_header.sector, GCRDISK::OK);
+			}
 
 			CopyMemory(&m_pD64Binary[D64_info[tr].file_offset + (256L * sec_header.sector)], &sec_data.data[0], 256);
-
 			if (IsD64LoadStatusOKForD64Track(tr))
+			{
 				break;
+			}
 		}
+
 		if (IsEventQuitSignalled())
+		{
 			return E_FAIL;
+		}
+
 		if (!IsD64LoadStatusOKForD64Track(tr))
 		{
 			int countOfSectorsOK = CountOfLoadStatus(GCRDISK::OK);
 			if ((g64TrackNumber & 1) == 0 && countOfSectorsOK == 0)
 			{
 				g64TrackNumber++;
-				if (g64TrackNumber < G64_MAX_TRACKS)
+				if (g64TrackNumber < HOST_MAX_TRACKS)
+				{
 					goto retryhalftrack;
+				}
 			}
 			st = E_FAIL;
 		}
@@ -520,10 +574,15 @@ void GCRDISK::set_D64LoadStatus(bit8 sector, GCRDISK::LoadState state)
 bool GCRDISK::IsD64LoadStatusOKForD64Track(bit8 track)
 {
 	if (track >= D64_MAX_TRACKS)
+	{
 		return false;
+	}
+
 	int sectorCount = D64_info[track].sector_count;
 	if (sectorCount > D64_MAX_SECTORS)
+	{
 		sectorCount = D64_MAX_SECTORS;
+	}
 
 	assert(sectorCount <= _countof(d64SectorLoadStatus));
 
@@ -557,46 +616,50 @@ int i;
 		m_pD64Binary=0;
 	}
 
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
+	for (i=0 ; i < HOST_MAX_TRACKS ; i++)
 	{
 		if (trackData[i])
+		{
 			GlobalFree(trackData[i]);
-		if (m_rawTrackData[i])
-			GlobalFree(m_rawTrackData[i]);
+		}
 
 		trackSize[i] = 0;
 		trackData[i] = 0;
-		m_rawTrackData[i] = 0;
-
 		if (speedZone[i])
+		{
 			GlobalFree(speedZone[i]);
+		}
+
 		speedZone[i] = 0;
 	}
+	P64ImageDestroy(&m_P64Image);
 }
 
 HRESULT GCRDISK::Init()
 {
 int i;
-
+	P64ImageCreate(&this->m_P64Image);
 	m_pD64Binary = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, MAX_D64_SIZE);
 	if (m_pD64Binary == 0)
+	{
 		goto fail;
+	}
 
-	for (i=0 ; i < G64_MAX_TRACKS ; i++)
+	for (i=0 ; i < HOST_MAX_TRACKS ; i++)
 	{
 		trackData[i] = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, G64_MAX_BYTES_PER_TRACK);
 		if (trackData[i] == 0)
+		{
 			goto fail;
-
-		m_rawTrackData[i] = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, DISK_RAW_TRACK_SIZE);
-		if (m_rawTrackData[i] == 0)
-			goto fail;
+		}
 
 		trackSize[i] = 0;
 		speedZone[i] = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (G64_MAX_BYTES_PER_TRACK + 3) / 4);
 		if (speedZone[i] == 0)
+		{
 			goto fail;
-	}
+		}
+	}	
 	return S_OK;
 fail:
 	Clean();
@@ -606,47 +669,53 @@ fail:
 bit16 GCRDISK::GetD64TrackSize(bit8 track)
 {
 	if (track >= D64_MAX_TRACKS)
+	{
 		track = D64_MAX_TRACKS - 1;
-
+	}
 	return (bit16)(D64_info[track].gcr_byte_count);
 }
 
 bit8 GCRDISK::GetD64SpeedZone(bit8 track)
 {
 	if (track >= D64_MAX_TRACKS)
+	{
 		track = D64_MAX_TRACKS - 1;
-
+	}
 	return D64_info[track].defaultSpeed;
 }
 
 bit8 GCRDISK::GetSpeedZone(bit8 trackNumber, bit16 byteIndex)
 {
 bit8 t,s;
+	if (trackNumber >= HOST_MAX_TRACKS)
+	{
+		trackNumber = HOST_MAX_TRACKS - 1;
+	}
+	if (byteIndex >= G64_MAX_BYTES_PER_TRACK)
+	{
+		byteIndex = G64_MAX_BYTES_PER_TRACK - 1;
+	}
 	t = speedZone[trackNumber][byteIndex/4];
 	s = (3 - (byteIndex & 3)) * 2;
 	t = (t >> s) & 3;
 	return t;
 }
 
-
 void GCRDISK::SetSpeedZone(bit8 trackNumber, bit16 byteIndex, bit8 speed)
 {
 bit8 t,s,mask;
-
-	speed = speed & 3;
-
-	t = speedZone[trackNumber][byteIndex/4];
-
-	s = (3 - (byteIndex & 3)) * 2;
-
-	mask = 3 << s;
-	speed = speed << s;
-
-	speedZone[trackNumber][byteIndex/4] =  t & ~mask | speed;
+	if (trackNumber < HOST_MAX_TRACKS && byteIndex < G64_MAX_BYTES_PER_TRACK)
+	{
+		speed = speed & 3;
+		t = speedZone[trackNumber][byteIndex/4];
+		s = (3 - (byteIndex & 3)) * 2;
+		mask = 3 << s;
+		speed = speed << s;
+		speedZone[trackNumber][byteIndex/4] =  (t & ~mask) | speed;
+	}
 }
 
-
-void GCRDISK::ConvertGCRtoRAW(bit8 trackNumber)
+void GCRDISK::ConvertGCRtoP64(bit8 trackNumber)
 {
 unsigned long i,j,len;
 bit8 speed;
@@ -659,22 +728,20 @@ unsigned long bits;
 const bool bAllowTrackStretch = true;
 const bool bAllowTrackShrink = true;
 
-	rawSize = DISK_RAW_TRACK_SIZE * 16;
-	ZeroMemory(m_rawTrackData[trackNumber], DISK_RAW_TRACK_SIZE);
-
+	rawSize = P64PulseSamplesPerRotation;
 	sourceSize = 0;
 	len = (trackSize[trackNumber] + 7) / 8;
 	bits = 8;
-	for (i=0 ; i < len ; i++)
+	for (i = 0; i < len; i++)
 	{
 		if (i >= trackSize[trackNumber] / 8)
+		{
 			bits = trackSize[trackNumber] & 7;
+		}
 
 		speed = GetSpeedZone(trackNumber, (unsigned short) i);
-
-		//TEST
-		//G64 speed 3 translates to writing a 0 to the VIA speed pins
-		speed = ~speed & 3;
+		////WRONG?
+		//speed = ~speed & 3;
 
 		//four clocks per bit per 16 clocks (16Mhz clock) if the speed at VIA2 PortB 6-7 is zero
 		sourceSize = sourceSize + (16 - speed) * 4 * bits;
@@ -685,15 +752,17 @@ const bool bAllowTrackShrink = true;
 	for (i=0 ; i < len ; i++)
 	{
 		if (i >= trackSize[trackNumber] / 8)
+		{
 			bits = trackSize[trackNumber] & 7;
+		}
 
 		speed = GetSpeedZone(trackNumber, (unsigned short)i);
-
-		speed = ~speed & 3;
+		//WRONG?
+		//speed = ~speed & 3;
 
 		speed = (16 - speed) * 4;
 		byte = trackData[trackNumber][i];
-		for (j=0 ; j < bits ; j++)
+		for (j = 0 ; j < bits ; j++)
 		{
 			if (((bAllowTrackStretch && sourceSize < rawSize) || (bAllowTrackShrink && sourceSize > rawSize)))
 			{
@@ -704,163 +773,298 @@ const bool bAllowTrackShrink = true;
 				nextRawCounter = sourceCounter;				
 			}
 			if (nextRawCounter >= rawSize) 
+			{
 				break;
-			//assert((nextRawCounter/16) < DISK_RAW_TRACK_SIZE);
+			}
 			if ((signed char)byte < 0)
 			{
-				m_rawTrackData[trackNumber][nextRawCounter/16] = ((bit8)nextRawCounter & 0xf) + 1;
+				P64PulseStreamAddPulse(&this->m_P64Image.PulseStreams[P64FirstHalfTrack + trackNumber], nextRawCounter, 0xffffffff);
 			}
 			byte <<= 1;
 			sourceCounter += speed;
 		}
 		if (nextRawCounter >= rawSize) 
+		{
 			break;
+		}
 	}
 }
 
-
-void GCRDISK::ConvertRAWtoGCR()
+void GCRDISK::ConvertP64toGCR()
 {
 bit8 tr;
-	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
+	for (tr=0 ; tr < HOST_MAX_TRACKS; tr++)
 	{
 		if (IsEventQuitSignalled())
+		{
 			return;
-		ConvertRAWtoGCR(tr);
+		}
+		ConvertP64toGCR(tr);
 	}
 }
 
-void GCRDISK::ConvertRAWtoGCR(bit8 trackNumber)
+#define SHOWGCR 0
+void GCRDISK::ConvertP64toGCR(bit8 trackNumber)
 {
-bit8 defaultSpeed;
-long i;
-long delayCounter,delay,firstDelay;
-bit8 byte,calcSpeed;
-long clockGapDefaultSpeed;
-const long clockGap0 = ((16-0) *4);
-const long clockGap1 = ((16-1) *4);
-const long clockGap2 = ((16-2) *4);
-const long clockGap3 = ((16-3) *4);
-long gapDefaultSpeed;
-long bitCount,m;
-bit8 frame;
-long frameIndex;
-bit8 quickBits;
-bit8 aClockGap[4];
+int i;
+bit8 dataByte;
+	if (trackNumber >= HOST_MAX_TRACKS)
+	{
+		return;
+	}
 
-	aClockGap[0] = clockGap0;
-	aClockGap[1] = clockGap1;
-	aClockGap[2] = clockGap2;
-	aClockGap[3] = clockGap3;
-
-	defaultSpeed = GetD64SpeedZone(trackNumber/2);
-
-	clockGapDefaultSpeed = aClockGap[defaultSpeed];
-
+	int defaultSpeed = (int)GetD64SpeedZone(trackNumber / 2);
+	trackSize[trackNumber] = 0;
 	ZeroMemory(trackData[trackNumber], G64_MAX_BYTES_PER_TRACK);
 	for (i = 0 ; i < G64_MAX_BYTES_PER_TRACK ; i++)
-		SetSpeedZone(trackNumber, (bit16)i, defaultSpeed); 
-
-	bool bFoundFirstPulse = false;
-	firstDelay = 0;
-	delayCounter = 0;
-	quickBits=0;
-	frame=0;
-	frameIndex=0;
-	byte=0;
-	for (i = 0 ; i <= DISK_RAW_TRACK_SIZE ; i++)
 	{
-		if (i == DISK_RAW_TRACK_SIZE)
-			//we will perform the wrap-a-round of zeros during this loop.
-			delay = firstDelay;
-		else
-			delay = GetDisk16(trackNumber, i);
+		SetSpeedZone(trackNumber, (bit16)i, defaultSpeed); 
+	}
 
-		if (delay == 0 && i != DISK_RAW_TRACK_SIZE)
+	p64_uint32_t defaultSpeedGapClockCount = (16 - defaultSpeed) * 4;
+	int p64TrackIndex;
+	this->m_d64TrackCount = G64_MAX_TRACKS / 2;
+	this->m_d64_protectOff = m_P64Image.WriteProtected == 0;
+	p64TrackIndex = P64FirstHalfTrack + trackNumber;
+	TP64PulseStream *track = &m_P64Image.PulseStreams[p64TrackIndex];
+	p64_int32_t currentindex;
+	TP64Pulse *ppulse;
+	p64_int32_t firstStrongIndex = -1;
+	p64_int32_t lastStrongIndex = -1;
+	if (track->UsedFirst >= 0 && track->UsedLast >=0)
+	{
+		for (currentindex = track->UsedFirst; currentindex >= 0; currentindex = ppulse->Next)
 		{
-			//a value of zero delay here really means that 16 clocks elapsed with no disk pulse.
-			delayCounter += 16;
-		}
-		else
-		{			
-			//if we are performing the wrap-a-round of zeros then a zero delay here would mean that there are no more clocks left at the end of the track.
-			delayCounter += delay;
-
-			//round to the nearest bit.
-			//FIXME probably not accurate. I suspect we should round to the nearest quarter bit.
-			gapDefaultSpeed = delayCounter / clockGapDefaultSpeed;
-			m = delayCounter % clockGapDefaultSpeed;
-			if (m >= clockGapDefaultSpeed/2)
-				gapDefaultSpeed++;
-
-			bitCount = gapDefaultSpeed;
-			calcSpeed = defaultSpeed;
-
-			//if we are performing the wrap-a-round of zeros then do not add any more 1 bits.
-			if (i != DISK_RAW_TRACK_SIZE)
+			ppulse = &track->Pulses[currentindex];
+			if (ppulse->Strength >= 0x80000000)
 			{
-				if (bitCount==0)
+				firstStrongIndex = currentindex;
+				break;
+			}
+		}
+		for (currentindex = track->UsedLast; currentindex >= 0; currentindex = ppulse->Previous)
+		{
+			ppulse = &track->Pulses[currentindex];
+			if (ppulse->Strength >= 0x80000000)
+			{
+				lastStrongIndex = currentindex;
+				break;
+			}
+		}
+		if (firstStrongIndex >= 0)
+		{
+			P64PulseStreamSeek(track, 0);
+			bool done = false;
+			unsigned int shifterReader_UD2 = 0;
+			int bitOfByteIndex = 0;
+			int clockDivider1_UE7 = defaultSpeed;
+			int clockDivider2_UF4 = 0;
+			const int pulseFilterWidth = 40;
+			unsigned int lastPulseTime = 0;//pulseFilterWidth;
+			bool pulseFlip = false;
+			bool lastPulseFlip = false;
+			unsigned int destByteIndex = 0;			
+			p64_uint32_t sourceBitPosition = 0;
+			p64_uint32_t lastPosition = 0;
+			p64_uint32_t delayCounter = 0;
+			bool isSync = false;
+			bool byteReady = false;
+			this->linePrintCount = 0;
+			for (int pass = 0; pass < 2; pass++)
+			{
+#if defined(DEBUG) && SHOWGCR == 1
+				if (pass == 1 && trackNumber == 34)
 				{
-					if (quickBits==0)
+					WriteLineToDebugger();
+					WriteLineToDebugger();
+					WriteByteToDebugger(trackNumber);
+					WriteLineToDebugger();
+				}
+#endif
+				bool hasShiftedOneBit = false;
+				bool getNextPulse = true;
+				destByteIndex = 0;
+				this->linePrintCount = 0;
+				for (sourceBitPosition = 0, currentindex = track->UsedFirst; !done && sourceBitPosition < P64PulseSamplesPerRotation; sourceBitPosition++, delayCounter--, lastPulseTime++)
+				{
+					if (getNextPulse)
 					{
-						bitCount=1;
-						quickBits=1;
+						getNextPulse = false;
+						delayCounter = P64PulseSamplesPerRotation;
+						while (currentindex >= 0)
+						{
+							if (sourceBitPosition == 0)
+							{
+								currentindex = track->UsedFirst;
+							}
+							else
+							{
+								currentindex = track->Pulses[currentindex].Next;
+							}
+							if (currentindex < 0)
+							{
+								currentindex = track->UsedFirst;
+							}
+							if (currentindex >= 0)
+							{
+								ppulse = &track->Pulses[currentindex];
+								if (ppulse != 0 && ppulse->Position >= 0 && ppulse->Position < (p64_uint32_t)P64PulseSamplesPerRotation)
+								{
+									if (ppulse->Strength >= 0x80000000)
+									{
+										if (ppulse->Position >= sourceBitPosition)
+										{
+											delayCounter = ppulse->Position - sourceBitPosition;
+										}
+										else
+										{
+											delayCounter = P64PulseSamplesPerRotation - sourceBitPosition + ppulse->Position;
+										}
+										lastPosition = ppulse->Position;
+										break;
+									}
+								}
+							}
+						}
+					}
+					clockDivider1_UE7 = (clockDivider1_UE7 + 1) & 0xf;
+					if (lastPulseTime == pulseFilterWidth && pulseFlip != lastPulseFlip)
+					{
+						lastPulseFlip = pulseFlip;
+						clockDivider1_UE7 = defaultSpeed;
+						clockDivider2_UF4 = 0;
+					}
+					if (delayCounter == 0)
+					{
+						pulseFlip = !pulseFlip;
+						lastPulseTime = 0;
+						getNextPulse = true;
+					}
+					if (clockDivider1_UE7 == 0)
+					{
+						clockDivider1_UE7 = defaultSpeed;
+						clockDivider2_UF4 = (clockDivider2_UF4 + 1) & 0xf;
+						if ((clockDivider2_UF4 & 3) == 2)//QB rising
+						{
+							shifterReader_UD2 <<= 1;
+							if ((clockDivider2_UF4 & 0xc) == 0)
+							{
+								shifterReader_UD2 |= 1;
+							}
+							bitOfByteIndex = (bitOfByteIndex + 1) & 7;
+							if ((shifterReader_UD2 & 0x3ff) == 0x3ff)
+							{
+								isSync = true;
+							}
+							hasShiftedOneBit = true;
+						}
+						
+						if ((bitOfByteIndex & 7) == 0 && hasShiftedOneBit)
+						{
+							if ((clockDivider2_UF4 & 2) == 0 && !byteReady)
+							{
+								byteReady = true;
+								dataByte = (bit8)(shifterReader_UD2 & 0xff);
+								if (destByteIndex < G64_MAX_BYTES_PER_TRACK)
+								{
+									trackData[trackNumber][destByteIndex] = dataByte;
+									destByteIndex++;
+								}
+#if defined(DEBUG) && SHOWGCR == 1
+								if (pass == 1 && trackNumber == 34)
+								{
+									WriteByteToDebugger(dataByte);
+								}
+#endif
+							}
+						}
+						else
+						{
+							byteReady = false;
+						}
 					}
 				}
-				else 
-					quickBits = 0;
+				trackSize[trackNumber] = destByteIndex * 8 + bitOfByteIndex;
 			}
-
-			if (!bFoundFirstPulse)
-			{
-				//the delays at both the start and end of the track are important for a calculating a correct wrap-a-round of zeros
-				bFoundFirstPulse = true;
-				firstDelay = delayCounter - bitCount * clockGapDefaultSpeed;
-			}
-
-			while (bitCount>0)
-			{
-				byte <<= 1;
-				//if we are performing the wrap-a-round of zeros then do not add any more 1 bits.
-				if (bitCount==1 && i != DISK_RAW_TRACK_SIZE)
-					byte |= 1;
-
-				frame++;
-				if (frame >= 8)
-				{
-					frame=0;
-					trackData[trackNumber][frameIndex] = byte;
-					SetSpeedZone(trackNumber, (bit16)frameIndex, calcSpeed);
-					frameIndex++;
-					if (frameIndex >= G64_MAX_BYTES_PER_TRACK)
-						goto done;
-				}
-				bitCount--;
-			}
-			delayCounter = 16 - delay;
 		}
 	}
-done:
-	if (frame!=0)
-		//right pad the last byte with zeros
-		trackData[trackNumber][frameIndex] = byte << (8 - frame);
-
-	trackSize[trackNumber] = frameIndex * 8 + frame;
 }
 
+void GCRDISK::WriteLineToDebugger()
+{
+	OutputDebugString(TEXT("\n"));
+}
+
+void GCRDISK::WriteByteToDebugger(bit8 dataByte)
+{
+	TCHAR sDebug[50];
+	_stprintf_s(sDebug, _countof(sDebug), TEXT("%2X "), dataByte);		
+	OutputDebugString(sDebug);
+	linePrintCount++;
+	if (linePrintCount >= 16)
+	{
+		linePrintCount = 0;
+		OutputDebugString(TEXT("\n"));
+	}
+}
+
+p64_uint32_t GCRDISK::CountP64ImageMaxTrackPulses(const TP64Image& image)
+{
+	p64_uint32_t count = 0;
+	p64_uint32_t maxcount = 0;
+	for (int tr = 0; tr < G64_MAX_TRACKS; tr++)
+	{
+		count = CountP64ImageTrackPulses(image, tr);
+		if (count > maxcount)
+		{
+			maxcount = count;
+		}
+	}
+	return maxcount;
+}
+
+p64_uint32_t GCRDISK::CountP64ImageTrackPulses(const TP64Image& image, unsigned int trackNumber)
+{
+	p64_uint32_t count = 0;	
+	if (trackNumber < G64_MAX_TRACKS)
+	{
+		count = CountP64TrackPulses(image.PulseStreams[P64FirstHalfTrack + trackNumber]);
+	}
+	return count;
+}
+
+p64_uint32_t GCRDISK::CountP64TrackPulses(const TP64PulseStream& track)
+{
+	p64_uint32_t count = 0;		
+	p64_int32_t currentIndex = track.UsedFirst;
+	while (currentIndex >= 0 && count < P64PulseSamplesPerRotation)
+	{
+		currentIndex = track.Pulses[currentIndex].Next;
+		count++;
+	}
+	return count;
+}
 
 bit8 GCRDISK::GetSectorErrorCode(bit8 *d64Binary, bit16 errorBytes, bit8 trackNumber, bit8 sectorNumber)
 {
 bit32 i;
 	if (errorBytes == 683)
+	{
 		i = D64_info[35].file_offset;
+	}
 	else if (errorBytes == 768)
+	{
 		i = D64_info[40].file_offset;
+	}
 	else
+	{
 		return 1;
+	}
 
 	if (trackNumber>=40)
+	{
 		return 1;
+	}
 
 	i += D64_info[trackNumber].sector_total - D64_info[trackNumber].sector_count + sectorNumber;
 	return d64Binary[i];
@@ -879,16 +1083,16 @@ bit8 id1x,id2x;
 int wi = 0;
 int trackByteLen;
 
-	for(tr = 0 ; tr < G64_MAX_TRACKS ; tr++)
+	for(tr = 0 ; tr < HOST_MAX_TRACKS ; tr++)
 	{
 		memset(trackData[tr], 0x55, G64_MAX_BYTES_PER_TRACK);
 		trackSize[tr] = GetD64TrackSize(tr/2) * 8;
-
 		for (i=0 ; i < G64_MAX_BYTES_PER_TRACK ; i++)
         {
 			SetSpeedZone(tr, (bit16)i, GetD64SpeedZone(tr/2));
         }
 	}
+
 	id1x = d64Binary[D64_info[17].file_offset + 162];
 	id2x = d64Binary[D64_info[17].file_offset + 163];
 	for(tr = 0 ; tr < (tracks * 2) ; tr++)
@@ -1041,9 +1245,9 @@ int trackByteLen;
             }			
 		}
 	}
-	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
+	for (tr=0 ; tr < HOST_MAX_TRACKS ; tr++)
     {
-		ConvertGCRtoRAW(tr);
+		ConvertGCRtoP64(tr);
     }
 }
 
@@ -1096,7 +1300,8 @@ bit8 data8;
 WORD s;
 
 	ClearError();
-	m_d64TrackCount = G64_MAX_TRACKS/2;
+	P64ImageClear(&m_P64Image);
+	m_d64TrackCount = G64_MAX_TRACKS / 2;
 
 	file_size = GetFileSize(hfile, 0);
 	if (INVALID_FILE_SIZE == file_size)
@@ -1106,24 +1311,34 @@ WORD s;
 
 	hr = ReadFromFile(hfile, filename, &g64Header.signature[0], sizeof(struct G64Header), 0);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (_memicmp(&g64Header.signature[0],"GCR-1541", 8)!=0)
 	{
 		return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
 	}
 	if (g64Header.version != 0)
+	{
 		return SetError(E_FAIL,TEXT("%s is not a supported G64 file version. Version 2.x only is supported."), filename);
+	}
 
 	if (g64Header.trackSize > G64_MAX_BYTES_PER_TRACK)
+	{
 		return SetError(E_FAIL,TEXT("G64 track size is too long."));
+	}
 
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
 		hr = ReadFromFile(hfile, filename, (char *)&data32, 4, 0);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 		if (data32 + 2 >= file_size)
+		{
 			return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
+		}
 		trackOffset[tr] = data32;
 	}
 	
@@ -1131,11 +1346,15 @@ WORD s;
 	{
 		hr = ReadFromFile(hfile, filename, (char *)&data32, 4, 0);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 		if (data32 > 3)
 		{
 			if (data32 + 2 >= file_size)
+			{
 				return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
+			}
 		}
 		speedOffset[tr] = data32;
 	}
@@ -1145,7 +1364,9 @@ WORD s;
 		speed = GetD64SpeedZone(tr/2);
 		ZeroMemory(trackData[tr], G64_MAX_BYTES_PER_TRACK);
 		for (i = 0 ; i < G64_MAX_BYTES_PER_TRACK ; i++)
+		{
 			SetSpeedZone(tr, (bit16)i, speed); 
+		}
 		trackSize[tr] = D64_TRACK_SIZE_1_17 * 8;
 	}
 
@@ -1160,19 +1381,27 @@ WORD s;
 			}
 			hr = ReadFromFile(hfile, filename, (char *)&s, 2, 0);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
 
 			if ((bit16)s > g64Header.trackSize)
+			{
 				return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
+			}
 
 			if (s==0)
+			{
 				continue;
+			}
 
 			trackSize[tr] = (DWORD)s * 8L;
 
 			hr = ReadFromFile(hfile, filename, (char *)&trackData[tr][0], s, 0);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
 
 			data8 = 0;
 			if (speedOffset[tr] > 3)
@@ -1187,10 +1416,12 @@ WORD s;
 					switch (j & 3)
 					{
 					case 0:
-						data8=0;
+						data8 = 0;
 						hr = ReadFromFile(hfile, filename, (char *)&data8, 1, 0);
 						if (FAILED(hr))
+						{
 							return hr;
+						}
 						SetSpeedZone(tr, (bit16)j, (bit8)((data8 >> 6) & 3));
 						break;
 					case 1:
@@ -1219,7 +1450,9 @@ WORD s;
 	if (bConvertToRAW)
 	{
 		for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
-			ConvertGCRtoRAW(tr);
+		{
+			ConvertGCRtoP64(tr);
+		}
 	}
 
 	m_d64_protectOff=0;
@@ -1229,15 +1462,13 @@ WORD s;
 HRESULT GCRDISK::LoadP64FromFileHandle(HANDLE hfile, TCHAR *filename)
 {
 TP64MemoryStream P64MemoryStreamInstance;
-TP64Image P64Image;
 DWORD file_size;
 DWORD bytes_read;
 HRESULT hr = E_FAIL;
 
 	ClearError();
 	P64MemoryStreamCreate(&P64MemoryStreamInstance);
-	P64ImageCreate(&P64Image);
-
+	P64ImageClear(&m_P64Image);
 	file_size = GetFileSize(hfile, 0);
 	if (INVALID_FILE_SIZE != file_size && file_size != 0)
 	{		
@@ -1245,54 +1476,20 @@ HRESULT hr = E_FAIL;
 		if (buffer != 0)
 		{
 			hr = this->ReadFromFileQ(hfile, buffer, file_size, &bytes_read);
-			if (SUCCEEDED(hr) && bytes_read == file_size)
+			if (SUCCEEDED(hr))
 			{
 				P64MemoryStreamWrite(&P64MemoryStreamInstance, (p64_uint8_t *)buffer, file_size);
 				P64MemoryStreamSeek(&P64MemoryStreamInstance, 0);
-				if (P64ImageReadFromStream(&P64Image, &P64MemoryStreamInstance, this))
+				if (P64ImageReadFromStream(&m_P64Image, &P64MemoryStreamInstance, this))
 				{
 					int hostTrackIndex;
 					int p64TrackIndex;
-					for (hostTrackIndex=0; hostTrackIndex < G64_MAX_TRACKS; hostTrackIndex++)
+					this->m_d64TrackCount = G64_MAX_TRACKS / 2;
+					this->m_d64_protectOff = m_P64Image.WriteProtected == 0;
+					for (p64TrackIndex = P64FirstHalfTrack, hostTrackIndex = 0; p64TrackIndex < _countof(m_P64Image.PulseStreams) && hostTrackIndex < G64_MAX_TRACKS; p64TrackIndex++, hostTrackIndex++)
 					{
-						ZeroMemory(m_rawTrackData[hostTrackIndex], DISK_RAW_TRACK_SIZE);
-					}
-					this->m_d64TrackCount = G64_MAX_TRACKS/2;
-					this->m_d64_protectOff = P64Image.WriteProtected == 0;
-					const p64_uint32_t totalTime = P64PulseSamplesPerRotation;
-					for (p64TrackIndex = P64FirstHalfTrack, hostTrackIndex = 0; p64TrackIndex < P64LastHalfTrack && p64TrackIndex < _countof(P64Image.PulseStreams) && hostTrackIndex < G64_MAX_TRACKS; p64TrackIndex++, hostTrackIndex++)
-					{
-						TP64PulseStream *p64sourcetrack = &P64Image.PulseStreams[p64TrackIndex];
+						TP64PulseStream *p64sourcetrack = &m_P64Image.PulseStreams[p64TrackIndex];
 						P64PulseStreamSeek(p64sourcetrack, 0);
-						p64_uint32_t pulsecount = 0;
-						p64_int32_t currentindex;
-						TP64Pulse *ppulse;
-						for (currentindex = p64sourcetrack->CurrentIndex; currentindex >= 0 && pulsecount < p64sourcetrack->PulsesCount; pulsecount++, currentindex = ppulse->Next)
-						{
-							ppulse = &p64sourcetrack->Pulses[currentindex];
-							if (ppulse != 0 && ppulse->Position >= 0 && ppulse->Position < (p64_uint32_t)P64PulseSamplesPerRotation)
-							{
-								if (ppulse->Strength >= 0x80000000)
-								{
-									p64_uint32_t sumPulseTime = ppulse->Position;					
-									double clockTime = (double)sumPulseTime / (double)totalTime * (double)(DISK_RAW_TRACK_SIZE * 16);
-
-									bit32 clockTimeInt = (bit32)floor(clockTime + 0.5);
-									bit32 trackIndex = clockTimeInt / 16L;
-									trackIndex = trackIndex % DISK_RAW_TRACK_SIZE;
-									bit8 delayIndex = (bit8)(clockTimeInt & 0xf) + 1;
-
-									assert(trackIndex < DISK_RAW_TRACK_SIZE);
-
-									//Write the pulse to the emulated disk.
-									PutDisk16(hostTrackIndex, trackIndex, delayIndex);
-								}
-							}
-							else
-							{
-								break;
-							}
-						}
 					}
 				}
 				else
@@ -1319,10 +1516,8 @@ HRESULT hr = E_FAIL;
 	{
 		hr = SetError(E_FAIL, TEXT("Could not open %s."), filename);
 	}
-
 	P64MemoryStreamDestroy(&P64MemoryStreamInstance);
-	P64ImageDestroy(&P64Image);
-
+	//P64ImageDestroy(&P64Image);
     return hr;
 }
 
@@ -1333,19 +1528,20 @@ DWORD r,dw,filePointer;
 struct FDIHeader fdiHeader;
 bit8 tr,ftr;
 DWORD file_size;
-//struct FDITrackDescription fdiTrackDescription[G64_MAX_TRACKS];
 struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0];
 
 	ClearError();
+	P64ImageClear(&m_P64Image);
 	file_size = GetFileSize(hfile, 0);
 	if (INVALID_FILE_SIZE == file_size)
 	{
 		return SetError(E_FAIL,TEXT("Could not open %s."), filename);
 	}
-
 	hr = ReadFromFile(hfile, filename, &fdiHeader.signature[0], sizeof(struct FDIHeader), 0);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 	if (_memicmp(fdiHeader.signature,"Formatted Disk Image file\r\n", 27)!=0)
 	{
 		return SetError(E_FAIL,TEXT("%s is not a valid FDI file."), filename);
@@ -1364,19 +1560,24 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 
 	if (fdiHeader.tpi == 0)
 	{
-
-		if ((fdiHeader.tpi == 0) && ((fdiHeader.ltrack+1) * 2 > G64_MAX_TRACKS))
-			fdiHeader.ltrack = G64_MAX_TRACKS/2 - 1;
+		if ((fdiHeader.tpi == 0) && ((fdiHeader.ltrack+1) * 2 > HOST_MAX_TRACKS))
+		{
+			fdiHeader.ltrack = HOST_MAX_TRACKS/2 - 1;
+		}
 		m_d64TrackCount = fdiHeader.ltrack+1;
 	}
 	else if (fdiHeader.tpi == 2)
 	{
-		if ((fdiHeader.tpi == 2) && ((fdiHeader.ltrack+1) > G64_MAX_TRACKS))
-			fdiHeader.ltrack = G64_MAX_TRACKS - 1;
+		if ((fdiHeader.tpi == 2) && ((fdiHeader.ltrack+1) > HOST_MAX_TRACKS))
+		{
+			fdiHeader.ltrack = HOST_MAX_TRACKS - 1;
+		}
 		m_d64TrackCount = (fdiHeader.ltrack+1) / 2;
 	}
 	else
+	{
 		return SetError(E_FAIL,TEXT("%s is not a valid C64 FDI file."), filename);
+	}
 
 	r = SetFilePointer (hfile, 152, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
@@ -1384,18 +1585,19 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
 
-	for (tr=0 ; tr<G64_MAX_TRACKS ; tr++)
-		ZeroMemory(m_rawTrackData[tr], DISK_RAW_TRACK_SIZE);
-
 	ftr=0;
 	tr=0;
 	while (ftr<=fdiHeader.ltrack)
 	{
 		if (IsEventQuitSignalled())
+		{
 			return E_FAIL;
+		}
 		hr = ReadFromFile(hfile, filename, (char *)&fdiTrackDescription[ftr], sizeof(struct FDITrackDescription), 0);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 		ftr++;
 	}
 
@@ -1405,60 +1607,81 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 	while (ftr<=fdiHeader.ltrack)
 	{
 		if (IsEventQuitSignalled())
+		{
 			return E_FAIL;
+		}
 		if (fdiTrackDescription[ftr].type == 0)
+		{
 			dw = (DWORD)fdiTrackDescription[ftr].size * 256;
+		}
 		else if (fdiTrackDescription[ftr].type >= 0x80 && fdiTrackDescription[ftr].type <= 0xbf)
 		{//pulses-index streams
 			hr = FDIReadTrackStream(hfile, filePointer, tr);
 			if (FAILED(hr))
+			{
 				return SetError(hr, TEXT("%s is not a valid C64 FDI file."), filename);
+			}
 			dw = fdiTrackDescription[ftr].size;
 			dw = dw | ((DWORD)(fdiTrackDescription[ftr].type & 0x3f)<<8);
 			dw *= 0x100;
 		}
 		else if ((fdiTrackDescription[ftr].type & 0xf0) == 0xd0)
 		{
-			hr = FDIReadRawGCR(hfile, filePointer, tr, fdiTrackDescription[ftr].type);
+			hr = FDIReadGCR(hfile, filePointer, tr, fdiTrackDescription[ftr].type);
 			if (FAILED(hr))
+			{
 				return SetError(hr, TEXT("%s is not a valid C64 FDI file."), filename);
+			}
 			dw = (DWORD)fdiTrackDescription[ftr].size * 256;
 		}
 		else if ((fdiTrackDescription[ftr].type & 0xf0) == 0xc0)
 		{
 			hr = FDIReadDecodedGCR(hfile, filePointer, tr, fdiTrackDescription[ftr].type);
 			if (FAILED(hr))
+			{
 				return SetError(hr, TEXT("%s is not a valid C64 FDI file."), filename);
+			}
 			dw = (DWORD)fdiTrackDescription[ftr].size * 256;
 		}
 		else
+		{
 			return SetError(E_FAIL,TEXT("%s is not a valid C64 FDI file."), filename);
-
+		}
 		filePointer += dw;
 		if (fdiHeader.tpi == 0)
+		{
 			tr+=2;
+		}
 		else
+		{
 			tr+=1;
+		}
 
 		ftr++;
 	}
 
 	if (fdiHeader.flags & 1)
-		m_d64_protectOff=0;
+	{
+		m_d64_protectOff = 0;
+	}
 	else
-		m_d64_protectOff=1;
-
+	{
+		m_d64_protectOff = 1;
+	}
 
 	if (IsEventQuitSignalled())
+	{
 		return E_FAIL;
+	}
 	if (wordswap(fdiHeader.version) >= 0x0201)
+	{
 		return FDICheckCRC(hfile, filename, file_size);
+	}
 	return S_OK;
 }
 
 HRESULT GCRDISK::FDICheckCRC(HANDLE hfile, TCHAR *filename, DWORD file_size)
 {
-
 HRESULT hr;
 DWORD r;
 long i;
@@ -1583,7 +1806,7 @@ bit8 speedG64;
 }
 
 
-HRESULT GCRDISK::FDIReadRawGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType)
+HRESULT GCRDISK::FDIReadGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType)
 {
 HRESULT hr;
 bit32 trackBitLength;
@@ -1608,13 +1831,11 @@ DWORD r;
 	hr = ReadFromFileQ(hfile, (char *)&indexPos, 4, 0);
 	if (FAILED(hr))
 		return hr;
-
 	
 	trackByteLength = (trackBitLength + 7)/8;
 
 	if (trackByteLength > G64_MAX_BYTES_PER_TRACK && trackByteLength < 6000)
 		return E_FAIL;
-
 	
 	hr = ReadFromFileQ(hfile, (char *)&trackData[trackNumber][0], trackByteLength, 0);
 	if (FAILED(hr))
@@ -1625,7 +1846,7 @@ DWORD r;
 		return E_FAIL;
 	G64SetTrackSpeedZone(trackNumber, speed);
 
-	ConvertGCRtoRAW(trackNumber);
+	ConvertGCRtoP64(trackNumber);
 
 	return S_OK;
 }
@@ -1820,7 +2041,7 @@ bit8 b1,b2,b3,b4,b5;
 		return E_FAIL;
 	G64SetTrackSpeedZone(trackNumber, speed);
 
-	ConvertGCRtoRAW(trackNumber);
+	ConvertGCRtoP64(trackNumber);
 	return S_OK;
 }
 
@@ -1844,230 +2065,283 @@ HuffDecompression hd;
 
 	hr = ReadFromFileQ(hfile, (char *)&d, 4, 0);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	fdiStreamsHeader.numPulses = dwordswap(d);
-
-	d = 0;
-	hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
-	if (FAILED(hr))
-		return hr;
-	d = FDI3To4(d);
-	fdiStreamsHeader.aveCompression = (d >> 22) & 3;
-	fdiStreamsHeader.aveSize = d & 0x3fffff;
-
-	d = 0;
-	hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
-	if (FAILED(hr))
-		return hr;
-	d = FDI3To4(d);
-	fdiStreamsHeader.minCompression = (d >> 22) & 3;
-	fdiStreamsHeader.minSize = d & 0x3fffff;
-
-	d = 0;
-	hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
-	if (FAILED(hr))
-		return hr;
-	d = FDI3To4(d);
-	fdiStreamsHeader.maxCompression = (d >> 22) & 3;
-	fdiStreamsHeader.maxSize = d & 0x3fffff;
-
-	d = 0;
-	hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
-	if (FAILED(hr))
-		return hr;
-	d = FDI3To4(d);
-	fdiStreamsHeader.idxCompression = (d >> 22) & 3;
-	fdiStreamsHeader.idxSize = d & 0x3fffff;
-
-	if (fdiStreamsHeader.aveSize==0)
-		return E_FAIL;
-
-	//Ave
-	if (fdiStreamsHeader.aveCompression==0)
-		hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
-	else if (fdiStreamsHeader.aveCompression==1)
-		hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
-	else
-		hr = E_FAIL;
-	if (FAILED(hr))
-		return hr;
-
-	//Check the Minimum stream. Not used by Hoxs64.
-	if (fdiStreamsHeader.minSize)
+	if (fdiStreamsHeader.numPulses > 0)
 	{
-		//Min
-		i = filePointer + 16 + fdiStreamsHeader.aveSize;
-		r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
-		if (r == INVALID_SET_FILE_POINTER)
-		{
-			return E_FAIL;
-		}
-		if (fdiStreamsHeader.minCompression==0)
-			hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
-		else if (fdiStreamsHeader.minCompression==1)
-			hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
-		else
-			hr = E_FAIL;
+		d = 0;
+		hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
 		if (FAILED(hr))
-			return hr;
-
-		//Check the Maximum stream. Not used by Hoxs64.
-		if (fdiStreamsHeader.maxSize)
 		{
-			//Max
-			i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize;
-			r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
-			if (r == INVALID_SET_FILE_POINTER)
+			return hr;
+		}
+		d = FDI3To4(d);
+		fdiStreamsHeader.aveCompression = (d >> 22) & 3;
+		fdiStreamsHeader.aveSize = d & 0x3fffff;
+
+		d = 0;
+		hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		d = FDI3To4(d);
+		fdiStreamsHeader.minCompression = (d >> 22) & 3;
+		fdiStreamsHeader.minSize = d & 0x3fffff;
+
+		d = 0;
+		hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		d = FDI3To4(d);
+		fdiStreamsHeader.maxCompression = (d >> 22) & 3;
+		fdiStreamsHeader.maxSize = d & 0x3fffff;
+
+		d = 0;
+		hr = ReadFromFileQ(hfile, (char *)&d, 3, 0);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		d = FDI3To4(d);
+		fdiStreamsHeader.idxCompression = (d >> 22) & 3;
+		fdiStreamsHeader.idxSize = d & 0x3fffff;
+
+		if (fdiStreamsHeader.aveSize != 0)
+		{
+			//Ave
+			if (fdiStreamsHeader.aveCompression==0)
 			{
-				return E_FAIL;
+				hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
 			}
-			if (fdiStreamsHeader.maxCompression==0)
-				hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
-			else if (fdiStreamsHeader.maxCompression==1)
-				hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
+			else if (fdiStreamsHeader.aveCompression==1)
+			{
+				hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
+			}
 			else
+			{
 				hr = E_FAIL;
+			}
 			if (FAILED(hr))
+			{
 				return hr;
-		}
-	}
+			}
 
-	//Check the Index stream. We use the Index stream to determine if a pulse is weak or strong. Pulse times always index from the last strong pulse.
-	unsigned int maxPulseStrength = 0;
-	if (fdiStreamsHeader.idxSize)
-	{
-		//Index
-		i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize + fdiStreamsHeader.maxSize;
-		r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
-		if (r == INVALID_SET_FILE_POINTER)
-		{
-			return E_FAIL;
-		}
-		if (fdiStreamsHeader.idxCompression==0)
-			hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
-		else if (fdiStreamsHeader.idxCompression==1)
-			hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
-		else
-			hr = E_FAIL;
-		if (FAILED(hr))
-			return hr;
+			//Check the Minimum stream. Not used by Hoxs64.
+			if (fdiStreamsHeader.minSize)
+			{
+				//Min
+				i = filePointer + 16 + fdiStreamsHeader.aveSize;
+				r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
+				if (r == INVALID_SET_FILE_POINTER)
+				{
+					return E_FAIL;
+				}
+				if (fdiStreamsHeader.minCompression==0)
+				{
+					hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
+				}
+				else if (fdiStreamsHeader.minCompression==1)
+				{
+					hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
+				}
+				else
+				{
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					return hr;
+				}
+				//Check the Maximum stream. Not used by Hoxs64.
+				if (fdiStreamsHeader.maxSize)
+				{
+					//Max
+					i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize;
+					r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
+					if (r == INVALID_SET_FILE_POINTER)
+					{
+						return E_FAIL;
+					}
+					if (fdiStreamsHeader.maxCompression==0)
+					{
+						hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
+					}
+					else if (fdiStreamsHeader.maxCompression==1)
+					{
+						hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
+					}
+					else
+					{
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+					{
+						return hr;
+					}
+				}
+			}
 
-		//Find the index value that is used to indicate a string pulse;
-		for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
-		{
-			unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
-			unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
-			unsigned int pulseStrength = index1state + index0state;
-			if (pulseStrength > maxPulseStrength)
-				maxPulseStrength = pulseStrength;
-		}
-	}
+			//Check the Index stream. We use the Index stream to determine if a pulse is weak or strong. Pulse times always index from the last strong pulse.
+			unsigned int maxPulseStrength = 0;
+			if (fdiStreamsHeader.idxSize)
+			{
+				//Index
+				i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize + fdiStreamsHeader.maxSize;
+				r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
+				if (r == INVALID_SET_FILE_POINTER)
+				{
+					return E_FAIL;
+				}
+				if (fdiStreamsHeader.idxCompression==0)
+				{
+					hr = FDICopyTrackStream(hfile, fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
+				}
+				else if (fdiStreamsHeader.idxCompression==1)
+				{
+					hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
+				}
+				else
+				{
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					return hr;
+				}
 
-	unsigned int pulseStrength=0;
-	bool bIsStrongPulse;
-	bool bIsNoticablePulse;
-	unsigned __int64 totalTime;//Total FDI track length.
-	unsigned __int64 pulseTime;//FDI distance from last strong pulse.
-	unsigned __int64 sumPulseTime;//FDI distance of current pulse from start of track.
-	unsigned __int64 sumStrongPulseTime;//FDI distance of last strong pulse from start of track.
-	double clockTime;
-	double totalClockTime;
-	bit8 delayIndex;
+				//Find the index value that is used to indicate a string pulse;
+				for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
+				{
+					unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
+					unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
+					unsigned int pulseStrength = index1state + index0state;
+					if (pulseStrength > maxPulseStrength)
+					{
+						maxPulseStrength = pulseStrength;
+					}
+				}
+			}
 
-	totalTime=0;
-	//Loop through the aveData to total up the track length.
-	for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
-	{
-		if (IsEventQuitSignalled())
-			return E_FAIL;
-		//Determine if this pulse is strong.
-		if (fdiStreamsHeader.idxSize)
-		{
-			//idxData is used describe the strength of a pulse.
-			unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
-			unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
-			pulseStrength = index1state + index0state;
-			bIsStrongPulse = (pulseStrength == maxPulseStrength);
-			bIsNoticablePulse = (pulseStrength >= maxPulseStrength/2);
-		}
-		else
-		{
-			//Assume all pulses are strong if the idxSize is not present.
-			bIsStrongPulse = true;
-			bIsNoticablePulse = true;
-		}
-		//Only strong pulse times are used to sum the total track time.
-		bool bIsLastPulse = (i == fdiStreamsHeader.numPulses - 1);
-		if (bIsStrongPulse)
-			totalTime += fdiStreamsHeader.aveData[i];
-	}
+			if (fdiStreamsHeader.numPulses > 0)
+			{
+				unsigned int pulseStrength=0;
+				bool bIsStrongPulse;
+				bool bIsNoticablePulse;
+				unsigned __int64 totalTime;//Total FDI track length.
+				unsigned __int64 pulseTime;//FDI distance from last strong pulse.
+				unsigned __int64 sumPulseTime;//FDI distance of current pulse from start of track.
+				unsigned __int64 sumStrongPulseTime;//FDI distance of last strong pulse from start of track.
+				double clockTime;
+				totalTime=0;
+				//Loop through the aveData to total up the track length.
+				for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
+				{
+					if (IsEventQuitSignalled())
+					{
+						return E_FAIL;
+					}
+					//Determine if this pulse is strong.
+					if (fdiStreamsHeader.idxSize)
+					{
+						//idxData is used describe the strength of a pulse.
+						unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
+						unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
+						pulseStrength = index1state + index0state;
+						bIsStrongPulse = (pulseStrength == maxPulseStrength);
+						bIsNoticablePulse = (pulseStrength >= maxPulseStrength/2);
+					}
+					else
+					{
+						//Assume all pulses are strong if the idxSize is not present.
+						bIsStrongPulse = true;
+						bIsNoticablePulse = true;
+					}
+					//Only strong pulse times are used to sum the total track time.
+					bool bIsLastPulse = (i == fdiStreamsHeader.numPulses - 1);
+					if (bIsStrongPulse)
+					{
+						totalTime += fdiStreamsHeader.aveData[i];
+					}
+				}
 	
-	totalClockTime = (double)(DISK_RAW_TRACK_SIZE*16);
+				pulseTime=0;
+				sumPulseTime=0;
+				sumStrongPulseTime = 0;
+				//Loop through aveData a second time to write the pulses to the emulated disk
+				for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
+				{
+					if (IsEventQuitSignalled())
+					{
+						return E_FAIL;
+					}
 
-	pulseTime=0;
-	sumPulseTime=0;
-	sumStrongPulseTime = 0;
-	bit32 trackIndex;
-	//Loop through aveData a second time to write the pulses to the emulated disk via PutDisk16
-	for (i = 0 ; i < fdiStreamsHeader.numPulses ; i++)
-	{
-		if (IsEventQuitSignalled())
-			return E_FAIL;
+					//Determine if this pulse is strong.
+					if (fdiStreamsHeader.idxSize)
+					{
+						//idxData is used describe the strength of a pulse.
+						unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
+						unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
+						pulseStrength = index1state + index0state;
+						bIsStrongPulse = (pulseStrength == maxPulseStrength);
+						bIsNoticablePulse = (pulseStrength >= maxPulseStrength/2);
+					}
+					else
+					{
+						//Assume all pulses are strong if the idxSize is not present.
+						bIsStrongPulse = true;
+						bIsNoticablePulse = true;
+					}
 
-		//Determine if this pulse is strong.
-		if (fdiStreamsHeader.idxSize)
-		{
-			//idxData is used describe the strength of a pulse.
-			unsigned int index1state = (fdiStreamsHeader.idxData[i] >> 8) & 0xff;
-			unsigned int index0state = (fdiStreamsHeader.idxData[i]) & 0xff;
-			pulseStrength = index1state + index0state;
-			bIsStrongPulse = (pulseStrength == maxPulseStrength);
-			bIsNoticablePulse = (pulseStrength >= maxPulseStrength/2);
+					//pulseTime should be greater than zero.
+					pulseTime = (unsigned __int64)fdiStreamsHeader.aveData[i];
+					//Skip zero pulse times.
+					if (pulseTime == 0)
+					{
+						continue;
+					}
+					if (pulseTime < 0)
+					{
+						return E_FAIL;
+					}
+
+					if (bIsStrongPulse)
+					{
+						//Count strong pulse times as part of the total track time.
+						sumStrongPulseTime += pulseTime;
+						sumPulseTime = sumStrongPulseTime;
+					}
+					else
+					{
+						//The weak pulse is indexed from the last strong pulse.
+						//We are not going to write out this weak pulse. We take note only for debug purposes.
+						sumPulseTime = sumStrongPulseTime + pulseTime;
+					}
+
+					//Do not write out weak pulses to the emulated disk.
+					if (!bIsStrongPulse)
+					{
+						continue;
+					}
+
+					clockTime = (double)(sumPulseTime - 1) / (double)totalTime * (double)(P64PulseSamplesPerRotation);
+					p64_uint32_t pulsePosition = (p64_uint32_t)floor(clockTime);
+					if (pulsePosition >= 0  && pulsePosition < P64PulseSamplesPerRotation)
+					{
+						//Write the pulse to the emulated disk.
+						P64PulseStreamAddPulse(&this->m_P64Image.PulseStreams[P64FirstHalfTrack + trackNumber], pulsePosition, 0xffffffff);
+					}
+				}
+			}
 		}
-		else
-		{
-			//Assume all pulses are strong if the idxSize is not present.
-			bIsStrongPulse = true;
-			bIsNoticablePulse = true;
-		}
-
-		//pulseTime should be greater than zero.
-		pulseTime = (unsigned __int64)fdiStreamsHeader.aveData[i];
-		//Skip zero pulse times.
-		if (pulseTime == 0)
-			continue;
-		if (pulseTime < 0)
-			return E_FAIL;
-
-		if (bIsStrongPulse)
-		{
-			//Count strong pulse times as part of the total track time.
-			sumStrongPulseTime += pulseTime;
-			sumPulseTime = sumStrongPulseTime;
-		}
-		else
-		{
-			//The weak pulse is indexed from the last strong pulse.
-			//We are not going to write out this weak pulse. We take note only for debug purposes.
-			sumPulseTime = sumStrongPulseTime + pulseTime;
-		}
-
-		//Do not write out weak pulses to the emulated disk.
-		if (!bIsStrongPulse)
-			continue;
-
-		//DISK_RAW_TRACK_SIZE is 200000. This is the number of cells or arc's of track in an emulated track.
-		//Take the current fdi distance from start of track (sumPulseTime) and re-scale it into our emulated track at arc trackIndex [0-199999] with the pulse position with in the that arc to be stored in delayIndex [1-16]
-		clockTime = (double)sumPulseTime / (double)totalTime * (double)(DISK_RAW_TRACK_SIZE * 16);
-		trackIndex = ((bit32)floor(clockTime + 0.5)) / 16L;
-		trackIndex = trackIndex % DISK_RAW_TRACK_SIZE;
-		delayIndex = (bit8)(((bit32)floor(clockTime + 0.5)) & 0xf) + 1;
-
-		assert(trackIndex < DISK_RAW_TRACK_SIZE);
-
-		//Write the pulse to the emulated disk.
-		PutDisk16(trackNumber, trackIndex, delayIndex);
 	}
 
 	return S_OK;
@@ -2174,7 +2448,7 @@ BOOL r;
 DWORD bytes_read,file_size;
 
 	ClearError();
-
+	P64ImageClear(&m_P64Image);
 	hfile=0;
 	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
 	if (hfile==INVALID_HANDLE_VALUE)
@@ -2240,14 +2514,16 @@ BOOL rb;
 FDIHeader fdiHeader;
 HANDLE hFile;
 DWORD bytes_written,file_size,r;
-struct FDITrackDescription fdiTrackDescription[G64_MAX_TRACKS];
+struct FDITrackDescription fdiTrackDescription[HOST_MAX_TRACKS];
 long i,j;
 bit8 tr;
 HRESULT hr;
 struct FDIRawTrackHeader fdiRawTrackHeader;
-bit32 pulseCount;
+bit32 pulseCountArray[HOST_MAX_TRACKS];
+bit32 maxPulseCount;
+bit32 currentPulseCount;
 FDIData buffer;
-bit32 *p,delay;
+bit32 *p;
 HuffCompression hw;
 bit32 nextTrackWrite;
 bit32 compressedBufferSize;
@@ -2258,13 +2534,17 @@ CRC32Alloc crc;
 
 	ClearError();
 	if (sizeof(FDIHeader) != 0x200)
+	{
 		return SetError(E_FAIL,TEXT("Internal error. FDIHeader size was found not to be 0x200."));
+	}
 
 	if (!crc.isOK)
+	{
 		return E_OUTOFMEMORY;
-	crc.pCRC32->Init(CRC32POLY,0xffffffff,0xffffffff, true);
+	}
 
-	hFile=CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL ,NULL); 
+	crc.pCRC32->Init(CRC32POLY,0xffffffff,0xffffffff, true);
+	hFile=CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL); 
 	if (hFile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL,TEXT("Could not save %s."), filename);
@@ -2276,16 +2556,18 @@ CRC32Alloc crc;
 		return SetError(hr, TEXT("Could not save %s."), filename);
 	}
 
-	memset(&fdiHeader.signature[0], 0, sizeof(FDIHeader));
-	memcpy(fdiHeader.signature, "Formatted Disk Image file\r\n", 27);
+	const char Signature[] = "Formatted Disk Image file\r\n";
+	const char Creator[] = "Hoxs64 1541 FDI save v1.0.1";
+	memset(&fdiHeader, 0, sizeof(FDIHeader));
+	memcpy(fdiHeader.signature, Signature, strlen(Signature));
 	memset(fdiHeader.creator, 0x20, sizeof(fdiHeader.creator));
-	memcpy(fdiHeader.creator, "Hoxs64 1541 FDI save",20);
+	memcpy(fdiHeader.creator, Creator, strlen(Creator));
 	fdiHeader.cr[0] = '\r';
 	fdiHeader.cr[1] = '\n';
 	memset(fdiHeader.comment, 0x1a, sizeof(fdiHeader.comment));
 	fdiHeader.eof = 0x1a;
 	fdiHeader.version = wordswap(0x0201);
-	fdiHeader.ltrack = wordswap(G64_MAX_TRACKS-1);
+	fdiHeader.ltrack = wordswap(HOST_MAX_TRACKS - 1);
 	fdiHeader.lhead = 0;
 	fdiHeader.type = 1;
 	fdiHeader.rotspeed = 0xac;
@@ -2296,91 +2578,122 @@ CRC32Alloc crc;
 	
 	rb = WriteFile(hFile, &fdiHeader, sizeof(FDIHeader), &bytes_written, NULL);
 	if (!rb)
+	{
 		return SetError(E_FAIL,TEXT("Could not save %s."),filename);
+	}
 
 	hr = hw.Init();
 	if(FAILED(hr))
-		return SetError(hr, TEXT("Could initialise Huffmann compression."));
+	{
+		return SetError(hr, TEXT("Could not initialise huffmann compression."));
+	}
 
+	//Find how many pulses are on the track with the most pulses.	
+	ZeroMemory(pulseCountArray, sizeof(pulseCountArray));
+	p64_int32_t currentIndex;
+	PP64PulseStream track;
+	p64_uint32_t currentPosition;
+	p64_uint32_t previousPosition;
+	bit32 destIndex = 0;
+	maxPulseCount = 0;
+	for (tr=0; tr < HOST_MAX_TRACKS; tr++)
+	{
+		pulseCountArray[tr] = 0;
+		track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + tr];
+		if (track->UsedFirst >= 0 && track->UsedLast > 0)
+		{
+			currentIndex = track->UsedFirst;
+			destIndex = 0;
+			currentPosition = 0;
+			previousPosition = track->Pulses[track->UsedLast].Position;
+			if (previousPosition < P64PulseSamplesPerRotation)
+			{
+				for (;currentIndex >= 0; destIndex++, previousPosition = currentPosition, currentIndex = track->Pulses[currentIndex].Next)
+				{
+					currentPosition = track->Pulses[currentIndex].Position;
+					if ((currentPosition <= previousPosition && destIndex > 0) || currentPosition >= P64PulseSamplesPerRotation)
+					{
+						break;
+					}
+					pulseCountArray[tr]++;			
+				}
+			}
+			if (pulseCountArray[tr] > maxPulseCount)
+			{
+				maxPulseCount = pulseCountArray[tr];
+			}
+		}
+	}
 
-	buffer.data =(bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, DISK_RAW_TRACK_SIZE*sizeof(bit32));
+	//Allocate one buffer that can hold the largest track which is the track with the most pulses.
+	buffer.data =(bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, maxPulseCount * sizeof(bit32));
 	p = (bit32 *) buffer.data;
 	if (buffer.data == NULL)
-		return SetError(E_OUTOFMEMORY,TEXT("Out of memory."));
-
-	ZeroMemory(fdiTrackDescription, sizeof(FDITrackDescription) * G64_MAX_TRACKS);
-	nextTrackWrite = 0x200;
-	for (tr=0; tr<G64_MAX_TRACKS; tr++)
 	{
-		delay=0;
-		pulseCount=0;
-		for (i = DISK_RAW_TRACK_SIZE-1 ; i>=0; i--)
-		{
-			if (m_rawTrackData[tr][i]!=0)
-			{
-				delay+= (16 - m_rawTrackData[tr][i]);
-				break;
-			}
-			else
-				delay+=16;
-		}
-		if (i<0)
-			continue;
+		return SetError(E_OUTOFMEMORY,TEXT("Out of memory."));
+	}
 
-		for (i=0 ; i<DISK_RAW_TRACK_SIZE; i++)
-		{
-			if (m_rawTrackData[tr][i]!=0)
-			{
-				delay+=m_rawTrackData[tr][i];
-				
-				p[pulseCount] = delay;
-				pulseCount++;
-		
-				delay = (16 - m_rawTrackData[tr][i]);
-			}
-			else
-				delay+=16;
-		}
-
-		if (pulseCount>DISK_RAW_TRACK_SIZE)
-			return SetError(E_FAIL,TEXT("Too many pulses found in track %d."),(int)tr);
-
-		
+	ZeroMemory(fdiTrackDescription, sizeof(FDITrackDescription) * HOST_MAX_TRACKS);
+	nextTrackWrite = 0x200;
+	for (tr=0; tr < HOST_MAX_TRACKS; tr++)
+	{
 		r = SetFilePointer (hFile, nextTrackWrite + sizeof(FDIRawTrackHeader), 0L, FILE_BEGIN);
 		if (r == INVALID_SET_FILE_POINTER)
 		{
 			return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 		}
 
-		hr = hw.Compress(p, pulseCount, &compressedBufferSize);
-		if (FAILED(hr))
-		{
-			if (hr == E_OUTOFMEMORY)
-				SetError(hr, TEXT("Out of memory"));
-			return SetError(hr, TEXT("Could not compress track %d"), (long)tr);
-		}
-		if (compressedBufferSize>0x3ffff)
-			return SetError(E_FAIL,TEXT("Compression failed for track %d."),(int)tr);
-
-		writeSize = (sizeof(FDIRawTrackHeader) + compressedBufferSize);
-		if ((writeSize & 0xff)!=0)
-		{
-			j=0;
-			zeroPadSize = 0x100 - (writeSize & 0xff);
-			for (i=0; i < zeroPadSize; i++)
+		PP64PulseStream track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + tr];
+		compressedBufferSize = 0;
+		currentPulseCount = 0;
+		if (track->UsedFirst >= 0 && track->UsedLast >= 0)
+		{			
+			destIndex = 0;
+			currentPosition = 0;
+			previousPosition = track->Pulses[track->UsedLast].Position;
+			currentIndex = track->UsedFirst;
+			if (previousPosition < P64PulseSamplesPerRotation)
 			{
-				rb = WriteFile(hFile, &j, 1, &bytes_written, NULL);
-				if (!rb)
-					return SetError(E_FAIL, TEXT("Could not save %s."),filename);
+				for (;currentIndex >= 0 && destIndex < pulseCountArray[tr]; destIndex++, previousPosition = currentPosition, currentIndex = track->Pulses[currentIndex].Next)
+				{
+					currentPosition = track->Pulses[currentIndex].Position;
+					if ((currentPosition <= previousPosition && destIndex > 0) || currentPosition >= P64PulseSamplesPerRotation)
+					{
+						break;
+					}
+					if (currentPosition > previousPosition)
+					{
+						p[destIndex] = currentPosition - previousPosition;
+					}
+					else
+					{
+						p[destIndex] = P64PulseSamplesPerRotation + currentPosition - previousPosition;
+					}
+					currentPulseCount++;
+				}
+			}
+			if (currentPulseCount > 0)
+			{
+				hr = hw.Compress(p, currentPulseCount, &compressedBufferSize);
+				if (FAILED(hr))
+				{
+					if (hr == E_OUTOFMEMORY)
+					{
+						SetError(hr, TEXT("Out of memory."));
+					}
+					return SetError(hr, TEXT("Could not compress track %d."), (long)tr);
+				}
+
+				if (compressedBufferSize > 0x3ffff)
+				{
+					return SetError(E_FAIL,TEXT("Compression failed for track %d."),(int)tr);
+				}
 			}
 		}
-
-		assert(compressedBufferSize<=0x3ffff);
-		fdiRawTrackHeader.numPulses = dwordswap(pulseCount);
-		fdiRawTrackHeader.aveSize[2] = (bit8)(compressedBufferSize);
-		fdiRawTrackHeader.aveSize[1] = (bit8)(compressedBufferSize >> 8);
-		fdiRawTrackHeader.aveSize[0] = (bit8)(compressedBufferSize >> 16);
-		fdiRawTrackHeader.aveSize[0] = (fdiRawTrackHeader.aveSize[0] & 0x3f) | 0x40;
+		fdiRawTrackHeader.numPulses = 0;
+		fdiRawTrackHeader.aveSize[2] = 0;
+		fdiRawTrackHeader.aveSize[1] = 0;
+		fdiRawTrackHeader.aveSize[0] = 0;
 
 		fdiRawTrackHeader.minSize[2] = 0;
 		fdiRawTrackHeader.minSize[1] = 0;
@@ -2394,6 +2707,32 @@ CRC32Alloc crc;
 		fdiRawTrackHeader.idxSize[1] = 0;
 		fdiRawTrackHeader.idxSize[0] = 0;
 
+		const int MAXALLOWEDCOMPRESSEDDATA = 0x3fff00;
+		assert(compressedBufferSize <= MAXALLOWEDCOMPRESSEDDATA);
+		if (compressedBufferSize > 0 && compressedBufferSize <= MAXALLOWEDCOMPRESSEDDATA && currentPulseCount > 0)
+		{
+			fdiRawTrackHeader.numPulses = dwordswap(currentPulseCount);
+			fdiRawTrackHeader.aveSize[2] = (bit8)(compressedBufferSize);
+			fdiRawTrackHeader.aveSize[1] = (bit8)(compressedBufferSize >> 8);
+			fdiRawTrackHeader.aveSize[0] = (bit8)(compressedBufferSize >> 16);
+			fdiRawTrackHeader.aveSize[0] = (fdiRawTrackHeader.aveSize[0] & 0x3f) | 0x40;
+		}
+
+		writeSize = (sizeof(FDIRawTrackHeader) + compressedBufferSize);
+		if ((writeSize & 0xff) != 0)
+		{
+			j = 0;
+			zeroPadSize = 0x100 - (writeSize & 0xff);
+			for (i=0; i < zeroPadSize; i++)
+			{
+				rb = WriteFile(hFile, &j, 1, &bytes_written, NULL);
+				if (!rb)
+				{
+					return SetError(E_FAIL, TEXT("Could not save %s."),filename);
+				}
+			}
+		}
+
 		r = SetFilePointer (hFile, nextTrackWrite, 0L, FILE_BEGIN);
 		if (r == INVALID_SET_FILE_POINTER)
 		{
@@ -2401,16 +2740,15 @@ CRC32Alloc crc;
 		}
 		rb = WriteFile(hFile, &fdiRawTrackHeader, sizeof(FDIRawTrackHeader), &bytes_written, NULL);
 		if (!rb)
+		{
 			return SetError(E_FAIL, TEXT("Could not save %s."),filename);
+		}
 
-
-		writeSize = (writeSize + 0xff) / 0x100;
-
-		assert(writeSize<=0x3fff);
+		writeSize = (writeSize + 0xff) >> 8;
+		assert(writeSize <= MAXALLOWEDCOMPRESSEDDATA / 0x100);
 		fdiTrackDescription[tr].type = ((bit8)(writeSize>>8) & 0x3f) | 0x80;
 		fdiTrackDescription[tr].size = (bit8)writeSize & 0xff;
-
-		nextTrackWrite+= (writeSize * 0x100);
+		nextTrackWrite+= (writeSize << 8);
 	}
 
 	r = SetFilePointer (hFile, SOFFSET(FDIHeader,trackDescription) , 0L, FILE_BEGIN);
@@ -2418,10 +2756,11 @@ CRC32Alloc crc;
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
-	rb = WriteFile(hFile, &fdiTrackDescription[0], sizeof(FDITrackDescription) * G64_MAX_TRACKS, &bytes_written, NULL);
+	rb = WriteFile(hFile, &fdiTrackDescription[0], sizeof(FDITrackDescription) * HOST_MAX_TRACKS, &bytes_written, NULL);
 	if (!rb)
+	{
 		return SetError(E_FAIL, TEXT("Could not save %s."),filename);
-
+	}
 	/*Calculate CRC-32 values*/
 	/*Seek to begining*/
 	r = SetFilePointer (hFile, 0L, 0L, FILE_BEGIN);
@@ -2438,18 +2777,21 @@ CRC32Alloc crc;
 	/*Read header*/
 	hr = ReadFromFile(hFile, filename, (char *)&fdiHeader, sizeof(struct FDIHeader), 0);
 	if (FAILED(hr))
+	{
 		return hr;
-	
+	}
+
 	/*Read track data and calculate it's CRC-32*/
 	for (i=sizeof(struct FDIHeader) ; (DWORD)i < file_size ; i++)
 	{
 		hr = ReadFromFile(hFile, filename, (char *)&currentByte, 1, 0);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 		crc.pCRC32->ProcessByte((BYTE)currentByte);
 	}
 	fdiHeader.dataCRC = dwordswap(crc.pCRC32->Value());
-
 	
 	/*calculate CRC-32 for the header*/
 	crc.pCRC32->Init();
@@ -2458,7 +2800,6 @@ CRC32Alloc crc;
 		crc.pCRC32->ProcessByte((BYTE)  ((BYTE *)&fdiHeader)[i]);
 	}
 	fdiHeader.headerCRC = dwordswap(crc.pCRC32->Value());
-
 
 	/*Seek to begining*/
 	r = SetFilePointer (hFile, 0L , 0L, FILE_BEGIN);
@@ -2469,7 +2810,9 @@ CRC32Alloc crc;
 	/*rewrite the header*/
 	rb = WriteFile(hFile, &fdiHeader, sizeof(FDIHeader), &bytes_written, NULL);
 	if (!rb || bytes_written!=sizeof(FDIHeader))
+	{
 		return SetError(E_FAIL, TEXT("Could not save %s."),filename);
+	}
 
 	return S_OK;
 }
@@ -2478,6 +2821,52 @@ CRC32Alloc crc;
 HRESULT GCRDISK::SaveG64ToFile(TCHAR *filename)
 {
 	return S_OK;
+}
+
+HRESULT GCRDISK::SaveP64ToFile(TCHAR *filename)
+{
+TP64MemoryStream P64MemoryStreamInstance;
+HANDLE hFile = NULL;
+TCHAR *errorbuffer = NULL;
+int bufferSize = 1024;
+HRESULT hr = S_OK;
+DWORD bytesWritten;
+
+	do
+	{
+		P64MemoryStreamCreate(&P64MemoryStreamInstance);
+		if (P64ImageWriteToStream(&this->m_P64Image, &P64MemoryStreamInstance))
+		{
+			hFile = CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL); 
+			if (hFile == INVALID_HANDLE_VALUE)
+			{
+				errorbuffer = G::MallocFormattedString(TEXT("Could not open %s."), filename);
+				hr = this->SetErrorFromGetLastError(::GetLastError(), errorbuffer);
+				break;
+			}
+			if (!WriteFile(hFile, P64MemoryStreamInstance.Data, P64MemoryStreamInstance.Size, &bytesWritten, NULL))
+			{
+				errorbuffer = G::MallocFormattedString(TEXT("Could not write to %s."), filename);
+				hr = this->SetErrorFromGetLastError(::GetLastError(), errorbuffer);
+				break;
+			}
+		}
+		else
+		{
+			hr = this->SetError(E_FAIL, TEXT("Could generate the P64 stream"));
+		}
+	} while(false);
+	if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
+	{
+		::CloseHandle(hFile);
+		hFile = NULL;
+	}
+	if (errorbuffer != NULL)
+	{
+		free(errorbuffer);
+		errorbuffer = NULL;
+	}
+	return hr;
 }
 
 HRESULT GCRDISK::SaveD64ToFile(TCHAR *filename, int numberOfTracks)
@@ -2509,8 +2898,10 @@ HRESULT hr;
 		tracks = 40;
 	}
 
-	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
-		ConvertRAWtoGCR(tr);
+	for (tr=0 ; tr < HOST_MAX_TRACKS ; tr++)
+	{
+		ConvertP64toGCR(tr);
+	}
 
 	r = ConvertGCRToD64(tracks);
 	if (FAILED(r))
@@ -2565,37 +2956,33 @@ void GCRDISK::InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlig
 }
 
 
-bit8 GCRDISK::GetByte(bit8 trackNumber,bit16 byteIndex,bit8 bitIndex)
+bit8 GCRDISK::GetByte(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex)
 {
 long i,j;
-char byte,v;
+bit8 byte;
+char v;
 bit32 startBitPos;
 
-	if (trackSize[trackNumber]==0)
+	if (trackNumber >= HOST_MAX_TRACKS || trackSize[trackNumber] == 0)
+	{
 		return 0;
-	startBitPos = (byteIndex * 8 + bitIndex) % trackSize[trackNumber];
+	}
 
-	byte=0;
+	startBitPos = (byteIndex * 8 + bitIndex) % trackSize[trackNumber];
+	byte = 0;
 	i = startBitPos;
 	for (j=0 ; j < 8 ; j++)
 	{
-		byte<<=1;
-		v = (trackData[trackNumber][i/8]) << (i & 7);
-		if (v<0)
-			byte|=1;
+		byte <<= 1;
+		v = (signed char)(((trackData[trackNumber][i / 8]) << (i & 7)) & 0xff);
+		if (v < 0)
+		{
+			byte |= 1;
+		}
+
 		i = (i + 1) % trackSize[trackNumber];
 	}
 	return byte;
-}
-
-bit8 GCRDISK::GetDisk16(bit8 trackNumber, bit32 headIndex)
-{
-	return m_rawTrackData[trackNumber][headIndex];
-}
-
-void GCRDISK::PutDisk16(bit8 trackNumber, bit32 headIndex, bit8 data)
-{
-	m_rawTrackData[trackNumber][headIndex] = data;
 }
 
 bool GCRDISK::IsEventQuitSignalled()

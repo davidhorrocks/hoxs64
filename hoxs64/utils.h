@@ -137,6 +137,7 @@ public:
 	static HRESULT UcToAnsi(LPCWSTR pwszUc, LPSTR pszAnsi, int cWideCharsToConvert, int& cchOut);
 	static HRESULT UcToAnsiRequiredBufferLength(LPCWSTR pwszUc, int cWideCharsToConvert, int &cchOut);
 	static BSTR AllocBStr(LPCTSTR pszString);
+	static TCHAR* MallocFormattedString(LPCTSTR pszFormatString, ...);
 	static DLGTEMPLATE * WINAPI DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName);
 	static void ShowLastError(HWND);
 	static TCHAR *GetLastWin32ErrorString();

@@ -13,6 +13,7 @@
 #include "c6502.h"
 #include "d1541.h"
 #include "via6522.h"
+#include "p64.h"
 #include "d64.h"
 
 void VIA::InitReset(ICLK sysclock)

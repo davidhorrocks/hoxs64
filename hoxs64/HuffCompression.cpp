@@ -255,6 +255,10 @@ CHuffListElement *pSearchListElement;
 HuffNodeHolder nodeHolder;
 HRESULT hr;
 
+	if (srcDoubleWordCount==0 || src==NULL)
+	{
+		return E_FAIL;
+	}
 	pathLength=0;
 	path=0;
 	bufferPos = 0;
@@ -267,10 +271,6 @@ HRESULT hr;
 
 	for (streamNumber=1 ; streamNumber>=0 ; streamNumber--)
 	{
-		if (srcDoubleWordCount==0 || src==NULL)
-			return E_FAIL;
-
-
 		ZeroMemory(&huffTable[0],  sizeof(HuffTable) * HUFFSYMBOLS);
 
 		//get symbol weightings

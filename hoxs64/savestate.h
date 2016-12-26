@@ -26,11 +26,13 @@ namespace SsLib
 			DriveCpu = 13,
 			DriveVia1 = 14,
 			DriveVia2 = 15,
-			DriveController = 16,
-			DriveDiskImage = 17,
+			DriveControllerV0 = 16,
+			DriveDiskImageV0 = 17,
 			DriveRom = 18,
 			DriveTrackData = 19,
 			Cart = 20,
+			DriveControllerV1 = 21,
+			DriveDiskImageV1 = 22,
 		};
 	}
 };
@@ -422,7 +424,7 @@ struct SsSid
 	bit32 sidReadDelay;
 };
 
-struct SsDiskInterface
+struct SsDiskInterfaceV0
 {
 	bit32 CurrentClock;
 	bit8 m_d64_serialbus;
@@ -466,14 +468,19 @@ struct SsDiskInterface
 	bit8 m_clockDivider1_UE7_Reload;
 	bit8 m_clockDivider1_UE7; //74LS193 UE7 16MHz
 	bit8 m_clockDivider2_UF4; //74LS193 UF4
-
 	bit8 m_writeStream;
 	bit32 m_totalclocks_UE7;
 	bit32 m_lastPulseTime;
-
-	//bit8 *m_rawTrackData[G64_MAX_TRACKS];
-
 	__int64 m_diskd64clk_xf;
+};
+
+struct SsDiskInterfaceV1 : SsDiskInterfaceV0
+{
+	bit8 m_bPendingPulse;
+	bit8 m_bPulseState;
+	bit8 m_bLastPulseState;
+	bit32s m_nextP64PulsePosition;
+	bit32 m_headStepClockUp;
 };
 
 struct SsViaCommon
@@ -563,7 +570,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 0;
+    static const int VERSION = 1;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

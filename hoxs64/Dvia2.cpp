@@ -34,6 +34,7 @@
 #include "filter.h"
 #include "sid.h"
 #include "sidfile.h"
+#include "p64.h"
 #include "d64.h"
 #include "d1541.h"
 #include "via6522.h"

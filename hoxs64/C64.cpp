@@ -95,9 +95,7 @@ void C64::InitReset(ICLK sysclock)
 void C64::Reset(ICLK sysclock)
 {
 	diskdrive.WaitThreadReady();
-
 	InitReset(sysclock);
-
 	tape64.PressStop();
 	ram.Reset();
 	vic.Reset(sysclock);
@@ -1328,7 +1326,6 @@ HRESULT hr;
 	}
 
 	hr = dsk.LoadD64FromFile(filename, true, bAlignD64Tracks);
-
 	if (FAILED(hr))
 	{
 		SetError(dsk);
@@ -1336,8 +1333,7 @@ HRESULT hr;
 	}
 
 	diskdrive.WaitThreadReady();
-	diskdrive.LoadImageBits(&dsk);
-
+	diskdrive.LoadMoveP64Image(&dsk);
 	diskdrive.SetDiskLoaded();
 	return hr;
 }
@@ -1361,7 +1357,7 @@ HRESULT hr;
 		return hr;
 	}
 	diskdrive.WaitThreadReady();
-	diskdrive.LoadImageBits(&dsk);
+	diskdrive.LoadMoveP64Image(&dsk);
 	diskdrive.SetDiskLoaded();
 	return hr;
 }
@@ -1385,7 +1381,7 @@ HRESULT hr;
 		return hr;
 	}
 	diskdrive.WaitThreadReady();
-	diskdrive.LoadImageBits(&dsk);
+	diskdrive.LoadMoveP64Image(&dsk);
 	diskdrive.SetDiskLoaded();
 	diskdrive.D64_DiskProtect(!dsk.m_d64_protectOff);
 	return hr;
@@ -1414,7 +1410,7 @@ HRESULT hr;
 		SetError(dsk);
 	}
 	diskdrive.WaitThreadReady();
-	diskdrive.LoadImageBits(&dsk);
+	diskdrive.LoadMoveP64Image(&dsk);
 	diskdrive.SetDiskLoaded();
 	diskdrive.D64_DiskProtect(!dsk.m_d64_protectOff);
 	return hr;
@@ -1434,7 +1430,7 @@ HRESULT hr;
 	}
 	dsk.InsertNewDiskImage(diskname, id1, id2, bAlignD64Tracks, numberOfTracks);
 	diskdrive.WaitThreadReady();
-	diskdrive.LoadImageBits(&dsk);
+	diskdrive.LoadMoveP64Image(&dsk);
 	diskdrive.SetDiskLoaded();
 	return S_OK;
 }
@@ -1452,7 +1448,7 @@ HRESULT hr;
 		return hr;
 	}
 	diskdrive.WaitThreadReady();
-	diskdrive.SaveImageBits(&dsk);	
+	diskdrive.SaveCopyP64Image(&dsk);	
 	hr = dsk.SaveD64ToFile(filename, numberOfTracks);
 	if (FAILED(hr))
 	{
@@ -1475,7 +1471,7 @@ HRESULT hr;
 		return hr;
 	}
 	diskdrive.WaitThreadReady();
-	diskdrive.SaveImageBits(&dsk);	
+	diskdrive.SaveCopyP64Image(&dsk);	
 	hr = dsk.SaveFDIToFile(filename);
 	if (FAILED(hr))
 	{
@@ -1485,64 +1481,112 @@ HRESULT hr;
 	return S_OK;	
 }
 
-HRESULT C64::SaveTrackState(bit32 *pTrackBuffer, bit8 *pTrack, int track_size, int *p_gap_count)
+HRESULT C64::SaveP64ToFile(TCHAR *filename)
 {
-int i;
-int delay = 0;
-int gapCount = 0;
+GCRDISK dsk;
+HRESULT hr;
+
+	ClearError();
+	hr = dsk.Init();
+	if (FAILED(hr))
+	{
+		SetError(dsk);
+		return hr;
+	}
+	diskdrive.WaitThreadReady();
+	diskdrive.SaveCopyP64Image(&dsk);	
+	hr = dsk.SaveP64ToFile(filename);
+	if (FAILED(hr))
+	{
+		SetError(dsk);
+		return hr;
+	}
+	return S_OK;	
+}
+
+HRESULT C64::SaveTrackStateV0(unsigned int trackNumber, bit32 *pTrackBuffer, TP64Image& diskP64Image, unsigned int track_size, unsigned int *p_gap_count)
+{
+p64_uint32_t currentPosition = 0;
+p64_uint32_t previousPosition = 0;
+unsigned int count = 0;
 
 	if (p_gap_count)
-		*p_gap_count = 0;
-
-	for (i=0; i<DISK_RAW_TRACK_SIZE; i++)
 	{
-		bit8 k = pTrack[i];
-		if (k > 0 && k <= 16)
-		{
-			k = (k - 1) & 0xf;
-			//The first delay value represents the gap from the start of the track to the first pulse.
-			delay += k;
-			
-			pTrackBuffer[gapCount] = delay;
-			gapCount++;
-		
-			delay = (16 - k);
-		}
-		else
-			delay += 16;
+		*p_gap_count = 0;
+	}
+	if (trackNumber >= HOST_MAX_TRACKS)
+	{
+		return E_FAIL;
 	}
 
-	if (gapCount > 0)
+	TP64PulseStream &track = diskP64Image.PulseStreams[P64FirstHalfTrack + trackNumber];
+	p64_int32_t currentIndex = track.UsedFirst;
+	for (;currentIndex >= 0 && count < P64PulseSamplesPerRotation; previousPosition = currentPosition, currentIndex = track.Pulses[currentIndex].Next, count++)
 	{
-		pTrackBuffer[gapCount++] = delay;
+		currentPosition = track.Pulses[currentIndex].Position;
+		if (currentPosition >= P64PulseSamplesPerRotation)
+		{
+			break;
+		}
+		if (count > 0)
+		{
+			if (currentPosition < previousPosition)
+			{
+				break;
+			}
+			else if (currentPosition == previousPosition)
+			{
+				continue;	
+			}
+			else
+			{
+				pTrackBuffer[count] = currentPosition - previousPosition;
+			}
+		}
+		else
+		{
+			pTrackBuffer[count] = currentPosition;
+		}
+	}
+
+	if (count > 0)
+	{
+		pTrackBuffer[count++] = P64PulseSamplesPerRotation - currentPosition;
 		//The last delay value represents the gap between the last pulse and the end of the track.
 	}
 
 	if (p_gap_count)
-		*p_gap_count = gapCount;
+	{
+		*p_gap_count = count;
+	}
 
 	return S_OK;
 }
 
-HRESULT C64::LoadTrackState(const bit32 *pTrackBuffer, bit8 *pTrack, int gap_count)
+HRESULT C64::LoadTrackStateV0(unsigned int trackNumber, const bit32 *pTrackBuffer, TP64Image& diskP64Image, unsigned int gap_count)
 {
-const int MAXTIME = DISK_RAW_TRACK_SIZE * 16;
-	if (gap_count < 0)
-		return S_OK;
-	int i;
-	bit32 delay = 0;
-	ZeroMemory(pTrack, DISK_RAW_TRACK_SIZE);
-	//The last value at pTrackBuffer[gap_count - 1] represents the gap between the last pulse and the end of the track.
-	//The number of pulses is equal to gap_count - 1;
-	for (i=0; i < gap_count - 1; i++)
+const p64_uint32_t MAXTIME = P64PulseSamplesPerRotation;
+	if (trackNumber >= HOST_MAX_TRACKS)
 	{
-		delay += pTrackBuffer[i];
-		if (delay >= MAXTIME)
-			break;
-		int q = delay / 16;
-		pTrack[q] = (bit8)(((delay % 16) + 1) & 0xff);
+		return E_FAIL;
 	}
-	assert(delay + pTrackBuffer[i] == MAXTIME);
+	if (gap_count <= 1)
+	{
+		return S_OK;
+	}
+	unsigned int i;
+	p64_uint32_t position = 0;
+	//Ignore the last "pulse" which is not a real pulse.
+	//The number of pulses is equal to gap_count - 1;
+	for (i = 0; i < gap_count - 1; i++)
+	{
+		position += pTrackBuffer[i];
+		if (position >= MAXTIME)
+		{
+			break;
+		}		
+		P64PulseStreamAddPulse(&diskP64Image.PulseStreams[P64FirstHalfTrack + trackNumber], position, 0xffffffff);
+	}
 	return S_OK;
 }
 
@@ -1578,7 +1622,9 @@ bit32 dwordCount;
 		hdr.HeaderSize = sizeof(hdr);
 		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64Ram;
@@ -1586,10 +1632,15 @@ bit32 dwordCount;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
+
 		hr = pfs->Write(this->ram.mMemory, SaveState::SIZE64K, &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64ColourRam;
@@ -1597,40 +1648,55 @@ bit32 dwordCount;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
+
 		hr = pfs->Write(this->ram.mColorRAM, SaveState::SIZECOLOURAM, &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		SsCpuMain sbCpuMain;
 		this->cpu.GetState(sbCpuMain);
 		hr = SaveState::SaveSection(pfs, sbCpuMain, SsLib::SectionType::C64Cpu);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		SsCia1 sbCia1;
 		this->cia1.GetState(sbCia1);
 		hr = SaveState::SaveSection(pfs, sbCia1, SsLib::SectionType::C64Cia1);
 		if (FAILED(hr))
+		{
 			break;
-		
+		}
+
 		SsCia2 sbCia2;
 		this->cia2.GetState(sbCia2);
 		hr = SaveState::SaveSection(pfs, sbCia2, SsLib::SectionType::C64Cia2);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		SsVic6569 sbVic6569;
 		this->vic.GetState(sbVic6569);
 		hr = SaveState::SaveSection(pfs, sbVic6569, SsLib::SectionType::C64Vic);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		SsSid sbSid;
 		this->sid.GetState(sbSid);
 		hr = SaveState::SaveSection(pfs, sbSid, SsLib::SectionType::C64Sid);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64KernelRom;
@@ -1638,10 +1704,15 @@ bit32 dwordCount;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
+
 		hr = pfs->Write(this->ram.mKernal, SaveState::SIZEC64KERNEL, &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64BasicRom;
@@ -1649,10 +1720,15 @@ bit32 dwordCount;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
+
 		hr = pfs->Write(this->ram.mBasic, SaveState::SIZEC64BASIC, &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::C64CharRom;
@@ -1660,16 +1736,23 @@ bit32 dwordCount;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
+
 		hr = pfs->Write(this->ram.mCharGen, SaveState::SIZEC64CHARGEN, &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		SsTape sbTapePlayer;
 		this->tape64.GetState(sbTapePlayer);
 		hr = SaveState::SaveSection(pfs, sbTapePlayer, SsLib::SectionType::C64Tape);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		if (this->tape64.pData && this->tape64.tape_max_counter > 0 && this->tape64.tape_max_counter <= TAP64::MAX_COUNTERS)
 		{
@@ -1683,7 +1766,9 @@ bit32 dwordCount;
 
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			ZeroMemory(&sh, sizeof(sh));
 			sh.id = SsLib::SectionType::C64TapeData;
@@ -1691,22 +1776,31 @@ bit32 dwordCount;
 			sh.version = 0;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			SsTapeData tapeDataHeader;
 			tapeDataHeader.tape_max_counter = tape64.tape_max_counter;
 			hr = pfs->Write(&tapeDataHeader, sizeof(tapeDataHeader), &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
+
 
 			HuffCompression hw;
 			hr = hw.Init();
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			hr = hw.SetFile(pfs);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			chdr.byteCount = this->tape64.tape_max_counter * sizeof(bit32);
 			chdr.compressionType = HUFFCOMPRESSION;
@@ -1714,17 +1808,24 @@ bit32 dwordCount;
 			bytesToWrite = sizeof(chdr);
 			hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
+
 			if (dwordCount > 0)
 			{
 				hr = hw.Compress(this->tape64.pData, dwordCount, &compressed_size);
 				if (FAILED(hr))
+				{
 					break;
+				}
 			}
 
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			spos_next.QuadPart = pos_current.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
@@ -1735,11 +1836,15 @@ bit32 dwordCount;
 			sh.size = sectionSize;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
 			spos_next.QuadPart = pos_next.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
+			{
 				break;
+			}
 		}
 
 		ZeroMemory(&sh, sizeof(sh));
@@ -1748,10 +1853,15 @@ bit32 dwordCount;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
+
 		hr = pfs->Write(this->diskdrive.m_pD1541_ram, SaveState::SIZEDRIVERAM, &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		ZeroMemory(&sh, sizeof(sh));
 		sh.id = SsLib::SectionType::DriveRom;
@@ -1762,39 +1872,57 @@ bit32 dwordCount;
 			break;
 		hr = pfs->Write(this->diskdrive.m_pD1541_rom, SaveState::SIZEDRIVEROM, &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		SsCpuDisk sbCpuDisk;
 		this->diskdrive.cpu.GetState(sbCpuDisk);
 		hr = SaveState::SaveSection(pfs, sbCpuDisk, SsLib::SectionType::DriveCpu);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
-		SsDiskInterface sbDiskInterface;
-		this->diskdrive.GetState(sbDiskInterface);
-		hr = SaveState::SaveSection(pfs, sbDiskInterface, SsLib::SectionType::DriveController);
+		SsDiskInterfaceV1 sbDiskInterfaceV1;
+		this->diskdrive.GetState(sbDiskInterfaceV1);
+		hr = SaveState::SaveSection(pfs, sbDiskInterfaceV1, SsLib::SectionType::DriveControllerV1);
 		if (FAILED(hr))
+		{
 			break;
+		}
+
+		hr = SaveState::SaveSection(pfs, sbDiskInterfaceV1, SsLib::SectionType::DriveControllerV0);
+		if (FAILED(hr))
+		{
+			break;
+		}
 
 		SsVia1 sbVia1;
 		this->diskdrive.via1.GetState(sbVia1);
 		hr = SaveState::SaveSection(pfs, sbVia1, SsLib::SectionType::DriveVia1);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		SsVia2 sbVia2;
 		this->diskdrive.via2.GetState(sbVia2);
 		hr = SaveState::SaveSection(pfs, sbVia2, SsLib::SectionType::DriveVia2);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		if (this->diskdrive.m_diskLoaded)
 		{
 			HuffCompression hw;
 			hr = hw.Init();
 			if (FAILED(hr))
+			{
 				break;
-			trackbufferLength = (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32);
+			}
+			trackbufferLength = (GCRDISK::CountP64ImageMaxTrackPulses(this->diskdrive.m_P64Image) + 1) * sizeof(bit32);
 			pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, trackbufferLength);
 			if (!pTrackBuffer)
 			{
@@ -1811,21 +1939,36 @@ bit32 dwordCount;
 			spos_zero.QuadPart = 0;
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_section_header);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			ZeroMemory(&sh, sizeof(sh));
-			sh.id = SsLib::SectionType::DriveDiskImage;
+			sh.id = SsLib::SectionType::DriveDiskImageV1;
 			sh.size = sizeof(sh);
 			sh.version = 0;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
+
+			bit32 numberOfHalfTracks = HOST_MAX_TRACKS;
+			hr = pfs->Write(&numberOfHalfTracks, sizeof(numberOfHalfTracks), &bytesWritten);
+			if (FAILED(hr))
+			{
+				break;
+			}
+
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_track_header);
 			if (FAILED(hr))
+			{
 				break;
+			}
+
 			pos_next_section_header = pos_current_track_header;
 
-			for(int i=0; i<G64_MAX_TRACKS; i++)
+			for(int i=0; i < HOST_MAX_TRACKS; i++)
 			{
 				SsTrackHeader th;
 				ZeroMemory(&th, sizeof(th));
@@ -1835,28 +1978,41 @@ bit32 dwordCount;
 				th.gap_count = 0;
 				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
 				if (FAILED(hr))
+				{
 					break;
-				int gap_count = 0;
+				}
+
+				unsigned int pulses_plus_one = 0;
 				bit32 compressed_size = 0;
-				bit8 *pTrack = diskdrive.m_rawTrackData[i];
-				hr = SaveTrackState(pTrackBuffer, pTrack, DISK_RAW_TRACK_SIZE, &gap_count);
+				hr = SaveTrackStateV0(i, pTrackBuffer, this->diskdrive.m_P64Image, trackbufferLength, &pulses_plus_one);
 				if (FAILED(hr))
+				{
 					break;
+				}
+
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
+				{
 					break;
-				chdr.byteCount = gap_count * sizeof(bit32);
+				}
+
+				chdr.byteCount = pulses_plus_one * sizeof(bit32);
 				chdr.compressionType = HUFFCOMPRESSION;
-				dwordCount = gap_count;
+				dwordCount = pulses_plus_one;
 				bytesToWrite = sizeof(chdr);
 				hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
 				if (FAILED(hr))
+				{
 					break;
+				}
+
 				if (dwordCount > 0)
 				{
 					hr = hw.Compress(pTrackBuffer, dwordCount, &compressed_size);
 					if (FAILED(hr))
+					{
 						break;
+					}
 				}
 				hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next_track_header);
 				if (FAILED(hr))
@@ -1865,37 +2021,55 @@ bit32 dwordCount;
 				spos_next.QuadPart = pos_current_track_header.QuadPart;
 				hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 				if (FAILED(hr))
+				{
 					break;
+				}
+
 				bit32 sectionSize = (bit32)(pos_next_track_header.QuadPart - pos_current_track_header.QuadPart);
 				assert(sectionSize == compressed_size+sizeof(SsTrackHeader)+sizeof(SsDataChunkHeader));
 				th.size = sectionSize;
-				th.gap_count = gap_count;
+				th.gap_count = pulses_plus_one;
 				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
 				if (FAILED(hr))
+				{
 					break;
+				}
+
 				spos_next.QuadPart = pos_next_track_header.QuadPart;
 				hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 				if (FAILED(hr))
+				{
 					break;
+				}
 
 				pos_current_track_header = pos_next_track_header;
 				pos_next_section_header = pos_next_track_header;
 			}
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			spos_next.QuadPart = pos_current_section_header.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
+			{
 				break;
+			}
+
 			sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
+
 			spos_next.QuadPart = pos_next_section_header.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
+			{
 				break;
+			}
 		}
 
 		if (cart.IsCartAttached())
@@ -1908,7 +2082,9 @@ bit32 dwordCount;
 			spos_zero.QuadPart = 0;
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_section_header);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			ZeroMemory(&sh, sizeof(sh));
 			sh.id = SsLib::SectionType::Cart;
@@ -1916,28 +2092,40 @@ bit32 dwordCount;
 			sh.version = 0;
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			hr = cart.SaveState(pfs);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_next_section_header);
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			spos_next.QuadPart = pos_current_section_header.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
+			{
 				break;
+			}
 			sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
 			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 			if (FAILED(hr))
+			{
 				break;
+			}
 			spos_next.QuadPart = pos_next_section_header.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
+			{
 				break;
+			}
 		}
 
 		ZeroMemory(&sh, sizeof(sh));
@@ -1946,7 +2134,9 @@ bit32 dwordCount;
 		sh.version = 0;
 		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 	} while (false);
 	if (pfs)
@@ -1978,7 +2168,8 @@ SsVic6569 sbVic6569;
 SsSid sbSid;
 SsTape sbTapePlayer;
 SsTapeData sbTapeDataHeader;
-SsDiskInterface sbDriveController;
+SsDiskInterfaceV0 sbDriveControllerV0;
+SsDiskInterfaceV1 sbDriveControllerV1;
 SsVia1 sbDriveVia1;
 SsVia2 sbDriveVia2;
 SsCpuDisk sbCpuDisk;
@@ -1990,6 +2181,7 @@ bit8 *pC64CharRom = NULL;
 bit8 *pDriveRam = NULL;
 bit8 *pDriveRom = NULL;
 bit32 *pTapeData = NULL;
+bit8 rawTrackDataV0 = NULL;
 shared_ptr<ICartInterface> spCartInterface;
 bool hasC64 = false;
 bool done = false;
@@ -1997,8 +2189,7 @@ bool eof = false;
 HuffDecompression hw;
 bit32 *pTrackBuffer = NULL;
 bit32 trackbufferLength = 0;
-bit8 *pTrack = NULL;
-int i;
+unsigned int i;
 bool bC64Cpu = false;
 bool bC64Ram = false;
 bool bC64ColourRam = false;
@@ -2019,6 +2210,8 @@ bool bDriveData = false;
 bool bDriveRam = false;
 bool bDriveRom = false;
 bool bDriveDiskData = false;
+int driveControllerVersion = 0;
+bit32 numberOfHalfTracks;
 const ICLK MAXDIFF = PAL_CLOCKS_PER_FRAME;
 LARGE_INTEGER spos_zero;
 LARGE_INTEGER spos_next;
@@ -2029,7 +2222,6 @@ ULARGE_INTEGER pos_next_track_header;
 
 	ClearError();
 	diskdrive.WaitThreadReady();
-
 	SsHeader hdr;
 	ZeroMemory(&hdr, sizeof(hdr));
 	spos_zero.QuadPart = 0;
@@ -2038,13 +2230,16 @@ ULARGE_INTEGER pos_next_track_header;
 	{
 		hr = FileStream::CreateObject(filename, &pfs, false);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		ZeroMemory(&stat, sizeof(stat));
-
 		pfs->Stat(&stat, STATFLAG_NONAME);
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		bytesToRead = sizeof(hdr);
 		hr = pfs->Read(&hdr, bytesToRead, &bytesRead);
@@ -2058,7 +2253,9 @@ ULARGE_INTEGER pos_next_track_header;
 			hr = E_FAIL;
 		}
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		if (strcmp(hdr.Signature, SaveState::SIGNATURE) != 0)
 		{
@@ -2076,8 +2273,11 @@ ULARGE_INTEGER pos_next_track_header;
 		spos_next.QuadPart = 0;
 		hr = pfs->Seek(spos_next, STREAM_SEEK_CUR, &pos_next_header);
 		if (FAILED(hr))
+		{
 			break;
+		}
 		
+		P64ImageClear(&this->diskdrive.m_P64Image);
 		SsTrackHeader trackHeader;
 		while (!eof && !done)
 		{
@@ -2089,7 +2289,9 @@ ULARGE_INTEGER pos_next_track_header;
 			spos_next.QuadPart = pos_next_header.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
+			{
 				break;
+			}
 			bytesToRead = sizeof(sh);
 			hr = pfs->Read(&sh, bytesToRead, &bytesRead);
 			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
@@ -2350,9 +2552,13 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					break;
+				}
 				if (sbTapeDataHeader.tape_max_counter == 0)
+				{
 					break;
+				}
 				if (sbTapeDataHeader.tape_max_counter > TAP64::MAX_COUNTERS)
 				{
 					hr = E_FAIL;
@@ -2365,9 +2571,12 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_OUTOFMEMORY;
 					break;
 				}
+
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
+				{
 					break;
+				}
 
 				bytesToRead = sizeof(chdr);
 				hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
@@ -2380,13 +2589,18 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
+				}
+
 				if (chdr.byteCount != sbTapeDataHeader.tape_max_counter * sizeof(bit32))
 				{
 					hr = E_FAIL;
 					break;
 				}
+
 				if (chdr.compressionType == NOCOMPRESSION)
 				{
 					bytesToRead = chdr.byteCount;
@@ -2401,13 +2615,17 @@ ULARGE_INTEGER pos_next_track_header;
 						hr = E_FAIL;
 					}
 					if (FAILED(hr))
+					{
 						break;
+					}
 				}
 				else
 				{
 					hr = hw.Decompress(sbTapeDataHeader.tape_max_counter, &pTapeData);
 					if (FAILED(hr))
+					{
 						break;
+					}
 				}
 				bTapeData = true;
 				break;
@@ -2472,12 +2690,15 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					break;
+				}
 				bDriveCpu = true;
 				break;
-			case SsLib::SectionType::DriveController:
-				bytesToRead = sizeof(sbDriveController);
-				hr = pfs->Read(&sbDriveController, bytesToRead, &bytesRead);
+			case SsLib::SectionType::DriveControllerV0:
+				driveControllerVersion = 0;
+				bytesToRead = sizeof(SsDiskInterfaceV0);
+				hr = pfs->Read(&sbDriveControllerV0, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -2488,7 +2709,30 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					break;
+				}
+				DiskInterface::UpgradeStateV0ToV1(sbDriveControllerV0, sbDriveControllerV1);
+				bDriveController = true;
+				break;
+			case SsLib::SectionType::DriveControllerV1:
+				driveControllerVersion = 1;
+				ZeroMemory(&sbDriveControllerV1, sizeof(sbDriveControllerV1));
+				bytesToRead = sizeof(SsDiskInterfaceV1);
+				hr = pfs->Read(&sbDriveControllerV1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					break;
+				}
 				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveVia1:
@@ -2504,7 +2748,9 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					break;
+				}
 				bDriveVia1 = true;
 				break;
 			case SsLib::SectionType::DriveVia2:
@@ -2520,10 +2766,13 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					break;
+				}
 				bDriveVia2 = true;
 				break;
-			case SsLib::SectionType::DriveDiskImage:
+			case SsLib::SectionType::DriveDiskImageV0:
+			case SsLib::SectionType::DriveDiskImageV1:
 				trackbufferLength = (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32);
 				if (!pTrackBuffer)
 				{
@@ -2536,11 +2785,42 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
+				{
 					break;
+				}
+				if (sh.id == SsLib::SectionType::DriveDiskImageV0)
+				{
+					numberOfHalfTracks = G64_MAX_TRACKS;
+				}
+				else
+				{
+					numberOfHalfTracks = 0;
+					bytesToRead = sizeof(bit32);
+					hr = pfs->Read(&numberOfHalfTracks, sizeof(bit32), &bytesRead);
+					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+					{
+						break;
+					}
+					else if (bytesRead < bytesToRead)
+					{
+						eof = true;
+						hr = E_FAIL;
+					}
+					if (FAILED(hr))
+					{
+						break;
+					}
+					if (numberOfHalfTracks > HOST_MAX_TRACKS)
+					{
+						numberOfHalfTracks = HOST_MAX_TRACKS;
+					}
+				}
 				hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_track_header);
 				if (FAILED(hr))
+				{
 					break;
-				for (i=0; i<G64_MAX_TRACKS;i++)
+				}				
+				for (i=0; i < numberOfHalfTracks; i++)
 				{
 					bytesToRead = sizeof(trackHeader);
 					hr = pfs->Read(&trackHeader, bytesToRead, &bytesRead);
@@ -2554,21 +2834,57 @@ ULARGE_INTEGER pos_next_track_header;
 						hr = E_FAIL;
 					}
 					if (FAILED(hr))
+					{
 						break;
-					if (trackHeader.gap_count > DISK_RAW_TRACK_SIZE || (trackHeader.number >= G64_MAX_TRACKS))
+					}
+					if (trackHeader.gap_count > P64PulseSamplesPerRotation || (trackHeader.number >= numberOfHalfTracks))
 					{
 						hr = E_FAIL;
 						break;
 					}
-					pos_next_track_header.QuadPart = pos_current_track_header.QuadPart + trackHeader.size;
-					pTrack = diskdrive.m_rawTrackData[trackHeader.number];
-					if (pTrack)
+					if (trackHeader.gap_count * sizeof(bit32) > trackbufferLength)
 					{
-						ZeroMemory(pTrack, DISK_RAW_TRACK_SIZE);
-						if (trackHeader.gap_count > 0)
+						if (pTrackBuffer != NULL)
 						{
-							bytesToRead = sizeof(chdr);
-							hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+							GlobalFree(pTrackBuffer);
+							pTrackBuffer = NULL;
+						}
+						trackbufferLength = (trackHeader.gap_count * sizeof(bit32)) * 2;
+						pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, trackbufferLength);
+						if (!pTrackBuffer)
+						{
+							hr = E_OUTOFMEMORY;
+							break;
+						}
+					}
+					pos_next_track_header.QuadPart = pos_current_track_header.QuadPart + trackHeader.size;
+					TP64PulseStream& track = diskdrive.m_P64Image.PulseStreams[P64FirstHalfTrack + trackHeader.number];
+					if (trackHeader.gap_count > 1)
+					{
+						bytesToRead = sizeof(chdr);
+						hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+						if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+						{
+							break;
+						}
+						else if (bytesRead < bytesToRead)
+						{
+							eof = true;
+							hr = E_FAIL;
+						}
+						if (FAILED(hr))
+						{
+							break;
+						}
+						if (chdr.byteCount != trackHeader.gap_count * sizeof(bit32))
+						{
+							hr = E_FAIL;
+							break;
+						}
+						if (chdr.compressionType == NOCOMPRESSION)
+						{
+							bytesToRead = chdr.byteCount;
+							hr = pfs->Read(pTrackBuffer, bytesToRead, &bytesRead);
 							if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 							{
 								break;
@@ -2579,54 +2895,45 @@ ULARGE_INTEGER pos_next_track_header;
 								hr = E_FAIL;
 							}
 							if (FAILED(hr))
-								break;
-							if (chdr.byteCount != trackHeader.gap_count * sizeof(bit32))
 							{
-								hr = E_FAIL;
 								break;
 							}
-							if (chdr.compressionType == NOCOMPRESSION)
-							{
-								bytesToRead = chdr.byteCount;
-								hr = pfs->Read(pTrackBuffer, bytesToRead, &bytesRead);
-								if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
-								{
-									break;
-								}
-								else if (bytesRead < bytesToRead)
-								{
-									eof = true;
-									hr = E_FAIL;
-								}
-								if (FAILED(hr))
-									break;
-							}
-							else
-							{
-								hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
-								if (FAILED(hr))
-									break;
-							}
-							this->LoadTrackState(pTrackBuffer, pTrack, trackHeader.gap_count);
 						}
+						else
+						{
+							hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
+							if (FAILED(hr))
+							{
+								break;
+							}
+						}
+						this->LoadTrackStateV0(i, pTrackBuffer, diskdrive.m_P64Image, trackHeader.gap_count);
 					}
 					spos_next.QuadPart = pos_next_track_header.QuadPart;
 					hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_current_track_header);
 					if (FAILED(hr))
+					{
 						break;
+					}
 					pos_current_track_header = pos_next_track_header;
 				}
 				if (FAILED(hr))
+				{
 					break;
+				}
 				break;
 			case SsLib::SectionType::Cart:
 				hr = cart.LoadCartInterface(pfs, spCartInterface);
 				if (FAILED(hr))
+				{
 					break;
+				}
 				break;
 			}
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			if (bC64Cpu && bC64Ram && bC64ColourRam && bC64Cia1 && bC64Cia2 && bC64Vic6569 && bC64Sid)
 			{
@@ -2644,23 +2951,31 @@ ULARGE_INTEGER pos_next_track_header;
 	}
 	if (SUCCEEDED(hr) && hasC64)
 	{
-
 		cpu.SetState(sbCpuMain);
 		if (ram.mMemory && pC64Ram)
+		{
 			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
+		}
 		if (ram.mColorRAM && pC64ColourRam)
+		{
 			memcpy(ram.mColorRAM, pC64ColourRam, SaveState::SIZECOLOURAM);
+		}
+
 		cia1.SetState(sbCia1);
 		cia2.SetState(sbCia2);
 		appStatus->m_bTimerBbug = sbCia1.cia.bTimerBbug != 0;
 		if (sbCia1.cia.bEarlyIRQ)
+		{
 			appStatus->m_CIAMode = HCFG::CM_CIA6526A;
+		}
 		else
+		{
 			appStatus->m_CIAMode = HCFG::CM_CIA6526;
+		}
+
 		appStatus->SetUserConfig(*appStatus);
 		vic.SetState(sbVic6569);
 		sid.SetState(sbSid);
-
 		tape64.UnloadTAP();
 		if (bTapePlayer && bTapeData && sbTapeDataHeader.tape_max_counter > 0)
 		{
@@ -2685,7 +3000,7 @@ ULARGE_INTEGER pos_next_track_header;
 		}
 		if (bDriveController)
 		{
-			diskdrive.SetState(sbDriveController);
+			diskdrive.SetState(sbDriveControllerV1);
 		}
 		if (bDriveVia1)
 		{
@@ -2732,7 +3047,9 @@ ULARGE_INTEGER pos_next_track_header;
 	else
 	{
 		if (SUCCEEDED(hr))
+		{
 			hr = E_FAIL;
+		}
 	}
 	if (pTrackBuffer)
 	{

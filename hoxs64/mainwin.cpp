@@ -18,6 +18,7 @@
 #include "appstatus.h"
 #include "dxstuff9.h"
 #include "sidfile.h"
+#include "p64.h"
 #include "d64.h"
 #include "t64.h"
 #include "c64file.h"
@@ -596,6 +597,11 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		case IDM_DISK_SAVEDISK_FDI:
 			appStatus->SoundHalt();
 			appStatus->SaveFDIImage(hWnd);
+			appStatus->SoundResume();
+			return 0;
+		case IDM_DISK_SAVEDISK_P64:
+			appStatus->SoundHalt();
+			appStatus->SaveP64Image(hWnd);
 			appStatus->SoundResume();
 			return 0;
 		case IDM_FILE_SAVESTATE:

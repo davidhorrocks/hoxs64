@@ -1059,6 +1059,20 @@ DLGTEMPLATE * WINAPI G::DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName)
 	return NULL;
 } 
 
+TCHAR* G::MallocFormattedString(LPCTSTR pszFormatString, ...)
+{
+    va_list         vl;
+	va_start(vl, pszFormatString);
+	int size = 1024;
+	TCHAR *s = (TCHAR *)malloc(size);
+	if (s != NULL)
+	{
+		_vsntprintf_s(s, size, _TRUNCATE, pszFormatString, vl);
+		s[size-1] = TEXT('\0');
+	}
+	va_end(vl);
+    return s;
+}
 
 /*****************************************************************/
 

@@ -558,8 +558,9 @@ p64_uint32_t P64PulseStreamDeltaPositionToNextPulse(PP64PulseStream Instance, p6
 		Current = Instance->Pulses[Current].Next;
 	}
 	if(Current < 0) {
+		Instance->CurrentIndex = Instance->UsedFirst;
 		if(Instance->UsedFirst < 0) {
-			return P64PulseSamplesPerRotation - Position;
+			return P64PulseSamplesPerRotation;
 		} else {
 			return (P64PulseSamplesPerRotation + Instance->Pulses[Instance->UsedFirst].Position) - Position;
 		}
@@ -582,6 +583,7 @@ p64_uint32_t P64PulseStreamGetNextPulse(PP64PulseStream Instance, p64_uint32_t P
 		Current = Instance->Pulses[Current].Next;
 	}
 	if(Current < 0) {
+		Instance->CurrentIndex = Instance->UsedFirst;
 		if(Instance->UsedFirst < 0) {
 			return 0;
 		} else {

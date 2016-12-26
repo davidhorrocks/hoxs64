@@ -12,6 +12,7 @@
 #include "via6522.h"
 #include "via1.h"
 #include "via2.h"
+#include "p64.h"
 #include "d64.h"
 #include "d1541.h"
 #include "diskinterface.h"
