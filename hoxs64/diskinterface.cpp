@@ -501,11 +501,6 @@ bool bCommand;
 
 				if ((ICLKS)(m_DiskThreadCurrentPALClock - clk) >= 0)
 				{
-					//TEST
-					if ((ICLKS)(m_DiskThreadCurrentPALClock - clk) > 312*63*50)
-					{
-						clk=clk;
-					}
 					SetEvent(mevtDiskReady);
 					LeaveCriticalSection(&mcrtDisk);
 					break;

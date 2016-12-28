@@ -48,8 +48,12 @@ void CIA::InitReset(ICLK sysclock)
 	tod.byte.ths=0;
 	tod.byte.sec=0;
 	tod.byte.min=0;
-	tod.byte.hr=0;
-	tod_alarm=0;
+	tod.byte.hr=1;
+	tod_read_latch.byte.ths=0;
+	tod_read_latch.byte.sec=0;
+	tod_read_latch.byte.min=0;
+	tod_read_latch.byte.hr=1;
+	tod_alarm=0;	
 	alarm.byte.ths=0;
 	alarm.byte.sec=0;
 	alarm.byte.min=0;
@@ -131,250 +135,69 @@ void CIA::incrementTOD()
 {
 bit32 *p;
 	p=(bit32 *)&tod.byte.ths;
-#if defined(_WIN64)
-	bit8 ah,al;
+	bit8 ah,al,pm;
 
 	/*update tenths*/
 	al = tod.byte.ths = (tod.byte.ths + 1) & 0xf;
 	if (al!=0xa)
+	{
 		return;
+	}
 	tod.byte.ths = 0;
 
 	/*update seconds*/
-	al = (tod.byte.sec + 1) & 0xf;
-	ah = (tod.byte.sec) & 0xf0;
-	if (al != 0xa)
+	al = (tod.byte.sec) & 0xf;
+	ah = (tod.byte.sec) & 0x70;
+	al = al + 1;
+	if (al == 0xa)
 	{
-		tod.byte.sec = ah | al;
-		return;
+		al = 0;
+		ah = (ah + 0x10);
 	}
-
-	ah = (ah + 0x10) & 0xf0;
 	if (ah != 0x60)
 	{
-		tod.byte.sec = ah;
+		tod.byte.sec = (ah & 0x70) | (al & 0xf);
 		return;
 	}
-
 	tod.byte.sec=0;
 
 	/*update minutes*/
-	al = (tod.byte.min + 1) & 0xf;
-	ah = (tod.byte.min) & 0xf0;
-	if (al != 0xa)
+	al = (tod.byte.min) & 0xf;
+	ah = (tod.byte.min) & 0x70;
+	al = al + 1;
+	if (al == 0xa)
 	{
-		tod.byte.min =  ah | al;
-		return;
+		al = 0;
+		ah = (ah + 0x10);
 	}
-
-	ah = (ah + 0x10) & 0xf0;
 	if (ah != 0x60)
 	{
-		tod.byte.min = ah;
+		tod.byte.min = (ah & 0x70) | (al & 0xf);
 		return;
 	}
-
 	tod.byte.min = 0;
+
 	/*update hours*/
-	al = tod.byte.hr;
-	ah = al;
-	ah = ah & 0x7f;
+	pm = tod.byte.hr & 0x80;
+	ah = tod.byte.hr & 0x1f;
 	if (ah == 0x12)
 	{
-		al = al & 0x80;
+		ah = 0;
 	}
-	if ((al & 0x80) !=0)
+	al = ah & 0x10;
+	ah = (ah + 1) & 0x1f;
+	if (ah == 0x12)
 	{
-		/*hours is currently AM*/
-		ah = al;
-		ah = ah & 0x10;
-		al = (al + 1) & 0xf;
-		if (al != 0xa)
-		{
-			al = al | ah;
-			if (al == 0x12)
-			{
-				tod.byte.hr = 0x80;
-				return;
-			}
-			else
-			{
-				tod.byte.hr = al;
-				return;
-			}
-		}
-		else
-		{
-			tod.byte.hr = 0x10;
-			return;
-		}	
-
+		pm = pm ^ 0x80;
+	}
+	if (ah == 0x0a)
+	{
+		tod.byte.hr = pm | 0x10;
 	}
 	else
 	{
-		/*hours is currently PM*/
-		ah = al;
-		ah = ah & 0x90;
-		al = (al + 1) & 0xf;
-		if (al != 0xa)
-		{
-			if (al == 0x92)
-			{
-				tod.byte.hr = 0;
-			}
-			else
-			{
-				tod.byte.hr = al;
-				return;
-			}
-		}
-		else
-		{
-			tod.byte.hr = 0x90;
-			return;
-		}
+		tod.byte.hr = pm | (al & 0x10)| (ah & 0xf);
 	}
-	
-#else
-
-	__asm
-	{
-		/*update tenths*/
-		mov ebx, p;
-		mov al,[ebx];
-		add al,1;
-		and al,0Fh;
-		mov BYTE PTR [ebx],al; 
-		cmp al, 0Ah;
-		jne tod_update_exit;
-		mov BYTE PTR [ebx],0
-
-		/*update seconds*/
-		mov al,1[ebx];
-		mov ah,al;
-		and ah,0f0h;
-
-		add al,1;
-		and al,0Fh;
-
-		cmp al, 0Ah;
-		je tod_carry_sec_lo;
-		
-		or al,ah;
-		mov BYTE PTR 1[ebx],al;
-		jmp tod_update_exit;
-
-tod_carry_sec_lo:;
-
-		add ah,010h;
-		and ah,0F0h;
-
-		cmp ah,060h;
-		je tod_carry_sec_hi;
-
-		mov BYTE PTR 1[ebx],ah;
-		jmp tod_update_exit;
-
-tod_carry_sec_hi:;
-		mov BYTE PTR 1[ebx],0;
-
-		/*update minutes*/
-		mov al,2[ebx];
-		mov ah,al;
-		and ah,0f0h;
-
-		add al,1;
-		and al,0Fh;
-
-		cmp al, 0Ah;
-		je tod_carry_min_lo;
-		
-		or al,ah;
-		mov BYTE PTR 2[ebx],al;
-		jmp tod_update_exit;
-
-tod_carry_min_lo:;
-
-		add ah,010h;
-		and ah,0F0h;
-
-		cmp ah,060h;
-		je tod_carry_min_hi;
-
-		mov BYTE PTR 2[ebx],ah;
-		jmp tod_update_exit;
-
-tod_carry_min_hi:;
-		mov BYTE PTR 2[ebx],0;
-
-
-		/*update hours*/
-		mov al,3[ebx];
-		
-		/*if hours == 12 then normalise to 0 before the increment*/
-		mov ah,al;
-		and ah,07fh;
-		cmp ah,012h;
-		jne tod_increment_hours;
-		and al,080h;
-tod_increment_hours:;
-
-		bt ax,7;
-		jc tod_update_pm;
-
-		/*hours is currently AM*/
-		mov ah,al;
-		and ah,010h;
-		add al,1;
-		and al,0fh;
-		cmp al, 0Ah;
-		je tod_carry_hrs_am_lo;
-		or al,ah;
-
-		cmp al,012h;
-		je tod_carry_hrs_am_hi;
-
-		mov BYTE PTR 3[ebx],al;
-		jmp tod_update_exit;
-
-tod_carry_hrs_am_lo:;
-		mov BYTE PTR 3[ebx],010h;
-		jmp tod_update_exit;
-
-tod_carry_hrs_am_hi:;
-
-		mov al, 80h
-		mov BYTE PTR 3[ebx],al;
-		jmp tod_update_exit;
-
-tod_update_pm:;
-		/*hours is currently PM*/
-		mov ah,al;
-		and ah,090h;
-		add al,1;
-		and al,0fh;
-		cmp al, 0Ah;
-		je tod_carry_hrs_pm_lo;
-		or al,ah;
-
-		cmp al,092h;
-		je tod_carry_hrs_pm_hi;
-
-		mov BYTE PTR 3[ebx],al;
-		jmp tod_update_exit;
-
-tod_carry_hrs_pm_lo:;
-		mov BYTE PTR 3[ebx],090h;
-		jmp tod_update_exit;
-
-tod_carry_hrs_pm_hi:;
-
-		mov al, 0h
-		mov BYTE PTR 3[ebx],al;
-
-tod_update_exit:;
-	}
-#endif
 }
 
 void CIA::ExecuteCycle(ICLK sysclock)
@@ -398,9 +221,13 @@ ICLKS todclocks;
 	if (fastClocks > 0 && fastTODClocks > 0 && clocks > 0)
 	{
 		if (fastClocks > clocks)
+		{
 			fastClocks = clocks;
+		}
 		if (fastClocks > fastTODClocks)
+		{
 			fastClocks = fastTODClocks;
+		}
 		ta_counter.word = ta_counter.word - dec_a * (bit16)fastClocks;
 		tb_counter.word = tb_counter.word - dec_b * (bit16)fastClocks;
 
@@ -409,7 +236,9 @@ ICLKS todclocks;
 		if(tod_write_freeze==0)
 		{
 			for (ICLKS i = 0 ; i < todclocks; i++)
+			{
 				incrementTOD();
+			}
 		}
 			
 		CurrentClock += (ICLK)fastClocks;
@@ -424,8 +253,13 @@ ICLKS todclocks;
 		tod_tick = ((tod_clock_rate) + tod_tick) % tod_clock_reload;
 		if(tod_write_freeze==0 && todclocks !=0)
 		{
+			cia_tod prevtime;
+			prevtime.dword = tod.dword;
 			incrementTOD();
-			CheckTODAlarmCompare(sysclock);
+			if (prevtime.dword != tod.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
 
 		if (idle)
@@ -454,7 +288,6 @@ ICLKS todclocks;
 		timera_output= (ta_counter.word==0) && ((delay & CountA2)!=0);
 		if (timera_output)
 		{
-
 			new_icr|=1;
  			delay|=LoadA1;
 			// check for one shot.	
@@ -669,8 +502,8 @@ ICLKS todclocks;
 		else
 			no_change_count=0;
 	}
-	SetWakeUpClock();
 	SetTODWakeUpClock();
+	SetWakeUpClock();
 }
 
 void CIA::SetWakeUpClock()
@@ -688,26 +521,43 @@ void CIA::SetWakeUpClock()
 		{
 			testCount = ta_counter.word - MINIMUM_GO_IDLE_TIME;
 			if ((ICLKS)(testCount) <= 0)
+			{
 				currentCount = 0;
+			}
 			else if ((ICLKS)(testCount - currentCount) < 0)
+			{
 				currentCount = testCount;
+			}
 		}
 		if ((crb & 0x61)==0x1)
 		{
 			testCount = tb_counter.word - MINIMUM_GO_IDLE_TIME;
 			if ((ICLKS)(testCount) <= 0)
+			{
 				currentCount = 0;
+			}
 			else if ((ICLKS)(testCount - currentCount) < 0)
+			{
 				currentCount = testCount;
+			}
 		}
 		if (tod_write_freeze==0)
 		{
 			testCount = ClockNextTODWakeUpClock - curClock;
-			if (((ICLKS)(testCount) > 0) && ((ICLKS)(testCount - currentCount) < 0))
+			if ((ICLKS)(testCount) <= 0)
+			{
+				currentCount = 0;
+			}
+			else if (((ICLKS)(testCount - currentCount) < 0))
+			{
 				currentCount = testCount;
+			}
+			currentCount = 0;
 		}
 		if ((ICLKS)currentCount < 0)
+		{
 			currentCount=0;
+		}
 
 		ClockNextWakeUpClock = curClock + currentCount;
 	}
@@ -836,8 +686,9 @@ bit8 t;
 
 void CIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
-	ExecuteCycle(sysclock);
+cia_tod prevtime;
 
+	ExecuteCycle(sysclock);
 	switch(address & 0x0F)
 	{
 	case 0x00:		// port a
@@ -895,65 +746,105 @@ void CIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	case 0x08:	//TOD
 		if (crb & 0x80)
 		{
+			prevtime.dword = alarm.dword;
 			alarm.byte.ths=data & 0xf;
+			if (prevtime.dword != alarm.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
 		else
 		{
+			prevtime.dword = tod.dword;
 			if (tod_write_freeze)
 			{
 				tod_write_freeze=0;
 				tod_tick = 0;
 			}
 			tod.byte.ths=data & 0xf;
+			if (prevtime.dword != tod.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
-		CheckTODAlarmCompare(sysclock);
 		SetTODWakeUpClock();
 		break;
 	case 0x09:
 		if (crb & 0x80)
 		{
+			prevtime.dword = alarm.dword;
 			alarm.byte.sec=data & 0x7f;
+			if (prevtime.dword != alarm.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
 		else
 		{
+			prevtime.dword = tod.dword;
 			tod.byte.sec=data & 0x7f;
+			if (prevtime.dword != tod.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
-		CheckTODAlarmCompare(sysclock);
 		SetTODWakeUpClock();
 		break;
 	case 0x0A:
 		if (crb & 0x80)
 		{
+			prevtime.dword = alarm.dword;
 			alarm.byte.min=data & 0x7f;
+			if (prevtime.dword != alarm.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
 		else
 		{
+			prevtime.dword = tod.dword;
 			tod.byte.min=data & 0x7f;
+			if (prevtime.dword != tod.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
-		CheckTODAlarmCompare(sysclock);
 		SetTODWakeUpClock();
 		break;
 	case 0x0B:
 		if (crb & 0x80)
 		{
+			prevtime.dword = alarm.dword;
 			alarm.byte.hr=data & 0x9f;
+			if (prevtime.dword != alarm.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
 		else
 		{
+			prevtime.dword = tod.dword;
 			tod_write_freeze=1;
-			if (tod_tick % 6 == 0)
-				incrementTOD();
 			if ((data & 0x1f) == 0x12)
 			{
 				if (data & 0x80)
+				{
 					tod.byte.hr = 0x12;
+				}
 				else
+				{
 					tod.byte.hr = 0x92;
+				}
 			}
 			else
+			{
 				tod.byte.hr = data & 0x9f;
+			}
+			if (prevtime.dword != tod.dword)
+			{
+				CheckTODAlarmCompare(sysclock);
+			}
 		}
-		CheckTODAlarmCompare(sysclock);
 		SetTODWakeUpClock();
 		break;
 	case 0x0C://serial data register
@@ -1038,25 +929,22 @@ void CIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			}
 		}
 
-		if (data & 0x80)
-		{
-			tod_clock_reload = TODRELOAD50;
-			tod_clock_rate = TODDIVIDER50;
-			tod_clock_compare_band = TODCLOCKCOMPAREBAND50;
-		}
-		else
-		{
-			tod_clock_reload = TODRELOAD60;
-			tod_clock_rate = TODDIVIDER60;
-			tod_clock_compare_band = TODCLOCKCOMPAREBAND60;
-		}
-
 		if ((data ^ cra) & 0x80)
 		{
 			if (data & 0x80)
-				tod_tick = tod_tick * 5 / 60;
+			{
+				tod_clock_reload = TODRELOAD50;
+				tod_clock_rate = TODDIVIDER50;
+				tod_clock_compare_band = TODCLOCKCOMPAREBAND50;
+				tod_tick = tod_tick / (TODDIVIDER60/TODDIVIDER50);
+			}
 			else
-				tod_tick = tod_tick * 60 / 5;
+			{
+				tod_clock_reload = TODRELOAD60;
+				tod_clock_rate = TODDIVIDER60;
+				tod_clock_compare_band = TODCLOCKCOMPAREBAND60;
+				tod_tick = tod_tick * (TODDIVIDER60/TODDIVIDER50);
+			}
 		}
 
 		cra=data & 0xEF;
@@ -1170,13 +1058,10 @@ void CIA::CheckTODAlarmCompare(ICLK sysclock)
 {
 	if (tod.dword == alarm.dword)
 	{
-		if (tod_tick <= tod_clock_compare_band)
-		{
-			tod_alarm=4;
-			idle=0;
-			no_change_count=0;
-			ClockNextTODWakeUpClock = sysclock + 0x1000000;
-		}
+		tod_alarm=4;
+		idle=0;
+		no_change_count=0;
+		ClockNextTODWakeUpClock = sysclock + 0x1000000;
 	}
 }
 
@@ -1187,7 +1072,9 @@ long t;
 	{
 		t = GetTenthsFromTimeToAlarm((const cia_tod &)tod, (const cia_tod &)alarm);
 		if (t<0)
+		{
 			ClockNextTODWakeUpClock = CurrentClock + 0x1000000;
+		}
 		else if (t <= 2)
 		{
 			ClockNextTODWakeUpClock = CurrentClock;
@@ -1198,7 +1085,9 @@ long t;
 		}
 	}
 	else
+	{
 		ClockNextTODWakeUpClock = CurrentClock + 0xA000000;
+	}
 }
 
 long CIA::GetTenthsFromTimeToAlarm(const cia_tod &time, const cia_tod &alarm)
@@ -1234,7 +1123,9 @@ long borrow;
 		else
 		{
 			if (a >= t)
+			{
 				p = a - t;
+			}
 			else
 			{
 				p = 10 + a - t;
@@ -1250,9 +1141,13 @@ long borrow;
 	{
 		borrow = 0;
 		if (t==9)
+		{
 			t=0;
+		}
 		else
+		{
 			t = (t + 1) & 0xF;
+		}
 	}
 
 	if (a > 9)
@@ -1264,9 +1159,13 @@ long borrow;
 		else
 		{
 			if ((alarm.dword & 0xffff0000) == (time.dword & 0xffff0000))
+			{
 				return p = a - t;
+			}
 			else
+			{
 				return -1;
+			}
 		}
 	}
 	else
@@ -1278,7 +1177,9 @@ long borrow;
 		else
 		{
 			if (a >= t)
+			{
 				p = a - t;
+			}
 			else
 			{
 				p = 10 + a - t;

@@ -423,8 +423,10 @@ ICLK vicCurrentClock;
 			foregroundmask = -1;
 	}
 
-	//TEST sprites always on top
+	/* Comment out for normal operation
+	//sprites always on top
 	//foregroundmask = -1;
+	*/
 
 	while (c>0)
 	{
