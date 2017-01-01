@@ -48,6 +48,7 @@ public:
 protected:
 	void SettingsOnLimitSpeedChange();
 	void SettingsOnPixelDoublerChange();
+	void SettingsOnCiaChipChange();
 	CDPI m_dpi;
 
 private:

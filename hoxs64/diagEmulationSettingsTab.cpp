@@ -1033,6 +1033,26 @@ LRESULT lr;
 	}
 }
 
+void CDiagEmulationSettingsTab::SettingsOnCiaChipChange()
+{
+HWND hTabPage;
+bool bIsNewCia;
+shared_ptr<CTabPageDialog> pPage;
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP)) != NULL)
+	{
+		hTabPage = pPage->GetHwnd();
+		bIsNewCia = (IsDlgButtonChecked(hTabPage, IDC_RAD_CIA6526A) != BST_UNCHECKED);
+		if (bIsNewCia)
+		{
+			CheckDlgButton(hTabPage, IDC_CHK_TIMERBBUG, BST_UNCHECKED);
+		}
+		else
+		{
+			CheckDlgButton(hTabPage, IDC_CHK_TIMERBBUG, BST_CHECKED);
+		}
+	}
+}
+
 HRESULT CDiagEmulationSettingsTab::ReadAdapterOrdinal(DWORD *adapterOrdinal, GUID *adapterId)
 {
 HWND hWnd;
@@ -1706,6 +1726,22 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			{
 			case BN_CLICKED:
 				SettingsOnPixelDoublerChange();
+				return TRUE;
+			}
+			break;
+		case IDC_RAD_CIA6526:
+			switch (HIWORD(wParam))
+			{
+			case BN_CLICKED:
+				SettingsOnCiaChipChange();
+				return TRUE;
+			}
+			break;
+		case IDC_RAD_CIA6526A:
+			switch (HIWORD(wParam))
+			{
+			case BN_CLICKED:
+				SettingsOnCiaChipChange();
 				return TRUE;
 			}
 			break;
