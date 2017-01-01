@@ -13,8 +13,8 @@ namespace SsLib
 			C64Ram = 0,
 			C64ColourRam = 1,
 			C64Cpu = 2,
-			C64Cia1 = 3,
-			C64Cia2 = 4,
+			C64Cia1V0 = 3,
+			C64Cia2V0 = 4,
 			C64Vic = 5,
 			C64Sid = 6,
 			C64KernelRom = 7,
@@ -33,6 +33,8 @@ namespace SsLib
 			Cart = 20,
 			DriveControllerV1 = 21,
 			DriveDiskImageV1 = 22,
+			C64Cia1V1 = 23,
+			C64Cia2V1 = 24,
 		};
 	}
 };
@@ -305,7 +307,7 @@ struct SsVic6569
 	int m_iLastBackedUpFrameNumber;
 };
 
-struct SsCia
+struct SsCiaV0
 {
 	bit32 CurrentClock;
 	bit32 DevicesClock;
@@ -361,15 +363,33 @@ struct SsCia
 	bit8 bPB67Toggle;
 };
 
-struct SsCia1
+struct SsCiaV1 : SsCiaV0
 {
-	SsCia cia;
+	bit8 icr_ack;
+};
+
+struct SsCia1V0
+{
+	SsCiaV0 cia;
 	bit32 nextKeyboardScanClock;
 };
 
-struct SsCia2
+struct SsCia1V1
 {
-	SsCia cia;
+	SsCiaV1 cia;
+	bit32 nextKeyboardScanClock;
+};
+
+struct SsCia2V0
+{
+	SsCiaV0 cia;
+	bit8 c64_serialbus;
+	bit8 m_commandedVicBankIndex;
+};
+
+struct SsCia2V1
+{
+	SsCiaV1 cia;
 	bit8 c64_serialbus;
 	bit8 m_commandedVicBankIndex;
 };

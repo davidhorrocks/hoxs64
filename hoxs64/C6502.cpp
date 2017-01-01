@@ -711,7 +711,9 @@ void CPU6502::SetBALow(ICLK sysclock)
 		BA = 0;
 	}
 	else if (((ICLKS)(FirstBALowClock - sysclock)) > 0)
+	{
 		FirstBALowClock = sysclock;
+	}
 }
 
 void CPU6502::SetBAHigh(ICLK sysclock)
@@ -730,8 +732,9 @@ void CPU6502::SetIRQ(ICLK sysclock)
 		FirstIRQClock = sysclock;
 	}
 	else if (((ICLKS)(FirstIRQClock - sysclock)) > 0)
+	{
 		FirstIRQClock = sysclock;
-
+	}
 	IRQ = 1;
 }
 void CPU6502::ClearIRQ()
@@ -742,7 +745,9 @@ void CPU6502::ClearIRQ()
 void CPU6502::ClearSlowIRQ()
 {
 	if (IRQ!=0)
+	{
 		RisingIRQClock = CurrentClock + 1;
+	}
 	IRQ = 0;
 }
 
@@ -754,7 +759,9 @@ void CPU6502::SetNMI(ICLK sysclock)
 		NMI_TRIGGER = 1;
 	}
 	else if (((ICLKS)(FirstNMIClock - sysclock)) > 0)
+	{
 		FirstNMIClock = sysclock;
+	}
 	NMI=1;
 }
 void CPU6502::ClearNMI()

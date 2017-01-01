@@ -26,16 +26,16 @@ public:
 
 	void SetCurrentClock(ICLK sysclock);
 
-	void GetState(SsCia2 &state);
-	void SetState(const SsCia2 &state);
+	void GetState(SsCia2V1 &state);
+	void SetState(const SsCia2V1 &state);
+	static void UpgradeStateV0ToV1(const SsCia2V0 &in, SsCia2V1 &out);
 
 	CAppStatus *appStatus;
 	CPU6510 *cpu;
 	VIC6569 *vic;
 	DiskInterface *disk;
 	volatile bit8 c64_serialbus;
-	bit8 m_commandedVicBankIndex;
-
+	bit8 m_commandedVicBankIndex;	
 };
 
 

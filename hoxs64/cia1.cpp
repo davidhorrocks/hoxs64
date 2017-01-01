@@ -56,6 +56,7 @@ CIA1::CIA1()
 HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx, IAutoLoad *pAutoLoad)
 {
 	ClearError();
+	this->ID = 1;
 	this->appStatus = appStatus;
 	this->dx = dx;
 	this->cpu = cpu;
@@ -1002,15 +1003,22 @@ bit8 localjoyport2;
 	LightPen();
 }
 
-void CIA1::GetState(SsCia1 &state)
+void CIA1::GetState(SsCia1V1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	CIA::GetState(state.cia);
 	state.nextKeyboardScanClock = nextKeyboardScanClock;
 }
 
-void CIA1::SetState(const SsCia1 &state)
+void CIA1::SetState(const SsCia1V1 &state)
 {
 	CIA::SetState(state.cia);
 	nextKeyboardScanClock = state.nextKeyboardScanClock;
+}
+
+void CIA1::UpgradeStateV0ToV1(const SsCia1V0 &in, SsCia1V1 &out)
+{
+	ZeroMemory(&out, sizeof(SsCia2V1));
+	CIA::UpgradeStateV0ToV1(in.cia, out.cia);
+	out.nextKeyboardScanClock = in.nextKeyboardScanClock;
 }

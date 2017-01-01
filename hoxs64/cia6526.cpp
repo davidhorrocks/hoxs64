@@ -19,6 +19,7 @@ CIA::CIA()
 	bEarlyIRQ = true;
 	bTimerBbug = false;
 	init_bitcount();
+	ID = 0;
 }
 
 void CIA::InitReset(ICLK sysclock)
@@ -59,7 +60,6 @@ void CIA::InitReset(ICLK sysclock)
 	alarm.byte.min=0;
 	alarm.byte.hr=0;
 	sdr=0;
-	icr=0;
 	cra=0;
 	crb=0;
 	ta_latch.word=0xffff;
@@ -77,6 +77,8 @@ void CIA::InitReset(ICLK sysclock)
 	bPB67TimerOut=0;
 
 	icr=0;
+	icr_ack=0;
+	fast_clear_pending_int = false;
 	imr=0;
 
 	Interrupt=0;
@@ -295,16 +297,25 @@ ICLKS todclocks;
 			{
 				cra = (cra & 0xFE);
 				feed &= ~CountA2;
-
 			}	
 			if (cra & 0x40)//Generate serial interrupt after 16 timer a underflows.
 			{
 				if (serial_int_count)
 				{
 					serial_int_count--;
-					if ((serial_int_count & 15) ==1)
+					if ((cra & 8) == 0)
 					{
-						new_icr|=8;
+						if ((serial_int_count & 0xf) == 1)
+						{
+							new_icr|=8;
+						}
+					}
+					else
+					{
+						if ((serial_int_count & 0xf) == 0)
+						{
+							new_icr|=8;
+						}
 					}
 				}
 			}
@@ -338,13 +349,17 @@ ICLKS todclocks;
 		}
 
 		if ((cra & 0x20)==0)
+		{
 			//02 mode
 			delay = delay & ~(CountA1);
+		}
 		else
 		{
 			//CNT mode
 			if ((cra & 1)==0)
+			{
 				delay = delay & ~(CountA1);  
+			}
 		}
 
 
@@ -396,13 +411,17 @@ ICLKS todclocks;
 		
 
 		if ((crb & 0x60)==0)
+		{
 			//02 mode
 			delay = delay & ~(CountB1);
+		}
 		else if ((crb & 0x60)==0x20)
 		{
 			//CNT mode
 			if ((crb & 1)==0)
+			{
 				delay = delay & ~(CountB1);  
+			}
 		}
 		else if ((crb & 0x60)==0x40)
 		{
@@ -410,24 +429,36 @@ ICLKS todclocks;
 			if (timera_output)
 			{
 				if (crb & 1)
+				{
 					delay |= CountB1;
+				}
 				else
+				{
 					delay &= ~CountB1;
+				}
 			}
 			else
+			{
 				delay &= ~CountB1;
+			}
 		}
 		else if ((crb & 0x60)==0x60)
 		{
 			if (timera_output)
 			{
 				if (crb & 1)
+				{
 					delay |= CountB1;
+				}
 				else
+				{
 					delay &= ~CountB1;
+				}
 			}
 			else
+			{
 				delay &= ~CountB1;
+			}
 		}
 
 		if ((delay & (PB6Low1 | PB7Low1)) != 0)
@@ -449,29 +480,53 @@ ICLKS todclocks;
 			tod_alarm=0;
 		}
 
+		icr_ack = icr_ack & ~new_icr;
+		if ((delay & ClearIcr1) !=0)
+		{
+			icr = icr & ~icr_ack;
+			icr_ack = 0;
+		}
 		if (bTimerBbug && (new_icr & 2) !=0 && ClockReadICR == CurrentClock)
+		{
 			icr |= (new_icr & ~2);
+		}
 		else
+		{
 			icr |= new_icr;
+		}
 		if (new_icr & imr & 0x1F) 
 		{ 
 			if (bEarlyIRQ)
 			{
 				//new CIA
-				if (ClockReadICR == CurrentClock)
+				//if (ClockReadICR == CurrentClock)
+				if ((delay & ReadIcr0) != 0)
+				{
 					//TEST TLR's CIA read DC0D (icr) when Timer counts to zero;
+					//Used by testprogs\interrupts\irqnmi\cia-int-irq-new.prg
+					//Used by testprogs\interrupts\irqnmi\cia-int-nmi-new.prg
 					delay|=Interrupt0;
+					delay|=SetIcr0;
+				}
 				else
-					delay|=Interrupt1;
+				{
+					delay|=(Interrupt1 | Interrupt1);
+					delay|=(SetIcr1 | SetIcr1);
+				}
 			}
 			else
 			{
 				//Old CIA
 				delay|=Interrupt0;
+				delay|=SetIcr0;
 			}
 		}
 		
 		// Check for interrupt condition
+		if ((delay & SetIcr1) != 0)
+		{
+			icr |= 0x80;
+		}
 		if (delay & Interrupt1)
 		{
 			Interrupt = 1;
@@ -479,15 +534,19 @@ ICLKS todclocks;
 		}
 
 		delay=((delay << 1) & DelayMask) | feed;
-		if (f_cnt_in) 
+		if (f_cnt_in)
+		{
 			delay |= (CountA0 | CountB0);
+		}
 		flag_change=0;
 
 		
 		if (delay==old_delay && feed==old_feed)
 		{
 			if ((((cra & 1)!=0) && ta_counter.word<MINIMUM_GO_IDLE_TIME) || (((crb & 1)!=0) && tb_counter.word<MINIMUM_GO_IDLE_TIME))
+			{
 				no_change_count=0;
+			}
 			else
 			{
 				no_change_count++;
@@ -500,7 +559,9 @@ ICLKS todclocks;
 			}
 		}
 		else
+		{
 			no_change_count=0;
+		}
 	}
 	SetTODWakeUpClock();
 	SetWakeUpClock();
@@ -639,18 +700,62 @@ bit8 t;
 	case 0x0C://serial data register
 		return sdr;
 	case 0x0D:		// interrupt control register
-		ClockReadICR = sysclock + 1;	
-		t=icr;
-		icr=0;
-
-		delay &= ~(Interrupt0 | Interrupt1);
-
-		if (Interrupt)
-			t|=0x80;
-		Interrupt=0;
+		ClockReadICR = sysclock + 1;
+		if (bEarlyIRQ)
+		{
+			if ((delay & Interrupt1) != 0)
+			{
+				if ((icr & 0x1f) != 0)
+				{
+					icr |= 0x80;
+				}
+			}
+			t = icr;
+			if ((icr & 0x1f) != 0)
+			{
+				icr_ack |= ((icr & 0x8f) | 0x80);
+			}
+			delay |= ClearIcr0;
+			delay &= ~(Interrupt0 | Interrupt1);
+			delay &= ~(SetIcr0 | SetIcr1);
+		}
+		else
+		{
+			t = icr;
+			if ((icr & 0x8f) != 0)
+			{
+				icr_ack |= ((icr & 0x8f) | 0x80);
+			}
+			if (fast_clear_pending_int)
+			{
+				if ((delay & SetIcr1) == 0)
+				{
+					fast_clear_pending_int = false;
+				}
+				delay |= ClearIcr0;
+				delay &= ~(Interrupt0 | Interrupt1);
+			}
+			else
+			{
+				if ((delay & SetIcr1) != 0)
+				{
+					delay |= ClearIcr0;
+					fast_clear_pending_int = true;
+				}			
+				else
+				{
+					delay |= ClearIcr1;
+				}
+				delay &= ~(Interrupt0 | Interrupt1);
+				delay &= ~(SetIcr0 | SetIcr1);
+			}
+		}		
+		delay |= ReadIcr0;
+		Interrupt = 0;
 		ClearSystemInterrupt();
-		idle=0;
-		no_change_count=0;
+		idle = 0;
+		no_change_count = 0;
+		SetWakeUpClock();
 		return t;
 	case 0x0E:		// control register a
 		return cra & ~0x10;
@@ -676,8 +781,20 @@ bit8 t;
 		return tod_read_latch.byte.hr;
 	case 0x0D:		// interrupt control register
 		t=icr;
-		if (Interrupt)
-			t|=0x80;
+		if (bEarlyIRQ)
+		{
+			if (Interrupt || (delay & Interrupt1) != 0)
+			{
+				t |= 0x80;
+			}
+		}
+		else
+		{
+			if (Interrupt)
+			{
+				t |= 0x80;
+			}
+		}
 		return t;
 	default:
 		return ReadRegister(address, sysclock);
@@ -687,7 +804,7 @@ bit8 t;
 void CIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 cia_tod prevtime;
-
+bit8 old_imr;
 	ExecuteCycle(sysclock);
 	switch(address & 0x0F)
 	{
@@ -710,36 +827,40 @@ cia_tod prevtime;
 	case 0x04:		// timer a lo
 		ta_latch.byte.loByte=data;
 		if (delay & LoadA2)
+		{
 			ta_counter.word = ta_latch.word;
+		}
 		break;
 	case 0x05:		// timer a hi
 		ta_latch.byte.hiByte=data;
 		if ((cra & 0x01) == 0)
 		{
 			delay|=LoadA0;
-			idle=0;
-			no_change_count=0;
 		}
 		if (delay & LoadA2)
+		{
 			ta_counter.word = ta_latch.word;
+		}
 		idle=0;
 		no_change_count=0;
 		break;
 	case 0x06:		// timer b lo
 		tb_latch.byte.loByte=data;
 		if (delay & LoadB2)
+		{
 			tb_counter.word = tb_latch.word;
+		}
 		break;
 	case 0x07:		// timer b hi
 		tb_latch.byte.hiByte=data;
 		if ((crb & 0x01) == 0)
 		{
 			delay|=LoadB0;
-			idle=0;
-			no_change_count=0;
 		}
 		if (delay & LoadB2)
+		{
 			tb_counter.word = tb_latch.word;
+		}
 		idle=0;
 		no_change_count=0;
 		break;
@@ -849,24 +970,69 @@ cia_tod prevtime;
 		break;
 	case 0x0C://serial data register
 		sdr=data;
-		if (serial_int_count<=16)
+		if (serial_int_count < 16)
+		{
 			serial_int_count+=16;
+		}
 		idle=0;
 		no_change_count=0;
 		break;
 	case 0x0D:		// interrupt control register
+		old_imr = imr; 
 		if (data & 0x80)
-			imr|=(data & 0x7f);
+		{
+			imr|=(data & 0x1F);
+		}
 		else
+		{
 			imr&=(~data);
+		}
 		if (icr & imr & 0x1F)
-			if (Interrupt == 0)
+		{
+			//Both pending interrupts and currently active interrupts are never cancelled or cleared.
+			if (this->bEarlyIRQ)
 			{
-				if (this->bEarlyIRQ)
-					delay|=Interrupt1;
-				else
-					delay|=Interrupt0;
+				delay |= Interrupt1;
+				delay |= SetIcr1;
 			}
+			else
+			{
+				delay |= Interrupt0;
+				delay |= SetIcr0;
+			}
+		}
+		else
+		{
+			if (!this->bEarlyIRQ)
+			{
+				//Currently active interrupts are never cleared.
+				//But the dd0dtest.prg test shows that a pending interrupt may be cancelled.
+
+				//Not sure if this is correct.
+				//Allow a pending interrupt to be cancelled if a write to $DD0D had also occurred in the previous clock cycle.
+				if ((icr & old_imr) !=0 && (delay & WriteIcr1) !=0)
+				{
+					/*
+					The test testprogs\CIA\dd0dtest\dd0dtest.prg requires that a pending Timer A interrupt is cancelled with a write to ICR ($DD0D in this case).
+					The entry conditions seen where that: X==0 and ICR == $00. ICR is what is read from $DD0D.
+					Then the CPU executes: INC $DD0D,X
+					Timer A rundowns at cycle 7 of INC $DD0D,X
+					$DD0D is thought to be subjected to Read($00; Cycle4) Read($00; Cycle5) Write($00; Cycle6) Write($01; Cycle7).
+					A system NMI not generated.
+
+					On the contrary, the test testprogs\interrupts\cia-int\cia-int-nmi.prg requires that a pending Timer B interrupt is not cleared by writing to ICR.
+					The conditions seen where that the processor executes:
+					LDX #$7F
+					STX $DD0D
+					Timer B rundowns at cycle 4 of STX $DD0D which is the write of $7F to $DD0D.
+					A system NMI is generated.
+					*/
+					delay &= ~(Interrupt1);
+					delay &= ~(SetIcr1);
+				}
+			}
+		}
+		delay |= WriteIcr0;
 		idle=0;
 		no_change_count=0;
 		break;
@@ -882,7 +1048,9 @@ cia_tod prevtime;
 			feed |= OneShotA0;	
 		}
 		else
+		{
 			feed &= ~OneShotA0;
+		}
 
 		//CNT or 02 mode
 		if (data & 0x20)
@@ -1208,7 +1376,7 @@ void CIA::init_bitcount()
 	}
 }
 
-void CIA::GetState(SsCia &state)
+void CIA::GetState(SsCiaV1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
@@ -1256,6 +1424,7 @@ void CIA::GetState(SsCia &state)
 	state.timera_output = timera_output;
 	state.timerb_output = timerb_output;
 	state.icr = icr;
+	state.icr_ack = icr_ack;	
 	state.imr = imr;
 	state.Interrupt = Interrupt;
 	state.serial_int_count = serial_int_count;
@@ -1267,7 +1436,7 @@ void CIA::GetState(SsCia &state)
 	state.bPB67Toggle = bPB67Toggle;
 }
 
-void CIA::SetState(const SsCia &state)
+void CIA::SetState(const SsCiaV1 &state)
 {
 	CurrentClock = state.CurrentClock;
 	DevicesClock = state.DevicesClock;
@@ -1314,6 +1483,7 @@ void CIA::SetState(const SsCia &state)
 	timera_output = state.timera_output;
 	timerb_output = state.timerb_output;
 	icr = state.icr;
+	icr_ack = state.icr_ack;
 	imr = state.imr;
 	Interrupt = state.Interrupt;
 	serial_int_count = state.serial_int_count;
@@ -1323,4 +1493,20 @@ void CIA::SetState(const SsCia &state)
 	bPB67TimerMode = state.bPB67TimerMode;
 	bPB67TimerOut = state.bPB67TimerOut;
 	bPB67Toggle = state.bPB67Toggle;
+}
+
+void CIA::UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out)
+{
+	ZeroMemory(&out, sizeof(SsCiaV1));
+	*((SsCiaV0 *)&out) = in;
+	if (out.ClockReadICR == out.CurrentClock + 1)
+	{
+		out.delay |= ClearIcr0;
+		out.icr_ack = in.icr;
+	}
+	else if (out.ClockReadICR == out.CurrentClock + 2)
+	{
+		out.delay |= ClearIcr1;
+		out.icr_ack = in.icr;
+	}
 }

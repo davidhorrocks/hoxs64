@@ -46,7 +46,15 @@
 #define Interrupt1  0x00080000
 #define OneShotA0   0x00100000
 #define OneShotB0   0x00200000
-#define DelayMask ~(0x00400000 | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0)
+#define ClearIcr0   0x00400000
+#define ClearIcr1   0x00800000
+#define ReadIcr0    0x01000000
+#define ReadIcr1    0x02000000
+#define WriteIcr0   0x04000000
+#define WriteIcr1   0x08000000
+#define SetIcr0     0x10000000
+#define SetIcr1     0x20000000
+#define DelayMask ~(0x40000000 | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0)
 
 
 class CIA : public IRegister
@@ -86,7 +94,7 @@ public:
 	void SetMode(HCFG::CIAMODE mode, bool bTimerBbug);
 
 	void PreventClockOverflow();
-
+	int ID;
 	bit32 delay;
 	bit32 feed;
 	bit32 old_delay;
@@ -128,6 +136,8 @@ public:
 	bit32 timera_output;
 	bit32 timerb_output;
 	bit8 icr;
+	bit8 icr_ack;
+	bool fast_clear_pending_int;
 	bit8 imr;
 	bit8 Interrupt;
 	bit8 serial_int_count;
@@ -149,8 +159,9 @@ public:
 	static void init_bitcount();
 
 protected:
-	void GetState(SsCia &state);
-	void SetState(const SsCia &state);
+	void GetState(SsCiaV1 &state);
+	void SetState(const SsCiaV1 &state);
+	static void UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out);
 };
 
 

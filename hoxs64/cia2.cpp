@@ -45,11 +45,12 @@
 
 CIA2::CIA2()
 {
-	appStatus = 0L;
-	cpu = 0L;
-	vic = 0L;
-	disk = 0L;
-	c64_serialbus = 0;
+	this->ID = 2;
+	this->appStatus = 0L;
+	this->cpu = 0L;
+	this->vic = 0L;
+	this->disk = 0L;
+	this->c64_serialbus = 0;
 }
 
 HRESULT CIA2::Init(CAppStatus *appStatus, CPU6510 *cpu, VIC6569 *vic, DiskInterface *disk)
@@ -178,7 +179,7 @@ ICLK v = sysclock - CurrentClock;
 	DevicesClock+=v;
 }
 
-void CIA2::GetState(SsCia2 &state)
+void CIA2::GetState(SsCia2V1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	CIA::GetState(state.cia);
@@ -187,9 +188,18 @@ void CIA2::GetState(SsCia2 &state)
 	state.m_commandedVicBankIndex = m_commandedVicBankIndex;
 }
 
-void CIA2::SetState(const SsCia2 &state)
+void CIA2::SetState(const SsCia2V1 &state)
 {
 	CIA::SetState(state.cia);
 	c64_serialbus = state.c64_serialbus;
 	m_commandedVicBankIndex = state.m_commandedVicBankIndex;
 }
+
+void CIA2::UpgradeStateV0ToV1(const SsCia2V0 &in, SsCia2V1 &out)
+{
+	ZeroMemory(&out, sizeof(SsCia2V1));
+	CIA::UpgradeStateV0ToV1(in.cia, out.cia);
+	out.c64_serialbus = in.c64_serialbus;
+	out.m_commandedVicBankIndex = in.m_commandedVicBankIndex;
+}
+
