@@ -210,7 +210,9 @@ HRESULT hr = E_FAIL;
 					break;
 				}
 				if (buffer)
+				{
 					buffer[c] = w;
+				}
 			}
 		}
 		else
@@ -224,10 +226,14 @@ HRESULT hr = E_FAIL;
 		}
 	}
 	if (eof)
+	{
 		hr = S_OK;
+	}
 	
 	if (count)
+	{
 		*count = c;
+	}
 	return hr;
 }
 
@@ -322,7 +328,9 @@ ICLK clocks;
 		clocks -= tape_pulse_length;
 		CurrentClock = sysclock - clocks;
 		if (TapeEvent && !bEOD)
+		{
 			TapeEvent->Pulse(CurrentClock);
+		}
 		
 		if (tape_position < tape_max_counter)
 		{
@@ -343,7 +351,9 @@ ICLK clocks;
 				bEOT = true;
 				bEOD = false;
 				if (TapeEvent)
+				{
 					TapeEvent->EndOfTape(CurrentClock);
+				}
 				CurrentClock = sysclock;
 				return;
 			}

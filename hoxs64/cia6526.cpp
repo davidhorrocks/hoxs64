@@ -539,7 +539,6 @@ ICLKS todclocks;
 			delay |= (CountA0 | CountB0);
 		}
 		flag_change=0;
-
 		
 		if (delay==old_delay && feed==old_feed)
 		{
@@ -637,7 +636,6 @@ void CIA::Pulse(ICLK sysclock)
 
 bit8 CIA::ReadRegister(bit16 address, ICLK sysclock)
 {
-bit8 t;
 	ExecuteCycle(sysclock);
 
 	switch(address & 0x0F)
@@ -710,10 +708,10 @@ bit8 t;
 					icr |= 0x80;
 				}
 			}
-			t = icr;
-			if ((icr & 0x1f) != 0)
+
+			if ((icr & 0x9F) != 0)
 			{
-				icr_ack |= ((icr & 0x8f) | 0x80);
+				icr_ack |= ((icr & 0x9F) | 0x80);
 			}
 			delay |= ClearIcr0;
 			delay &= ~(Interrupt0 | Interrupt1);
@@ -721,10 +719,9 @@ bit8 t;
 		}
 		else
 		{
-			t = icr;
-			if ((icr & 0x8f) != 0)
+			if ((icr & 0x9F) != 0)
 			{
-				icr_ack |= ((icr & 0x8f) | 0x80);
+				icr_ack |= ((icr & 0x9F) | 0x80);
 			}
 			if (fast_clear_pending_int)
 			{
@@ -756,7 +753,7 @@ bit8 t;
 		idle = 0;
 		no_change_count = 0;
 		SetWakeUpClock();
-		return t;
+		return icr;
 	case 0x0E:		// control register a
 		return cra & ~0x10;
 	case 0x0F:		// control register b
@@ -774,25 +771,25 @@ bit8 t;
 	{
 	case 0x08:
 		if (tod_read_freeze)
+		{
 			return tod_read_latch.byte.ths;
+		}
 		else
+		{
 			return tod.byte.ths;
+		}
 	case 0x0B:
 		return tod_read_latch.byte.hr;
 	case 0x0D:		// interrupt control register
 		t=icr;
 		if (bEarlyIRQ)
 		{
-			if (Interrupt || (delay & Interrupt1) != 0)
+			if ((delay & Interrupt1) != 0)
 			{
-				t |= 0x80;
-			}
-		}
-		else
-		{
-			if (Interrupt)
-			{
-				t |= 0x80;
+				if ((t & 0x1f) != 0)
+				{
+					t |= 0x80;
+				}
 			}
 		}
 		return t;
@@ -987,24 +984,31 @@ bit8 old_imr;
 		{
 			imr&=(~data);
 		}
-		if (icr & imr & 0x1F)
+		if ((icr & imr & 0x1F) != 0)
 		{
 			//Both pending interrupts and currently active interrupts are never cancelled or cleared.
-			if (this->bEarlyIRQ)
+			if (Interrupt == 0)
 			{
-				delay |= Interrupt1;
-				delay |= SetIcr1;
-			}
-			else
-			{
-				delay |= Interrupt0;
-				delay |= SetIcr0;
+				if (this->bEarlyIRQ)
+				{
+					if ((delay & ReadIcr1) == 0)
+					{
+						delay |= Interrupt1;
+						delay |= SetIcr1;
+					}
+				}
+				else
+				{
+					delay |= Interrupt0;
+					delay |= SetIcr0;
+				}
 			}
 		}
 		else
 		{
 			if (!this->bEarlyIRQ)
 			{
+				//This relates to "old" CIA 6526.
 				//Currently active interrupts are never cleared.
 				//But the dd0dtest.prg test shows that a pending interrupt may be cancelled.
 
@@ -1013,12 +1017,12 @@ bit8 old_imr;
 				if ((icr & old_imr) !=0 && (delay & WriteIcr1) !=0)
 				{
 					/*
-					The test testprogs\CIA\dd0dtest\dd0dtest.prg requires that a pending Timer A interrupt is cancelled with a write to ICR ($DD0D in this case).
+					The test testprogs\CIA\dd0dtest\dd0dtest.prg test number $11 requires that a pending Timer A interrupt is cancelled with a write to ICR ($DD0D in this case).
 					The entry conditions seen where that: X==0 and ICR == $00. ICR is what is read from $DD0D.
 					Then the CPU executes: INC $DD0D,X
 					Timer A rundowns at cycle 7 of INC $DD0D,X
 					$DD0D is thought to be subjected to Read($00; Cycle4) Read($00; Cycle5) Write($00; Cycle6) Write($01; Cycle7).
-					A system NMI not generated.
+					A system NMI is not generated.
 
 					On the contrary, the test testprogs\interrupts\cia-int\cia-int-nmi.prg requires that a pending Timer B interrupt is not cleared by writing to ICR.
 					The conditions seen where that the processor executes:
@@ -1062,9 +1066,13 @@ bit8 old_imr;
 		{
 			//02
 			if (data & 0x1) 
+			{
 				feed |= CountA2;
+			}
 			else
+			{
 				feed &= ~CountA2;
+			}
 		}
 		
 		//Set PB6 high on Timer A start
@@ -1132,17 +1140,22 @@ bit8 old_imr;
 			feed |= OneShotB0;	
 		}
 		else
+		{
 			feed &= ~OneShotB0;
-
+		}
 
 		//CNT or 02 mode
 		if ((data & 0x60)==0)
 		{
 			//02
 			if (data & 0x1) 
+			{
 				feed |= CountB2;
+			}
 			else
+			{
 				feed &= ~CountB2;
+			}
 		}
 		else if ((data & 0x60)==0x20)
 		{
@@ -1204,12 +1217,11 @@ bit8 CIA::PortAOutput_Strong0s()
 {
 	return (pra_out | ~ddra);
 }
+
 bit8 CIA::PortBOutput_Strong0s()
 {
 	return ((prb_out | ~ddrb) & ~bPB67TimerMode) | (bPB67TimerOut & bPB67TimerMode);
-
 }
-
 
 bit8 CIA::PortAOutput_Strong1s()
 {
@@ -1277,9 +1289,13 @@ long borrow;
 		else
 		{
 			if ((alarm.dword & 0xffffff00) == (time.dword & 0xffffff00))
+			{
 				return p = a - t;
+			}
 			else
+			{
 				return -1;
+			}
 		}
 	}
 	else

@@ -81,11 +81,14 @@ void CIA1::SetWakeUpClock()
 {
 	CIA::SetWakeUpClock();
 	if ((ICLKS)(ClockNextWakeUpClock - nextKeyboardScanClock) > 0)
+	{
 		ClockNextWakeUpClock = nextKeyboardScanClock;
+	}
 
 	if ((ICLKS)(ClockNextWakeUpClock - tape64->nextTapeTickClock) >= 0)
+	{
 		ClockNextWakeUpClock = tape64->nextTapeTickClock;
-	
+	}
 }
 
 void CIA1::ResetKeyboard()
