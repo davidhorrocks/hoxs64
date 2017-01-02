@@ -407,7 +407,7 @@ struct sector_data sec_data;
 unsigned int byteIndex;
 unsigned int bitIndex;
 HRESULT hr;
-const bit32 MAXBYTESTOSCAN = G64_MAX_BYTES_PER_TRACK * 2;
+const bit32 MAXBYTESTOSCAN = G64_MAX_BYTES_PER_TRACK * 3;
 const bit32 MAXBITSTOSCAN = MAXBYTESTOSCAN * 8L;
 unsigned int bitCounter, jumpedBitCount;
 bit8 buffer[325];
@@ -438,13 +438,15 @@ retryhalftrack:
 			{
 				return E_FAIL;
 			}
-
-			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &byteIndex, &bitIndex, &jumpedBitCount);
+			unsigned int nextByteIndex, nextBitIndex;
+			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
 
+			byteIndex = nextByteIndex;
+			bitIndex = nextBitIndex;
 			bitCounter += jumpedBitCount;
 			if (hr != S_OK)
 			{
@@ -485,12 +487,14 @@ headerfound:
 			{
 				break;
 			}
-
-			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &byteIndex, &bitIndex, &jumpedBitCount);
+			
+			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
+			byteIndex = nextByteIndex;
+			bitIndex = nextBitIndex;
 
 			bitCounter += jumpedBitCount;
 			if (hr != S_OK)
@@ -519,6 +523,7 @@ headerfound:
 			else
 			{
 				set_D64LoadStatus(sec_header.sector, GCRDISK::OK);
+				bitCounter = 0;
 			}
 
 			CopyMemory(&m_pD64Binary[D64_info[tr].file_offset + (256L * sec_header.sector)], &sec_data.data[0], 256);
@@ -544,7 +549,10 @@ headerfound:
 					goto retryhalftrack;
 				}
 			}
-			st = E_FAIL;
+			if (countOfSectorsOK != 0)
+			{
+				st = E_FAIL;
+			}
 		}
 	}
 
@@ -804,6 +812,8 @@ bit8 tr;
 }
 
 #define SHOWGCR 0
+#define SHOWTRACKNUMBER 46
+#define SHOWPASSNO 1
 void GCRDISK::ConvertP64toGCR(bit8 trackNumber)
 {
 int i;
@@ -868,24 +878,24 @@ bit8 dataByte;
 			p64_uint32_t lastPosition = 0;
 			p64_uint32_t delayCounter = 0;
 			bool isSync = false;
-			bool byteReady = false;
 			this->linePrintCount = 0;
+			currentindex = track->UsedFirst;
+			bool byteInShifterReady = false;
+			bool getNextPulse = true;
 			for (int pass = 0; pass < 2; pass++)
 			{
 #if defined(DEBUG) && SHOWGCR == 1
-				if (pass == 1 && trackNumber == 34)
+				if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
 				{
 					WriteLineToDebugger();
 					WriteLineToDebugger();
-					WriteByteToDebugger(trackNumber);
+					WriteByteGroupedToDebugger(trackNumber);
 					WriteLineToDebugger();
 				}
 #endif
-				bool hasShiftedOneBit = false;
-				bool getNextPulse = true;
 				destByteIndex = 0;
 				this->linePrintCount = 0;
-				for (sourceBitPosition = 0, currentindex = track->UsedFirst; !done && sourceBitPosition < P64PulseSamplesPerRotation; sourceBitPosition++, delayCounter--, lastPulseTime++)
+				for (sourceBitPosition = 0; !done && sourceBitPosition < P64PulseSamplesPerRotation; sourceBitPosition++, delayCounter--, lastPulseTime++)
 				{
 					if (getNextPulse)
 					{
@@ -952,18 +962,18 @@ bit8 dataByte;
 								shifterReader_UD2 |= 1;
 							}
 							bitOfByteIndex = (bitOfByteIndex + 1) & 7;
+							byteInShifterReady = (bitOfByteIndex == 0);
 							if ((shifterReader_UD2 & 0x3ff) == 0x3ff)
 							{
 								isSync = true;
 							}
-							hasShiftedOneBit = true;
 						}
 						
-						if ((bitOfByteIndex & 7) == 0 && hasShiftedOneBit)
+						if (byteInShifterReady)
 						{
-							if ((clockDivider2_UF4 & 2) == 0 && !byteReady)
+							if ((clockDivider2_UF4 & 2) == 0)
 							{
-								byteReady = true;
+								byteInShifterReady = false;
 								dataByte = (bit8)(shifterReader_UD2 & 0xff);
 								if (destByteIndex < G64_MAX_BYTES_PER_TRACK)
 								{
@@ -971,20 +981,42 @@ bit8 dataByte;
 									destByteIndex++;
 								}
 #if defined(DEBUG) && SHOWGCR == 1
-								if (pass == 1 && trackNumber == 34)
+								if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
 								{
-									WriteByteToDebugger(dataByte);
+									WriteByteGroupedToDebugger(dataByte);
 								}
 #endif
 							}
 						}
-						else
-						{
-							byteReady = false;
-						}
 					}
 				}
-				trackSize[trackNumber] = destByteIndex * 8 + bitOfByteIndex;
+				unsigned int numtrailingbits = 0;
+				if (bitOfByteIndex > 0 || byteInShifterReady)
+				{
+					unsigned int shift = 0;
+					bitOfByteIndex = bitOfByteIndex & 7;
+					numtrailingbits = (bitOfByteIndex > 0) ? bitOfByteIndex : 8;
+					shift = (bitOfByteIndex > 0) ? (8 - numtrailingbits) : 0;
+					unsigned int maskoff = (0xff << shift) & 0xff;
+					unsigned int trailingbits = (shifterReader_UD2 << shift) & 0xff;
+
+					if (destByteIndex < G64_MAX_BYTES_PER_TRACK)
+					{
+						trackData[trackNumber][destByteIndex] = trailingbits;
+					}
+#if defined(DEBUG) && SHOWGCR == 1
+					if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
+					{
+						WriteByteToDebugger(trailingbits);
+						OutputDebugString(TEXT(" / "));
+						WriteByteToDebugger(numtrailingbits);
+						WriteLineToDebugger();
+					}
+#endif
+				}
+				trackSize[trackNumber] = destByteIndex * 8 + numtrailingbits;
+				bitOfByteIndex = 0;
+				byteInShifterReady = false;
 			}
 		}
 	}
@@ -995,7 +1027,7 @@ void GCRDISK::WriteLineToDebugger()
 	OutputDebugString(TEXT("\n"));
 }
 
-void GCRDISK::WriteByteToDebugger(bit8 dataByte)
+void GCRDISK::WriteByteGroupedToDebugger(bit8 dataByte)
 {
 	TCHAR sDebug[50];
 	_stprintf_s(sDebug, _countof(sDebug), TEXT("%2X "), dataByte);		
@@ -1006,6 +1038,13 @@ void GCRDISK::WriteByteToDebugger(bit8 dataByte)
 		linePrintCount = 0;
 		OutputDebugString(TEXT("\n"));
 	}
+}
+
+void GCRDISK::WriteByteToDebugger(bit8 dataByte)
+{
+	TCHAR sDebug[50];
+	_stprintf_s(sDebug, _countof(sDebug), TEXT("%02X"), dataByte);		
+	OutputDebugString(sDebug);
 }
 
 p64_uint32_t GCRDISK::CountP64ImageMaxTrackPulses(const TP64Image& image)
@@ -2971,16 +3010,30 @@ bit32 startBitPos;
 	startBitPos = (byteIndex * 8 + bitIndex) % trackSize[trackNumber];
 	byte = 0;
 	i = startBitPos;
+	int shift = i & 7;
 	for (j=0 ; j < 8 ; j++)
 	{
 		byte <<= 1;
-		v = (signed char)(((trackData[trackNumber][i / 8]) << (i & 7)) & 0xff);
+		v = (signed char)(((trackData[trackNumber][i / 8]) << shift) & 0xff);
 		if (v < 0)
 		{
 			byte |= 1;
 		}
 
-		i = (i + 1) % trackSize[trackNumber];
+		i++;
+		if ((bit32)i >= trackSize[trackNumber])
+		{
+			i = 0;
+			shift = 0;
+		}
+		else
+		{
+			shift++;
+			if (shift >= 8)
+			{
+				shift = 0;
+			}
+		}
 	}
 	return byte;
 }

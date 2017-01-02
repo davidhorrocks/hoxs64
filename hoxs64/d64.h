@@ -100,6 +100,7 @@ public:
 	void ConvertP64toGCR(bit8 trackNumber);
 	void ConvertP64toGCR();
 
+	void WriteByteGroupedToDebugger(bit8 dataByte);
 	void WriteByteToDebugger(bit8 dataByte);
 	void WriteLineToDebugger();
 

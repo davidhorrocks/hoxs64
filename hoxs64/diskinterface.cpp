@@ -1009,6 +1009,7 @@ int i;
 							else
 							{
 								m_nextP64PulsePosition = P64PulseSamplesPerRotation;
+								break;
 							}
 							if ((p64_uint32_t)m_nextP64PulsePosition >= position)
 							{
@@ -1066,11 +1067,11 @@ int i;
 			}
 			else
 			{
+				m_nextP64PulsePosition = -1;
 				ClockDividerAdd(DISK16CELLSPERCLOCK, speed, false);
 				if (m_d64_protectOff!=0 && m_diskLoaded)
 				{
-					P64PulseStreamGetNextPulse(track, position);
-					P64PulseStreamRemovePulses(track, position, DISK16CELLSPERCLOCK);
+					P64PulseStreamRemovePulses(track, position, 40);
 					if (m_writeStream > 0)
 					{
 						P64PulseStreamAddPulse(track, position + m_writeStream - 1, 0xffffffff);

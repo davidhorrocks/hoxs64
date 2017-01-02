@@ -1119,7 +1119,7 @@ CDiagFileSaveD64 childDialog;
 			else
 			{
 				MessageBox(hWnd,
-				TEXT("A save was made but this disk cannot be properly saved to a D64 due a non-standard disk format. FDI can handle all disk formats. Please re-save as an FDI file."), 
+				TEXT("A save was made but this disk cannot be properly saved to a D64. Please re-save as a P64 or FDI file to ensure a safe save."), 
 				title, 
 				MB_OK | MB_ICONWARNING);
 			}

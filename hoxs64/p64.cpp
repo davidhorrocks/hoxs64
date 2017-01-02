@@ -506,10 +506,10 @@ void P64PulseStreamAddPulse(PP64PulseStream Instance, p64_uint32_t Position, p64
 void P64PulseStreamRemovePulses(PP64PulseStream Instance, p64_uint32_t Position, p64_uint32_t Count) {
 	p64_uint32_t ToDo;
 	p64_int32_t Current, Next;
-	while(Position >= P64PulseSamplesPerRotation) {
-		Position -= P64PulseSamplesPerRotation;
-	}
 	while(Count) {
+		while(Position >= P64PulseSamplesPerRotation) {
+			Position -= P64PulseSamplesPerRotation;
+		}
 		ToDo = ((Position + Count) > P64PulseSamplesPerRotation) ? (P64PulseSamplesPerRotation - Position) : Count;
 		Current = Instance->CurrentIndex;
 		if((Current < 0) || ((Current != Instance->UsedFirst) && ((Instance->Pulses[Current].Previous >= 0) && (Instance->Pulses[Instance->Pulses[Current].Previous].Position >= Position)))) {
