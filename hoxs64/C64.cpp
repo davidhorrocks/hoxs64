@@ -48,7 +48,7 @@ HRESULT C64::Init(CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR 
 
 	if (cpu.Init(pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
 	cart.Init(&cpu, ram.mMemory);
-	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx, static_cast<IAutoLoad *>(this))!=S_OK) return SetError(cia1);
+	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx)!=S_OK) return SetError(cia1);
 	if (cia2.Init(appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
 
 	if (vic.Init(appStatus, dx, &ram, &cpu, &mon)!=S_OK) return SetError(vic);
@@ -448,10 +448,13 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 		bool bWasC64CpuOpCodeFetch = cpu.IsOpcodeFetch();
 		bool bWasC64CpuOnInt = cpu.IsInterruptInstruction();
 
+		if (appStatus->m_bAutoload)
+		{
+			this->AutoLoadHandler(sysclock);
+		}
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
-		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
 		if (vic.CheckBreakpointRasterCompare(vic.GetNextRasterLine(), vic.GetNextRasterCycle(), true) == 0)
@@ -552,10 +555,12 @@ ICLK cycles,sysclock;
 	{
 		diskdrive.ExecuteAllPendingDiskCpuClocks();
 	}
-
+	if (appStatus->m_bAutoload)
+	{
+		this->AutoLoadHandler(sysclock);
+	}
 	cpu.ExecuteCycle(sysclock);	
 	vic.ExecuteCycle(sysclock);
-	//cart.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
 	cia2.ExecuteCycle(sysclock);	
 	if (bIsDiskEnabled)
@@ -650,8 +655,8 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		appStatus->m_bAutoload = TRUE;
 		autoLoadCommand.sequence = C64::AUTOSEQ_LOAD;
 	}
-
 	period = sysclock / (PALCLOCKSPERSECOND / 50);
+	cia1.ResetKeyboard();
 	if (period < resettime)
 	{
 		return;	
@@ -673,6 +678,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		}
 		else if (period < (resettime + 12))
 		{
+			cia1.SetKeyMatrixDown(1, 7);//lshift
 			break;
 		}
 		else 
@@ -896,7 +902,6 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 	default:
 		autoLoadCommand.CleanUp();
 		appStatus->m_bAutoload = FALSE;
-
 	}
 }
 

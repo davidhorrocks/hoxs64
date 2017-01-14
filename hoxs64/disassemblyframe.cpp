@@ -857,7 +857,6 @@ HRESULT hr;
 	if (SUCCEEDED(hr))
 	{
 		UpdateDisplay(DBGSYM::SetDisassemblyAddress::SetTopAddress, v);
-		MessageBeep(MB_ICONASTERISK);
 		return true;
 	}
 	MessageBeep(MB_OK);

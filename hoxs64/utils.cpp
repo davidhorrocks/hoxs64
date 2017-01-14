@@ -2451,3 +2451,10 @@ __int64 G::FileSize (HANDLE hfile)
    }
    return (__int64)li.QuadPart;
 }
+
+void G::InitRandomSeed()
+{
+	ULARGE_INTEGER counter = {0, 0};
+	QueryPerformanceCounter((PLARGE_INTEGER)&counter);
+	srand(counter.LowPart);
+}

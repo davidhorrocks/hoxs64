@@ -75,7 +75,7 @@ DiskInterface::DiskInterface()
 	m_diskLoaded = 0;
 	m_totalclocks_UE7 = 0;
 	m_lastPulseTime = 0;
-
+	m_lastWeakPulseTime = 0;
 	m_bPulseState = false;
 	m_bLastPulseState = false;
 	m_bPendingPulse = false;
@@ -146,7 +146,7 @@ void DiskInterface::InitReset(ICLK sysclock)
 	m_writeStream = 0;
 	m_totalclocks_UE7 = 0;
 	m_lastPulseTime = 0;
-
+	m_lastWeakPulseTime = 0;
 	m_bPulseState = false;
 	m_bLastPulseState = false;
 	m_bPendingPulse = false;
@@ -706,34 +706,39 @@ bit8 byteReady;
 bit8 writeClock;
 bool bUF4_QB_rising;
 bit8 bandpos;
-
+#define WEAKBITIME1 (320)
+#define WEAKBITIME2 (130)
 	if (clocks==0)
+	{
 		return;	
+	}
 	clockDivider1_UE7 = m_clockDivider1_UE7;
 	clockDivider2_UF4 = m_clockDivider2_UF4;
 	bandpos = m_totalclocks_UE7 & 0xf;
 	writeClock = bandpos;
 	m_lastPulseTime +=clocks;
+	m_lastWeakPulseTime +=clocks;
 	m_totalclocks_UE7+=clocks;
 
 	if (bStartWithPulse)
 	{
 		//Reset the clockdividers because a disk pulse has occurred.
 		m_lastPulseTime = 0;
+		m_lastWeakPulseTime = 0;
 		clockDivider1_UE7 = speed;
 		clockDivider2_UF4 = 0;
 
 		byteReady=1;
 		if ((m_frameCounter_UC3 & 7) == 7)
 		{
-			if (m_d64_soe_enable!=0)
+			if (m_d64_soe_enable!=0 && (clockDivider2_UF4 & 2) == 0)
 			{
 				byteReady = 0;
 			}
 			if (m_busByteReadySignal != byteReady)
 			{
 				m_busByteReadySignal = byteReady;
-				if (writeClock < 7 || m_lastPulseTime==clocks)//7
+				if (writeClock < 7)//7
 				{
 					via2.ExecuteCycle(CurrentClock - 1);//
 					via2.SetCA1Input(byteReady, 0);//0
@@ -747,12 +752,13 @@ bit8 bandpos;
 		}
 	}
 
-	if (m_lastPulseTime > 300 && m_d64_write_enable == 0)
+	if (m_lastPulseTime > WEAKBITIME1 && m_d64_write_enable == 0)
 	{
-		if (rand() < 5000)
+		if (m_bDiskMotorOn && m_d64_diskchange_counter==0 && m_lastWeakPulseTime > WEAKBITIME2 && rand() < 1000)
 		{
 			clockDivider1_UE7 = speed;
-			clockDivider2_UF4 = 0;			
+			clockDivider2_UF4 = 0;
+			m_lastWeakPulseTime = 0;
 		}
 	}
 
@@ -764,9 +770,13 @@ bit8 bandpos;
 		if (clockDivider1_UE7 >= 16)
 		{
 			if (c==0)
+			{
 				writeClock = (bandpos + 15 + clocks - clockDivider1_UE7) & 0xf;
+			}
 			else
+			{
 				writeClock = (writeClock - speed) & 0xf;
+			}
 
 			clockDivider1_UE7 = clockDivider1_UE7 + speed - 16;
 			prevClockDivider2 = clockDivider2_UF4;
@@ -777,7 +787,9 @@ bit8 bandpos;
 			{
 				//rising QB
 				if ((via2.delay & (VIACA1Trans0 | VIACA1Trans1)))//Make sure pending transitions of the byte ready signal to via2.ca1 have been seen before updating the bus byte.
+				{
 					via2.ExecuteCycle(CurrentClock - 1);
+				}
 				m_busByteReadyPreviousData = m_shifterReader_UD2;				
 				if (writeClock < 14)//test
 				{
@@ -806,14 +818,19 @@ bit8 bandpos;
 				{
 					m_frameCounter_UC3 =  (m_frameCounter_UC3 + 1) & 0xf;
 				}
-
+				//
+				if ((m_shifterReader_UD2 & 0x3ff) == 0x1ff && (m_frameCounter_UC3 & 7) == 7 && m_d64_soe_enable!=0)
+				{
+					m_shifterReader_UD2=m_shifterReader_UD2;
+				}
+				//
 				m_debugFrameCounter = (m_debugFrameCounter + 1) & 0xf;
 				bit8 oldSync = m_d64_sync;
-
 				m_d64_sync = ((m_d64_write_enable==0) && ((m_shifterReader_UD2 & 0x3ff) == 0x3ff)) || (m_d64_forcesync!=0);
-
 				if (m_d64_sync)
+				{
 					m_frameCounter_UC3 = 0;
+				}
 				
 	#ifdef DEBUG_DISKPULSES
 				if (!m_d64_sync && oldSync!=0)
@@ -831,7 +848,7 @@ bit8 bandpos;
 			{
 				m_shifterWriter_UD3 = m_d64_diskwritebyte;
 			}
-			if ((m_d64_soe_enable!=0) && (clockDivider2_UF4 & 2)==0)
+			if ((m_d64_soe_enable != 0) && (clockDivider2_UF4 & 2) == 0)
 			{
 				byteReady = 0;
 			}
@@ -1270,7 +1287,10 @@ void DiskInterface::PreventClockOverflow()
 	{
 		m_lastPulseTime = ClockBehindNear;
 	}
-	
+	if (m_lastWeakPulseTime > CLOCKSYNCBAND_FAR)
+	{
+		m_lastWeakPulseTime = ClockBehindNear;
+	}	
 	cpu.PreventClockOverflow();
 }
 
@@ -1461,6 +1481,7 @@ void DiskInterface::SetState(const SsDiskInterfaceV1 &state)
 	m_writeStream = state.m_writeStream;
 	m_totalclocks_UE7 = state.m_totalclocks_UE7;
 	m_lastPulseTime = state.m_lastPulseTime;
+	m_lastWeakPulseTime = m_lastPulseTime;
 	m_diskd64clk_xf = state.m_diskd64clk_xf;
 	m_bPendingPulse = state.m_bPendingPulse != 0;
 	m_bPulseState = state.m_bPulseState != 0;

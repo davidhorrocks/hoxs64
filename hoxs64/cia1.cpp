@@ -31,7 +31,7 @@
 #include "c64keys.h"
 #include "cia1.h"
 
-#define KEYBOARDSCANINTERVAL (PALCLOCKSPERSECOND / 40)
+#define KEYBOARDMINSCANINTERVAL (3000)
 
 #define KEYMATRIX_DOWN(row,col) keyboard_matrix[row] = \
 	(keyboard_matrix[row] & (bit8)~(1<<col));\
@@ -46,14 +46,14 @@ CIA1::CIA1()
 	vic = 0L;
 	tape64 = 0L;
 	pIC64 = 0L;
-	pIAutoLoad = 0L;
 	nextKeyboardScanClock = 0;
 	ZeroMemory(&c64KeyMap[0], sizeof(c64KeyMap));
 	m_bAltLatch = false;
+	m_RandInitDone = false;
 	ResetKeyboard();
 }
 
-HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx, IAutoLoad *pAutoLoad)
+HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx)
 {
 	ClearError();
 	this->ID = 1;
@@ -62,16 +62,20 @@ HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vi
 	this->cpu = cpu;
 	this->vic = vic;
 	this->tape64 = tape64;
-	this->pIAutoLoad = pAutoLoad;
 	this->pIC64 = pIC64;
 	return S_OK;
+}
+
+unsigned int CIA1::NextScanDelta()
+{
+	return KEYBOARDMINSCANINTERVAL + (rand() & 0x3FFF);
 }
 
 void CIA1::ExecuteDevices(ICLK sysclock)
 {
 	if ((ICLKS)(CurrentClock -  nextKeyboardScanClock) > 0)
 	{
-		nextKeyboardScanClock = CurrentClock + KEYBOARDSCANINTERVAL;
+		nextKeyboardScanClock = CurrentClock + NextScanDelta();
 		ReadKeyboard();
 	}
 	tape64->Tick(sysclock);
@@ -130,7 +134,7 @@ bit8 zA,wA;
 	//TEST Nitro 16 - Space bar / light pen bug fix
 	if ((ICLKS)(CurrentClock - nextKeyboardScanClock) > 0)
 	{
-		nextKeyboardScanClock = CurrentClock + KEYBOARDSCANINTERVAL;
+		nextKeyboardScanClock = CurrentClock + NextScanDelta();
 		ReadKeyboard();
 	}
 
@@ -218,7 +222,7 @@ bit8 zB,wB;
 
 	if ((ICLKS)(CurrentClock - nextKeyboardScanClock) > 0)
 	{
-		nextKeyboardScanClock = CurrentClock + KEYBOARDSCANINTERVAL;
+		nextKeyboardScanClock = CurrentClock + NextScanDelta();
 		ReadKeyboard();
 	}
 
@@ -292,7 +296,7 @@ void CIA1::WritePortA()
 {
 	if ((ICLKS)(CurrentClock -  nextKeyboardScanClock) > 0)
 	{
-		nextKeyboardScanClock = CurrentClock + KEYBOARDSCANINTERVAL;
+		nextKeyboardScanClock = CurrentClock + NextScanDelta();
 		ReadKeyboard();
 	}
 	else
@@ -305,7 +309,7 @@ void CIA1::WritePortB()
 {
 	if ((ICLKS)(CurrentClock -  nextKeyboardScanClock) > 0)
 	{
-		nextKeyboardScanClock = CurrentClock + KEYBOARDSCANINTERVAL;
+		nextKeyboardScanClock = CurrentClock + NextScanDelta();
 		ReadKeyboard();
 	}
 	else
@@ -385,23 +389,25 @@ BOOL joy2ok;
 bit8 localjoyport1;
 bit8 localjoyport2;
 
+	if (!m_RandInitDone)
+	{
+		m_RandInitDone = true;
+		G::InitRandomSeed();
+	}
 
 	localjoyport2=0xff;
 	localjoyport1=0xff;
-	ResetKeyboard();
 	joy1ok = dx->joyok[JOY1];
 	joy2ok = dx->joyok[JOY2];
-
 	hr = DIERR_INPUTLOST;
-
 	if (appStatus->m_bAutoload)
 	{
-		pIAutoLoad->AutoLoadHandler(CurrentClock);
 		joyport1 = 0xff;
 		joyport2 = 0xff;
 		LightPen();
 		return;
 	}
+	ResetKeyboard();
 
 	hr = dx->pKeyboard->GetDeviceState(sizeof(buffer),(LPVOID)&buffer); 
 	if FAILED(hr) 

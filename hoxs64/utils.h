@@ -186,6 +186,7 @@ public:
 	static bool IsWhiteSpace(TCHAR ch);
 	static __int64 FileSeek(HANDLE hfile, __int64 distance, DWORD moveMethod);
 	static __int64 FileSize(HANDLE hfile);
+	static void InitRandomSeed();
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);

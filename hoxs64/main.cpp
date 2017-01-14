@@ -865,7 +865,6 @@ TCHAR initfilename[MAX_PATH];
 BOOL b;
 
 	initfilename[0] = 0;
-	
 	G::InitOfn(of, 
 		hWnd, 
 		TEXT("Choose a cartridge CRT file"),
@@ -885,8 +884,11 @@ BOOL b;
 			Reset();
 		}
 		else
+		{
 			c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
+		}
 	}
+	G::InitRandomSeed();
 }
 
 void CApp::InsertTape(HWND hWnd)
@@ -895,8 +897,7 @@ OPENFILENAME_500EX of;
 TCHAR initfilename[MAX_PATH];
 BOOL b;
 
-	initfilename[0] = 0;
-	
+	initfilename[0] = 0;	
 	G::InitOfn(of, 
 		hWnd, 
 		TEXT("Choose a raw tape file"),
@@ -911,8 +912,11 @@ BOOL b;
 	{
 		HRESULT hr = c64.LoadTAPFile(initfilename);
 		if (FAILED(hr))
+		{
 			c64.DisplayError(hWnd, TEXT("Insert Tape"));
+		}
 	}
+	G::InitRandomSeed();
 }
 
 void CApp::AutoLoad(HWND hWnd)
@@ -924,10 +928,11 @@ HRESULT hr;
 CPRGBrowse prgBrowse;
 
 	initfilename[0]=0;
-
 	hr = prgBrowse.Init(c64.ram.mCharGen);
 	if (FAILED(hr))
+	{
 		return ; 
+	}
 
 	G::InitOfn(of, 
 		hWnd, 
@@ -942,11 +947,13 @@ CPRGBrowse prgBrowse;
 	{
 		HRESULT hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks);
 		if (hr != S_OK)
+		{
 			c64.DisplayError(hWnd, TEXT("Auto Load"));
-
+		}
 		//The call to c64.AutoLoad can enable disk emulation
 		mainCfg.m_bD1541_Emulation_Enable = m_bD1541_Emulation_Enable;
 	}
+	G::InitRandomSeed();
 }
 
 void CApp::LoadC64Image(HWND hWnd)
@@ -958,7 +965,6 @@ bit16 start, loadSize;
 HRESULT hr;
 
 	initfilename[0] = 0;
-
 	G::InitOfn(of, 
 		hWnd, 
 		TEXT("Choose a C64 image file"),
@@ -978,9 +984,11 @@ HRESULT hr;
 			ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("Load Image") , TEXT("START=%d"), (int)start);
 		}
 		else
+		{
 			c64.DisplayError(hWnd, TEXT("Load Image"));
-
+		}
 	}
+	G::InitRandomSeed();
 }
 
 void CApp::LoadT64(HWND hWnd)
@@ -994,10 +1002,11 @@ CPRGBrowse prgBrowse;
 int i;
 	
 	initfilename[0] = 0;
-
 	hr = prgBrowse.Init(c64.ram.mCharGen);
 	if (FAILED(hr))
+	{
 		return ; 
+	}
 
 	G::InitOfn(of, 
 		hWnd, 
@@ -1019,11 +1028,12 @@ int i;
 			ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("Load T64"), TEXT("START=%d"), (int)start);
 		}
 		else
+		{
 			c64.DisplayError(hWnd, TEXT("Load T64"));
-
+		}
 	}
+	G::InitRandomSeed();
 }
-
 
 void CApp::InsertDiskImage(HWND hWnd)
 {
@@ -1034,12 +1044,12 @@ HRESULT hr;
 CPRGBrowse prgBrowse;
 
 	initfilename[0] = 0;
-
 	TCHAR title[] = TEXT("Insert Disk Image");
-
 	hr = prgBrowse.Init(c64.ram.mCharGen);
 	if (FAILED(hr))
+	{
 		return ; 
+	}
 
 	G::InitOfn(of, 
 		hWnd, 
@@ -1058,11 +1068,15 @@ CPRGBrowse prgBrowse;
 		hr = c64.InsertDiskImageFile(initfilename, prgBrowse.SelectedAlignD64Tracks);
 		SetBusy(false);
 		if (FAILED(hr))
+		{
 			c64.DisplayError(hWnd, title);
+		}
 		else if (hr == APPERR_BAD_CRC)
+		{
 			c64.DisplayError(hWnd, title);
-			
+		}			
 	}
+	G::InitRandomSeed();
 }
 
 void CApp::SaveD64Image(HWND hWnd)
@@ -1281,7 +1295,6 @@ HRESULT hr;
 
 	TCHAR title[] = TEXT("Load State Image");
 	initfilename[0] = 0;
-
 	G::InitOfn(of, 
 		hWnd, 
 		title,
@@ -1303,8 +1316,11 @@ HRESULT hr;
 			Reset();
 		}
 		else
+		{
 			c64.DisplayError(hWnd, title);
+		}
 	}
+	G::InitRandomSeed();
 }
 
 void CApp::SoundHalt()
@@ -1675,7 +1691,6 @@ void CApp::GetVicCursorPos(int *piCycle, int *piLine)
 
 void CApp::TogglePause()
 {
-	MessageBeep(MB_ICONASTERISK);
 	m_bPaused = !m_bPaused;
 	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 }

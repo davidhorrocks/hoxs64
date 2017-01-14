@@ -137,7 +137,7 @@ j1
 	sta SID + SID_1SR;
 	sta SID + SID_2SR;
 
-	lda #$ff
+	lda #$00
 	sta SID + SID_FILTL
 	sta SID + SID_FILTH
 
@@ -438,4 +438,4 @@ j1
 	;title	 "HOXS64 SID PLAYER V0.00"
 	;title	 "PRESS SPACE , AND . TO CHANGE SONG"
 title2	.byt 16,18,5,19,19,32,19,16,1,3,5,32,44,32,1,14,4,32,46,32,20,15,32,3,8,1,14,7,5,32,20,18,1,3,11,0
-title1	.byt 8,15,24,19,54,52,32,19,9,4,32,16,12,1,25,5,18,32,22,48,46,48,52,0
+title1	.byt 8,15,24,19,54,52,32,19,9,4,32,16,12,1,25,5,18,32,22,48,46,48,53,0

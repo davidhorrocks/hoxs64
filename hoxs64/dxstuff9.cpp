@@ -2952,18 +2952,18 @@ HRESULT hr;
 
 void CDX9::DrawUi()
 {
-	RECT rc;
-	if (m_appStatus->m_bPaused)
-	{
-		if (SUCCEEDED(m_lblPaused.GetTextRect(&rc)))
-		{
-			int x = (m_rcTargetRect.right - m_rcTargetRect.left - (rc.right - rc.left)) / 2 + m_rcTargetRect.left;
-			int y = (m_rcTargetRect.bottom - m_rcTargetRect.top - (rc.bottom - rc.top)) / 2 + m_rcTargetRect.top;
-			m_lblPaused.xpos = x;
-			m_lblPaused.ypos = y;
-			m_lblPaused.Draw();
-		}
-	}
+	//RECT rc;
+	//if (m_appStatus->m_bPaused)
+	//{
+	//	if (SUCCEEDED(m_lblPaused.GetTextRect(&rc)))
+	//	{
+	//		int x = (m_rcTargetRect.right - m_rcTargetRect.left - (rc.right - rc.left)) / 2 + m_rcTargetRect.left;
+	//		int y = (m_rcTargetRect.bottom - m_rcTargetRect.top - (rc.bottom - rc.top)) / 2 + m_rcTargetRect.top;
+	//		m_lblPaused.xpos = x;
+	//		m_lblPaused.ypos = y;
+	//		m_lblPaused.Draw();
+	//	}
+	//}
 }
 
 D3DTEXTUREFILTERTYPE CDX9::GetDxFilterFromEmuFilter(HCFG::EMUWINDOWFILTER emuFilter)

@@ -121,6 +121,7 @@ public:
 	bit8 m_writeStream;
 	bit32 m_totalclocks_UE7;
 	bit32 m_lastPulseTime;
+	bit32 m_lastWeakPulseTime;
 	bit32 m_counterStartPulseFilter;
 	bit32s m_nextP64PulsePosition;
 	bool m_bPendingPulse;

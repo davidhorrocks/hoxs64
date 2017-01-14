@@ -156,14 +156,12 @@ bool bOldMotor;
 bit8 oldPin = oldDiskControl;
 
 	if (oldPin == newPin)
+	{
 		return;
-
+	}
 	disk->SpinDisk(CurrentClock);
-
-
 	bMotor = ((newPin & 4)>>2) != 0;
 	bOldMotor = ((oldPin & 4)>>2) != 0;
-
 	if (((oldPin ^ newPin) & 0x6c) !=0)
 	{
 		disk->m_bDiskMotorOn = bMotor;
@@ -187,10 +185,13 @@ bit8 oldPin = oldDiskControl;
 	if (!bMotor && bOldMotor)
 	{
 		//Allow motor to run for a short time after it is turned off.
-		disk->m_motorOffClock = 135000;
+		//disk->m_motorOffClock = 135000;
+		disk->m_motorOffClock = 143000 + rand();
 	}
 	else if (bMotor)
+	{
 		disk->m_motorOffClock = 0;
+	}
 
 	t = disk->m_lastHeadStepPosition & 3;	
 	t = ((newPin - t) & 3);
