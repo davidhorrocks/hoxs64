@@ -645,19 +645,12 @@ void SIDVoice::Modulate()
 {
 short sample;
 	if (sampleHoldDelay>0)
+	{
 		sampleHoldDelay--;
+	}
 	lastSample = CalcWave(wavetype);
 	sample = ((short)(lastSample & 0xfff) - 0x800);
-	if (appStatus->m_bSidDigiBoost)
-	{
-		fVolSample = ((double)((long)sample * (long)volume) / (255.0));
-		fVolSample += (double)SIDVOLMUL;
-		fVolSample = SIDBOOST_6581 * ((fVolSample * (double)sid->sidVolume) / (15.0));
-	}
-	else
-	{
-		fVolSample = SIDBOOST_8580 * ((double)((long)sample * (long)volume * (long)sid->sidVolume) / (255.0 * 15.0));
-	}
+	fVolSample = ((double)((long)sample * (long)volume) / (255.0));
 }
 
 void SID64::ExecuteCycle(ICLK sysclock)
@@ -707,7 +700,9 @@ long sampleOffset;
 		voice3.SyncRecheck();
 
 		if (appStatus->m_bMaxSpeed)
+		{
 			continue;
+		}
 
 		voice1.Modulate();
 		voice2.Modulate();
@@ -763,14 +758,27 @@ long sampleOffset;
 		bp_out = svfilterForResample.bp;
 		hp_out = svfilterForResample.hp;
 		if (sidFilter & 0x10)
+		{
 			fsample = fsample - lp_out; 
-
+		}
 		if (sidFilter & 0x20)
+		{
 			fsample = fsample - bp_out;
-
+		}
 		if (sidFilter & 0x40)
+		{
 			fsample = fsample - hp_out;
+		}
 
+		if (appStatus->m_bSidDigiBoost)
+		{
+			fsample += (double)(SIDVOLMUL * 3);
+			fsample = SIDBOOST_6581 * ((fsample * (double)this->sidVolume) / (15.0));
+		}
+		else
+		{
+			fsample = SIDBOOST_8580 * ((double)(fsample * (double)this->sidVolume) / (15.0));
+		}
 		sidSampler = sidSampler + filterInterpolationFactor;
 		filterPreFilterResample.fir_buffer_sampleNx(fsample);
 		if (sidSampler >= 0)
@@ -795,22 +803,26 @@ long sampleOffset;
 #ifdef ALLOW_EMUFPS_50_12_MULTI
 			}
 #endif
-
 			if (pBuffer1==NULL)
+			{
 				return;				
-			
-			fsample = fsample * (double)filterInterpolationFactor * MasterVolume;
-			//fsample = fsample * SIDBOOST;
+			}
 
+			fsample = fsample * (double)filterInterpolationFactor * MasterVolume;
 			if (fsample > 32767.0)
+			{
 				fsample = 32767.0;
+			}
 			else if (fsample < -32767.0)
+			{
 				fsample = -32767.0;
+			}
 
 			dxsample = (short)(fsample);
-
 			if (pBuffer1!=0)
+			{
 				WriteSample(dxsample);
+			}
 		}
 	}
 }
@@ -906,28 +918,43 @@ short dxsample;
 			bp_out = svfilterForDownSample.bp;
 			hp_out = svfilterForDownSample.hp;
 			if (sidFilter & 0x10)
+			{
 				fsample = fsample - lp_out;
-
+			}
 			if (sidFilter & 0x20)
+			{
 				fsample = fsample - bp_out;
-
+			}
 			if (sidFilter & 0x40)
+			{
 				fsample = fsample - hp_out;
-			
+			}
 			fsample = fsample + nofilter;
+			if (appStatus->m_bSidDigiBoost)
+			{
+				fsample += (double)(SIDVOLMUL * 3);
+				fsample = SIDBOOST_6581 * ((fsample * (double)this->sidVolume) / (15.0));
+			}
+			else
+			{
+				fsample = SIDBOOST_8580 * ((double)(fsample * (double)this->sidVolume) / (15.0));
+			}
 
 			fsample = fsample * MasterVolume;
-			//fsample = fsample * SIDBOOST;
-
 			if (fsample > 32767.0)
+			{
 				fsample = 32767.0;
+			}
 			else if (fsample < -32767.0)
+			{
 				fsample = -32767.0;
+			}
 
-			dxsample = (WORD)(fsample * MasterVolume);
-
+			dxsample = (WORD)(fsample);
 			if (pBuffer1!=0)
+			{
 				WriteSample(dxsample);
+			}
 		}
 	}
 }
@@ -1261,14 +1288,14 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		voice3.frequency = (voice3.frequency & 0xff00) | data;
 		break;
 	case 0xf:
-		voice3.frequency = (voice3.frequency & 0x00ff) | (data<<8);
+		voice3.frequency = (voice3.frequency & 0x00ff) | (((bit32)data)<<8);
 		break;
 	case 0x10:
 		voice3.pulse_width_reg = (voice3.pulse_width_reg & 0x0f00) | data;
 		voice3.pulse_width_counter = voice3.pulse_width_reg << 12;
 		break;
 	case 0x11:
-		voice3.pulse_width_reg = (voice3.pulse_width_reg & 0xff) | ((data & 0xf)<<8);
+		voice3.pulse_width_reg = (voice3.pulse_width_reg & 0xff) | (((bit32)(data & 0xf))<<8);
 		voice3.pulse_width_counter = voice3.pulse_width_reg << 12;
 		break;
 	case 0x12:
