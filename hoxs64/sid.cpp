@@ -572,14 +572,22 @@ DWORD dwMsb;
 	{
 	case sidTRIANGLE:
 		if (ring_mod)
-			msb = ((modulator_voice->counter ^ counter) & 0x00800000) != 0;
+		{
+			msb = ((modulator_voice->counter ^ counter) & 0x00800000) == 0;
+		}
 		else
+		{
 			msb = (counter & 0x00800000) != 0;
+		}
 
 		if (msb)
+		{
 			return (unsigned short)  (((~counter) & 0x007fffff) >> 11);
+		}
 		else
+		{
 			return (unsigned short)  ((counter & 0x007fffff) >> 11);
+		}
 	case sidSAWTOOTH:
 		return (unsigned short) (counter >> 12);
 	case sidPULSE:
@@ -707,7 +715,6 @@ long sampleOffset;
 		voice1.Modulate();
 		voice2.Modulate();
 		voice3.Modulate();
-
 		if (sidBlock_Voice3)
 		{
 			voice3nofilter = 0;
