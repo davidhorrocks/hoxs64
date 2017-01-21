@@ -406,7 +406,9 @@ HRESULT hr;
 		//Draw from the dx small surface to the dx backbuffer
 		hr = dx->UpdateBackBuffer((D3DTEXTUREFILTERTYPE)appStatus->m_blitFilterDX);
 		if (cfg->m_bShowFloppyLed)
+		{
 			dx->DrawDriveSprites();
+		}
 		dx->DrawUi();
 		dx->m_pd3dDevice->EndScene();
 	}

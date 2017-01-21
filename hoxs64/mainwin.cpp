@@ -179,6 +179,12 @@ HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[
 LRESULT CAppWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 int x, y, w, h;
+int mainWidth;
+int mainHeight;
+int clientWidth;
+int clientHeight;
+int emuWinWidth;
+int emuWinHeight;
 MINMAXINFO *pMinMax;
 bool bOK;
 const int iStatusParts = 1;
@@ -306,22 +312,33 @@ shared_ptr<CDiagAbout> pDiagAbout;
 					{
 						y = rcClient.top;
 						x = rcClient.left;
-						w = max(0, rcClient.right - rcClient.left) - x;
-						h = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
-						if (w > 0 && h > 0)
+						clientWidth = max(0, rcClient.right - rcClient.left) - x;
+						clientHeight = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
+						if (clientWidth > 0 && clientHeight > 0)
 						{
-							if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOZORDER | SWP_NOMOVE))
+							bool isCustomSizeBlit = true;
+							if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, SWP_NOZORDER | SWP_NOMOVE))
 							{
 								CConfig tCfg;
 								appStatus->GetUserConfig(tCfg);
-								tCfg.m_bWindowedCustomSize = true;
+								if (!tCfg.m_bUseBlitStretch)
+								{
+									this->GetRequiredMainWindowSize(tCfg.m_borderSize, tCfg.m_bShowFloppyLed, tCfg.m_bDoubleSizedWindow, &mainWidth, &mainHeight);
+									RECT rcMain = {0, 0, mainWidth, mainHeight};
+									this->CalcEmuWindowSize(rcMain, &emuWinWidth, &emuWinHeight);
+									if (emuWinWidth == w && emuWinHeight == h)
+									{
+										isCustomSizeBlit = false;
+									}
+								}
+								tCfg.m_bWindowedCustomSize = isCustomSizeBlit;
 								appStatus->SetUserConfig(tCfg);
 
-								//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.
-								appStatus->m_bWindowedCustomSize = true;
+								//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.								
+								appStatus->m_bWindowedCustomSize = isCustomSizeBlit;
 								if (dx != NULL)
 								{
-									dx->m_bWindowedCustomSize = true;
+									dx->m_bWindowedCustomSize = isCustomSizeBlit;
 									dx->Reset();
 								}
 							}

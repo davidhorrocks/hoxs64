@@ -629,6 +629,9 @@ WINDOWPLACEMENT wp;
 
 	_sntprintf_s(szValue, _TRUNCATE, TEXT("%d"), h);
 	RegSetValueEx(hKey1, TEXT("MainWinHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+
+	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bDoubleSizedWindow ? 1: 0));
+	RegSetValueEx(hKey1, TEXT("DoubleSizedWindow"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 	
 	RegCloseKey(hKey1);
 

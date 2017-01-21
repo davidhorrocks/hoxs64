@@ -857,12 +857,16 @@ D3DRECT drcStatusBar;
 			}
 		}
 		if (bStatusBarOk)
+		{
 			memcpy(&drcEraseRects[0], &drcStatusBar, sizeof(D3DRECT));
+		}
 	}
 	else //Fullscreen
 	{
 		if (currentDisplayMode.Width < 320 || currentDisplayMode.Height < 200)
+		{
 			return E_FAIL;
+		}
 
 		if (stretch == HCFG::EMUWINSTR_AUTO)
 		{

@@ -573,6 +573,17 @@ TCHAR drive[_MAX_DRIVE];
 TCHAR dir[_MAX_DIR];
 TCHAR fname[_MAX_FNAME];
 TCHAR ext[_MAX_EXT];
+int minWidth;
+int minHeight;
+int mainWinWidth;
+int mainWinHeight;
+int emuWinWidth;
+int emuWinHeight;
+int mainWinFixedWidth;
+int mainWinFixedHeight;
+int emuWinFixedWidth;
+int emuWinFixedHeight;
+RECT rcMain;
 
 	ClearError();
 	lr = GetModuleFileName(NULL, m_szAppFullPath, _countof(m_szAppFullPath));
@@ -675,39 +686,49 @@ TCHAR ext[_MAX_EXT];
 		return E_FAIL;
 	}
 	m_pWinAppWindow->m_pWinEmuWin->SetNotify(this);
-
-	int minWidth;
-	int minHeight;
 	m_pWinAppWindow->GetMinimumWindowedSize(&minWidth, &minHeight);
 	POINT winpos = {0,0};
 	bool bWindowedCustomSize = false;
-	int winWidth;
-	int winHeight;
-
+	m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &mainWinFixedWidth, &mainWinFixedHeight);
+	rcMain.left = 0;
+	rcMain.top = 0;
+	rcMain.right = mainWinFixedWidth;
+	rcMain.bottom = mainWinFixedHeight;
+	m_pWinAppWindow->CalcEmuWindowSize(rcMain, &emuWinFixedWidth, &emuWinFixedHeight);
+	mainWinWidth = mainWinFixedWidth;
+	mainWinHeight = mainWinFixedHeight;
 	//Look for saved x,y position and custom window size.
-	hr = mainCfg.LoadWindowSetting(winpos, bWindowedCustomSize, winWidth, winHeight);
+	hr = mainCfg.LoadWindowSetting(winpos, bWindowedCustomSize, mainWinWidth, mainWinHeight);
 	if (FAILED(hr))
 	{
 		bWindowedCustomSize = false;
-		m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &winWidth, &winHeight);
-		winpos = GetCenteredPos(winWidth, winHeight);
+		mainWinWidth = mainWinFixedWidth;
+		mainWinHeight = mainWinFixedHeight;
+		winpos = GetCenteredPos(mainWinWidth, mainWinHeight);
 	}
 	else
 	{
 		if (bWindowedCustomSize)
 		{
-			winWidth = max(minWidth, winWidth);
-			winHeight = max(minHeight, winHeight);		
-		}
-		else
-		{
-			m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &winWidth, &winHeight);
+			mainWinWidth = max(minWidth, mainWinWidth);
+			mainWinHeight = max(minHeight, mainWinHeight);		
 		}
 	}
+	if (!mainCfg.m_bUseBlitStretch && bWindowedCustomSize)
+	{
+		//Attempt to use CPU blit if a custom window size matches the set size for the current state of "Double Sized Window".
+		RECT rcMain = {0, 0, mainWinWidth, mainWinHeight};
+		m_pWinAppWindow->CalcEmuWindowSize(rcMain, &emuWinWidth, &emuWinHeight);
+		if (emuWinFixedWidth == emuWinWidth && emuWinFixedHeight == emuWinHeight)
+		{
+			bWindowedCustomSize = false;
+		}
+	}
+
 	//Apply custom window size flag.
 	m_bWindowedCustomSize = bWindowedCustomSize;
 
-	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, winWidth, winHeight, NULL);
+	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, mainWinWidth, mainWinHeight, NULL);
 	if (!hWndMain)
 	{
 		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
@@ -752,7 +773,7 @@ TCHAR ext[_MAX_EXT];
 		return E_FAIL;
 	}
 
-	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, m_bWindowedCustomSize, winWidth, winHeight, m_bUseBlitStretch);
+	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, m_bWindowedCustomSize, mainWinWidth, mainWinHeight, m_bUseBlitStretch);
 	if (S_OK != hr) 
 	{
 		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
