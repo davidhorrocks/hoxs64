@@ -35,6 +35,7 @@ namespace SsLib
 			DriveDiskImageV1 = 22,
 			C64Cia1V1 = 23,
 			C64Cia2V1 = 24,
+			DriveControllerV2 = 25
 		};
 	}
 };
@@ -503,6 +504,13 @@ struct SsDiskInterfaceV1 : SsDiskInterfaceV0
 	bit32 m_headStepClockUp;
 };
 
+struct SsDiskInterfaceV2 : SsDiskInterfaceV1
+{
+	bit32s m_motor_cmp;
+	bit32s m_motor_dy;
+	bit32s m_motor_dx;
+};
+
 struct SsViaCommon
 {
 	bit32s ID;
@@ -590,7 +598,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 1;
+    static const int VERSION = 2;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

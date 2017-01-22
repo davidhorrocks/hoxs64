@@ -41,9 +41,10 @@ public:
 	virtual ICLK GetCurrentClock();
 	virtual void SetCurrentClock(ICLK sysclock);
 
-	void GetState(SsDiskInterfaceV1 &state);
-	void SetState(const SsDiskInterfaceV1 &state);
+	void GetState(SsDiskInterfaceV2 &state);
+	void SetState(const SsDiskInterfaceV2 &state);
 	static void UpgradeStateV0ToV1(const SsDiskInterfaceV0 &in, SsDiskInterfaceV1 &out);
+	static void UpgradeStateV1ToV2(const SsDiskInterfaceV1 &in, SsDiskInterfaceV2 &out);
 
 	//IMonitorDisk
 	virtual bit8 GetHalfTrackIndex();
@@ -66,7 +67,9 @@ public:
 
 	void ClockDividerAdd(bit8 clocks, bit8 speed, bool bStartWithPulse);
 	void SpinDisk(ICLK sysclock);
-
+	void StartMotor();
+	void StopMotor();
+	bool MotorSlowDownEnv();
 	void ExecutePALClock(ICLK palclock);
 	void ExecuteOnePendingDiskCpuClock();
 	void AccumulatePendingDiskCpuClocksToPalClock(ICLK palclock);
@@ -96,6 +99,9 @@ public:
 	ICLK m_pendingclocks;
 	volatile ICLK m_DiskThreadCommandedPALClock;
 	volatile ICLK m_DiskThreadCurrentPALClock;
+	int m_motor_cmp;
+	int m_motor_dy;
+	int m_motor_dx;
 
 	bit8 m_d64_diskwritebyte;
 

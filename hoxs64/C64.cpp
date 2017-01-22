@@ -1889,15 +1889,9 @@ bit32 dwordCount;
 			break;
 		}
 
-		SsDiskInterfaceV1 sbDiskInterfaceV1;
-		this->diskdrive.GetState(sbDiskInterfaceV1);
-		hr = SaveState::SaveSection(pfs, sbDiskInterfaceV1, SsLib::SectionType::DriveControllerV1);
-		if (FAILED(hr))
-		{
-			break;
-		}
-
-		hr = SaveState::SaveSection(pfs, sbDiskInterfaceV1, SsLib::SectionType::DriveControllerV0);
+		SsDiskInterfaceV2 sbDiskInterfaceV2;
+		this->diskdrive.GetState(sbDiskInterfaceV2);
+		hr = SaveState::SaveSection(pfs, sbDiskInterfaceV2, SsLib::SectionType::DriveControllerV2);
 		if (FAILED(hr))
 		{
 			break;
@@ -2177,6 +2171,7 @@ SsTape sbTapePlayer;
 SsTapeData sbTapeDataHeader;
 SsDiskInterfaceV0 sbDriveControllerV0;
 SsDiskInterfaceV1 sbDriveControllerV1;
+SsDiskInterfaceV2 sbDriveControllerV2;
 SsVia1 sbDriveVia1;
 SsVia2 sbDriveVia2;
 SsCpuDisk sbCpuDisk;
@@ -2737,6 +2732,10 @@ ULARGE_INTEGER pos_next_track_header;
 				bDriveCpu = true;
 				break;
 			case SsLib::SectionType::DriveControllerV0:
+				if (driveControllerVersion > 0)
+				{
+					break;
+				}
 				driveControllerVersion = 0;
 				bytesToRead = sizeof(SsDiskInterfaceV0);
 				hr = pfs->Read(&sbDriveControllerV0, bytesToRead, &bytesRead);
@@ -2754,13 +2753,43 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 				DiskInterface::UpgradeStateV0ToV1(sbDriveControllerV0, sbDriveControllerV1);
+				DiskInterface::UpgradeStateV1ToV2(sbDriveControllerV1, sbDriveControllerV2);
 				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveControllerV1:
+				if (driveControllerVersion > 1)
+				{
+					break;
+				}
 				driveControllerVersion = 1;
 				ZeroMemory(&sbDriveControllerV1, sizeof(sbDriveControllerV1));
 				bytesToRead = sizeof(SsDiskInterfaceV1);
 				hr = pfs->Read(&sbDriveControllerV1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					break;
+				}
+				DiskInterface::UpgradeStateV1ToV2(sbDriveControllerV1, sbDriveControllerV2);
+				bDriveController = true;
+				break;
+			case SsLib::SectionType::DriveControllerV2:
+				if (driveControllerVersion > 2)
+				{
+					break;
+				}
+				driveControllerVersion = 2;
+				ZeroMemory(&sbDriveControllerV2, sizeof(sbDriveControllerV2));
+				bytesToRead = sizeof(SsDiskInterfaceV2);
+				hr = pfs->Read(&sbDriveControllerV2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3041,7 +3070,7 @@ ULARGE_INTEGER pos_next_track_header;
 		}
 		if (bDriveController)
 		{
-			diskdrive.SetState(sbDriveControllerV1);
+			diskdrive.SetState(sbDriveControllerV2);
 		}
 		if (bDriveVia1)
 		{

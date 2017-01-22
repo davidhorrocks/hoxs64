@@ -49,6 +49,7 @@
 #define DISK16CELLSPERCLOCK (16)
 #define DISKHEADFILTERWIDTH (40)
 #define DISKHEADSTEPWAITTIME (5000UL)
+#define DISKMOTORSLOWTIME (135000)
 
 DiskInterface::DiskInterface()
 {
@@ -754,7 +755,7 @@ bit8 bandpos;
 
 	if (m_lastPulseTime > WEAKBITIME1 && m_d64_write_enable == 0)
 	{
-		if (m_bDiskMotorOn && m_d64_diskchange_counter==0 && m_lastWeakPulseTime > WEAKBITIME2 && rand() < 1000)
+		if ((m_bDiskMotorOn || m_motorOffClock> 0) && m_d64_diskchange_counter==0 && m_lastWeakPulseTime > WEAKBITIME2 && rand() < 1000)
 		{
 			clockDivider1_UE7 = speed;
 			clockDivider2_UF4 = 0;
@@ -801,18 +802,17 @@ bit8 bandpos;
 				}
 
 				if ((signed char)m_shifterWriter_UD3 < 0)
-				{//writing a 1
+				{
+					//writing a 1
 					m_writeStream = writeClock + 1;
 				}
 				m_shifterWriter_UD3 <<= 1;
 				
 				m_shifterReader_UD2 <<= 1;
 				if ((clockDivider2_UF4 & 0xc) == 0)
-				{//reading a 1
-					//if (m_headStepClock==0)
-					{
-						m_shifterReader_UD2 |= 1;
-					}
+				{
+					//reading a 1
+					m_shifterReader_UD2 |= 1;
 				}
 				if (!m_d64_sync)
 				{
@@ -908,7 +908,6 @@ bit8 bitTimeDelayed;
 ICLKS clocks;
 bit8 speed;
 p64_uint32_t position;
-bit8 bMotorRun = m_bDiskMotorOn;
 bool nextPulseState;
 int i;
 
@@ -922,11 +921,7 @@ int i;
 		bitTimeFirstInCell = 0;
 		bitTimeDelayed = 0;
 		nextPulseState = m_bPulseState;
-		if (m_motorOffClock)
-		{
-			m_motorOffClock--;
-			bMotorRun = true;
-		}
+		bit8 bMotorRun = MotorSlowDownEnv();
 		if (m_headStepClock)
 		{
 			m_headStepClock--;
@@ -1382,7 +1377,65 @@ bit8 DiskInterface::GetHalfTrackIndex()
 	return m_currentTrackNumber;
 }
 
-void DiskInterface::GetState(SsDiskInterfaceV1 &state)
+void DiskInterface::StartMotor()
+{
+}
+
+void DiskInterface::StopMotor()
+{
+	//Allow motor to run for a short time after it is turned off.
+	m_motorOffClock = DISKMOTORSLOWTIME + (rand() & 0xfff);
+	m_motor_dy = 1;
+	m_motor_dx = m_motorOffClock;
+	m_motor_cmp = 2 * m_motor_dy - m_motor_dx;
+}
+
+bool DiskInterface::MotorSlowDownEnv()
+{	
+	if (m_bDiskMotorOn)
+	{
+		return true;
+	}
+	else
+	{
+		if (m_motorOffClock > 0 && m_motor_dx > 0)
+		{
+			m_motorOffClock--;
+			bool dospin = m_motor_dx >= m_motor_dy;
+			if (dospin)
+			{
+				if (m_motor_cmp > 0)
+				{
+					dospin = false;
+					m_motor_cmp = m_motor_cmp - m_motor_dx;
+				}
+				m_motor_cmp = m_motor_cmp + m_motor_dy;
+			}
+			else
+			{
+				if (m_motor_cmp > 0)
+				{
+					dospin = true;
+					m_motor_cmp = m_motor_cmp - m_motor_dy;
+				}
+				m_motor_cmp = m_motor_cmp + m_motor_dx;
+			}
+			m_motor_dy++;
+			m_motor_dx--;
+			if (m_motor_dx == 0)
+			{
+				m_motorOffClock = 0;
+			}
+			return dospin;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+
+void DiskInterface::GetState(SsDiskInterfaceV2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
@@ -1433,10 +1486,13 @@ void DiskInterface::GetState(SsDiskInterfaceV1 &state)
 	state.m_bPulseState = m_bPulseState;
 	state.m_bLastPulseState = m_bLastPulseState;
 	state.m_nextP64PulsePosition = m_nextP64PulsePosition;
-	state.m_headStepClockUp = m_headStepClockUp;
+	state.m_headStepClockUp = m_headStepClockUp;	
+	state.m_motor_cmp = m_motor_cmp;
+	state.m_motor_dy = m_motor_dy;
+	state.m_motor_dx = m_motor_dx;
 }
 
-void DiskInterface::SetState(const SsDiskInterfaceV1 &state)
+void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 {
 	CurrentClock = state.CurrentClock;
 	m_d64_serialbus = state.m_d64_serialbus;
@@ -1488,6 +1544,9 @@ void DiskInterface::SetState(const SsDiskInterfaceV1 &state)
 	m_bLastPulseState = state.m_bLastPulseState != 0;
 	m_nextP64PulsePosition = state.m_nextP64PulsePosition;
 	m_headStepClockUp = state.m_headStepClockUp;
+	m_motor_cmp = state.m_motor_cmp;
+	m_motor_dy = state.m_motor_dy;
+	m_motor_dx = state.m_motor_dx;
 }
 
 void DiskInterface::UpgradeStateV0ToV1(const SsDiskInterfaceV0 &in, SsDiskInterfaceV1 &out)
@@ -1508,4 +1567,19 @@ void DiskInterface::UpgradeStateV0ToV1(const SsDiskInterfaceV0 &in, SsDiskInterf
 	}
 	out.m_nextP64PulsePosition = -1;
 	out.m_headStepClockUp = DISKHEADSTEPWAITTIME - in.m_headStepClock;
+}
+
+void DiskInterface::UpgradeStateV1ToV2(const SsDiskInterfaceV1 &in, SsDiskInterfaceV2 &out)
+{
+	ZeroMemory(&out, sizeof(SsDiskInterfaceV2));
+	*((SsDiskInterfaceV1 *)&out) = in;
+	if (!out.m_bDiskMotorOn)
+	{
+		if (out.m_motorOffClock>0)
+		{
+			out.m_motor_dy = DISKMOTORSLOWTIME - out.m_motorOffClock + 1;
+			out.m_motor_dx = out.m_motorOffClock;
+			out.m_motor_cmp = 2 * out.m_motor_dy - out.m_motor_dx;
+		}
+	}	
 }

@@ -183,14 +183,12 @@ bit8 oldPin = oldDiskControl;
 	}
 
 	if (!bMotor && bOldMotor)
-	{
-		//Allow motor to run for a short time after it is turned off.
-		//disk->m_motorOffClock = 135000;
-		disk->m_motorOffClock = 143000 + rand();
+	{		
+		disk->StopMotor();
 	}
 	else if (bMotor)
 	{
-		disk->m_motorOffClock = 0;
+		disk->StartMotor();
 	}
 
 	t = disk->m_lastHeadStepPosition & 3;	
