@@ -267,7 +267,9 @@ HRESULT hr;
 	totalBytesToWrite = 0;
 	hr = nodeHolder.Init(0x20000);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	for (streamNumber=1 ; streamNumber>=0 ; streamNumber--)
 	{
@@ -278,16 +280,24 @@ HRESULT hr;
 		for (i=0 ; i < srcDoubleWordCount ; i++)
 		{
 			if (streamNumber==0)
+			{
 				v16 = (bit16)(src[i]);
+			}
 			else
+			{
 				v16 = (bit16)(src[i]>>16);
+			}
 			huffTable[v16].weight++;
 			if(v16)
+			{
 				streamRequired=true;
+			}
 		}
 
 		if ((streamNumber!=0) && !streamRequired)
+		{
 			continue;
+		}
 
 		list.Clear();
 		//add symbols to list
@@ -297,13 +307,17 @@ HRESULT hr;
 			{
 				hn = nodeHolder.Create();
 				if (hn==NULL)
+				{
 					return E_OUTOFMEMORY;
+				}
 				hn->value = i;
 				hn->weight = huffTable[i].weight;
 				hn->isLeaf = true;
 				hr = list.Append(hn);
 				if (FAILED(hr))
+				{
 					return hr;
+				}
 			}
 		}
 		//sort symbol list based in weights: lowest first.
@@ -316,18 +330,20 @@ HRESULT hr;
 			//take lowest two symbols and make them into a parent with two children
 			parent = nodeHolder.Create();
 			if (parent==NULL)
+			{
 				return E_OUTOFMEMORY;
+			}
 			lChild = list.Head()->m_data;
 			list.Head()->m_data = 0;//prevent clean during the remove;
 			//TRIAL
 			if (pSearchListElement == list.Head() || pSearchListElement == list.Head()->Next())
+			{
 				pSearchListElement = NULL;
+			}
+
 			list.Remove(list.Head());
-
 			rChild = list.Head()->m_data;
-
 			list.Head()->m_data = parent;
-
 			parent->AddLeft(lChild);
 			parent->AddRight(rChild);
 			parent->weight = lChild->weight + rChild->weight;
@@ -335,7 +351,9 @@ HRESULT hr;
 			//re-sort the new parent huff node;
 			//TRIAL
 			if (pSearchListElement==NULL)
+			{
 				pSearchListElement=list.Head()->Next();
+			}
 			if (pSearchListElement!=NULL)
 			{
 				hn  = pSearchListElement->m_data;
@@ -343,7 +361,9 @@ HRESULT hr;
 				{
 					hn  = pSearchListElement->m_data;
 					if (hn->weight >= parent->weight)
+					{
 						break;
+					}
 					pSearchListElement = pSearchListElement->Next();
 				}
 				if (pSearchListElement==NULL)
@@ -381,9 +401,6 @@ Second byte: bits 0-6: high-order bit number (included) of the stream values
 		}
 
 		hn = list.Head()->m_data;
-		if (hn->isLeaf)
-			return E_FAIL;
-
 		path=0;
 		pathLength=0;
 		HuffWalkTreeBits(hn);
@@ -391,41 +408,65 @@ Second byte: bits 0-6: high-order bit number (included) of the stream values
 		HuffWalkTreeValues(hn);
 		HuffEndWrite();
 		if (writeError)
+		{
 			return E_FAIL;
+		}
 		for (i=0; i < srcDoubleWordCount; i++)
 		{
 			if (streamNumber==0)
-				s = (bit16)(src[i]);
+			{
+				s = (bit16)(src[i]);			
+			}
 			else
+			{
 				s = (bit16)(src[i]>>16);
+			}
 			v32 = huffTable[s].path;
 			pl = huffTable[s].pathLength;
+			assert(pl>=0 && pl<=32);
 
-			assert(pl>0 && pl<=32);
-
-			v32 <<= (32-pl);
-			while (pl>0)
+			if (pl > 0)
 			{
+				v32 <<= (32-pl);
+				while (pl>0)
+				{
 
-				if ((signed long)v32 < 0)
-					HuffWriteBit(1);
-				else
-					HuffWriteBit(0);
-				pl--;
-				v32<<=1;
+					if ((signed long)v32 < 0)
+					{
+						HuffWriteBit(1);
+					}
+					else
+					{
+						HuffWriteBit(0);
+					}
+					pl--;
+					v32<<=1;
+				}
+			}
+			else
+			{
+				HuffWriteBit(0);
 			}
 			if (writeError)
+			{
 				return E_FAIL;
+			}
 		}
 		HuffEndWrite();
 		if (writeError)
+		{
 			return E_FAIL;
+		}
 	}
 
 	if (writeError)
+	{
 		return E_FAIL;
+	}
 	if (dstSize)
+	{
 		*dstSize = totalBytesToWrite;
+	}
 	assert(((outLength + 7) / 8) == totalBytesToWrite);
 	return S_OK;
 }

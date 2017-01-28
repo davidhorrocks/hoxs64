@@ -81,25 +81,33 @@ ULONG bytesToRead = 0;
 
 	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, numberOfDoubleWords * 4);
 	if (!fdiStream.data)
+	{
 		return E_OUTOFMEMORY;
+	}
 
 	do
 	{
 		cnt++;
-
 		nodeArray.Clear();
 		hr = nodeArray.Resize(256);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
+
 		hr = nodeHolder.Init(0x20000);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 
 		rootNode = nodeHolder.Create();
 		if (rootNode==NULL)
+		{
 			return E_OUTOFMEMORY;
-		currentNode = rootNode;
+		}
 
+		currentNode = rootNode;
 		bytesToRead = 1;
 		hr = m_pStream->Read((char *)&subStreamHeader1, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
@@ -111,7 +119,9 @@ ULONG bytesToRead = 0;
 			hr = E_FAIL;
 		}
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 
 		bytesToRead = 1;
 		hr = m_pStream->Read((char *)&subStreamHeader2, bytesToRead, &bytesRead);
@@ -124,21 +134,30 @@ ULONG bytesToRead = 0;
 			hr = E_FAIL;
 		}
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 
 		fdiStream.highBitNumber = subStreamHeader2 & 0x7f;
 		fdiStream.lowBitNumber = subStreamHeader1 & 0x7f;
 
 		if (subStreamHeader1 & 0x80)
+		{
 			fdiStream.bSignExtend = true;
+		}
 		else
+		{
 			fdiStream.bSignExtend = false;
-
+		}
 
 		if (subStreamHeader2 & 0x80)
+		{
 			fdiStream.bitSize = 16;
+		}
 		else
+		{
 			fdiStream.bitSize = 8;
+		}
 
 		mask = ((DWORD)-1) >> (31 - fdiStream.highBitNumber);
 		mask &=  ((DWORD)-1) << (fdiStream.lowBitNumber);
@@ -162,7 +181,9 @@ ULONG bytesToRead = 0;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					return hr;
+				}
 			}
 			if (currentByte >= 0)
 			{
@@ -170,10 +191,14 @@ ULONG bytesToRead = 0;
 				//currentNode is a "node"
 				currentNode->AddLeft(hn = nodeHolder.Create());
 				if (hn == NULL)
+				{
 					return E_OUTOFMEMORY;
+				}
 				currentNode->AddRight(hn = nodeHolder.Create());
 				if (hn == NULL)
+				{
 					return E_OUTOFMEMORY;
+				}
 				currentNode = currentNode->leftNode;
 			}
 			else
@@ -183,14 +208,20 @@ ULONG bytesToRead = 0;
 				currentNode->isLeaf = true;
 				hr = nodeArray.Append(currentNode);
 				if (FAILED(hr))
+				{
 					return hr;
+				}
 				currentNode = currentNode->FindDeepestRightNode();
 				if (currentNode==0)
+				{
 					break;
+				}
 			}
 			i++;
 			if (i>0x20000)//tree limit
+			{
 				return E_FAIL;
+			}
 
 			currentByte <<= 1;
 			frame--;
@@ -212,7 +243,9 @@ ULONG bytesToRead = 0;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					return hr;
+				}
 
 				//Is this right?
 				//Not really a correct decompression but it saves on another loop to
@@ -220,10 +253,13 @@ ULONG bytesToRead = 0;
 				currentWord = wordswap(currentWord);
 
 				if (fdiStream.bSignExtend)
+				{
 					nodeArray[i]->value = (unsigned long)(signed short)currentWord;
+				}
 				else
+				{
 					nodeArray[i]->value = (unsigned long)(unsigned short)currentWord;
-
+				}
 			}
 			else
 			{
@@ -238,12 +274,18 @@ ULONG bytesToRead = 0;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					return hr;
+				}
 
 				if (fdiStream.bSignExtend)
+				{
 					nodeArray[i]->value = (unsigned long)(signed char)currentByte;
+				}
 				else
+				{
 					nodeArray[i]->value = (unsigned long)(unsigned char)currentByte;
+				}
 			}
 		}
 
@@ -270,18 +312,24 @@ ULONG bytesToRead = 0;
 						hr = E_FAIL;
 					}
 					if (FAILED(hr))
+					{
 						return hr;
+					}
 				}
 				if (currentByte >= 0)
 				{
 					if (currentNode->leftNode==0)
+					{
 						return E_FAIL;
+					}
 					currentNode = currentNode->leftNode;
 				}
 				else
 				{
 					if (currentNode->rightNode==0)
+					{
 						return E_FAIL;
+					}
 					currentNode = currentNode->rightNode;
 				}
 
