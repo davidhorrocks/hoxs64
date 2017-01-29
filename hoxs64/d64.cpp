@@ -224,51 +224,50 @@ long l;
 	}
 }
 
-
 const struct D64_Track_Info GCRDISK::D64_info[42]=
 {
-	/* 0 */{21,0x00000,D64_TRACK_SIZE_1_17,3,21,0.0},
-	/* 1 */{21,0x01500,D64_TRACK_SIZE_1_17,3,42,45.540390014648438},
-	/* 2 */{21,0x02a00,D64_TRACK_SIZE_1_17,3,63,91.083435058593750},
-	/* 3 */{21,0x03f00,D64_TRACK_SIZE_1_17,3,84,36.623184204101563},
-	/* 4 */{21,0x05400,D64_TRACK_SIZE_1_17,3,105,82.177154541015625},
-	/* 5 */{21,0x06900,D64_TRACK_SIZE_1_17,3,126,27.718986511230469},
-	/* 6 */{21,0x07e00,D64_TRACK_SIZE_1_17,3,147,73.272232055664062},
-	/* 7 */{21,0x09300,D64_TRACK_SIZE_1_17,3,168,18.801788330078125},
-	/* 8 */{21,0x0a800,D64_TRACK_SIZE_1_17,3,189,64.342239379882813},
-	/* 9 */{21,0x0bd00,D64_TRACK_SIZE_1_17,3,210,9.8845901489257812},
-	/* 10 */{21,0x0d200,D64_TRACK_SIZE_1_17,3,231,55.424179077148438},
-	/* 11 */{21,0x0e700,D64_TRACK_SIZE_1_17,3,252,0.96739196777343750},
-	/* 12 */{21,0x0fc00,D64_TRACK_SIZE_1_17,3,273,46.519104003906250},
-	/* 13 */{21,0x11100,D64_TRACK_SIZE_1_17,3,294,92.050186157226562},
-	/* 14 */{21,0x12600,D64_TRACK_SIZE_1_17,3,315,37.601028442382813},
-	/* 15 */{21,0x13b00,D64_TRACK_SIZE_1_17,3,336,83.146011352539062},
-	/* 16 */{21,0x15000,D64_TRACK_SIZE_1_17,3,357,28.695968627929687},
-	/* 17 */{19,0x16500,D64_TRACK_SIZE_18_24,2,376,70.550125122070313},
-	/* 18 */{19,0x17800,D64_TRACK_SIZE_18_24,2,395,30.125610351562500},
-	/* 19 */{19,0x18b00,D64_TRACK_SIZE_18_24,2,414,82.574050903320313},
-	/* 20 */{19,0x19e00,D64_TRACK_SIZE_18_24,2,433,42.189514160156250},
-	/* 21 */{19,0x1b100,D64_TRACK_SIZE_18_24,2,452,94.623962402343750},
-	/* 22 */{19,0x1c400,D64_TRACK_SIZE_18_24,2,471,54.215164184570312},
-	/* 23 */{19,0x1d700,D64_TRACK_SIZE_18_24,2,490,13.823242187500000},
-	/* 24 */{18,0x1ea00,D64_TRACK_SIZE_24_30,1,508,83.750137329101563},
-	/* 25 */{18,0x1fc00,D64_TRACK_SIZE_24_30,1,526,55.237503051757812},
-	/* 26 */{18,0x20e00,D64_TRACK_SIZE_24_30,1,544,26.732643127441406},
-	/* 27 */{18,0x22000,D64_TRACK_SIZE_24_30,1,562,84.666854858398438},
-	/* 28 */{18,0x23200,D64_TRACK_SIZE_24_30,1,580,56.164382934570312},
-	/* 29 */{18,0x24400,D64_TRACK_SIZE_24_30,1,598,27.433013916015625},
-	/* 30 */{17,0x25600,D64_TRACK_SIZE_31_35,0,615,55.618392944335937},
-	/* 31 */{17,0x26700,D64_TRACK_SIZE_31_35,0,632,37.806076049804688},
-	/* 32 */{17,0x27800,D64_TRACK_SIZE_31_35,0,649,19.985908508300781},
-	/* 33 */{17,0x28900,D64_TRACK_SIZE_31_35,0,666,83.405975341796875},
-	/* 34 */{17,0x29a00,D64_TRACK_SIZE_31_35,0,683,70.061660766601563},
-	/* 35 */{17,0x2ab00,D64_TRACK_SIZE_31_35,0,700,30.0},
-	/* 36 */{17,0x2bc00,D64_TRACK_SIZE_31_35,0,717,82.0},
-	/* 37 */{17,0x2cd00,D64_TRACK_SIZE_31_35,0,734,42.0},
-	/* 38 */{17,0x2de00,D64_TRACK_SIZE_31_35,0,751,94.0},
-	/* 39 */{17,0x2ef00,D64_TRACK_SIZE_31_35,0,768,54.0},
-	/* 40 */{17,0x30000,D64_TRACK_SIZE_31_35,0,785,13.0},
-	/* 41 */{17,0x31100,D64_TRACK_SIZE_31_35,0,802,83.0}
+	/* 0 */{21,0x00000,D64_TRACK_SIZE_1_17,3,21,0.268956},
+	/* 1 */{21,0x01500,D64_TRACK_SIZE_1_17,3,42,0.724382},
+	/* 2 */{21,0x02a00,D64_TRACK_SIZE_1_17,3,63,0.177191},
+	/* 3 */{21,0x03f00,D64_TRACK_SIZE_1_17,3,84,0.632698},
+	/* 4 */{21,0x05400,D64_TRACK_SIZE_1_17,3,105,0.088173},
+	/* 5 */{21,0x06900,D64_TRACK_SIZE_1_17,3,126,0.543583},
+	/* 6 */{21,0x07e00,D64_TRACK_SIZE_1_17,3,147,0.996409},
+	/* 7 */{21,0x09300,D64_TRACK_SIZE_1_17,3,168,0.451883},
+	/* 8 */{21,0x0a800,D64_TRACK_SIZE_1_17,3,189,0.907342},
+	/* 9 */{21,0x0bd00,D64_TRACK_SIZE_1_17,3,210,0.362768},
+	/* 10 */{21,0x0d200,D64_TRACK_SIZE_1_17,3,231,0.815512},
+	/* 11 */{21,0x0e700,D64_TRACK_SIZE_1_17,3,252,0.268338},
+	/* 12 */{21,0x0fc00,D64_TRACK_SIZE_1_17,3,273,0.723813},
+	/* 13 */{21,0x11100,D64_TRACK_SIZE_1_17,3,294,0.179288},
+	/* 14 */{21,0x12600,D64_TRACK_SIZE_1_17,3,315,0.634779},
+	/* 15 */{21,0x13b00,D64_TRACK_SIZE_1_17,3,336,0.090253},
+	/* 16 */{21,0x15000,D64_TRACK_SIZE_1_17,3,357,0.545712},
+	/* 17 */{19,0x16500,D64_TRACK_SIZE_18_24,2,376,0.945418},
+	/* 18 */{19,0x17800,D64_TRACK_SIZE_18_24,2,395,0.506081},
+	/* 19 */{19,0x18b00,D64_TRACK_SIZE_18_24,2,414,0.066622},
+	/* 20 */{19,0x19e00,D64_TRACK_SIZE_18_24,2,433,0.627303},
+	/* 21 */{19,0x1b100,D64_TRACK_SIZE_18_24,2,452,0.187862},
+	/* 22 */{19,0x1c400,D64_TRACK_SIZE_18_24,2,471,0.748403},
+	/* 23 */{19,0x1d700,D64_TRACK_SIZE_18_24,2,490,0.308962},
+	/* 24 */{18,0x1ea00,D64_TRACK_SIZE_24_30,1,508,0.116926},
+	/* 25 */{18,0x1fc00,D64_TRACK_SIZE_24_30,1,526,0.788086},
+	/* 26 */{18,0x20e00,D64_TRACK_SIZE_24_30,1,544,0.459190},
+	/* 27 */{18,0x22000,D64_TRACK_SIZE_24_30,1,562,0.130238},
+	/* 28 */{18,0x23200,D64_TRACK_SIZE_24_30,1,580,0.801286},
+	/* 29 */{18,0x24400,D64_TRACK_SIZE_24_30,1,598,0.472353},
+	/* 30 */{17,0x25600,D64_TRACK_SIZE_31_35,0,615,0.834120},
+	/* 31 */{17,0x26700,D64_TRACK_SIZE_31_35,0,632,0.614880},
+	/* 32 */{17,0x27800,D64_TRACK_SIZE_31_35,0,649,0.395480},
+	/* 33 */{17,0x28900,D64_TRACK_SIZE_31_35,0,666,0.176140},
+	/* 34 */{17,0x29a00,D64_TRACK_SIZE_31_35,0,683,0.956800},
+	/* 35 */{17,0x2ab00,D64_TRACK_SIZE_31_35,0,700,0.300},
+	/* 36 */{17,0x2bc00,D64_TRACK_SIZE_31_35,0,717,0.820},
+	/* 37 */{17,0x2cd00,D64_TRACK_SIZE_31_35,0,734,0.420},
+	/* 38 */{17,0x2de00,D64_TRACK_SIZE_31_35,0,751,0.940},
+	/* 39 */{17,0x2ef00,D64_TRACK_SIZE_31_35,0,768,0.540},
+	/* 40 */{17,0x30000,D64_TRACK_SIZE_31_35,0,785,0.130},
+	/* 41 */{17,0x31100,D64_TRACK_SIZE_31_35,0,802,0.830}
 };
 
 #define D64_GAPHEADER 9
@@ -422,7 +421,7 @@ unsigned int bytesToCopy;
 bit8 maxSectorsOnThisTrack;
 bit8 headerByte;
 
-#if defined(DEBUG) && SHOWGAPS == 1
+#if defined(DEBUG) && (SHOWGAPS == 1 || SHOWSKEW == 1)
 TCHAR textbuffer[50];
 int datalength = 0;
 #endif
@@ -500,6 +499,11 @@ headerfound:
 			if (get_D64LoadStatus(tr, sec_header.sector) == GCRDISK::OK)
 			{
 				continue;
+			}
+
+			if (sec_header.sector < _countof(d64LoadStatus[tr].d64SectorLoadStatus))
+			{
+				d64LoadStatus[tr].d64SectorLoadStatus[sec_header.sector].bitIndex = bitIndex;
 			}
 
 			if (bitCounter >= MAXBITSTOSCAN)
@@ -585,6 +589,23 @@ headerfound:
 		}
 	}
 
+#if defined(DEBUG) && SHOWSKEW == 1
+	for (unsigned int tr = 0; tr < 35; tr++)
+	{
+		for (unsigned int sector = 0; sector < D64_info[tr].sector_count; sector++)
+		{
+			if (d64LoadStatus[tr].trackSize > 0)
+			{
+				if (sector == 0)
+				{
+					_stprintf_s(textbuffer, _countof(textbuffer), TEXT("tr=%d,sec=%d, %f\n"), tr, sector, (double)d64LoadStatus[tr].d64SectorLoadStatus[sector].bitIndex / (double)d64LoadStatus[tr].trackSize);
+					OutputDebugString(textbuffer);
+				}
+			}
+		}
+	}
+#endif
+
 	return st;
 }
 
@@ -592,9 +613,15 @@ void GCRDISK::ClearD64LoadStatus()
 {
 	for(unsigned int track = 0; track < _countof(d64LoadStatus); track++)
 	{
+		unsigned int g64track = track * 2;
+		if (g64track < _countof(trackSize))
+		{
+			d64LoadStatus[track].trackSize = trackSize[g64track];
+		}
 		for(unsigned int sector = 0; sector < _countof(d64LoadStatus[track].d64SectorLoadStatus); sector++)
 		{
 			d64LoadStatus[track].d64SectorLoadStatus[sector].loaded = GCRDISK::Missing;
+			d64LoadStatus[track].d64SectorLoadStatus[sector].bitIndex = 0;
 		}
 	}
 }
@@ -1226,7 +1253,7 @@ int dostracknumber;
         }
 		else
         {
-			wi = ((int)(((double)(trackSize[tr]/8)) * (D64_info[tr/2].track_stagger/100.0))) % (trackSize[tr]/8);
+			wi = ((int)(((double)(trackSize[tr]/8)) * (D64_info[tr/2].track_stagger))) % (trackSize[tr]/8);
         }
 	
 		for(c=0 ; c < D64_info[tr2].sector_count ; c++)
@@ -1299,8 +1326,6 @@ int dostracknumber;
 				pGcr[wi] = tempGcrBuffer[j];
             }
 
-			//TEST
-			//header gap changed from 9 to 11
 			for (j = 0 ; j < D64_GAPHEADER; j++, wi=(wi+1) % trackByteLen)
             {
 				pGcr[wi]=0x55;

@@ -143,11 +143,13 @@ private:
 	struct D64_Sector_Status
 	{
 		LoadState loaded;
+		unsigned int bitIndex;
 	};
 
 	struct D64_Track_Status
 	{
-		D64_Sector_Status d64SectorLoadStatus[D64_MAX_SECTORS];
+		unsigned int trackSize;
+		D64_Sector_Status d64SectorLoadStatus[D64_MAX_SECTORS];		
 	};
 
 	D64_Track_Status d64LoadStatus[D64_MAX_TRACKS];
