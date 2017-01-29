@@ -21,6 +21,7 @@
 #include "utils.h"
 
 #define DISKHEADFILTERWIDTH (40)
+#define SHOWSKEW 0
 #define SHOWGCR 0
 #define SHOWGAPS 0
 #define SHOWTRACKNUMBER 46
@@ -436,14 +437,13 @@ int datalength = 0;
 	{
 		tracks = D64_MAX_TRACKS;
 	}
-
+	ClearD64LoadStatus();
 	st = S_OK;
 	memset(m_pD64Binary, 0x0, MAX_D64_SIZE);
 	for(tr = 0; tr < tracks; tr++)
 	{
 		g64TrackNumber = tr * 2;
 retryhalftrack:
-		ClearD64LoadStatus();
 		byteIndex = 0;
 		bitIndex = 0;
 		bitCounter = 0;
@@ -505,7 +505,7 @@ headerfound:
 				continue;
 			}
 
-			if (get_D64LoadStatus(sec_header.sector) == GCRDISK::OK)
+			if (get_D64LoadStatus(tr, sec_header.sector) == GCRDISK::OK)
 			{
 				continue;
 			}
@@ -556,11 +556,11 @@ headerfound:
 			r = D64_GCR_to_Binary(buffer, (bit8 *)&sec_data, bytesToCopy*8);
 			if (r >= 0)
 			{
-				set_D64LoadStatus(sec_header.sector, GCRDISK::Bad);
+				set_D64LoadStatus(tr, sec_header.sector, GCRDISK::Bad);
 			}
 			else
 			{
-				set_D64LoadStatus(sec_header.sector, GCRDISK::OK);
+				set_D64LoadStatus(tr, sec_header.sector, GCRDISK::OK);
 				bitCounter = 0;
 			}
 
@@ -578,7 +578,7 @@ headerfound:
 
 		if (!IsD64LoadStatusOKForD64Track(tr))
 		{
-			int countOfSectorsOK = CountOfLoadStatus(GCRDISK::OK);
+			int countOfSectorsOK = CountOfLoadStatus(tr, GCRDISK::OK);
 			if ((g64TrackNumber & 1) == 0 && countOfSectorsOK == 0)
 			{
 				g64TrackNumber++;
@@ -599,27 +599,44 @@ headerfound:
 
 void GCRDISK::ClearD64LoadStatus()
 {
-	for(int i = 0; i < _countof(d64SectorLoadStatus); i++)
+	for(unsigned int track = 0; track < _countof(d64LoadStatus); track++)
 	{
-		d64SectorLoadStatus[i] = GCRDISK::Missing;
+		for(unsigned int sector = 0; sector < _countof(d64LoadStatus[track].d64SectorLoadStatus); sector++)
+		{
+			d64LoadStatus[track].d64SectorLoadStatus[sector].loaded = GCRDISK::Missing;
+		}
 	}
 }
 
-GCRDISK::LoadState GCRDISK::get_D64LoadStatus(bit8 sector)
+GCRDISK::LoadState GCRDISK::get_D64LoadStatus(unsigned int track, unsigned int sector)
 {
-	assert(sector <= _countof(d64SectorLoadStatus));
-	return d64SectorLoadStatus[sector];
+	if (track >= D64_MAX_TRACKS || track >= _countof(d64LoadStatus))
+	{
+		return GCRDISK::Bad;
+	}
+	if (sector >= D64_info[track].sector_count || sector >= _countof(d64LoadStatus[track].d64SectorLoadStatus))
+	{
+		return GCRDISK::Bad;
+	}
+	return d64LoadStatus[track].d64SectorLoadStatus[sector].loaded;
 }
 
-void GCRDISK::set_D64LoadStatus(bit8 sector, GCRDISK::LoadState state)
+void GCRDISK::set_D64LoadStatus(unsigned int track, unsigned int sector, GCRDISK::LoadState state)
 {
-	assert(sector <= _countof(d64SectorLoadStatus));
-	d64SectorLoadStatus[sector] = state;
+	if (track >= D64_MAX_TRACKS || track >= _countof(d64LoadStatus))
+	{
+		return;
+	}
+	if (sector >= D64_info[track].sector_count || sector >= _countof(d64LoadStatus[track].d64SectorLoadStatus))
+	{
+		return;
+	}
+	d64LoadStatus[track].d64SectorLoadStatus[sector].loaded = state;
 }
 
-bool GCRDISK::IsD64LoadStatusOKForD64Track(bit8 track)
+bool GCRDISK::IsD64LoadStatusOKForD64Track(unsigned int track)
 {
-	if (track >= D64_MAX_TRACKS)
+	if (track >= D64_MAX_TRACKS || track >= _countof(d64LoadStatus))
 	{
 		return false;
 	}
@@ -630,11 +647,9 @@ bool GCRDISK::IsD64LoadStatusOKForD64Track(bit8 track)
 		sectorCount = D64_MAX_SECTORS;
 	}
 
-	assert(sectorCount <= _countof(d64SectorLoadStatus));
-
 	for(int i = 0; i < sectorCount; i++)
 	{
-		if (d64SectorLoadStatus[i] != GCRDISK::OK)
+		if (d64LoadStatus[track].d64SectorLoadStatus[i].loaded != GCRDISK::OK)
 		{
 			return false;
 		}
@@ -642,13 +657,27 @@ bool GCRDISK::IsD64LoadStatusOKForD64Track(bit8 track)
 	return true;
 }
 
-bit8 GCRDISK::CountOfLoadStatus(GCRDISK::LoadState state)
+bit8 GCRDISK::CountOfLoadStatus(unsigned int track, GCRDISK::LoadState state)
 {
 bit8 c = 0;
-	for(int i = 0; i < _countof(d64SectorLoadStatus); i++)
+
+	if (track >= D64_MAX_TRACKS || track >= _countof(d64LoadStatus))
 	{
-		if (d64SectorLoadStatus[i] == state)
+		return 0;
+	}
+
+	int sectorCount = D64_info[track].sector_count;
+	if (sectorCount > D64_MAX_SECTORS)
+	{
+		sectorCount = D64_MAX_SECTORS;
+	}
+
+	for(int i = 0; i < sectorCount && i < _countof(d64LoadStatus[track].d64SectorLoadStatus); i++)
+	{
+		if (d64LoadStatus[track].d64SectorLoadStatus[i].loaded == state)
+		{
 			c++;
+		}
 	}
 	return c;
 }

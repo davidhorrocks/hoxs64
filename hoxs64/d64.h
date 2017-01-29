@@ -139,13 +139,24 @@ private:
 		Bad = 1,
 		OK = 2
 	};
-	LoadState d64SectorLoadStatus[D64_MAX_SECTORS];
+
+	struct D64_Sector_Status
+	{
+		LoadState loaded;
+	};
+
+	struct D64_Track_Status
+	{
+		D64_Sector_Status d64SectorLoadStatus[D64_MAX_SECTORS];
+	};
+
+	D64_Track_Status d64LoadStatus[D64_MAX_TRACKS];
 
 	void ClearD64LoadStatus();
-	LoadState get_D64LoadStatus(bit8 sector);
-	void set_D64LoadStatus(bit8 sector, LoadState state);
-	bool IsD64LoadStatusOKForD64Track(bit8 track);
-	bit8 CountOfLoadStatus(LoadState state);
+	LoadState get_D64LoadStatus(unsigned int track, unsigned int sector);
+	void set_D64LoadStatus(unsigned int track, unsigned int sector, LoadState state);
+	bool IsD64LoadStatusOKForD64Track(unsigned int track);
+	bit8 CountOfLoadStatus(unsigned int track, LoadState state);
 };
 
 
