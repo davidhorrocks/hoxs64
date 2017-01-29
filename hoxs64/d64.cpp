@@ -329,22 +329,18 @@ GCRDISK::~GCRDISK()
 	Clean();
 }
 
-void GCRDISK::JumpBits(unsigned int trackNumber,unsigned int &byteIndex,unsigned int &bitIndex, unsigned int bitCount)
+void GCRDISK::JumpBits(unsigned int trackNumber,unsigned int &bitIndex, unsigned int bitCount)
 {
 unsigned int startBitPos;
-unsigned int endBitPos;
-
 	if (trackSize[trackNumber]==0)
 	{
 		return;
 	}
-	startBitPos = byteIndex * 8 + bitIndex;
-	endBitPos = (startBitPos + bitCount) % trackSize[trackNumber];
-	byteIndex = (endBitPos / 8);
-	bitIndex = endBitPos & 7;
+	startBitPos = bitIndex;
+	bitIndex = (startBitPos + bitCount) % trackSize[trackNumber];
 }
 
-HRESULT GCRDISK::SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *p_headerByte, unsigned int *p_newByteIndex, unsigned int *p_newBitIndex, unsigned int* p_jumpedBitCount, unsigned int *p_sync_count)
+HRESULT GCRDISK::SeekSync(unsigned int trackNumber, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *p_headerByte, unsigned int *p_newBitIndex, unsigned int* p_jumpedBitCount, unsigned int *p_sync_count)
 {
 unsigned int bitsScannedCounter;
 unsigned int sync_count;
@@ -365,7 +361,7 @@ bool bSyncFound;
 			return E_FAIL;
 		}
 
-		data = GetByte(trackNumber, byteIndex, bitIndex);
+		data = GetByte(trackNumber, bitIndex);
 		if ((signed char)data < 0)
 		{
 			sync_count++;
@@ -379,7 +375,6 @@ bool bSyncFound;
 			if (bSyncFound)
 			{
 				*p_headerByte = data;
-				*p_newByteIndex = byteIndex;
 				*p_newBitIndex = bitIndex;
 				*p_sync_count = sync_count;
 				return S_OK;
@@ -388,7 +383,7 @@ bool bSyncFound;
 			sync_count = 0;
 			bSyncFound = false;
 		}			
-		JumpBits(trackNumber, byteIndex, bitIndex, 1);
+		JumpBits(trackNumber, bitIndex, 1);
 		bitsScannedCounter++;
 		(*p_jumpedBitCount)++;
 	}
@@ -397,13 +392,13 @@ bool bSyncFound;
 }
 
 
-void GCRDISK::CopyRawData(bit8 *buffer, unsigned int trackNumber,unsigned int byteIndex, unsigned int bitIndex, unsigned int count)
+void GCRDISK::CopyRawData(bit8 *buffer, unsigned int trackNumber, unsigned int bitIndex, unsigned int count)
 {
 unsigned int i;
 	for (i=0 ; i < count ; i++)
 	{
-		buffer[i] = GetByte(trackNumber, byteIndex, bitIndex);
-		JumpBits(trackNumber, byteIndex, bitIndex, 8);
+		buffer[i] = GetByte(trackNumber, bitIndex);
+		JumpBits(trackNumber, bitIndex, 8);
 	}
 }
 
@@ -414,7 +409,6 @@ long r;
 HRESULT st;
 struct sector_header sec_header;
 struct sector_data sec_data;
-unsigned int byteIndex;
 unsigned int bitIndex;
 HRESULT hr;
 const bit32 MAXBYTESTOSCAN = G64_MAX_BYTES_PER_TRACK * 3;
@@ -444,7 +438,6 @@ int datalength = 0;
 	{
 		g64TrackNumber = tr * 2;
 retryhalftrack:
-		byteIndex = 0;
 		bitIndex = 0;
 		bitCounter = 0;
 		maxSectorsOnThisTrack = (bit8) D64_info[tr].sector_count;
@@ -454,8 +447,8 @@ retryhalftrack:
 			{
 				return E_FAIL;
 			}
-			unsigned int nextByteIndex, nextBitIndex;
-			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount, &sync_count);
+			unsigned int nextBitIndex;
+			hr = SeekSync(g64TrackNumber, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextBitIndex, &jumpedBitCount, &sync_count);
 			if (FAILED(hr))
 			{
 				return hr;
@@ -472,7 +465,6 @@ retryhalftrack:
 				datalength = headerByte == 0x52 ? 10 : 325;
 			}
 #endif
-			byteIndex = nextByteIndex;
 			bitIndex = nextBitIndex;
 			bitCounter += jumpedBitCount;
 			if (hr != S_OK)
@@ -487,7 +479,7 @@ retryhalftrack:
 
 headerfound:
 			bytesToCopy = 10;
-			CopyRawData(buffer, g64TrackNumber, byteIndex, bitIndex, bytesToCopy);
+			CopyRawData(buffer, g64TrackNumber, bitIndex, bytesToCopy);
 			bitCounter = bitCounter + bytesToCopy * 8;
 			r = D64_GCR_to_Binary(buffer, (bit8 *) &sec_header, bytesToCopy * 8);
 			if (r >= 0)
@@ -515,7 +507,7 @@ headerfound:
 				break;
 			}
 			
-			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount, &sync_count);
+			hr = SeekSync(g64TrackNumber, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextBitIndex, &jumpedBitCount, &sync_count);
 			if (FAILED(hr))
 			{
 				return hr;
@@ -532,7 +524,6 @@ headerfound:
 				datalength = headerByte == 0x52 ? 10 : 325;
 			}
 #endif
-			byteIndex = nextByteIndex;
 			bitIndex = nextBitIndex;
 			bitCounter += jumpedBitCount;
 			if (hr != S_OK)
@@ -551,7 +542,7 @@ headerfound:
 			}
 
 			bytesToCopy = 325;
-			CopyRawData(buffer, g64TrackNumber, byteIndex, bitIndex, bytesToCopy);
+			CopyRawData(buffer, g64TrackNumber, bitIndex, bytesToCopy);
 			bitCounter = bitCounter + bytesToCopy * 8;
 			r = D64_GCR_to_Binary(buffer, (bit8 *)&sec_data, bytesToCopy*8);
 			if (r >= 0)
@@ -3096,7 +3087,7 @@ void GCRDISK::InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlig
 }
 
 
-bit8 GCRDISK::GetByte(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex)
+bit8 GCRDISK::GetByte(unsigned int trackNumber, unsigned int bitIndex)
 {
 long i,j;
 bit8 byte;
@@ -3108,7 +3099,7 @@ bit32 startBitPos;
 		return 0;
 	}
 
-	startBitPos = (byteIndex * 8 + bitIndex) % trackSize[trackNumber];
+	startBitPos = bitIndex % trackSize[trackNumber];
 	byte = 0;
 	i = startBitPos;
 	int shift = i & 7;

@@ -88,13 +88,13 @@ public:
 	bit8 GetSectorErrorCode(bit8 *d64Binary, bit16 errorBytes, bit8 trackNumber, bit8 sectorNumber);
 	bit16 GetD64TrackSize(bit8 track);
 	bit8 GetD64SpeedZone(bit8 track);
-	void CopyRawData(bit8 *buffer, unsigned int trackNumber,unsigned int byteIndex,unsigned int bitIndex, unsigned int count);
-	HRESULT SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *p_headerByte, unsigned int *p_newByteIndex, unsigned int *p_newBitIndex, unsigned int *p_bitCounter, unsigned int *p_sync_count);
+	void CopyRawData(bit8 *buffer, unsigned int trackNumber,unsigned int bitIndex, unsigned int count);
+	HRESULT SeekSync(unsigned int trackNumber, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *p_headerByte, unsigned int *p_newBitIndex, unsigned int *p_bitCounter, unsigned int *p_sync_count);
 
-	bit8 GetByte(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex);
+	bit8 GetByte(unsigned int trackNumber, unsigned int bitIndex);
 	bit8 GetSpeedZone(bit8 trackNumber,bit16 byteIndex);
 	void SetSpeedZone(bit8 trackNumber, bit16 byteIndex, bit8 speed);
-	void JumpBits(unsigned int trackNumber,unsigned int &byteIndex,unsigned int &bitIndex, unsigned int bitCount);
+	void JumpBits(unsigned int trackNumber,unsigned int &bitIndex, unsigned int bitCount);
 
 	void ConvertGCRtoP64(bit8 trackNumber);
 	void ConvertP64toGCR(bit8 trackNumber);
