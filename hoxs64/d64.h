@@ -89,7 +89,7 @@ public:
 	bit16 GetD64TrackSize(bit8 track);
 	bit8 GetD64SpeedZone(bit8 track);
 	void CopyRawData(bit8 *buffer, unsigned int trackNumber,unsigned int byteIndex,unsigned int bitIndex, unsigned int count);
-	HRESULT SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *headerByte, unsigned int *newByteIndex, unsigned int *newBitIndex, unsigned int *bitCounter);
+	HRESULT SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *p_headerByte, unsigned int *p_newByteIndex, unsigned int *p_newBitIndex, unsigned int *p_bitCounter, unsigned int *p_sync_count);
 
 	bit8 GetByte(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex);
 	bit8 GetSpeedZone(bit8 trackNumber,bit16 byteIndex);

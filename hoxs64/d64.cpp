@@ -21,6 +21,10 @@
 #include "utils.h"
 
 #define DISKHEADFILTERWIDTH (40)
+#define SHOWGCR 0
+#define SHOWGAPS 0
+#define SHOWTRACKNUMBER 46
+#define SHOWPASSNO 1
 
 const bit8 GCRDISK::gcr_table[16]=
 {
@@ -266,10 +270,13 @@ const struct D64_Track_Info GCRDISK::D64_info[42]=
 	/* 41 */{17,0x31100,D64_TRACK_SIZE_31_35,0,802,83.0}
 };
 
-#define D64_GAPHEADER 11
+#define D64_GAPHEADER 9
 #define D64_SYNCLENGTH 5
-#define D64_GAPSECTOR 6
-#define D64_SECTOR_HEADER_SIZE 8
+#define D64_GAPSECTOR_1_17 8
+#define D64_GAPSECTOR_18_24 17
+#define D64_GAPSECTOR_25_30 12
+#define D64_GAPSECTOR_31_40 9
+#define D64_SECTOR_HEADER_SIZE 9
 #define D64_SECTOR_DATABLOCK_SIZE 256
 #define D64_SECTOR_SIZE 260
 
@@ -336,15 +343,16 @@ unsigned int endBitPos;
 	bitIndex = endBitPos & 7;
 }
 
-HRESULT GCRDISK::SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *headerByte, unsigned int *newByteIndex, unsigned int *newBitIndex, unsigned int* jumpedBitCount)
+HRESULT GCRDISK::SeekSync(unsigned int trackNumber, unsigned int byteIndex, unsigned int bitIndex, unsigned int bitScanLimit, bit8 *p_headerByte, unsigned int *p_newByteIndex, unsigned int *p_newBitIndex, unsigned int* p_jumpedBitCount, unsigned int *p_sync_count)
 {
 unsigned int bitsScannedCounter;
 unsigned int sync_count;
 bit8 data;
 bool bSyncFound;
 	
-	*jumpedBitCount = 0;
-	*headerByte = 0;
+	*p_jumpedBitCount = 0;
+	*p_headerByte = 0;
+	*p_sync_count = 0;
 	bSyncFound=false;
 	bitsScannedCounter=0;
 	sync_count=0;
@@ -367,20 +375,21 @@ bool bSyncFound;
 		}
 		else
 		{
-			sync_count = 0;
 			if (bSyncFound)
 			{
-				*headerByte = data;
-				*newByteIndex = byteIndex;
-				*newBitIndex = bitIndex;
+				*p_headerByte = data;
+				*p_newByteIndex = byteIndex;
+				*p_newBitIndex = bitIndex;
+				*p_sync_count = sync_count;
 				return S_OK;
 			}
 
+			sync_count = 0;
 			bSyncFound = false;
 		}			
 		JumpBits(trackNumber, byteIndex, bitIndex, 1);
 		bitsScannedCounter++;
-		(*jumpedBitCount)++;
+		(*p_jumpedBitCount)++;
 	}
 	//No Sync with specified header byte found. 
 	return S_FALSE;		
@@ -409,12 +418,19 @@ unsigned int bitIndex;
 HRESULT hr;
 const bit32 MAXBYTESTOSCAN = G64_MAX_BYTES_PER_TRACK * 3;
 const bit32 MAXBITSTOSCAN = MAXBYTESTOSCAN * 8L;
-unsigned int bitCounter, jumpedBitCount;
+unsigned int bitCounter;
+unsigned int jumpedBitCount;
+unsigned int sync_count;
 bit8 buffer[325];
 unsigned int g64TrackNumber;
 unsigned int bytesToCopy;
 bit8 maxSectorsOnThisTrack;
 bit8 headerByte;
+
+#if defined(DEBUG) && SHOWGAPS == 1
+TCHAR textbuffer[50];
+int datalength = 0;
+#endif
 
 	if (tracks > D64_MAX_TRACKS)
 	{
@@ -439,12 +455,23 @@ retryhalftrack:
 				return E_FAIL;
 			}
 			unsigned int nextByteIndex, nextBitIndex;
-			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount);
+			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount, &sync_count);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
 
+#if defined(DEBUG) && SHOWGAPS == 1
+			if (SUCCEEDED(hr))
+			{
+				if (datalength > 0)
+				{
+					_stprintf_s(textbuffer, _countof(textbuffer), TEXT("tr=%d,%d,%d,%d\n"), tr, datalength, (jumpedBitCount - sync_count + 4) / 8 - datalength, (sync_count + 4) / 8);
+					OutputDebugString(textbuffer);
+				}
+				datalength = headerByte == 0x52 ? 10 : 325;
+			}
+#endif
 			byteIndex = nextByteIndex;
 			bitIndex = nextBitIndex;
 			bitCounter += jumpedBitCount;
@@ -488,14 +515,25 @@ headerfound:
 				break;
 			}
 			
-			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount);
+			hr = SeekSync(g64TrackNumber, byteIndex, bitIndex, MAXBITSTOSCAN - bitCounter, &headerByte, &nextByteIndex, &nextBitIndex, &jumpedBitCount, &sync_count);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
+
+#if defined(DEBUG) && SHOWGAPS == 1
+			if (SUCCEEDED(hr))
+			{
+				if (datalength > 0)
+				{
+					_stprintf_s(textbuffer, _countof(textbuffer), TEXT("tr=%d,%d,%d,%d\n"), tr, datalength, (jumpedBitCount - sync_count + 4) / 8 - datalength, (sync_count + 4) / 8);
+					OutputDebugString(textbuffer);
+				}
+				datalength = headerByte == 0x52 ? 10 : 325;
+			}
+#endif
 			byteIndex = nextByteIndex;
 			bitIndex = nextBitIndex;
-
 			bitCounter += jumpedBitCount;
 			if (hr != S_OK)
 			{
@@ -811,9 +849,21 @@ bit8 tr;
 	}
 }
 
-#define SHOWGCR 0
-#define SHOWTRACKNUMBER 46
-#define SHOWPASSNO 1
+#if defined(SHOWGCR)
+int tracklist[] = { 1, 18, 25, 31 };
+bool isfirstbitzonetrack(int trackNumber)
+{
+	for(int i = 0; i < _countof(tracklist); i++)
+	{
+		if ((tracklist[i] - 1) * 2 == trackNumber)
+		{
+			return false;
+		}
+	}
+	return false;
+}
+#endif
+
 void GCRDISK::ConvertP64toGCR(bit8 trackNumber)
 {
 int i;
@@ -885,7 +935,8 @@ bit8 dataByte;
 			for (int pass = 0; pass < 2; pass++)
 			{
 #if defined(DEBUG) && SHOWGCR == 1
-				if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
+				//if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
+				if (pass == SHOWPASSNO && isfirstbitzonetrack(trackNumber))
 				{
 					WriteLineToDebugger();
 					WriteLineToDebugger();
@@ -981,7 +1032,8 @@ bit8 dataByte;
 									destByteIndex++;
 								}
 #if defined(DEBUG) && SHOWGCR == 1
-								if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
+								//if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
+								if (pass == SHOWPASSNO && isfirstbitzonetrack(trackNumber))
 								{
 									WriteByteGroupedToDebugger(dataByte);
 								}
@@ -1005,7 +1057,8 @@ bit8 dataByte;
 						trackData[trackNumber][destByteIndex] = trailingbits;
 					}
 #if defined(DEBUG) && SHOWGCR == 1
-					if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
+					//if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
+					if (pass == SHOWPASSNO && isfirstbitzonetrack(trackNumber))
 					{
 						WriteByteToDebugger(trailingbits);
 						OutputDebugString(TEXT(" / "));
@@ -1043,7 +1096,7 @@ void GCRDISK::WriteByteGroupedToDebugger(bit8 dataByte)
 void GCRDISK::WriteByteToDebugger(bit8 dataByte)
 {
 	TCHAR sDebug[50];
-	_stprintf_s(sDebug, _countof(sDebug), TEXT("%02X"), dataByte);		
+	_stprintf_s(sDebug, _countof(sDebug), TEXT("%02X"), dataByte);
 	OutputDebugString(sDebug);
 }
 
@@ -1121,6 +1174,7 @@ bit8 sectorError;
 bit8 id1x,id2x;
 int wi = 0;
 int trackByteLen;
+int dostracknumber;
 
 	for(tr = 0 ; tr < HOST_MAX_TRACKS ; tr++)
 	{
@@ -1137,6 +1191,7 @@ int trackByteLen;
 	for(tr = 0 ; tr < (tracks * 2) ; tr++)
 	{
 		tr2 = tr >> 1;
+		dostracknumber = tr2 + 1;
 		if ((tr & 1) != 0)
         {
 			continue;
@@ -1205,14 +1260,14 @@ int trackByteLen;
 
 			if (sectorError!=9)
             {
-				p[1] = sec ^ (tr2+1) ^ id2 ^ id1;
+				p[1] = sec ^ (dostracknumber) ^ id2 ^ id1;
             }
 			else
             {
-				p[1] = ~(sec ^ (tr2+1) ^ id2 ^ id1);
+				p[1] = ~(sec ^ (dostracknumber) ^ id2 ^ id1);
             }
 			p[2] = sec;
-			p[3] = (tr2+1);
+			p[3] = (dostracknumber);
 			p[4] = id2;
 			p[5] = id1;
 			p[6] = 0xf;
@@ -1278,7 +1333,24 @@ int trackByteLen;
 				pGcr[wi] = tempGcrBuffer[j];
             }
 
-			for (j = 0 ; j < D64_GAPSECTOR; j++, wi=(wi+1) % trackByteLen)
+			bit32 sectorgap;
+			if (dostracknumber < 18)
+			{
+				sectorgap = D64_GAPSECTOR_1_17;
+			}
+			else if (dostracknumber < 25)
+			{
+				sectorgap = D64_GAPSECTOR_18_24;
+			}
+			else if (dostracknumber < 31)
+			{
+				sectorgap = D64_GAPSECTOR_25_30;
+			}
+			else
+			{
+				sectorgap = D64_GAPSECTOR_31_40;
+			}
+			for (j = 0 ; j < sectorgap; j++, wi=(wi+1) % trackByteLen)
             {
 				pGcr[wi]=0x55;
             }			
