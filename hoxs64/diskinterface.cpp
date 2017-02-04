@@ -49,7 +49,7 @@
 #define DISK16CELLSPERCLOCK (16)
 #define DISKHEADFILTERWIDTH (40)
 #define DISKHEADSTEPWAITTIME (5000UL)
-#define DISKMOTORSLOWTIME (135000)
+#define DISKMOTORSLOWTIME (140000)
 
 DiskInterface::DiskInterface()
 {
@@ -1384,7 +1384,7 @@ void DiskInterface::StartMotor()
 void DiskInterface::StopMotor()
 {
 	//Allow motor to run for a short time after it is turned off.
-	m_motorOffClock = DISKMOTORSLOWTIME + (rand() & 0xfff);
+	m_motorOffClock = DISKMOTORSLOWTIME + (rand() & 0x7fff);
 	m_motor_dy = 1;
 	m_motor_dx = m_motorOffClock;
 	m_motor_cmp = 2 * m_motor_dy - m_motor_dx;
