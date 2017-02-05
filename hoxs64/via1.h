@@ -20,8 +20,8 @@ public:
 	void SetPinsPortB(bit8);
 	void SetSystemInterrupt();
 	void ClearSystemInterrupt();
-	void InitReset(ICLK sysclock);
-	void Reset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
+	void Reset(ICLK sysclock, bool poweronreset);
 
 	void GetState(SsVia1 &state);
 	void SetState(const SsVia1 &state);

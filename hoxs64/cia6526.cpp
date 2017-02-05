@@ -22,7 +22,7 @@ CIA::CIA()
 	ID = 0;
 }
 
-void CIA::InitReset(ICLK sysclock)
+void CIA::InitReset(ICLK sysclock, bool poweronreset)
 {
 	CurrentClock=sysclock;
 	DevicesClock=sysclock;
@@ -84,9 +84,9 @@ void CIA::InitReset(ICLK sysclock)
 	Interrupt=0;
 }
 
-void CIA::Reset(ICLK sysclock)
+void CIA::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	ClearSystemInterrupt();
 
 	WriteRegister(2, CurrentClock, 0);

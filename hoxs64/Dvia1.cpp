@@ -60,15 +60,15 @@ HRESULT VIA1::Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *d
 	return S_OK;
 }
 
-void VIA1::InitReset(ICLK sysclock)
+void VIA1::InitReset(ICLK sysclock, bool poweronreset)
 {
-	VIA::InitReset(sysclock);
+	VIA::InitReset(sysclock, poweronreset);
 }
 
-void VIA1::Reset(ICLK sysclock)
+void VIA1::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
-	VIA::Reset(sysclock);
+	InitReset(sysclock, poweronreset);
+	VIA::Reset(sysclock, poweronreset);
 }
 
 void VIA1::ExecuteDevices(ICLK sysclock)

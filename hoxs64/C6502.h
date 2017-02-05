@@ -529,9 +529,9 @@ public:
 	virtual void SetDdr(bit8 v);
 	virtual void SetData(bit8 v);
 
-	void InitReset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
 	//IRegister
-	virtual void Reset(ICLK sysclock);
+	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual void ExecuteCycle(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock)=0;
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data)=0;

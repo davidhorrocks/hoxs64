@@ -123,7 +123,7 @@ DiskInterface::~DiskInterface()
 	Cleanup();
 }
 
-void DiskInterface::InitReset(ICLK sysclock)
+void DiskInterface::InitReset(ICLK sysclock, bool poweronreset)
 {
 	ThreadSignalPause();
 	WaitThreadReady();
@@ -177,7 +177,7 @@ void DiskInterface::InitReset(ICLK sysclock)
 	m_lastHeadStepPosition = 2;
 }
 
-void DiskInterface::Reset(ICLK sysclock)
+void DiskInterface::Reset(ICLK sysclock, bool poweronreset)
 {
 	ThreadSignalPause();
 	WaitThreadReady();
@@ -187,10 +187,10 @@ void DiskInterface::Reset(ICLK sysclock)
 	//CurrentPALClock must be set before calling ThreadSignalCommandResetClock
 	ThreadSignalCommandResetClock();
 	WaitThreadReady();
-	InitReset(sysclock);
-	via1.Reset(sysclock);
-	via2.Reset(sysclock);
-	cpu.Reset(sysclock);
+	InitReset(sysclock, poweronreset);
+	via1.Reset(sysclock, poweronreset);
+	via2.Reset(sysclock, poweronreset);
+	cpu.Reset(sysclock, poweronreset);
 }
 
 void DiskInterface::SetRamPattern()

@@ -32,9 +32,9 @@ CartActionReplayMk2::CartActionReplayMk2(const CrtHeader &crtHeader, IC6510 *pCp
 {
 }
 
-void CartActionReplayMk2::Reset(ICLK sysclock)
+void CartActionReplayMk2::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	m_bActionReplayMk2Rom = true;
 	m_iActionReplayMk2EnableRomCounter=0;
 	m_iActionReplayMk2DisableRomCounter=0;

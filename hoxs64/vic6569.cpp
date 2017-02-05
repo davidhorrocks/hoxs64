@@ -125,7 +125,7 @@ bit16 VIC6569::SpriteIndexFromClock(bit16 clock)
 	}
 }
 
-void VICSprite::Reset()
+void VICSprite::Reset(bool poweronreset)
 {
 	shiftStatus = srsIdle;
 	armDelay = 0;
@@ -1718,7 +1718,7 @@ VIC6569::VIC6569()
 	m_iLastBackedUpFrameNumber = -1;
 }
 
-void VIC6569::InitReset(ICLK sysclock)
+void VIC6569::InitReset(ICLK sysclock, bool poweronreset)
 {
 int i,j;
 bit32 initial_raster_line = PAL_MAX_LINE;
@@ -1817,7 +1817,7 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 		vicSprite[i].dataLoadClock = vic_spr_data_load_x[i];
 		vicSprite[i].dataLoadedClock = vicSprite[i].dataLoadClock + 13;
 		vicSprite[i].dataLoadIndex = SpriteIndexFromClock(vicSprite[i].dataLoadClock);
-		vicSprite[i].Reset();
+		vicSprite[i].Reset(poweronreset);
 		vicSpriteX[i]=0;
 		vicSpriteY[i]=0;
 		SpriteXChange(i,0,1);
@@ -1872,9 +1872,9 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 	DF_PixelsToSkip = 0;
 }
 
-void VIC6569::Reset(ICLK sysclock)
+void VIC6569::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	ClearSystemInterrupt();
 }
 
@@ -1944,7 +1944,7 @@ HRESULT VIC6569::Init(CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu,
 	setup_multicolor_mask_table();
 	setup_vic_ba();
 
-	Reset(CurrentClock);
+	Reset(CurrentClock, true);
 	return S_OK;
 }
 

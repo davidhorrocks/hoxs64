@@ -26,9 +26,9 @@ CartRetroReplay::CartRetroReplay(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 
 {
 }
 
-void CartRetroReplay::Reset(ICLK sysclock)
+void CartRetroReplay::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	m_bDE01WriteDone = false;
 	ConfigureMemoryMap();
 }

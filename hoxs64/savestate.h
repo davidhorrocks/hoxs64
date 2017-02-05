@@ -441,7 +441,7 @@ struct SsSid
 	bit16 sidFilterFrequency;
 
 	bit8 sidBlock_Voice3;
-	bit8 sidLastWrite;
+	bit8 sidInternalBusByte;
 	bit32 sidReadDelay;
 };
 

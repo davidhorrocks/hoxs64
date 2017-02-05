@@ -148,16 +148,16 @@ void CIA2::WritePortB()
 {
 }
 
-void CIA2::InitReset(ICLK sysclock)
+void CIA2::InitReset(ICLK sysclock, bool poweronreset)
 {
-	CIA::InitReset(sysclock);
+	CIA::InitReset(sysclock, poweronreset);
 	m_commandedVicBankIndex = 3;
 }
 
-void CIA2::Reset(ICLK sysclock)
+void CIA2::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
-	CIA::Reset(sysclock);
+	InitReset(sysclock, poweronreset);
+	CIA::Reset(sysclock, poweronreset);
 	bit8 t = PortAOutput_Strong0s();
 	m_commandedVicBankIndex = (t & 3) ^ 3;
 }

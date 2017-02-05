@@ -70,8 +70,8 @@ public:
 	CDX9 *dx;
 	Monitor mon;
 	HRESULT Init(CAppStatus *, IC64Event *, CDX9 *, TCHAR *szAppDirectory);
-	void InitReset(ICLK sysclock);
-	void Reset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
+	void Reset(ICLK sysclock, bool poweronreset);
 	void ExecuteDiskInstruction();
 	void ExecuteC64Instruction();
 	void ExecuteC64Clock();

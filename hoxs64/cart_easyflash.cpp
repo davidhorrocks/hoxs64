@@ -69,9 +69,9 @@ HRESULT hr=E_FAIL;
 	return hr;
 }
 
-void CartEasyFlash::Reset(ICLK sysclock)
+void CartEasyFlash::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	reg1 = 0;
 	reg2 = 0;
 	m_EasyFlashChipROML.Reset(sysclock);

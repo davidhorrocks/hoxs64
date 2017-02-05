@@ -32,9 +32,9 @@ void CartKcsPower::LatchShift()
 	reg1 = ((reg1 & ~5) | ((reg1 & 0xA) >> 1)) & 0xff;//Move old EXROM in bit 3 to bit 2. Move old GAME in bit 1 to bit 0
 }
 
-void CartKcsPower::Reset(ICLK sysclock)
+void CartKcsPower::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	reg1 = 0;
 	reg2 = 0;
 	ConfigureMemoryMap();

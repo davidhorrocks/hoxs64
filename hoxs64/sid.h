@@ -42,7 +42,7 @@ struct SIDVoice
 	unsigned short WaveRegister();
 	unsigned short CalcWave(bit8 waveType);
 	void ClockShiftRegister();
-	void Reset();
+	void Reset(bool hardreset);
 	void SetWave(bit8 data);
 	void GetState(SsSidVoice &state);
 	void SetState(const SsSidVoice &state);
@@ -73,6 +73,7 @@ struct SIDVoice
 	bit8 gate;
 	bit8 test;
 	bit32 sidShiftRegister;
+	bool willClockShiftRegister;
 	bit8 keep_zero_volume;
 	bit16 envelope_counter;
 	bit16 envelope_compare;
@@ -99,9 +100,9 @@ public:
 	void UnLockSoundBuffer();
 	void SoundHalt(short value);
 
-	void InitReset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
 	//IRegister
-	virtual void Reset(ICLK sysclock);
+	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual void ExecuteCycle(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
@@ -157,7 +158,7 @@ private:
 	bit16 sidFilterFrequency;
 
 	BYTE sidBlock_Voice3;
-	bit8 sidLastWrite;
+	bit8 sidInternalBusByte;
 	ICLK sidReadDelay;
 	long sidSampler;//Used for filter
 

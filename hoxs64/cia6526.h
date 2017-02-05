@@ -62,9 +62,9 @@ class CIA : public IRegister
 public:
 	CIA();
 
-	void InitReset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
 	//IRegister
-	virtual void Reset(ICLK sysclock);
+	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual void ExecuteCycle(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);

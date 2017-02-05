@@ -17,8 +17,8 @@ public:
 
 	CIA1();
 	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx);
-	void InitReset(ICLK sysclock);
-	virtual void Reset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
+	virtual void Reset(ICLK sysclock, bool poweronreset);
 	bit8 ReadPortA();
 	bit8 ReadPortB();
 	void WritePortA();

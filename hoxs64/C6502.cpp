@@ -887,7 +887,7 @@ unsigned int _r;
 }
 
 
-void CPU6502::InitReset(ICLK sysclock)
+void CPU6502::InitReset(ICLK sysclock, bool poweronreset)
 {
 	CurrentClock = sysclock;
 	BA=1;
@@ -918,9 +918,9 @@ void CPU6502::InitReset(ICLK sysclock)
 	m_CurrentOpcodeClock = sysclock;
 }
 
-void CPU6502::Reset(ICLK sysclock)
+void CPU6502::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 }
 
 HRESULT CPU6502::Init(int ID, IBreakpointManager *pIBreakpointManager)
@@ -2580,7 +2580,7 @@ unsigned int v;
 			break;
 		case C_ILLEGAL:
 			//FIXME
-			Reset(CurrentClock);
+			Reset(CurrentClock, false);
 			break;
 		case SLO_INDIRECTY:
 			fCARRY=(databyte & 0x0080) >> 7;

@@ -7,8 +7,8 @@ public:
 	RAM64();
 	~RAM64();
 	HRESULT Init(TCHAR *szAppDirectory, Cart *cart);
-	void InitReset();
-	void Reset();
+	void InitReset(bool poweronreset);
+	void Reset(bool poweronreset);
 	void ConfigureMMU(bit8 index, bit8 ***p_memory_map_read, bit8 ***p_memory_map_write);
 	void ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_vic_3fff_ptr);
 	int GetCurrentCpuMmuMemoryMap();

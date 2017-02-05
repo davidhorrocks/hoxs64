@@ -42,7 +42,7 @@ RAM64::~RAM64()
 	Free64Memory();
 }
 
-void RAM64::InitReset()
+void RAM64::InitReset(bool poweronreset)
 {
 int i;
 	for (i=0 ; i<=0xFFFF ; i++)
@@ -115,9 +115,9 @@ int i;
 	LoadResetPattern();
 }
 
-void RAM64::Reset()
+void RAM64::Reset(bool poweronreset)
 {
-	InitReset();
+	InitReset(poweronreset);
 }
 
 

@@ -18,8 +18,8 @@ public:
 	void SetSystemInterrupt();
 	void ClearSystemInterrupt();
 
-	void InitReset(ICLK sysclock);
-	virtual void Reset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
+	virtual void Reset(ICLK sysclock, bool poweronreset);
 
 	void GetState(SsVia2 &state);
 	void SetState(const SsVia2 &state);

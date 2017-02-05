@@ -58,9 +58,9 @@ void CartEpyxFastLoad::ExecuteCycle(ICLK sysclock)
 	return;
 }
 
-void CartEpyxFastLoad::Reset(ICLK sysclock)
+void CartEpyxFastLoad::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	m_bCapacitorCharged = false;
 	m_iCapacitorCharge = 0;
 	ConfigureMemoryMap();

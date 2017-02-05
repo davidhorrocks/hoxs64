@@ -60,15 +60,15 @@ HRESULT VIA2::Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *d
 	return S_OK;
 }
 
-void VIA2::InitReset(ICLK sysclock)
+void VIA2::InitReset(ICLK sysclock, bool poweronreset)
 {
-	VIA::InitReset(sysclock);
+	VIA::InitReset(sysclock, poweronreset);
 	oldDiskControl = 0x3;
 }
 
-void VIA2::Reset(ICLK sysclock)
+void VIA2::Reset(ICLK sysclock, bool poweronreset)
 {
-	VIA::Reset(sysclock);
+	VIA::Reset(sysclock, poweronreset);
 	oldDiskControl = PortBOutput();
 }
 

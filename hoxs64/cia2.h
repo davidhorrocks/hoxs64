@@ -11,9 +11,9 @@ public:
 	CIA2();
 	HRESULT Init(CAppStatus *appStatus, CPU6510 *cpu, VIC6569 *vic, DiskInterface *disk);
 
-	void InitReset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
 	//IRegister
-	virtual void Reset(ICLK sysclock);
+	virtual void Reset(ICLK sysclock, bool poweronreset);
 
 	bit8 ReadPortA();
 	bit8 ReadPortB();

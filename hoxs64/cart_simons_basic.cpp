@@ -26,9 +26,9 @@ CartSimonsBasic::CartSimonsBasic(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 
 {
 }
 
-void CartSimonsBasic::Reset(ICLK sysclock)
+void CartSimonsBasic::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	m_bSimonsBasic16K = false;
 	ConfigureMemoryMap();
 }

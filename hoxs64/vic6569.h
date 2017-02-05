@@ -60,7 +60,7 @@ struct VICSprite
 	bit8 spriteBit;
 
 
-	void Reset();
+	void Reset(bool poweronreset);
 	void SetXPos(bit16 x, bit8 currentColumn);
 	int InitDraw();
 	int InitDraw(bit16 xPos, bit16 columnX, bit16 xPixelInit);
@@ -216,9 +216,9 @@ public:
 	void SetMMU(bit8 index);
 	bit8 de00_byte;
 
-	void InitReset(ICLK sysclock);
+	void InitReset(ICLK sysclock, bool poweronreset);
 	//IResgister
-	virtual void Reset(ICLK sysclock);
+	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual void ExecuteCycle(ICLK sysclock);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);

@@ -785,7 +785,7 @@ RECT rcMain;
 	dx.InitJoys(hWndMain, m_joy1config, m_joy2config);
 
 	//Reset the C64
-	c64.Reset(0);
+	c64.Reset(0, true);
 
 	int directoryIndex = -1; //default to a LOAD"*",8,1 for disk files
 	TCHAR *fileName = NULL;

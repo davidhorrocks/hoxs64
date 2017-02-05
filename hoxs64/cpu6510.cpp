@@ -54,9 +54,9 @@ CPU6510::~CPU6510()
 {
 }
 
-void CPU6510::InitReset(ICLK sysclock)
+void CPU6510::InitReset(ICLK sysclock, bool poweronreset)
 {
-	CPU6502::InitReset(sysclock);
+	CPU6502::InitReset(sysclock, poweronreset);
 	m_fade7clock = sysclock;
 	m_fade6clock = sysclock;
 	m_bIsWriteCycle = false;
@@ -77,10 +77,10 @@ void CPU6510::InitReset(ICLK sysclock)
 	cpu_io_output=0;
 }
 
-void CPU6510::Reset(ICLK sysclock)
+void CPU6510::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
-	CPU6502::Reset(sysclock);
+	InitReset(sysclock, poweronreset);
+	CPU6502::Reset(sysclock, poweronreset);
 	write_cpu_io_ddr(0, sysclock);
 	write_cpu_io_data(0);
 }
@@ -530,9 +530,9 @@ void CPU6510::PreventClockOverflow()
 		m_fade6clock = ClockBehindNear;
 }
 
-void CPU6510::Reset6510(ICLK sysclock)
+void CPU6510::Reset6510(ICLK sysclock, bool poweronreset)
 {
-	Reset(sysclock);
+	Reset(sysclock, poweronreset);
 }
 
 ICLK CPU6510::Get6510CurrentClock()

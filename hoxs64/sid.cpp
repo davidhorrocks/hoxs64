@@ -27,9 +27,12 @@
 #define SIDBOOST_6581 2.0
 #define SIDVOLMUL (1730)
 #define SHIFTERTESTDELAY (0x49300)
-#define SAMPLEHOLDTIME 0x00000fff
-#define SAMPLEHOLDRESETTIME 0x001fffff
+#define SAMPLEHOLDRESETTIME  0x001D0000
 
+//define SIDREADDELAY (2000000)
+//define SIDREADDELAYFREQ (65000)
+#define SIDREADDELAY (110000)
+#define SIDREADDELAYFREQ (65000)
 
 #define SIDINTERPOLATE2XFIRLENGTH (50)
 
@@ -80,7 +83,7 @@ SID64::SID64()
 	sidResonance=0;
 	sidFilterFrequency=0;
 	sidBlock_Voice3=0;
-	sidLastWrite=0;
+	sidInternalBusByte=0;
 	sidReadDelay=0;
 	sidSampler=0;
 
@@ -279,7 +282,7 @@ HRESULT hr;
 	voice3.affected_voice = &voice1;
 	voice2.affected_voice = &voice3;
 	voice1.affected_voice = &voice2;
-	Reset(CurrentClock);
+	Reset(CurrentClock, true);
 	return S_OK;
 }
 
@@ -382,10 +385,13 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 	return S_OK;
 }
 
-void SIDVoice::Reset()
+void SIDVoice::Reset(bool poweronreset)
 {
+	if (poweronreset)
+	{
+		counter=0x555555;
+	}
 	shifterTestCounter=0;
-	counter=0;
 	volume=0;
 	sampleHoldDelay = 0;
 	exponential_counter_period=1;
@@ -401,20 +407,19 @@ void SIDVoice::Reset()
 	envmode=sidRELEASE;
 	pulse_width_reg=0;
 	pulse_width_counter=0;
-
-
 	gate=0;
 	test=0;
 	sidShiftRegister=0x7ffff8;
+	willClockShiftRegister = false;
 	keep_zero_volume=1;
 	envelope_counter=0;
-	envelope_compare=0;
+	envelope_compare=envelope_compare=SID64::sidAttackRate[0];
 	exponential_counter=0;
 	control=0;
 	lastSample = CalcWave(wavetype);
 }
 
-void SID64::InitReset(ICLK sysclock)
+void SID64::InitReset(ICLK sysclock, bool poweronreset)
 {
 	CurrentClock = sysclock;
 	sidVolume=0;
@@ -423,17 +428,17 @@ void SID64::InitReset(ICLK sysclock)
 	sidResonance=0;
 	sidFilterFrequency=0;
 	sidBlock_Voice3=0;
-	sidLastWrite = 0;
+	sidInternalBusByte = 0;
 	sidReadDelay = 0;
 }
 
-void SID64::Reset(ICLK sysclock)
+void SID64::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 
-	voice1.Reset();
-	voice2.Reset();
-	voice3.Reset();
+	voice1.Reset(poweronreset);
+	voice2.Reset(poweronreset);
+	voice3.Reset(poweronreset);
 
 	SetFilter();
 }
@@ -471,6 +476,7 @@ bit32 t, c;
 bit8 ctl;
 	if (test)
 	{
+		willClockShiftRegister = false;
 		shifterTestCounter--;
 		if (shifterTestCounter<0)
 		{
@@ -481,6 +487,12 @@ bit8 ctl;
 	}
 	else
 	{
+		if (willClockShiftRegister)
+		{
+			willClockShiftRegister = false;
+			ClockShiftRegister();
+		}
+
 		ctl = control;
 		if ((ctl & 0x80)!=0 && (ctl & 0x70)!=0)
 		{
@@ -490,7 +502,7 @@ bit8 ctl;
 		t = counter;
 		c = (t + frequency) & 0x00ffffff;
 		if ((c & 0x080000) && (!(t & 0x080000))) {
-			ClockShiftRegister();
+			willClockShiftRegister = true;
 		}
 		affected_voice->zeroTheCounter = (affected_voice->sync !=0 && !(t & 0x0800000) && (c & 0x0800000)) != 0;
 		counter = c;
@@ -619,10 +631,13 @@ DWORD dwMsb;
 			));
 	case sidTRIANGLEPULSE:
 		if (ring_mod)
-			dwMsb = ((modulator_voice->counter ^ counter) & 0x00800000);
+		{
+			dwMsb = ((~modulator_voice->counter ^ counter) & 0x00800000);
+		}
 		else
+		{
 			dwMsb = (counter & 0x00800000);
-
+		}
 		return CalcWave(sidPULSE) & (unsigned short)sidWave_PT[(unsigned short)  ((dwMsb | (counter & 0x007fffff)) >> 12)] << 4;
 	case sidSAWTOOTHPULSE:
 		return CalcWave(sidPULSE) & sidWave_PS[counter >> 12] << 4;
@@ -689,7 +704,6 @@ double bp_out;
 double lp_out;
 short dxsample;
 long sampleOffset;
-
 
 	clocks = (ICLKS)(sysclock - CurrentClock);
 	if (clocks >= (ICLKS)sidReadDelay)
@@ -1221,32 +1235,38 @@ double cutoff;
 }
 
 void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
-{
+{	
 	if (appStatus->m_bSID_Emulation_Enable)
+	{
 		ExecuteCycle(sysclock);
-
-	sidLastWrite = data;
-	sidReadDelay = 2000000;
+	}
+	sidInternalBusByte = data;
 	switch (address & 0x1f)
 	{
 	case 0x0:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice1.frequency = (voice1.frequency & 0xff00) | data;
 		break;
 	case 0x1:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice1.frequency = (voice1.frequency & 0x00ff) | (data<<8);
 		break;
 	case 0x2:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice1.pulse_width_reg = (voice1.pulse_width_reg & 0x0f00) | data;
 		voice1.pulse_width_counter = voice1.pulse_width_reg << 12;
 		break;
 	case 0x3:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice1.pulse_width_reg = (voice1.pulse_width_reg & 0xff) | ((data & 0xf) <<8);
 		voice1.pulse_width_counter = voice1.pulse_width_reg << 12;
 		break;
 	case 0x4:
+		sidReadDelay = SIDREADDELAY;
 		voice1.SetWave(data);
 		break;
 	case 0x5:
+		sidReadDelay = SIDREADDELAY;
 		voice1.attack_value = data >> 4;
 		voice1.decay_value = data & 0xf;
 		if (voice1.envmode == sidATTACK)
@@ -1255,29 +1275,36 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			voice1.envelope_compare = sidAttackRate[voice1.decay_value];
 		break;
 	case 0x6:
+		sidReadDelay = SIDREADDELAY;
 		voice1.sustain_level = (((data & 0xf0) >> 4) * 17);
 		voice1.release_value = data & 0xf;
 		if (voice1.envmode == sidRELEASE)
 			voice1.envelope_compare = sidAttackRate[voice1.release_value];
 		break;
 	case 0x7:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice2.frequency = (voice2.frequency & 0xff00) | data;
 		break;
 	case 0x8:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice2.frequency = (voice2.frequency & 0x00ff) | (data<<8);
 		break;
 	case 0x9:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice2.pulse_width_reg = (voice2.pulse_width_reg & 0x0f00) | data;
 		voice2.pulse_width_counter = voice2.pulse_width_reg << 12;
 		break;
 	case 0xa:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice2.pulse_width_reg = (voice2.pulse_width_reg & 0xff) | ((data & 0xf)<<8);
 		voice2.pulse_width_counter = voice2.pulse_width_reg << 12;
 		break;
 	case 0xb:
+		sidReadDelay = SIDREADDELAY;
 		voice2.SetWave(data);
 		break;
 	case 0xc:
+		sidReadDelay = SIDREADDELAY;
 		voice2.attack_value = data >> 4;
 		voice2.decay_value = data & 0xf;
 		if (voice2.envmode == sidATTACK)
@@ -1286,29 +1313,36 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			voice2.envelope_compare = sidAttackRate[voice2.decay_value];
 		break;
 	case 0xd:
+		sidReadDelay = SIDREADDELAY;
 		voice2.sustain_level = (((data & 0xf0) >> 4) * 17);
 		voice2.release_value = data & 0xf;
 		if (voice2.envmode == sidRELEASE)
 			voice2.envelope_compare = sidAttackRate[voice2.release_value];
 		break;
 	case 0xe:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice3.frequency = (voice3.frequency & 0xff00) | data;
 		break;
 	case 0xf:
+		sidReadDelay = SIDREADDELAYFREQ;
 		voice3.frequency = (voice3.frequency & 0x00ff) | (((bit32)data)<<8);
 		break;
 	case 0x10:
+		sidReadDelay = SIDREADDELAY;
 		voice3.pulse_width_reg = (voice3.pulse_width_reg & 0x0f00) | data;
 		voice3.pulse_width_counter = voice3.pulse_width_reg << 12;
 		break;
 	case 0x11:
+		sidReadDelay = SIDREADDELAY;
 		voice3.pulse_width_reg = (voice3.pulse_width_reg & 0xff) | (((bit32)(data & 0xf))<<8);
 		voice3.pulse_width_counter = voice3.pulse_width_reg << 12;
 		break;
 	case 0x12:
+		sidReadDelay = SIDREADDELAY;
 		voice3.SetWave(data);
 		break;
 	case 0x13:
+		sidReadDelay = SIDREADDELAY;
 		voice3.attack_value = data >> 4;
 		voice3.decay_value = data & 0xf;
 		if (voice3.envmode == sidATTACK)
@@ -1317,25 +1351,30 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			voice3.envelope_compare = sidAttackRate[voice3.decay_value];
 		break;
 	case 0x14:
+		sidReadDelay = SIDREADDELAY;
 		voice3.sustain_level = (((data & 0xf0) >> 4) * 17);
 		voice3.release_value = data & 0xf;
 		if (voice3.envmode == sidRELEASE)
 			voice3.envelope_compare = sidAttackRate[voice3.release_value];
 		break;
 	case 0x15:
+		sidReadDelay = SIDREADDELAY;
 		sidFilterFrequency = (sidFilterFrequency & 0x7f8) | (data & 7);
 		SetFilter();
 		break;
 	case 0x16:
+		sidReadDelay = SIDREADDELAY;
 		sidFilterFrequency = (sidFilterFrequency & 7) | (((bit16)data << 3) & 0x7f8);
 		SetFilter();
 		break;
 	case 0x17:
+		sidReadDelay = SIDREADDELAY;
 		sidVoice_though_filter = data & 0x7;
 		sidResonance = (data & 0xf0) >> 4;
 		SetFilter();
 		break;
 	case 0x18:
+		sidReadDelay = SIDREADDELAY;
 		sidVolume = data & 0xf;
 		sidFilter = (data & 0x70);
 		if ((data & 0x80) !=0)
@@ -1346,36 +1385,83 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	}
 }
 
-
 bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
 {
+bit8 data;
 	if ((address & 0x1f) == 0x1b)
+	{
 		sysclock--;
+	}
 	if (appStatus->m_bSID_Emulation_Enable)
+	{
 		ExecuteCycle(sysclock);
+	}
 	switch (address & 0x1f)
 	{
 	case 0x19:
-		return 255;
+		data = 255;
+		sidReadDelay = SIDREADDELAYFREQ;
+		break;
 	case 0x1a:
-		return 255;
+		data = 255;
+		sidReadDelay = SIDREADDELAYFREQ;
+		break;
 	case 0x1b:
-		return (bit8)(voice3.WaveRegister() >> 4);
-	case 0x1c:			
-		return (bit8) voice3.volume;
+		data = (bit8)(voice3.WaveRegister() >> 4);
+		sidReadDelay = SIDREADDELAYFREQ;
+		break;
+	case 0x1c:
+		data = (bit8) voice3.volume;
+		sidReadDelay = SIDREADDELAYFREQ;
+		break;
 	default:
 		if (sidReadDelay==0)
-			return 0;
+		{
+			data = 0;
+		}
 		else
-			return sidLastWrite;
+		{
+			data = sidInternalBusByte;
+		}
+		break;
 	}
+	sidInternalBusByte = data;
+	return data;
 }
 
 bit8 SID64::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
+bit8 data;
 	if (appStatus->m_bSID_Emulation_Enable)
+	{
 		ExecuteCycle(sysclock);
-	return ReadRegister(address, sysclock);
+	}
+	switch (address & 0x1f)
+	{
+	case 0x19:
+		data = 255;
+		break;
+	case 0x1a:
+		data = 255;
+		break;
+	case 0x1b:
+		data = (bit8)(voice3.WaveRegister() >> 4);
+		break;
+	case 0x1c:
+		data = (bit8) voice3.volume;
+		break;
+	default:
+		if (sidReadDelay==0)
+		{
+			data = 0;
+		}
+		else
+		{
+			data = sidInternalBusByte;
+		}
+		break;
+	}
+	return data;
 }
 
 void SID64::SoundHalt(short value)
@@ -1412,7 +1498,7 @@ void SID64::GetState(SsSid &state)
 	state.sidResonance = sidResonance;
 	state.sidFilterFrequency = sidFilterFrequency;
 	state.sidBlock_Voice3 = sidBlock_Voice3;
-	state.sidLastWrite = sidLastWrite;
+	state.sidInternalBusByte = sidInternalBusByte;
 	state.sidReadDelay = sidReadDelay;
 }
 
@@ -1428,6 +1514,6 @@ void SID64::SetState(const SsSid &state)
 	sidResonance = state.sidResonance;
 	sidFilterFrequency = state.sidFilterFrequency;
 	sidBlock_Voice3 = state.sidBlock_Voice3;
-	sidLastWrite = state.sidLastWrite;
+	sidInternalBusByte = state.sidInternalBusByte;
 	sidReadDelay = state.sidReadDelay;
 }

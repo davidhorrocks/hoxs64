@@ -16,7 +16,7 @@
 #include "p64.h"
 #include "d64.h"
 
-void VIA::InitReset(ICLK sysclock)
+void VIA::InitReset(ICLK sysclock, bool poweronreset)
 {
 	CurrentClock = sysclock;
 	DevicesClock = sysclock;
@@ -63,9 +63,9 @@ void VIA::InitReset(ICLK sysclock)
 
 }
 
-void VIA::Reset(ICLK sysclock)
+void VIA::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	ClearSystemInterrupt();
 
 	WriteRegister(11, CurrentClock, acr);

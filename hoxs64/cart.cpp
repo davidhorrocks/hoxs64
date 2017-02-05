@@ -66,7 +66,7 @@ HRESULT CartCommon::InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZero
 	this->m_ipROMH_A000 = pZeroBankData - 0xA000;
 	this->m_ipROMH_E000 = pZeroBankData - 0xE000;
 
-	InitReset(m_pCpu->Get6510CurrentClock());
+	InitReset(m_pCpu->Get6510CurrentClock(), true);
 	return S_OK;
 }
 
@@ -730,7 +730,7 @@ void CartCommon::CartFreeze()
 {
 }
 
-void CartCommon::InitReset(ICLK sysclock)
+void CartCommon::InitReset(ICLK sysclock, bool poweronreset)
 {
 	CurrentClock = sysclock;
 	m_bEffects = true;
@@ -750,9 +750,9 @@ void CartCommon::InitReset(ICLK sysclock)
 	m_pCpu->Clear_CRT_NMI();
 }
 
-void CartCommon::Reset(ICLK sysclock)
+void CartCommon::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	ConfigureMemoryMap();
 }
 
@@ -760,7 +760,7 @@ void CartCommon::CartReset()
 {
 	if (m_bIsCartAttached)
 	{
-		this->Reset(m_pCpu->Get6510CurrentClock());
+		this->Reset(m_pCpu->Get6510CurrentClock(), false);
 	}
 }
 
@@ -769,7 +769,7 @@ void CartCommon::AttachCart()
 	if (!m_bIsCartAttached)
 	{
 		m_bIsCartAttached = true;
-		this->Reset(m_pCpu->Get6510CurrentClock());
+		this->Reset(m_pCpu->Get6510CurrentClock(), true);
 		if (m_bFreezePending)
 		{
 			CartFreeze();
@@ -1471,16 +1471,20 @@ shared_ptr<ICartInterface> p;
 	return p;
 }
 
-void Cart::Reset(ICLK sysclock)
+void Cart::Reset(ICLK sysclock, bool poweronreset)
 {
 	if (m_spCurrentCart)
-		m_spCurrentCart->Reset(sysclock);
+	{
+		m_spCurrentCart->Reset(sysclock, poweronreset);
+	}
 }
 
 void Cart::ExecuteCycle(ICLK sysclock)
 {
 	if (m_spCurrentCart)
+	{
 		m_spCurrentCart->ExecuteCycle(sysclock);
+	}
 }
 
 bit8 Cart::ReadRegister(bit16 address, ICLK sysclock)

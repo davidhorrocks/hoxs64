@@ -62,7 +62,7 @@ HRESULT C64::Init(CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR 
 	return S_OK;
 }
 
-void C64::InitReset(ICLK sysclock)
+void C64::InitReset(ICLK sysclock, bool poweronreset)
 {
 	m_iClockOverflowCheckCounter = 0;
 	tape64.CurrentClock = sysclock;
@@ -83,29 +83,29 @@ void C64::InitReset(ICLK sysclock)
 	cia2.ClockNextWakeUpClock = sysclock;
 	m_bLastPostedDriveWriteLed = false;
 
-	ram.InitReset();
-	vic.InitReset(sysclock);
-	cia1.InitReset(sysclock);
-	cia2.InitReset(sysclock);
-	sid.InitReset(sysclock);
-	cpu.InitReset(sysclock);
-	diskdrive.InitReset(sysclock);
+	ram.InitReset(poweronreset);
+	vic.InitReset(sysclock, poweronreset);
+	cia1.InitReset(sysclock, poweronreset);
+	cia2.InitReset(sysclock, poweronreset);
+	sid.InitReset(sysclock, poweronreset);
+	cpu.InitReset(sysclock, poweronreset);
+	diskdrive.InitReset(sysclock, poweronreset);
 }
 
-void C64::Reset(ICLK sysclock)
+void C64::Reset(ICLK sysclock, bool poweronreset)
 {
 	diskdrive.WaitThreadReady();
-	InitReset(sysclock);
+	InitReset(sysclock, poweronreset);
 	tape64.PressStop();
-	ram.Reset();
-	vic.Reset(sysclock);
-	cia1.Reset(sysclock);
-	cia2.Reset(sysclock);
-	sid.Reset(sysclock);
+	ram.Reset(poweronreset);
+	vic.Reset(sysclock, poweronreset);
+	cia1.Reset(sysclock, poweronreset);
+	cia2.Reset(sysclock, poweronreset);
+	sid.Reset(sysclock, poweronreset);
 	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
-	cpu.Reset(sysclock);
-	cart.Reset(sysclock);
-	diskdrive.Reset(sysclock);
+	cpu.Reset(sysclock, poweronreset);
+	cart.Reset(sysclock, poweronreset);
+	diskdrive.Reset(sysclock, poweronreset);
 	cpu.SetCassetteSense(1);
 
 	pIC64Event->DiskMotorLed(diskdrive.m_bDiskMotorOn);
@@ -949,7 +949,7 @@ bool C64::Get_DiskProtect()
 
 void C64::DiskReset()
 {
-	diskdrive.Reset(cpu.CurrentClock);
+	diskdrive.Reset(cpu.CurrentClock, true);
 }
 
 void C64::DetachCart()
@@ -1114,7 +1114,7 @@ errno_t errno;
 				autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
 				appStatus->m_bAutoload = TRUE;
 				cart.DetachCart();
-				Reset(0);
+				Reset(0, true);
 				return hr;
 			}
 			else
@@ -1145,7 +1145,7 @@ errno_t errno;
 		return SetError(E_FAIL,TEXT("Unknown file type."));
 	}
 	cart.DetachCart();
-	Reset(0);
+	Reset(0, true);
 	return S_OK;
 }
 
@@ -3172,12 +3172,13 @@ ULARGE_INTEGER pos_next_track_header;
 void C64::SharedSoftReset()
 {
 	ICLK sysclock = cpu.CurrentClock;
-	cpu.InitReset(sysclock);
-	cia1.Reset(sysclock);
-	cia2.Reset(sysclock);
+	cpu.InitReset(sysclock, false);
+	cia1.Reset(sysclock, false);
+	cia2.Reset(sysclock, false);
+	sid.Reset(sysclock, false);
 	//The cpu reset must be called before the cart reset to allow the cart to assert interrupts if any.
-	cpu.Reset(sysclock);
-	cart.Reset(sysclock);
+	cpu.Reset(sysclock, false);
+	cart.Reset(sysclock, false);
 	this->pIC64Event->Reset();
 }
 
@@ -3196,7 +3197,7 @@ void C64::HardReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 		appStatus->m_bAutoload = 0;
-	Reset(0);
+	Reset(0, true);
 	this->pIC64Event->Reset();
 }
 

@@ -58,7 +58,7 @@ typedef enum tagMemoryType
 class IRegister
 {
 public:
-	virtual void Reset(ICLK sysclock)=0;
+	virtual void Reset(ICLK sysclock, bool poweronreset)=0;
 	virtual void ExecuteCycle(ICLK sysclock)=0;
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock)=0;
 	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data)=0;
@@ -71,7 +71,7 @@ public:
 class IC6510
 {
 public:
-	virtual void Reset6510(ICLK sysclock)=0;
+	virtual void Reset6510(ICLK sysclock, bool poweronreset)=0;
 	virtual ICLK Get6510CurrentClock() = 0;
 	virtual void Set6510CurrentClock(ICLK sysclock) = 0;
 	virtual void Set_VIC_IRQ(ICLK sysclock) = 0;
