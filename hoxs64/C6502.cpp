@@ -777,7 +777,6 @@ bit8 CPU6502::code_arr(unsigned int a, unsigned int s)
 {
 unsigned int al;
 unsigned int ah;
-unsigned int r;
 unsigned int t;
 
 	SyncVFlag();
@@ -798,92 +797,110 @@ unsigned int t;
 		ah = t >> 4;
 		al = t & 15;
 		fNEGATIVE = fCARRY;
-		r = (t >> 1);
-		r |= (fCARRY ? 0x80 : 0);
-		fZERO = (r==0);
-		fOVERFLOW = ((t ^ r) & 0x40) >> 6;
-
+		a = (t >> 1) | (fCARRY ? 0x80 : 0);
+		fZERO = (a==0);
+		fOVERFLOW = ((t ^ a) & 0x40) >> 6;
 		if ((al + (al & 1)) > 5)
-			r = (r & 0xf0) | ((r + 6) & 0xf);
+		{
+			a = (a & 0xf0) | ((a + 6) & 0xf);
+		}
 		if (fCARRY = (ah + (ah & 1) > 5))
-			r = (r + 0x60) & 0xff;
+		{
+			a = (a + 0x60) & 0xff;
+		}
 
-		return r & 0xff;
+		return a & 0xff;
 	}	
 }
 
-bit8 CPU6502::code_cmp(unsigned int _a, unsigned int _s)
+bit8 CPU6502::code_cmp(unsigned int a, unsigned int s)
 {
-unsigned int _r;
-	_r=_a - _s;
-	_a=_r & 0xFF;
-	fCARRY=!(_r>>8);
-	fZERO=(_a==0);
-	fNEGATIVE=(_a & 0x80) >> 7;
-	return _a;
+unsigned int t;
+	t = a - s;
+	a = t & 0xFF;
+	fCARRY=!(t>>8);
+	fZERO=(a==0);
+	fNEGATIVE=(a & 0x80) >> 7;
+	return a;
 }
 
-bit8 CPU6502::code_add(unsigned int _a, unsigned int _s)
+bit8 CPU6502::code_add(unsigned int a, unsigned int s)
 {
-unsigned int _al;
-unsigned int _ah;
-unsigned int _r;
+unsigned int al;
+unsigned int ah;
+unsigned int t;
 
 	SyncVFlag();
 	if (fDECIMAL==0){
-		_r=_a + _s + fCARRY;
-		fOVERFLOW=(~(_a^_s) & (_a^_r) & 0x80) >> 7;
-		_a=_r & 0xFF;
-		fCARRY=_r>>8;
-		fZERO=(_a==0);
-		fNEGATIVE=(_a & 0x80) >> 7;
+		t = a + s + fCARRY;
+		fOVERFLOW=(~(a^s) & (a^t) & 0x80) >> 7;
+		a = t & 0xFF;
+		fCARRY=t>>8;
+		fZERO=(a==0);
+		fNEGATIVE=(a & 0x80) >> 7;
 	}
-	else{
-		_al=(_a & 15) + (_s & 15) + fCARRY;
-		_ah=(_a >> 4) + (_s >> 4) + (_al > 9);
-		if (_al > 9) _al += 6;
-		fZERO=((_a + _s + fCARRY) & 0xFF) == 0;
-		fNEGATIVE=(_ah & 0x08) >> 3;
-		fOVERFLOW = (((_ah << 4) ^ _a) & 0x80 & ~((_a ^ _s) & 0x80)) >> 7;
-		if (_ah > 9) _ah += 6;
+	else
+	{
+		al=(a & 15) + (s & 15) + fCARRY;
+		ah=(a >> 4) + (s >> 4) + (al > 9);
+		if (al > 9)
+		{
+			al += 6;
+		}
 
-		fCARRY = (_ah > 0x0F);
-		_a = ((_ah << 4) | (_al & 0x0F)) & 0xFF;
+		fZERO=((a + s + fCARRY) & 0xFF) == 0;
+		fNEGATIVE=(ah & 0x08) >> 3;
+		fOVERFLOW = (((ah << 4) ^ a) & 0x80 & ~((a ^ s) & 0x80)) >> 7;
+		if (ah > 9) 
+		{
+			ah += 6;
+		}
+
+		fCARRY = (ah > 0x0F);
+		a = ((ah << 4) | (al & 0x0F)) & 0xFF;
 	}
-	return _a;
+	return a;
 }
 
-bit8 CPU6502::code_sub(unsigned int _a, unsigned int _s)
+bit8 CPU6502::code_sub(unsigned int a, unsigned int s)
 {
-unsigned int _al;
-unsigned int _ah;
-unsigned int _r;
+unsigned int al;
+unsigned int ah;
+unsigned int t;
 
 	SyncVFlag();
-	if (fDECIMAL==0){
-		_r=_a - _s - !fCARRY;
-		fOVERFLOW=(((_a^_s) & (_a^_r)) & 0x80) >> 7;
-		_a=_r & 0xFF;
-		fCARRY=!(_r>>8);
-		fZERO=(_a==0);
-		fNEGATIVE=(_a & 0x80) >> 7;
+	if (fDECIMAL==0)
+	{
+		t=a - s - !fCARRY;
+		fOVERFLOW=(((a^s) & (a^t)) & 0x80) >> 7;
+		a=t & 0xFF;
+		fCARRY=!(t>>8);
+		fZERO=(a==0);
+		fNEGATIVE=(a & 0x80) >> 7;
 	}
-	else{
-		_al = (_a & 0x0F) - (_s & 0x0F) - !fCARRY;
-		if (_al & 0x10) _al -= 6;
-		_ah = (_a >> 4) - (_s >> 4) - ((_al & 0x30)!=0);
-		if ((_ah & 0x30)!=0) _ah -= 6;
+	else
+	{
+		al = (a & 0x0F) - (s & 0x0F) - !fCARRY;
+		if (al & 0x10)
+		{
+			al -= 6;
+		}
+
+		ah = (a >> 4) - (s >> 4) - ((al & 0x30)!=0);
+		if ((ah & 0x30)!=0)
+		{
+			ah -= 6;
+		}
 		
-		_r=(_a - _s - !fCARRY);
+		t=(a - s - !fCARRY);
+		fZERO = ((t) & 255) == 0;
+		fNEGATIVE = ((t) & 128) != 0;
+		fCARRY = ((t) & 256) == 0;
+		fOVERFLOW =( (a ^ s ^ t) & 128)>> 7 ^ !fCARRY;
 
-		fZERO = ((_r) & 255) == 0;
-		fNEGATIVE = ((_r) & 128) != 0;
-		fCARRY = ((_r) & 256) == 0;
-		fOVERFLOW =( (_a ^ _s ^ _r) & 128)>> 7 ^ !fCARRY;
-
-		_a = ((_ah << 4) | (_al & 0x0F)) & 0xFF;
+		a = ((ah << 4) | (al & 0x0F)) & 0xFF;
 	}
-	return _a;
+	return a;
 }
 
 
