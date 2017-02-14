@@ -795,8 +795,8 @@ unsigned int t;
 	else
 	{
 		t = a & s;
-		al = t >> 4;
-		ah = t & 15;
+		ah = t >> 4;
+		al = t & 15;
 		fNEGATIVE = fCARRY;
 		r = (t >> 1);
 		r |= (fCARRY ? 0x80 : 0);
