@@ -54,6 +54,8 @@
 #define DSGAP3 (1L+8L+8L+8L) //2
 #define DSGAP4 (8L+8L+8L+8L+8L)
 
+#define NOISE_ZERO_FEED ((~((1U << 20) | (1 << 18) | (1 << 14) | (1 << 11) | (1 << 9) | (1 << 5) | (1 << 2) | (1 << 0))) & 0x7fffff)
+
 SID64::SID64()
 {
 	appStatus = NULL;
@@ -409,14 +411,14 @@ void SIDVoice::Reset(bool poweronreset)
 	pulse_width_counter=0;
 	gate=0;
 	test=0;
-	sidShiftRegister=0x7ffff8;
-	willClockShiftRegister = false;
+	sidShiftRegister=0x7fffff;
+	phaseOfShiftRegister = 0;
 	keep_zero_volume=1;
 	envelope_counter=0;
 	envelope_compare=envelope_compare=SID64::sidAttackRate[0];
 	exponential_counter=0;
 	control=0;
-	lastSample = CalcWave(wavetype);
+	lastSample = CalcWaveOutput(wavetype, lastSampleNoNoise);
 }
 
 void SID64::InitReset(ICLK sysclock, bool poweronreset)
@@ -452,15 +454,21 @@ HRESULT SIDVoice::Init(CAppStatus *appStatus)
 	this->appStatus = appStatus;
 	return S_OK;
 }
+
 void __forceinline SIDVoice::ClockShiftRegister()
 {
 bit32 t;
-	t = ((sidShiftRegister >> 22) ^ (sidShiftRegister >> 17)) & 0x1;
-	sidShiftRegister <<= 1;
-	sidShiftRegister = sidShiftRegister & 0x7fffff;
-	sidShiftRegister = sidShiftRegister | t;
+	if (test)
+	{
+		t = ((sidShiftRegister >> 17) & 0x1) ^ 0x1;
+		sidShiftRegister = ((sidShiftRegister << 1) | t) & 0x7fffff;
+	}
+	else
+	{
+		t = ((sidShiftRegister >> 22) ^ (sidShiftRegister >> 17)) & 0x1;
+		sidShiftRegister = ((sidShiftRegister << 1) | t) & 0x7fffff;
+	}
 }
-
 
 void SIDVoice::SyncRecheck()
 {
@@ -473,36 +481,39 @@ void SIDVoice::SyncRecheck()
 void SIDVoice::Envelope()
 {
 bit32 t, c;
-bit8 ctl;
 	if (test)
 	{
-		willClockShiftRegister = false;
+		phaseOfShiftRegister = 0;
 		shifterTestCounter--;
 		if (shifterTestCounter<0)
 		{
 			shifterTestCounter=SHIFTERTESTDELAY;
-			sidShiftRegister = (sidShiftRegister << 1) | 4;
+			sidShiftRegister = (sidShiftRegister << 1) | 1;
 		}
 		affected_voice->zeroTheCounter = 0;
 	}
 	else
 	{
-		if (willClockShiftRegister)
+		if (phaseOfShiftRegister)
 		{
-			willClockShiftRegister = false;
-			ClockShiftRegister();
-		}
-
-		ctl = control;
-		if ((ctl & 0x80)!=0 && (ctl & 0x70)!=0)
-		{
-			sidShiftRegister = sidShiftRegister & 0xAED76B;
+			switch(phaseOfShiftRegister)
+			{
+			case 1:
+				NoiseWriteback(this->control);
+				ClockShiftRegister();
+				phaseOfShiftRegister++;
+				break;
+			case 2:
+				NoiseWriteback(this->control);
+				phaseOfShiftRegister = 0;
+				break;
+			}
 		}
 
 		t = counter;
 		c = (t + frequency) & 0x00ffffff;
 		if ((c & 0x080000) && (!(t & 0x080000))) {
-			willClockShiftRegister = true;
+			phaseOfShiftRegister = 1;
 		}
 		affected_voice->zeroTheCounter = (affected_voice->sync !=0 && !(t & 0x0800000) && (c & 0x0800000)) != 0;
 		counter = c;
@@ -516,11 +527,12 @@ bit8 ctl;
 		exponential_counter++;
 		if (envmode == sidATTACK || exponential_counter == exponential_counter_period)
 		{
-			exponential_counter = 0;
-			
+			exponential_counter = 0;			
 			if (keep_zero_volume)
+			{
 				return;
-			
+			}
+
 			switch (envmode)
 			{
 			case sidENVNONE:
@@ -546,7 +558,9 @@ bit8 ctl;
 				break;
 			}
 			if (volume == 0)
+			{
 				keep_zero_volume=1;
+			}
 		}
 		switch (volume)
 		{
@@ -575,11 +589,11 @@ bit8 ctl;
 	}
 }
 
-unsigned short SIDVoice::CalcWave(bit8 waveType)
+bit16 SIDVoice::CalcWaveOutput(bit8 waveType, bit16 &waveNoNoise)
 {
 bool msb;
 DWORD dwMsb;
-
+bit16 wave;
 	switch (waveType)
 	{
 	case sidTRIANGLE:
@@ -594,41 +608,37 @@ DWORD dwMsb;
 
 		if (msb)
 		{
-			return (unsigned short)  (((~counter) & 0x007fffff) >> 11);
+			wave = (unsigned short)  (((~counter) & 0x007fffff) >> 11);
 		}
 		else
 		{
-			return (unsigned short)  ((counter & 0x007fffff) >> 11);
+			wave = (unsigned short)  ((counter & 0x007fffff) >> 11);
 		}
+		waveNoNoise = wave;
+		return wave;
 	case sidSAWTOOTH:
-		return (unsigned short) (counter >> 12);
+		wave = waveNoNoise = (unsigned short) (counter >> 12);
+		return wave;
 	case sidPULSE:
 		if(test)
 		{
-			return 0x0fff;
+			wave =  0x0fff;
 		}
 		else
 		{
 			if ((counter>>12) >= pulse_width_reg)
 			{
-				return 0x0fff;
+				wave =  0x0fff;
 			}
 			else
 			{
-				return 0x0000;
+				wave = 0x0000;
 			}
 		}
+		waveNoNoise = wave;
+		return wave;
 	case sidNOISE:
-		 return ((unsigned short)(
-			((sidShiftRegister & 0x400000) >> 11) |
-			((sidShiftRegister & 0x100000) >> 10) |
-			((sidShiftRegister & 0x010000) >> 7) |
-			((sidShiftRegister & 0x002000) >> 5) |
-			((sidShiftRegister & 0x000800) >> 4) |
-			((sidShiftRegister & 0x000080) >> 1) |
-			((sidShiftRegister & 0x000010) << 1) |
-			((sidShiftRegister & 0x000004) << 2)
-			));
+		return ShiftRegisterOutput();
 	case sidTRIANGLEPULSE:
 		if (ring_mod)
 		{
@@ -638,30 +648,83 @@ DWORD dwMsb;
 		{
 			dwMsb = (counter & 0x00800000);
 		}
-		return CalcWave(sidPULSE) & (unsigned short)sidWave_PT[(unsigned short)  ((dwMsb | (counter & 0x007fffff)) >> 12)] << 4;
+		wave = CalcWaveOutput(sidPULSE, waveNoNoise) & (unsigned short)sidWave_PT[(unsigned short)  ((dwMsb | (counter & 0x007fffff)) >> 12)] << 4;
+		waveNoNoise = wave;
+		return wave;
 	case sidSAWTOOTHPULSE:
-		return CalcWave(sidPULSE) & sidWave_PS[counter >> 12] << 4;
+		wave = CalcWaveOutput(sidPULSE, waveNoNoise) & sidWave_PS[counter >> 12] << 4;
+		waveNoNoise = wave;
+		return wave;
 	case sidTRIANGLESAWTOOTHPULSE:
-		return CalcWave(sidPULSE) & (unsigned short)sidWave_PST[counter >> 12] << 4;
+		wave = CalcWaveOutput(sidPULSE, waveNoNoise) & (unsigned short)sidWave_PST[counter >> 12] << 4;
+		waveNoNoise = wave;
+		return wave;
 	case sidTRIANGLESAWTOOTH:
-		return (unsigned short)sidWave_ST[counter >> 12] << 4;
+		wave = (unsigned short)sidWave_ST[counter >> 12] << 4;
+		waveNoNoise = wave;
+		return wave;
 	case sidWAVNONE:
 		if (sampleHoldDelay > 0)
 		{
+			waveNoNoise = sampleHold;
 			return sampleHold;
 		}
 		else
 		{
+			waveNoNoise = 0;
 			return 0;
 		}
+	case sidNOISETRIANGLE:
+		wave = CalcWaveOutput(sidTRIANGLE, waveNoNoise);
+		wave &= ShiftRegisterOutput();
+		return wave;
+	case sidNOISESAWTOOTH:
+		wave = CalcWaveOutput(sidSAWTOOTH, waveNoNoise);
+		wave &= ShiftRegisterOutput();
+		return wave;
+	case sidNOISEPULSE:
+		wave = CalcWaveOutput(sidPULSE, waveNoNoise);
+		wave &= ShiftRegisterOutput();
+		return wave;
+	case sidNOISETRIANGLEPULSE:
+		wave = CalcWaveOutput(sidTRIANGLEPULSE, waveNoNoise);
+		wave &= ShiftRegisterOutput();
+		return wave;
+	case sidNOISESAWTOOTHPULSE:
+		wave = CalcWaveOutput(sidSAWTOOTHPULSE, waveNoNoise);
+		wave &= ShiftRegisterOutput();
+		return wave;
+	case sidNOISESTRIANGLESAWTOOTH:
+		wave = CalcWaveOutput(sidTRIANGLESAWTOOTH, waveNoNoise);
+		wave &= ShiftRegisterOutput();
+		return wave;
+	case sidNOISETRIANGLESAWTOOTHPULSE:
+		wave = CalcWaveOutput(sidTRIANGLESAWTOOTHPULSE, waveNoNoise);
+		wave &= ShiftRegisterOutput();
+		return wave;
 	default:
 		return 0;
 	}
 }
 
-unsigned short SIDVoice::WaveRegister()
+bit16 SIDVoice::ShiftRegisterOutput()
+{
+	return ((unsigned short)(
+	((sidShiftRegister & 0x100000) >> 9) |
+	((sidShiftRegister & 0x040000) >> 8) |
+	((sidShiftRegister & 0x004000) >> 5) |
+	((sidShiftRegister & 0x000800) >> 3) |
+	((sidShiftRegister & 0x000200) >> 2) |
+	((sidShiftRegister & 0x000020) << 1) |
+	((sidShiftRegister & 0x000004) << 3) |
+	((sidShiftRegister & 0x000001) << 4)
+	));
+}
+
+bit16 SIDVoice::WaveRegister()
 {	
-	return CalcWave(wavetype);
+bit16 d;
+	return CalcWaveOutput(wavetype, d);
 }
 
 void SIDVoice::Modulate()
@@ -671,7 +734,7 @@ short sample;
 	{
 		sampleHoldDelay--;
 	}
-	lastSample = CalcWave(wavetype);
+	lastSample = CalcWaveOutput(wavetype, lastSampleNoNoise);
 	sample = ((short)(lastSample & 0xfff) - 0x800);
 	fVolSample = ((double)((long)sample * (long)volume) / (255.0));
 }
@@ -1022,29 +1085,52 @@ void SID64::WriteSample(short dxsample)
 	}
 }
 
-void SIDVoice::SetWave(bit8 data)
+void SIDVoice::SetWave(bit8 new_control)
 {
-bit32 t;
-	if (data & 8)
+bit8 prev_control = control;
+	control = new_control;
+	wavetype = (eWaveType)((new_control >> 4) & 0xf);
+	sync=(new_control & 2);
+	ring_mod=(new_control & 4);
+	if ((new_control ^ prev_control) & 0xf0)//control changing
+	{				
+		if (wavetype == sidWAVNONE)
+		{
+			sampleHoldDelay = SAMPLEHOLDRESETTIME;
+			sampleHold = lastSample;
+			wavetype = sidWAVNONE;
+		}
+	}
+	if (new_control & 8)
 	{
 		if (test == 0)
 		{
+			phaseOfShiftRegister = 0;
 			shifterTestCounter = SHIFTERTESTDELAY;
-			t = ((sidShiftRegister >> 19) & 0x2) ^ 0x2;
-			sidShiftRegister = (sidShiftRegister & 0xfffffd) | t;
+			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
+			{
+				NoiseWriteback(prev_control);
+			}
+			test=1;
 		}
-
-		test=1;
+		
 		counter=0;
 	}
 	else
 	{
 		if (test)
+		{
+			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
+			{
+				NoiseWriteback(prev_control);
+			}
 			ClockShiftRegister();
-		test=0;
+			phaseOfShiftRegister = 2;
+			test=0;
+		}
 	}
 
-	if (data & 1)
+	if (new_control & 1)
 	{
 		if (gate==0)
 		{
@@ -1063,82 +1149,27 @@ bit32 t;
 			envmode = sidRELEASE;
 		}
 	}
-	sync=(data & 2);
-	ring_mod=(data & 4);
-	if ((control ^ data) & 0xf0)//control changing
-	{
-		switch (data >> 4)
-		{
-		case 0x0:
-			if (wavetype!=sidWAVNONE)
-			{
-				sampleHoldDelay = SAMPLEHOLDRESETTIME;
-				sampleHold = lastSample;
-				wavetype = sidWAVNONE;
-			}
-			break;
-		case 0x1:
-			wavetype = sidTRIANGLE;
-			break;
-		case 0x2:
-			wavetype = sidSAWTOOTH;
-			break;
-		case 0x3:
-			wavetype = sidTRIANGLESAWTOOTH;
-			break;
-		case 0x4:
-			wavetype = sidPULSE;
-			break;
-		case 0x5://
-			wavetype = sidTRIANGLEPULSE;
-			break;
-		case 0x6:
-			wavetype = sidSAWTOOTHPULSE;
-			break;
-		case 0x7:
-			wavetype = sidTRIANGLESAWTOOTHPULSE;
-			break;
-		case 0x8:
-			wavetype = sidNOISE;
-			break;
-		case 0x9:
-			wavetype = sidNOISETRIANGLE;
-			if (!test)
-				sidShiftRegister = sidShiftRegister & 0xAED76B;
-			break;
-		case 0xa:
-			wavetype = sidNOISESAWTOOTH;
-			if (!test)
-				sidShiftRegister = sidShiftRegister & 0xAED76B;
-			break;
-		case 0xb:
-			wavetype = sidNOISESTRIANGLESAWTOOTH;
-			if (!test)
-				sidShiftRegister = sidShiftRegister & 0xAED76B;
-			break;
-		case 0xc:
-			wavetype = sidNOISEPULSE;
-			if (!test)
-				sidShiftRegister = sidShiftRegister & 0xAED76B;
-			break;
-		case 0xd:
-			wavetype = sidNOISETRIANGLEPULSE;
-			if (!test)
-				sidShiftRegister = sidShiftRegister & 0xAED76B;
-			break;
-		case 0xe:
-			wavetype = sidNOISESAWTOOTHPULSE;
-			if (!test)
-				sidShiftRegister = sidShiftRegister & 0xAED76B;
-			break;
-		case 0xf://NPST
-			wavetype = sidNOISETRIANGLESAWTOOTHPULSE;
-			if (!test)
-				sidShiftRegister = sidShiftRegister & 0xAED76B;
-			break;
-		}
-	}
-	control = data;
+}
+
+void SIDVoice::NoiseWriteback(bit8 control)
+{
+	if ((control & 0x80) != 0 && (control & 0x70) != 0)
+	{	
+		bit16 s;
+		bit32 t;
+		this->CalcWaveOutput((control>>4) & 0xf, s);
+		t = (bit32)s;
+		t = ((t & 0x010) >> 4) | 
+			((t & 0x020) >> 3) |
+			((t & 0x040) >> 1) |
+			((t & 0x080) << 2) |
+			((t & 0x100) << 3) |
+			((t & 0x200) << 5) |
+			((t & 0x400) << 8) |
+			((t & 0x800) << 9);
+		t |= this->lastSampleNoNoise;
+		sidShiftRegister = (sidShiftRegister & (t | NOISE_ZERO_FEED));
+	}	
 }
 
 void SIDVoice::GetState(SsSidVoice &state)
