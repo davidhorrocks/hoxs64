@@ -2893,7 +2893,7 @@ unsigned int v;
 			break;
 		case TAS_ABSOLUTEY://SHS
 			this->SyncChips();
-			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) != 1)
 			{
 				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
 			}
@@ -2910,7 +2910,7 @@ unsigned int v;
 			break;	
 		case SAY_ABSOLUTEX://SHY
 			this->SyncChips();
-			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) != 1)
 			{
 				axa_byte = ((bit8)((addr.word-mX) >> 8)+1);
 			}
@@ -2926,7 +2926,7 @@ unsigned int v;
 			break;	
 		case XAS_ABSOLUTEY://SHX
 			this->SyncChips();
-			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) != 1)
 			{
 				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
 			}
@@ -2943,7 +2943,7 @@ unsigned int v;
 		case AXA_ABSOLUTEY://SHAAY
 		case AXA_INDIRECTY://SHAIY AHX
 			this->SyncChips();
-			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) != 1)
 			{
 				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
 			}
