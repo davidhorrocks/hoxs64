@@ -2893,15 +2893,23 @@ unsigned int v;
 			break;
 		case TAS_ABSOLUTEY://SHS
 			this->SyncChips();
-			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) != 1)
+			mSP = (mA & mX);
+			if (addr.byte.loByte < mY)
 			{
-				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
+				//page crossing
+				axa_byte = (addr.byte.hiByte) & mSP;
+				addr.byte.hiByte = axa_byte;
 			}
 			else
 			{
+				axa_byte = (addr.byte.hiByte + 1) & mSP;
+			}
+
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) == 1)
+			{
 				axa_byte = 0xff;
 			}
-			mSP = (mA & mX);
+			
 			WriteByte(addr.word, mSP & axa_byte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
