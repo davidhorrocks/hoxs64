@@ -36,7 +36,7 @@ bit16 addr;
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
 		addr = address - 0xDF00 + 0x9F00;
-		return this->m_ipROML_8000[addr];
+		return this->m_ipROML[addr & 0x1fff];
 	}
 	return 0;
 }
@@ -94,17 +94,17 @@ void CartActionReplayMk4::UpdateIO()
 		{
 		case 0://GAME=0 EXROM=1 Ultimax
 			//E000 mirrors 8000
-			m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-			m_ipROML_8000 = m_pZeroBankData - 0x8000;
+			m_ipROMH = m_ipROML;
+			m_ipROML = m_pZeroBankData;
 			break;
 		case 1://GAME=1 EXROM=1
 			break;
 		case 2://GAME=0 EXROM=0
 			//A000 mirrors 8000
-			m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+			m_ipROMH = m_ipROML;
 			break;
 		case 3://GAME=1 EXROM=0
-			m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+			m_ipROMH = m_ipROML;
 			break;
 		}
 	}			

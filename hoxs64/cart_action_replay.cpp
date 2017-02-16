@@ -38,12 +38,12 @@ bit16 addr;
 		if (m_bEnableRAM)
 		{
 			addr = address - 0xDF00 + 0x1F00;
-			return m_pCartData[addr + m_iRamBankOffsetIO];
+			return m_pCartData[(addr & 0x1fff) + m_iRamBankOffsetIO];
 		}
 		else
 		{
 			addr = address - 0xDF00 + 0x9F00;
-			return this->m_ipROML_8000[addr];
+			return this->m_ipROML[addr & 0x1fff];
 		}
 	}
 	return 0;
@@ -115,7 +115,7 @@ void CartActionReplay::UpdateIO()
 		EXROM = 1;
 		m_bIsCartIOActive = true;
 		BankRom();
-		m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+		m_ipROMH = m_ipROML;
 	}
 	else
 	{
@@ -127,6 +127,6 @@ void CartActionReplay::UpdateIO()
 		EXROM = (reg1 >> 1) & 1;
 		m_bIsCartIOActive = (reg1 & 0x4) == 0;
 		BankRom();
-		m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+		m_ipROMH = m_ipROML;
 	}			
 }

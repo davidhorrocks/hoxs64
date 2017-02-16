@@ -114,102 +114,86 @@ void CartEasyFlash::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 
 bit8 CartEasyFlash::ReadROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	return this->m_EasyFlashChipROML.ReadByte(address - 0x8000);
+	return this->m_EasyFlashChipROML.ReadByte(address);
 }
 
 bit8 CartEasyFlash::ReadROMH(bit16 address)
 {
-	assert(address >= 0xA000 && address < 0xC000);
-	return this->m_EasyFlashChipROMH.ReadByte(address - 0xA000);
+	return this->m_EasyFlashChipROMH.ReadByte(address);
 }
 
 bit8 CartEasyFlash::ReadUltimaxROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	return this->m_EasyFlashChipROML.ReadByte(address - 0x8000);
+	return this->m_EasyFlashChipROML.ReadByte(address);
 }
 
 bit8 CartEasyFlash::ReadUltimaxROMH(bit16 address)
 {
-	assert(address >= 0xE000);
-	return this->m_EasyFlashChipROMH.ReadByte(address - 0xE000);
+	return this->m_EasyFlashChipROMH.ReadByte(address);
 }
 
 void CartEasyFlash::WriteROML(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
 	m_pC64RamMemory[address] = data;
-	this->m_EasyFlashChipROML.WriteByte(address - 0x8000, data);
+	this->m_EasyFlashChipROML.WriteByte(address, data);
 }
 
 void CartEasyFlash::WriteROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xA000 && address < 0xC000);
 	m_pC64RamMemory[address] = data;
-	this->m_EasyFlashChipROMH.WriteByte(address - 0xA000, data);
+	this->m_EasyFlashChipROMH.WriteByte(address, data);
 }
 
 void CartEasyFlash::WriteUltimaxROML(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	this->m_EasyFlashChipROML.WriteByte(address - 0x8000, data);
+	this->m_EasyFlashChipROML.WriteByte(address, data);
 }
 
 void CartEasyFlash::WriteUltimaxROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xE000);
-	this->m_EasyFlashChipROMH.WriteByte(address - 0xE000, data);
+	this->m_EasyFlashChipROMH.WriteByte(address, data);
 }
 
 bit8 CartEasyFlash::MonReadROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	return this->m_EasyFlashChipROML.MonReadByte(address - 0x8000);
+	return this->m_EasyFlashChipROML.MonReadByte(address);
 }
 
 bit8 CartEasyFlash::MonReadROMH(bit16 address)
 {
-	assert(address >= 0xA000 && address < 0xC000);
-	return this->m_EasyFlashChipROMH.MonReadByte(address - 0xA000);
+	return this->m_EasyFlashChipROMH.MonReadByte(address);
 }
 
 bit8 CartEasyFlash::MonReadUltimaxROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	return this->m_EasyFlashChipROML.MonReadByte(address - 0x8000);
+	return this->m_EasyFlashChipROML.MonReadByte(address);
 }
 
 bit8 CartEasyFlash::MonReadUltimaxROMH(bit16 address)
 {
-	assert(address >= 0xE000);
-	return this->m_EasyFlashChipROMH.MonReadByte(address - 0xE000);
+	return this->m_EasyFlashChipROMH.MonReadByte(address);
 }
 
 void CartEasyFlash::MonWriteROML(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
 	m_pC64RamMemory[address] = data;
-	this->m_EasyFlashChipROML.MonWriteByte(address - 0x8000, data);
+	this->m_EasyFlashChipROML.MonWriteByte(address, data);
 }
 
 void CartEasyFlash::MonWriteROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xA000 && address < 0xC000);
 	m_pC64RamMemory[address] = data;
-	this->m_EasyFlashChipROMH.MonWriteByte(address - 0xA000, data);
+	this->m_EasyFlashChipROMH.MonWriteByte(address, data);
 }
 
 void CartEasyFlash::MonWriteUltimaxROML(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
-	this->m_EasyFlashChipROML.MonWriteByte(address - 0x8000, data);
+	this->m_EasyFlashChipROML.MonWriteByte(address, data);
 }
 
 void CartEasyFlash::MonWriteUltimaxROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xE000);
-	this->m_EasyFlashChipROMH.MonWriteByte(address - 0xE000, data);
+	this->m_EasyFlashChipROMH.MonWriteByte(address, data);
 }
 
 void CartEasyFlash::UpdateIO()

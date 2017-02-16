@@ -36,7 +36,7 @@ bit16 addr;
 	else if (address >= 0xDF00 && address < 0xE000)
 	{
 		addr = address - 0xDF00 + 0x9F00;
-		return this->m_ipROML_8000[addr];
+		return this->m_ipROML[addr & 0x1fff];
 	}
 	return 0;
 }
@@ -90,7 +90,7 @@ void CartActionReplayMk3::UpdateIO()
 		EXROM = (~reg1 >> 3) & 1;
 		m_bIsCartIOActive = (reg1 & 0x4) == 0;
 		BankRom();
-		m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-		m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+		m_ipROMH = m_ipROML;
+		m_ipROMH = m_ipROML;
 	}			
 }

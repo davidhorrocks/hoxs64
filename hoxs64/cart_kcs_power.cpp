@@ -48,7 +48,7 @@ bit8 v;
 	if (address >= 0xDE00 && address < 0xDF00)
 	{
 		addr = address - 0xDE00 + 0x9E00;
-		v = this->m_ipROML_8000[addr];
+		v = this->m_ipROML[addr & 0x1fff];
 		if (m_bEffects)
 		{
 			LatchShift();

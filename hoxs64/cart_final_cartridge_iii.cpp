@@ -32,7 +32,7 @@ bit16 addr;
 	if (address >= 0xDE00 && address < 0xE000)
 	{
 		addr = address - 0xDE00 + 0x9E00;
-		return this->m_ipROML_8000[addr];
+		return this->m_ipROML[addr & 0x1fff];
 	}
 	return 0;
 }

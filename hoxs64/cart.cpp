@@ -62,9 +62,8 @@ HRESULT CartCommon::InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZero
 	m_pCartData = pCartData;
 	m_pZeroBankData = pZeroBankData;
 
-	this->m_ipROML_8000 = pZeroBankData - 0x8000;
-	this->m_ipROMH_A000 = pZeroBankData - 0xA000;
-	this->m_ipROMH_E000 = pZeroBankData - 0xE000;
+	this->m_ipROML = pZeroBankData;
+	this->m_ipROMH = pZeroBankData;
 
 	InitReset(m_pCpu->Get6510CurrentClock(), true);
 	return S_OK;
@@ -88,7 +87,7 @@ void CartCommon::ConfigureMemoryMap()
 
 bit8 *CartCommon::Get_RomH()
 {
-	return this->m_ipROMH_E000 + 0xE000;
+	return this->m_ipROMH;
 }
 
 void CartCommon::PreventClockOverflow()
@@ -693,9 +692,9 @@ bit8 CartCommon::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 
 void CartCommon::BankRom()
 {
-	m_ipROML_8000 = m_pZeroBankData - 0x8000;
-	m_ipROMH_A000 = m_pZeroBankData - 0xA000;
-	m_ipROMH_E000 = m_pZeroBankData - 0xE000;
+	m_ipROML = m_pZeroBankData;
+	m_ipROMH = m_pZeroBankData;
+	m_ipROMH = m_pZeroBankData;
 	SIZE_T i = m_iSelectedBank;
 	if (i < m_plstBank->size())
 	{
@@ -708,19 +707,19 @@ void CartCommon::BankRom()
 			{
 				if (pL->chip.ROMImageSize <= 0x2000)
 				{
-					m_ipROML_8000 = pL->pData - 0x8000;
+					m_ipROML = pL->pData;
 				}
 				else if (pL->chip.ROMImageSize <= 0x4000)
 				{
-					m_ipROML_8000 = pL->pData - 0x8000;
-					m_ipROMH_A000 = &pL->pData[0x2000] - 0xA000;
-					m_ipROMH_E000 = &pL->pData[0x2000] - 0xE000;
+					m_ipROML = pL->pData;
+					m_ipROMH = &pL->pData[0x2000];
+					m_ipROMH = &pL->pData[0x2000];
 				}
 			}
 			if (pH->chip.ROMImageSize != 0)
 			{
-				m_ipROMH_E000 = pH->pData - 0xE000;
-				m_ipROMH_A000 = pH->pData - 0xA000;
+				m_ipROMH = pH->pData;
+				m_ipROMH = pH->pData;
 			}
 		}
 	}
@@ -820,72 +819,62 @@ bool CartCommon::IsUltimax()
 
 bit8 CartCommon::ReadROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
 	if (m_bEnableRAM)
 	{
-		bit16 addr = address - 0x8000;
-		return m_pCartData[addr + m_iRamBankOffsetRomL];
+		return m_pCartData[(address & 0x1fff) + m_iRamBankOffsetRomL];
 	}
 	else
 	{
-		return m_ipROML_8000[address];
+		return m_ipROML[address & 0x1fff];
 	}
 }
 
 void CartCommon::WriteROML(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
 	if (m_bEnableRAM)
 	{
-		m_pCartData[address - 0x8000 + m_iRamBankOffsetRomL] = data;
+		m_pCartData[(address & 0x1fff) + m_iRamBankOffsetRomL] = data;
 	}
 	m_pC64RamMemory[address] = data;
 }
 
 bit8 CartCommon::ReadROMH(bit16 address)
 {
-	assert(address >= 0xA000 && address < 0xC000);
-	return m_ipROMH_A000[address];
+	return m_ipROMH[address & 0x1fff];
 }
 
 void CartCommon::WriteROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xA000 && address < 0xC000);
 	m_pC64RamMemory[address] = data;
 }
 
 bit8 CartCommon::ReadUltimaxROML(bit16 address)
 {
-	assert(address >= 0x8000 && address < 0xA000);
 	if (m_bEnableRAM)
 	{
-		bit16 addr = address - 0x8000;
-		return m_pCartData[addr + m_iRamBankOffsetRomL];
+		return m_pCartData[(address & 0x1fff) + m_iRamBankOffsetRomL];
 	}
 	else
 	{
-		return m_ipROML_8000[address];
+		return m_ipROML[(address & 0x1fff)];
 	}
 }
 
 void CartCommon::WriteUltimaxROML(bit16 address, bit8 data)
 {
-	assert(address >= 0x8000 && address < 0xA000);
 	if (m_bEnableRAM)
 	{
-		m_pCartData[address - 0x8000 + m_iRamBankOffsetRomL] = data;
+		m_pCartData[(address & 0x1fff) + m_iRamBankOffsetRomL] = data;
 	}
 }
 
 bit8 CartCommon::ReadUltimaxROMH(bit16 address)
 {
-	assert(address >= 0xE000);
-	return m_ipROMH_E000[address];
+	return m_ipROMH[address & 0x1fff];
 }
 
 void CartCommon::WriteUltimaxROMH(bit16 address, bit8 data)
 {
-	assert(address >= 0xE000);
 }
 
 bit8 CartCommon::MonReadROML(bit16 address)

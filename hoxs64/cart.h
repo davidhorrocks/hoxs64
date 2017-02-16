@@ -228,9 +228,8 @@ protected:
 	CrtBankList *m_plstBank;
 	bit8 *m_pCartData;
 	bit8 *m_pZeroBankData;
-	bit8 *m_ipROML_8000;
-	bit8 *m_ipROMH_A000;
-	bit8 *m_ipROMH_E000;
+	bit8 *m_ipROML;
+	bit8 *m_ipROMH;
 
 	bit8 reg1;
 	bit8 reg2;

@@ -52,8 +52,8 @@ bit16 addr;
 		}
 		else
 		{
-			addr = address - 0xDE00 + 0x9E00;
-			return this->m_ipROML_8000[addr];
+			addr = address - 0xDE00 + 0x1E00;
+			return this->m_ipROML[addr & 0x1fff];
 		}
 	}
 	else if (address >= 0xDF00 && address < 0xE000 && !m_bREUcompatible)
@@ -65,8 +65,8 @@ bit16 addr;
 		}
 		else
 		{
-			addr = address - 0xDF00 + 0x9F00;
-			return this->m_ipROML_8000[addr];
+			addr = address - 0xDF00 + 0x1F00;
+			return this->m_ipROML[addr & 0x1fff];
 		}
 	}
 	return 0;
@@ -170,7 +170,7 @@ void CartRetroReplay::UpdateIO()
 		EXROM = 1;
 		m_bIsCartIOActive = true;
 		BankRom();
-		m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+		m_ipROMH = m_ipROML;
 	}
 	else
 	{
@@ -188,6 +188,6 @@ void CartRetroReplay::UpdateIO()
 		EXROM = (reg1 >> 1) & 1;
 		m_bIsCartIOActive = (reg1 & 0x4) == 0;
 		BankRom();
-		m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
+		m_ipROMH = m_ipROML;
 	}
 }

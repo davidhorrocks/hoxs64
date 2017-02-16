@@ -75,7 +75,7 @@ bit16 addr;
 			}
 		}
 		addr = address - 0xDF00 + 0x9F00;
-		return this->m_ipROML_8000[addr];
+		return this->m_ipROML[addr & 0x1fff];
 	}
 	return 0;
 }
@@ -142,8 +142,8 @@ void CartActionReplayMk2::UpdateIO()
 	if (m_bFreezePending)
 	{
 		BankRom();
-		m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-		m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+		m_ipROMH = m_ipROML;
+		m_ipROMH = m_ipROML;
 	}
 	else
 	{
@@ -167,7 +167,7 @@ void CartActionReplayMk2::UpdateIO()
 		}
 		m_bIsCartIOActive = true;
 		BankRom();
-		m_ipROMH_E000 = m_ipROML_8000 + 0x8000 - 0xE000;
-		m_ipROMH_A000 = m_ipROML_8000 + 0x8000 - 0xA000;
+		m_ipROMH = m_ipROML;
+		m_ipROMH = m_ipROML;
 	}			
 }
