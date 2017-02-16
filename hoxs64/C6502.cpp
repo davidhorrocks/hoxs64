@@ -2963,16 +2963,23 @@ unsigned int v;
 		case AXA_ABSOLUTEY://SHAAY
 		case AXA_INDIRECTY://SHAIY AHX
 			this->SyncChips();
-			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) != 1)
+			if (addr.byte.loByte < mY)
 			{
-				axa_byte = ((bit8)((addr.word-mY) >> 8)+1);
+				//page crossing
+				axa_byte = (addr.byte.hiByte) & mX;
+				addr.byte.hiByte = axa_byte;
 			}
 			else
 			{
-				axa_byte = 0xff;
+				axa_byte = (addr.byte.hiByte + 1) & mX;
 			}
-			WriteByte(addr.word, mA & mX & axa_byte);
 
+			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) == 1)
+			{
+				axa_byte = mX;
+			}
+
+			WriteByte(addr.word, mA & axa_byte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
