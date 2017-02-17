@@ -187,7 +187,7 @@ bit8 *t;
 			case MT_ROMH_ULTIMAX:
 				return pCart->ReadUltimaxROMH(address);
 			case MT_EXRAM:
-				return 0;
+				return vic->ReadRegister(0xde00, CurrentClock);
 			default:
 				return 0;
 			}
