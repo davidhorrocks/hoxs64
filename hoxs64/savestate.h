@@ -35,7 +35,8 @@ namespace SsLib
 			DriveDiskImageV1 = 22,
 			C64Cia1V1 = 23,
 			C64Cia2V1 = 24,
-			DriveControllerV2 = 25
+			DriveControllerV2 = 25,
+			C64SidV1 = 26
 		};
 	}
 };
@@ -427,12 +428,36 @@ struct SsSidVoice
 	bit32s shifterTestCounter;
 };
 
+struct SsSidVoiceV1 : SsSidVoice
+{
+	bit32 phaseOfShiftRegister;
+	bit16 lastSampleNoNoise;
+};
+
 struct SsSid
 {
 	bit32 CurrentClock;
 	SsSidVoice voice1;
 	SsSidVoice voice2;
 	SsSidVoice voice3;
+
+	bit8 sidVolume;
+	bit8 sidFilter;
+	bit8 sidVoice_though_filter;
+	bit8 sidResonance;
+	bit16 sidFilterFrequency;
+
+	bit8 sidBlock_Voice3;
+	bit8 sidInternalBusByte;
+	bit32 sidReadDelay;
+};
+
+struct SsSidV1
+{
+	bit32 CurrentClock;
+	SsSidVoiceV1 voice1;
+	SsSidVoiceV1 voice2;
+	SsSidVoiceV1 voice3;
 
 	bit8 sidVolume;
 	bit8 sidFilter;
@@ -468,9 +493,7 @@ struct SsDiskInterfaceV0
 	bit32 m_pendingclocks;
 	bit32 m_DiskThreadCommandedPALClock;
 	bit32 m_DiskThreadCurrentPALClock;
-
 	bit8 m_d64_diskwritebyte;
-
 	bit8 m_bDiskMotorOn;
 	bit8 m_bDriveLedOn;
 	bit8 m_bDriveWriteWasOn;
@@ -506,9 +529,9 @@ struct SsDiskInterfaceV1 : SsDiskInterfaceV0
 
 struct SsDiskInterfaceV2 : SsDiskInterfaceV1
 {
-	bit32s m_motor_cmp;
-	bit32s m_motor_dy;
-	bit32s m_motor_dx;
+	bit8 m_previousTrackNumber;
+	bit32 m_lastWeakPulseTime;
+	bit32 m_counterStartPulseFilter;
 };
 
 struct SsViaCommon
@@ -598,7 +621,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 2;
+    static const int VERSION = 3;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

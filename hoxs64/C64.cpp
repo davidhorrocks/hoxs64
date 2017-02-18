@@ -1695,9 +1695,9 @@ bit32 dwordCount;
 			break;
 		}
 
-		SsSid sbSid;
+		SsSidV1 sbSid;
 		this->sid.GetState(sbSid);
-		hr = SaveState::SaveSection(pfs, sbSid, SsLib::SectionType::C64Sid);
+		hr = SaveState::SaveSection(pfs, sbSid, SsLib::SectionType::C64SidV1);
 		if (FAILED(hr))
 		{
 			break;
@@ -2166,7 +2166,8 @@ SsCia1V1 sbCia1V1;
 SsCia2V0 sbCia2V0;
 SsCia2V1 sbCia2V1;
 SsVic6569 sbVic6569;
-SsSid sbSid;
+SsSid sbSidV0;
+SsSidV1 sbSidV1;
 SsTape sbTapePlayer;
 SsTapeData sbTapeDataHeader;
 SsDiskInterfaceV0 sbDriveControllerV0;
@@ -2461,8 +2462,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64Vic6569 = true;
 				break;
 			case SsLib::SectionType::C64Sid:
-				bytesToRead = sizeof(sbSid);
-				hr = pfs->Read(&sbSid, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(sbSidV0);
+				hr = pfs->Read(&sbSidV0, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -2473,7 +2474,28 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 				}
 				if (FAILED(hr))
+				{
 					break;
+				}
+				SID64::UpgradeStateV0ToV1(sbSidV0, sbSidV1);
+				bC64Sid = true;
+				break;
+			case SsLib::SectionType::C64SidV1:
+				bytesToRead = sizeof(sbSidV1);
+				hr = pfs->Read(&sbSidV1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					break;
+				}
 				bC64Sid = true;
 				break;
 			case SsLib::SectionType::C64KernelRom:
@@ -3045,7 +3067,7 @@ ULARGE_INTEGER pos_next_track_header;
 
 		appStatus->SetUserConfig(*appStatus);
 		vic.SetState(sbVic6569);
-		sid.SetState(sbSid);
+		sid.SetState(sbSidV1);
 		tape64.UnloadTAP();
 		if (bTapePlayer && bTapeData && sbTapeDataHeader.tape_max_counter > 0)
 		{

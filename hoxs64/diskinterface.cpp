@@ -1384,10 +1384,7 @@ void DiskInterface::StartMotor()
 void DiskInterface::StopMotor()
 {
 	//Allow motor to run for a short time after it is turned off.
-	m_motorOffClock = DISKMOTORSLOWTIME + (rand() & 0x7fff);
-	m_motor_dy = 1;
-	m_motor_dx = m_motorOffClock;
-	m_motor_cmp = 2 * m_motor_dy - m_motor_dx;
+	m_motorOffClock = DISKMOTORSLOWTIME + (rand() & 0x1fff);
 }
 
 bool DiskInterface::MotorSlowDownEnv()
@@ -1398,36 +1395,24 @@ bool DiskInterface::MotorSlowDownEnv()
 	}
 	else
 	{
-		if (m_motorOffClock > 0 && m_motor_dx > 0)
-		{
-			m_motorOffClock--;
-			bool dospin = m_motor_dx >= m_motor_dy;
-			if (dospin)
-			{
-				if (m_motor_cmp > 0)
-				{
-					dospin = false;
-					m_motor_cmp = m_motor_cmp - m_motor_dx;
-				}
-				m_motor_cmp = m_motor_cmp + m_motor_dy;
-			}
-			else
-			{
-				if (m_motor_cmp > 0)
-				{
-					dospin = true;
-					m_motor_cmp = m_motor_cmp - m_motor_dy;
-				}
-				m_motor_cmp = m_motor_cmp + m_motor_dx;
-			}
-			m_motor_dy++;
-			m_motor_dx--;
-			if (m_motor_dx == 0)
-			{
-				m_motorOffClock = 0;
-			}
-			return dospin;
-		}
+        if (m_motorOffClock > 0)
+        {
+            m_motorOffClock--;
+
+            if (m_motorOffClock > (3 * DISKMOTORSLOWTIME / 4))
+            {
+                return true;
+
+            }
+            else if (m_motorOffClock > (1 * DISKMOTORSLOWTIME / 2))
+            {
+                return (m_motorOffClock & 1) == 0;
+            }
+            else
+            {
+                return (m_motorOffClock & 3) == 0;
+            }
+        }
 		else
 		{
 			return false;
@@ -1439,6 +1424,8 @@ void DiskInterface::GetState(SsDiskInterfaceV2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
+	state.CurrentPALClock = CurrentPALClock;
+	state.m_diskd64clk_xf = m_diskd64clk_xf;
 	state.m_d64_serialbus = m_d64_serialbus;
 	state.m_d64_dipswitch = m_d64_dipswitch;
 	state.m_d64_protectOff = m_d64_protectOff;
@@ -1451,11 +1438,11 @@ void DiskInterface::GetState(SsDiskInterfaceV2 &state)
 	state.m_c64_serialbus_diskview = m_c64_serialbus_diskview;
 	state.m_c64_serialbus_diskview_next = m_c64_serialbus_diskview_next;
 	state.m_diskChangeCounter = m_diskChangeCounter;
-	state.CurrentPALClock = CurrentPALClock;
 	state.m_changing_c64_serialbus_diskview_diskclock = m_changing_c64_serialbus_diskview_diskclock;
 	state.m_driveWriteChangeClock = m_driveWriteChangeClock;
 	state.m_motorOffClock = m_motorOffClock;
 	state.m_headStepClock = m_headStepClock;
+	state.m_headStepClockUp = m_headStepClockUp;
 	state.m_pendingclocks = m_pendingclocks;
 	state.m_DiskThreadCommandedPALClock = m_DiskThreadCommandedPALClock;
 	state.m_DiskThreadCurrentPALClock = m_DiskThreadCurrentPALClock;
@@ -1464,8 +1451,9 @@ void DiskInterface::GetState(SsDiskInterfaceV2 &state)
 	state.m_bDriveLedOn = m_bDriveLedOn;
 	state.m_bDriveWriteWasOn = m_bDriveWriteWasOn;
 	state.m_diskLoaded = m_diskLoaded;
-	state.m_currentHeadIndex = m_currentHeadIndex % DISK_RAW_TRACK_SIZE;
-	state.m_currentTrackNumber = m_currentTrackNumber % HOST_MAX_TRACKS;
+	state.m_currentHeadIndex = m_currentHeadIndex;
+	state.m_currentTrackNumber = m_currentTrackNumber;
+	state.m_previousTrackNumber = m_previousTrackNumber;
 	state.m_lastHeadStepDir = m_lastHeadStepDir;
 	state.m_lastHeadStepPosition = m_lastHeadStepPosition;
 	state.m_shifterWriter_UD3 = m_shifterWriter_UD3;
@@ -1481,20 +1469,19 @@ void DiskInterface::GetState(SsDiskInterfaceV2 &state)
 	state.m_writeStream = m_writeStream;
 	state.m_totalclocks_UE7 = m_totalclocks_UE7;
 	state.m_lastPulseTime = m_lastPulseTime;
-	state.m_diskd64clk_xf = m_diskd64clk_xf;	
+	state.m_lastWeakPulseTime = m_lastWeakPulseTime;
+	state.m_counterStartPulseFilter = m_counterStartPulseFilter;
+	state.m_nextP64PulsePosition = m_nextP64PulsePosition;
 	state.m_bPendingPulse = m_bPendingPulse;
 	state.m_bPulseState = m_bPulseState;
 	state.m_bLastPulseState = m_bLastPulseState;
-	state.m_nextP64PulsePosition = m_nextP64PulsePosition;
-	state.m_headStepClockUp = m_headStepClockUp;	
-	state.m_motor_cmp = m_motor_cmp;
-	state.m_motor_dy = m_motor_dy;
-	state.m_motor_dx = m_motor_dx;
 }
 
 void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 {
 	CurrentClock = state.CurrentClock;
+	CurrentPALClock = state.CurrentPALClock;
+	m_diskd64clk_xf = state.m_diskd64clk_xf;
 	m_d64_serialbus = state.m_d64_serialbus;
 	m_d64_dipswitch = state.m_d64_dipswitch;
 	m_d64_protectOff = state.m_d64_protectOff;
@@ -1507,11 +1494,11 @@ void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 	m_c64_serialbus_diskview = state.m_c64_serialbus_diskview;
 	m_c64_serialbus_diskview_next = state.m_c64_serialbus_diskview_next;
 	m_diskChangeCounter = state.m_diskChangeCounter;
-	CurrentPALClock = state.CurrentPALClock;
 	m_changing_c64_serialbus_diskview_diskclock = state.m_changing_c64_serialbus_diskview_diskclock;
 	m_driveWriteChangeClock = state.m_driveWriteChangeClock;
 	m_motorOffClock = state.m_motorOffClock;
 	m_headStepClock = state.m_headStepClock;
+	m_headStepClockUp = state.m_headStepClockUp;
 	m_pendingclocks = state.m_pendingclocks;
 	m_DiskThreadCommandedPALClock = state.m_DiskThreadCommandedPALClock;
 	m_DiskThreadCurrentPALClock = state.m_DiskThreadCurrentPALClock;
@@ -1522,6 +1509,7 @@ void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 	m_diskLoaded = state.m_diskLoaded;
 	m_currentHeadIndex = state.m_currentHeadIndex;
 	m_currentTrackNumber = state.m_currentTrackNumber;
+	m_previousTrackNumber = state.m_previousTrackNumber;
 	m_lastHeadStepDir = state.m_lastHeadStepDir;
 	m_lastHeadStepPosition = state.m_lastHeadStepPosition;
 	m_shifterWriter_UD3 = state.m_shifterWriter_UD3;
@@ -1537,16 +1525,40 @@ void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 	m_writeStream = state.m_writeStream;
 	m_totalclocks_UE7 = state.m_totalclocks_UE7;
 	m_lastPulseTime = state.m_lastPulseTime;
-	m_lastWeakPulseTime = m_lastPulseTime;
-	m_diskd64clk_xf = state.m_diskd64clk_xf;
+	m_lastWeakPulseTime = state.m_lastWeakPulseTime;
+	m_counterStartPulseFilter = state.m_counterStartPulseFilter;
+	m_nextP64PulsePosition = state.m_nextP64PulsePosition;
 	m_bPendingPulse = state.m_bPendingPulse != 0;
 	m_bPulseState = state.m_bPulseState != 0;
 	m_bLastPulseState = state.m_bLastPulseState != 0;
-	m_nextP64PulsePosition = state.m_nextP64PulsePosition;
-	m_headStepClockUp = state.m_headStepClockUp;
-	m_motor_cmp = state.m_motor_cmp;
-	m_motor_dy = state.m_motor_dy;
-	m_motor_dx = state.m_motor_dx;
+	if (m_currentTrackNumber >= HOST_MAX_TRACKS)
+	{
+		m_currentTrackNumber = HOST_MAX_TRACKS - 1;
+	}
+	if (m_previousTrackNumber >= HOST_MAX_TRACKS)
+	{
+		m_previousTrackNumber = HOST_MAX_TRACKS - 1;
+	}
+	if (abs(m_currentTrackNumber - m_previousTrackNumber) > 1)
+	{
+		m_previousTrackNumber = m_currentTrackNumber;
+	}
+	//Restore track head position within the P64Image for the current track and the previous track.
+	PP64PulseStream track;
+	if (this->m_diskLoaded != 0)
+	{
+		p64_uint32_t position = ((p64_uint32_t)m_currentHeadIndex) << 4;
+		track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + m_currentTrackNumber];
+		if (track->UsedFirst >= 0 && track->Pulses != NULL && track->CurrentIndex >= 0)
+		{
+			P64PulseStreamGetNextPulse(track, position);
+		}
+		track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + m_previousTrackNumber];
+		if (track->UsedFirst >= 0 && track->Pulses != NULL && track->CurrentIndex >= 0)
+		{
+			P64PulseStreamGetNextPulse(track, position);
+		}
+	}
 }
 
 void DiskInterface::UpgradeStateV0ToV1(const SsDiskInterfaceV0 &in, SsDiskInterfaceV1 &out)
@@ -1573,13 +1585,8 @@ void DiskInterface::UpgradeStateV1ToV2(const SsDiskInterfaceV1 &in, SsDiskInterf
 {
 	ZeroMemory(&out, sizeof(SsDiskInterfaceV2));
 	*((SsDiskInterfaceV1 *)&out) = in;
-	if (!out.m_bDiskMotorOn)
-	{
-		if (out.m_motorOffClock>0)
-		{
-			out.m_motor_dy = DISKMOTORSLOWTIME - out.m_motorOffClock + 1;
-			out.m_motor_dx = out.m_motorOffClock;
-			out.m_motor_cmp = 2 * out.m_motor_dy - out.m_motor_dx;
-		}
-	}	
+	out.m_previousTrackNumber = in.m_currentTrackNumber;
+	out.m_lastWeakPulseTime = 0;
+	out.m_counterStartPulseFilter = 0;
+
 }

@@ -46,9 +46,9 @@ struct SIDVoice
 	void NoiseWriteback(bit8 control);
 	void Reset(bool hardreset);
 	void SetWave(bit8 new_control);
-	void GetState(SsSidVoice &state);
-	void SetState(const SsSidVoice &state);
-
+	void GetState(SsSidVoiceV1 &state);
+	void SetState(const SsSidVoiceV1 &state);
+	static void UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out);
 	CAppStatus *appStatus;
 	SID64 *sid;
 	bit32 counter;
@@ -113,13 +113,13 @@ public:
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
 	virtual ICLK GetCurrentClock();
 	virtual void SetCurrentClock(ICLK sysclock);
-
 	void ClockSid(BOOL bResample, ICLK sysclock);
 	void ClockSidResample(ICLK sysclock);
 	void ClockSidDownSample(ICLK sysclock);
 	void WriteSample(short dxsample);
-	void GetState(SsSid &state);
-	void SetState(const SsSid &state);
+	void GetState(SsSidV1 &state);
+	void SetState(const SsSidV1 &state);
+	static void UpgradeStateV0ToV1(const SsSid &in, SsSidV1 &out);
 
 	friend struct SIDVoice;
 	short m_last_dxsample;

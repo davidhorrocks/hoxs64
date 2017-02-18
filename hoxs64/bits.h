@@ -7,6 +7,8 @@ typedef unsigned short bit16;
 typedef signed short bit16s;
 typedef unsigned long bit32;
 typedef signed long bit32s;
+typedef unsigned __int64 bit64;
+typedef signed __int64 bit64s;
 
 /*
 #if defined(_WIN64)

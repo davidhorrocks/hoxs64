@@ -99,12 +99,7 @@ public:
 	ICLK m_pendingclocks;
 	volatile ICLK m_DiskThreadCommandedPALClock;
 	volatile ICLK m_DiskThreadCurrentPALClock;
-	int m_motor_cmp;
-	int m_motor_dy;
-	int m_motor_dx;
-
 	bit8 m_d64_diskwritebyte;
-
 	bool m_bDiskMotorOn;
 	bool m_bDriveLedOn;
 	bool m_bDriveWriteWasOn;
