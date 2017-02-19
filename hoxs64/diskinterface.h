@@ -43,6 +43,7 @@ public:
 
 	void GetState(SsDiskInterfaceV2 &state);
 	void SetState(const SsDiskInterfaceV2 &state);
+	void PrepareP64Head(unsigned int trackNumber);
 	static void UpgradeStateV0ToV1(const SsDiskInterfaceV0 &in, SsDiskInterfaceV1 &out);
 	static void UpgradeStateV1ToV2(const SsDiskInterfaceV1 &in, SsDiskInterfaceV2 &out);
 
@@ -77,7 +78,7 @@ public:
 	void SetRamPattern();
 
 	bit8 GetBusDataByte();
-
+	bool firstboot;
 	volatile bit8 m_d64_serialbus;
 	bit8 m_d64_dipswitch;
 	bit8 m_d64_protectOff;

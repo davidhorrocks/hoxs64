@@ -28,10 +28,13 @@ void VIA::InitReset(ICLK sysclock, bool poweronreset)
 	irb=0;
 	ddra=0;
 	ddrb=0;
-	timer1_counter.word=0x01AA;
-	timer1_latch.word=0x01AA;
-	timer2_counter.word=0x01AA;
-	timer2_latch.word=0x01AA;
+	if (poweronreset)
+	{
+		timer1_counter.word=0x01AA;
+		timer1_latch.word=0x01AA;
+		timer2_counter.word=0x01AA;
+		timer2_latch.word=0x01AA;
+	}
 	acr=0;
 	pcr=0;
 	ca1_in=0;

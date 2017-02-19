@@ -53,6 +53,7 @@
 
 DiskInterface::DiskInterface()
 {
+	firstboot = true;
 	P64ImageCreate(&this->m_P64Image);
 	m_currentHeadIndex=0;
 	m_currentTrackNumber = 0;
@@ -169,12 +170,25 @@ void DiskInterface::InitReset(ICLK sysclock, bool poweronreset)
 	m_headStepClock = 0;
 	m_headStepClockUp =0;
 
-	SetRamPattern();
-
-	m_currentTrackNumber = 0x2;
+	if (poweronreset || firstboot)
+	{
+		SetRamPattern();
+	}
+	if (firstboot)
+	{
+		m_currentTrackNumber = 0x2;
+		m_lastHeadStepDir = 0;
+		m_lastHeadStepPosition = 2;
+		firstboot = false;
+	}
+	else
+	{
+		if (m_currentTrackNumber >= HOST_MAX_TRACKS)
+		{
+			m_currentTrackNumber = HOST_MAX_TRACKS - 1;
+		}
+	}
 	m_previousTrackNumber = m_currentTrackNumber;
-	m_lastHeadStepDir = 0;
-	m_lastHeadStepPosition = 2;
 }
 
 void DiskInterface::Reset(ICLK sysclock, bool poweronreset)
@@ -191,6 +205,7 @@ void DiskInterface::Reset(ICLK sysclock, bool poweronreset)
 	via1.Reset(sysclock, poweronreset);
 	via2.Reset(sysclock, poweronreset);
 	cpu.Reset(sysclock, poweronreset);
+	PrepareP64Head(m_currentTrackNumber);
 }
 
 void DiskInterface::SetRamPattern()
@@ -818,12 +833,6 @@ bit8 bandpos;
 				{
 					m_frameCounter_UC3 =  (m_frameCounter_UC3 + 1) & 0xf;
 				}
-				//
-				if ((m_shifterReader_UD2 & 0x3ff) == 0x1ff && (m_frameCounter_UC3 & 7) == 7 && m_d64_soe_enable!=0)
-				{
-					m_shifterReader_UD2=m_shifterReader_UD2;
-				}
-				//
 				m_debugFrameCounter = (m_debugFrameCounter + 1) & 0xf;
 				bit8 oldSync = m_d64_sync;
 				m_d64_sync = ((m_d64_write_enable==0) && ((m_shifterReader_UD2 & 0x3ff) == 0x3ff)) || (m_d64_forcesync!=0);
@@ -1531,9 +1540,19 @@ void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 	m_bPendingPulse = state.m_bPendingPulse != 0;
 	m_bPulseState = state.m_bPulseState != 0;
 	m_bLastPulseState = state.m_bLastPulseState != 0;
-	if (m_currentTrackNumber >= HOST_MAX_TRACKS)
+	PrepareP64Head(m_currentTrackNumber);
+}
+
+void DiskInterface::PrepareP64Head(unsigned int trackNumber)
+{
+	//Restore track head position within the P64Image for the current track and the previous track.
+	if (trackNumber >= HOST_MAX_TRACKS)
 	{
 		m_currentTrackNumber = HOST_MAX_TRACKS - 1;
+	}
+	else
+	{
+		m_currentTrackNumber = trackNumber;
 	}
 	if (m_previousTrackNumber >= HOST_MAX_TRACKS)
 	{
@@ -1543,7 +1562,6 @@ void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 	{
 		m_previousTrackNumber = m_currentTrackNumber;
 	}
-	//Restore track head position within the P64Image for the current track and the previous track.
 	PP64PulseStream track;
 	if (this->m_diskLoaded != 0)
 	{
