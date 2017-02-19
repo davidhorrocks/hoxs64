@@ -504,10 +504,13 @@ bit32 t, c;
 				phaseOfShiftRegister++;
 				break;
 			case 2:
-				NoiseWriteback(this->control);
 				phaseOfShiftRegister = 0;
 				break;
 			}
+		}
+		else
+		{
+			NoiseWriteback(this->control);
 		}
 
 		t = counter;
@@ -686,23 +689,8 @@ bit16 wave;
 		wave = CalcWaveOutput(sidPULSE, waveNoNoise);
 		wave &= ShiftRegisterOutput();
 		return wave;
-	case sidNOISETRIANGLEPULSE:
-		wave = CalcWaveOutput(sidTRIANGLEPULSE, waveNoNoise);
-		wave &= ShiftRegisterOutput();
-		return wave;
-	case sidNOISESAWTOOTHPULSE:
-		wave = CalcWaveOutput(sidSAWTOOTHPULSE, waveNoNoise);
-		wave &= ShiftRegisterOutput();
-		return wave;
-	case sidNOISESTRIANGLESAWTOOTH:
-		wave = CalcWaveOutput(sidTRIANGLESAWTOOTH, waveNoNoise);
-		wave &= ShiftRegisterOutput();
-		return wave;
-	case sidNOISETRIANGLESAWTOOTHPULSE:
-		wave = CalcWaveOutput(sidTRIANGLESAWTOOTHPULSE, waveNoNoise);
-		wave &= ShiftRegisterOutput();
-		return wave;
 	default:
+		waveNoNoise = 0;
 		return 0;
 	}
 }
