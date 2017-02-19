@@ -80,21 +80,21 @@ bit8 VIA1::ReadPinsPortA()
 	switch (appStatus->m_TrackZeroSensorStyle)
 	{
 		case HCFG::TZSSPullHigh:
-			return 0xFF;
+			return 0x01;
 		case HCFG::TZSSPullLow:
-			return 0xFE;
+			return 0x00;
 		case HCFG::TZSSPositiveHigh:
 			if (disk->m_currentTrackNumber==0)
-				return 0xFF;
+				return 0x01;
 			else
-				return 0xFE;
+				return 0x00;
 		case HCFG::TZSSPositiveLow:
 			if (disk->m_currentTrackNumber==0)
-				return 0xFE;
+				return 0x00;
 			else
-				return 0xFF;
+				return 0x01;
 		default:
-			return 0xFF;
+			return 0x00;
 	}
 }
 

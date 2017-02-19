@@ -34,6 +34,7 @@ void VIA::InitReset(ICLK sysclock, bool poweronreset)
 		timer1_latch.word=0x01AA;
 		timer2_counter.word=0x01AA;
 		timer2_latch.word=0x01AA;
+		shift=0;
 	}
 	acr=0;
 	pcr=0;
@@ -46,8 +47,7 @@ void VIA::InitReset(ICLK sysclock, bool poweronreset)
 	cb2_in=0;
 	cb2_in_prev=0;
 	ca2_out=0;
-	cb2_out=0;
-	shift=0;
+	cb2_out=0;	
 	ifr=0;
 	ier=0;
 	delay=0;
