@@ -1411,7 +1411,6 @@ bool DiskInterface::MotorSlowDownEnv()
             if (m_motorOffClock > (3 * DISKMOTORSLOWTIME / 4))
             {
                 return true;
-
             }
             else if (m_motorOffClock > (1 * DISKMOTORSLOWTIME / 2))
             {
