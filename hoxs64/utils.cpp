@@ -887,6 +887,10 @@ HWND hWnd;
 	return hr;
 }
 
+//Static constructed members for G
+std::random_device G::rd;
+std::mt19937 G::randengine_main;
+
 /**************************************************************************/
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
@@ -1653,11 +1657,6 @@ int i;
 
 	}
 	return E_FAIL;
-}
-
-int G::Rand(int min, int max)
-{
-	return (int)(((double) rand() / (double) RAND_MAX) * (double)max) + min;
 }
 
 void G::RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h)
@@ -2457,4 +2456,5 @@ void G::InitRandomSeed()
 	ULARGE_INTEGER counter = {0, 0};
 	QueryPerformanceCounter((PLARGE_INTEGER)&counter);
 	srand(counter.LowPart);
+	randengine_main.seed(rd());
 }

@@ -1,6 +1,7 @@
 #ifndef __C64_H__
 #define __C64_H__
 
+#include <random>
 #include <vector>
 #include <list>
 

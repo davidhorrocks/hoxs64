@@ -14,13 +14,13 @@ class Tape64;
 class CIA1 : public CIA , public ErrorMsg
 {
 public:
-
 	CIA1();
 	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx);
 	void InitReset(ICLK sysclock, bool poweronreset);
 	virtual void Reset(ICLK sysclock, bool poweronreset);
 	bit8 ReadPortA();
 	bit8 ReadPortB();
+	bit8 ReadPortB_NoUpdateKeyboard();
 	void WritePortA();
 	void WritePortB();
 	void SetSystemInterrupt();
@@ -49,7 +49,9 @@ public:
 	VIC6569 *vic;
 	Tape64 *tape64;
 	IC64 *pIC64;
-	bool m_RandInitDone;
+	std::random_device rd;
+	std::mt19937 randengine;
+	std::uniform_int_distribution<int> dist_pal_frame;
 protected:
 	bool m_bAltLatch;
 private:

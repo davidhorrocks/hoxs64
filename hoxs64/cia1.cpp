@@ -2,6 +2,7 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
+#include <random>
 #include <d3d9.h>
 #include <d3dx9core.h>
 #include <dinput.h>
@@ -39,6 +40,7 @@
 	(keyboard_rmatrix[col] & (bit8)~(1<<row))
 
 CIA1::CIA1()
+	: dist_pal_frame(1, PAL_CLOCKS_PER_FRAME)
 {
 	appStatus = 0L;
 	dx = 0L;
@@ -49,8 +51,8 @@ CIA1::CIA1()
 	nextKeyboardScanClock = 0;
 	ZeroMemory(&c64KeyMap[0], sizeof(c64KeyMap));
 	m_bAltLatch = false;
-	m_RandInitDone = false;
 	ResetKeyboard();
+	randengine.seed(rd());
 }
 
 HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx)
@@ -68,14 +70,19 @@ HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vi
 
 unsigned int CIA1::NextScanDelta()
 {
-	return KEYBOARDMINSCANINTERVAL + (rand() & 0x3FFF);
+	int x = dist_pal_frame(randengine);
+	if (x < KEYBOARDMINSCANINTERVAL)
+	{
+		x += PAL_CLOCKS_PER_FRAME;
+	}
+	return x;
 }
 
 void CIA1::ExecuteDevices(ICLK sysclock)
 {
-	if ((ICLKS)(CurrentClock -  nextKeyboardScanClock) > 0)
+	if ((ICLKS)(sysclock -  nextKeyboardScanClock) > 0)
 	{
-		nextKeyboardScanClock = CurrentClock + NextScanDelta();
+		nextKeyboardScanClock = sysclock + NextScanDelta();
 		ReadKeyboard();
 	}
 	tape64->Tick(sysclock);
@@ -216,15 +223,20 @@ bit8 zA,wA;
 
 bit8 CIA1::ReadPortB()
 {
-bit8 zA,data8,wA;
-bit8 p;
-bit8 zB,wB;
-
 	if ((ICLKS)(CurrentClock - nextKeyboardScanClock) > 0)
 	{
 		nextKeyboardScanClock = CurrentClock + NextScanDelta();
 		ReadKeyboard();
 	}
+	return ReadPortB_NoUpdateKeyboard();
+}
+
+bit8 CIA1::ReadPortB_NoUpdateKeyboard()
+{
+bit8 zA,data8,wA;
+bit8 p;
+bit8 zB,wB;
+
 
 	wB = PortBOutput_Strong1s() & joyport1;
 	zB = PortBOutput_Strong0s() & joyport1;
@@ -350,7 +362,7 @@ void CIA1::LightPen()
 bit8 lightpen;
 
 	//TEST Nitro 16 does not like the light pen line to go low (active) by pressing space when port b is forcing the light pen line high.
-	lightpen = (ReadPortB()) & 0x10;
+	lightpen = (ReadPortB_NoUpdateKeyboard()) & 0x10;
 	vic->SetLPLineClk(CurrentClock, lightpen!=0);
 }
 
@@ -388,12 +400,6 @@ BOOL joy1ok;
 BOOL joy2ok;
 bit8 localjoyport1;
 bit8 localjoyport2;
-
-	if (!m_RandInitDone)
-	{
-		m_RandInitDone = true;
-		G::InitRandomSeed();
-	}
 
 	localjoyport2=0xff;
 	localjoyport1=0xff;

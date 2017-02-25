@@ -6,6 +6,7 @@
 //include <Winable.h>
 //include <shlwapi.h>
 #include "dx_version.h"
+#include <random>
 #include <d3d9.h>
 #include <D3dx9core.h>
 #include <dinput.h>
@@ -650,9 +651,11 @@ RECT rcMain;
 
 	//Set up some late bound OS DLL calls
 	G::InitLateBindLibraryCalls();
-
+	G::InitRandomSeed();
 	if (CDX9::CheckDXVersion9() < 0x0900)
+	{
 		return (E_FAIL);
+	}
 
 	//Initialise common control library.
 	INITCOMMONCONTROLSEX icex;
@@ -909,7 +912,6 @@ BOOL b;
 			c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
 		}
 	}
-	G::InitRandomSeed();
 }
 
 void CApp::InsertTape(HWND hWnd)
@@ -937,7 +939,6 @@ BOOL b;
 			c64.DisplayError(hWnd, TEXT("Insert Tape"));
 		}
 	}
-	G::InitRandomSeed();
 }
 
 void CApp::AutoLoad(HWND hWnd)
@@ -974,7 +975,6 @@ CPRGBrowse prgBrowse;
 		//The call to c64.AutoLoad can enable disk emulation
 		mainCfg.m_bD1541_Emulation_Enable = m_bD1541_Emulation_Enable;
 	}
-	G::InitRandomSeed();
 }
 
 void CApp::LoadC64Image(HWND hWnd)
@@ -1009,7 +1009,6 @@ HRESULT hr;
 			c64.DisplayError(hWnd, TEXT("Load Image"));
 		}
 	}
-	G::InitRandomSeed();
 }
 
 void CApp::LoadT64(HWND hWnd)
@@ -1053,7 +1052,6 @@ int i;
 			c64.DisplayError(hWnd, TEXT("Load T64"));
 		}
 	}
-	G::InitRandomSeed();
 }
 
 void CApp::InsertDiskImage(HWND hWnd)
@@ -1097,7 +1095,6 @@ CPRGBrowse prgBrowse;
 			c64.DisplayError(hWnd, title);
 		}			
 	}
-	G::InitRandomSeed();
 }
 
 void CApp::SaveD64Image(HWND hWnd)
@@ -1341,7 +1338,6 @@ HRESULT hr;
 			c64.DisplayError(hWnd, title);
 		}
 	}
-	G::InitRandomSeed();
 }
 
 void CApp::SoundHalt()

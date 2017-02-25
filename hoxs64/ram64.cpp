@@ -2,6 +2,7 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
+#include <random>
 #include <d3d9.h>
 #include <d3dx9core.h>
 #include <dinput.h>
@@ -45,6 +46,7 @@ RAM64::~RAM64()
 void RAM64::InitReset(bool poweronreset)
 {
 int i;
+	std::uniform_int_distribution<int> dist_byte(0, 255);
 	for (i=0 ; i<=0xFFFF ; i++)
 	{
 		switch((i & 0x0380) >> 7)
@@ -52,10 +54,12 @@ int i;
 		case 0:
 			if ((i & 127) == 0)
 			{
-				mMemory[i] = G::Rand(0, 255);
+				mMemory[i] = dist_byte(G::randengine_main);
 			}
 			else
+			{
 				mMemory[i] = 0xff;
+			}
 			break;
 		case 1:
 			mMemory[i] = 0;
@@ -63,7 +67,7 @@ int i;
 		case 2:
 			if ((i & 127) == 0)
 			{
-				mMemory[i] = G::Rand(0, 255);
+				mMemory[i] = dist_byte(G::randengine_main);
 			}
 			else
 				mMemory[i] = 0xff;
@@ -74,7 +78,7 @@ int i;
 		case 4:
 			if ((i & 127) == 0)
 			{
-				mMemory[i] = G::Rand(0, 255);
+				mMemory[i] = dist_byte(G::randengine_main);
 			}
 			else
 				if ((i & 0x8000) == 0)
@@ -91,7 +95,7 @@ int i;
 		case 6:
 			if ((i & 127) == 0)
 			{
-				mMemory[i] = G::Rand(0, 255);
+				mMemory[i] = dist_byte(G::randengine_main);
 			}
 			else
 			if ((i & 0x8000) == 0)

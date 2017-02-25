@@ -8,6 +8,7 @@
 #include <dsound.h>
 #include <stdio.h>
 #include <assert.h>
+#include <random>
 #include "boost2005.h"
 #include "defines.h"
 #include "mlist.h"
@@ -52,6 +53,7 @@
 #define DISKMOTORSLOWTIME (140000)
 
 DiskInterface::DiskInterface()
+	: dist_motor_slow(0, 0x1fff), dist_weakbit(0, 0x7fff)
 {
 	firstboot = true;
 	P64ImageCreate(&this->m_P64Image);
@@ -770,7 +772,7 @@ bit8 bandpos;
 
 	if (m_lastPulseTime > WEAKBITIME1 && m_d64_write_enable == 0)
 	{
-		if ((m_bDiskMotorOn || m_motorOffClock> 0) && m_d64_diskchange_counter==0 && m_lastWeakPulseTime > WEAKBITIME2 && rand() < 1000)
+		if ((m_bDiskMotorOn || m_motorOffClock> 0) && m_d64_diskchange_counter==0 && m_lastWeakPulseTime > WEAKBITIME2 && dist_weakbit(randengine_drive) < 1000)
 		{
 			clockDivider1_UE7 = speed;
 			clockDivider2_UF4 = 0;
@@ -1393,7 +1395,7 @@ void DiskInterface::StartMotor()
 void DiskInterface::StopMotor()
 {
 	//Allow motor to run for a short time after it is turned off.
-	m_motorOffClock = DISKMOTORSLOWTIME + (rand() & 0x1fff);
+	m_motorOffClock = DISKMOTORSLOWTIME + dist_motor_slow(randengine_drive);
 }
 
 bool DiskInterface::MotorSlowDownEnv()

@@ -162,6 +162,10 @@ private:
 	CRITICAL_SECTION mcrtDisk;
 	HANDLE m_waitCommand[3];
 	HANDLE m_waitReady[2];
+	std::random_device rd;
+	std::mt19937 randengine_drive;
+	std::uniform_int_distribution<int> dist_motor_slow;
+	std::uniform_int_distribution<int> dist_weakbit;
 };
 
 

@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <commctrl.h>
+#include <random>
 #include "dx_version.h"
 #include <d3d9.h>
 #include <d3dx9core.h>
@@ -16,6 +17,7 @@
 #include "mlist.h"
 #include "bits.h"
 #include "Huff.h"
+#include "utils.h"
 #include "C64.h"
 #include "savestate.h"
 
@@ -3292,10 +3294,13 @@ void C64::ProcessReset()
 
 void C64::ExecuteRandomClocks()
 {
+	std::uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
 	SynchroniseDevicesWithVIC();
-	int randomclocks = (int)floor((double)rand() / (double)RAND_MAX * ((double)PAL50CLOCKSPERSECOND / (double)PAL50FRAMESPERSECOND));
+	int randomclocks = dist_byte(G::randengine_main);
 	while (randomclocks-- > 0)
+	{
 		this->ExecuteC64Clock();
+	}
 }
 
 IMonitorCpu *C64::GetCpu(int cpuid)

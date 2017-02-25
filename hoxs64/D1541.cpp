@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <random>
 #include "boost2005.h"
 #include "defines.h"
 #include "bits.h"
@@ -85,7 +86,6 @@ void CPUDisk::check_interrupts0()
 
 void CPUDisk::SyncVFlag()
 {
-	//disk->SpinDisk(CurrentClock);
 	via2->ExecuteCycle(CurrentClock);
 	if (SOTrigger &&  ((ICLKS)(CurrentClock - SOTriggerClock)>0))
 	{

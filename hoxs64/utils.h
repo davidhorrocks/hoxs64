@@ -1,6 +1,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <random>
 #include <assert.h>
 #include "oldos_multimon.h"
 #include "boost2005.h"
@@ -117,6 +118,8 @@ private:
 	static bool m_bHasCachedCommonControlsVersion;
 	static DWORD m_dwCachedCommonControlsVersion;
 public:
+	static std::random_device rd;
+	static std::mt19937 randengine_main;
 	static void InitLateBindLibraryCalls();
 	static bool IsMultiMonitorApiOk();
 	static bool IsDwmApiOk();
@@ -159,7 +162,6 @@ public:
 	static HRESULT GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
 	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
 
-	static int Rand(int min, int max);
 	static void InitOfn(OPENFILENAME_500EX& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile);
 	static void RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h);
 	static BOOL DrawDefText(HDC hdc, int x, int y, LPCTSTR text, int len, int* nextx, int* nexty);
