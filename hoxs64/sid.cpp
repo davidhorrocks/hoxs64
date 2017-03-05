@@ -55,6 +55,7 @@
 #define DSGAP4 (8L+8L+8L+8L+8L)
 
 #define NOISE_ZERO_FEED ((~((1U << 20) | (1 << 18) | (1 << 14) | (1 << 11) | (1 << 9) | (1 << 5) | (1 << 2) | (1 << 0))) & 0x7fffff)
+#define ENVELOPE_LFSR_RESET (0x7fff)
 
 SID64::SID64()
 {
@@ -226,6 +227,26 @@ const WORD SID64::sidAttackRate[16]=
 /*d*/	11720,
 /*e*/	19532,
 /*f*/	31251
+};
+
+
+const bit16 SID64::AdsrTable[16] = {
+ 0x7F00,
+ 0x0006,
+ 0x003C,
+ 0x0330,
+ 0x20C0,
+ 0x6755,
+ 0x3800,
+ 0x500E,
+ 0x1212,
+ 0x0222,
+ 0x1848,
+ 0x59B8,
+ 0x3840,
+ 0x77E2,
+ 0x7625,
+ 0x0A93
 };
 
 HRESULT SID64::Init(CAppStatus *appStatus, CDX9 *dx, HCFG::EMUFPS fps)
@@ -414,8 +435,8 @@ void SIDVoice::Reset(bool poweronreset)
 	sidShiftRegister=0x7fffff;
 	phaseOfShiftRegister = 0;
 	keep_zero_volume=1;
-	envelope_counter=0;
-	envelope_compare=envelope_compare=SID64::sidAttackRate[0];
+	envelope_counter=ENVELOPE_LFSR_RESET;
+	envelope_compare=SID64::AdsrTable[0];
 	exponential_counter=0;
 	control=0;
 	lastSample = CalcWaveOutput(wavetype, lastSampleNoNoise);
@@ -522,11 +543,10 @@ bit32 t, c;
 		counter = c;
 	}
 
-	envelope_counter++;
-	if ((envelope_counter & 0x7fff) == envelope_compare)
+	bit16 feedback = ((envelope_counter >> 14) ^ (envelope_counter >> 13)) & 1;
+	if (envelope_counter == envelope_compare)
 	{
-		envelope_counter=0;
-
+		envelope_counter=ENVELOPE_LFSR_RESET;
 		exponential_counter++;
 		if (envmode == sidATTACK || exponential_counter == exponential_counter_period)
 		{
@@ -544,7 +564,7 @@ bit32 t, c;
 				volume = (volume + 1) & 255;
 				if (volume == 255)
 				{
-					envelope_compare = SID64::sidAttackRate[decay_value];
+					envelope_compare = SID64::AdsrTable[decay_value];
 					envmode = sidDECAY;
 				}
 				break;
@@ -589,6 +609,10 @@ bit32 t, c;
 			exponential_counter_period = 0x01;
 			break;
 		}
+	}
+	else
+	{
+		envelope_counter = ((envelope_counter << 1) & 0x7ffe) | feedback;
 	}
 }
 
@@ -1124,7 +1148,7 @@ bit8 prev_control = control;
 		{
 			gate=1;
 			envmode = sidATTACK;
-			envelope_compare=SID64::sidAttackRate[attack_value];
+			envelope_compare=SID64::AdsrTable[attack_value];
 			keep_zero_volume = 0;
 		}
 	}
@@ -1133,7 +1157,7 @@ bit8 prev_control = control;
 		if (gate!=0)
 		{
 			gate=0;
-			envelope_compare = SID64::sidAttackRate[release_value];
+			envelope_compare = SID64::AdsrTable[release_value];
 			envmode = sidRELEASE;
 		}
 	}
@@ -1326,16 +1350,22 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		voice1.attack_value = data >> 4;
 		voice1.decay_value = data & 0xf;
 		if (voice1.envmode == sidATTACK)
-			voice1.envelope_compare = sidAttackRate[voice1.attack_value];
+		{
+			voice1.envelope_compare = AdsrTable[voice1.attack_value];
+		}
 		else if (voice1.envmode == sidDECAY)
-			voice1.envelope_compare = sidAttackRate[voice1.decay_value];
+		{
+			voice1.envelope_compare = AdsrTable[voice1.decay_value];
+		}
 		break;
 	case 0x6:
 		sidReadDelay = SIDREADDELAY;
 		voice1.sustain_level = (((data & 0xf0) >> 4) * 17);
 		voice1.release_value = data & 0xf;
 		if (voice1.envmode == sidRELEASE)
-			voice1.envelope_compare = sidAttackRate[voice1.release_value];
+		{
+			voice1.envelope_compare = AdsrTable[voice1.release_value];
+		}
 		break;
 	case 0x7:
 		sidReadDelay = SIDREADDELAYFREQ;
@@ -1364,16 +1394,22 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		voice2.attack_value = data >> 4;
 		voice2.decay_value = data & 0xf;
 		if (voice2.envmode == sidATTACK)
-			voice2.envelope_compare = sidAttackRate[voice2.attack_value];
+		{
+			voice2.envelope_compare = AdsrTable[voice2.attack_value];
+		}
 		else if (voice2.envmode == sidDECAY)
-			voice2.envelope_compare = sidAttackRate[voice2.decay_value];
+		{
+			voice2.envelope_compare = AdsrTable[voice2.decay_value];
+		}
 		break;
 	case 0xd:
 		sidReadDelay = SIDREADDELAY;
 		voice2.sustain_level = (((data & 0xf0) >> 4) * 17);
 		voice2.release_value = data & 0xf;
 		if (voice2.envmode == sidRELEASE)
-			voice2.envelope_compare = sidAttackRate[voice2.release_value];
+		{
+			voice2.envelope_compare = AdsrTable[voice2.release_value];
+		}
 		break;
 	case 0xe:
 		sidReadDelay = SIDREADDELAYFREQ;
@@ -1402,16 +1438,22 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		voice3.attack_value = data >> 4;
 		voice3.decay_value = data & 0xf;
 		if (voice3.envmode == sidATTACK)
-			voice3.envelope_compare = sidAttackRate[voice3.attack_value];
+		{
+			voice3.envelope_compare = AdsrTable[voice3.attack_value];
+		}
 		else if (voice3.envmode == sidDECAY)
-			voice3.envelope_compare = sidAttackRate[voice3.decay_value];
+		{
+			voice3.envelope_compare = AdsrTable[voice3.decay_value];
+		}
 		break;
 	case 0x14:
 		sidReadDelay = SIDREADDELAY;
 		voice3.sustain_level = (((data & 0xf0) >> 4) * 17);
 		voice3.release_value = data & 0xf;
 		if (voice3.envmode == sidRELEASE)
-			voice3.envelope_compare = sidAttackRate[voice3.release_value];
+		{
+			voice3.envelope_compare = AdsrTable[voice3.release_value];
+		}
 		break;
 	case 0x15:
 		sidReadDelay = SIDREADDELAY;

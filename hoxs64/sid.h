@@ -130,6 +130,7 @@ private:
 	long filterKernelLength;
 
 	static const WORD SID64::sidAttackRate[16];
+	static const bit16 SID64::AdsrTable[16];	
 
 	Filter filterPreFilterStage2;
 
