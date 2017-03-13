@@ -71,8 +71,16 @@ namespace HCFG
 	typedef enum tagCIAMODE
 	{
 		CM_CIA6526=0,
-		CM_CIA6526A=1,
+		CM_CIA6526A=1
 	} CIAMODE;
+
+	typedef enum tagJoyObjectKind
+	{
+		JoyKindNone=0,
+		JoyKindAxis=1,
+		JoyKindPov=2,
+		JoyKindButton=3
+	} JOYOBJECTKIND;
 };
 
 #define ALLOW_EMUFPS_50_12_MULTI

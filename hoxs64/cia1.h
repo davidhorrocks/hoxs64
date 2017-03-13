@@ -55,8 +55,16 @@ public:
 protected:
 	bool m_bAltLatch;
 private:
+	bool ReadJoyAxis(int joyindex, struct joyconfig& joycfg, unsigned int& axis, bool& fire);
+	static const unsigned int JOYDIR_UP = 8;
+	static const unsigned int JOYDIR_DOWN = 4;
+	static const unsigned int JOYDIR_LEFT = 2;
+	static const unsigned int JOYDIR_RIGHT = 1;
 	CAppStatus *appStatus;
 	CDX9 *dx;
+	bool restore_was_up;
+	bool F12_was_up;
+	bool F11_was_up;
 };
 
 #endif

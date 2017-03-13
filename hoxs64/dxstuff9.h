@@ -59,10 +59,12 @@ public:
 	void DrawUi();
 	HRESULT Present(DWORD dwFlags);
 	HRESULT EnumDevices(DWORD, LPDIENUMDEVICESCALLBACK, LPVOID, DWORD);
-	HRESULT InitJoys(HWND , struct joyconfig &,struct joyconfig &);
+	HRESULT InitJoy(HWND hWnd, int joyindex, struct joyconfig& joycfg);
+	HRESULT InitJoys(HWND hWnd, struct joyconfig&, struct joyconfig&);
 	void ReleaseJoy();
 	HRESULT EnumObjectsJoy(int, LPDIENUMDEVICEOBJECTSCALLBACK, LPVOID, DWORD);
 	HRESULT CreateDeviceJoy(int, REFGUID refguid);
+	HRESULT GetObjectInfo(int joyindex, LPDIDEVICEOBJECTINSTANCE pdidoi, DWORD dwObj, DWORD dwHow);
 	HRESULT GetPropJoy(int joyindex, REFGUID rguid, LPDIPROPHEADER pph);
 	HRESULT SetPropJoy(int joyindex, REFGUID rguid, LPCDIPROPHEADER pph);
 	HRESULT SetDataFormatJoy(int, LPCDIDATAFORMAT);
@@ -148,7 +150,7 @@ public:
 	LPDIRECTSOUND lpDirectSound;
 	LPDIRECTSOUNDBUFFER pPrimarySoundBuffer;
 	LPDIRECTSOUNDBUFFER pSecondarySoundBuffer;
-	BOOL joyok[NUMJOYS];
+	bool joyok[NUMJOYS];
 	bool m_bWindowedCustomSize; 
 	static const D3DFORMAT Formats[];
 

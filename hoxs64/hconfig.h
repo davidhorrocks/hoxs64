@@ -1,7 +1,6 @@
 #ifndef __HCONFIG_H__
 #define __HCONFIG_H__
 
-
 struct joyconfig
 {
 	bool bEnabled;
@@ -11,8 +10,8 @@ struct joyconfig
 	bool bYReverse;
 	DWORD dwOfs_X;
 	DWORD dwOfs_Y;
-	
-	//LPCDIDEVICEINSTANCE pDInst;
+	HCFG::JOYOBJECTKIND joyObjectKindX;
+	HCFG::JOYOBJECTKIND joyObjectKindY;	
 	LONG xMin;
 	LONG xMax;
 	LONG xLeft;
@@ -21,8 +20,9 @@ struct joyconfig
 	LONG yMax;
 	LONG yUp;
 	LONG yDown;
-
 	DWORD dwOfs_firebutton;
+	DWORD povAvailable[4];
+	int povIndex[4];
 };
 
 class CConfig

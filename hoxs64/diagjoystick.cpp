@@ -85,7 +85,6 @@ void CDiagJoystick::saveconfig(CConfig *cfg)
 {
 LRESULT lr;
 
-
 	cfg->m_joy1config.bValid = FALSE;
 	cfg->m_joy2config.bValid = FALSE;
 
@@ -132,7 +131,8 @@ LRESULT lr;
 		{		
 			if ((ULONG)lr < DevAxis1Array.Count())
 			{
-				cfg->m_joy1config.dwOfs_Y = DevAxis1Array[(ULONG)lr].dwOfs;
+				LPDIDEVICEOBJECTINSTANCE pObj = &DevAxis1Array[(ULONG)lr];
+				cfg->m_joy1config.dwOfs_Y = pObj->dwOfs;
 			}
 		}
 	}
@@ -145,7 +145,8 @@ LRESULT lr;
 		{		
 			if ((ULONG)lr < DevAxis1Array.Count())
 			{
-				cfg->m_joy1config.dwOfs_X = DevAxis1Array[(ULONG)lr].dwOfs;
+				LPDIDEVICEOBJECTINSTANCE pObj = &DevAxis1Array[(ULONG)lr];
+				cfg->m_joy1config.dwOfs_X = pObj->dwOfs;
 			}
 		}
 	}
@@ -171,7 +172,8 @@ LRESULT lr;
 		{		
 			if ((ULONG)lr < DevAxis2Array.Count())
 			{
-				cfg->m_joy2config.dwOfs_Y = DevAxis2Array[(ULONG)lr].dwOfs;
+				LPDIDEVICEOBJECTINSTANCE pObj = &DevAxis2Array[(ULONG)lr];
+				cfg->m_joy2config.dwOfs_Y = pObj->dwOfs;
 			}
 		}
 	}
@@ -184,7 +186,8 @@ LRESULT lr;
 		{		
 			if ((ULONG)lr < DevAxis2Array.Count())
 			{
-				cfg->m_joy2config.dwOfs_X = DevAxis2Array[(ULONG)lr].dwOfs;
+				LPDIDEVICEOBJECTINSTANCE pObj = &DevAxis2Array[(ULONG)lr];
+				cfg->m_joy2config.dwOfs_X = pObj->dwOfs;
 			}
 		}
 	}

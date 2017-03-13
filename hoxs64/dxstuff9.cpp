@@ -2558,7 +2558,7 @@ HRESULT CDX9::CreateDeviceJoy(int joyindex, REFGUID refguid)
 {
 HRESULT hr;
 
-	joyok[joyindex] = FALSE;
+	joyok[joyindex] = false;
 	if (joy[joyindex])
 	{
 		joy[joyindex]->Unacquire();
@@ -2569,6 +2569,14 @@ HRESULT hr;
 	return hr;
 }
 
+HRESULT CDX9::GetObjectInfo(int joyindex, LPDIDEVICEOBJECTINSTANCE pdidoi, DWORD dwObj, DWORD dwHow)
+{
+	if (joy[joyindex] == NULL)
+	{
+		return E_POINTER;
+	}
+	return joy[joyindex]->GetObjectInfo(pdidoi, dwObj, dwHow);
+}
 
 HRESULT CDX9::GetPropJoy(int joyindex, REFGUID rguid, LPDIPROPHEADER pph)
 {
@@ -2607,7 +2615,7 @@ int i;
 			joy[i]->Unacquire();
 			joy[i]->Release();
 			joy[i]=NULL;
-			joyok[i]=FALSE;
+			joyok[i]=false;
 		}
 	}
 }
@@ -2661,183 +2669,200 @@ HRESULT CDX9::SetCooperativeLevelJoy(int joyindex, HWND hWnd, DWORD dwFlags)
 	return joy[joyindex]->SetCooperativeLevel(hWnd, dwFlags);
 }
 
+HRESULT CDX9::InitJoy(HWND hWnd, int joyindex, struct joyconfig &joycfg)
+{
+HRESULT hr = S_OK;
+DIPROPRANGE diprg; 
+DIDEVICEOBJECTINSTANCE didoi;
+int i;
+int j;
+	ClearError();
+	if (hWnd==0)
+	{
+		return E_FAIL;
+	}
+	joycfg.joyObjectKindX = HCFG::JoyKindAxis;
+	joycfg.joyObjectKindY = HCFG::JoyKindAxis;
+	joycfg.xMax= +1000;
+	joycfg.xMin= -1000;
+	joycfg.yMax= +1000;
+	joycfg.yMin= -1000;
+	for(i = 0; i < _countof(joycfg.povAvailable); i++)
+	{
+		joycfg.povAvailable[0] = 0;
+		joycfg.povIndex[0] = 0;
+	}
+	bool x_ok = false;
+	bool y_ok = false;
+	if (joycfg.bValid && joycfg.bEnabled)
+	{
+		UnacquireJoy(joyindex);
+		hr = CreateDeviceJoy(joyindex, joycfg.joystickID);
+		if (SUCCEEDED(hr))
+		{
+			hr = SetDataFormatJoy(joyindex, &c_dfDIJoystick);
+			if (SUCCEEDED(hr))
+			{
+				hr = SetCooperativeLevelJoy(joyindex, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+				if (SUCCEEDED(hr))
+				{
+					//X Axis
+					ZeroMemory(&didoi, sizeof(didoi));
+					didoi.dwSize = sizeof(didoi);
+					hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_X, DIPH_BYOFFSET);
+					if (FAILED(hr))
+					{
+						SetError(hr, TEXT("GetObjectInfo on Joystick%d failed."), joyindex);
+					}
+					if (SUCCEEDED(hr))
+					{
+						if ((didoi.dwType & DIDFT_AXIS) != 0)
+						{
+							joycfg.joyObjectKindX = HCFG::JoyKindAxis;
+							ZeroMemory(&diprg, sizeof(diprg));
+							diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+							diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+							diprg.diph.dwHow        = DIPH_BYOFFSET; 
+							diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
+							diprg.lMin              = joycfg.xMin; 
+							diprg.lMax              = joycfg.xMax; 
+							hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+							if (FAILED(hr))
+							{
+								ZeroMemory(&diprg, sizeof(diprg));
+								diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+								diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+								diprg.diph.dwHow        = DIPH_BYOFFSET; 
+								diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
+								hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+								if (FAILED(hr))
+								{
+									SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
+								}
+								if (SUCCEEDED(hr))
+								{
+									joycfg.xMin = diprg.lMin; 
+									joycfg.xMax = diprg.lMax; 
+								}
+							}
+							if (SUCCEEDED(hr))
+							{
+								joycfg.xLeft = joycfg.xMin + 60L * (joycfg.xMax - joycfg.xMin)/200L;
+								joycfg.xRight = joycfg.xMax - 60L * (joycfg.xMax - joycfg.xMin)/200L;
+								x_ok = true;
+							}
+						}
+						else if ((didoi.dwType & DIDFT_POV) != 0)
+						{
+							joycfg.joyObjectKindX = HCFG::JoyKindPov;
+							x_ok = true;
+						}
+					}
+
+					//Y Axis
+					ZeroMemory(&didoi, sizeof(didoi));
+					didoi.dwSize = sizeof(didoi);
+					hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_Y, DIPH_BYOFFSET);
+					if (FAILED(hr))
+					{
+						SetError(hr, TEXT("GetObjectInfo on Joystick%d failed."), joyindex);
+					}
+					if (SUCCEEDED(hr))
+					{
+						if ((didoi.dwType & DIDFT_AXIS) != 0)
+						{
+							joycfg.joyObjectKindY = HCFG::JoyKindAxis;
+							diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+							diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+							diprg.diph.dwHow        = DIPH_BYOFFSET; 
+							diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
+							diprg.lMin              = joycfg.yMin; 
+							diprg.lMax              = joycfg.yMax; 
+							hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+							if (FAILED(hr))
+							{
+								ZeroMemory(&diprg, sizeof(diprg));
+								diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+								diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+								diprg.diph.dwHow        = DIPH_BYOFFSET; 
+								diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
+								hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+								if (FAILED(hr))
+								{
+									SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
+								}
+								if (SUCCEEDED(hr))
+								{
+									joycfg.yMin = diprg.lMin; 
+									joycfg.yMax = diprg.lMax; 
+								}
+							}
+							if (SUCCEEDED(hr))
+							{
+								joycfg.yUp = joycfg.yMin + 60L * (joycfg.yMax - joycfg.yMin)/200L;
+								joycfg.yDown = joycfg.yMax - 60L * (joycfg.yMax - joycfg.yMin)/200L;
+								y_ok = true;
+							}
+						}
+						else if ((didoi.dwType & DIDFT_POV) != 0)
+						{
+							joycfg.joyObjectKindY = HCFG::JoyKindPov;
+							y_ok = true;
+						}
+					}
+
+					//POV
+					ZeroMemory(&didoi, sizeof(didoi));
+					didoi.dwSize = sizeof(didoi);
+					for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
+					{
+						hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
+						if (hr == DIERR_OBJECTNOTFOUND)
+						{
+							continue;
+						}
+						if (FAILED(hr))
+						{
+							break;
+						}
+						joycfg.povAvailable[j] = DIJOFS_POV(i);
+						joycfg.povIndex[j] = i;
+						j++;
+					}	
+				}
+			}
+		}
+	}
+	if (x_ok && y_ok)
+	{
+		joyok[joyindex] = true;
+		return S_OK;
+	}
+	else
+	{
+		return E_FAIL;
+	}
+}
 
 HRESULT CDX9::InitJoys(HWND hWnd, struct joyconfig &joy1config,struct joyconfig &joy2config)
 {
-HRESULT hr;
-DIPROPRANGE diprg; 
-
 	ClearError();
 	ReleaseJoy();
 	if (hWnd==0)
+	{
 		return E_FAIL;
-	
-	joy1config.xMax= +1000;
-	joy1config.xMin= -1000;
-	joy1config.yMax= +1000;
-	joy1config.yMin= -1000;
-	joy2config.xMax= +1000;
-	joy2config.xMin= -1000;
-	joy2config.yMax= +1000;
-	joy2config.yMin= -1000;
-	
-	if (joy1config.bValid && joy1config.bEnabled)
-	{
-		UnacquireJoy(JOY1);
-
-		hr = CreateDeviceJoy(JOY1, joy1config.joystickID);
-		if (SUCCEEDED(hr))
-		{
-			hr = SetDataFormatJoy(JOY1, &c_dfDIJoystick);
-			if (SUCCEEDED(hr))
-			{
-				hr = SetCooperativeLevelJoy(JOY1, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-				if (SUCCEEDED(hr))
-				{
-					diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-					diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-					diprg.diph.dwHow        = DIPH_BYOFFSET; 
-					diprg.diph.dwObj        = joy1config.dwOfs_X; // Specify the enumerated axis
-					diprg.lMin              = joy1config.xMin; 
-					diprg.lMax              = joy1config.xMax; 
-					hr = SetPropJoy(JOY1, DIPROP_RANGE, &diprg.diph);
-					if (FAILED(hr))
-					{
-						ZeroMemory(&diprg, sizeof(diprg));
-						diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-						diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-						diprg.diph.dwHow        = DIPH_BYOFFSET; 
-						diprg.diph.dwObj        = joy1config.dwOfs_X; // Specify the enumerated axis
-						hr = GetPropJoy(JOY1, DIPROP_RANGE, &diprg.diph);
-						if (SUCCEEDED(hr))
-						{
-							joy1config.xMin = diprg.lMin; 
-							joy1config.xMax = diprg.lMax; 
-						}
-					}
-					if (FAILED(hr))
-						SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
-					if (SUCCEEDED(hr))
-					{
-						diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-						diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-						diprg.diph.dwHow        = DIPH_BYOFFSET; 
-						diprg.diph.dwObj        = joy1config.dwOfs_Y; // Specify the enumerated axis
-						diprg.lMin              = joy1config.yMin; 
-						diprg.lMax              = joy1config.yMax; 
-						hr = SetPropJoy(JOY1, DIPROP_RANGE, &diprg.diph);
-						if (FAILED(hr))
-						{
-							ZeroMemory(&diprg, sizeof(diprg));
-							diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-							diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-							diprg.diph.dwHow        = DIPH_BYOFFSET; 
-							diprg.diph.dwObj        = joy1config.dwOfs_Y; // Specify the enumerated axis
-							hr = GetPropJoy(JOY1, DIPROP_RANGE, &diprg.diph);
-							if (SUCCEEDED(hr))
-							{
-								joy1config.yMin = diprg.lMin; 
-								joy1config.yMax = diprg.lMax; 
-							}
-						}
-						if (FAILED(hr))
-							SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
-						if (SUCCEEDED(hr))
-						{
-							joy1config.xLeft = joy1config.xMin + 60L * (joy1config.xMax - joy1config.xMin)/200L;
-							joy1config.xRight = joy1config.xMax - 60L * (joy1config.xMax - joy1config.xMin)/200L;
-							joy1config.yUp = joy1config.yMin + 60L * (joy1config.yMax - joy1config.yMin)/200L;
-							joy1config.yDown = joy1config.yMax - 60L * (joy1config.yMax - joy1config.yMin)/200L;
-							joyok[JOY1] = TRUE;
-						}
-					}
-				}
-			}
-		}
 	}
-
-	if (joy2config.bValid && joy2config.bEnabled)
-	{
-		UnacquireJoy(JOY2);
-
-		hr = CreateDeviceJoy(JOY2, joy2config.joystickID);
-		if (SUCCEEDED(hr))
-		{
-			hr = SetDataFormatJoy(JOY2, &c_dfDIJoystick);
-			if (SUCCEEDED(hr))
-			{
-				hr = SetCooperativeLevelJoy(JOY2, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-				if (SUCCEEDED(hr))
-				{
-					diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-					diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-					diprg.diph.dwHow        = DIPH_BYOFFSET; 
-					diprg.diph.dwObj        = joy2config.dwOfs_X; // Specify the enumerated axis
-					diprg.lMin              = joy2config.xMin; 
-					diprg.lMax              = joy2config.xMax; 
-					hr = SetPropJoy(JOY2, DIPROP_RANGE, &diprg.diph);
-					if (FAILED(hr))
-					{
-						ZeroMemory(&diprg, sizeof(diprg));
-						diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-						diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-						diprg.diph.dwHow        = DIPH_BYOFFSET; 
-						diprg.diph.dwObj        = joy2config.dwOfs_X; // Specify the enumerated axis
-						hr = GetPropJoy(JOY2, DIPROP_RANGE, &diprg.diph);
-						if (SUCCEEDED(hr))
-						{
-							joy2config.xMin = diprg.lMin; 
-							joy2config.xMax = diprg.lMax; 
-						}
-					}
-					if (FAILED(hr))
-						SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
-					if (SUCCEEDED(hr))
-					{
-						diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-						diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-						diprg.diph.dwHow        = DIPH_BYOFFSET; 
-						diprg.diph.dwObj        = joy2config.dwOfs_Y; // Specify the enumerated axis
-						diprg.lMin              = joy2config.yMin; 
-						diprg.lMax              = joy2config.yMax; 
-						hr = SetPropJoy(JOY2, DIPROP_RANGE, &diprg.diph);
-						if (FAILED(hr))
-						{
-							ZeroMemory(&diprg, sizeof(diprg));
-							diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-							diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-							diprg.diph.dwHow        = DIPH_BYOFFSET; 
-							diprg.diph.dwObj        = joy2config.dwOfs_Y; // Specify the enumerated axis
-							hr = GetPropJoy(JOY2, DIPROP_RANGE, &diprg.diph);
-							if (SUCCEEDED(hr))
-							{
-								joy2config.yMin = diprg.lMin; 
-								joy2config.yMax = diprg.lMax; 
-							}
-						}
-						if (FAILED(hr))
-							SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
-						if (SUCCEEDED(hr))
-						{
-							joy2config.xLeft = joy2config.xMin + 60L * (joy2config.xMax - joy2config.xMin)/200L;
-							joy2config.xRight = joy2config.xMax - 60L * (joy2config.xMax - joy2config.xMin)/200L;
-							joy2config.yUp = joy2config.yMin + 60L * (joy2config.yMax - joy2config.yMin)/200L;
-							joy2config.yDown = joy2config.yMax - 60L * (joy2config.yMax - joy2config.yMin)/200L;
-							joyok[JOY2] = TRUE;
-						}
-					}
-				}
-			}
-		}
-	}
-
+	InitJoy(hWnd, JOY1, joy1config);
+	InitJoy(hWnd, JOY2, joy2config);	
 	if ((joy1config.bValid && joy1config.bEnabled && !joyok[JOY1]) || (joy2config.bValid && joy2config.bEnabled && !joyok[JOY2]))
+	{
 		return E_FAIL;
+	}
 	else
+	{
 		return S_OK;
+	}
 }
-
-
 
 HRESULT CDX9::LoadTextures(D3DFORMAT format)
 {

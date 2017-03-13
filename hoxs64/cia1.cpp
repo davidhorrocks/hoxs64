@@ -53,6 +53,9 @@ CIA1::CIA1()
 	m_bAltLatch = false;
 	ResetKeyboard();
 	randengine.seed(rd());
+	restore_was_up=true;
+	F12_was_up=true;
+	F11_was_up=true;
 }
 
 HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx)
@@ -366,7 +369,6 @@ bit8 lightpen;
 	vic->SetLPLineClk(CurrentClock, lightpen!=0);
 }
 
-
 #define KEYDOWN(name,key) (name[c64KeyMap[key]] & 0x80) 
 #define RAWKEYDOWN(name,key) (name[key] & 0x80) 
 #define JOYMIN (-400)
@@ -379,27 +381,126 @@ void CIA1::SetKeyMatrixDown(bit8 row, bit8 col)
 	KEYMATRIX_DOWN(row , col);
 }
 
+bool CIA1::ReadJoyAxis(int joyindex, struct joyconfig& joycfg, unsigned int& axis, bool& fire)
+{
+LPDIRECTINPUTDEVICE7 joystick7;
+HRESULT  hr;
+DIJOYSTATE  js;
+int i;
+const DWORD povRightUp = 9000 - 2250;
+const DWORD povRightDown = 9000 + 2250;
+const DWORD povLeftUp = 27000 + 2250;
+const DWORD povLeftDown = 27000 - 2250;
+const DWORD povUpLeft = 36000 - 2250;
+const DWORD povUpRight = 2250;
+const DWORD povDownLeft = 18000 + 2250;
+const DWORD povDownRight = 18000 - 2250;
+
+	axis = 0;
+	fire = false;
+	joystick7 = (LPDIRECTINPUTDEVICE7) dx->GetJoy(joyindex);
+	joystick7->Poll();
+	hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js);
+	if(hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
+	{
+		hr = joystick7->Acquire();
+		hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js);
+	}
+
+	if (SUCCEEDED(hr))
+	{
+
+		for (i = 0; i < _countof(joycfg.povAvailable); i++)
+		{
+			if (joycfg.povAvailable[i] == 0)
+			{
+				break;
+			}
+			DWORD pov = *((LONG *)(((BYTE *)&js) + joycfg.povAvailable[i]));
+			if (LOWORD(pov) != 0xFFFF)
+			{
+				if (pov < povRightUp || pov > povLeftUp)
+				{
+					axis |= JOYDIR_UP;
+				}
+				else if (pov > povRightDown && pov < povLeftDown)
+				{
+					axis |= JOYDIR_DOWN;
+				}
+
+				if (pov < povUpLeft && pov > povDownLeft)
+				{
+					axis |= JOYDIR_LEFT;
+				}
+				else if (pov > povUpRight && pov < povDownRight)
+				{
+					axis |= JOYDIR_RIGHT;
+				}
+				break;
+			}
+		}
+		
+		if (axis == 0)
+		{
+			if (joycfg.joyObjectKindX == HCFG::JoyKindAxis)
+			{
+				LONG xpos = *((LONG *)(((BYTE *)&js) + joycfg.dwOfs_X));
+				if (xpos < joycfg.xLeft)
+				{
+					axis |= JOYDIR_LEFT;
+				}
+				else if (xpos > joycfg.xRight)
+				{
+					axis |= JOYDIR_RIGHT;
+				}
+			}
+			if (joycfg.joyObjectKindX == HCFG::JoyKindAxis)
+			{
+				LONG ypos = *((LONG *)(((BYTE *)&js) + joycfg.dwOfs_Y));
+				if (ypos < joycfg.yUp)
+				{
+					axis |= JOYDIR_UP;
+				}
+				else if (ypos > joycfg.yDown)
+				{
+					axis |= JOYDIR_DOWN;
+				}
+			}
+		}
+		if (joycfg.bXReverse)
+		{
+			axis ^= (JOYDIR_LEFT | JOYDIR_RIGHT);
+		}
+		if (joycfg.bYReverse)
+		{
+			axis ^= (JOYDIR_UP | JOYDIR_DOWN);
+		}
+
+		if (((BYTE *)&js)[joycfg.dwOfs_firebutton] & 0x80)
+		{
+			fire = true;
+		}
+		return true;
+	}
+	return false;
+}
+
 void CIA1::ReadKeyboard()
 {
 char     buffer[256]; 
-HRESULT  hr; 
-static BOOL restore_was_up=TRUE;
-static BOOL F12_was_up=TRUE;
-static BOOL F11_was_up=TRUE;
-DIJOYSTATE  js1;
-DIJOYSTATE  js2;
-static LONG xpos1=0;
-static LONG ypos1=0;
-static LONG xpos2=0;
-static LONG ypos2=0;
+HRESULT  hr;
 static int softcursorleftcount = 0;
 static int softcursorupcount = 0;
-
-LPDIRECTINPUTDEVICE7 joystick7;
-BOOL joy1ok;
-BOOL joy2ok;
+bool joy1ok;
+bool joy2ok;
 bit8 localjoyport1;
 bit8 localjoyport2;
+//3-2-1-0 bit postion in axis1 and axis1
+//U-D-L-R //U is up, D is down L is left, R is right
+unsigned int axis1 = 0;
+unsigned int axis2 = 0;
+bool fire1 = 0;
+bool fire2 = 0;
 
 	localjoyport2=0xff;
 	localjoyport1=0xff;
@@ -421,14 +522,21 @@ bit8 localjoyport2;
 		if (hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
 		{
 			hr = dx->pKeyboard->Acquire();
-			if ( FAILED(hr) )  
+			if ( FAILED(hr) )
+			{
 				return;
+			}
+
 			hr = dx->pKeyboard->GetDeviceState(sizeof(buffer),(LPVOID)&buffer); 
-			if FAILED(hr) 
+			if FAILED(hr)
+			{
 				return;
+			}
 		}
 		else
+		{
 			return; 
+		}
 	} 
 	if (SUCCEEDED(hr))
 	{
@@ -437,110 +545,59 @@ bit8 localjoyport2;
 
 	if (joy1ok)
 	{
-		joystick7 = (LPDIRECTINPUTDEVICE7) dx->GetJoy(JOY1);
-		joystick7->Poll();
-		hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js1);
-		if(hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
-		{
-			hr = joystick7->Acquire();
-			hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js1);
-		}
-		if (SUCCEEDED(hr))
-		{
-			xpos1 = *((LONG *)(((BYTE *)&js1) + appStatus->m_joy1config.dwOfs_X));
-			ypos1 = *((LONG *)(((BYTE *)&js1) + appStatus->m_joy1config.dwOfs_Y));
-		}
-		else
-			joy1ok = FALSE;
+		joy1ok = ReadJoyAxis(JOY1, appStatus->m_joy1config, axis1, fire1);
 	}
+
 	if (joy2ok)
 	{
-		joystick7 = (LPDIRECTINPUTDEVICE7) dx->GetJoy(JOY2);
-		joystick7->Poll();
-		hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js2);
-		if(hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
-		{
-			hr = joystick7->Acquire();
-			hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js2);
-		}
-		if (SUCCEEDED(hr))
-		{
-			xpos2 = *((LONG *)(((BYTE *)&js2) + appStatus->m_joy2config.dwOfs_X));
-			ypos2 = *((LONG *)(((BYTE *)&js2) + appStatus->m_joy2config.dwOfs_Y));
-		}
-		else
-			joy2ok = FALSE;
+		joy2ok = ReadJoyAxis(JOY2, appStatus->m_joy2config, axis2, fire2);
 	}
 
 	if (joy1ok)
 	{
-		if (appStatus->m_joy1config.bXReverse)
+		if (axis1 & JOYDIR_LEFT)
 		{
-			if (xpos1 < appStatus->m_joy1config.xLeft) 
-				localjoyport1 &= (bit8) ~8;
-			else if (xpos1 > appStatus->m_joy1config.xRight)
-				localjoyport1 &= (bit8) ~4;
+			localjoyport1 &= (bit8) ~4;
 		}
-		else
+		else if (axis1 & JOYDIR_RIGHT)
 		{
-			if (xpos1 < appStatus->m_joy1config.xLeft) //LEFT   
-				localjoyport1 &= (bit8) ~4;
-			else if (xpos1 > appStatus->m_joy1config.xRight) //RIGHT   
-				localjoyport1 &= (bit8) ~8;
+			localjoyport1 &= (bit8) ~8;
 		}
-		if (appStatus->m_joy1config.bYReverse)
+		if (axis1 & JOYDIR_UP)
 		{
-			if (ypos1 < appStatus->m_joy1config.yUp) 
-				localjoyport1 &= (bit8) ~2;
-			else if (ypos1 > appStatus->m_joy1config.yDown)
-				localjoyport1 &= (bit8) ~1;
+			localjoyport1 &= (bit8) ~1;
 		}
-		else
+		if (axis1 & JOYDIR_DOWN)
 		{
-			if (ypos1 < appStatus->m_joy1config.yUp) //UP
-				localjoyport1 &= (bit8) ~1;
-			else if (ypos1 > appStatus->m_joy1config.yDown) //DOWN
-				localjoyport1 &= (bit8) ~2;
+			localjoyport1 &= (bit8) ~2;
 		}
-		if (((BYTE *)&js1)[appStatus->m_joy1config.dwOfs_firebutton] & 0x80) //FIRE
+		if (fire1)
 		{
-			localjoyport1 &= (bit8) ~16; //FIRE
+			localjoyport1 &= (bit8) ~16;
 		}
 	}
 
 	if (joy2ok)
 	{
-		if (appStatus->m_joy2config.bXReverse)
+		if (axis2 & JOYDIR_LEFT)
 		{
-			if (xpos2 < appStatus->m_joy2config.xLeft)
-				localjoyport2 &= (bit8) ~8;
-			else if (xpos2 > appStatus->m_joy2config.xRight)
-				localjoyport2 &= (bit8) ~4;
+			localjoyport2 &= (bit8) ~4;
 		}
-		else
+		else if (axis2 & JOYDIR_RIGHT)
 		{
-			if (xpos2 < appStatus->m_joy2config.xLeft) //LEFT   
-				localjoyport2 &= (bit8) ~4;
-			else if (xpos2 > appStatus->m_joy2config.xRight) //RIGHT   
-				localjoyport2 &= (bit8) ~8;
+			localjoyport2 &= (bit8) ~8;
 		}
-		if (appStatus->m_joy2config.bYReverse)
+		if (axis2 & JOYDIR_UP)
 		{
-			if (ypos2 < appStatus->m_joy2config.yUp)
-				localjoyport2 &= (bit8) ~2;
-			else if (ypos2 > appStatus->m_joy2config.yDown)
-				localjoyport2 &= (bit8) ~1;
+			localjoyport2 &= (bit8) ~1;
 		}
-		else
+		if (axis2 & JOYDIR_DOWN)
 		{
-			if (ypos2 < appStatus->m_joy2config.yUp) //UP
-				localjoyport2 &= (bit8) ~1;
-			else if (ypos2 > appStatus->m_joy2config.yDown) //DOWN
-				localjoyport2 &= (bit8) ~2;
+			localjoyport2 &= (bit8) ~2;
 		}
-		if (((BYTE *)&js2)[appStatus->m_joy2config.dwOfs_firebutton] & 0x80) //FIRE
+		if (fire2)
 		{
-			localjoyport2 &= (bit8) ~16; //FIRE
+			localjoyport2 &= (bit8) ~16;
 		}
 	}
 
@@ -552,10 +609,14 @@ bit8 localjoyport2;
 		for (k = 0; k < C64K_MAX && k < _countof(buffer); k++)
 		{
 			if ((buffer[c64KeyMap[k]] & 0x80)!=0)
+			{
 				break;
+			}
 		}
 		if (k >= _countof(buffer) || k >= C64K_MAX)
+		{
 			m_bAltLatch = false;
+		}
 	}
 	else
 	{
@@ -872,21 +933,29 @@ bit8 localjoyport2;
 		if (RAWKEYDOWN(buffer, DIK_F12))   
 		{
 			if (F12_was_up)
+			{
 				pIC64->PostHardReset(true);
-			F12_was_up=FALSE;
+			}
+			F12_was_up=false;
 		}
 		else
-			F12_was_up=TRUE;
+		{
+			F12_was_up=true;
+		}
 
 		if (RAWKEYDOWN(buffer, DIK_F11))
 		{
 			if (F11_was_up)
+			{
 				pIC64->PostSoftReset(true);
-			F11_was_up=FALSE;
+			}
+			F11_was_up=false;
 		}
 		else
-			F11_was_up=TRUE;
-								
+		{
+			F11_was_up=true;
+		}
+
 		if (KEYDOWN(buffer, C64K_HOME))  
 		{
 			KEYMATRIX_DOWN(6, 3);
@@ -901,10 +970,12 @@ bit8 localjoyport2;
 					cpu->SetNMI(CurrentClock);
 				cpu->NMI = currentNMI;
 			}
-			restore_was_up=FALSE;
+			restore_was_up=false;
 		}
 		else
-			restore_was_up=TRUE;
+		{
+			restore_was_up=true;
+		}
 
 		if (KEYDOWN(buffer, C64K_CURSORRIGHT))
 		{
@@ -924,7 +995,9 @@ bit8 localjoyport2;
 				KEYMATRIX_DOWN(0, 7);
 			}
 			else 
+			{
 				softcursorupcount++;
+			}
 		}
 		else
 		{
@@ -943,7 +1016,9 @@ bit8 localjoyport2;
 				KEYMATRIX_DOWN(0, 2);
 			}
 			else
+			{
 				softcursorleftcount++;
+			}
 		}
 		else
 		{
