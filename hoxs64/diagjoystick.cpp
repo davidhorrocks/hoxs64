@@ -48,50 +48,95 @@ HRESULT CDiagJoystick::Init(CDX9 *pDX, const CConfig *currentCfg)
 void CDiagJoystick::loadconfig(const CConfig *cfg)
 {
 	if (cfg == NULL)
+	{
 		return;
+	}
 	if (cfg->m_joy1config.bEnabled)
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY1ENABLE, BST_CHECKED);
+	}
 	else
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY1ENABLE, BST_UNCHECKED);
+	}
 
 	if (cfg->m_joy2config.bEnabled)
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY2ENABLE, BST_CHECKED);
+	}
 	else
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY2ENABLE, BST_UNCHECKED);
+	}
 
+	if (cfg->m_joy1config.bPovEnabled)
+	{
+		CheckDlgButton(m_hWnd, IDC_CBO_JOY1ENABLEPOV, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(m_hWnd, IDC_CBO_JOY1ENABLEPOV, BST_UNCHECKED);
+	}
+
+	if (cfg->m_joy2config.bPovEnabled)
+	{
+		CheckDlgButton(m_hWnd, IDC_CBO_JOY2ENABLEPOV, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(m_hWnd, IDC_CBO_JOY2ENABLEPOV, BST_UNCHECKED);
+	}
 
 	if (cfg->m_joy1config.bXReverse)
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY1HREV, BST_CHECKED);
+	}
 	else
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY1HREV, BST_UNCHECKED);
+	}
 
 	if (cfg->m_joy1config.bYReverse)
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY1VREV, BST_CHECKED);
+	}
 	else
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY1VREV, BST_UNCHECKED);
+	}
 
 	if (cfg->m_joy2config.bXReverse)
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY2HREV, BST_CHECKED);
+	}
 	else
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY2HREV, BST_UNCHECKED);
+	}
 
 	if (cfg->m_joy2config.bYReverse)
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY2VREV, BST_CHECKED);
+	}
 	else
+	{
 		CheckDlgButton(m_hWnd, IDC_CBO_JOY2VREV, BST_UNCHECKED);
+	}
 }
 
 void CDiagJoystick::saveconfig(CConfig *cfg)
 {
 LRESULT lr;
 
-	cfg->m_joy1config.bValid = FALSE;
-	cfg->m_joy2config.bValid = FALSE;
+	cfg->m_joy1config.bValid = false;
+	cfg->m_joy2config.bValid = false;
 
+	cfg->m_joy1config.bPovEnabled = true;
 	cfg->m_joy1config.dwOfs_X = 0;
 	cfg->m_joy1config.dwOfs_Y = 0;
 	cfg->m_joy1config.dwOfs_firebutton = DIJOFS_BUTTON0;
 
+	cfg->m_joy2config.bPovEnabled = true;
 	cfg->m_joy2config.dwOfs_X = 0;
 	cfg->m_joy2config.dwOfs_Y = 0;
 	cfg->m_joy2config.dwOfs_firebutton = DIJOFS_BUTTON0;
@@ -206,34 +251,76 @@ LRESULT lr;
 	}
 
 	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY1ENABLE))
-		cfg->m_joy1config.bEnabled = TRUE;
+	{
+		cfg->m_joy1config.bEnabled = true;
+	}
 	else
-		cfg->m_joy1config.bEnabled = FALSE;
+	{
+		cfg->m_joy1config.bEnabled = false;
+	}
 
 	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY2ENABLE))
-		cfg->m_joy2config.bEnabled = TRUE;
+	{
+		cfg->m_joy2config.bEnabled = true;
+	}
 	else
-		cfg->m_joy2config.bEnabled = FALSE;
+	{
+		cfg->m_joy2config.bEnabled = false;
+	}
+
+	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY1ENABLEPOV))
+	{
+		cfg->m_joy1config.bPovEnabled = true;
+	}
+	else
+	{
+		cfg->m_joy1config.bPovEnabled = false;
+	}
+
+	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY2ENABLEPOV))
+	{
+		cfg->m_joy2config.bPovEnabled = true;
+	}
+	else
+	{
+		cfg->m_joy2config.bPovEnabled = false;
+	}
 
 	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY1VREV))
-		cfg->m_joy1config.bYReverse = TRUE;
+	{
+		cfg->m_joy1config.bYReverse = true;
+	}
 	else
-		cfg->m_joy1config.bYReverse = FALSE;
+	{
+		cfg->m_joy1config.bYReverse = false;
+	}
 
 	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY2VREV))
-		cfg->m_joy2config.bYReverse = TRUE;
+	{
+		cfg->m_joy2config.bYReverse = true;
+	}
 	else
-		cfg->m_joy2config.bYReverse = FALSE;
+	{
+		cfg->m_joy2config.bYReverse = false;
+	}
 
 	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY1HREV))
-		cfg->m_joy1config.bXReverse = TRUE;
+	{
+		cfg->m_joy1config.bXReverse = true;
+	}
 	else
-		cfg->m_joy1config.bXReverse = FALSE;
+	{
+		cfg->m_joy1config.bXReverse = false;
+	}
 
 	if (IsDlgButtonChecked(m_hWnd, IDC_CBO_JOY2HREV))
-		cfg->m_joy2config.bXReverse = TRUE;
+	{
+		cfg->m_joy2config.bXReverse = true;
+	}
 	else
-		cfg->m_joy2config.bXReverse = FALSE;
+	{
+		cfg->m_joy2config.bXReverse = false;
+	}
 }
 
 BOOL CALLBACK EnumDlgJoyCallback(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef)

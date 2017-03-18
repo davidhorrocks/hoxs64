@@ -4,6 +4,7 @@
 struct joyconfig
 {
 	bool bEnabled;
+	bool bPovEnabled;
 	bool bValid;
 	GUID joystickID;
 	bool bXReverse;

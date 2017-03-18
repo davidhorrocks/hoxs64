@@ -2681,8 +2681,8 @@ int j;
 	{
 		return E_FAIL;
 	}
-	joycfg.joyObjectKindX = HCFG::JoyKindAxis;
-	joycfg.joyObjectKindY = HCFG::JoyKindAxis;
+	joycfg.joyObjectKindX = HCFG::JoyKindNone;
+	joycfg.joyObjectKindY = HCFG::JoyKindNone;
 	joycfg.xMax= +1000;
 	joycfg.xMin= -1000;
 	joycfg.yMax= +1000;
@@ -2692,8 +2692,7 @@ int j;
 		joycfg.povAvailable[0] = 0;
 		joycfg.povIndex[0] = 0;
 	}
-	bool x_ok = false;
-	bool y_ok = false;
+	bool ok = false;
 	if (joycfg.bValid && joycfg.bEnabled)
 	{
 		UnacquireJoy(joyindex);
@@ -2706,14 +2705,11 @@ int j;
 				hr = SetCooperativeLevelJoy(joyindex, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
 				if (SUCCEEDED(hr))
 				{
+					ok = true;
 					//X Axis
 					ZeroMemory(&didoi, sizeof(didoi));
 					didoi.dwSize = sizeof(didoi);
 					hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_X, DIPH_BYOFFSET);
-					if (FAILED(hr))
-					{
-						SetError(hr, TEXT("GetObjectInfo on Joystick%d failed."), joyindex);
-					}
 					if (SUCCEEDED(hr))
 					{
 						if ((didoi.dwType & DIDFT_AXIS) != 0)
@@ -2745,17 +2741,12 @@ int j;
 									joycfg.xMax = diprg.lMax; 
 								}
 							}
-							if (SUCCEEDED(hr))
-							{
-								joycfg.xLeft = joycfg.xMin + 60L * (joycfg.xMax - joycfg.xMin)/200L;
-								joycfg.xRight = joycfg.xMax - 60L * (joycfg.xMax - joycfg.xMin)/200L;
-								x_ok = true;
-							}
+							joycfg.xLeft = joycfg.xMin + 60L * (joycfg.xMax - joycfg.xMin)/200L;
+							joycfg.xRight = joycfg.xMax - 60L * (joycfg.xMax - joycfg.xMin)/200L;
 						}
 						else if ((didoi.dwType & DIDFT_POV) != 0)
 						{
 							joycfg.joyObjectKindX = HCFG::JoyKindPov;
-							x_ok = true;
 						}
 					}
 
@@ -2763,10 +2754,6 @@ int j;
 					ZeroMemory(&didoi, sizeof(didoi));
 					didoi.dwSize = sizeof(didoi);
 					hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_Y, DIPH_BYOFFSET);
-					if (FAILED(hr))
-					{
-						SetError(hr, TEXT("GetObjectInfo on Joystick%d failed."), joyindex);
-					}
 					if (SUCCEEDED(hr))
 					{
 						if ((didoi.dwType & DIDFT_AXIS) != 0)
@@ -2787,53 +2774,47 @@ int j;
 								diprg.diph.dwHow        = DIPH_BYOFFSET; 
 								diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
 								hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
-								if (FAILED(hr))
-								{
-									SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
-								}
 								if (SUCCEEDED(hr))
 								{
 									joycfg.yMin = diprg.lMin; 
 									joycfg.yMax = diprg.lMax; 
 								}
 							}
-							if (SUCCEEDED(hr))
-							{
-								joycfg.yUp = joycfg.yMin + 60L * (joycfg.yMax - joycfg.yMin)/200L;
-								joycfg.yDown = joycfg.yMax - 60L * (joycfg.yMax - joycfg.yMin)/200L;
-								y_ok = true;
-							}
+							joycfg.yUp = joycfg.yMin + 60L * (joycfg.yMax - joycfg.yMin)/200L;
+							joycfg.yDown = joycfg.yMax - 60L * (joycfg.yMax - joycfg.yMin)/200L;
 						}
 						else if ((didoi.dwType & DIDFT_POV) != 0)
 						{
 							joycfg.joyObjectKindY = HCFG::JoyKindPov;
-							y_ok = true;
 						}
 					}
 
 					//POV
-					ZeroMemory(&didoi, sizeof(didoi));
-					didoi.dwSize = sizeof(didoi);
-					for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
+					if (joycfg.bPovEnabled)
 					{
-						hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
-						if (hr == DIERR_OBJECTNOTFOUND)
+						ZeroMemory(&didoi, sizeof(didoi));
+						didoi.dwSize = sizeof(didoi);
+						for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
 						{
-							continue;
+							hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
+							if (hr == DIERR_OBJECTNOTFOUND)
+							{
+								continue;
+							}
+							if (FAILED(hr))
+							{
+								break;
+							}
+							joycfg.povAvailable[j] = DIJOFS_POV(i);
+							joycfg.povIndex[j] = i;
+							j++;
 						}
-						if (FAILED(hr))
-						{
-							break;
-						}
-						joycfg.povAvailable[j] = DIJOFS_POV(i);
-						joycfg.povIndex[j] = i;
-						j++;
-					}	
+					}
 				}
 			}
 		}
 	}
-	if (x_ok && y_ok)
+	if (ok)
 	{
 		joyok[joyindex] = true;
 		return S_OK;

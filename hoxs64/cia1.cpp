@@ -409,7 +409,6 @@ const DWORD povDownRight = 18000 - 2250;
 
 	if (SUCCEEDED(hr))
 	{
-
 		for (i = 0; i < _countof(joycfg.povAvailable); i++)
 		{
 			if (joycfg.povAvailable[i] == 0)
@@ -466,14 +465,14 @@ const DWORD povDownRight = 18000 - 2250;
 					axis |= JOYDIR_DOWN;
 				}
 			}
-		}
-		if (joycfg.bXReverse)
-		{
-			axis ^= (JOYDIR_LEFT | JOYDIR_RIGHT);
-		}
-		if (joycfg.bYReverse)
-		{
-			axis ^= (JOYDIR_UP | JOYDIR_DOWN);
+			if (joycfg.bXReverse)
+			{
+				axis ^= (JOYDIR_LEFT | JOYDIR_RIGHT);
+			}
+			if (joycfg.bYReverse)
+			{
+				axis ^= (JOYDIR_UP | JOYDIR_DOWN);
+			}
 		}
 
 		if (((BYTE *)&js)[joycfg.dwOfs_firebutton] & 0x80)

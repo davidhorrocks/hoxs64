@@ -437,30 +437,68 @@ const int maxbutton = 31;
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
+		{
 			m_joy1config.bValid = _ttol(szValue) != 0;
+		}
 		else
+		{
 			m_joy1config.bValid = false;
+		}
 
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
+		{
 			m_joy2config.bValid = _ttol(szValue) != 0;
+		}
 		else
+		{
 			m_joy2config.bValid = false;
+		}
 
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
+		{
 			m_joy1config.bEnabled = _ttol(szValue) != 0;
+		}
 		else
+		{
 			m_joy1config.bEnabled = false;
+		}
 
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
+		{
 			m_joy2config.bEnabled = _ttol(szValue) != 0;
+		}
 		else
+		{
 			m_joy2config.bEnabled = false;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_joy1config.bPovEnabled = _ttol(szValue) != 0;
+		}
+		else
+		{
+			m_joy1config.bPovEnabled = true;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_joy2config.bPovEnabled = _ttol(szValue) != 0;
+		}
+		else
+		{
+			m_joy2config.bPovEnabled = true;
+		}
 
 		m_joy1config.bXReverse = false;
 		m_joy1config.bYReverse = false;
@@ -847,7 +885,7 @@ TCHAR szValue[50];
 HKEY  hKey1; 
 DWORD  dwDisposition; 
 LONG   lRetCode; 
-BOOL bGuidOK;
+bool bGuidOK;
 
 	lRetCode = RegCreateKeyEx (HKEY_CURRENT_USER, 
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Keyboard"), 
@@ -942,11 +980,8 @@ BOOL bGuidOK;
 	writeregkeyboarditem(C64K_JOY2UP);
 	writeregkeyboarditem(C64K_JOY2DOWN);
 	writeregkeyboarditem(C64K_JOY2LEFT);
-	writeregkeyboarditem(C64K_JOY2RIGHT);
-	
-	
+	writeregkeyboarditem(C64K_JOY2RIGHT);	
 	RegCloseKey(hKey1);
-
 	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"), 
 		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
@@ -1054,7 +1089,6 @@ BOOL bGuidOK;
 	RegSetValueEx(hKey1, TEXT("PrefsSaved"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 	RegCloseKey(hKey1);
 
-
 	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Joystick"), 
 		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
@@ -1066,28 +1100,35 @@ BOOL bGuidOK;
 		return E_FAIL;
 	} 
 
-
 	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy1config.bEnabled ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("Joy1Enabled"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy2config.bEnabled ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("Joy2Enabled"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 
-	bGuidOK = FALSE;
+	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy1config.bPovEnabled ? 0xffffffff: 0));
+	RegSetValueEx(hKey1, TEXT("Joy1POV"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy2config.bPovEnabled ? 0xffffffff: 0));
+	RegSetValueEx(hKey1, TEXT("Joy2POV"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+
+	bGuidOK = false;
 	if (m_joy1config.bValid)
 	{
 		if (SUCCEEDED(G::SaveClsidToRegValue(hKey1, TEXT("Joy1GUID"), &m_joy1config.joystickID)))
-			bGuidOK = TRUE;
+		{
+			bGuidOK = true;
+		}
 	}
 	wsprintf(szValue, TEXT("%lu"), (DWORD) ((m_joy1config.bValid && bGuidOK) ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("Joy1Valid"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 
 
-	bGuidOK = FALSE;
+	bGuidOK = false;
 	if (m_joy2config.bValid)
 	{
 		if (SUCCEEDED(G::SaveClsidToRegValue(hKey1, TEXT("Joy2GUID"), &m_joy2config.joystickID)))
-			bGuidOK = TRUE;
-
+		{
+			bGuidOK = true;
+		}
 	}
 	wsprintf(szValue, TEXT("%lu"), (DWORD) ((m_joy2config.bValid && bGuidOK) ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("Joy2Valid"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
@@ -1125,7 +1166,6 @@ BOOL bGuidOK;
 void CConfig::LoadDefaultSetting()
 {
 	ZeroMemory(&m_KeyMap[0], sizeof(m_KeyMap));
-
 	m_KeyMap[C64K_PLUS]=	DIK_MINUS;
 	m_KeyMap[C64K_MINUS]=	DIK_EQUALS;
 	m_KeyMap[C64K_ASTERISK]= DIK_RBRACKET;
@@ -1148,13 +1188,11 @@ void CConfig::LoadDefaultSetting()
 	m_KeyMap[C64K_CONTROL]= GetKeyScanCode(VK_TAB);
 	m_KeyMap[C64K_LEFTSHIFT]= DIK_LSHIFT;
 	m_KeyMap[C64K_RIGHTSHIFT]= DIK_RSHIFT;
-
 	m_KeyMap[C64K_STOP]= GetKeyScanCode(VK_ESCAPE);
 	m_KeyMap[C64K_COMMODORE]= DIK_LCONTROL;
 	m_KeyMap[C64K_DEL]= GetKeyScanCode(VK_BACK);
 	m_KeyMap[C64K_RETURN]= GetKeyScanCode(VK_RETURN);
 	m_KeyMap[C64K_SPACE]=	GetKeyScanCode(' ');
-
 	m_KeyMap[C64K_JOY1FIRE]= DIK_NUMPAD0;
 	m_KeyMap[C64K_JOY1UP]= DIK_DIVIDE;
 	m_KeyMap[C64K_JOY1DOWN]= DIK_NUMPAD5;
@@ -1165,7 +1203,6 @@ void CConfig::LoadDefaultSetting()
 	m_KeyMap[C64K_JOY2DOWN]= DIK_NUMPAD2;
 	m_KeyMap[C64K_JOY2LEFT]= DIK_NUMPAD4;
 	m_KeyMap[C64K_JOY2RIGHT]= DIK_NUMPAD6;
-
 	m_KeyMap[C64K_0]= GetKeyScanCode('0');
 	m_KeyMap[C64K_1]=	GetKeyScanCode('1');
 	m_KeyMap[C64K_2]=	GetKeyScanCode('2');
@@ -1202,8 +1239,6 @@ void CConfig::LoadDefaultSetting()
 	m_KeyMap[C64K_X]=	GetKeyScanCode('X');
 	m_KeyMap[C64K_Y]=	GetKeyScanCode('Y');
 	m_KeyMap[C64K_Z]=	GetKeyScanCode('Z');
-
-
 	m_KeyMap[C64K_F1]= GetKeyScanCode(VK_F1);
 	m_KeyMap[C64K_F2]= GetKeyScanCode(VK_F2);
 	m_KeyMap[C64K_F3]= GetKeyScanCode(VK_F3);
@@ -1212,7 +1247,6 @@ void CConfig::LoadDefaultSetting()
 	m_KeyMap[C64K_F6]= GetKeyScanCode(VK_F6);
 	m_KeyMap[C64K_F7]= GetKeyScanCode(VK_F7);
 	m_KeyMap[C64K_F8]= GetKeyScanCode(VK_F8);
-
 	m_bSID_Emulation_Enable = true;
 	m_bD1541_Emulation_Enable = true;
 	m_bSkipFrames = false;
@@ -1222,27 +1256,29 @@ void CConfig::LoadDefaultSetting()
 	m_syncMode = HCFG::FSSM_VBL;
 	m_bDoubleSizedWindow = true;
 	m_bUseBlitStretch = true;
-
 	m_bUseKeymap = false;
-
 	m_joy1config.bValid = false;
 	m_joy1config.bEnabled = false;
+	m_joy1config.bPovEnabled = true;
 	m_joy2config.bValid = false;
 	m_joy2config.bEnabled = false;
-
+	m_joy2config.bPovEnabled = true;
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
 	m_bSidDigiBoost = true;
 
 	if (G::IsMultiCore())
+	{
 		m_bD1541_Thread_Enable = true;
+	}
 	else
+	{
 		m_bD1541_Thread_Enable = false;
+	}
 
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
-
 	m_fullscreenAdapterNumber = 0;
 	m_fullscreenWidth = 0;
 	m_fullscreenHeight = 0;

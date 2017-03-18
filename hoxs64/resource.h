@@ -209,6 +209,9 @@
 #define IDC_TXT_BREAKPOINTRASTERCYCLE   1319
 #define IDC_LBL_BREAKPOINTRASTERCYCLE   1320
 #define IDC_GRP_RASTERVALUE             1321
+#define IDC_CBO_JOY1ENABLEPOV           1322
+#define IDC_CHECK2                      1323
+#define IDC_CBO_JOY2ENABLEPOV           1323
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -292,7 +295,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        189
 #define _APS_NEXT_COMMAND_VALUE         40184
-#define _APS_NEXT_CONTROL_VALUE         1322
+#define _APS_NEXT_CONTROL_VALUE         1324
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif
