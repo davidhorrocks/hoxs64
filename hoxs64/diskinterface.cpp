@@ -1305,6 +1305,7 @@ void DiskInterface::LoadMoveP64Image(GCRDISK *dsk)
 int halfTrack;	
 	WaitThreadReady();
 	m_d64TrackCount = dsk->m_d64TrackCount;
+	P64ImageClear(&this->m_P64Image);
 	this->m_P64Image = dsk->m_P64Image;
 	for (halfTrack=0; halfTrack < _countof(dsk->m_P64Image.PulseStreams); halfTrack++)
 	{
@@ -1367,6 +1368,7 @@ void DiskInterface::RemoveDisk()
 		m_d64_diskchange_counter = DISKCHANGE1;
 	}
 	m_nextP64PulsePosition = -1;
+	P64ImageClear(&this->m_P64Image);
 }
 
 bit8 DiskInterface::ReadRegister(bit16 address, ICLK sysclock)

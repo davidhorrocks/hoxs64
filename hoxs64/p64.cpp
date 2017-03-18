@@ -972,7 +972,7 @@ p64_uint32_t P64PulseStreamWriteToStream(PP64PulseStream Instance, PP64MemoryStr
 void P64ImageCreate(PP64Image Instance) {
 	p64_int32_t HalfTrack;
 	memset(Instance, 0, sizeof(TP64Image));
-	for(HalfTrack = 0; HalfTrack <= P64LastHalfTrack; HalfTrack++) {
+	for(HalfTrack = 0; HalfTrack < _countof(Instance->PulseStreams); HalfTrack++) {
 		P64PulseStreamCreate(&Instance->PulseStreams[HalfTrack]);
 	}
 	P64ImageClear(Instance);
@@ -980,7 +980,7 @@ void P64ImageCreate(PP64Image Instance) {
 
 void P64ImageDestroy(PP64Image Instance) {
 	p64_int32_t HalfTrack;
-	for(HalfTrack = 0; HalfTrack <= P64LastHalfTrack; HalfTrack++) {
+	for(HalfTrack = 0; HalfTrack < _countof(Instance->PulseStreams); HalfTrack++) {
 		P64PulseStreamDestroy(&Instance->PulseStreams[HalfTrack]);
 	}
 	memset(Instance, 0, sizeof(TP64Image));
@@ -989,7 +989,7 @@ void P64ImageDestroy(PP64Image Instance) {
 void P64ImageClear(PP64Image Instance) {
 	p64_int32_t HalfTrack;
 	Instance->WriteProtected = 0;
-	for(HalfTrack = 0; HalfTrack <= P64LastHalfTrack; HalfTrack++) {
+	for(HalfTrack = 0; HalfTrack < _countof(Instance->PulseStreams); HalfTrack++) {
 		P64PulseStreamClear(&Instance->PulseStreams[HalfTrack]);
 	}
 }
