@@ -141,6 +141,7 @@ public:
 	bit8 imr;
 	bit8 Interrupt;
 	bit8 serial_int_count;
+	bit8 serial_int_activate_count;
 	bool bEarlyIRQ;
 	bool bTimerBbug;
 	ICLK ClockReadICR;

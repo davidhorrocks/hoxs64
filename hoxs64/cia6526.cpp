@@ -29,6 +29,7 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 	ClockNextWakeUpClock=sysclock;
 	ClockNextTODWakeUpClock=sysclock;
 	serial_int_count=0;
+	serial_int_activate_count=0;
 	idle=0;
 	delay=0 | CountA3 | CountB3;
 	feed=0;
@@ -303,19 +304,9 @@ ICLKS todclocks;
 				if (serial_int_count)
 				{
 					serial_int_count--;
-					if ((cra & 8) == 0)
+					if ((serial_int_count & 0xf) == 1)
 					{
-						if ((serial_int_count & 0xf) == 1)
-						{
-							new_icr|=8;
-						}
-					}
-					else
-					{
-						if ((serial_int_count & 0xf) == 0)
-						{
-							new_icr|=8;
-						}
+						serial_int_activate_count |= 1;
 					}
 				}
 			}
@@ -340,6 +331,14 @@ ICLKS todclocks;
 			}
 		}
 
+		if (serial_int_activate_count)
+		{
+			serial_int_activate_count = (serial_int_activate_count << 1) & 0x3f;
+			if ((serial_int_activate_count & 0x20) )
+			{
+				new_icr|=8;
+			}
+		}
 
 		if ((delay & LoadA1)!=0)
 		{
