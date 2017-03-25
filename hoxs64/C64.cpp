@@ -917,7 +917,7 @@ void C64::TapePressPlay()
 void C64::TapePressStop()
 {
 	cia1.flag_change = !cia1.f_flag_in;
-	cia1.f_flag_in=1;
+	cia1.f_flag_in=true;
 	cpu.SetCassetteSense(1);
 	tape64.PressStop();
 	cia1.SetWakeUpClock();

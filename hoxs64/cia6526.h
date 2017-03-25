@@ -97,20 +97,19 @@ public:
 	int ID;
 	bit32 delay;
 	bit32 feed;
+	bit32 delay_aux_mask;
 	bit32 old_delay;
 	bit32 old_feed;
 	bit32 idle;
 	bit16 dec_a;
 	bit16 dec_b;
 	bit32 no_change_count;
-	bit32 flag_change;
-	bit32 sp_change;
-	bit32 f_flag_in;
-	bit32 f_flag_out;
-	bit32 f_sp_in;
-	bit32 f_sp_out;
-	bit32 f_cnt_in;
-	bit32 f_cnt_out;
+	bool flag_change;
+	bool f_flag_in;
+	bool f_sp_in;
+	bool f_sp_out;
+	bool f_cnt_in;
+	bool f_cnt_out;
 	bit8 pra_out;
 	bit8 prb_out;
 	bit8 ddra;
@@ -130,7 +129,6 @@ public:
 	volatile cia_tod tod_write_latch;
 	volatile cia_tod tod;
 	volatile cia_tod alarm;
-	bit8 sdr;
 	bit8 cra;
 	bit8 crb;
 	bit32 timera_output;
@@ -140,8 +138,12 @@ public:
 	bool fast_clear_pending_int;
 	bit8 imr;
 	bit8 Interrupt;
+	bit8 serial_data_register;
+	bit8 serial_shift_buffer;
 	bit8 serial_int_count;
-	bit8 serial_int_activate_count;
+	bool serial_data_write_pending;
+	bool serial_data_write_loading;
+	bit32 serial_int_delay;
 	bool bEarlyIRQ;
 	bool bTimerBbug;
 	ICLK ClockReadICR;
@@ -153,7 +155,11 @@ public:
 	virtual void SetWakeUpClock();
 	void SetTODWakeUpClock();
 	void CheckTODAlarmCompare(ICLK sysclock);
-
+	bool ReadCntPinLevel();
+	bool ReadSpPinLevel();
+	void SetSerialCntOut(bool value);
+	void SetSerialCntIn(bool value);
+	void SetSerialSpOut(bool value);
 	static long GetTenthsFromTimeToAlarm(const cia_tod &time, const cia_tod &alarm);
 
 	static int prec_bitcount[256];
