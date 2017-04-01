@@ -27,7 +27,7 @@ public:
 	static const int MAX_COUNTERS = 0x280000;
 
 private:
-	HRESULT ReadTapeData(HANDLE hfile,int version, bit32 *buffer, int bufferlen, int *count);
+	HRESULT ReadTapeData(IStream *pstmtap,int version, bit32 *buffer, int bufferMaxPulses, int *pCountOfPulses);
 };
 
 

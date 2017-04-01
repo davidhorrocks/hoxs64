@@ -339,6 +339,9 @@
     <ClCompile Include="p64ref.cpp">
       <Filter>Source Files\p64</Filter>
     </ClCompile>
+    <ClCompile Include="memorystream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -648,6 +651,9 @@
       <Filter>Header Files\p64</Filter>
     </ClInclude>
     <ClInclude Include="IQuit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="memorystream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

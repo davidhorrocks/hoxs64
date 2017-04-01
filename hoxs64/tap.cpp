@@ -8,6 +8,7 @@
 #include <memory.h>
 #include <assert.h>
 #include "filestream.h"
+#include "memorystream.h"
 #include "boost2005.h"
 #include "defines.h"
 #include "mlist.h"
@@ -34,7 +35,9 @@ TAP64::~TAP64()
 void TAP64::UnloadTAP()
 {
 	if (pData)
+	{
 		GlobalFree(pData);
+	}
 	pData=NULL;
 	tape_max_counter=0;
 }
@@ -48,8 +51,10 @@ DWORD bytesRead;
 DWORD bytesToRead;
 RAWTAPE header;
 HRESULT hr = E_FAIL;
-int c;
+int countOfPulses;
 bit32 *buffer = NULL;
+BYTE *tapfilebuffer = NULL;
+IStream *stmtap = NULL;
 
 	ClearError();
 	do
@@ -57,21 +62,48 @@ bit32 *buffer = NULL;
 		hfile = CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 		if (hfile == INVALID_HANDLE_VALUE)
 		{
-			hr = SetError(E_FAIL,TEXT("Could not open tape file %s."),filename);
+			hr = SetError(E_FAIL,TEXT("Could not open tape file %s.\n\n%s"), filename, this->GetLastWindowsErrorString());
 			break;
 		}
 
 		file_size = GetFileSize(hfile, 0);
-		if (INVALID_FILE_SIZE == file_size || file_size > 5000000L || file_size < sizeof(RAWTAPE) + sizeof(bit32))
+		if (INVALID_FILE_SIZE == file_size || file_size > (1L<<31) || file_size < sizeof(RAWTAPE) + sizeof(bit32))
 		{
 			hr = SetError(E_FAIL,TEXT("%s is not a valid raw tape file."), filename);
 			break;
 		}
 
+		tapfilebuffer = (PBYTE)malloc(file_size);
+		if (tapfilebuffer == NULL)
+		{
+			hr = SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
+			break;
+		}
+
+		bytesToRead = file_size;
+		r = ReadFile(hfile, tapfilebuffer, bytesToRead, &bytesRead, NULL);
+		if (r==0)
+		{
+			hr = SetError(E_FAIL,TEXT("Could not read from tape file %s.\n\n%s"), filename, this->GetLastWindowsErrorString());
+			break;
+		}
+		if (bytesRead < bytesToRead)
+		{
+			hr = SetError(E_FAIL,TEXT("Could not read from tape file %s."), filename);
+			break;
+		}
+
+		hr = MemoryStream::CreateObject(tapfilebuffer, file_size, false, &stmtap);
+		if (FAILED(hr))
+		{
+			hr = SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
+			break;
+		}
+		
 		ZeroMemory(&header, sizeof(header));
 		bytesToRead = sizeof(header) - sizeof(header.data);
-		r = ReadFile(hfile, &header, bytesToRead, &bytesRead, NULL);
-		if (r==0)
+		hr = stmtap->Read(&header, bytesToRead, &bytesRead);
+		if (FAILED(hr) || bytesToRead != bytesRead)
 		{
 			hr = SetError(E_FAIL,TEXT("Could not read from tape file %s."), filename);
 			break;
@@ -97,32 +129,35 @@ bit32 *buffer = NULL;
 
 		hr = S_OK;
 		if (FAILED(hr))
+		{
 			break;
+		}
 
-		hr = ReadTapeData(hfile, header.Version, NULL, 0, &c);
+		hr = ReadTapeData(stmtap, header.Version, NULL, 0, &countOfPulses);
 		if (FAILED(hr))
 		{
 			break;
 		}
-		if (c==0)
+		if (countOfPulses==0)
 		{
 			hr = E_FAIL;
 			break;
 		}
 
-		buffer = (bit32 *) GlobalAlloc(GMEM_FIXED, c * sizeof(bit32));
+		buffer = (bit32 *) GlobalAlloc(GMEM_FIXED, countOfPulses * sizeof(bit32));
 		if (buffer == NULL)
 		{
 			hr = SetError(E_FAIL,TEXT("Could not allocate memory for tape file %s."), filename);
 			break;
 		}
 		spos.QuadPart = sizeof(RAWTAPE) - 1;
-		if (FileStream::SetFilePointerEx(hfile, spos, (PLARGE_INTEGER) &spos_dummy, FILE_BEGIN) == 0)
+		hr = stmtap->Seek(spos, STREAM_SEEK_SET, &spos_dummy);
+		if (FAILED(hr))
 		{
-			hr = this->SetErrorFromGetLastError();
+			hr = E_FAIL;
 			break;
 		}
-		hr = ReadTapeData(hfile, header.Version, buffer, c, NULL);
+		hr = ReadTapeData(stmtap, header.Version, buffer, countOfPulses, NULL);
 		if (FAILED(hr))
 		{
 			break;
@@ -135,6 +170,16 @@ bit32 *buffer = NULL;
 		CloseHandle(hfile);
 		hfile = INVALID_HANDLE_VALUE;
 	}
+	if (stmtap!=NULL)
+	{
+		stmtap->Release();
+		stmtap=NULL;
+	}
+	if (tapfilebuffer)
+	{
+		free(tapfilebuffer);
+		tapfilebuffer = NULL;
+	}
 	if (FAILED(hr))
 	{
 		if (buffer)
@@ -146,7 +191,7 @@ bit32 *buffer = NULL;
 	else
 	{
 		UnloadTAP();
-		this->tape_max_counter = c;
+		this->tape_max_counter = countOfPulses;
 		this->TapeHeader = header;
 		this->pData = buffer;
 		buffer = NULL;
@@ -154,35 +199,35 @@ bit32 *buffer = NULL;
 	return hr;
 }
 
-HRESULT TAP64::ReadTapeData(HANDLE hfile, int version, bit32 *buffer, int bufferlen, int *count)
+HRESULT TAP64::ReadTapeData(IStream *pstmtap, int version, bit32 *buffer, int bufferMaxPulses, int *pCountOfPulses)
 {
-BOOL r;
 DWORD bytesRead;
 DWORD byteToRead;
 HRESULT hr = E_FAIL;
 
-	int c = 0;
+	int countOfPulses = 0;
 	bool eof = false;
-	for (c=0; !eof; c++)
+	for (countOfPulses=0; !eof; countOfPulses++)
 	{
 		bit8 v;
 		bit32 w;
 		byteToRead = 1;
-		r = ReadFile(hfile, &v, byteToRead, &bytesRead, NULL);
-		if (r==0 && GetLastError() != ERROR_HANDLE_EOF)
+		hr = pstmtap->Read(&v, byteToRead, &bytesRead);
+		if (FAILED(hr))
 		{
-			hr = SetErrorFromGetLastError();
 			break;
 		}
-		else if (bytesRead < byteToRead)
+		else if (hr == S_FALSE || bytesRead < byteToRead)
 		{
 			eof = true;
 			break;
 		}
 		if (buffer)
 		{
-			if (c == bufferlen)
-				return E_FAIL;
+			if (countOfPulses == bufferMaxPulses)
+			{
+				return S_FALSE;
+			}
 		}
 		if (v == 0)
 		{
@@ -190,7 +235,7 @@ HRESULT hr = E_FAIL;
 			{
 				if (buffer)
 				{
-					buffer[c] = DEFAULTDELAY;
+					buffer[countOfPulses] = DEFAULTDELAY;
 				}
 			}
 			else
@@ -198,20 +243,19 @@ HRESULT hr = E_FAIL;
 				//LITTLE ENDIAN
 				w = 0;
 				byteToRead = 3;
-				r = ReadFile(hfile, &w, byteToRead, &bytesRead, NULL);
-				if (r == 0)
+				hr = pstmtap->Read(&w, byteToRead, &bytesRead);
+				if (FAILED(hr))
 				{
-					hr = SetErrorFromGetLastError();
 					break;
 				}
-				else if (bytesRead < byteToRead)
+				else if (hr == S_FALSE || bytesRead < byteToRead)
 				{
 					eof = true;
 					break;
 				}
 				if (buffer)
 				{
-					buffer[c] = w;
+					buffer[countOfPulses] = w;
 				}
 			}
 		}
@@ -219,9 +263,12 @@ HRESULT hr = E_FAIL;
 		{
 			if (buffer)
 			{
-				if (c == bufferlen)
-					return E_FAIL;
-				buffer[c] = v * 8;
+				if (countOfPulses >= bufferMaxPulses)
+				{
+					hr = S_FALSE;
+					break;
+				}
+				buffer[countOfPulses] = v * 8;
 			}
 		}
 	}
@@ -230,9 +277,9 @@ HRESULT hr = E_FAIL;
 		hr = S_OK;
 	}
 	
-	if (count)
+	if (pCountOfPulses)
 	{
-		*count = c;
+		*pCountOfPulses = countOfPulses;
 	}
 	return hr;
 }

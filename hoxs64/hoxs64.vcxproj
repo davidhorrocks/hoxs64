@@ -566,6 +566,7 @@
     <ClCompile Include="filestream.cpp" />
     <ClCompile Include="HuffCompression.cpp" />
     <ClCompile Include="HuffDecompression.cpp" />
+    <ClCompile Include="memorystream.cpp" />
     <ClCompile Include="p64.cpp" />
     <ClCompile Include="p64ref.cpp" />
     <ClCompile Include="runcommandassemble.cpp" />
@@ -907,6 +908,7 @@
     <ClInclude Include="IC64.h" />
     <ClInclude Include="IQuit.h" />
     <ClInclude Include="mdichildcli.h" />
+    <ClInclude Include="memorystream.h" />
     <ClInclude Include="oldos_multimon.h" />
     <ClInclude Include="p64.h" />
     <ClInclude Include="p64config.h" />

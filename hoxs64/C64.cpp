@@ -1015,7 +1015,9 @@ errno_t errno;
 
 	hr = c64file.Init();
 	if (FAILED(hr))
+	{
 		return SetError(hr, TEXT("Could not initialise autoload."));
+	}
 
 	autoLoadCommand.type = C64::AUTOLOAD_NONE;
 	autoLoadCommand.sequence = C64::AUTOSEQ_RESET;
@@ -1031,11 +1033,15 @@ errno_t errno;
 			int numItems;
 			hr = c64file.LoadDirectory(filename, C64Directory::D64MAXDIRECTORYITEMCOUNT, numItems, bIndexOnlyPrgFiles, NULL);
 			if (SUCCEEDED(hr))
+			{
 				c64file.GetDirectoryItemName(directoryIndex, autoLoadCommand.c64filename, sizeof(autoLoadCommand.c64filename));
+			}
 		}
 	}
 	else
+	{
 		memcpy_s(autoLoadCommand.c64filename, sizeof(autoLoadCommand.c64filename), c64FileName, C64DISKFILENAMELENGTH);
+	}
 	appStatus->m_bAutoload = FALSE;
 
 	hr = _tcscpy_s(&autoLoadCommand.filename[0], _countof(autoLoadCommand.filename), filename);
@@ -1072,6 +1078,10 @@ errno_t errno;
 				autoLoadCommand.type = C64::AUTOLOAD_TAP_FILE;
 				appStatus->m_bAutoload = TRUE;
 			}
+			else
+			{
+				return hr;
+			}
 		}
 		else if (lstrcmpi(ext, TEXT(".prg"))==0 || lstrcmpi(ext, TEXT(".p00"))==0)
 		{
@@ -1103,11 +1113,17 @@ errno_t errno;
 						autoLoadCommand.pImageData = 0;
 					}
 					if (autoLoadCommand.directoryIndex<0)
+					{
 						hr = c64file.LoadFileImage(filename, NULL, &autoLoadCommand.pImageData, &autoLoadCommand.imageSize);
+					}
 					else
+					{
 						hr = c64file.LoadFileImage(filename, autoLoadCommand.c64filename, &autoLoadCommand.pImageData, &autoLoadCommand.imageSize);
+					}
 					if (FAILED(hr))
+					{
 						SetError(hr, TEXT("Unable to quick load."));
+					}
 				}
 			}
 			pIC64Event->SetBusy(false);
@@ -1130,10 +1146,14 @@ errno_t errno;
 		{
 			autoLoadCommand.pSidFile = new SIDLoader();
 			if (autoLoadCommand.pSidFile == 0)
+			{
 				return SetError(E_FAIL, TEXT("Out of memory."));
+			}
 			hr = autoLoadCommand.pSidFile->LoadSIDFile(filename);
 			if (FAILED(hr))
+			{
 				return SetError(*(autoLoadCommand.pSidFile));
+			}
 			autoLoadCommand.type = C64::AUTOLOAD_SID_FILE;
 			appStatus->m_bAutoload = TRUE;
 		}

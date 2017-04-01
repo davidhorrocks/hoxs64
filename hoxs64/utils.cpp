@@ -890,6 +890,7 @@ HWND hWnd;
 //Static constructed members for G
 std::random_device G::rd;
 std::mt19937 G::randengine_main;
+const TCHAR G::EmptyString[1] = TEXT("");
 
 /**************************************************************************/
 

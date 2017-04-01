@@ -11,16 +11,29 @@ const LPCTSTR ErrorMsg::ERR_OUTOFMEMORY = TEXT("Out of memory.");
 
 ErrorMsg::ErrorMsg()
 {
+	localLastWindowsErrorString = NULL;
 	ClearError();
 }
 
+ErrorMsg::~ErrorMsg()
+{
+	if (localLastWindowsErrorString)
+	{
+		::LocalFree((HLOCAL)localLastWindowsErrorString);
+		localLastWindowsErrorString = NULL;
+	}
+}
 
 bool ErrorMsg::OK()
 {
 	if (SUCCEEDED(errorValue))
+	{
 		return true;
+	}
 	else
+	{
 		return false;
+	}
 }
 
 void ErrorMsg::ClearError()
@@ -84,9 +97,13 @@ HRESULT hRet = HRESULT_FROM_WIN32(err);
 void ErrorMsg::DisplayError(HWND hWnd, const TCHAR title[])
 {
 	if (errorText[0] != 0)
+	{
 		MessageBox(hWnd, errorText, title, MB_OK | MB_ICONEXCLAMATION);
+	}
 	else
+	{
 		MessageBox(hWnd, TEXT("An error occurred."), title, MB_OK | MB_ICONEXCLAMATION);
+	}
 }
 
 void ErrorMsg::ShowMessage(HWND hWnd, UINT uType, LPCTSTR szTitle, LPCTSTR szError, ...)
@@ -98,8 +115,23 @@ void ErrorMsg::ShowMessage(HWND hWnd, UINT uType, LPCTSTR szTitle, LPCTSTR szErr
 	_vsntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, szError, vl);
 	szBuff[299]=0;
 	if (szTitle==NULL)
+	{
 		MessageBox(hWnd, szBuff, APPNAME, MB_OK | uType);
+	}
 	else
+	{
 		MessageBox(hWnd, szBuff, szTitle, MB_OK | uType);
+	}
     va_end(vl);
+}
+
+const TCHAR *ErrorMsg::GetLastWindowsErrorString()
+{
+	if (localLastWindowsErrorString!=NULL)
+	{
+		::LocalFree((HLOCAL)localLastWindowsErrorString);
+		localLastWindowsErrorString = NULL;
+	}
+	localLastWindowsErrorString = G::GetLastWin32ErrorString();
+	return localLastWindowsErrorString != NULL ? localLastWindowsErrorString : &G::EmptyString[0];
 }

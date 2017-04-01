@@ -189,6 +189,7 @@ public:
 	static __int64 FileSeek(HANDLE hfile, __int64 distance, DWORD moveMethod);
 	static __int64 FileSize(HANDLE hfile);
 	static void InitRandomSeed();
+	static const TCHAR EmptyString[1];
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);
