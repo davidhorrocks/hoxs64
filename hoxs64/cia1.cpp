@@ -1092,14 +1092,14 @@ bool fire2 = 0;
 	LightPen();
 }
 
-void CIA1::GetState(SsCia1V1 &state)
+void CIA1::GetState(SsCia1V2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	CIA::GetState(state.cia);
 	state.nextKeyboardScanClock = nextKeyboardScanClock;
 }
 
-void CIA1::SetState(const SsCia1V1 &state)
+void CIA1::SetState(const SsCia1V2 &state)
 {
 	CIA::SetState(state.cia);
 	nextKeyboardScanClock = state.nextKeyboardScanClock;
@@ -1109,5 +1109,12 @@ void CIA1::UpgradeStateV0ToV1(const SsCia1V0 &in, SsCia1V1 &out)
 {
 	ZeroMemory(&out, sizeof(SsCia2V1));
 	CIA::UpgradeStateV0ToV1(in.cia, out.cia);
+	out.nextKeyboardScanClock = in.nextKeyboardScanClock;
+}
+
+void CIA1::UpgradeStateV1ToV2(const SsCia1V1 &in, SsCia1V2 &out)
+{
+	ZeroMemory(&out, sizeof(SsCia2V2));
+	CIA::UpgradeStateV1ToV2(in.cia, out.cia);
 	out.nextKeyboardScanClock = in.nextKeyboardScanClock;
 }

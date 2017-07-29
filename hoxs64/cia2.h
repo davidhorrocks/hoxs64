@@ -26,9 +26,10 @@ public:
 
 	void SetCurrentClock(ICLK sysclock);
 
-	void GetState(SsCia2V1 &state);
-	void SetState(const SsCia2V1 &state);
+	void GetState(SsCia2V2 &state);
+	void SetState(const SsCia2V2 &state);
 	static void UpgradeStateV0ToV1(const SsCia2V0 &in, SsCia2V1 &out);
+	static void UpgradeStateV1ToV2(const SsCia2V1 &in, SsCia2V2 &out);
 
 	CAppStatus *appStatus;
 	CPU6510 *cpu;

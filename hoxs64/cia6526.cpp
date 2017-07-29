@@ -28,12 +28,14 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 	DevicesClock=sysclock;
 	ClockNextWakeUpClock=sysclock;
 	ClockNextTODWakeUpClock=sysclock;
-	idle=0;
-	delay= CountA3 | CountB3;//Preloaded with 1s. This this correct?
+	idle=false;
 	feed=0;
-	delay_aux_mask = ~CountA1;
+	delay=0;
 	old_delay=0;
 	old_feed=0;
+	delay_aux_mask = 0;
+	delay|= CountA3 | CountB3;//Preloaded with 1s. This this correct?
+	feed|=SetCnt0;
 	no_change_count=0;
 	pra_out=0;
 	prb_out=0;
@@ -59,7 +61,7 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 	alarm.byte.min=0;
 	alarm.byte.hr=0;
 	serial_int_count=0;
-	serial_int_delay=0;
+	serial_interrupt_delay=0;
 	serial_data_register=0;
 	serial_shift_buffer=0;
 	serial_data_write_pending=false;
@@ -73,7 +75,7 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 	f_sp_in=true;
 	f_sp_out=false;
 	f_cnt_in=true;
-	f_cnt_out=false;
+	f_cnt_out=true;//CNT high by default
 	f_flag_in=false;	
 	flag_change=false;
 	timera_output=0;
@@ -277,19 +279,19 @@ ICLKS todclocks;
 			tb_counter.word -= dec_b;
 			if ((ta_counter.word < MINIMUM_STAY_IDLE && dec_a!=0) || (tb_counter.word < MINIMUM_STAY_IDLE && dec_b!=0))
 			{
-				idle=0;
+				idle=false;
 				no_change_count=0;
 			}
 			continue;
 		}
 		ClockNextWakeUpClock = sysclock;
 
-		//TIMER A *************************************
-		//bit passed through pipe to signal timer 1 to decrement
 		old_delay = delay;
 		old_feed = feed;
 		new_icr=0;
 		bool current_cnt = this->ReadCntPinLevel();
+		//TIMER A
+		//A bit passed through the pipeline to signal Timer A to decrement
 		if (delay & CountA3)
 		{
 			ta_counter.word--;
@@ -312,11 +314,11 @@ ICLKS todclocks;
 				{
 					this->serial_data_write_loading = false;
 					this->serial_shift_buffer = this->serial_data_register;
-					serial_int_count = 8;
+					serial_int_count = 16;
 				}
 				if (serial_int_count)
 				{
-					this->SetSerialCntOut(!this->f_cnt_out);
+					delay |= SetCntFlip0;
 				}
 			}
 
@@ -339,14 +341,35 @@ ICLKS todclocks;
 				}
 			}
 		}
-
-		if (serial_int_delay)
+		bool is_CNT_rising = false;
+		if (serial_int_count != 0 && (delay & SetCntFlip2) != 0 && (delay & SetCntFlip3) == 0)
 		{
-			serial_int_delay = (serial_int_delay << 1) & 0x3f;
-			if ((serial_int_delay & 0x20) )
+			if (this->SetSerialCntOut(!this->f_cnt_out))
+			{
+				is_CNT_rising = this->f_cnt_out;
+				serial_int_count--;
+				if (serial_int_count == 1)
+				{
+					serial_interrupt_delay = 1;
+				}
+			}
+			if (this->f_cnt_out)
+			{
+				feed |= SetCnt0;
+			}
+			else
+			{
+				feed &= ~SetCnt0;
+			}
+		}
+
+		if (serial_interrupt_delay)
+		{
+			if ((serial_interrupt_delay & 0x04))
 			{
 				new_icr|=8;
 			}
+			serial_interrupt_delay = (serial_interrupt_delay << 1) & 0x3f;
 		}
 
 		if ((delay & LoadA1)!=0)
@@ -377,8 +400,8 @@ ICLKS todclocks;
 			this->serial_data_write_loading = true;
 		}
 
-		//TIMER B *************************************
-		//bit passed through pipe to signal timer 1 to decrement
+		//TIMER B
+		//A bit passed through the pipeline to signal Timer B to decrement
 		if (delay & CountB3)
 		{
 			tb_counter.word--;
@@ -459,7 +482,7 @@ ICLKS todclocks;
 		else if ((crb & 0x60)==0x60)
 		{
 			//Timer A underflows while CNT is high.
-			if (timera_output != 0 && current_cnt)//this->ReadCntPinLevel())
+			if (timera_output != 0 && ((delay & SetCnt1) != 0))
 			{
 				if (crb & 1)
 				{
@@ -552,12 +575,13 @@ ICLKS todclocks;
 		}
 
 		delay=((delay << 1) & DelayMask) | feed;
-		//if (f_cnt_in)
-		//{
-		//	delay |= (CountA0 | CountB0);
-		//}
-		flag_change=false;
-		
+		if (is_CNT_rising)
+		{
+			this->delay |= CountA0;
+			this->delay |= CountB0;
+		}
+
+		flag_change=false;		
 		if (delay==old_delay && feed==old_feed)
 		{
 			if ((((cra & 1)!=0) && ta_counter.word<MINIMUM_GO_IDLE_TIME) || (((crb & 1)!=0) && tb_counter.word<MINIMUM_GO_IDLE_TIME))
@@ -569,7 +593,7 @@ ICLKS todclocks;
 				no_change_count++;
 				if (no_change_count>NO_CHANGE_TO_IDLE)
 				{
-					idle=1;
+					idle=true;
 					dec_a=(bit16)(delay & CountA3) >> bitCountA3;
 					dec_b=(bit16)(delay & CountB3) >> bitCountB3;
 				}
@@ -589,7 +613,7 @@ void CIA::SetWakeUpClock()
 	ICLK testCount, currentCount, curClock;
 	currentCount = PALCLOCKSPERSECOND;
 	curClock = CurrentClock;
-	if (idle==0)
+	if (!idle)
 	{
 		ClockNextWakeUpClock = curClock;
 	}
@@ -646,7 +670,7 @@ void CIA::Pulse(ICLK sysclock)
 	ExecuteCycle(sysclock);
 	f_flag_in=false;
 	flag_change=true;
-	idle=0;
+	idle=false;
 	no_change_count=0;
 }
 
@@ -684,63 +708,42 @@ void CIA::SetSerialSpOut(bool value)
 	this->f_sp_out = value;
 }
 
-void CIA::SetSerialCntIn(bool value)
+bool CIA::SetSerialCntOut(bool value)
 {
-	if ((cra & 0x40) == 0)
-	{
-		//Serial port input
-		if (value && !this->f_cnt_in)
-		{
-			//CNT rising
-			if (this->serial_int_count)
-			{
-				this->serial_int_count--;
-				this->serial_shift_buffer = ((this->serial_shift_buffer << 1) | (this->f_sp_in ? 1 : 0)) & 0xff;
-				if (this->serial_int_count == 0)
-				{
-					this->serial_data_register = this->serial_shift_buffer;
-					serial_int_delay |= 1;
-				}
-			}
-		}
-		else if (!value && this->f_cnt_in)
-		{
-			//CNT falling
-		}
-	}
-	this->f_cnt_in = value;
-}
-
-void CIA::SetSerialCntOut(bool value)
-{
+	bool isChanged = false;
 	if ((cra & 0x40) != 0)
 	{
 		//Serial port output
 		if (value && !this->f_cnt_out)
 		{
 			//CNT rising
-			this->delay |= CountA0;
-			this->delay |= CountB0;
+			isChanged = true;
 			if (serial_int_count)
 			{
-				serial_int_count--;
 				serial_shift_buffer = (serial_shift_buffer << 1) & 0xff;
 			}
 		}
 		else if (!value && this->f_cnt_out)
 		{
 			//CNT falling
+			isChanged = true;
 			if (serial_int_count)
-			{
-				if (serial_int_count == 1)
-				{
-					serial_int_delay |= 1;
-				}					
+			{				
 				this->SetSerialSpOut((serial_shift_buffer & 0x80) != 0);					
 			}
 		}
 	}
 	this->f_cnt_out = value;
+	return isChanged;
+}
+
+void CIA::CntChanged()
+{
+	if (this->delay & SetCnt3)
+	{
+		this->delay |= CountA0;
+		this->delay |= CountB0;
+	}
 }
 
 //pragma optimize( "ag", on )
@@ -861,7 +864,7 @@ bit8 CIA::ReadRegister(bit16 address, ICLK sysclock)
 		delay |= ReadIcr0;
 		Interrupt = 0;
 		ClearSystemInterrupt();
-		idle = 0;
+		idle = false;
 		no_change_count = 0;
 		SetWakeUpClock();
 		return icr;
@@ -949,7 +952,7 @@ bit8 old_imr;
 		{
 			ta_counter.word = ta_latch.word;
 		}
-		idle=0;
+		idle=false;
 		no_change_count=0;
 		break;
 	case 0x06:		// timer b lo
@@ -969,7 +972,7 @@ bit8 old_imr;
 		{
 			tb_counter.word = tb_latch.word;
 		}
-		idle=0;
+		idle=false;
 		no_change_count=0;
 		break;
 	case 0x08:	//TOD
@@ -1080,7 +1083,7 @@ bit8 old_imr;
 		serial_data_register = data;
 		serial_data_write_pending = true;
 		serial_data_write_loading = false;
-		idle=0;
+		idle=false;
 		no_change_count=0;
 		break;
 	case 0x0D:		// interrupt control register
@@ -1146,7 +1149,7 @@ bit8 old_imr;
 			}
 		}
 		delay |= WriteIcr0;
-		idle=0;
+		idle=false;
 		no_change_count=0;
 		break;
 	case 0x0E:		// control register a
@@ -1190,7 +1193,25 @@ bit8 old_imr;
 			this->serial_int_count = 0;
 			this->serial_data_write_pending = false;
 			this->serial_data_write_loading = false;
-			this->SetSerialCntOut(true);
+			if (this->SetSerialCntOut(true))
+			{
+				if ((delay & SetCntFlip3) == 0)
+				{
+					this->delay |= CountA0;
+					this->delay |= CountB0;
+				}
+			}
+			if (this->f_cnt_out)
+			{
+				feed |= SetCnt0;
+				delay |= SetCnt0;
+			}
+			else
+			{
+				feed &= ~SetCnt0;
+				delay &= ~SetCnt0;
+			}
+			this->delay &= ~(SetCntFlip0 | SetCntFlip1 | SetCntFlip2 | SetCntFlip3);
 		}
 		
 		//Set PB6 high on Timer A start
@@ -1243,7 +1264,7 @@ bit8 old_imr;
 
 		cra=data & 0xEF;
 
-		idle=0;
+		idle=false;
 		no_change_count=0;
 		break;
 	case 0x0F:		// control register b
@@ -1323,7 +1344,7 @@ bit8 old_imr;
 
 		crb=data & 0xEF;
 
-		idle=0;
+		idle=false;
 		no_change_count=0;
 		break;
 	}
@@ -1357,7 +1378,7 @@ void CIA::CheckTODAlarmCompare(ICLK sysclock)
 	if (tod.dword == alarm.dword)
 	{
 		tod_alarm=4;
-		idle=0;
+		idle=false;
 		no_change_count=0;
 		ClockNextTODWakeUpClock = sysclock + 0x1000000;
 	}
@@ -1510,7 +1531,7 @@ void CIA::init_bitcount()
 	}
 }
 
-void CIA::GetState(SsCiaV1 &state)
+void CIA::GetState(SsCiaV2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
@@ -1526,7 +1547,7 @@ void CIA::GetState(SsCiaV1 &state)
 	state.dec_b = dec_b;
 	state.no_change_count = no_change_count;
 	state.flag_change = flag_change;
-	state.serial_int_delay = serial_int_delay;
+	state.serial_interrupt_delay = serial_interrupt_delay;
 	state.delay_aux_mask = delay_aux_mask;
 	state.serial_shift_buffer = serial_shift_buffer;
 	state.serial_data_write_pending = serial_data_write_pending;
@@ -1576,7 +1597,7 @@ void CIA::GetState(SsCiaV1 &state)
 	state.bPB67Toggle = bPB67Toggle;
 }
 
-void CIA::SetState(const SsCiaV1 &state)
+void CIA::SetState(const SsCiaV2 &state)
 {
 	CurrentClock = state.CurrentClock;
 	DevicesClock = state.DevicesClock;
@@ -1586,12 +1607,12 @@ void CIA::SetState(const SsCiaV1 &state)
 	feed = state.feed;
 	old_delay = state.old_delay;
 	old_feed = state.old_feed;
-	idle = state.idle;
+	idle = state.idle != 0;
 	dec_a = state.dec_a;
 	dec_b = state.dec_b;
 	no_change_count = state.no_change_count;
 	flag_change = state.flag_change != 0;
-	serial_int_delay = state.serial_int_delay;
+	serial_interrupt_delay = state.serial_interrupt_delay;
 	delay_aux_mask = state.delay_aux_mask;
 	serial_shift_buffer = state.serial_shift_buffer;
 	serial_data_write_pending = state.serial_data_write_pending != 0;
@@ -1655,4 +1676,69 @@ void CIA::UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out)
 		out.delay |= ClearIcr1;
 		out.icr_ack = in.icr;
 	}
+}
+
+void CIA::UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out)
+{
+	out.CurrentClock = in.CurrentClock;
+	out.DevicesClock = in.DevicesClock;
+	out.ClockNextWakeUpClock = in.ClockNextWakeUpClock;
+	out.ClockNextTODWakeUpClock = in.ClockNextTODWakeUpClock;
+	out.delay = in.delay;
+	out.feed = in.feed;
+	out.old_delay = in.old_delay;
+	out.old_feed = in.old_feed;
+	out.idle = in.idle != 0;
+	out.dec_a = in.dec_a;
+	out.dec_b = in.dec_b;
+	out.no_change_count = in.no_change_count;
+	out.flag_change = in.flag_change != 0;
+	out.serial_interrupt_delay = in.serial_interrupt_delay;
+	out.delay_aux_mask = in.delay_aux_mask;
+	out.serial_shift_buffer = in.serial_shift_buffer;
+	out.serial_data_write_pending = in.serial_data_write_pending != 0;
+	out.serial_data_write_loading = in.serial_data_write_loading != 0;
+	out.serial_other = in.serial_other;
+	out.int32_buffer0 = in.int32_buffer0;
+	out.int32_buffer1 = in.int32_buffer1;
+	out.int32_buffer2 = in.int32_buffer2;
+	out.f_sp_in = in.f_sp_in != 0;
+	out.f_sp_out = in.f_sp_out != 0;
+	out.f_cnt_in = in.f_cnt_in != 0;
+	out.f_cnt_out = in.f_cnt_out != 0;
+	out.pra_out = in.pra_out;
+	out.prb_out = in.prb_out;
+	out.ddra = in.ddra;
+	out.ddrb = in.ddrb;
+	out.ta_counter = in.ta_counter;
+	out.tb_counter = in.tb_counter;
+	out.ta_latch = in.ta_latch;
+	out.tb_latch = in.tb_latch;
+	out.tod_clock_reload = in.tod_clock_reload;
+	out.tod_clock_rate = in.tod_clock_rate;
+	out.tod_tick = in.tod_tick;
+	out.tod_clock_compare_band = in.tod_clock_compare_band;
+	out.tod_alarm = in.tod_alarm;
+	out.tod_read_freeze = in.tod_read_freeze;	
+	out.tod_read_latch.dword = in.tod_read_latch.dword;
+	out.tod_write_freeze = in.tod_write_freeze;
+	out.tod_write_latch.dword = in.tod_write_latch.dword;
+	out.tod.dword = in.tod.dword;
+	out.alarm.dword = in.alarm.dword;
+	out.serial_data_register = in.serial_data_register;
+	out.cra = in.cra;
+	out.crb = in.crb;
+	out.timera_output = in.timera_output;
+	out.timerb_output = in.timerb_output;
+	out.icr = in.icr;
+	out.icr_ack = in.icr_ack;
+	out.imr = in.imr;
+	out.Interrupt = in.Interrupt;
+	out.serial_int_count = in.serial_int_count;
+	out.bEarlyIRQ = in.bEarlyIRQ != 0;
+	out.bTimerBbug = in.bTimerBbug != 0;
+	out.ClockReadICR = in.ClockReadICR;
+	out.bPB67TimerMode = in.bPB67TimerMode;
+	out.bPB67TimerOut = in.bPB67TimerOut;
+	out.bPB67Toggle = in.bPB67Toggle;
 }

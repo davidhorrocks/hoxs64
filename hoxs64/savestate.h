@@ -36,7 +36,9 @@ namespace SsLib
 			C64Cia1V1 = 23,
 			C64Cia2V1 = 24,
 			DriveControllerV2 = 25,
-			C64SidV1 = 26
+			C64SidV1 = 26,
+			C64Cia1V2 = 27,
+			C64Cia2V2 = 28
 		};
 	}
 };
@@ -324,7 +326,7 @@ struct SsCiaV0
 	bit16 dec_b;
 	bit32 no_change_count;
 	bit32 flag_change;
-	bit32 serial_int_delay;	
+	bit32 serial_interrupt_delay;	
 	bit32 delay_aux_mask;
 	bit8 serial_shift_buffer;
 	bit8 serial_data_write_pending;
@@ -378,6 +380,71 @@ struct SsCiaV1 : SsCiaV0
 	bit8 icr_ack;
 };
 
+struct SsCiaV2
+{
+	bit32 CurrentClock;
+	bit32 DevicesClock;
+	bit32 ClockNextWakeUpClock;
+	bit32 ClockNextTODWakeUpClock;
+	bit64 delay;
+	bit64 feed;
+	bit64 old_delay;
+	bit64 old_feed;
+	bit8 idle;
+	bit16 dec_a;
+	bit16 dec_b;
+	bit32 no_change_count;
+	bit32 flag_change;
+	bit32 serial_interrupt_delay;	
+	bit64 delay_aux_mask;
+	bit8 serial_shift_buffer;
+	bit8 serial_data_write_pending;
+	bit8 serial_data_write_loading;
+	bit8 serial_other;
+	bit32 int32_buffer0;
+	bit32 int32_buffer1;
+	bit32 int32_buffer2;
+	bit8 f_sp_in;
+	bit8 f_sp_out;
+	bit8 f_cnt_in;
+	bit8 f_cnt_out;
+	bit8 pra_out;
+	bit8 prb_out;
+	bit8 ddra;
+	bit8 ddrb;
+	bit16u ta_counter;
+	bit16u tb_counter;
+	bit16u ta_latch;
+	bit16u tb_latch;
+	bit32s tod_clock_reload;
+	bit32s tod_clock_rate;
+	bit32s tod_tick;
+	bit32s tod_clock_compare_band;
+	bit8 tod_alarm;
+	bit8 tod_read_freeze;	
+	cia_tod tod_read_latch;
+	bit8 tod_write_freeze;
+	cia_tod tod_write_latch;
+	cia_tod tod;
+	cia_tod alarm;
+	bit8 serial_data_register;
+	bit8 cra;
+	bit8 crb;
+	bit32 timera_output;
+	bit32 timerb_output;
+	bit8 icr;
+	bit8 imr;
+	bit8 Interrupt;
+	bit8 serial_int_count;
+	bit8 bEarlyIRQ;
+	bit8 bTimerBbug;
+	bit32 ClockReadICR;
+	bit8 bPB67TimerMode;
+	bit8 bPB67TimerOut;
+	bit8 bPB67Toggle;
+	bit8 icr_ack;
+};
+
 struct SsCia1V0
 {
 	SsCiaV0 cia;
@@ -387,6 +454,12 @@ struct SsCia1V0
 struct SsCia1V1
 {
 	SsCiaV1 cia;
+	bit32 nextKeyboardScanClock;
+};
+
+struct SsCia1V2
+{
+	SsCiaV2 cia;
 	bit32 nextKeyboardScanClock;
 };
 
@@ -400,6 +473,13 @@ struct SsCia2V0
 struct SsCia2V1
 {
 	SsCiaV1 cia;
+	bit8 c64_serialbus;
+	bit8 m_commandedVicBankIndex;
+};
+
+struct SsCia2V2
+{
+	SsCiaV2 cia;
 	bit8 c64_serialbus;
 	bit8 m_commandedVicBankIndex;
 };
@@ -629,7 +709,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 3;
+    static const int VERSION = 4;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

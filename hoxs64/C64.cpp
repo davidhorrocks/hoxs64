@@ -1693,17 +1693,17 @@ bit32 dwordCount;
 			break;
 		}
 
-		SsCia1V1 sbCia1;
+		SsCia1V2 sbCia1;
 		this->cia1.GetState(sbCia1);
-		hr = SaveState::SaveSection(pfs, sbCia1, SsLib::SectionType::C64Cia1V1);
+		hr = SaveState::SaveSection(pfs, sbCia1, SsLib::SectionType::C64Cia1V2);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsCia2V1 sbCia2;
+		SsCia2V2 sbCia2;
 		this->cia2.GetState(sbCia2);
-		hr = SaveState::SaveSection(pfs, sbCia2, SsLib::SectionType::C64Cia2V1);
+		hr = SaveState::SaveSection(pfs, sbCia2, SsLib::SectionType::C64Cia2V2);
 		if (FAILED(hr))
 		{
 			break;
@@ -2185,8 +2185,10 @@ STATSTG stat;
 SsCpuMain sbCpuMain;
 SsCia1V0 sbCia1V0;
 SsCia1V1 sbCia1V1;
+SsCia1V2 sbCia1V2;
 SsCia2V0 sbCia2V0;
 SsCia2V1 sbCia2V1;
+SsCia2V2 sbCia2V2;
 SsVic6569 sbVic6569;
 SsSid sbSidV0;
 SsSidV1 sbSidV1;
@@ -2416,11 +2418,29 @@ ULARGE_INTEGER pos_next_track_header;
 				if (FAILED(hr))
 					break;
 				CIA1::UpgradeStateV0ToV1(sbCia1V0, sbCia1V1);
+				CIA1::UpgradeStateV1ToV2(sbCia1V1, sbCia1V2);
 				bC64Cia1 = true;
 				break;
 			case SsLib::SectionType::C64Cia1V1:
 				bytesToRead = sizeof(sbCia1V1);
 				hr = pfs->Read(&sbCia1V1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				CIA1::UpgradeStateV1ToV2(sbCia1V1, sbCia1V2);
+				bC64Cia1 = true;
+				break;
+			case SsLib::SectionType::C64Cia1V2:
+				bytesToRead = sizeof(sbCia1V2);
+				hr = pfs->Read(&sbCia1V2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -2449,11 +2469,29 @@ ULARGE_INTEGER pos_next_track_header;
 				if (FAILED(hr))
 					break;
 				CIA2::UpgradeStateV0ToV1(sbCia2V0, sbCia2V1);
+				CIA2::UpgradeStateV1ToV2(sbCia2V1, sbCia2V2);
 				bC64Cia2 = true;
 				break;
 			case SsLib::SectionType::C64Cia2V1:
 				bytesToRead = sizeof(sbCia2V1);
 				hr = pfs->Read(&sbCia2V1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+					break;
+				CIA2::UpgradeStateV1ToV2(sbCia2V1, sbCia2V2);
+				bC64Cia2 = true;
+				break;
+			case SsLib::SectionType::C64Cia2V2:
+				bytesToRead = sizeof(sbCia2V2);
+				hr = pfs->Read(&sbCia2V2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3075,8 +3113,8 @@ ULARGE_INTEGER pos_next_track_header;
 			memcpy(ram.mColorRAM, pC64ColourRam, SaveState::SIZECOLOURAM);
 		}
 
-		cia1.SetState(sbCia1V1);
-		cia2.SetState(sbCia2V1);
+		cia1.SetState(sbCia1V2);
+		cia2.SetState(sbCia2V2);
 		appStatus->m_bTimerBbug = sbCia1V1.cia.bTimerBbug != 0;
 		if (sbCia1V1.cia.bEarlyIRQ)
 		{

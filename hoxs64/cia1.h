@@ -37,9 +37,10 @@ public:
 	void ResetKeyboard();
 	void SetKeyMatrixDown(bit8 row, bit8 col);
 	unsigned int NextScanDelta();
-	void GetState(SsCia1V1 &state);
-	void SetState(const SsCia1V1 &state);
+	void GetState(SsCia1V2 &state);
+	void SetState(const SsCia1V2 &state);
 	static void UpgradeStateV0ToV1(const SsCia1V0 &in, SsCia1V1 &out);
+	static void UpgradeStateV1ToV2(const SsCia1V1 &in, SsCia1V2 &out);
 
 	unsigned char c64KeyMap[256];
 	ICLK nextKeyboardScanClock;

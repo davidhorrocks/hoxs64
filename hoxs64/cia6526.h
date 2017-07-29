@@ -24,37 +24,46 @@
 #define bitOneShotA0	20
 #define bitOneShotB0	21
 
-#define CountA0     0x00000001
-#define CountA1     0x00000002
-#define CountA2     0x00000004
-#define CountA3     0x00000008
-#define CountB0     0x00000010
-#define CountB1     0x00000020
-#define CountB2     0x00000040
-#define CountB3     0x00000080
-#define LoadA0      0x00000100
-#define LoadA1      0x00000200
-#define LoadA2      0x00000400
-#define LoadB0      0x00000800
-#define LoadB1      0x00001000
-#define LoadB2      0x00002000
-#define PB6Low0     0x00004000
-#define PB6Low1     0x00008000
-#define PB7Low0     0x00010000
-#define PB7Low1     0x00020000
-#define Interrupt0  0x00040000
-#define Interrupt1  0x00080000
-#define OneShotA0   0x00100000
-#define OneShotB0   0x00200000
-#define ClearIcr0   0x00400000
-#define ClearIcr1   0x00800000
-#define ReadIcr0    0x01000000
-#define ReadIcr1    0x02000000
-#define WriteIcr0   0x04000000
-#define WriteIcr1   0x08000000
-#define SetIcr0     0x10000000
-#define SetIcr1     0x20000000
-#define DelayMask ~(0x40000000 | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0)
+#define CountA0     0x00000001ULL
+#define CountA1     0x00000002ULL
+#define CountA2     0x00000004ULL
+#define CountA3     0x00000008ULL
+#define CountB0     0x00000010ULL
+#define CountB1     0x00000020ULL
+#define CountB2     0x00000040ULL
+#define CountB3     0x00000080ULL
+#define LoadA0      0x00000100ULL
+#define LoadA1      0x00000200ULL
+#define LoadA2      0x00000400ULL
+#define LoadB0      0x00000800ULL
+#define LoadB1      0x00001000ULL
+#define LoadB2      0x00002000ULL
+#define PB6Low0     0x00004000ULL
+#define PB6Low1     0x00008000ULL
+#define PB7Low0     0x00010000ULL
+#define PB7Low1     0x00020000ULL
+#define Interrupt0  0x00040000ULL
+#define Interrupt1  0x00080000ULL
+#define OneShotA0   0x00100000ULL
+#define OneShotB0   0x00200000ULL
+#define ClearIcr0   0x00400000ULL
+#define ClearIcr1   0x00800000ULL
+#define ReadIcr0    0x01000000ULL
+#define ReadIcr1    0x02000000ULL
+#define WriteIcr0   0x04000000ULL
+#define WriteIcr1   0x08000000ULL
+#define SetIcr0     0x10000000ULL
+#define SetIcr1     0x20000000ULL
+
+#define SetCntFlip0   0x0000000040000000ULL
+#define SetCntFlip1   0x0000000080000000ULL
+#define SetCntFlip2   0x0000000100000000ULL
+#define SetCntFlip3   0x0000000200000000ULL
+#define SetCnt0       0x0000000400000000ULL
+#define SetCnt1       0x0000000800000000ULL
+#define SetCnt2       0x0000001000000000ULL
+#define SetCnt3       0x0000002000000000ULL
+#define DelayMask   ~(0x0000004000000000ULL | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0 | SetCntFlip0 | SetCnt0)
 
 
 class CIA : public IRegister
@@ -95,12 +104,12 @@ public:
 
 	void PreventClockOverflow();
 	int ID;
-	bit32 delay;
-	bit32 feed;
-	bit32 delay_aux_mask;
-	bit32 old_delay;
-	bit32 old_feed;
-	bit32 idle;
+	bit64 delay;
+	bit64 feed;
+	bit64 delay_aux_mask;
+	bit64 old_delay;
+	bit64 old_feed;
+	bool idle;
 	bit16 dec_a;
 	bit16 dec_b;
 	bit32 no_change_count;
@@ -143,7 +152,7 @@ public:
 	bit8 serial_int_count;
 	bool serial_data_write_pending;
 	bool serial_data_write_loading;
-	bit32 serial_int_delay;
+	bit32 serial_interrupt_delay;
 	bool bEarlyIRQ;
 	bool bTimerBbug;
 	ICLK ClockReadICR;
@@ -157,8 +166,8 @@ public:
 	void CheckTODAlarmCompare(ICLK sysclock);
 	bool ReadCntPinLevel();
 	bool ReadSpPinLevel();
-	void SetSerialCntOut(bool value);
-	void SetSerialCntIn(bool value);
+	void CntChanged();
+	bool SetSerialCntOut(bool value);
 	void SetSerialSpOut(bool value);
 	static long GetTenthsFromTimeToAlarm(const cia_tod &time, const cia_tod &alarm);
 
@@ -166,9 +175,10 @@ public:
 	static void init_bitcount();
 
 protected:
-	void GetState(SsCiaV1 &state);
-	void SetState(const SsCiaV1 &state);
+	void GetState(SsCiaV2 &state);
+	void SetState(const SsCiaV2 &state);
 	static void UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out);
+	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);
 };
 
 
