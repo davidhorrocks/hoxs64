@@ -342,6 +342,9 @@
     <ClCompile Include="memorystream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="write_png.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -654,6 +657,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="memorystream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="write_png.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

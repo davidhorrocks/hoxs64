@@ -9,9 +9,10 @@ public:
 	CPUDisk();
 	~CPUDisk();
 
-	HRESULT Init(IC64Event *pIC64Event, int ID, IRegister *via1, IRegister *via2, DiskInterface *disk, bit8 *pMappedRAM, bit8 *pMappedROM, IBreakpointManager *pIBreakpointManager);
+	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, IRegister *via1, IRegister *via2, DiskInterface *disk, bit8 *pMappedRAM, bit8 *pMappedROM, IBreakpointManager *pIBreakpointManager);
 
 	IC64Event *pIC64Event;
+	IC64 *pIC64;
 	bit8 *pMappedRAM;
 	bit8 *pMappedROM;
 
@@ -56,8 +57,7 @@ public:
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap);
 	virtual int GetCurrentCpuMmuMemoryMap();
 	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
-	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
-
+	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);	
 };
 
 #endif

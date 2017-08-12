@@ -331,6 +331,8 @@ CPU6502::CPU6502()
 	SOTriggerClock = 0;
 	m_bBALowInClock2OfSEI = false;
 	m_bBreakOnInterruptTaken = false;
+	bSoftResetOnHltInstruction = false;
+	bHardResetOnHltInstruction = false;
 }
 
 CPU6502::~CPU6502()
@@ -1020,6 +1022,18 @@ void CPU6502::SyncVFlag()
 
 void CPU6502::CheckForCartFreeze()
 {
+}
+
+void CPU6502::OnHltInstruction()
+{
+	if (this->bHardResetOnHltInstruction)
+	{
+		this->Reset(this->CurrentClock, false);
+	}
+	else if (this->bSoftResetOnHltInstruction)
+	{
+		this->Reset(this->CurrentClock, false);
+	}
 }
 
 bool CPU6502::IsOpcodeFetch()
@@ -2890,6 +2904,7 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case HLT_IMPLIED:
+			OnHltInstruction();
 			break;
 		case TAS_ABSOLUTEY://SHS
 			this->SyncChips();

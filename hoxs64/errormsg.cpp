@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <string.h>
 #include <commctrl.h>
 #include "CDPI.h"
 #include "utils.h"
@@ -98,11 +99,11 @@ void ErrorMsg::DisplayError(HWND hWnd, const TCHAR title[])
 {
 	if (errorText[0] != 0)
 	{
-		MessageBox(hWnd, errorText, title, MB_OK | MB_ICONEXCLAMATION);
+		G::DebugMessageBox(hWnd, errorText, title, MB_OK | MB_ICONEXCLAMATION);
 	}
 	else
 	{
-		MessageBox(hWnd, TEXT("An error occurred."), title, MB_OK | MB_ICONEXCLAMATION);
+		G::DebugMessageBox(hWnd, TEXT("An error occurred."), title, MB_OK | MB_ICONEXCLAMATION);
 	}
 }
 
@@ -116,11 +117,11 @@ void ErrorMsg::ShowMessage(HWND hWnd, UINT uType, LPCTSTR szTitle, LPCTSTR szErr
 	szBuff[299]=0;
 	if (szTitle==NULL)
 	{
-		MessageBox(hWnd, szBuff, APPNAME, MB_OK | uType);
+		G::DebugMessageBox(hWnd, szBuff, APPNAME, MB_OK | uType);
 	}
 	else
 	{
-		MessageBox(hWnd, szBuff, szTitle, MB_OK | uType);
+		G::DebugMessageBox(hWnd, szBuff, szTitle, MB_OK | uType);
 	}
     va_end(vl);
 }

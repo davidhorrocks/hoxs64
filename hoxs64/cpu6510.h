@@ -13,7 +13,7 @@ class CPU6510 : public CPU6502, public IC6510
 public:
 	CPU6510();
 	~CPU6510();
-	HRESULT Init(IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
+	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
 	void SetCassetteSense(bit8 sense);
 
 	bit8 IRQ_VIC;	
@@ -26,20 +26,23 @@ public:
 
 	void CheckPortFade(ICLK sysclock);
 
-	void Reset6510(ICLK sysclock, bool poweronreset);
-	ICLK Get6510CurrentClock();
-	void Set6510CurrentClock(ICLK sysclock);
-	void Set_VIC_IRQ(ICLK sysclock);
-	void Clear_VIC_IRQ();
-	void Set_CIA_IRQ(ICLK sysclock);
-	void Clear_CIA_IRQ();
-	void Set_CRT_IRQ(ICLK sysclock);
-	void Clear_CRT_IRQ();
-	void Set_CIA_NMI(ICLK sysclock);
-	void Clear_CIA_NMI();
-	void Set_CRT_NMI(ICLK sysclock);
-	void Clear_CRT_NMI();
-	void ConfigureMemoryMap();
+	virtual void Reset6510(ICLK sysclock, bool poweronreset);
+	virtual ICLK Get6510CurrentClock();
+	virtual void Set6510CurrentClock(ICLK sysclock);
+	virtual void Set_VIC_IRQ(ICLK sysclock);
+	virtual void Clear_VIC_IRQ();
+	virtual void Set_CIA_IRQ(ICLK sysclock);
+	virtual void Clear_CIA_IRQ();
+	virtual void Set_CRT_IRQ(ICLK sysclock);
+	virtual void Clear_CRT_IRQ();
+	virtual void Set_CIA_NMI(ICLK sysclock);
+	virtual void Clear_CIA_NMI();
+	virtual void Set_CRT_NMI(ICLK sysclock);
+	virtual void Clear_CRT_NMI();
+	virtual void ConfigureMemoryMap();
+
+	virtual bool Get_EnableDebugCart();
+	virtual void Set_EnableDebugCart(bool bEnable);
 
 	void InitReset(ICLK sysclock, bool poweronreset);
 	//IRegister
@@ -64,6 +67,7 @@ public:
 	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
 	void AddClockDelay();
 	virtual void PreventClockOverflow();
+	virtual void OnHltInstruction();
 	void cpu_port();
 	void GetState(SsCpuMain &state);
 	void SetState(const SsCpuMain &state);
@@ -75,6 +79,7 @@ private:
 	RAM64 *ram;
 	ITape *tape;
 	IC64Event *pIC64Event;
+	IC64 *pIC64;
 
 	//devices
 	IRegister *cia1;
@@ -99,6 +104,7 @@ private:
 	bit8 CASSETTE_SENSE;
 	ICLK m_fade7clock;
 	ICLK m_fade6clock;
+	bool bEnableDebugCart;
 
 	virtual void SyncChips();
 	virtual void check_interrupts1();

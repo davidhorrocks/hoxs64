@@ -428,7 +428,7 @@ LRESULT lr;
 					break;
 				if (len > MAX_PATH)
 				{
-					MessageBox(GetParent(hDlg), TEXT("Path too long."), APPNAME, MB_OK | MB_ICONEXCLAMATION);
+					G::DebugMessageBox(GetParent(hDlg), TEXT("Path too long."), APPNAME, MB_OK | MB_ICONEXCLAMATION);
 					break;
 				}
 				EnableWindow(m_hCheckQuickLoad, TRUE);

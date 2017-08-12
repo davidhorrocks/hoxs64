@@ -50,6 +50,33 @@ CConfig::CConfig()
 	m_bTimerBbug = false;
 }
 
+void CConfig::SetCiaNewOldMode(bool isNew)
+{
+	if (isNew)
+	{
+		m_CIAMode = HCFG::CM_CIA6526A;
+		m_bTimerBbug = false;
+	}
+	else
+	{
+		m_CIAMode = HCFG::CM_CIA6526;
+		m_bTimerBbug = true;
+	}
+}
+
+void CConfig::SetRunFast()
+{
+	m_bSkipFrames = true;
+	m_bLimitSpeed = false;
+	m_bMaxSpeed = true;
+}
+
+void CConfig::SetRunNormal()
+{
+	m_bSkipFrames = false;
+	m_bLimitSpeed = true;
+	m_bMaxSpeed = false;
+}
 
 #define readregkeyboarditem(n) tempLenValue = lenValue;\
 		lRetCode = RegQueryValueEx(hKey1, TEXT(#n), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);\

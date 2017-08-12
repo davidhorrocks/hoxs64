@@ -77,8 +77,8 @@ public:
 	void ExecuteC64Instruction();
 	void ExecuteC64Clock();
 	void ExecuteDiskClock();
-	void ExecuteDebugFrame();
-	void ExecuteFrame();
+	int ExecuteDebugFrame();
+	int ExecuteFrame();
 
 	void EnterDebugRun(bool bWithSound);
 	void FinishDebugRun();
@@ -86,16 +86,17 @@ public:
 	void SetBasicProgramEndAddress(bit16 last_byte);
 
 	HRESULT AutoLoad(TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks);
+	static HRESULT CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength);
 
 	HRESULT LoadCrtFile(TCHAR *filename);
 	HRESULT LoadImageFile(TCHAR *filename, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadT64ImageFile(TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadTAPFile(TCHAR *filename);
-	HRESULT InsertDiskImageFile(TCHAR *filename, bool bAlignD64Tracks);
-	HRESULT LoadD64FromFile(TCHAR *filename, bool bAlignD64Tracks);
-	HRESULT LoadG64FromFile(TCHAR *filename);
-	HRESULT LoadP64FromFile(TCHAR *filename);
-	HRESULT LoadFDIFromFile(TCHAR *filename);
+	HRESULT InsertDiskImageFile(TCHAR *filename, bool alignD64Tracks, bool immediately);
+	HRESULT LoadD64FromFile(TCHAR *filename, bool alignD64Tracks, bool immediately);
+	HRESULT LoadG64FromFile(TCHAR *filename, bool immediately);
+	HRESULT LoadP64FromFile(TCHAR *filename, bool immediately);
+	HRESULT LoadFDIFromFile(TCHAR *filename, bool immediately);
 
 	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
 	HRESULT SaveFDIToFile(TCHAR *filename);
@@ -136,6 +137,18 @@ public:
 	virtual void SetupColorTables(unsigned int d3dFormat);
 	virtual HRESULT UpdateBackBuffer();
 	virtual void SynchroniseDevicesWithVIC();
+	virtual bool Get_EnableDebugCart();
+	virtual void Set_EnableDebugCart(bool bEnable);
+	virtual ICLK Get_LimitCycles();
+	virtual void Set_LimitCycles(ICLK cycles);
+	virtual const TCHAR *Get_ExitScreenShot();
+	virtual void Set_ExitScreenShot(const TCHAR * filename);
+	virtual bit8 Get_ExitCode();
+	virtual void Set_ExitCode(bit8 exitCode);
+	virtual bit8 WriteOnceExitCode(bit8 exitCode);
+	virtual bool HasExitCode();
+	virtual void ResetOnceExitCode();
+	virtual HRESULT SavePng(const TCHAR * filename);
 
 	IMonitorCpu *GetCpu(int cpuid);
 
@@ -231,6 +244,12 @@ private:
 	C64Cmd m_SystemCommand;
 	bool m_bLastPostedDriveWriteLed;
 	ICLK m_iClockOverflowCheckCounter;
+	bool bEnableDebugCart;
+	ICLK limitCycles;
+	std::basic_string<TCHAR> exitScreenShot;
+	bool bWantExitScreenShot;
+	bool bExitCodeWritten;
+	bit8 exitCode;
 };
 
 #endif

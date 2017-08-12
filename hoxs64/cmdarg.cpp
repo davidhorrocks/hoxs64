@@ -92,12 +92,20 @@ bool CParseCommandArg::IsWhiteSpace(TCHAR ch)
 	}
 }
 
-HRESULT CParseCommandArg::ReadChar(TCHAR& ch)
+HRESULT CParseCommandArg::ReadChar(TCHAR& ch, TCHAR& nextch)
 {
+	ch = 0;
+	nextch = 0;
 	if (IsEOF())
+	{
 		return E_FAIL;
+	}
 
 	ch = mpsCmdLine[mIndex++];
+	if (!IsEOF())
+	{
+		nextch = mpsCmdLine[mIndex];
+	}
 
 	switch (ch)
 	{
@@ -119,7 +127,8 @@ HRESULT CParseCommandArg::ReadWord(int& count, bool& bGotWord)
 int i=0;
 bool bQuoteOpen = false;
 TCHAR ch;
-TCHAR qoute = _T('\0');
+TCHAR nextch;
+TCHAR quote = _T('\0');
 HRESULT hr; 
 	
 	ZeroMemory(&mWordBuffer[0], sizeof(mWordBuffer));
@@ -130,31 +139,53 @@ HRESULT hr;
 	while(1)
 	{
 		if (IsEOF())
+		{
 			return S_OK;
-		hr = ReadChar(ch);
+		}
+
+		hr = ReadChar(ch, nextch);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 
 		if (IsWhiteSpace(ch))
+		{
 			continue;
+		}
+
 		break;
 	}
 
 	if (ch == _T('\"') || ch == _T('\''))
 	{
-		qoute = ch;
+		quote = ch;
 		while(1)
 		{
 			if (IsEOF())
+			{
 				break;
-			hr = ReadChar(ch);
+			}
+
+			hr = ReadChar(ch, nextch);
 			if (FAILED(hr))
+			{
 				return hr;
-			if (ch == qoute)
+			}
+
+			if (ch == quote && nextch != quote)
+			{
 				break;
+			}
+			else if (ch == quote && nextch == quote)
+			{
+				ReadChar(ch, nextch);
+			}
 
 			if (i >= (_countof(mWordBuffer) - 1) )
+			{
 				return E_FAIL;
+			}
 
 			mWordBuffer[i++] = ch;
 		}
@@ -165,12 +196,20 @@ HRESULT hr;
 		while(1)
 		{
 			if (IsEOF())
+			{
 				break;
-			hr = ReadChar(ch);
+			}
+
+			hr = ReadChar(ch, nextch);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			if (IsWhiteSpace(ch))
+			{
 				break;
+			}
 			else if (ch == _T('\"') || ch == _T('\''))
 			{
 				UndoChar();
@@ -178,7 +217,9 @@ HRESULT hr;
 			}
 
 			if (i >= (_countof(mWordBuffer) - 1) )
+			{
 				return E_FAIL;
+			}
 
 			mWordBuffer[i++] = ch;
 		}

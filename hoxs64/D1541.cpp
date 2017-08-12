@@ -46,7 +46,7 @@ void CPUDisk::Reset(ICLK sysclock, bool poweronreset)
 }
 
 
-HRESULT CPUDisk::Init(IC64Event *pIC64Event, int ID, IRegister *via1, IRegister *via2, DiskInterface *disk, bit8 *pMappedRAM, bit8 *pMappedROM, IBreakpointManager *pIBreakpointManager)
+HRESULT CPUDisk::Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, IRegister *via1, IRegister *via2, DiskInterface *disk, bit8 *pMappedRAM, bit8 *pMappedROM, IBreakpointManager *pIBreakpointManager)
 {
 HRESULT hr;
 	ClearError();
@@ -56,6 +56,7 @@ HRESULT hr;
 	this->disk = disk;
 
 	this->pIC64Event = pIC64Event;
+	this->pIC64 = pIC64;
 	this->via1 = via1;
 	this->via2 = via2;
 	this->disk = disk;

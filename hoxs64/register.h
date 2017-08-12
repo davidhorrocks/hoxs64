@@ -337,6 +337,7 @@ public:
 	virtual void DiskDriveLed(bool bOn)=0;
 	virtual void DiskWriteLed(bool bOn)=0;
 	virtual void ShowErrorBox(LPCTSTR title, LPCTSTR message)=0;
+	virtual void WriteExitCode(bit8 exitCode)=0;
 };
 
 class IC64
@@ -365,6 +366,18 @@ public:
 	virtual void SetupColorTables(unsigned int d3dFormat)=0;
 	virtual HRESULT UpdateBackBuffer()=0;
 	virtual void SynchroniseDevicesWithVIC()=0;
+	virtual bool Get_EnableDebugCart()=0;
+	virtual void Set_EnableDebugCart(bool bEnable)=0;
+	virtual ICLK Get_LimitCycles()=0;
+	virtual void Set_LimitCycles(ICLK cycles)=0;
+	virtual const TCHAR *Get_ExitScreenShot()=0;
+	virtual void Set_ExitScreenShot(const TCHAR * filename)=0;
+	virtual bit8 Get_ExitCode()=0;
+	virtual void Set_ExitCode(bit8 exitCode)=0;
+	virtual bit8 WriteOnceExitCode(bit8 exitCode)=0;
+	virtual bool HasExitCode()=0;
+	virtual void ResetOnceExitCode()=0;
+	virtual HRESULT SavePng(const TCHAR * filename)=0;
 };
 
 class DefaultCpu : IDefaultCpu

@@ -12,7 +12,7 @@ class DiskInterface : public IRegister, public IMonitorDisk, public ErrorMsg
 public:
 	DiskInterface();
 	~DiskInterface();
-	HRESULT Init(CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager, TCHAR *szAppDirectory);
+	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager, TCHAR *szAppDirectory);
 	HRESULT InitDiskThread();
 	static DWORD WINAPI DiskThreadProc( LPVOID lpParam );
 	DWORD DiskThreadProc();
@@ -28,7 +28,7 @@ public:
 	void Cleanup();
 	void LoadMoveP64Image(GCRDISK *);
 	void SaveCopyP64Image(GCRDISK *);
-	void SetDiskLoaded();
+	void SetDiskLoaded(bool immediately);
 	void RemoveDisk();
 
 	void InitReset(ICLK sysclock, bool poweronreset);
@@ -139,6 +139,7 @@ public:
 	VIA2 via2;
 
 	IC64Event *pIC64Event;
+	IC64 *pIC64;
 
 	CAppStatus *appStatus;
 

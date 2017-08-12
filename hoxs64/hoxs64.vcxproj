@@ -137,22 +137,22 @@
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'" />
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">D:\DirectX2006Oct\Include;$(IncludePath)</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">D:\DirectX2006Oct\Lib\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">D:\DirectX2006Oct\Include;$(IncludePath)</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">D:\DirectX2006Oct\Lib\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\DirectX2006Oct\Lib\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\DirectX2006Oct\Lib\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">D:\DirectX2006Oct\Lib\x86;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">D:\DirectX2006Oct\Lib\x86;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\DirectX2006Oct\Lib\x86;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IncludePath);D:\DirectX2006Oct\Include</IncludePath>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\DirectX2006Oct\Lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|x64'">D:\DirectX2006Oct\Lib\x64;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\x64\Release Library;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|x64'">D:\DirectX2006Oct\Lib\x64;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\x64\Release Library;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\zlib-1.2.11;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\DirectX2006Oct\Lib\x64;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\x64\Debug Library;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\zlib-1.2.11;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\DirectX2006Oct\Lib\x64;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\x64\Release Library;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">D:\DirectX2006Oct\Lib\x86;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\Release Library;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Ansi_Release|Win32'">D:\DirectX2006Oct\Lib\x86;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\Release Library;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\zlib-1.2.11;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">D:\DirectX2006Oct\Lib\x86;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\Debug Library;$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IncludePath);D:\DirectX2006Oct\Include;$(ProjectDir)..\..\zlib-1.2.11;$(ProjectDir)..\..\libpng-1.6.31</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">D:\DirectX2006Oct\Lib\x86;$(ProjectDir)..\..\libpng-1.6.31\projects\vstudio\Release Library;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -188,11 +188,12 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <Profile>true</Profile>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -238,7 +239,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -286,11 +287,12 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;odbc32.lib;odbccp32.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <Profile>true</Profile>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -334,7 +336,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;odbc32.lib;odbccp32.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -378,7 +380,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -424,7 +426,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -470,7 +472,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;odbc32.lib;odbccp32.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -516,7 +518,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;dxguid.lib;odbc32.lib;odbccp32.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;version.lib;d3dx9.lib;d3d9.lib;dsound.lib;dinput.lib;zlib.lib;libpng16.lib;dxguid.lib;nothrownew.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -877,6 +879,7 @@
     <ClCompile Include="wpanel.cpp" />
     <ClCompile Include="wpanelmanager.cpp" />
     <ClCompile Include="wpccli.cpp" />
+    <ClCompile Include="write_png.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler.h" />
@@ -983,6 +986,7 @@
     <ClInclude Include="wpanel.h" />
     <ClInclude Include="wpanelmanager.h" />
     <ClInclude Include="wpccli.h" />
+    <ClInclude Include="write_png.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="siddrv.asm">

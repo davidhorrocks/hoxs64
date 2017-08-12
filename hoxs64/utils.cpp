@@ -5,6 +5,7 @@
 #include <commctrl.h>
 #include <shlwapi.h>
 #include <stdio.h>
+#include <iostream>
 #include <assert.h>
 #include "boost2005.h"
 #include "defines.h"
@@ -888,6 +889,7 @@ HWND hWnd;
 }
 
 //Static constructed members for G
+bool G::IsHideMessageBox = false;
 std::random_device G::rd;
 std::mt19937 G::randengine_main;
 const TCHAR G::EmptyString[1] = TEXT("");
@@ -1106,7 +1108,7 @@ DWORD err,r;
 			// Process any inserts in lpMsgBuf.
 			// ...
 			// Display the string.
-			::MessageBox( hWnd, (LPCTSTR)lpMsgBuf, TEXT("Error"), MB_OK | MB_ICONINFORMATION );
+			G::DebugMessageBox(hWnd, (LPCTSTR)lpMsgBuf, TEXT("Error"), MB_OK | MB_ICONINFORMATION );
 			// Free the buffer.
 			LocalFree( lpMsgBuf );
 		}
@@ -1346,6 +1348,18 @@ BOOL G::CenterWindow (HWND hwndChild, HWND hwndParent)
 	return SetWindowPos (hwndChild, NULL, xNew, yNew, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
+BOOL G::DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType)
+{
+	if (G::IsHideMessageBox)
+	{
+		return IDOK;
+	}
+	else
+	{
+		return ::MessageBox(hWnd, lpText, lpCaption, uType);
+	}
+}
+
 HRESULT G::InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError, ...)
 {
 	TCHAR            szBuff[302];
@@ -1354,7 +1368,7 @@ HRESULT G::InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError, ...)
 	va_start(vl, szError);
 	_vsntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, szError, vl);
 	szBuff[_countof(szBuff)-1]=0;
-	MessageBox(hWnd, szBuff, APPNAME, MB_OK | MB_ICONEXCLAMATION);
+	G::DebugMessageBox(hWnd, szBuff, APPNAME, MB_OK | MB_ICONEXCLAMATION);
 	va_end(vl);
 	return hRet;
 }

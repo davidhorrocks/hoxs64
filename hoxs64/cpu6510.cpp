@@ -86,14 +86,17 @@ void CPU6510::Reset(ICLK sysclock, bool poweronreset)
 	write_cpu_io_data(0);
 }
 
-HRESULT CPU6510::Init(IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
+HRESULT CPU6510::Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
 {
 HRESULT hr;
 	ClearError();
 	hr = CPU6502::Init(ID, pIBreakpointManager);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
+	this->pIC64 = pIC64;
 	this->pIC64Event = pIC64Event;
 	this->cia1 = cia1;
 	this->cia2 = cia2;
@@ -130,7 +133,9 @@ bit8 *t;
 		else 
 		{
 			if (m_bDebug && BA==0 && CurrentClock - FirstBALowClock >= 3)
+			{
 				return 0;
+			}
 			vic->ExecuteCycle(CurrentClock);
 			return ReadRegister(address, CurrentClock);
 		}
@@ -138,7 +143,9 @@ bit8 *t;
 	else
 	{
 		if (m_bDebug && BA==0 && CurrentClock - FirstBALowClock >= 3)
+		{
 			return 0;
+		}
 		switch (address >> 8)
 		{
 		case 0xD0:
@@ -194,7 +201,9 @@ bit8 *t;
 			}
 		}
 		else
+		{
 			return 0;
+		}
 	}
 }
 
@@ -205,11 +214,13 @@ bit8 *t;
 	m_bIsWriteCycle = true;
 	vic->ExecuteCycle(CurrentClock);
 	m_bIsWriteCycle = false;
-	if (address>1)
+	if (address > 1)
 	{
 		t=m_ppMemory_map_write[address >> 12];
 		if (t)
+		{
 			t[address]=data;
+		}
 		else
 		{
 			switch (address >> 8)
@@ -226,6 +237,14 @@ bit8 *t;
 			case 0xD5:
 			case 0xD6:
 			case 0xD7:
+				if (this->bEnableDebugCart)
+				{
+					if (address == 0xd7ff)
+					{
+						this->pIC64->WriteOnceExitCode(data);
+					}
+				}
+
 				sid->WriteRegister(address, CurrentClock, data);
 				break;
 			case 0xD8:
@@ -243,7 +262,9 @@ bit8 *t;
 			case 0xDE:
 			case 0xDF:
 				if (pCart->IsCartIOActive())
+				{
 					pCart->WriteRegister(address, CurrentClock, data);
+				}
 				break;
 			default:
 				if (pCart->IsCartAttached())
@@ -526,9 +547,25 @@ void CPU6510::PreventClockOverflow()
 	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
 	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 	if ((ICLKS)(CurrentClock - m_fade7clock) >= CLOCKSYNCBAND_FAR)
+	{
 		m_fade7clock = ClockBehindNear;
+	}
 	if ((ICLKS)(CurrentClock - m_fade6clock) >= CLOCKSYNCBAND_FAR)
+	{
 		m_fade6clock = ClockBehindNear;
+	}
+}
+
+void CPU6510::OnHltInstruction()
+{
+	if (this->bHardResetOnHltInstruction)
+	{
+		this->pIC64->PostHardReset(true);
+	}
+	else if (this->bSoftResetOnHltInstruction)
+	{
+		this->pIC64->PostSoftReset(true);
+	}
 }
 
 void CPU6510::Reset6510(ICLK sysclock, bool poweronreset)
@@ -544,6 +581,16 @@ ICLK CPU6510::Get6510CurrentClock()
 void CPU6510::Set6510CurrentClock(ICLK sysclock)
 {
 	SetCurrentClock(sysclock);
+}
+
+bool CPU6510::Get_EnableDebugCart()
+{
+	return this->bEnableDebugCart;
+}
+
+void CPU6510::Set_EnableDebugCart(bool bEnable)
+{
+	this->bEnableDebugCart = bEnable;
 }
 
 MEM_TYPE CPU6510::GetCpuMmuReadMemoryType(bit16 address, int memorymap)

@@ -1896,17 +1896,6 @@ bit32 vTestCheck=0xCBF43926;
 	}
 	vHeader = crc.pCRC32->Value();
 
-	//#ifdef DEBUG
-	//_sntprintf(szBuff, sizeof(szBuff) / sizeof(TCHAR), "Header CRC-32:\t\t %X\r\nCalc Header CRC-32:\t %X\r\nTrack CRC-32:\t\t %X\r\nCalc Track CRC-32:\t\t %X\r\nTest Check:\t\t%X\r\nTest:\t\t\t%X",
-	//	(int)dwordswap(fdiHeader.headerCRC),
-	//	(int)vHeader, 
-	//	(int)dwordswap(fdiHeader.dataCRC),
-	//	(int)vData,
-	//	(int)vTestCheck,
-	//	(int)vTest
-	//);
-	//MessageBox(0L, szBuff, TEXT("CRC-32 Check"), MB_OK | MB_ICONEXCLAMATION);
-	//#endif
 	if (dwordswap(fdiHeader.headerCRC)!=vHeader || dwordswap(fdiHeader.dataCRC)!=vData)
 	{
 		return SetError(APPERR_BAD_CRC, TEXT("The FDI disk file has successfully loaded but the CRC-32 check has failed. This file may be corrupt."));

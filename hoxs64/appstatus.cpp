@@ -55,4 +55,3 @@ void CAppStatus::RestoreSpeedSettings()
 	m_bUseBlitStretch = m_bSaveUseBlitStretch;
 	m_syncMode = m_SaveSyncMode;
 }
-

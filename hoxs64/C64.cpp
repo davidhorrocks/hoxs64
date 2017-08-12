@@ -1,3 +1,4 @@
+#include "png.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <random>
@@ -10,6 +11,7 @@
 #include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
+#include <time.h>
 #include "boost2005.h"
 #include "CDPI.h"
 #include "filestream.h"
@@ -20,12 +22,19 @@
 #include "utils.h"
 #include "C64.h"
 #include "savestate.h"
+#include "write_png.h"
 
 C64::C64()
 {
 	pIC64Event = 0;
 	bPendingSystemCommand = false;
 	m_SystemCommand = C64CMD_NONE;
+	bEnableDebugCart = false;
+	limitCycles = 0;
+	exitScreenShot.clear();
+	bWantExitScreenShot = false;
+	exitCode = 0;
+	bExitCodeWritten = false;
 }
 
 C64::~C64()
@@ -48,7 +57,7 @@ HRESULT C64::Init(CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR 
 
 	if (ram.Init(m_szAppDirectory, &cart)!=S_OK) return SetError(ram);
 
-	if (cpu.Init(pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
+	if (cpu.Init(static_cast<IC64 *>(this), pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
 	cart.Init(&cpu, ram.mMemory);
 	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx)!=S_OK) return SetError(cia1);
 	if (cia2.Init(appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
@@ -57,7 +66,7 @@ HRESULT C64::Init(CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR 
 
 	if (sid.Init(appStatus, dx, appStatus->m_fps)!=S_OK) return SetError(sid);
 
-	if (diskdrive.Init(appStatus, pIC64Event, &mon, szAppDirectory)!=S_OK) return SetError(diskdrive);
+	if (diskdrive.Init(appStatus, static_cast<IC64 *>(this), pIC64Event, &mon, szAppDirectory)!=S_OK) return SetError(diskdrive);
 
 	if (mon.Init(pIC64Event, &cpu, &diskdrive.cpu, &vic, &diskdrive)!=S_OK) return SetError(E_FAIL, TEXT("C64 monitor initialisation failed"));
 
@@ -392,33 +401,46 @@ bool bBreak;
 	FinishDebugRun();
 }
 
-void C64::ExecuteDebugFrame()
+int C64::ExecuteDebugFrame()
 {
 ICLK cycles,sysclock;
 bool bBreakC64, bBreakDisk, bBreakVic;
+int result = 0;
 
 	if (bPendingSystemCommand)
 	{
 		ProcessReset();
 	}
+
 	if (vic.vic_raster_line==PAL_MAX_LINE && vic.vic_raster_cycle==63)
+	{
 		cycles = (PAL_MAX_LINE+1)*63;
+	}
 	else if (vic.vic_check_irq_in_cycle2)
+	{
 		cycles = (PAL_MAX_LINE+1)*63 -1;
+	}
 	else
+	{
 		cycles = (PAL_MAX_LINE+1-vic.vic_raster_line)*63 - (vic.vic_raster_cycle);
+	}
 
 	sysclock = vic.CurrentClock;
-	
+	ICLK autoexitcountdown = this->limitCycles - sysclock;
+	bool autoExitEnabled = this->limitCycles != 0;
+
 	EnterDebugRun(true);
 	bBreakC64 = false;
 	bBreakDisk = false;
 	bBreakVic = false;
-	while(cycles > 0)
+	while ((cycles > 0) && (!autoExitEnabled || ((ICLKS)autoexitcountdown > 0 || autoexitcountdown > PAL_CLOCKS_PER_FRAME)))
 	{
 		cycles--;
 		sysclock++;
-
+		if (autoExitEnabled)
+		{
+			autoexitcountdown--;
+		}
 		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
@@ -440,20 +462,24 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 				if (diskdrive.cpu.GetBreakOnInterruptTaken())
 				{
 					if (diskdrive.cpu.IsInterruptInstruction() && (diskdrive.cpu.IsOpcodeFetch() || !bWasDiskCpuOnInt))
+					{
 						bBreakDisk = true;
+					}
 				}
 			}
  			if (bBreakDisk)
+			{
 				break;
+			}
 		}
 
 		bool bWasC64CpuOpCodeFetch = cpu.IsOpcodeFetch();
 		bool bWasC64CpuOnInt = cpu.IsInterruptInstruction();
-
 		if (appStatus->m_bAutoload)
 		{
 			this->AutoLoadHandler(sysclock);
 		}
+
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
@@ -474,10 +500,13 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 				}
 			}
 		}
+
 		if (cpu.GetBreakOnInterruptTaken())
 		{
 			if (cpu.IsInterruptInstruction() && (cpu.IsOpcodeFetch() || !bWasC64CpuOnInt))
+			{
 				bBreakC64 = true;
+			}
 		}
 
 		if (appStatus->m_bD1541_Emulation_Enable)
@@ -498,21 +527,28 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 						}
 					}
 				}
+
 				if (diskdrive.cpu.GetBreakOnInterruptTaken())
 				{
 					if (diskdrive.cpu.IsInterruptInstruction() && (diskdrive.cpu.IsOpcodeFetch() || !bWasDiskCpuOnInt))
+					{
 						bBreakDisk = true;
+					}
 				}
 			}
 		}
+
 		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
- 		if (bBreakC64 || bBreakDisk || bBreakVic)
-			break;
 
+ 		if (bBreakC64 || bBreakDisk || bBreakVic)
+		{
+			break;
+		}
 	}
+
 	FinishDebugRun();
 	if (pIC64Event)
 	{
@@ -529,27 +565,55 @@ bool bBreakC64, bBreakDisk, bBreakVic;
 			pIC64Event->BreakVicRasterCompare();
 		}
 	}
+	if (autoExitEnabled && ((ICLKS)autoexitcountdown <= 0 && autoexitcountdown <= PAL_CLOCKS_PER_FRAME))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
-void C64::ExecuteFrame()
+int C64::ExecuteFrame()
 {
 ICLK cycles,sysclock;
+int result = 0;
 
 	if (bPendingSystemCommand)
 	{
 		ProcessReset();
 	}
-	if (vic.vic_raster_line==PAL_MAX_LINE && vic.vic_raster_cycle==63)
-		cycles = (PAL_MAX_LINE+1)*63;
+
+	if (vic.vic_raster_line == PAL_MAX_LINE && vic.vic_raster_cycle == 63)
+	{
+		cycles = (PAL_MAX_LINE + 1) * 63;
+	}
 	else if (vic.vic_check_irq_in_cycle2)
-		cycles = (PAL_MAX_LINE+1)*63 -1;
+	{
+		cycles = (PAL_MAX_LINE + 1) * 63 - 1;
+	}
 	else
-		cycles = (PAL_MAX_LINE+1-vic.vic_raster_line)*63 - (vic.vic_raster_cycle);
+	{
+		cycles = (PAL_MAX_LINE + 1 - vic.vic_raster_line) * 63 - (vic.vic_raster_cycle);
+	}
 
 	sysclock = vic.CurrentClock + cycles;
-	
+	if (this->limitCycles != 0)
+	{
+		ICLK surplessclocks = sysclock - this->limitCycles;
+		if ((ICLKS)surplessclocks >= 0 && surplessclocks <= PAL_CLOCKS_PER_FRAME)
+		{
+			cycles = cycles - min(sysclock - this->limitCycles, cycles);
+			sysclock = vic.CurrentClock + cycles;
+			result = 1;
+		}
+	}
+
 	if (appStatus->m_bSoundOK && appStatus->m_bFilterOK)
+	{
 		sid.LockSoundBuffer();
+	}
 
 	BOOL bIsDiskEnabled = appStatus->m_bD1541_Emulation_Enable;
 	BOOL bIsDiskThreadEnabled = appStatus->m_bD1541_Thread_Enable;
@@ -557,10 +621,12 @@ ICLK cycles,sysclock;
 	{
 		diskdrive.ExecuteAllPendingDiskCpuClocks();
 	}
+
 	if (appStatus->m_bAutoload)
 	{
 		this->AutoLoadHandler(sysclock);
 	}
+
 	cpu.ExecuteCycle(sysclock);	
 	vic.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
@@ -577,12 +643,16 @@ ICLK cycles,sysclock;
 			appStatus->m_bSerialTooBusyForSeparateThread = false;
 		}
 	}
+
 	if (appStatus->m_bSID_Emulation_Enable)
 	{
 		sid.ExecuteCycle(sysclock);
 	}
+
 	sid.UnLockSoundBuffer();
 	CheckDriveLedNofication();
+
+	return result;
 }
 
 void C64::CheckDriveLedNofication()
@@ -717,7 +787,9 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 					sprintf_s(szAddress, _countof(szAddress), "%ld", autoLoadCommand.startaddress);
 					unsigned int i;
 					for (i=0 ; i < strlen(szAddress) ; i++)
+					{
 						ram.miMemory[SCREENWRITELOCATION + 4 + i] = szAddress[i];
+					}
 				}
 			}
 			else
@@ -844,7 +916,9 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 					{
 						memcpy_s(&ram.miMemory[autoLoadCommand.startaddress], 0x10000 - autoLoadCommand.startaddress, &autoLoadCommand.pImageData[2], loadSize);					
 						if (autoLoadCommand.startaddress <= BASICSTARTADDRESS)
+						{
 							SetBasicProgramEndAddress(autoLoadCommand.startaddress + loadSize - 1);
+						}
 						else
 						{
 							CopyMemory(&ram.miMemory[SCREENWRITELOCATION], szSysCall, strlen(szSysCall));
@@ -876,7 +950,6 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 					{
 						screencodebuffer[i]  = C64File::ConvertPetAsciiToScreenCode(autoLoadCommand.c64filename[i]);
 					}
-					//ConvertPetAsciiToScreenCode
 					memcpy_s(&ram.miMemory[SCREENWRITELOCATION], 40, szLoadDisk, LOADPREFIXLENGTH);
 					memcpy_s(&ram.miMemory[SCREENWRITELOCATION + LOADPREFIXLENGTH], C64Directory::D64FILENAMELENGTH, screencodebuffer, filenamelen); 
 					memcpy_s(&ram.miMemory[SCREENWRITELOCATION + LOADPREFIXLENGTH + filenamelen], 40, &szLoadDisk[LOADPOSTFIXINDEX], LOADPOSTFIXLENGTH);
@@ -949,6 +1022,248 @@ bool C64::Get_DiskProtect()
 	return diskdrive.m_d64_protectOff == 0;
 }
 
+bool C64::Get_EnableDebugCart()
+{
+	return this->bEnableDebugCart;
+}
+
+void C64::Set_EnableDebugCart(bool bEnable)
+{
+	this->bEnableDebugCart = bEnable;
+	this->cpu.Set_EnableDebugCart(bEnable);
+}
+
+ICLK C64::Get_LimitCycles()
+{
+	return this->limitCycles;
+}
+
+void C64::Set_LimitCycles(ICLK cycles)
+{
+	this->limitCycles = cycles;
+}
+
+const TCHAR *C64::Get_ExitScreenShot()
+{
+	if (bWantExitScreenShot)
+	{
+		return exitScreenShot.c_str();
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+void C64::Set_ExitScreenShot(const TCHAR *filename)
+{
+	if (filename == NULL)
+	{
+		bWantExitScreenShot = false;
+	}
+	else
+	{
+		exitScreenShot.assign(filename);
+		bWantExitScreenShot = true;
+	}
+}
+
+bit8 C64::Get_ExitCode()
+{
+	return exitCode;
+}
+
+void C64::Set_ExitCode(bit8 exitCode)
+{
+	this->exitCode = exitCode;
+	this->bExitCodeWritten = true;
+}
+
+bit8 C64::WriteOnceExitCode(bit8 exitCode)
+{
+	if (!this->bExitCodeWritten)
+	{
+		this->exitCode = exitCode;
+		this->bExitCodeWritten = true;
+		if (pIC64Event!=NULL)
+		{
+			pIC64Event->WriteExitCode(exitCode);
+		}
+	}
+	return exitCode;
+}
+
+bool C64::HasExitCode()
+{
+	return this->bExitCodeWritten;
+}
+
+void C64::ResetOnceExitCode()
+{
+	this->bExitCodeWritten = false;
+}
+
+HRESULT C64::CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength)
+{
+int i;
+int charcount = 0;					
+char *pAnsiFilename = NULL;
+const TCHAR *pWideFileName = sourcestr;
+HRESULT hr = E_FAIL;
+
+	if (c64FilenameBufferLength > 0)
+	{
+		memset(c64filename, 160, c64FilenameBufferLength);
+#if defined(UNICODE)
+		int bufferlen = max(c64FilenameBufferLength, lstrlen(pWideFileName));
+		if (SUCCEEDED(G::UcToAnsiRequiredBufferLength(pWideFileName, bufferlen, charcount)))
+		{
+			pAnsiFilename = (char *)malloc(charcount + 1);
+			if (pAnsiFilename != NULL)
+			{
+				hr = G::UcToAnsi(pWideFileName, pAnsiFilename, bufferlen, charcount);		
+			}
+			else
+			{
+				hr = E_OUTOFMEMORY;
+			}
+		}
+#else
+		pAnsiFilename = _strdup(pWideFileName);
+		if (!pAnsiFilename)
+		{
+			hr = E_OUTOFMEMORY;
+		}
+#endif
+		if (SUCCEEDED(hr))
+		{
+			char *p = pAnsiFilename;
+			for (i = 0; i < C64DISKFILENAMELENGTH && *p != 0; i++, p++)
+			{
+				c64filename[i] = *p;
+			}
+			if (pAnsiFilename)
+			{
+				free(pAnsiFilename);
+				pAnsiFilename = NULL;
+			}
+		}
+	}
+	return hr;
+}
+
+HRESULT C64::SavePng(const TCHAR * filename)
+{
+std::basic_string<TCHAR> filenamestr;
+std::basic_string<TCHAR> filenamepart;
+TCHAR drive[_MAX_DRIVE];
+TCHAR dir[_MAX_DIR];
+TCHAR fname[_MAX_FNAME];
+TCHAR ext[_MAX_EXT];
+errno_t err;
+const TCHAR CouldNotParse[] = TEXT("Could not parse the file name.");
+const TCHAR CouldNotGenerateParam1[] = TEXT("Could not generate the PNG file %s");
+
+	ClearError();
+	if (filename != NULL && lstrlen(filename) > 0)
+	{
+		filenamestr = filename;
+	}
+	else
+	{
+		filenamestr = exitScreenShot;
+	}
+
+	if (filenamestr.length() <= 0)
+	{
+		return S_FALSE;
+	}
+
+	err = _tsplitpath_s(filenamestr.c_str(), drive, _countof(drive), dir, _countof(dir), fname, _countof(fname), ext, _countof(ext));
+	if (err!=0)
+	{
+		return SetError(E_FAIL, CouldNotParse);
+	}
+
+	filenamepart.assign(fname);
+	filenamepart.append(ext);
+	if (filenamepart.compare(TEXT("..")) == 0 || filenamepart.compare(TEXT(".")) == 0)
+	{
+		return SetError(E_FAIL, CouldNotParse);
+	}
+
+	const int PngWidth = 384;
+	const int PngHeight = 272;
+	png_mainprog_info info;
+	memset(&info, 0, sizeof(info));
+	info.width = PngWidth;
+	info.height = PngHeight;
+	info.interlaced = PNG_INTERLACE_NONE;
+	std::unique_ptr<png_color []> pallet;
+	std::unique_ptr<png_byte> row;
+	try
+	{
+		pallet = std::unique_ptr<png_color []>(new png_color[256]);
+		row = std::unique_ptr<png_byte []>(new png_byte[PngWidth]);
+	}
+	catch(...)
+	{
+		return SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
+	}
+
+	for (int i = 0; i < 256; i++)
+	{
+		int cl = vic.vic_color_array[i & 0xf];
+		pallet[i].red = (cl >> 16) & 0xff;
+		pallet[i].green = (cl >> 8) & 0xff;
+		pallet[i].blue = cl & 0xff;
+	}
+
+	info.pallet = pallet.get();
+	info.pallet_colour_count = 16;
+	info.sample_depth = 8;
+	info.title = "Commodore 64 Screen Shot";
+	info.author = "Hoxs64 Commodore 64 Emulator";
+	info.desc = "The picture uses the Pepto palette.";
+	info.bg_blue = 0;
+	info.bg_green = 0;
+	info.bg_red = 0;
+	info.have_text = RWPNG_TEXT_TITLE | RWPNG_TEXT_AUTHOR | RWPNG_TEXT_DESC;
+	time_t timenow = time(0);
+	info.modtime = timenow;
+	info.have_time = 1;
+	WritePng wp;
+	if (wp.OpenFile(filenamestr.c_str()) == NULL)
+	{
+		return SetError(E_FAIL, TEXT("Cannot open %s"), filenamestr.c_str());
+	}
+
+	info.outfile = wp.file;
+	if (wp.writepng_init(&info) != 0)
+	{
+		return SetError(E_FAIL, CouldNotGenerateParam1, filenamestr.c_str());
+	}
+
+	int starty = C64WindowDimensions::WDFullFirstRaster;
+	int startx = DISPLAY_START + C64WindowDimensions::WDNoBorderStart + (C64WindowDimensions::WDNoBorderWidth - PngWidth) / 2;
+	info.image_data = row.get();
+	for (int y = 0; y < PngHeight ; y++)
+	{
+		for(int x = 0; x < PngWidth; x++)
+		{
+			info.image_data[x] = vic.ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][y + starty][x + startx];
+		}
+		wp.writepng_encode_row();
+	}
+
+	if (wp.writepng_encode_finish() != 0)
+	{
+		return SetError(E_FAIL, CouldNotGenerateParam1, filenamestr.c_str());
+	}
+
+	return S_OK;
+}
+
 void C64::DiskReset()
 {
 	diskdrive.Reset(cpu.CurrentClock, true);
@@ -1002,13 +1317,13 @@ TCHAR drive[_MAX_DRIVE];
 TCHAR dir[_MAX_DIR];
 TCHAR fname[_MAX_FNAME];
 TCHAR ext[_MAX_EXT];
-errno_t errno;
+errno_t err;
 
 	ClearError();
 	autoLoadCommand.CleanUp();
 
-	errno = _tsplitpath_s(filename, drive, _countof(drive), dir, _countof(dir), fname, _countof(fname), ext, _countof(ext));
-	if (errno!=0)
+	err = _tsplitpath_s(filename, drive, _countof(drive), dir, _countof(dir), fname, _countof(fname), ext, _countof(ext));
+	if (err!=0)
 	{
 		return SetError(E_FAIL, TEXT("Could not parse the file name."));
 	}
@@ -1042,11 +1357,13 @@ errno_t errno;
 	{
 		memcpy_s(autoLoadCommand.c64filename, sizeof(autoLoadCommand.c64filename), c64FileName, C64DISKFILENAMELENGTH);
 	}
-	appStatus->m_bAutoload = FALSE;
 
+	appStatus->m_bAutoload = FALSE;
 	hr = _tcscpy_s(&autoLoadCommand.filename[0], _countof(autoLoadCommand.filename), filename);
 	if (FAILED(hr))
+	{
 		return SetError(hr, TEXT("%s too long."), filename);
+	}
 
 	if (lstrlen(ext) > 0)
 	{
@@ -1102,7 +1419,7 @@ errno_t errno;
 			}
 			
 			pIC64Event->SetBusy(true);
-			hr = InsertDiskImageFile(filename, bAlignD64Tracks);
+			hr = InsertDiskImageFile(filename, bAlignD64Tracks, true);
 			if (SUCCEEDED(hr))
 			{
 				if (bQuickLoad)
@@ -1147,7 +1464,7 @@ errno_t errno;
 			autoLoadCommand.pSidFile = new SIDLoader();
 			if (autoLoadCommand.pSidFile == 0)
 			{
-				return SetError(E_FAIL, TEXT("Out of memory."));
+				return SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
 			}
 			hr = autoLoadCommand.pSidFile->LoadSIDFile(filename);
 			if (FAILED(hr))
@@ -1315,31 +1632,43 @@ void C64::RemoveDisk()
 	diskdrive.RemoveDisk();
 }
 
-HRESULT C64::InsertDiskImageFile(TCHAR *filename, bool bAlignD64Tracks)
+HRESULT C64::InsertDiskImageFile(TCHAR *filename, bool alignD64Tracks, bool immediately)
 {
 TCHAR *p;
 
 	ClearError();
 	if (lstrlen(filename) < 4)
+	{
 		return E_FAIL;
+	}
 
-	p = &(filename[lstrlen(filename)-4]);
-	
+	p = &(filename[lstrlen(filename)-4]);	
 	if (lstrcmpi(p, TEXT(".d64"))==0)
-		return LoadD64FromFile(filename, bAlignD64Tracks);
+	{
+		return LoadD64FromFile(filename, alignD64Tracks, immediately);
+	}
 	else if (lstrcmpi(p, TEXT(".g64"))==0)
-		return LoadG64FromFile(filename);
+	{
+		return LoadG64FromFile(filename, immediately);
+	}
 	else if (lstrcmpi(p, TEXT(".fdi"))==0)
-		return LoadFDIFromFile(filename);
+	{
+		return LoadFDIFromFile(filename, immediately);
+	}
 	else if (lstrcmpi(p, TEXT(".p64"))==0)
-		return LoadP64FromFile(filename);
+	{
+		return LoadP64FromFile(filename, immediately);
+	}
 	else
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;
 }
 
 
-HRESULT C64::LoadD64FromFile(TCHAR *filename, bool bAlignD64Tracks)
+HRESULT C64::LoadD64FromFile(TCHAR *filename, bool alignD64Tracks, bool immediately)
 {
 GCRDISK dsk;
 HRESULT hr;
@@ -1352,7 +1681,7 @@ HRESULT hr;
 		return hr;
 	}
 
-	hr = dsk.LoadD64FromFile(filename, true, bAlignD64Tracks);
+	hr = dsk.LoadD64FromFile(filename, true, alignD64Tracks);
 	if (FAILED(hr))
 	{
 		SetError(dsk);
@@ -1361,11 +1690,11 @@ HRESULT hr;
 
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadMoveP64Image(&dsk);
-	diskdrive.SetDiskLoaded();
+	diskdrive.SetDiskLoaded(immediately);
 	return hr;
 }
 
-HRESULT C64::LoadG64FromFile(TCHAR *filename)
+HRESULT C64::LoadG64FromFile(TCHAR *filename, bool immediately)
 {
 GCRDISK dsk;
 HRESULT hr;
@@ -1385,11 +1714,11 @@ HRESULT hr;
 	}
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadMoveP64Image(&dsk);
-	diskdrive.SetDiskLoaded();
+	diskdrive.SetDiskLoaded(immediately);
 	return hr;
 }
 
-HRESULT C64::LoadP64FromFile(TCHAR *filename)
+HRESULT C64::LoadP64FromFile(TCHAR *filename, bool immediately)
 {
 GCRDISK dsk;
 HRESULT hr;
@@ -1409,12 +1738,12 @@ HRESULT hr;
 	}
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadMoveP64Image(&dsk);
-	diskdrive.SetDiskLoaded();
+	diskdrive.SetDiskLoaded(immediately);
 	diskdrive.D64_DiskProtect(!dsk.m_d64_protectOff);
 	return hr;
 }
 
-HRESULT C64::LoadFDIFromFile(TCHAR *filename)
+HRESULT C64::LoadFDIFromFile(TCHAR *filename, bool immediately)
 {
 GCRDISK dsk;
 HRESULT hr;
@@ -1438,7 +1767,7 @@ HRESULT hr;
 	}
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadMoveP64Image(&dsk);
-	diskdrive.SetDiskLoaded();
+	diskdrive.SetDiskLoaded(immediately);
 	diskdrive.D64_DiskProtect(!dsk.m_d64_protectOff);
 	return hr;
 }
@@ -1458,7 +1787,7 @@ HRESULT hr;
 	dsk.InsertNewDiskImage(diskname, id1, id2, bAlignD64Tracks, numberOfTracks);
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadMoveP64Image(&dsk);
-	diskdrive.SetDiskLoaded();
+	diskdrive.SetDiskLoaded(false);
 	return S_OK;
 }
 

@@ -1698,7 +1698,7 @@ HRESULT hr;
 	hr = GetDXVersion(&dxVersion, strDirectXVersion, 10);
 	if (dxVersion < 0x0900)
 	{
-		MessageBox(0L, TEXT("You need to install the full version of DirectX 9 or higher. Press OK to quit."), APPNAME, MB_ICONSTOP);
+		G::DebugMessageBox(0L, TEXT("You need to install the full version of DirectX 9 or higher. Press OK to quit."), APPNAME, MB_ICONSTOP);
 	}
 	return dxVersion;
 }

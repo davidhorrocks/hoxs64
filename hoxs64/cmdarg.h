@@ -41,7 +41,7 @@ private:
 	void CleanUp();
 
 	HRESULT Parse(const TCHAR *sCmdLine, CCommandArgArray *args);
-	HRESULT ReadChar(TCHAR& ch);
+	HRESULT ReadChar(TCHAR& ch, TCHAR& nextch);
 	void UndoChar();
 	HRESULT ReadWord(int &count, bool& bGotWord);
 	bool IsEOF();

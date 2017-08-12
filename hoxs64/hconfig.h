@@ -39,6 +39,9 @@ public:
 	HRESULT LoadCurrentSetting();
 	HRESULT SaveCurrentSetting();
 	void LoadDefaultSetting();
+	void SetCiaNewOldMode(bool isNew);
+	void SetRunFast();
+	void SetRunNormal();
 
 	unsigned char m_KeyMap[256];
 	struct joyconfig m_joy1config;

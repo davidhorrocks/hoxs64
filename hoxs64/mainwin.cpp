@@ -464,7 +464,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->RestoreDefaultSettings();
 			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
 				this->m_pWinEmuWin->Present(0);
-			MessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
+			G::DebugMessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			return 0;
 		case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
@@ -472,13 +472,13 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->RestoreUserSettings();
 			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
 				this->m_pWinEmuWin->Present(0);
-			MessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
+			G::DebugMessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			return 0;
 		case IDM_SETTING_SAVE:
 			appStatus->SoundHalt();
 			appStatus->SaveCurrentSetting();
-			MessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION); 
+			G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			return 0;
 		case IDM_SETTING_EMULATION2:
@@ -806,10 +806,15 @@ shared_ptr<CDiagAbout> pDiagAbout;
 
 }
 
+void CAppWindow::CloseWindow()
+{	
+	PostMessage(this->m_hWnd, WM_CLOSE, 0, 0);
+}
+
 void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	appStatus->SoundHalt();
-	//MessageBox(hWnd, TEXT("A C64 CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
+	//G::DebugMessageBox(hWnd, TEXT("A C64 CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
 	HWND hWndMon = m_pAppCommand->ShowDevelopment();
 	if (hWndMon)
 	{
@@ -820,7 +825,7 @@ void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	appStatus->SoundHalt();
-	//MessageBox(hWnd, TEXT("A disk CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
+	//G::DebugMessageBox(hWnd, TEXT("A disk CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
 	HWND hWndMon = m_pAppCommand->ShowDevelopment();
 	if (hWndMon)
 	{
@@ -831,7 +836,7 @@ void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 void CAppWindow::OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	appStatus->SoundHalt();
-	//MessageBox(hWnd, TEXT("A VIC raster compare breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
+	//G::DebugMessageBox(hWnd, TEXT("A VIC raster compare breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
 	HWND hWndMon = m_pAppCommand->ShowDevelopment();
 	if (hWndMon)
 	{
@@ -1204,8 +1209,8 @@ bool ok = false;
 
 	appStatus->SoundHalt();
 	c64->SynchroniseDevicesWithVIC();
-	appStatus->m_bRunning = FALSE;
-	appStatus->m_bDebug = TRUE;
+	appStatus->m_bRunning = false;
+	appStatus->m_bDebug = true;
 
 	RECT rcDesk;
 	G::GetWorkArea(rcDesk);
@@ -1274,7 +1279,7 @@ bool ok = false;
 	}
 	else
 	{
-		MessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
 		m_pAppCommand->Resume();
 	}
 	return hWnd;

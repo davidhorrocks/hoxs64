@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <iostream>
 #include <malloc.h>
 #include <memory.h>
 #include <vector>
@@ -138,18 +139,17 @@ short captionUpdateCounter = 0;
 BOOL bRet;
 
 	m_hInstance = hInstance;
-
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
 	{
 		G::InitFail(0,0,TEXT("The system does not support a high performance timer."));
-		return false;
+		return ShellExitInitFailed;
 	}
 	else
 	{
 		if (m_systemfrequency.QuadPart < 60)
 		{
 			G::InitFail(0, 0, TEXT("The system does not support a high performance timer."));
-			return false;
+			return ShellExitInitFailed;
 		}
 	}
 	frequency.QuadPart = m_framefrequency.QuadPart;
@@ -159,13 +159,12 @@ BOOL bRet;
 
 	if (FAILED(RegisterWindowClasses(hInstance)))
 	{
-		return (0);
+		return ShellExitInitFailed;
 	}
 
 	if (FAILED(InitInstance(nCmdShow, lpCmdLine)))
 	{
-		G::InitFail(0, 0, TEXT("InitInstance() failed."));
-		return (0);
+		return ShellExitInitFailed;
 	}
 	
 
@@ -192,26 +191,34 @@ msgloop:
 		{
 			bRet = GetMessage(&msg, NULL, 0, 0 );
 			if (bRet==-1 || bRet==0)
+			{
 				goto finish;
+			}
 			if (!m_pWinAppWindow->m_pMDIDebugger.expired())
 			{
 				HWND hWndDebug = 0;
 				HWND hWndDebugCpuC64 = 0;
 				HWND hWndDebugCpuDisk = 0;
 				HWND hWndDlgVicRaster = 0;
-				shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();
-				
+				shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();				
 				hWndDebug =  pWinDebugger->GetHwnd();
 				shared_ptr<CDisassemblyFrame> pWinDebugCpuC64 = pWinDebugger->m_pWinDebugCpuC64.lock();
 				if (pWinDebugCpuC64)
+				{
 					hWndDebugCpuC64 = pWinDebugCpuC64->GetHwnd();
+				}
+
 				shared_ptr<CDisassemblyFrame> pWinDebugCpuDisk = pWinDebugger->m_pWinDebugCpuDisk.lock();
 				if (pWinDebugCpuDisk)
+				{
 					hWndDebugCpuDisk = pWinDebugCpuDisk->GetHwnd();
+				}
 
 				Sp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster = pWinDebugger->m_pdlgModelessBreakpointVicRaster.lock();
 				if (m_pdlgModelessBreakpointVicRaster!=0)
+				{
 					hWndDlgVicRaster = m_pdlgModelessBreakpointVicRaster->GetHwnd();
+				}
 
 				HWND hWndDefaultAccelerator = GetActiveWindow();
 
@@ -252,7 +259,6 @@ msgloop:
 			if (!bExecuteFrameDone)
 			{
 				SoundResume();
-
 				if (captionUpdateCounter<=0)
 				{
 					captionUpdateCounter = FRAMEUPDATEFREQ;
@@ -270,6 +276,7 @@ msgloop:
 					last_counter.QuadPart = new_counter.QuadPart - frequency.QuadPart;
 					tSlice.QuadPart = frequency.QuadPart;
 				}
+
 				if (m_bLimitSpeed)
 				{
 					if (m_bAudioClockSync && m_bSID_Emulation_Enable)
@@ -286,6 +293,7 @@ msgloop:
 						}
 						m_audioSpeedStatus = HCFG::AUDIO_OK;
 					}
+
 					if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 					{
 						while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
@@ -295,13 +303,17 @@ msgloop:
 								if (frequency.QuadPart > tSlice.QuadPart)
 								{
 									if (!G::WaitMessageTimeout(1))
+									{
 										goto msgloop;
+									}
 								}
 							}
 							else
 							{
 								if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+								{
 									goto msgloop;
+								}
 							}
 							QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
 							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
@@ -315,7 +327,7 @@ msgloop:
 							tSlice.QuadPart = 4*frequency.QuadPart;
 						}
 					}
-					last_counter.QuadPart = new_counter.QuadPart-(tSlice.QuadPart-frequency.QuadPart);
+					last_counter.QuadPart = new_counter.QuadPart - (tSlice.QuadPart-frequency.QuadPart);
 				}
 				else
 				{
@@ -345,15 +357,27 @@ msgloop:
 			
 				//Execute one frame.
 				bExecuteFrameDone = true;
+				int frameResult;
 				if (!m_bDebug)
-					c64.ExecuteFrame();
+				{
+					frameResult = c64.ExecuteFrame();
+				}
 				else
-					c64.ExecuteDebugFrame();
+				{
+					frameResult = c64.ExecuteDebugFrame();
+				}
+
+				if (frameResult)
+				{
+					this->c64.WriteOnceExitCode(ShellExitCycleLimit);
+					this->m_bRunning = false;
+					this->m_bClosing = true;
+					this->m_pWinAppWindow->CloseWindow();
+				}
 			}
 
 			captionUpdateCounter--;
 			bool bDrawThisFrame = (m_fskip < 0) || m_bDebug;
-
 			if (bDrawThisFrame)
 			{
 				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
@@ -361,12 +385,17 @@ msgloop:
 				{
 					dx.Present(0);
 				}
-			}				
+			}
+
 			//Handle frame skip
 			if (m_bSkipFrames && bDrawThisFrame)
+			{
 				m_fskip = 1;
+			}
 			else if (m_fskip>=0)
+			{
 				--m_fskip;
+			}
 		}
 		else
 		{
@@ -391,9 +420,13 @@ msgloop:
 							else
 							{
 								if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+								{
 									m_bReady = true;
+								}
 								else
+								{
 									G::WaitMessageTimeout(1000);
+								}
 							}					
 						}
 						else if (hRet == D3DERR_DEVICELOST)
@@ -416,8 +449,11 @@ msgloop:
 					{
 						UpdateEmulationDisplay();
 					}
+
 					if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+					{
 						WaitMessage();
+					}
 				}
 			}
 		}
@@ -429,9 +465,23 @@ finish:
 		UnhookWindowsHookEx(m_hKeyboardHook );
 		m_hKeyboardHook = NULL;
 	}
-	return (int)(msg.wParam);
 
-   lpCmdLine; // This will prevent 'unused formal parameter' warnings
+	HRESULT pngresult = c64.SavePng(NULL);
+	if (c64.Get_EnableDebugCart())
+	{		
+		return c64.Get_ExitCode();
+	}
+	else
+	{
+		if (FAILED(pngresult))
+		{
+			return ShellExitPngFailed;
+		}
+		else
+		{
+			return 0;
+		}
+	}
 }
 
 HRESULT CApp::RegisterKeyPressWindow(HINSTANCE hInstance)
@@ -458,82 +508,82 @@ HRESULT hr;
 	hr = CAppWindow::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register main window class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register main window class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 
 	hr = CEmuWindow::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register emulation window class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register emulation window class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 
 	hr = RegisterKeyPressWindow(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register GetKeyPressClass class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register GetKeyPressClass class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 
 	hr = CMDIDebuggerFrame::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register CMDIDebuggerFrame class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CMDIDebuggerFrame class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = WpcCli::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register WpcCli class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register WpcCli class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CMDIChildCli::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register CMDIChildCli class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CMDIChildCli class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CToolItemAddress::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register RegisterClass class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register RegisterClass class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyFrame::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register CDisassemblyFrame class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyFrame class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyChild::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register CDisassemblyChild class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyChild class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyEditChild::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register CDisassemblyEditChild class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyEditChild class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyReg::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register CDisassemblyReg class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyReg class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = WPanel::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register WPanel class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register WPanel class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = WpcBreakpoint::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Failed to register WpcBreakpoint class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register WpcBreakpoint class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 
@@ -590,16 +640,30 @@ RECT rcMain;
 	lr = GetModuleFileName(NULL, m_szAppFullPath, _countof(m_szAppFullPath));
 	if (lr==0) 
 	{
-		G::ShowLastError(NULL);
 		return E_FAIL;
 	}
-
+	
 	//Process command line arguments.
 	CParseCommandArg cmdArgs(lpCmdLine);
 	CommandArg *caAutoLoad = cmdArgs.FindOption(TEXT("-AutoLoad"));
 	CommandArg *caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
 	CommandArg *caAlignD64Tracks= cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
 	CommandArg *caStartFullscreen = cmdArgs.FindOption(TEXT("-Fullscreen"));
+	CommandArg *caDebugCart = cmdArgs.FindOption(TEXT("-debugcart"));
+	CommandArg *caLimitCycles = cmdArgs.FindOption(TEXT("-limitcycles"));
+	CommandArg *caExitScreenShot = cmdArgs.FindOption(TEXT("-exitscreenshot"));
+	CommandArg *caCiaNew = cmdArgs.FindOption(TEXT("-cia-new"));
+	CommandArg *caCiaOld = cmdArgs.FindOption(TEXT("-cia-old"));
+	CommandArg *caHltReset = cmdArgs.FindOption(TEXT("-hlt-reset"));
+	CommandArg *caMountDisk = cmdArgs.FindOption(TEXT("-mountdisk"));
+	CommandArg *caAlignTracks = cmdArgs.FindOption(TEXT("-aligntracks"));
+	CommandArg *caNoMessageBox = cmdArgs.FindOption(TEXT("-nomessagebox"));
+	CommandArg *caRunFast = cmdArgs.FindOption(TEXT("-runfast"));
+	if (caNoMessageBox)
+	{
+		G::IsHideMessageBox = true;
+	}
+
 	if (caStartFullscreen)
 	{
 		this->m_bStartFullScreen = true;
@@ -607,20 +671,28 @@ RECT rcMain;
 
 	//Save application directory path name
 	if (_tcscpy_s(m_szAppDirectory, _countof(m_szAppDirectory), m_szAppFullPath) != 0)
+	{
 		m_szAppDirectory[0] = 0;
+	}
 
 	if (_tsplitpath_s(m_szAppDirectory, drive, _countof(drive), dir, _countof(dir), fname, _countof(fname), ext, _countof(ext))==0)
 	{
 		m_szAppDirectory[0] = 0;
 		if (_tmakepath_s(m_szAppDirectory, _countof(m_szAppDirectory), drive, dir, 0, 0)!=0)
+		{
 			m_szAppDirectory[0] = 0;
+		}
 	}
 	else
+	{
 		m_szAppDirectory[0] = 0;
+	}
 
 	m_szAppConfigPath[0] = 0;
 	if (_tmakepath_s(m_szAppConfigPath, _countof(m_szAppConfigPath), 0, m_szAppDirectory, TEXT("hoxs64"), TEXT("ini"))!=0)
+	{
 		m_szAppConfigPath[0]=0;
+	}
 
 	//Make a window title based on the version information.
 	m_szTitle[0]='\0';
@@ -630,7 +702,6 @@ RECT rcMain;
 
 	if (SUCCEEDED(G::GetVersion_Res(m_szAppFullPath, &m_Vinfo)))
 	{
-
 #if defined(SERVICERELEASE) && (SERVICERELEASE > 0)
 		_sntprintf_s(t, _countof(t), _TRUNCATE, TEXT("    V %d.%d.%d.%d SR %d")
 			, (int)(m_Vinfo.dwProductVersionMS>>16 & 0xFF)
@@ -646,7 +717,6 @@ RECT rcMain;
 			, (int)(m_Vinfo.dwProductVersionLS & 0xFF));
 #endif
 		_tcsncat_s(m_szTitle, _countof(m_szTitle), t, _TRUNCATE);
-
 	}
 
 	//Set up some late bound OS DLL calls
@@ -664,7 +734,7 @@ RECT rcMain;
 	br = ::InitCommonControlsEx(&icex);
 	if (br == FALSE)
 	{
-		MessageBox(0L, TEXT("InitCommonControlsEx() failed."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("InitCommonControlsEx() failed."), m_szAppName, MB_ICONWARNING);
 		return E_FAIL;
 	}
 
@@ -674,20 +744,34 @@ RECT rcMain;
 	{
 		mainCfg.LoadDefaultSetting();
 	}
+
+	if (caCiaNew != NULL)
+	{
+		mainCfg.SetCiaNewOldMode(true);
+	}
+	else if (caCiaOld != NULL)
+	{
+		mainCfg.SetCiaNewOldMode(false);
+	}
+
+	if (caRunFast != NULL)
+	{
+		mainCfg.SetRunFast();
+	}
+
 	//Apply the users settings.
 	ApplyConfig(mainCfg);
-
 	m_hAccelTable = LoadAccelerators (m_hInstance, m_szAppName);
-
 	try
 	{
 		m_pWinAppWindow = shared_ptr<CAppWindow>(new CAppWindow(&dx, this, this, &c64));
 	}
 	catch (...)
 	{
-		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
 		return E_FAIL;
 	}
+
 	m_pWinAppWindow->m_pWinEmuWin->SetNotify(this);
 	m_pWinAppWindow->GetMinimumWindowedSize(&minWidth, &minHeight);
 	POINT winpos = {0,0};
@@ -700,6 +784,7 @@ RECT rcMain;
 	m_pWinAppWindow->CalcEmuWindowSize(rcMain, &emuWinFixedWidth, &emuWinFixedHeight);
 	mainWinWidth = mainWinFixedWidth;
 	mainWinHeight = mainWinFixedHeight;
+
 	//Look for saved x,y position and custom window size.
 	hr = mainCfg.LoadWindowSetting(winpos, bWindowedCustomSize, mainWinWidth, mainWinHeight);
 	if (FAILED(hr))
@@ -714,9 +799,10 @@ RECT rcMain;
 		if (bWindowedCustomSize)
 		{
 			mainWinWidth = max(minWidth, mainWinWidth);
-			mainWinHeight = max(minHeight, mainWinHeight);		
+			mainWinHeight = max(minHeight, mainWinHeight);
 		}
 	}
+
 	if (!mainCfg.m_bUseBlitStretch && bWindowedCustomSize)
 	{
 		//Attempt to use CPU blit if a custom window size matches the set size for the current state of "Double Sized Window".
@@ -730,13 +816,13 @@ RECT rcMain;
 
 	//Apply custom window size flag.
 	m_bWindowedCustomSize = bWindowedCustomSize;
-
 	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, mainWinWidth, mainWinHeight, NULL);
 	if (!hWndMain)
 	{
-		MessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
 		return E_FAIL;
 	}
+
 	m_bWindowed = true;
 	G::EnsureWindowPosition(hWndMain);
 
@@ -744,7 +830,7 @@ RECT rcMain;
 	hr = dx.Init(thisAppStatus, VIC6569::vic_color_array);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Initialisation failed for direct 3D."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("Initialisation failed for direct 3D."), m_szAppName, MB_ICONWARNING);
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
@@ -752,7 +838,7 @@ RECT rcMain;
 	hr = dx.OpenDirectInput(m_hInstance, hWndMain);
 	if (FAILED(hr))
 	{
-		MessageBox(0L, TEXT("Initialisation failed for direct input."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Initialisation failed for direct input."), m_szAppName, MB_ICONEXCLAMATION);
 		DestroyWindow(hWndMain);
 		return hr;
 	}
@@ -761,7 +847,7 @@ RECT rcMain;
 	if (FAILED(hr))
 	{
 		m_bSoundOK = false;
-		MessageBox(hWndMain, TEXT("Direct Sound has failed to initialise with the primary sound driver. Sound will be unavailable."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(hWndMain, TEXT("Direct Sound has failed to initialise with the primary sound driver. Sound will be unavailable."), m_szAppName, MB_ICONWARNING);
 	}
 	else
 	{
@@ -787,32 +873,92 @@ RECT rcMain;
 	//Initialise joysticks
 	dx.InitJoys(hWndMain, m_joy1config, m_joy2config);
 
+	c64.Set_EnableDebugCart(caDebugCart != NULL);
+	if (caLimitCycles != NULL)
+	{
+		if (caLimitCycles->ParamCount >= 1)
+		{
+			__int64 limitCycles = _tstoi64(caLimitCycles->pParam[0]);
+			if (errno != ERANGE && errno != EINVAL)
+			{
+				c64.Set_LimitCycles((ICLK)(ICLKS)limitCycles);
+			}
+		}
+	}
+
+	if (caExitScreenShot != NULL)
+	{
+		if (caExitScreenShot->ParamCount >= 1)
+		{			
+			c64.Set_ExitScreenShot(caExitScreenShot->pParam[0]);
+		}
+		else
+		{
+			c64.Set_ExitScreenShot(TEXT(""));
+		}
+	}
+
+	if (caHltReset != NULL)
+	{
+		c64.cpu.bHardResetOnHltInstruction = true;
+		c64.diskdrive.cpu.bHardResetOnHltInstruction = true;
+	}
+
+	if (caMountDisk != NULL)
+	{
+		if (caMountDisk->ParamCount >= 1)
+		{			
+			c64.InsertDiskImageFile(caMountDisk->pParam[0], caAlignTracks != NULL, true);
+		}
+	}	
+
 	//Reset the C64
 	c64.Reset(0, true);
 
 	int directoryIndex = -1; //default to a LOAD"*",8,1 for disk files
-	TCHAR *fileName = NULL;
-	
+	TCHAR *fileName = NULL;	
 	if (caAutoLoad)
 	{
 		if (caAutoLoad->ParamCount >= 1)
 		{
+			bit8* pC64filename = NULL;
+			bit8 c64filename[C64DISKFILENAMELENGTH];
 			if (caAutoLoad->ParamCount >= 2)
 			{
-				directoryIndex = _tstoi(&caAutoLoad->pParam[1][0]);
-				if (directoryIndex < 0)
-					directoryIndex = -1;
-				else if	(directoryIndex > C64Directory::D64MAXDIRECTORYITEMCOUNT)
-					directoryIndex = C64Directory::D64MAXDIRECTORYITEMCOUNT;
+				TCHAR lead = caAutoLoad->pParam[1][0];
+				if (lead == TEXT(':') && lstrlen(caAutoLoad->pParam[1]) > 1)
+				{
+					if (SUCCEEDED(C64::CopyC64FilenameFromString(&caAutoLoad->pParam[1][1], c64filename, C64DISKFILENAMELENGTH)))
+					{
+						pC64filename = c64filename;
+					}
+				}
+				else
+				{
+					TCHAR *p = &caAutoLoad->pParam[1][0];
+					if (*p = TEXT('#'))
+					{
+						p++;
+					}
+					directoryIndex = _tstoi(p);
+					if (directoryIndex < 0 || errno == EINVAL  || errno == ERANGE)
+					{
+						directoryIndex = -1;
+					}
+					else if	(directoryIndex > C64Directory::D64MAXDIRECTORYITEMCOUNT)
+					{
+						directoryIndex = C64Directory::D64MAXDIRECTORYITEMCOUNT;
+					}
+				}
 			}
-			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, true, NULL, caQuickLoad != NULL, caAlignD64Tracks != NULL);
+			
+			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, true, pC64filename, caQuickLoad != NULL, caAlignD64Tracks != NULL);
 		}
 	}
 
     SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
     SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &m_StartupToggleKeys, 0);
     SystemParametersInfo(SPI_GETFILTERKEYS, sizeof(FILTERKEYS), &m_StartupFilterKeys, 0);
-
 	if (dx.pSecondarySoundBuffer)
 	{
 		dx.RestoreSoundBuffers();
@@ -1084,7 +1230,7 @@ CPRGBrowse prgBrowse;
 	if (b)
 	{
 		SetBusy(true);
-		hr = c64.InsertDiskImageFile(initfilename, prgBrowse.SelectedAlignD64Tracks);
+		hr = c64.InsertDiskImageFile(initfilename, prgBrowse.SelectedAlignD64Tracks, false);
 		SetBusy(false);
 		if (FAILED(hr))
 		{
@@ -1109,7 +1255,7 @@ CDiagFileSaveD64 childDialog;
 	TCHAR title[] = TEXT("Save D64 Image");
 	if (c64.diskdrive.m_diskLoaded==0)
 	{
-		MessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
+		G::DebugMessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
 		return;
 	}
 
@@ -1143,14 +1289,14 @@ CDiagFileSaveD64 childDialog;
 		{
 			if (hr==0)
 			{
-				MessageBox(hWnd,
+				G::DebugMessageBox(hWnd,
 				TEXT("Disk saved."), 
 				title, 
 				MB_OK | MB_ICONINFORMATION);
 			}
 			else
 			{
-				MessageBox(hWnd,
+				G::DebugMessageBox(hWnd,
 				TEXT("A save was made but this disk cannot be properly saved to a D64. Please re-save as a P64 or FDI file to ensure a safe save."), 
 				title, 
 				MB_OK | MB_ICONWARNING);
@@ -1174,7 +1320,7 @@ HRESULT hr;
 	TCHAR title[] = TEXT("Save FDI Image");
 	if (c64.diskdrive.m_diskLoaded==0)
 	{
-		MessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
+		G::DebugMessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
 		return;
 	}
 
@@ -1202,7 +1348,7 @@ HRESULT hr;
 		SetBusy(false);
 		if (SUCCEEDED(hr))
 		{
-			MessageBox(hWnd,
+			G::DebugMessageBox(hWnd,
 			TEXT("Disk saved."), 
 			title, 
 			MB_OK | MB_ICONINFORMATION);
@@ -1225,7 +1371,7 @@ HRESULT hr;
 	TCHAR title[] = TEXT("Save P64 Image");
 	if (c64.diskdrive.m_diskLoaded==0)
 	{
-		MessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
+		G::DebugMessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
 		return;
 	}
 
@@ -1253,7 +1399,7 @@ HRESULT hr;
 		SetBusy(false);
 		if (SUCCEEDED(hr))
 		{
-			MessageBox(hWnd,
+			G::DebugMessageBox(hWnd,
 			TEXT("Disk saved."), 
 			title, 
 			MB_OK | MB_ICONINFORMATION);
@@ -1543,7 +1689,15 @@ void CApp::DiskWriteLed(bool bOn)
 void CApp::ShowErrorBox(LPCTSTR title, LPCTSTR message)
 {
 	HWND hWnd = m_pWinAppWindow->GetHwnd();
-	MessageBox(hWnd, message, title, MB_OK | MB_ICONEXCLAMATION);
+	G::DebugMessageBox(hWnd, message, title, MB_OK | MB_ICONEXCLAMATION);
+}
+
+void CApp::WriteExitCode(bit8 exitCode)
+{
+	this->c64.Set_ExitCode(exitCode);
+	this->m_bClosing = true;
+	this->m_bRunning = false;
+	this->m_pWinAppWindow->CloseWindow();
 }
 
 void CApp::Resume()
@@ -1643,7 +1797,7 @@ void CApp::UpdateEmulationDisplay()
 
 bool CApp::IsRunning()
 {
-	return m_bRunning!=false;
+	return m_bRunning;
 }
 
 void CApp::SoundOff()

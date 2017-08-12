@@ -550,6 +550,7 @@ public:
 	void SetBALow(ICLK sysclock);
 	void SetBAHigh(ICLK sysclock);
 	virtual void PreventClockOverflow();
+	virtual void OnHltInstruction();
 
 	bit16 decode_array[256];
 	bit16u mPC;
@@ -585,6 +586,9 @@ public:
 	bool GetBreakOnInterruptTaken();
 
 	bit8 m_bDebug;
+	bool bSoftResetOnHltInstruction;
+	bool bHardResetOnHltInstruction;
+
 	static const InstructionInfo AssemblyData[256];
 
 protected:

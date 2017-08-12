@@ -6,6 +6,9 @@ class CApp : CAppStatus, IAppCommand, IC64Event, CEmuWindow::INotify, public Err
 public:
 	CApp();
 	~CApp();
+	static const int ShellExitCycleLimit = 100;
+	static const int ShellExitInitFailed = 99;
+	static const int ShellExitPngFailed = 98;
 	int Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow);
 	HRESULT RegisterWindowClasses(HINSTANCE hInstance);
 	HRESULT InitInstance(int nCmdShow, LPTSTR lpCmdLine);
@@ -85,6 +88,7 @@ public:
 	virtual void DiskDriveLed(bool bOn);
 	virtual void DiskWriteLed(bool bOn);
 	virtual void ShowErrorBox(LPCTSTR title, LPCTSTR message);
+	virtual void WriteExitCode(bit8 exitCode);
 
 	//CEmuWindow::INotify
 	virtual void CEmuWindow::INotify::VicCursorMove(int cycle, int line);

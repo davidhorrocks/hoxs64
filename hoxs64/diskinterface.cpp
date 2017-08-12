@@ -222,7 +222,7 @@ int i;
 	}
 }
 
-HRESULT DiskInterface::Init(CAppStatus *appStatus, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager,TCHAR *szAppDirectory)
+HRESULT DiskInterface::Init(CAppStatus *appStatus, IC64 *pIC64, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager,TCHAR *szAppDirectory)
 {
 HANDLE hfile=0;
 BOOL r;
@@ -232,6 +232,9 @@ HRESULT hr;
 
 	ClearError();
 	Cleanup();
+	this->appStatus = appStatus;
+	this->pIC64Event = pIC64Event;
+	this->pIC64 = pIC64;
 	P64ImageCreate(&this->m_P64Image);
 	hr = InitDiskThread();
 	if (FAILED(hr))
@@ -241,12 +244,13 @@ HRESULT hr;
 	}
 
 	if (szAppDirectory==NULL)
+	{
 		m_szAppDirectory[0] = 0;
+	}
 	else
+	{
 		_tcscpy_s(m_szAppDirectory, _countof(m_szAppDirectory), szAppDirectory);
-
-	this->appStatus = appStatus;
-	this->pIC64Event = pIC64Event;
+	}
 
 	m_pD1541_ram=(bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,0x0800);
 	if (m_pD1541_ram==NULL)
@@ -254,6 +258,7 @@ HRESULT hr;
 		Cleanup();
 		return SetError(E_OUTOFMEMORY, TEXT("Memory allocation failed"));
 	}
+
 	m_pD1541_rom=(bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,0x4000);
 	if (m_pD1541_ram==NULL)
 	{
@@ -264,9 +269,15 @@ HRESULT hr;
 	hfile=INVALID_HANDLE_VALUE;
 	szRomPath[0]=0;
 	if (_tmakepath_s(szRomPath, _countof(szRomPath), 0, m_szAppDirectory, TEXT("C1541.rom"), 0) == 0)
+	{
 		hfile=CreateFile(szRomPath,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	}
+
 	if (hfile==INVALID_HANDLE_VALUE)
+	{
 		hfile=CreateFile(TEXT("C1541.rom"),GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	}
+
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		Cleanup();
@@ -288,7 +299,7 @@ HRESULT hr;
 	m_pIndexedD1541_rom = m_pD1541_rom-0xC000;	
 	via1.Init(1, appStatus, &cpu, this);
 	via2.Init(2, appStatus, &cpu, this);
-	cpu.Init(pIC64Event, CPUID_DISK, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom, pIBreakpointManager);
+	cpu.Init(pIC64, pIC64Event, CPUID_DISK, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom, pIBreakpointManager);
 	m_d64_protectOff=1;//1=no protect;0=protected;
 	return S_OK;
 }
@@ -1344,16 +1355,23 @@ int halfTrack;
 	}
 }
 
-void DiskInterface::SetDiskLoaded()
+void DiskInterface::SetDiskLoaded(bool immediately)
 {
 	WaitThreadReady();
-	if (m_diskLoaded)
+	if (immediately)
 	{
-		m_d64_diskchange_counter=DISKCHANGE3;
+		m_d64_diskchange_counter = 0;
 	}
 	else
 	{
-		m_d64_diskchange_counter=DISKCHANGE1;
+		if (m_diskLoaded)
+		{
+			m_d64_diskchange_counter=DISKCHANGE3;
+		}
+		else
+		{
+			m_d64_diskchange_counter=DISKCHANGE1;
+		}
 	}
 	m_diskLoaded = 1;
 	m_nextP64PulsePosition = -1;

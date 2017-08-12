@@ -32,6 +32,7 @@ public:
 	void SetWindowedStyle(bool bWindowed);
 	void UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed);
 	HWND ShowDevelopment();
+	void CloseWindow();
 
 	shared_ptr<CEmuWindow> m_pWinEmuWin;
 	weak_ptr<CMDIDebuggerFrame> m_pMDIDebugger;

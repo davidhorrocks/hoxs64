@@ -116,8 +116,9 @@ private:
 	G();
 	static bool s_bInitLateBindLibraryCallsDone;
 	static bool m_bHasCachedCommonControlsVersion;
-	static DWORD m_dwCachedCommonControlsVersion;
+	static DWORD m_dwCachedCommonControlsVersion;	
 public:
+	static bool IsHideMessageBox;
 	static std::random_device rd;
 	static std::mt19937 randengine_main;
 	static void InitLateBindLibraryCalls();
@@ -161,7 +162,7 @@ public:
 	static void AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int maxHeight);
 	static HRESULT GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
 	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
-
+	static BOOL DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType);
 	static void InitOfn(OPENFILENAME_500EX& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile);
 	static void RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h);
 	static BOOL DrawDefText(HDC hdc, int x, int y, LPCTSTR text, int len, int* nextx, int* nexty);

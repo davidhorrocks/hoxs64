@@ -10,18 +10,13 @@ typedef signed long bit32s;
 typedef unsigned __int64 bit64;
 typedef signed __int64 bit64s;
 
-/*
-#if defined(_WIN64)
+#if defined(_USE_ICLK64)
 	typedef unsigned __int64 ICLK;
 	typedef signed __int64 ICLKS;
 #else
 	typedef unsigned __int32 ICLK;
 	typedef signed __int32 ICLKS;
 #endif
-*/
-
-typedef unsigned __int32 ICLK;
-typedef signed __int32 ICLKS;
 
 # pragma pack (1)
 typedef union {	
