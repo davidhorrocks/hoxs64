@@ -655,16 +655,23 @@ RECT rcMain;
 	CommandArg *caCiaNew = cmdArgs.FindOption(TEXT("-cia-new"));
 	CommandArg *caCiaOld = cmdArgs.FindOption(TEXT("-cia-old"));
 	CommandArg *caHltReset = cmdArgs.FindOption(TEXT("-hlt-reset"));
+	CommandArg *caHltExit = cmdArgs.FindOption(TEXT("-hlt-exit"));
 	CommandArg *caMountDisk = cmdArgs.FindOption(TEXT("-mountdisk"));
-	CommandArg *caAlignTracks = cmdArgs.FindOption(TEXT("-aligntracks"));
 	CommandArg *caNoMessageBox = cmdArgs.FindOption(TEXT("-nomessagebox"));
 	CommandArg *caRunFast = cmdArgs.FindOption(TEXT("-runfast"));
-	if (caNoMessageBox)
+	CommandArg *caWindowHide = cmdArgs.FindOption(TEXT("-window-hide"));
+	CommandArg *caDefaultSettings = cmdArgs.FindOption(TEXT("-defaultsettings"));
+
+	if (caNoMessageBox || caWindowHide)
 	{
+		if (caWindowHide)
+		{
+			nCmdShow = SW_HIDE;
+		}
+
 		G::IsHideMessageBox = true;
 	}
-
-	if (caStartFullscreen)
+	else if (caStartFullscreen)
 	{
 		this->m_bStartFullScreen = true;
 	}
@@ -738,11 +745,20 @@ RECT rcMain;
 		return E_FAIL;
 	}
 
+	bool alignD64 = false;
+
 	//Load the users settings.
-	hr = mainCfg.LoadCurrentSetting();
-	if (FAILED(hr))
+	if (caDefaultSettings)
 	{
 		mainCfg.LoadDefaultSetting();
+	}
+	else
+	{
+		hr = mainCfg.LoadCurrentSetting();
+		if (FAILED(hr))
+		{
+			mainCfg.LoadDefaultSetting();
+		}
 	}
 
 	if (caCiaNew != NULL)
@@ -752,6 +768,11 @@ RECT rcMain;
 	else if (caCiaOld != NULL)
 	{
 		mainCfg.SetCiaNewOldMode(false);
+	}
+
+	if (caAlignD64Tracks)
+	{
+		alignD64 = true;
 	}
 
 	if (caRunFast != NULL)
@@ -878,6 +899,7 @@ RECT rcMain;
 	{
 		if (caLimitCycles->ParamCount >= 1)
 		{
+			errno = 0;
 			__int64 limitCycles = _tstoi64(caLimitCycles->pParam[0]);
 			if (errno != ERANGE && errno != EINVAL)
 			{
@@ -901,16 +923,20 @@ RECT rcMain;
 	if (caHltReset != NULL)
 	{
 		c64.cpu.bHardResetOnHltInstruction = true;
-		c64.diskdrive.cpu.bHardResetOnHltInstruction = true;
 	}
+
+	if (caHltExit != NULL)
+	{
+		c64.cpu.bExitOnHltInstruction = true;
+	}	
 
 	if (caMountDisk != NULL)
 	{
 		if (caMountDisk->ParamCount >= 1)
 		{			
-			c64.InsertDiskImageFile(caMountDisk->pParam[0], caAlignTracks != NULL, true);
+			c64.InsertDiskImageFile(caMountDisk->pParam[0], alignD64, true);
 		}
-	}	
+	}
 
 	//Reset the C64
 	c64.Reset(0, true);
@@ -940,6 +966,8 @@ RECT rcMain;
 					{
 						p++;
 					}
+
+					errno = 0;
 					directoryIndex = _tstoi(p);
 					if (directoryIndex < 0 || errno == EINVAL  || errno == ERANGE)
 					{
@@ -952,7 +980,7 @@ RECT rcMain;
 				}
 			}
 			
-			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, true, pC64filename, caQuickLoad != NULL, caAlignD64Tracks != NULL);
+			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, true, pC64filename, caQuickLoad != NULL, alignD64);
 		}
 	}
 
@@ -1692,7 +1720,7 @@ void CApp::ShowErrorBox(LPCTSTR title, LPCTSTR message)
 	G::DebugMessageBox(hWnd, message, title, MB_OK | MB_ICONEXCLAMATION);
 }
 
-void CApp::WriteExitCode(bit8 exitCode)
+void CApp::WriteExitCode(int exitCode)
 {
 	this->c64.Set_ExitCode(exitCode);
 	this->m_bClosing = true;

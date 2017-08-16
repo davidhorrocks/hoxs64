@@ -588,6 +588,7 @@ public:
 	bit8 m_bDebug;
 	bool bSoftResetOnHltInstruction;
 	bool bHardResetOnHltInstruction;
+	bool bExitOnHltInstruction;
 
 	static const InstructionInfo AssemblyData[256];
 

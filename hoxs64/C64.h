@@ -50,7 +50,7 @@ class SIDLoader;
 
 class C64 : public IC64, private ITapeEvent, public IAutoLoad, public ErrorMsg
 {
-public:
+public:	
 	C64();
 	~C64();
 	RAM64 ram;
@@ -143,9 +143,9 @@ public:
 	virtual void Set_LimitCycles(ICLK cycles);
 	virtual const TCHAR *Get_ExitScreenShot();
 	virtual void Set_ExitScreenShot(const TCHAR * filename);
-	virtual bit8 Get_ExitCode();
-	virtual void Set_ExitCode(bit8 exitCode);
-	virtual bit8 WriteOnceExitCode(bit8 exitCode);
+	virtual int Get_ExitCode();
+	virtual void Set_ExitCode(int exitCode);
+	virtual int WriteOnceExitCode(int exitCode);
 	virtual bool HasExitCode();
 	virtual void ResetOnceExitCode();
 	virtual HRESULT SavePng(const TCHAR * filename);
@@ -249,7 +249,7 @@ private:
 	std::basic_string<TCHAR> exitScreenShot;
 	bool bWantExitScreenShot;
 	bool bExitCodeWritten;
-	bit8 exitCode;
+	int exitCode;
 };
 
 #endif

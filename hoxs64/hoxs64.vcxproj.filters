@@ -15,6 +15,7 @@
     </Filter>
     <Filter Include="roms">
       <UniqueIdentifier>{34eaa1f1-5c32-4c49-a9d5-d33e1327856c}</UniqueIdentifier>
+      <ParseFiles>false</ParseFiles>
     </Filter>
     <Filter Include="casm">
       <UniqueIdentifier>{72f79bd8-46fb-4f18-a384-032a1409b714}</UniqueIdentifier>

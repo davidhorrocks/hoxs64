@@ -785,18 +785,30 @@ ULONG tempLenValue,lenValue;
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode != ERROR_SUCCESS)
+		{
 			break;
+		}
+
+		errno = 0;
 		_pos.x = _ttol(szValue);
 		if (errno != 0)
+		{
 			break;
+		}
 		
 		tempLenValue = lenValue;
 		lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode != ERROR_SUCCESS)
+		{
 			break;
+		}
+
+		errno = 0;
 		_pos.y = _ttol(szValue);
 		if (errno != 0)
+		{
 			break;
+		}
 		ok = true;
 
 		tempLenValue = sizeof(_WindowedCustomSize);
@@ -809,17 +821,31 @@ ULONG tempLenValue,lenValue;
 			tempLenValue = lenValue;
 			lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 			if (lRetCode != ERROR_SUCCESS)
+			{
 				break;
+			}
+
+			errno = 0;
 			w = max(min(_ttol(szValue), max_width), min_width);
 			if (errno != 0)
+			{
 				break;
+			}
+
 			tempLenValue = lenValue;
 			lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 			if (lRetCode != ERROR_SUCCESS)
+			{
 				break;
+			}
+
+			errno = 0;
 			h = max(min(_ttol(szValue), max_height), min_height);
 			if (errno != 0)
+			{
 				break;
+			}
+
 			customok = true;
 
 		}		
@@ -1319,6 +1345,7 @@ void CConfig::LoadDefaultSetting()
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
+	SetCiaNewOldMode(true);
 }
 
 int CConfig::GetKeyScanCode(UINT ch)

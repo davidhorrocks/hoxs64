@@ -412,17 +412,17 @@ int result = 0;
 		ProcessReset();
 	}
 
-	if (vic.vic_raster_line==PAL_MAX_LINE && vic.vic_raster_cycle==63)
+	if (vic.vic_raster_line==PAL_MAX_LINE && vic.vic_raster_cycle==PAL_CLOCKS_PER_LINE)
 	{
-		cycles = (PAL_MAX_LINE+1)*63;
+		cycles = (PAL_MAX_LINE+1)*PAL_CLOCKS_PER_LINE;
 	}
 	else if (vic.vic_check_irq_in_cycle2)
 	{
-		cycles = (PAL_MAX_LINE+1)*63 -1;
+		cycles = (PAL_MAX_LINE+1)*PAL_CLOCKS_PER_LINE -1;
 	}
 	else
 	{
-		cycles = (PAL_MAX_LINE+1-vic.vic_raster_line)*63 - (vic.vic_raster_cycle);
+		cycles = (PAL_MAX_LINE+1-vic.vic_raster_line)*PAL_CLOCKS_PER_LINE - (vic.vic_raster_cycle);
 	}
 
 	sysclock = vic.CurrentClock;
@@ -585,17 +585,17 @@ int result = 0;
 		ProcessReset();
 	}
 
-	if (vic.vic_raster_line == PAL_MAX_LINE && vic.vic_raster_cycle == 63)
+	if (vic.vic_raster_line == PAL_MAX_LINE && vic.vic_raster_cycle == PAL_CLOCKS_PER_LINE)
 	{
-		cycles = (PAL_MAX_LINE + 1) * 63;
+		cycles = (PAL_MAX_LINE + 1) * PAL_CLOCKS_PER_LINE;
 	}
 	else if (vic.vic_check_irq_in_cycle2)
 	{
-		cycles = (PAL_MAX_LINE + 1) * 63 - 1;
+		cycles = (PAL_MAX_LINE + 1) * PAL_CLOCKS_PER_LINE - 1;
 	}
 	else
 	{
-		cycles = (PAL_MAX_LINE + 1 - vic.vic_raster_line) * 63 - (vic.vic_raster_cycle);
+		cycles = (PAL_MAX_LINE + 1 - vic.vic_raster_line) * PAL_CLOCKS_PER_LINE - (vic.vic_raster_cycle);
 	}
 
 	sysclock = vic.CurrentClock + cycles;
@@ -1068,18 +1068,18 @@ void C64::Set_ExitScreenShot(const TCHAR *filename)
 	}
 }
 
-bit8 C64::Get_ExitCode()
+int C64::Get_ExitCode()
 {
 	return exitCode;
 }
 
-void C64::Set_ExitCode(bit8 exitCode)
+void C64::Set_ExitCode(int exitCode)
 {
 	this->exitCode = exitCode;
 	this->bExitCodeWritten = true;
 }
 
-bit8 C64::WriteOnceExitCode(bit8 exitCode)
+int C64::WriteOnceExitCode(int exitCode)
 {
 	if (!this->bExitCodeWritten)
 	{
@@ -1244,14 +1244,57 @@ const TCHAR CouldNotGenerateParam1[] = TEXT("Could not generate the PNG file %s"
 		return SetError(E_FAIL, CouldNotGenerateParam1, filenamestr.c_str());
 	}
 
+	int current_line = min(max(vic.vic_raster_line, 0), PAL_MAX_LINE);
+	int cycle = min(max(vic.vic_raster_cycle, 1), PAL_CLOCKS_PER_LINE);
+	int currentFramePixelBufferNumber = vic.currentPixelBufferNumber;
+	if ((current_line == PAL_MAX_LINE && current_line == 1))
+	{
+		currentFramePixelBufferNumber ^= 1;
+	}
+
+	int previousFramePixelBufferNumber = currentFramePixelBufferNumber ^ 1;
 	int starty = C64WindowDimensions::WDFullFirstRaster;
 	int startx = DISPLAY_START + C64WindowDimensions::WDNoBorderStart + (C64WindowDimensions::WDNoBorderWidth - PngWidth) / 2;
+	int buffer_line = 0;
+	int cursor_index = ((int)cycle*8 - 20);
+	cursor_index += 8;
+	if (cursor_index < 0)
+	{
+		current_line--;
+		if (current_line < 0)
+		{
+			current_line = PAL_MAX_LINE;
+		}
+		cursor_index = (cursor_index + PAL_VIDEO_WIDTH) % PAL_VIDEO_WIDTH;
+	}
+
+	cursor_index = cursor_index - startx;
+	current_line = current_line - starty;
 	info.image_data = row.get();
+	bool bIsLeftOfCursor = true;
+	bit8 (*pMainPixelBuffer)[PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
 	for (int y = 0; y < PngHeight ; y++)
 	{
 		for(int x = 0; x < PngWidth; x++)
 		{
-			info.image_data[x] = vic.ScreenPixelBuffer[PIXELBUFFER_MAIN_INDEX][y + starty][x + startx];
+			if (y < current_line || (y == current_line && x < cursor_index))
+			{
+				bIsLeftOfCursor = true;
+			}
+			else
+			{
+				bIsLeftOfCursor = false;
+			}
+
+			if (bIsLeftOfCursor)
+			{
+				pMainPixelBuffer = &vic.ScreenPixelBuffer[currentFramePixelBufferNumber];
+			}
+			else
+			{
+				pMainPixelBuffer = &vic.ScreenPixelBuffer[previousFramePixelBufferNumber];
+			}
+			info.image_data[x] = ((*pMainPixelBuffer)[y + starty][x + startx]) & 0xf;
 		}
 		wp.writepng_encode_row();
 	}
@@ -3681,13 +3724,13 @@ void C64::ProcessReset()
 
 void C64::ExecuteRandomClocks()
 {
-	std::uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
-	SynchroniseDevicesWithVIC();
-	int randomclocks = dist_byte(G::randengine_main);
-	while (randomclocks-- > 0)
-	{
-		this->ExecuteC64Clock();
-	}
+	//std::uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
+	//SynchroniseDevicesWithVIC();
+	//int randomclocks = dist_byte(G::randengine_main);
+	//while (randomclocks-- > 0)
+	//{
+	//	this->ExecuteC64Clock();
+	//}
 }
 
 IMonitorCpu *C64::GetCpu(int cpuid)

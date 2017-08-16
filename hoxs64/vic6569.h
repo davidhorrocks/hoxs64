@@ -236,6 +236,7 @@ public:
 
 	bit8 ScreenPixelBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
 	bit8 LinePixelBuffer[PIXELBUFFER_COUNT][PIXELBUFFER_SIZE+1];
+	int currentPixelBufferNumber;
 	int FrameNumber;
 
 	void BackupMainPixelBuffers();
@@ -334,15 +335,15 @@ private:
 	__forceinline void SetBA(ICLK &cycles, bit8 cycle);
 	__forceinline void init_line_start();
 
-	void render(long depth, bool bPixelDoubler, unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_8bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_8bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_16bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_16bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_24bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_24bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_32bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
-	void render_32bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBuffer[], int startx, int videoPitch, int bufferPitch);
+	void render(long depth, bool bPixelDoubler, unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_8bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_8bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_16bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_16bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_24bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_24bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_32bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
+	void render_32bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine);
 
 public:
 	bit8 vicMemoryBankIndex;

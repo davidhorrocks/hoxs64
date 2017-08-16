@@ -11,20 +11,20 @@ class SID64;
 class CPU6510 : public CPU6502, public IC6510
 {
 public:
+	static const int ShellExitCpu64Halt = 0xFF;
 	CPU6510();
 	~CPU6510();
-	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
-	void SetCassetteSense(bit8 sense);
-
 	bit8 IRQ_VIC;	
 	bit8 IRQ_CIA;
 	bit8 IRQ_CRT;
 	bit8 NMI_CIA;
 	bit8 NMI_CRT;
-
 	bool m_bIsWriteCycle;
+	bool bExitOnHltInstruction;
 
-	void CheckPortFade(ICLK sysclock);
+	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
+	void SetCassetteSense(bit8 sense);
+	void CheckPortFade(ICLK sysclock);	
 
 	virtual void Reset6510(ICLK sysclock, bool poweronreset);
 	virtual ICLK Get6510CurrentClock();
@@ -40,11 +40,10 @@ public:
 	virtual void Set_CRT_NMI(ICLK sysclock);
 	virtual void Clear_CRT_NMI();
 	virtual void ConfigureMemoryMap();
-
 	virtual bool Get_EnableDebugCart();
 	virtual void Set_EnableDebugCart(bool bEnable);
-
 	void InitReset(ICLK sysclock, bool poweronreset);
+
 	//IRegister
 	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
@@ -104,7 +103,7 @@ private:
 	bit8 CASSETTE_SENSE;
 	ICLK m_fade7clock;
 	ICLK m_fade6clock;
-	bool bEnableDebugCart;
+	bool bEnableDebugCart;	
 
 	virtual void SyncChips();
 	virtual void check_interrupts1();

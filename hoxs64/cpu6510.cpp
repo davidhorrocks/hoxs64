@@ -49,6 +49,8 @@ CPU6510::CPU6510()
 	tape = NULL;
 	cart = NULL;
 	m_bIsWriteCycle = false;
+	bExitOnHltInstruction = false;
+	bEnableDebugCart = false;
 }
 
 CPU6510::~CPU6510()
@@ -558,7 +560,11 @@ void CPU6510::PreventClockOverflow()
 
 void CPU6510::OnHltInstruction()
 {
-	if (this->bHardResetOnHltInstruction)
+	if (this->bExitOnHltInstruction)
+	{
+		this->pIC64->WriteOnceExitCode(CPU6510::ShellExitCpu64Halt);
+	}
+	else if (this->bHardResetOnHltInstruction)
 	{
 		this->pIC64->PostHardReset(true);
 	}

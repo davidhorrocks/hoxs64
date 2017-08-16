@@ -1026,7 +1026,9 @@
     </None>
     <None Include="img\break.bmp" />
     <None Include="img\break_disable.bmp" />
-    <None Include="C1541.rom" />
+    <None Include="C1541.rom">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="c64.ram">
       <DeploymentContent>true</DeploymentContent>
     </None>
