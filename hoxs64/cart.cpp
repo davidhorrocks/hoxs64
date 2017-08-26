@@ -31,6 +31,10 @@ CartCommon::CartCommon(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMe
 	this->m_pCpu = pCpu;
 	this->m_pC64RamMemory = pC64RamMemory;
 	m_bIsCartAttached = false;	
+	m_state0 = 0;
+	m_state1 = 0;
+	m_state2 = 0;
+	m_state3 = 0;
 }
 
 CartCommon::~CartCommon()
@@ -115,6 +119,10 @@ unsigned int CartCommon::GetStateBytes(void *pstate)
 		p->m_bREUcompatible = m_bREUcompatible;
 		p->m_bFreezePending = m_bFreezePending;
 		p->m_bFreezeMode = m_bFreezeMode;
+		p->m_state0 = m_state0;
+		p->m_state1 = m_state1;
+		p->m_state2 = m_state2;
+		p->m_state3 = m_state3;
 	}
 	return sizeof(SsCartCommon);
 }
@@ -141,6 +149,10 @@ SsCartCommon *p;
 	m_bREUcompatible = p->m_bREUcompatible != 0;
 	m_bFreezePending = p->m_bFreezePending;
 	m_bFreezeMode = p->m_bFreezeMode;
+	m_state0 = p->m_state0;
+	m_state1 = p->m_state1;
+	m_state2 = p->m_state2;
+	m_state3 = p->m_state3;
 	return S_OK;
 }
 
@@ -168,13 +180,11 @@ unsigned int cartstatesize, cartfullstatesize;
 				hr = E_OUTOFMEMORY;
 				break;
 			}
-			pZeroBankData = &pCartData[Cart::ZEROBANKOFFSET];
 
+			pZeroBankData = &pCartData[Cart::ZEROBANKOFFSET];
 			plstBank = new CrtBankList();
 			plstBank->resize(Cart::MAXBANKS);
-
 			cartstatesize = this->GetStateBytes(NULL);
-
 			bytesToRead = sizeof(bit32);
 			hr = pfs->Read(&cartfullstatesize, bytesToRead, &bytesRead);
 			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
@@ -186,15 +196,22 @@ unsigned int cartstatesize, cartfullstatesize;
 				eof = true;
 				hr = E_FAIL;
 			}
-			if (FAILED(hr))
-				break;
 
-			if (cartfullstatesize != cartstatesize + sizeof(bit32))
+			if (FAILED(hr))
 			{
-				hr = E_FAIL;
 				break;
 			}
-		
+
+			LARGE_INTEGER pos_in;
+			ULARGE_INTEGER pos_out;
+			pos_in.QuadPart = 0;
+			pos_out.QuadPart = 0;
+			hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
+			if (FAILED(hr))
+			{
+				break;
+			}
+			
 			pstate = malloc(cartstatesize);
 			if (!pstate)
 			{
@@ -202,6 +219,7 @@ unsigned int cartstatesize, cartfullstatesize;
 				break;
 			}
 
+			memset(pstate, 0, cartstatesize);
 			bytesToRead = cartstatesize;
 			hr = pfs->Read(pstate, bytesToRead, &bytesRead);
 			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
@@ -210,11 +228,24 @@ unsigned int cartstatesize, cartfullstatesize;
 			}
 			else if (bytesRead < bytesToRead)
 			{
-				eof = true;
+				eof = true;			
 				hr = E_FAIL;
 			}
+
 			if (FAILED(hr))
+			{
 				break;
+			}
+
+			if (cartfullstatesize > cartstatesize)
+			{
+				pos_in.QuadPart = cartfullstatesize - cartstatesize;
+				hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
+				if (FAILED(hr))
+				{
+					break;
+				}
+			}
 		
 			SsCartMemoryHeader memoryheader;
 			bytesToRead = sizeof(memoryheader);
@@ -228,8 +259,11 @@ unsigned int cartstatesize, cartfullstatesize;
 				eof = true;
 				hr = E_FAIL;
 			}
+
 			if (FAILED(hr))
+			{
 				break;
+			}
 
 			if (memoryheader.banks > Cart::MAXBANKS)
 			{

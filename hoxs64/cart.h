@@ -72,6 +72,10 @@ struct SsCartCommon
 	bit8 m_bREUcompatible;
 	bit8 m_bFreezePending;
 	bit8 m_bFreezeMode;
+	bit32 m_state0;
+	bit32 m_state1;
+	bit32 m_state2;
+	bit32 m_state3;
 };
 
 # pragma pack ()
@@ -252,6 +256,10 @@ protected:
 	IC6510 *m_pCpu;
 	bit8 *m_pC64RamMemory;
 	bool m_bEffects;
+	bit32 m_state0;
+	bit32 m_state1;
+	bit32 m_state2;
+	bit32 m_state3;
 
 	CrtBankList m_lstStateBank;
 private:

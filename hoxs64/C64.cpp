@@ -3639,11 +3639,15 @@ void C64::SharedSoftReset()
 void C64::SoftReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
+	{
 		appStatus->m_bAutoload = 0;
+	}
+
 	if (!appStatus->m_bDebug)
 	{
 		ExecuteRandomClocks();
 	}
+
 	SharedSoftReset();
 }
 
@@ -3658,11 +3662,15 @@ void C64::HardReset(bool bCancelAutoload)
 void C64::CartFreeze(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
+	{
 		appStatus->m_bAutoload = 0;
+	}
+
 	if (!appStatus->m_bDebug)
 	{
 		ExecuteRandomClocks();
 	}
+
 	cart.CartFreeze();
 	this->pIC64Event->Reset();
 }
@@ -3670,11 +3678,15 @@ void C64::CartFreeze(bool bCancelAutoload)
 void C64::CartReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
+	{
 		appStatus->m_bAutoload = 0;
+	}
+
 	if (!appStatus->m_bDebug)
 	{
 		ExecuteRandomClocks();
 	}
+
 	SharedSoftReset();
 }
 
@@ -3724,13 +3736,13 @@ void C64::ProcessReset()
 
 void C64::ExecuteRandomClocks()
 {
-	//std::uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
-	//SynchroniseDevicesWithVIC();
-	//int randomclocks = dist_byte(G::randengine_main);
-	//while (randomclocks-- > 0)
-	//{
-	//	this->ExecuteC64Clock();
-	//}
+	std::uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
+	SynchroniseDevicesWithVIC();
+	int randomclocks = dist_byte(G::randengine_main);
+	while (randomclocks-- > 0)
+	{
+		this->ExecuteC64Clock();
+	}
 }
 
 IMonitorCpu *C64::GetCpu(int cpuid)

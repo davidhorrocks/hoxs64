@@ -22,7 +22,8 @@
 #include "cart.h"
 
 CartSuperGames::CartSuperGames(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pC64RamMemory),
+	 regDisabled(m_state0)
 {
 }
 
@@ -46,8 +47,23 @@ void CartSuperGames::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 
 void CartSuperGames::UpdateIO()
 {
-	m_iSelectedBank = reg1 & 3;
-	GAME = (reg1 & 4) != 0;
-	EXROM = (GAME!=0) && (reg1 & 8) != 0;
-	BankRom();
+	if (!regDisabled)
+	{
+		m_iSelectedBank = reg1 & 3;
+		if ((reg1 & 4) == 0)
+		{
+			GAME = 0;
+			EXROM = 0;
+		}
+		else
+		{
+			GAME = 1;
+			EXROM = 1;
+		}
+		BankRom();
+		if (reg1 & 8)
+		{
+			regDisabled = 1;
+		}
+	}
 }

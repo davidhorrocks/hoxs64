@@ -13,4 +13,5 @@ public:
 protected:
 	virtual void UpdateIO();
 private:
+	bit32 &regDisabled;
 };
