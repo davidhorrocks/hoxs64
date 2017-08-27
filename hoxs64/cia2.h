@@ -15,16 +15,16 @@ public:
 	//IRegister
 	virtual void Reset(ICLK sysclock, bool poweronreset);
 
-	bit8 ReadPortA();
-	bit8 ReadPortB();
-	void WritePortA();
-	void WritePortB();
-	void SetSystemInterrupt();
-	void ClearSystemInterrupt();
+	virtual bit8 ReadPortA();
+	virtual bit8 ReadPortB();
+	virtual void WritePortA(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new);
+	virtual void WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new);
+	virtual void SetSystemInterrupt();
+	virtual void ClearSystemInterrupt();
 
-	void ExecuteDevices(ICLK sysclock);
+	virtual void ExecuteDevices(ICLK sysclock);
 
-	void SetCurrentClock(ICLK sysclock);
+	virtual void SetCurrentClock(ICLK sysclock);
 
 	void GetState(SsCia2V2 &state);
 	void SetState(const SsCia2V2 &state);
@@ -36,7 +36,9 @@ public:
 	VIC6569 *vic;
 	DiskInterface *disk;
 	volatile bit8 c64_serialbus;
-	bit8 m_commandedVicBankIndex;	
+	bit8 m_commandedVicBankIndex;
+private:
+	std::uniform_int_distribution<int> dist_port_temperature;
 };
 
 

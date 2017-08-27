@@ -125,6 +125,12 @@ void C64::Reset(ICLK sysclock, bool poweronreset)
 	m_bLastPostedDriveWriteLed = diskdrive.m_bDriveWriteWasOn;
 }
 
+void C64::Warm()
+{
+	this->cia1.is_warm = true;
+	this->cia2.is_warm = true;
+}
+
 void C64::PreventClockOverflow()
 {
 	if (++m_iClockOverflowCheckCounter > 0x100)
@@ -709,6 +715,7 @@ const char szSysCall[] = {19,25,19,32,0};
 void C64::AutoLoadHandler(ICLK sysclock)
 {
 const int resettime=120;
+const unsigned int maxtime = 10 * PAL50FRAMESPERSECOND;
 const char szRun[] = {18,21,14,0};
 const char szLoadDisk[] = {12,15,1,4,34,42,34,44,56,44,49,0};
 const char szSysCall[] = {19,25,19,32,0};
@@ -724,15 +731,23 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 
 	if (autoLoadCommand.sequence == AUTOSEQ_RESET)
 	{
-		appStatus->m_bAutoload = TRUE;
+		appStatus->m_bAutoload = true;
 		autoLoadCommand.sequence = C64::AUTOSEQ_LOAD;
 	}
-	period = sysclock / (PALCLOCKSPERSECOND / 50);
+
+	period = (sysclock - autoLoadCommand.startclock) / (PALCLOCKSPERSECOND / PAL50FRAMESPERSECOND);
 	cia1.ResetKeyboard();
 	if (period < resettime)
 	{
 		return;	
 	}
+	else if (period > maxtime)
+	{
+		autoLoadCommand.CleanUp();
+		appStatus->m_bAutoload = false;
+		return;
+	}
+
 	switch (autoLoadCommand.type)
 	{
 	case C64::AUTOLOAD_TAP_FILE:
@@ -757,7 +772,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		{
 			TapePressPlay();
 			autoLoadCommand.CleanUp();
-			appStatus->m_bAutoload = FALSE;
+			appStatus->m_bAutoload = false;
 		}
 		break;
 	case C64::AUTOLOAD_PRG_FILE:		
@@ -799,7 +814,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 					pIC64Event->ShowErrorBox(SZAUTOLOADTITLE, errorText);
 				}
 				autoLoadCommand.CleanUp();
-				appStatus->m_bAutoload = FALSE;
+				appStatus->m_bAutoload = false;
 				break;
 			}
 		}
@@ -833,7 +848,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 			else
 			{
 				autoLoadCommand.CleanUp();
-				appStatus->m_bAutoload = FALSE;
+				appStatus->m_bAutoload = false;
 			}
 		}
 		else
@@ -852,7 +867,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 			else
 			{
 				autoLoadCommand.CleanUp();
-				appStatus->m_bAutoload = FALSE;
+				appStatus->m_bAutoload = false;
 			}
 		}
 		break;
@@ -893,7 +908,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 				}
 			}
 			autoLoadCommand.CleanUp();
-			appStatus->m_bAutoload = FALSE;
+			appStatus->m_bAutoload = false;
 		}
 		break;
 	case C64::AUTOLOAD_DISK_FILE:
@@ -971,12 +986,12 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		else
 		{
 			autoLoadCommand.CleanUp();
-			appStatus->m_bAutoload = FALSE;
+			appStatus->m_bAutoload = false;
 		}
 		break;
 	default:
 		autoLoadCommand.CleanUp();
-		appStatus->m_bAutoload = FALSE;
+		appStatus->m_bAutoload = false;
 	}
 }
 
@@ -1382,7 +1397,8 @@ errno_t err;
 	autoLoadCommand.directoryIndex = directoryIndex;
 	autoLoadCommand.bQuickLoad = bQuickLoad;
 	autoLoadCommand.bAlignD64Tracks =  bAlignD64Tracks;
-	autoLoadCommand.bIndexOnlyPrgFiles =bIndexOnlyPrgFiles;
+	autoLoadCommand.bIndexOnlyPrgFiles =bIndexOnlyPrgFiles; 
+	autoLoadCommand.startclock = vic.CurrentClock;
 	if (c64FileName == NULL)
 	{
 		memset(autoLoadCommand.c64filename, 0xa0, sizeof(autoLoadCommand.c64filename));
@@ -1401,7 +1417,7 @@ errno_t err;
 		memcpy_s(autoLoadCommand.c64filename, sizeof(autoLoadCommand.c64filename), c64FileName, C64DISKFILENAMELENGTH);
 	}
 
-	appStatus->m_bAutoload = FALSE;
+	appStatus->m_bAutoload = false;
 	hr = _tcscpy_s(&autoLoadCommand.filename[0], _countof(autoLoadCommand.filename), filename);
 	if (FAILED(hr))
 	{
@@ -1420,14 +1436,14 @@ errno_t err;
 				SetError(hr, TEXT("Unable to load."));
 			}
 			autoLoadCommand.type = C64::AUTOLOAD_NONE;
-			appStatus->m_bAutoload = FALSE;
+			appStatus->m_bAutoload = false;
 			return hr;
 		}
 		else if (lstrcmpi(ext, TEXT(".crt"))==0)
 		{
 			hr = LoadCrtFile(filename);
 			autoLoadCommand.type = C64::AUTOLOAD_NONE;
-			appStatus->m_bAutoload = FALSE;
+			appStatus->m_bAutoload = false;
 			return hr;
 		}
 		else if (lstrcmpi(ext, TEXT(".tap"))==0)
@@ -1436,7 +1452,7 @@ errno_t err;
 			if (SUCCEEDED(hr))
 			{
 				autoLoadCommand.type = C64::AUTOLOAD_TAP_FILE;
-				appStatus->m_bAutoload = TRUE;
+				appStatus->m_bAutoload = true;
 			}
 			else
 			{
@@ -1446,12 +1462,12 @@ errno_t err;
 		else if (lstrcmpi(ext, TEXT(".prg"))==0 || lstrcmpi(ext, TEXT(".p00"))==0)
 		{
 			autoLoadCommand.type = C64::AUTOLOAD_PRG_FILE;
-			appStatus->m_bAutoload = TRUE;
+			appStatus->m_bAutoload = true;
 		}		
 		else if (lstrcmpi(ext, TEXT(".t64"))==0)
 		{
 			autoLoadCommand.type = C64::AUTOLOAD_T64_FILE;
-			appStatus->m_bAutoload = TRUE;
+			appStatus->m_bAutoload = true;
 		}		
 		else if (lstrcmpi(ext, TEXT(".d64"))==0 || lstrcmpi(ext, TEXT(".g64"))==0 || lstrcmpi(ext, TEXT(".fdi"))==0  || lstrcmpi(ext, TEXT(".p64"))==0)
 		{
@@ -1490,15 +1506,15 @@ errno_t err;
 			if (SUCCEEDED(hr))
 			{
 				autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
-				appStatus->m_bAutoload = TRUE;
+				appStatus->m_bAutoload = true;
 				cart.DetachCart();
-				Reset(0, true);
+				Reset(cpu.CurrentClock, true);
 				return hr;
 			}
 			else
 			{
 				autoLoadCommand.CleanUp();
-				appStatus->m_bAutoload = FALSE;
+				appStatus->m_bAutoload = false;
 				return hr;
 			}
 		}
@@ -1515,7 +1531,7 @@ errno_t err;
 				return SetError(*(autoLoadCommand.pSidFile));
 			}
 			autoLoadCommand.type = C64::AUTOLOAD_SID_FILE;
-			appStatus->m_bAutoload = TRUE;
+			appStatus->m_bAutoload = true;
 		}
 		else
 		{
@@ -1527,7 +1543,7 @@ errno_t err;
 		return SetError(E_FAIL,TEXT("Unknown file type."));
 	}
 	cart.DetachCart();
-	Reset(0, true);
+	Reset(cpu.CurrentClock, true);
 	return S_OK;
 }
 
@@ -3640,7 +3656,7 @@ void C64::SoftReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 	{
-		appStatus->m_bAutoload = 0;
+		appStatus->m_bAutoload = false;
 	}
 
 	if (!appStatus->m_bDebug)
@@ -3654,8 +3670,12 @@ void C64::SoftReset(bool bCancelAutoload)
 void C64::HardReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
-		appStatus->m_bAutoload = 0;
-	Reset(0, true);
+	{
+		appStatus->m_bAutoload = false;
+	}
+
+	ICLK sysclock = cpu.CurrentClock;
+	Reset(sysclock, true);
 	this->pIC64Event->Reset();
 }
 
@@ -3663,7 +3683,7 @@ void C64::CartFreeze(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 	{
-		appStatus->m_bAutoload = 0;
+		appStatus->m_bAutoload = false;
 	}
 
 	if (!appStatus->m_bDebug)
@@ -3679,7 +3699,7 @@ void C64::CartReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
 	{
-		appStatus->m_bAutoload = 0;
+		appStatus->m_bAutoload = false;
 	}
 
 	if (!appStatus->m_bDebug)
@@ -3693,7 +3713,10 @@ void C64::CartReset(bool bCancelAutoload)
 void C64::PostSoftReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
-		appStatus->m_bAutoload = 0;
+	{
+		appStatus->m_bAutoload = false;
+	}
+
 	bPendingSystemCommand = true;
 	m_SystemCommand = C64CMD_SOFTRESET;
 }
@@ -3701,7 +3724,10 @@ void C64::PostSoftReset(bool bCancelAutoload)
 void C64::PostHardReset(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
-		appStatus->m_bAutoload = 0;
+	{
+		appStatus->m_bAutoload = false;
+	}
+
 	bPendingSystemCommand = true;
 	m_SystemCommand = C64CMD_HARDRESET;
 }
@@ -3709,7 +3735,10 @@ void C64::PostHardReset(bool bCancelAutoload)
 void C64::PostCartFreeze(bool bCancelAutoload)
 {
 	if (bCancelAutoload)
-		appStatus->m_bAutoload = 0;
+	{
+		appStatus->m_bAutoload = false;
+	}
+
 	bPendingSystemCommand = true;
 	m_SystemCommand = C64CMD_CARTFREEZE;
 }
@@ -3775,4 +3804,3 @@ IMonitorCpu *DefaultCpu::GetCpu()
 	else
 		return NULL;
 }
-

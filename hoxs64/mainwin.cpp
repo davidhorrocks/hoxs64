@@ -259,6 +259,11 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		return 0;
 	case WM_ACTIVATE:
 		// Pause if minimized
+		if (G::IsHideWindow)
+		{
+			break;
+		}
+
 		bIsWindowActive = !((BOOL)HIWORD(wParam)) && ((LOWORD(wParam) == WA_ACTIVE) || (LOWORD(wParam) == WA_CLICKACTIVE));
 		bIsWindowMinimised = !((BOOL)HIWORD(wParam));
 		appStatus->m_bActive = bIsWindowMinimised;
@@ -285,6 +290,11 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		}
 		break;
 	case WM_SIZE:
+		if (G::IsHideWindow)
+		{
+			return 0;
+		}
+
         // Check to see if we are losing our window...
 		w = (int)(DWORD)LOWORD(lParam);
 		h = (int)(DWORD)HIWORD(lParam);
@@ -317,7 +327,16 @@ shared_ptr<CDiagAbout> pDiagAbout;
 						if (clientWidth > 0 && clientHeight > 0)
 						{
 							bool isCustomSizeBlit = true;
-							if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, SWP_NOZORDER | SWP_NOMOVE))
+							UINT showWindowFlags;
+							if (G::IsHideWindow)
+							{
+								showWindowFlags = SWP_NOZORDER | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOREDRAW;
+							}
+							else
+							{
+								showWindowFlags = SWP_NOZORDER | SWP_NOMOVE;
+							}
+							if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, showWindowFlags))
 							{
 								CConfig tCfg;
 								appStatus->GetUserConfig(tCfg);
@@ -364,6 +383,10 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		}
 		return 0;
 	case WM_DISPLAYCHANGE:
+		if (G::IsHideWindow)
+		{
+			break;
+		}
 		if (appStatus->m_bWindowed)
 		{
 			appStatus->m_bReady = false;
@@ -463,7 +486,9 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SoundHalt();
 			appStatus->RestoreDefaultSettings();
 			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+			{
 				this->m_pWinEmuWin->Present(0);
+			}
 			G::DebugMessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			return 0;
@@ -471,7 +496,9 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->SoundHalt();
 			appStatus->RestoreUserSettings();
 			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+			{
 				this->m_pWinEmuWin->Present(0);
+			}
 			G::DebugMessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();
 			return 0;
@@ -710,8 +737,14 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		}
 		break;
 	case WM_SYSCOMMAND:
-		if (!appStatus->m_bActive)
+		if (G::IsHideWindow)
+		{
 			break;
+		}
+		if (!appStatus->m_bActive)
+		{
+			break;
+		}
 		else if (appStatus->m_bWindowed)
 		{
 			switch (wParam & 0xfff0)
@@ -754,6 +787,11 @@ shared_ptr<CDiagAbout> pDiagAbout;
 	case WM_QUERYNEWPALETTE:
 		break;
 	case WM_PALETTECHANGED:
+		if (G::IsHideWindow)
+		{
+			break;
+		}
+
 		if (appStatus->m_bWindowed)
 		{
 			if (hWnd != (HWND) wParam)
@@ -765,9 +803,13 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		break;
 	case WM_NCPAINT:
 		if (appStatus->m_bWindowed)
+		{
 			return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+		}
 		else
+		{
 			return 0;
+		}
     case WM_SETCURSOR:
         if (appStatus->m_bActive && !appStatus->m_bWindowed)
         {
@@ -802,8 +844,8 @@ shared_ptr<CDiagAbout> pDiagAbout;
 		OnBreakVic(hWnd, uMsg, wParam, lParam);
 		return 0;
 	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 
+	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
 void CAppWindow::CloseWindow()
@@ -868,27 +910,42 @@ HMENU hMenu;
 		{
 			CheckMenuItem (hMenu, IDM_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_UNCHECKED);
 		}
-
 	
 		if (appStatus->m_bSwapJoysticks)
+		{
 			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_CHECKED);
+		}
 		else
+		{
 			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_UNCHECKED);
+		}
 
 		if (appStatus->m_bMaxSpeed)
+		{
 			CheckMenuItem (hMenu, IDM_SETTING_MAXSPEED, MF_BYCOMMAND | MF_CHECKED);
+		}
 		else
+		{
 			CheckMenuItem (hMenu, IDM_SETTING_MAXSPEED, MF_BYCOMMAND | MF_UNCHECKED);
+		}
 
 		if (appStatus->m_bPaused)
+		{
 			CheckMenuItem (hMenu, IDM_FILE_PAUSE, MF_BYCOMMAND | MF_CHECKED);
+		}
 		else
+		{
 			CheckMenuItem (hMenu, IDM_FILE_PAUSE, MF_BYCOMMAND | MF_UNCHECKED);
+		}
 
 		if (appStatus->m_bSoundMute)
+		{
 			CheckMenuItem (hMenu, IDM_SETTING_MUTESOUND, MF_BYCOMMAND | MF_CHECKED);
+		}
 		else
+		{
 			CheckMenuItem (hMenu, IDM_SETTING_MUTESOUND, MF_BYCOMMAND | MF_UNCHECKED);
+		}
 	}
 }
 
@@ -918,9 +975,13 @@ HRESULT CAppWindow::ToggleFullScreen()
 	if (G::IsWin98OrLater())
 	{
 		if(appStatus->m_bWindowed)
+		{
 			SetThreadExecutionState(ES_CONTINUOUS);   
+		}
 		else
+		{
 			SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_CONTINUOUS); 
+		}
 	}
 	return r;
 }
@@ -932,7 +993,6 @@ HRESULT hr;
 	ClearError();
 	appStatus->m_bReady = false;
 	appStatus->m_fskip = -1;
-
     if (appStatus->m_bWindowed)
 	{
 		SaveMainWindowSize();
@@ -941,12 +1001,12 @@ HRESULT hr;
 			SetWindowedStyle(false);
 		}
 	}
+
 	hr = SetCoopLevel(bWindowed, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
 	if (FAILED(hr))
 	{
 		TCHAR errorTextSave[300];
 		_tcscpy_s(errorTextSave, _countof(errorText), errorText);
-
 		SetCoopLevel(TRUE, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
 		_tcscpy_s(errorText, _countof(errorText), errorTextSave);
 	}
@@ -954,16 +1014,31 @@ HRESULT hr;
 	if (appStatus->m_bWindowed)
 	{
 		SetWindowedStyle(true);
+		UINT showWindowFlags;
+		if (G::IsHideWindow)
+		{
+			showWindowFlags = SWP_NOZORDER | SWP_NOSIZE | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_NOOWNERZORDER;
+		}
+		else
+		{
+			showWindowFlags = SWP_NOZORDER | SWP_NOSIZE | SWP_FRAMECHANGED;
+		}
 
-		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_FRAMECHANGED);
+		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, showWindowFlags);
 		G::EnsureWindowPosition(m_hWnd);
 		SaveMainWindowSize();
-
 		if (appStatus->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
+		{
 			appStatus->m_fskip = 1;
+		}
 
-		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
-			this->m_pWinEmuWin->Present(0);
+		if (!G::IsHideWindow)
+		{
+			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+			{
+				this->m_pWinEmuWin->Present(0);
+			}
+		}
 	}
 	return hr;
 }
@@ -985,8 +1060,11 @@ LONG_PTR lp;
 			SetMenu(m_hWnd, m_hMenuOld);
 			m_hMenuOld = NULL;
 		}
+
 		if (m_hWndStatusBar)
+		{
 			ShowWindow(m_hWndStatusBar, SW_SHOW);
+		}
 	}
 	else
 	{
@@ -996,8 +1074,12 @@ LONG_PTR lp;
 			SetMenu(m_hWnd, NULL);
 			m_hMenuOld = hMt;
 		}
+
 		if (m_hWndStatusBar)
+		{
 			ShowWindow(m_hWndStatusBar, SW_HIDE);
+		}
+
 		lp = GetWindowLongPtr(m_hWnd, GWL_STYLE);
 		lp &= ~CAppWindow::StylesWindowed;
 		lp |= CAppWindow::StylesNonWindowed;
@@ -1012,13 +1094,22 @@ HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool b
 HRESULT hRet;
 	BOOL bIsDwmOn = FALSE;
 
+	if (G::IsHideWindow)
+	{
+		return S_FALSE;
+	}
+
 	if (G::IsDwmApiOk() && appStatus->m_bDisableDwmFullscreen)
 	{
 		if (!bWindowed)
 		{			
 			if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&bIsDwmOn)))
+			{
 				if (bIsDwmOn)
+				{
 					G::s_pFnDwmEnableComposition(DWM_EC_DISABLECOMPOSITION);
+				}
+			}
 		}
 	}
 
@@ -1123,18 +1214,29 @@ TCHAR szBuff[300];
 		_sntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, TEXT("%s"), szTitle);
 	}
 	if (appStatus->m_bSoundMute)
+	{
 		_tcscat_s(szBuff, _countof(szBuff), TEXT(" - Mute"));
+	}
+
 	if (appStatus->m_bMaxSpeed)
+	{
 		_tcscat_s(szBuff, _countof(szBuff), TEXT(" - Max Speed"));
+	}
+
 	if (appStatus->m_bDebug)
+	{
 		_tcscat_s(szBuff, _countof(szBuff), TEXT(" - Debug"));
+	}
+
 	if (appStatus->m_bPaused)
+	{
 		_tcscat_s(szBuff, _countof(szBuff), TEXT(" - Paused"));
+	}
+
 	if (appStatus->m_bWindowed)
 	{
 		SetWindowText(m_hWnd, szBuff);
 	}
-
 }
 
 void CAppWindow::SetDriveMotorLed(bool bOn)

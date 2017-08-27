@@ -119,6 +119,7 @@ private:
 	static DWORD m_dwCachedCommonControlsVersion;	
 public:
 	static bool IsHideMessageBox;
+	static bool IsHideWindow;
 	static std::random_device rd;
 	static std::mt19937 randengine_main;
 	static void InitLateBindLibraryCalls();

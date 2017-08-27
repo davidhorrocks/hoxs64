@@ -9,8 +9,8 @@ public:
 	bool                    m_bSoundOK;
 	bool                    m_bSoundMute;
 	bool					m_bFilterOK;
-	bool                    m_bActive;				// App is running/active
-	bool                    m_bReady;				// App is ready for updates
+	bool                    m_bActive;				// App window is either active or not minimised
+	bool                    m_bReady;				// DirectX is ready for use.
 	bool                    m_bWindowed;			// App is in windowed mode
 	bool					m_bRunning;
 	bool					m_bDebug;
@@ -30,7 +30,7 @@ public:
 	ULARGE_INTEGER			m_systemfrequency;
 	ULARGE_INTEGER			m_framefrequency;
 
-	bit8                    m_bAutoload;
+	bool                    m_bAutoload;
 	bool					m_bInitDone;
 	bool					m_bUpdateWindowTitle;
 	bool					m_bDiskLedMotor;

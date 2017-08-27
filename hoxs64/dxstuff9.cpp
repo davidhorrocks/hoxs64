@@ -402,13 +402,21 @@ UINT iNumberOfAdapters = pD3D->GetAdapterCount();
 HRESULT CDX9::Present(DWORD dwFlags)
 {
 HRESULT hr;
+	if (G::IsHideWindow)
+	{
+		return S_FALSE;
+	}
+
 	if (m_pd3dSwapChain!=NULL)
 	{
 		hr = m_pd3dSwapChain->Present(NULL, NULL, NULL, NULL, dwFlags);
 		if (FAILED(hr))
 		{
 			if (hr == D3DERR_WASSTILLDRAWING)
+			{
 				return hr;
+			}
+
 			HRESULT hr = m_pd3dDevice->TestCooperativeLevel();
 			if (FAILED(hr))
 			{				
@@ -418,7 +426,10 @@ HRESULT hr;
 		}
 	}
 	else
+	{
 		hr = E_FAIL;
+	}
+
 	return hr;
 }
 
@@ -575,15 +586,21 @@ GUID empty;
 	if (m_pD3D == NULL)
 	{
 		if( NULL == ( m_pD3D = Direct3DCreate9( D3D_SDK_VERSION ) ) )
+		{
 			return E_FAIL;
+		}
 	}
 
 	iNumberOfAdapters = m_pD3D->GetAdapterCount();
 	if (iNumberOfAdapters == 0)
+	{
 		return E_FAIL;
+	}
 
 	if (adapterNumber < 0 || adapterNumber >= iNumberOfAdapters)
+	{
 		adapterNumber = D3DADAPTER_DEFAULT;
+	}
 
 	if (bWindowedMode)
 	{
@@ -596,25 +613,34 @@ GUID empty;
 
 		HRESULT hr = GetPresentationParams(hWndDevice, hWndFocus, bWindowedMode, syncMode, adapterNumber, displayMode, d3dpp);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
+
 		if (m_pd3dDevice != NULL)
 		{
 			D3DDEVICE_CREATION_PARAMETERS dcp;
 			hr = m_pd3dDevice->GetCreationParameters(&dcp);
 			if (FAILED(hr))
+			{
 				return hr;		
+			}
+
 			if (dcp.AdapterOrdinal == adapterNumber)
 			{
 				OnLostDevice();
 				hr = m_pd3dDevice->Reset(&d3dpp);
 				if (FAILED(hr))
+				{
 					this->CleanupD3D_Devices();
+				}
 			}
 			else
 			{
 				this->CleanupD3D_Devices();
 			}
 		}
+
 		if (m_pd3dDevice == NULL)
 		{
 			if (FAILED(hr = CreateDxDevice(adapterNumber, hWndFocus, &d3dpp, &m_pd3dDevice)))
@@ -622,6 +648,7 @@ GUID empty;
 				return E_FAIL;
 			}
 		}
+
 		if(FAILED(m_pD3D->GetAdapterDisplayMode(adapterNumber, &chooseDisplayMode)))
 		{
 			return E_FAIL;
@@ -638,39 +665,64 @@ GUID empty;
 				adapterNumber = autoSelectAdapter;
 			}
 		}
+
 		if (!CanDisplayManualMode(adapterNumber, displayMode, chooseDisplayMode))
+		{
 			if (!CanDisplayCurrentMode(adapterNumber, chooseDisplayMode, adapterNumber))
+			{
 				if (!CanDisplayOtherMode(adapterNumber, chooseDisplayMode))
+				{
 					return E_FAIL;
+				}
+			}
+		}
 
 		HMONITOR hMonitorAdapter = m_pD3D->GetAdapterMonitor(adapterNumber);
 		MONITORINFO mi;
 		ZeroMemory(&mi, sizeof(mi));
 		mi.cbSize = sizeof(mi);
-		if (this->DXUTGetMonitorInfo(hMonitorAdapter, &mi))
+		UINT showWindowFlags;
+		if (G::IsHideWindow)
 		{
-			SetWindowPos(hWndFocus, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top , mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+			showWindowFlags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOOWNERZORDER;
 		}
 		else
 		{
-			SetWindowPos(hWndFocus, HWND_TOPMOST, 0, 0, chooseDisplayMode.Width, chooseDisplayMode.Height, SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+			showWindowFlags = SWP_SHOWWINDOW | SWP_FRAMECHANGED;
+		}
+
+		if (this->DXUTGetMonitorInfo(hMonitorAdapter, &mi))
+		{
+			SetWindowPos(hWndFocus, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top , mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, showWindowFlags);
+		}
+		else
+		{
+			SetWindowPos(hWndFocus, HWND_TOPMOST, 0, 0, chooseDisplayMode.Width, chooseDisplayMode.Height, showWindowFlags);
 		}
 
 		HRESULT hr = GetPresentationParams(hWndDevice, hWndFocus, bWindowedMode, syncMode, adapterNumber, chooseDisplayMode, d3dpp);
 		if (FAILED(hr))
+		{
 			return hr;		
+		}
+
 		if (m_pd3dDevice != NULL)
 		{
 			D3DDEVICE_CREATION_PARAMETERS dcp;
 			hr = m_pd3dDevice->GetCreationParameters(&dcp);
 			if (FAILED(hr))
-				return hr;		
+			{
+				return hr;
+			}
+
 			if (dcp.AdapterOrdinal == adapterNumber)
 			{
 				OnLostDevice();
 				hr = m_pd3dDevice->Reset(&d3dpp);
 				if (FAILED(hr))
+				{
 					this->CleanupD3D_Devices();
+				}
 			}
 			else
 			{
@@ -688,7 +740,6 @@ GUID empty;
 	m_iAdapterNumber = adapterNumber;
 	m_d3dpp = d3dpp;
 	m_displayModeActual = chooseDisplayMode;	
-
 	m_bWindowedMode = bWindowedMode;
 	m_bDoubleSizedWindow = bDoubleSizedWindow;
 	m_bWindowedCustomSize = bWindowedCustomSize;
@@ -697,12 +748,12 @@ GUID empty;
 	m_bUseBlitStretch = bUseBlitStretch;
 	m_stretch = stretch;
 	m_filter = filter;
-
 	hr = OnInitaliseDevice(m_pd3dDevice);
 	if (FAILED(hr))
 	{
 		return E_FAIL;
 	}
+
 	hr = OnResetDevice();
     return hr;
 }
@@ -712,9 +763,15 @@ HRESULT CDX9::CreateDxDevice(UINT adapterNumber, HWND hFocusWindow, D3DPRESENT_P
 	HRESULT hr;
 	D3DCAPS9 d3dCaps;
 	if (ppReturnedDeviceInterface == NULL)
+	{
 		return E_POINTER;
+	}
+
 	if (m_pD3D == NULL)
+	{
 		return E_POINTER;
+	}
+
 	*ppReturnedDeviceInterface = NULL;
 	DWORD behaviorFlags = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 	hr = m_pD3D->GetDeviceCaps(adapterNumber, D3DDEVTYPE_HAL, &d3dCaps);

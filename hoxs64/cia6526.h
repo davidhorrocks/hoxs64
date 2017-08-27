@@ -65,6 +65,7 @@
 #define SetCnt3       0x0000002000000000ULL
 #define DelayMask   ~(0x0000004000000000ULL | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0 | SetCntFlip0 | SetCnt0)
 
+#define CIA_MAX_TEMPERATURE_TIME (1000000 * 60)
 
 class CIA : public IRegister
 {
@@ -90,8 +91,8 @@ public:
 
 	virtual bit8 ReadPortA()=0;
 	virtual bit8 ReadPortB()=0;
-	virtual void WritePortA()=0;
-	virtual void WritePortB()=0;
+	virtual void WritePortA(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)=0;
+	virtual void WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)=0;
 	virtual void SetSystemInterrupt()=0;
 	virtual void ClearSystemInterrupt()=0;
 
@@ -170,15 +171,16 @@ public:
 	bool SetSerialCntOut(bool value);
 	void SetSerialSpOut(bool value);
 	static long GetTenthsFromTimeToAlarm(const cia_tod &time, const cia_tod &alarm);
-
 	static int prec_bitcount[256];
 	static void init_bitcount();
-
+	bool is_warm;
 protected:
 	void GetState(SsCiaV2 &state);
 	void SetState(const SsCiaV2 &state);
 	static void UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out);
-	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);
+	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);	
+	std::random_device rd;
+	std::mt19937 randengine;
 };
 
 

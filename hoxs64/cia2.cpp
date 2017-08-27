@@ -44,6 +44,7 @@
 #define MINIMUM_GO_IDLE_TIME 5
 
 CIA2::CIA2()
+	: dist_port_temperature(0, CIA_MAX_TEMPERATURE_TIME)
 {
 	this->ID = 2;
 	this->appStatus = 0L;
@@ -101,7 +102,7 @@ bit8 t;
 	return t;
 }
 
-void CIA2::WritePortA()
+void CIA2::WritePortA(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)
 {
 bit8 t;
 
@@ -128,23 +129,66 @@ bit8 t;
 	
 	bit8 newbank = (t & 3) ^ 3;
 	bit8 oldbank = m_commandedVicBankIndex;
+	if (newbank != oldbank)
+	{
+		if (is_ddr)
+		{			
+			if ((newbank == 1 && oldbank == 2) || (newbank == 2 && oldbank == 1))
+			{
+				vic->SetMMU(3);
+				vic->m_bVicBankChanging = true;
+				vic->vicBankChangeByte = newbank;
+			}
+			else
+			{
+				bool stablewarm = false;
+				//bool stablewarm = is_warm;
+				//if (!stablewarm)
+				//{
+				//	unsigned int portrandomness = (unsigned int)dist_port_temperature(this->randengine);
+				//	if (portrandomness < this->CurrentClock)
+				//	{
+				//		stablewarm = true;
+				//	}
+				//}
 
-	
-	if ((newbank == 1 && oldbank == 2) || (newbank == 2 && oldbank == 1))
-	{
-		vic->SetMMU(3);
-		vic->m_bVicBankChanging = true;
-		vic->vicBankChangeByte = newbank;
-		m_commandedVicBankIndex = newbank;
-	}
-	else if (newbank != oldbank)
-	{
-		vic->SetMMU(newbank);
+				if (stablewarm)
+				{
+					if ((newbank == 0 && oldbank == 1) || (newbank == 2 && oldbank == 3))
+					{
+						vic->SetMMU(newbank | 1);
+						vic->m_bVicBankChanging = true;
+						vic->vicBankChangeByte = newbank;
+					}
+					else
+					{
+						vic->SetMMU(newbank);
+					}
+				}
+				else
+				{
+					vic->SetMMU(newbank);
+				}
+			}
+		}
+		else
+		{
+			if ((newbank == 1 && oldbank == 2) || (newbank == 2 && oldbank == 1))
+			{
+				vic->SetMMU(3);
+				vic->m_bVicBankChanging = true;
+				vic->vicBankChangeByte = newbank;
+			}
+			else
+			{
+				vic->SetMMU(newbank);
+			}
+		}
 		m_commandedVicBankIndex = newbank;
 	}
 }
 
-void CIA2::WritePortB()
+void CIA2::WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)
 {
 }
 

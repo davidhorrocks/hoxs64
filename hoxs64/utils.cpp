@@ -890,6 +890,7 @@ HWND hWnd;
 
 //Static constructed members for G
 bool G::IsHideMessageBox = false;
+bool G::IsHideWindow = false;
 std::random_device G::rd;
 std::mt19937 G::randengine_main;
 const TCHAR G::EmptyString[1] = TEXT("");
@@ -1352,6 +1353,7 @@ BOOL G::DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType
 {
 	if (G::IsHideMessageBox)
 	{
+		_ftprintf(stdout, TEXT("%s: %s\r\n"), lpCaption, lpText);
 		return IDOK;
 	}
 	else
@@ -1527,7 +1529,10 @@ bool G::IsMultiCore()
 			for(int i = 0; i < 32; i++)
 			{
 				if (dwSystemAffinityMask & 1)
+				{
 					c++;
+				}
+
 				dwSystemAffinityMask >>=1;
 			}
 		}
@@ -1540,9 +1545,13 @@ BOOL G::GetWindowRect6(HWND hWnd, LPRECT lpRect)
 	if (WINVER < 0x600 && G::DwmIsCompositionEnabled())
 	{
 		if (SUCCEEDED(G::s_pFnDwmGetWindowAttribute(hWnd, DWMWA_EXTENDED_FRAME_BOUNDS, lpRect, sizeof(RECT))))
+		{
 			return TRUE;
+		}
 		else
+		{
 			return FALSE;
+		}
 	}
 	else
 	{
@@ -1563,7 +1572,9 @@ void G::AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int ma
 	{
 		HWND hWndCbo = GetDlgItem(hWndParent, controls[i]);
 		if (hWndCbo)
+		{
 			G::AutoSetComboBoxHeight(hWndCbo, maxHeight);
+		}
 	}
 }
 
@@ -1583,36 +1594,52 @@ LRESULT lr;
 	}
 
 	if (hWnd == 0)
+	{
 		return;
+	}
+
 	lr = SendMessage(hWnd, CB_GETITEMHEIGHT, 0, 0);
 	if (lr == CB_ERR || lr < 0 || lr > MAXLONG)
+	{
 		return;
+	}
+
 	itemHeight = (int)lr;
 
 	lr = SendMessage(hWnd, CB_GETITEMHEIGHT, -1, 0);
 	if (lr == CB_ERR || lr < 0 || lr > MAXLONG)
+	{
 		return;
-	editHeight = (int)lr;
+	}
 
+	editHeight = (int)lr;
 	lr = SendMessage(hWnd, CB_GETCOUNT, 0, 0);
 	if (lr == CB_ERR || lr < 0 || lr > MAXLONG)
+	{
 		return;
+	}
+
 	count = (int)lr;
-
 	height = itemHeight * count + editHeight*2;
-
 	if (maxHeight > 0)
 	{
 		if (height > maxHeight)
+		{
 			height = maxHeight;
+		}
 	}
 
 	if(!GetWindowRect(hWnd, &rc))
+	{
 		return ;
+	}
 	
 	limitHeight = abs(rWorkArea.bottom - rWorkArea.top) / 3;
 	if (height > limitHeight)
+	{
 		height = limitHeight;
+	}
+
 	SetWindowPos(hWnd, (HWND)HWND_NOTOPMOST,0,0, rc.right - rc.left, (int)height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
@@ -2202,10 +2229,15 @@ LONG lRetCode;
 bool bGotWorkArea = false;
 
 	if (!hWnd)
+	{
 		return;
+	}
+
 	BOOL br = GetWindowRect(hWnd, &rcMain);
 	if (!br)
+	{
 		return;
+	}
 
 	SetRectEmpty(&rcWorkArea);
 	if (G::s_pFnMonitorFromRect != NULL && G::s_pFnGetMonitorInfo != NULL)
@@ -2239,18 +2271,37 @@ bool bGotWorkArea = false;
 
 	int workarea_w = (rcWorkArea.right-rcWorkArea.left);
 	int workarea_h = (rcWorkArea.bottom-rcWorkArea.top);
-
 	if (rcMain.right>rcWorkArea.right)
+	{
 		OffsetRect(&rcMain, rcWorkArea.right - rcMain.right, 0);
+	}
+
 	if (rcMain.bottom>rcWorkArea.bottom)
+	{
 		OffsetRect(&rcMain, 0, rcWorkArea.bottom - rcMain.bottom);
+	}
 
 	if (rcMain.left<rcWorkArea.left)
+	{
 		OffsetRect(&rcMain, rcWorkArea.left - rcMain.left, 0);
-	if (rcMain.top<rcWorkArea.top)
-		OffsetRect(&rcMain, 0, rcWorkArea.top - rcMain.top);
+	}
 
-	SetWindowPos(hWnd, HWND_TOP, rcMain.left,rcMain.top, rcMain.right-rcMain.left, rcMain.bottom-rcMain.top, SWP_NOZORDER | SWP_NOSIZE);
+	if (rcMain.top<rcWorkArea.top)
+	{
+		OffsetRect(&rcMain, 0, rcWorkArea.top - rcMain.top);
+	}
+
+	UINT showWindowFlags;
+	if (G::IsHideWindow)
+	{
+		showWindowFlags = SWP_NOZORDER | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING | SWP_NOACTIVATE;
+	}
+	else
+	{
+		showWindowFlags = SWP_NOZORDER | SWP_NOSIZE;
+	}
+
+	SetWindowPos(hWnd, HWND_TOP, rcMain.left,rcMain.top, rcMain.right-rcMain.left, rcMain.bottom-rcMain.top, showWindowFlags);
 }
 
 int G::GetEditLineString(HWND hEditControl, int linenumber, LPTSTR buffer, int cchBuffer)

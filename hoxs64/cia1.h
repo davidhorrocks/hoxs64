@@ -18,15 +18,14 @@ public:
 	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, Tape64 *tape64, CDX9 *dx);
 	void InitReset(ICLK sysclock, bool poweronreset);
 	virtual void Reset(ICLK sysclock, bool poweronreset);
-	bit8 ReadPortA();
-	bit8 ReadPortB();
+	virtual bit8 ReadPortA();
+	virtual bit8 ReadPortB();
 	bit8 ReadPortB_NoUpdateKeyboard();
-	void WritePortA();
-	void WritePortB();
-	void SetSystemInterrupt();
-	void ClearSystemInterrupt();
-
-	void ExecuteDevices(ICLK sysclock);
+	virtual void WritePortA(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new);
+	virtual void WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new);
+	virtual void SetSystemInterrupt();
+	virtual void ClearSystemInterrupt();
+	virtual void ExecuteDevices(ICLK sysclock);
 
 	void LightPen();
 	bit8 keyboard_matrix[8];
@@ -50,8 +49,6 @@ public:
 	VIC6569 *vic;
 	Tape64 *tape64;
 	IC64 *pIC64;
-	std::random_device rd;
-	std::mt19937 randengine;
 	std::uniform_int_distribution<int> dist_pal_frame;
 protected:
 	bool m_bAltLatch;

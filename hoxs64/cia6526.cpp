@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <random>
 #include "boost2005.h"
 #include "defines.h"
 #include "bits.h"
@@ -15,11 +16,13 @@ int CIA::prec_bitcount[256];
 
 CIA::CIA()
 {
+	randengine.seed(rd());
 	CurrentClock=0;
 	bEarlyIRQ = true;
 	bTimerBbug = false;
 	init_bitcount();
 	ID = 0;
+	is_warm = false;
 }
 
 void CIA::InitReset(ICLK sysclock, bool poweronreset)
@@ -80,16 +83,13 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 	flag_change=false;
 	timera_output=0;
 	timerb_output=0;
-
 	bPB67Toggle=0;
 	bPB67TimerMode=0;
 	bPB67TimerOut=0;
-
 	icr=0;
 	icr_ack=0;
 	fast_clear_pending_int = false;
 	imr=0;
-
 	Interrupt=0;
 }
 
@@ -125,7 +125,14 @@ void CIA::PreventClockOverflow()
 	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - ClockReadICR) >= CLOCKSYNCBAND_FAR)
+	{
 		ClockReadICR = ClockBehindNear;
+	}
+
+	if (CurrentClock > CIA_MAX_TEMPERATURE_TIME)
+	{
+		is_warm = true;
+	}
 }
 
 ICLK CIA::GetCurrentClock()
@@ -916,24 +923,30 @@ void CIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 cia_tod prevtime;
 bit8 old_imr;
+bit8 data_old;
+
 	ExecuteCycle(sysclock);
 	switch(address & 0x0F)
 	{
 	case 0x00:		// port a
+		data_old = pra_out;
 		pra_out = data;
-		WritePortA();
+		WritePortA(false, ddra, data_old, ddra, data);
 		break;
 	case 0x01:		// port b
-		prb_out=data;
-		WritePortB();
+		data_old = prb_out;
+		prb_out = data;
+		WritePortB(false, ddrb, data_old, ddrb, data);
 		break;
 	case 0x02:		// data direction a
+		data_old = ddra;
 		ddra = data;
-		WritePortA();
+		WritePortA(true, data_old, pra_out, data, pra_out);
 		break;
 	case 0x03:		// data direction b
+		data_old = ddrb;
 		ddrb = data;
-		WritePortB();
+		WritePortB(true, data_old, prb_out, data, prb_out);
 		break;
 	case 0x04:		// timer a lo
 		ta_latch.byte.loByte=data;

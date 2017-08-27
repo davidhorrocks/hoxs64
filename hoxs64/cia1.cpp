@@ -40,7 +40,7 @@
 	(keyboard_rmatrix[col] & (bit8)~(1<<row))
 
 CIA1::CIA1()
-	: dist_pal_frame(1, PAL_CLOCKS_PER_FRAME)
+	: dist_pal_frame(0, PAL_CLOCKS_PER_FRAME - 1)
 {
 	appStatus = 0L;
 	dx = 0L;
@@ -52,7 +52,6 @@ CIA1::CIA1()
 	ZeroMemory(&c64KeyMap[0], sizeof(c64KeyMap));
 	m_bAltLatch = false;
 	ResetKeyboard();
-	randengine.seed(rd());
 	restore_was_up=true;
 	F12_was_up=true;
 	F11_was_up=true;
@@ -73,12 +72,24 @@ HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vi
 
 unsigned int CIA1::NextScanDelta()
 {
-	int x = dist_pal_frame(randengine);
-	if (x < KEYBOARDMINSCANINTERVAL)
+	int desiredVideoPosition = dist_pal_frame(randengine);
+	int currentVideoPosition = vic->vic_raster_line * PAL_CLOCKS_PER_LINE + vic->vic_raster_cycle - 1;	
+	int delta;
+	if (desiredVideoPosition > currentVideoPosition)
 	{
-		x += PAL_CLOCKS_PER_FRAME;
+		delta = desiredVideoPosition - currentVideoPosition;
 	}
-	return x;
+	else 
+	{
+		delta = desiredVideoPosition + PAL_CLOCKS_PER_FRAME - currentVideoPosition;
+	}
+
+	if (delta < KEYBOARDMINSCANINTERVAL)
+	{
+		delta += PAL_CLOCKS_PER_FRAME;
+	}
+
+	return delta;
 }
 
 void CIA1::ExecuteDevices(ICLK sysclock)
@@ -307,7 +318,7 @@ bit8 zB,wB;
 }
 
 
-void CIA1::WritePortA()
+void CIA1::WritePortA(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)
 {
 	if ((ICLKS)(CurrentClock -  nextKeyboardScanClock) > 0)
 	{
@@ -320,7 +331,7 @@ void CIA1::WritePortA()
 	}
 }
 
-void CIA1::WritePortB()
+void CIA1::WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)
 {
 	if ((ICLKS)(CurrentClock -  nextKeyboardScanClock) > 0)
 	{
@@ -513,8 +524,13 @@ bool fire2 = 0;
 		LightPen();
 		return;
 	}
-	ResetKeyboard();
 
+	ResetKeyboard();
+	if (G::IsHideWindow)
+	{
+		return;
+	}
+	
 	hr = dx->pKeyboard->GetDeviceState(sizeof(buffer),(LPVOID)&buffer); 
 	if FAILED(hr) 
 	{ 

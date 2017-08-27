@@ -221,7 +221,6 @@ msgloop:
 				}
 
 				HWND hWndDefaultAccelerator = GetActiveWindow();
-
 				if (hWndDefaultAccelerator == 0 || 
 					(
 						hWndDefaultAccelerator != m_pWinAppWindow->GetHwnd() 
@@ -254,7 +253,7 @@ msgloop:
 		}
 		frequency.QuadPart = m_framefrequency.QuadPart;
 
-		if (m_bActive && m_bReady && m_bRunning && !m_bPaused)
+		if (((m_bActive && m_bReady) || G::IsHideWindow) && m_bRunning && !m_bPaused)
 		{
 			if (!bExecuteFrameDone)
 			{
@@ -377,7 +376,7 @@ msgloop:
 			}
 
 			captionUpdateCounter--;
-			bool bDrawThisFrame = (m_fskip < 0) || m_bDebug;
+			bool bDrawThisFrame = ((m_fskip < 0) || m_bDebug);
 			if (bDrawThisFrame)
 			{
 				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
@@ -401,59 +400,56 @@ msgloop:
 		{
 			//Handle paused or non ready states in a CPU friendly manner.
 			SoundHalt();
-			if (!m_bClosing)
+			if (!m_bClosing && m_bActive && !m_bReady && !G::IsHideWindow)
 			{
-				if (m_bActive && !m_bReady)
+				hRet = E_FAIL;
+				if (dx.m_pd3dDevice != NULL)
 				{
-					hRet = E_FAIL;
-					if (dx.m_pd3dDevice != NULL)
+					hRet = dx.m_pd3dDevice->TestCooperativeLevel();
+					if (hRet == D3DERR_DEVICENOTRESET)
 					{
-						hRet = dx.m_pd3dDevice->TestCooperativeLevel();
-						if (hRet == D3DERR_DEVICENOTRESET)
+						hRet = dx.Reset();
+						if (SUCCEEDED(hRet))
 						{
-							hRet = dx.Reset();
-							if (SUCCEEDED(hRet))
+							m_pWinAppWindow->SetColours();
+							m_bReady = true;
+						}
+						else
+						{
+							if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
 							{
-								m_pWinAppWindow->SetColours();
 								m_bReady = true;
 							}
 							else
 							{
-								if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
-								{
-									m_bReady = true;
-								}
-								else
-								{
-									G::WaitMessageTimeout(1000);
-								}
-							}					
-						}
-						else if (hRet == D3DERR_DEVICELOST)
-						{
-							G::WaitMessageTimeout(1000);
-						}
-						else if (hRet == D3D_OK)
-						{
-							m_bReady = true;
-						}
+								G::WaitMessageTimeout(1000);
+							}
+						}					
 					}
-					else
+					else if (hRet == D3DERR_DEVICELOST)
 					{
 						G::WaitMessageTimeout(1000);
+					}
+					else if (hRet == D3D_OK)
+					{
+						m_bReady = true;
 					}
 				}
 				else
 				{
-					if (m_bReady)
-					{
-						UpdateEmulationDisplay();
-					}
+					G::WaitMessageTimeout(1000);
+				}
+			}
+			else
+			{
+				if (m_bReady)
+				{
+					UpdateEmulationDisplay();
+				}
 
-					if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
-					{
-						WaitMessage();
-					}
+				if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+				{
+					WaitMessage();
 				}
 			}
 		}
@@ -661,12 +657,16 @@ RECT rcMain;
 	CommandArg *caRunFast = cmdArgs.FindOption(TEXT("-runfast"));
 	CommandArg *caWindowHide = cmdArgs.FindOption(TEXT("-window-hide"));
 	CommandArg *caDefaultSettings = cmdArgs.FindOption(TEXT("-defaultsettings"));
+	CommandArg *caSoundOff= cmdArgs.FindOption(TEXT("-nosound"));
+	CommandArg *caSystemWarm = cmdArgs.FindOption(TEXT("-system-warm"));
+	CommandArg *caSystemCold = cmdArgs.FindOption(TEXT("-system-cold"));
 
 	if (caNoMessageBox || caWindowHide)
 	{
 		if (caWindowHide)
 		{
 			nCmdShow = SW_HIDE;
+			G::IsHideWindow = true;
 		}
 
 		G::IsHideMessageBox = true;
@@ -746,11 +746,13 @@ RECT rcMain;
 	}
 
 	bool alignD64 = false;
-
+	bool systemWarm = false;
+	bool warmForTestbench = false;
 	//Load the users settings.
 	if (caDefaultSettings)
 	{
-		mainCfg.LoadDefaultSetting();
+		warmForTestbench = true;
+		mainCfg.LoadDefaultSetting();		
 	}
 	else
 	{
@@ -845,7 +847,10 @@ RECT rcMain;
 	}
 
 	m_bWindowed = true;
-	G::EnsureWindowPosition(hWndMain);
+	if (!G::IsHideWindow)
+	{
+		G::EnsureWindowPosition(hWndMain);
+	}
 
 	//Initialise directx
 	hr = dx.Init(thisAppStatus, VIC6569::vic_color_array);
@@ -863,16 +868,19 @@ RECT rcMain;
 		DestroyWindow(hWndMain);
 		return hr;
 	}
-
-	hr = dx.OpenDirectSound(hWndMain, m_fps);
-	if (FAILED(hr))
+	
+	m_bSoundOK = false;
+	if (caSoundOff == NULL)
 	{
-		m_bSoundOK = false;
-		G::DebugMessageBox(hWndMain, TEXT("Direct Sound has failed to initialise with the primary sound driver. Sound will be unavailable."), m_szAppName, MB_ICONWARNING);
-	}
-	else
-	{
-		m_bSoundOK = true;
+		hr = dx.OpenDirectSound(hWndMain, m_fps);
+		if (FAILED(hr))
+		{
+			G::DebugMessageBox(hWndMain, TEXT("Direct Sound has failed to initialise with the primary sound driver. Sound will be unavailable."), m_szAppName, MB_ICONWARNING);
+		}
+		else
+		{
+			m_bSoundOK = true;
+		}
 	}
 
 	//Initialise the c64 emulation.
@@ -884,7 +892,7 @@ RECT rcMain;
 	}
 
 	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, m_bWindowedCustomSize, mainWinWidth, mainWinHeight, m_bUseBlitStretch);
-	if (S_OK != hr) 
+	if (FAILED(hr))
 	{
 		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
 		DestroyWindow(hWndMain);
@@ -938,8 +946,25 @@ RECT rcMain;
 		}
 	}
 
+	if (caSystemWarm)
+	{
+		systemWarm = true;
+	}
+	else if (caSystemCold)
+	{
+		systemWarm = false;
+	}
+	else if (warmForTestbench)
+	{
+		systemWarm = true;
+	}
+
 	//Reset the C64
 	c64.Reset(0, true);
+	if (systemWarm)
+	{
+		c64.Warm();
+	}
 
 	int directoryIndex = -1; //default to a LOAD"*",8,1 for disk files
 	TCHAR *fileName = NULL;	
@@ -995,7 +1020,10 @@ RECT rcMain;
 	}
 
 	ShowWindow(hWndMain, nCmdShow);
-	UpdateWindow(hWndMain);
+	if (!G::IsHideWindow)
+	{
+		UpdateWindow(hWndMain);
+	}
 	return (S_OK);
 }
 
@@ -1819,7 +1847,10 @@ EventArgs e;
 void CApp::UpdateEmulationDisplay()
 {
 	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	{
 		return;
+	}
+
 	m_pWinAppWindow->m_pWinEmuWin->UpdateC64WindowWithObjects();
 }
 

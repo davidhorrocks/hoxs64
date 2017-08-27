@@ -220,13 +220,23 @@ void CEmuWindow::SetVicCursorPos(int iCycle, int iLine)
 void CEmuWindow::GetVicCursorPos(int *piCycle, int *piLine)
 {
 	if (piCycle)
+	{
 		*piCycle = m_iVicCycleCursor;
+	}
+
 	if (piLine)
+	{
 		*piLine = m_iVicLineCursor;
+	}
 }
 
 void CEmuWindow::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (G::IsHideWindow)
+	{
+		return;
+	}
+
 	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
 	{
 		int x = GET_X_LPARAM(lParam);
@@ -237,7 +247,9 @@ void CEmuWindow::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		SetCursorAtClientPosition(x, y);
 		UpdateC64WindowWithObjects();
 		if (m_pINotify)
+		{
 			m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+		}
 
 		m_iLastX = x;
 		m_iLastY = y;
@@ -246,6 +258,11 @@ void CEmuWindow::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 void CEmuWindow::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if (G::IsHideWindow)
+	{
+		return;
+	}
+
 	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
 	{
 		int x = GET_X_LPARAM(lParam);
@@ -256,17 +273,25 @@ void CEmuWindow::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SetCursorAtClientPosition(x, y);
 			UpdateC64WindowWithObjects();
 			if (m_pINotify)
+			{
 				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+			}
 
 			m_iLastX = x;
 			m_iLastY = y;
 		}
+
 		m_bDragMode = false;
 	}
 }
 
 bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {	
+	if (G::IsHideWindow)
+	{
+		return true;
+	}
+
 	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
 	{
 		if (m_bDragMode)
@@ -276,7 +301,9 @@ bool CEmuWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SetCursorAtClientPosition(x, y);
 			UpdateC64WindowWithObjects();
 			if (m_pINotify)
+			{
 				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+			}
 
 			m_iLastX = x;
 			m_iLastY = y;
@@ -295,11 +322,17 @@ int cycle, line;
 
 void CEmuWindow::UpdateC64WindowWithObjects()
 {
+	if (G::IsHideWindow)
+	{
+		return;
+	}
+
 	HRESULT hr = this->UpdateC64Window();
 	if (SUCCEEDED(hr))
 	{
 		this->Present(0);
 	}
+
 	if (appStatus->m_bWindowed && appStatus->m_bDebug && !appStatus->m_bRunning && m_bDrawVicRasterBreakpoints)
 	{
 		HWND hWnd = this->GetHwnd();
@@ -395,9 +428,14 @@ HRESULT CEmuWindow::RenderWindow()
 {
 HRESULT hr;
 	if (!dx)
+	{
 		return E_FAIL;
+	}
+
 	if (!dx->m_pd3dDevice)
+	{
 		return E_FAIL;	
+	}
 
 	//Blank out any regions that are outside of the C64 display area.
 	dx->ClearTargets(m_dwSolidColourFill);
@@ -428,10 +466,21 @@ HRESULT CEmuWindow::UpdateC64Window()
 {
 HRESULT hr = E_FAIL;
 
+	if (G::IsHideWindow)
+	{
+		return S_FALSE;
+	}
+
 	if (!dx || !c64)
+	{
 		return E_FAIL;
+	}
+
 	if (!dx->m_pd3dDevice)
+	{
 		return E_FAIL;
+	}
+
 	//VIC6569::UpdateBackBuffer() draws pixels that have been buffered by the VIC class to the dx small surface.
 	hr = this->c64->UpdateBackBuffer();
 	if (SUCCEEDED(hr))

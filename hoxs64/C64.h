@@ -79,7 +79,7 @@ public:
 	void ExecuteDiskClock();
 	int ExecuteDebugFrame();
 	int ExecuteFrame();
-
+	void Warm();
 	void EnterDebugRun(bool bWithSound);
 	void FinishDebugRun();
 
@@ -200,10 +200,11 @@ protected:
 		bool bAlignD64Tracks;
 		bit8 *pImageData;
 		class SIDLoader *pSidFile;
-
+		ICLK startclock;
 
 		AutoLoadCommand()
 		{
+			startclock = 0;
 			pImageData = 0;
 			pSidFile = 0;
 			CleanUp();
