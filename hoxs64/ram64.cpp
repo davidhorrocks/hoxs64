@@ -45,75 +45,114 @@ RAM64::~RAM64()
 
 void RAM64::InitReset(bool poweronreset)
 {
-int i;
-	std::uniform_int_distribution<int> dist_byte(0, 255);
-	for (i=0 ; i<=0xFFFF ; i++)
+	if (!poweronreset)
 	{
-		switch((i & 0x0380) >> 7)
+		return;
+	}
+	int i;
+	bool usecommon = false;
+	bool userandom = true;
+	bool isnewc64 = true;
+	std::uniform_int_distribution<int> dist_byte(0, 255);
+
+	for (i=0; i <= 0xFFFF; i++)
+	{
+		if (usecommon)
 		{
-		case 0:
-			if ((i & 127) == 0)
+			if (isnewc64)
 			{
-				mMemory[i] = dist_byte(G::randengine_main);
+				mMemory[i] = ((i & 0x80) == 0 ? 0xff : 0x00);
 			}
 			else
 			{
+				mMemory[i] = ((i & 0x40) != 0 ? 0xff : 0x00);
+			}
+		}
+		else
+		{
+			switch((i & 0x0380) >> 7)
+			{
+			case 0:
 				mMemory[i] = 0xff;
-			}
-			break;
-		case 1:
-			mMemory[i] = 0;
-			break;
-		case 2:
-			if ((i & 127) == 0)
-			{
-				mMemory[i] = dist_byte(G::randengine_main);
-			}
-			else
+				break;
+			case 1:
+				mMemory[i] = 0;
+				break;
+			case 2:
 				mMemory[i] = 0xff;
-			break;
-		case 3:
-			mMemory[i] = 0;
-			break;
-		case 4:
-			if ((i & 127) == 0)
-			{
-				mMemory[i] = dist_byte(G::randengine_main);
-			}
-			else
+				break;
+			case 3:
+				mMemory[i] = 0;
+				break;
+			case 4:
 				if ((i & 0x8000) == 0)
+				{
 					mMemory[i] = 0x99;
+				}
 				else
+				{
 					mMemory[i] = 0x66;
-			break;
-		case 5:
-			if ((i & 0x8000) == 0)
-				mMemory[i] = 0x99;
-			else
-				mMemory[i] = 0x66;
-			break;
-		case 6:
-			if ((i & 127) == 0)
-			{
-				mMemory[i] = dist_byte(G::randengine_main);
+				}
+
+				break;
+			case 5:
+				if ((i & 0x8000) == 0)
+				{
+					mMemory[i] = 0x66;
+				}
+				else
+				{
+					mMemory[i] = 0x99;
+				}
+
+				break;
+			case 6:
+				if ((i & 0x8000) == 0)
+				{
+					mMemory[i] = 0x99;
+				}
+				else
+				{
+					mMemory[i] = 0x66;
+				}
+
+				break;
+			case 7:
+				if ((i & 0x8000) == 0)
+				{
+					mMemory[i] = 0x66;
+				}
+				else
+				{
+					mMemory[i] = 0x99;
+				}
+
+				break;
 			}
-			else
-			if ((i & 0x8000) == 0)
-				mMemory[i] = 0x99;
-			else
-				mMemory[i] = 0x66;
-			break;
-		case 7:
-			if ((i & 0x8000) == 0)
-				mMemory[i] = 0x99;
-			else
-				mMemory[i] = 0x66;
-			break;
 		}
 	}
-	for (i=0 ; i<1024 ; i++)
+
+	if (userandom)
 	{
-		mColorRAM[i] = 0;
+		for (i=0; i <= 0xFF; i++)
+		{
+			mMemory[i << 8] = dist_byte(G::randengine_main);
+		}
+	}
+
+	if (usecommon)
+	{
+		for (i=0 ; i<1024 ; i++)
+		{
+			mColorRAM[i] = 0xf;
+		}
+	}
+	else
+	{
+		for (i=0 ; i<1024 ; i++)
+		{
+			mColorRAM[i] = ((i & 1) == 0) ^ ((i & 8) == 0) ? 0x3 : 0xc;
+		}
 	}
 
 	LoadResetPattern();
