@@ -1,0 +1,102 @@
+Command Line Options
+Parameters including path names can optionally be double quoted. Double 
+quotes are required when path names include embedded spaces or double 
+quotes.
+
+
+-autoload <filename> {#<directoryprgnumber> | :<directoryitemname> }
+Loads a disk, cartridge or tape file and runs a C64 program.
+<filename> The host PC file name. Support files are D64 G64 P64 FDI CRT TAP 
+PRG.
+<directoryprgnumber> A zero based number that specifies which PRG in a 1541 
+disk to load.
+<directoryitemname> The CBM DOS name. A colon must precede the name with no 
+space.
+
+Example
+hoxs64 –autoload D:\NoDoubleQuoteNeeded\demo.D64
+This will load and run the default file in demo.D64
+
+Example
+hoxs64 –autoload "D:\My Demos\demo.D64"
+This will load and run the default file in demo.D64
+
+Example
+hoxs64 –autoload "D:\My Demos\demo.D64" #3
+This will load and run the 4th PRG file in demo.D64
+
+Example
+hoxs64 –autoload "D:\My Demos\demo.D64" ":CHESS"
+This will load and run the file called CHESS in demo.D64
+
+-mountdisk <filename>
+Mounts a host PC disk file called <filename> but does not automatically load 
+any programs.
+
+
+-quickload
+Memory injects the PRG file. This currently does not simulate the exact 
+memory pattern that would be caused by real load from tape or disk.
+
+
+-cia-new
+Use new CIA.
+
+
+-cia-old
+Use old CIA.
+
+
+-alignd64tracks
+Align D64 tracks.
+
+
+-debugcart
+Enable the debug cart. A write to IO $D7FF will cause the application to 
+return an exit code. The first byte written to $D7FF becomes the exit code. 
+The actual time of exit is deferred till the end of the current frame.
+
+
+-exitscreenshot <filename>
+Write a screen shot PNG file just before the application exits. <filename> 
+is the name of the file. Existing files are overwritten.
+
+Example
+hoxs64 –exitscreenshot D:\Pictures\Test.png
+
+
+-defaultsettings
+Load emulation defaults before applying other options. Drive enabled. New 
+CIA. D64 track skew. Track zero sensor. SID resample. Default keyboard 
+layout. Pepto colour palette.
+
+
+-window-hide
+Donot show an application Window and do not show message boxes. Runs in the
+background.
+
+
+-nomessagebox
+Prevent Windows message boxes.
+
+
+-nosound
+No SID sound will be sent to the sound driver.
+
+
+-limitcycles <n>
+Cause the application to exit after <n> number (a 32 bit number) of clock 
+cycles with exit code 1.
+
+
+-hlt-reset
+Reset the CPU upon freezing with HLT such as opcode $02 etc.
+
+
+-hlt-exit
+Main CPU HLT exits with exit code 255.
+
+
+-runfast
+Run at the fastest possible speed. Disables sound.
+
