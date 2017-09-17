@@ -41,7 +41,10 @@ int i;
 	m_pd3dSwapChain = NULL;
 	m_pDiplaymodes = NULL;
 	for (int i=0; i < _countof(m_pSmallSurface); i++)
+	{
 		m_pSmallSurface[i] = NULL;
+	}
+
 	m_iIndexSmallSurface = 0;
 	ZeroMemory(&m_sizeSmallSurface, sizeof(m_sizeSmallSurface));
 	m_bTargetRectOk = false;
@@ -53,39 +56,32 @@ int i;
 	m_displayWidth = 0;
 	m_displayHeight = 0;
 	m_displayStart = 0;
-
 	pDirectDrawCreateEx=0;
 	pDirectInputCreateEx=0;
-
-
 	DIHinst = 0;
 	pKeyboard = 0;
 	pDI = 0;
 
 	for (i=0; i<NUMJOYS; i++)
+	{
 		joy[i] = 0;
+	}
 
 	lpDirectSound=NULL;
 	pPrimarySoundBuffer=NULL;
 	pSecondarySoundBuffer=NULL;
-
 	m_diplaymodes_count=0;
 	BufferLockSize=0;
-
 	m_iEraseCount = 0;
-
 	m_psprLedDrive = NULL;
-
 	m_ptxLedGreenOn = NULL;
 	m_ptxLedGreenOff = NULL;
 	m_ptxLedRedOn = NULL;
 	m_ptxLedRedOff = NULL;
 	m_ptxLedBlueOn = NULL;
 	m_ptxLedBlueOff = NULL;
-
 	m_dxfont = NULL;
 	m_sprMessageText = NULL;
-
 	m_soundResumeDelay = 0;
 	m_hWndDevice = NULL;
 	m_hWndFocus = NULL;
@@ -94,6 +90,7 @@ int i;
 	ZeroMemory(&m_displayModeActual, sizeof(m_displayModeActual));
 	m_assumed_dpi_y = ASSUMED_DPI_DEFAULT;
 	m_assumed_dpi_x = ASSUMED_DPI_DEFAULT;
+	m_appStatus = NULL;
 }
 
 CDX9::~CDX9()
@@ -314,16 +311,32 @@ void CDX9::CleanupD3D_Devices()
 void CDX9::CleanupD3D()
 {
 	CleanupD3D_Devices();
-
     if( m_pD3D != NULL)
+	{
         m_pD3D->Release();
+	}
+
 	m_pD3D = NULL;
 }
 
-HRESULT CDX9::Init(CAppStatus *appStatus, bit32 vicColorTable[])
+HRESULT CDX9::Init(CAppStatus *appStatus)
+{
+	m_appStatus = appStatus;
+	SetDefaultPalette(appStatus->m_colour_palette, _countof(appStatus->m_colour_palette));
+	return S_OK;
+}
+
+void CDX9::SetDefaultPalette()
+{
+	if (m_appStatus != NULL)
+	{
+		SetDefaultPalette(m_appStatus->m_colour_palette, _countof(m_appStatus->m_colour_palette));
+	}
+}
+
+void CDX9::SetDefaultPalette(const DWORD pallet[], int numentries)
 {
 	int i;
-	m_appStatus = appStatus;
 	for (i = 0; i < 256; i++)
 	{
 		m_paletteEntry[i].peRed = (BYTE) (((i >> 5) & 0x07) * 255 / 7);
@@ -331,15 +344,13 @@ HRESULT CDX9::Init(CAppStatus *appStatus, bit32 vicColorTable[])
 		m_paletteEntry[i].peBlue = (BYTE) (((i >> 0) & 0x03) * 255 / 3);
 		m_paletteEntry[i].peFlags = (BYTE) 1;
 	}
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < numentries; i++)
 	{
-		m_paletteEntry[i].peRed = (BYTE) ((vicColorTable[i] & 0x00ff0000) >> 16);
-		m_paletteEntry[i].peGreen = (BYTE) ((vicColorTable[i] & 0x0000ff00) >> 8);
-		m_paletteEntry[i].peBlue = (BYTE) ((vicColorTable[i] & 0x000000ff));
+		m_paletteEntry[i].peRed = (BYTE) ((pallet[i] & 0x00ff0000) >> 16);
+		m_paletteEntry[i].peGreen = (BYTE) ((pallet[i] & 0x0000ff00) >> 8);
+		m_paletteEntry[i].peBlue = (BYTE) ((pallet[i] & 0x000000ff));
 		m_paletteEntry[i].peFlags = (BYTE) 1;
 	}
-
-	return S_OK;
 }
 
 BOOL CDX9::DXUTGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpMonitorInfo)
@@ -2324,6 +2335,33 @@ DWORD v;
 		v = 0;
 	}
 	return v;
+}
+
+DWORD CDX9::ConvertColour2(D3DFORMAT format, COLORREF rgb)
+{
+DWORD cl;
+IDirect3DSurface9 *pSurface;
+
+	switch (format)
+	{
+		case D3DFMT_P8:
+		case D3DFMT_A8:
+		case D3DFMT_L8:
+			if (D3D_OK == this->m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pSurface))
+			{
+				if (pSurface)
+				{				
+					cl= (bit8) this->DDColorMatch(pSurface, rgb);
+					pSurface->Release();
+					pSurface = NULL;
+				}
+			}
+			break;
+		default:
+			cl = CDX9::ConvertColour(format, rgb);
+			break;
+	}
+	return cl;
 }
 
 

@@ -561,92 +561,96 @@ COLORREF textcolor_old,backcolor_old;
 		return 0;
 	case WM_PAINT:
 		if (GetUpdateRect(hwnd, &rc, FALSE)==0)
-			return 0;
-		hdc = BeginPaint(hwnd, &ps); 
-		GetClientRect(hwnd, &rc); 
-
-		hPen=0;
-		hPen_highlight = 0;
-		hPen_shadow = 0;
-		hPen_darkshadow = 0;
-		hPenOld=0;
-		textcolor_old=0;
-		backcolor_old=0;
-		textcolor_old = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-		backcolor_old = SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-		if (keycontrol[c64key].state == kcs_display)
 		{
-			if (keycontrol[c64key].bGotFocus)
+			return 0;
+		}
+		hdc = BeginPaint(hwnd, &ps); 
+		if (hdc != NULL)
+		{
+			GetClientRect(hwnd, &rc); 
+			hPen=0;
+			hPen_highlight = 0;
+			hPen_shadow = 0;
+			hPen_darkshadow = 0;
+			hPenOld=0;
+			textcolor_old=0;
+			backcolor_old=0;
+			textcolor_old = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+			backcolor_old = SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
+			if (keycontrol[c64key].state == kcs_display)
 			{
-				lb.lbStyle = BS_SOLID; 
+				if (keycontrol[c64key].bGotFocus)
+				{
+					lb.lbStyle = BS_SOLID; 
+					lb.lbColor = RGB(255,0,0); 
+					lb.lbHatch = 0;
+					hPen = ExtCreatePen(PS_GEOMETRIC | PS_SOLID | PS_INSIDEFRAME, 
+						2, &lb, 0, NULL); 
+					if (hPen)
+					{
+						hPenOld = (HPEN) SelectObject(hdc, hPen); 
+						Rectangle(hdc,rc.left, rc.top, rc.right, rc.bottom);
+						InflateRect(&rc,-2,-2);
+						DrawText(hdc,keycontrol[c64key].text,lstrlen(keycontrol[c64key].text),&rc,DT_CENTER);
+					}
+				}
+				else
+				{
+
+					hPen_highlight = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNHIGHLIGHT));
+					hPen_shadow = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNSHADOW));
+					hPen_darkshadow = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_3DDKSHADOW));
+
+					if (hPen_highlight && hPen_shadow)
+					{
+						hPenOld = (HPEN) SelectObject(hdc, hPen_shadow); 
+						MoveToEx(hdc, rc.left,rc.top, NULL);
+						LineTo(hdc,rc.right,rc.top);
+						MoveToEx(hdc, rc.left,rc.top, NULL);
+						LineTo(hdc,rc.left,rc.bottom);
+
+						SelectObject(hdc, hPen_darkshadow); 
+						MoveToEx(hdc, rc.left+1,rc.top+1, NULL);
+						LineTo(hdc,rc.right-1,rc.top+1);
+						MoveToEx(hdc, rc.left+1,rc.top+1, NULL);
+						LineTo(hdc,rc.left+1,rc.bottom-1);
+
+						SelectObject(hdc, hPen_highlight); 
+						MoveToEx(hdc, rc.right,rc.top, NULL);
+						LineTo(hdc,rc.right,rc.bottom);
+						MoveToEx(hdc, rc.left,rc.bottom, NULL);
+						LineTo(hdc,rc.right,rc.bottom);
+
+						InflateRect(&rc,-2,-2);
+						SetBkMode(hdc, TRANSPARENT);
+						DrawText(hdc,keycontrol[c64key].text,lstrlen(keycontrol[c64key].text),&rc,DT_CENTER);
+					}
+				}
+			}
+			else
+			{
+				lb.lbStyle = BS_HATCHED; 
 				lb.lbColor = RGB(255,0,0); 
-				lb.lbHatch = 0;
+				lb.lbHatch = HS_FDIAGONAL;
 				hPen = ExtCreatePen(PS_GEOMETRIC | PS_SOLID | PS_INSIDEFRAME, 
-					2, &lb, 0, NULL); 
+					4, &lb, 0, NULL); 
 				if (hPen)
 				{
 					hPenOld = (HPEN) SelectObject(hdc, hPen); 
 					Rectangle(hdc,rc.left, rc.top, rc.right, rc.bottom);
 					InflateRect(&rc,-2,-2);
-					DrawText(hdc,keycontrol[c64key].text,lstrlen(keycontrol[c64key].text),&rc,DT_CENTER);
+					DrawText(hdc,G::GetStringRes(IDS_PRESSANYKEY),lstrlen(G::GetStringRes(IDS_PRESSANYKEY)),&rc,DT_CENTER);
 				}
 			}
-			else
-			{
-
-				hPen_highlight = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNHIGHLIGHT));
-				hPen_shadow = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNSHADOW));
-				hPen_darkshadow = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_3DDKSHADOW));
-
-				if (hPen_highlight && hPen_shadow)
-				{
-					hPenOld = (HPEN) SelectObject(hdc, hPen_shadow); 
-					MoveToEx(hdc, rc.left,rc.top, NULL);
-					LineTo(hdc,rc.right,rc.top);
-					MoveToEx(hdc, rc.left,rc.top, NULL);
-					LineTo(hdc,rc.left,rc.bottom);
-
-					SelectObject(hdc, hPen_darkshadow); 
-					MoveToEx(hdc, rc.left+1,rc.top+1, NULL);
-					LineTo(hdc,rc.right-1,rc.top+1);
-					MoveToEx(hdc, rc.left+1,rc.top+1, NULL);
-					LineTo(hdc,rc.left+1,rc.bottom-1);
-
-					SelectObject(hdc, hPen_highlight); 
-					MoveToEx(hdc, rc.right,rc.top, NULL);
-					LineTo(hdc,rc.right,rc.bottom);
-					MoveToEx(hdc, rc.left,rc.bottom, NULL);
-					LineTo(hdc,rc.right,rc.bottom);
-
-					InflateRect(&rc,-2,-2);
-					SetBkMode(hdc, TRANSPARENT);
-					DrawText(hdc,keycontrol[c64key].text,lstrlen(keycontrol[c64key].text),&rc,DT_CENTER);
-				}
-			}
+			if (textcolor_old) SetTextColor(hdc, textcolor_old);
+			if (backcolor_old) SetBkColor(hdc, backcolor_old);
+			if (hPenOld) SelectObject(hdc, hPenOld); 
+			if (hPen) DeleteObject(hPen); 
+			if (hPen_highlight)	DeleteObject(hPen_highlight); 
+			if (hPen_shadow) DeleteObject(hPen_shadow); 
+			if (hPen_darkshadow) DeleteObject(hPen_darkshadow); 
+			EndPaint(hwnd, &ps); 
 		}
-		else
-		{
-			lb.lbStyle = BS_HATCHED; 
-			lb.lbColor = RGB(255,0,0); 
-			lb.lbHatch = HS_FDIAGONAL;
-			hPen = ExtCreatePen(PS_GEOMETRIC | PS_SOLID | PS_INSIDEFRAME, 
-				4, &lb, 0, NULL); 
-			if (hPen)
-			{
-				hPenOld = (HPEN) SelectObject(hdc, hPen); 
-				Rectangle(hdc,rc.left, rc.top, rc.right, rc.bottom);
-				InflateRect(&rc,-2,-2);
-				DrawText(hdc,G::GetStringRes(IDS_PRESSANYKEY),lstrlen(G::GetStringRes(IDS_PRESSANYKEY)),&rc,DT_CENTER);
-			}
-		}
-		if (textcolor_old) SetTextColor(hdc, textcolor_old);
-		if (backcolor_old) SetBkColor(hdc, backcolor_old);
-		if (hPenOld) SelectObject(hdc, hPenOld); 
-		if (hPen) DeleteObject(hPen); 
-		if (hPen_highlight)	DeleteObject(hPen_highlight); 
-		if (hPen_shadow) DeleteObject(hPen_shadow); 
-		if (hPen_darkshadow) DeleteObject(hPen_darkshadow); 
-		EndPaint(hwnd, &ps); 
 	default:
 		return DefWindowProc(hwnd,uMsg,wParam,lParam);
 	}

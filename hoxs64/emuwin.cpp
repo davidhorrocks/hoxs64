@@ -96,40 +96,32 @@ void CEmuWindow::ClearSurfaces()
 void CEmuWindow::SetColours()
 {
 	if (dx == NULL)
+	{
 		return;
+	}
+
 	if (dx->m_pd3dDevice == NULL)
+	{
 		return;
+	}
+
 	D3DDISPLAYMODE currentDisplayMode;
+	dx->SetDefaultPalette();
 	HRESULT hr = dx->m_pd3dDevice->GetDisplayMode(0, &currentDisplayMode);
 	if (SUCCEEDED(hr))
 	{
-		if (appStatus!=NULL)
+		if (appStatus != NULL)
 		{
 			appStatus->m_displayFormat = (DWORD)currentDisplayMode.Format;
 			appStatus->m_ScreenDepth = CDX9::GetBitsPerPixel(currentDisplayMode.Format);
 
 			if (c64!=NULL)
-				c64->SetupColorTables(currentDisplayMode.Format);
-
-			switch(appStatus->m_ScreenDepth)
 			{
-			case 8:
-				m_dwSolidColourFill = VIC6569::vic_color_array8[0];
-				break;
-			case 16:
-				m_dwSolidColourFill = VIC6569::vic_color_array16[0];
-				break;
-			case 24:
-				m_dwSolidColourFill = VIC6569::vic_color_array24[0];
-				break;
-			case 32:
-				m_dwSolidColourFill = VIC6569::vic_color_array32[0];
-				break;
-			default:
-				m_dwSolidColourFill = 0;
+				c64->SetupColorTables(currentDisplayMode.Format);
 			}
-		}
 
+			m_dwSolidColourFill = dx->ConvertColour2(currentDisplayMode.Format, RGB(0, 0, 0));
+		}
 	}
 }
 

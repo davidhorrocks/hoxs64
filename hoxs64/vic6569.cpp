@@ -28,6 +28,7 @@
 #include "c6502.h"
 #include "ram64.h"
 #include "cpu6510.h"
+#include "viciipalette.h"
 #include "vic6569.h"
 
 #define vic_borderbuffer vic_pixelbuffer
@@ -1703,17 +1704,23 @@ bit8 a_color4[4];
 
 VIC6569::VIC6569()
 {
+int i;
+	for (i = 0; i < VicIIPalette::NumColours; i++)
+	{
+		vic_color_array[i] = (bit32)VicIIPalette::Pepto[i];
+	}
+
 	m_pBackBuffer = NULL;
 	ram=NULL;
 	cpu=NULL;
 	dx=NULL;
 	appStatus=NULL;
 	vic_pixelbuffer=NULL;
-	//vic_borderbuffer=NULL;
 	for (int i=0; i < 8; i++)
 	{
 		vicSprite[i].vic = this;
 	}
+
 	FrameNumber = 0;
 	m_iLastBackedUpFrameNumber = -1;
 	currentPixelBufferNumber = 0;
@@ -2000,9 +2007,18 @@ bit8 red,green,blue;
 bit32 cl;
 IDirect3DSurface9 *pSurface;
 
-	for (i=16 ; i < 256 ; i++)
+	for (i = 0; i < 256; i++)
 	{
-		vic_color_array[i]=vic_color_array[i & 15];
+		if (appStatus != NULL)
+		{
+			cl = appStatus->m_colour_palette[i & 0xf];
+		}
+		else
+		{
+			cl = VicIIPalette::Pepto[i & 0xf];
+		}
+
+		vic_color_array[i] = cl;
 		vic_color_array8[i] = (bit8)i;
 	}
 
@@ -2047,8 +2063,7 @@ IDirect3DSurface9 *pSurface;
 			if (D3D_OK == dx->m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pSurface))
 			{
 				if (pSurface)
-				{
-				
+				{				
 					//8
 					for (i=0 ; i < 256 ; i++)
 					{

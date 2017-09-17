@@ -34,10 +34,9 @@
 #include "errormsg.h"
 #include "hexconv.h"
 #include "C64.h"
-
 #include "user_message.h"
-
 #include "prgbrowse.h"
+#include "diagcolour.h"
 #include "diagkeyboard.h"
 #include "diagjoystick.h"
 #include "diagemulationsettingstab.h"
@@ -498,6 +497,24 @@ HRESULT CApp::RegisterKeyPressWindow(HINSTANCE hInstance)
 	return S_OK;
 }
 
+HRESULT CApp::RegisterVicColorWindow(HINSTANCE hInstance)
+{
+	WNDCLASS  wc;
+	wc.cbClsExtra=0;
+	wc.cbWndExtra=sizeof(LPVOID *);
+	wc.hbrBackground=(HBRUSH)(COLOR_BTNFACE+1);
+	wc.hCursor=LoadCursor(NULL, IDC_ARROW);
+	wc.hIcon=NULL;
+	wc.hInstance=hInstance;
+	wc.lpfnWndProc=::VicColorWindowProc;
+	wc.lpszClassName=TEXT("VicColorClass");//GetStringRes(IDS_WINCLASS_KEYPRESS);
+	wc.lpszMenuName=NULL;
+	wc.style=CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+	if (RegisterClass(&wc)==0)
+		return E_FAIL;
+	return S_OK;
+}
+
 HRESULT CApp::RegisterWindowClasses(HINSTANCE hInstance)
 {
 HRESULT hr;
@@ -519,6 +536,13 @@ HRESULT hr;
 	if (FAILED(hr))
 	{
 		G::DebugMessageBox(0L, TEXT("Failed to register GetKeyPressClass class."), m_szAppName, MB_ICONEXCLAMATION);
+		return hr;
+	}
+
+	hr = RegisterVicColorWindow(hInstance);
+	if (FAILED(hr))
+	{
+		G::DebugMessageBox(0L, TEXT("Failed to register VicColorClass class."), m_szAppName, MB_ICONEXCLAMATION);
 		return hr;
 	}
 
@@ -853,14 +877,14 @@ RECT rcMain;
 	}
 
 	//Initialise directx
-	hr = dx.Init(thisAppStatus, VIC6569::vic_color_array);
+	hr = dx.Init(thisAppStatus);
 	if (FAILED(hr))
 	{
 		G::DebugMessageBox(0L, TEXT("Initialisation failed for direct 3D."), m_szAppName, MB_ICONWARNING);
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
-
+	
 	hr = dx.OpenDirectInput(m_hInstance, hWndMain);
 	if (FAILED(hr))
 	{
@@ -1571,18 +1595,26 @@ HWND hWnd = 0;
 CConfig &cfg= *(static_cast<CConfig *>(this));
 bool bNeedDisplayReset = false;
 bool bNeedSoundFilterInit = false;
+bool bPaletteChanged = false;
+int i;
 
 	if (m_pWinAppWindow!=0 && m_pWinAppWindow->GetHwnd() != 0 && IsWindow(m_pWinAppWindow->GetHwnd()))
+	{
 		hWnd = m_pWinAppWindow->GetHwnd();
+	}
 
 	c64.cia1.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
 	c64.cia2.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
 
 	if (newcfg.m_bSID_Emulation_Enable!=false && this->m_bSID_Emulation_Enable==false)
+	{
 		c64.sid.CurrentClock = c64.cpu.CurrentClock;
+	}
 
 	if (newcfg.m_bD1541_Emulation_Enable!=false && this->m_bD1541_Emulation_Enable==false)
+	{
 		c64.diskdrive.CurrentPALClock = c64.cpu.CurrentClock;
+	}
 
 	if (newcfg.m_bUseBlitStretch != this->m_bUseBlitStretch 
 		|| newcfg.m_bWindowedCustomSize != this->m_bWindowedCustomSize 
@@ -1596,6 +1628,14 @@ bool bNeedSoundFilterInit = false;
 		bNeedDisplayReset = true;
 	}
 
+	for (i = 0; i < VicIIPalette::NumColours; i++)
+	{
+		if (newcfg.m_colour_palette[i] != this->m_colour_palette[i])
+		{
+			bPaletteChanged = true;
+		}
+	}
+
 	if (newcfg.m_fps != this->m_fps
 		|| newcfg.m_bSIDResampleMode != this->m_bSIDResampleMode)
 	{
@@ -1603,6 +1643,14 @@ bool bNeedSoundFilterInit = false;
 	}
 
 	cfg = newcfg;
+
+	if (bPaletteChanged)
+	{
+		 if (m_pWinAppWindow)
+		 {
+			 m_pWinAppWindow->SetColours();
+		 }
+	}
 
 	bool bWindowedCustomSize = newcfg.m_bWindowedCustomSize;
 	if (bNeedDisplayReset)
@@ -1647,11 +1695,15 @@ bool bNeedSoundFilterInit = false;
 	{
 		c64.sid.UpdateSoundBufferLockSize(this->m_fps);
 		if (bNeedSoundFilterInit)
+		{
 			c64.sid.InitResamplingFilters(this->m_fps);
+		}
 	}
 
 	if (hWnd)
+	{
 		m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
+	}
 }
 
 void CApp::SetBusy(bool bBusy)

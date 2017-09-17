@@ -561,6 +561,7 @@
     <ClCompile Include="cart_zaxxon.cpp" />
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="cart_final_cartridge_iii.cpp" />
+    <ClCompile Include="diagcolour.cpp" />
     <ClCompile Include="DxLabel.cpp" />
     <ClCompile Include="DxTexture.cpp" />
     <ClCompile Include="DxWindow.cpp" />
@@ -583,6 +584,7 @@
     <ClCompile Include="cart_simons_basic.cpp" />
     <ClCompile Include="savestate.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />
+    <ClCompile Include="viciipalette.cpp" />
     <ClCompile Include="wpcbreakpoint.cpp" />
     <ClCompile Include="break_point.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -905,6 +907,7 @@
     <ClInclude Include="commandresult.h" />
     <ClInclude Include="diagbreakpointvicraster.h" />
     <ClInclude Include="cart_final_cartridge_iii.h" />
+    <ClInclude Include="diagcolour.h" />
     <ClInclude Include="DxWindow.h" />
     <ClInclude Include="FDI.h" />
     <ClInclude Include="filestream.h" />
@@ -919,6 +922,7 @@
     <ClInclude Include="cart_simons_basic.h" />
     <ClInclude Include="savestate.h" />
     <ClInclude Include="toolitemaddress.h" />
+    <ClInclude Include="viciipalette.h" />
     <ClInclude Include="vicpixelbuffer.h" />
     <ClInclude Include="wpcbreakpoint.h" />
     <ClInclude Include="CDPI.h" />

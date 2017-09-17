@@ -346,6 +346,12 @@
     <ClCompile Include="write_png.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="diagcolour.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="viciipalette.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -661,6 +667,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="write_png.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diagcolour.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="viciipalette.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

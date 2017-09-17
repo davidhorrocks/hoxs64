@@ -63,6 +63,7 @@
 #define IDD_BRKVICRASTER                187
 #define IDB_PNG1                        188
 #define IDB_PNG_WINDOWFULLSCREEN        188
+#define IDD_VICIICOLOURPALETTE          189
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
 #define IDC_INFO2                       1002
@@ -212,6 +213,35 @@
 #define IDC_CBO_JOY1ENABLEPOV           1322
 #define IDC_CHECK2                      1323
 #define IDC_CBO_JOY2ENABLEPOV           1323
+#define IDC_VICCOLOR2                   1324
+#define IDC_VICCOLOR3                   1325
+#define IDC_VICCOLOR0                   1326
+#define IDC_VICCOLOR1                   1327
+#define IDC_VICCOLOR6                   1328
+#define IDC_VICCOLOR7                   1329
+#define IDC_VICCOLOR4                   1330
+#define IDC_VICCOLOR5                   1331
+#define IDC_VICCOLOR10                  1332
+#define IDC_VICCOLOR11                  1333
+#define IDC_VICCOLOR8                   1334
+#define IDC_VICCOLOR9                   1335
+#define IDC_VICCOLOR14                  1336
+#define IDC_VICCOLOR15                  1337
+#define IDC_VICCOLOR12                  1338
+#define IDC_VICCOLOR13                  1339
+#define IDC_VICCOLORSAMPLE              1340
+#define IDC_EDITRGBCOLORRED             1341
+#define IDC_SLIDERRGBCOLORRED           1342
+#define IDC_EDITRGBCOLORGREEN           1343
+#define IDC_SLIDERRGBCOLORGREEN         1344
+#define IDC_EDITRGBCOLORBLUE            1345
+#define IDC_SLIDER3                     1346
+#define IDC_SLIDERRGBCOLORBLUE          1346
+#define IDC_BUTTON1                     1347
+#define IDC_BUTTON_LOADPEPTO            1347
+#define IDC_BUTTON_LOADPEPTO2           1348
+#define IDC_BUTTON2                     1348
+#define IDC_BUTTON_LOADPREVIOUSCOLOURS  1348
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -288,14 +318,16 @@
 #define IDM_DEBUG_HOMETOPC              40179
 #define ID_ACCELERATOR40180             40180
 #define IDM_DISK_SAVEDISK_P64           40183
+#define ID_SETTING_COLOUR               40184
+#define IDM_SETTING_COLOUR              40185
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        189
-#define _APS_NEXT_COMMAND_VALUE         40184
-#define _APS_NEXT_CONTROL_VALUE         1324
+#define _APS_NEXT_RESOURCE_VALUE        190
+#define _APS_NEXT_COMMAND_VALUE         40186
+#define _APS_NEXT_CONTROL_VALUE         1349
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif

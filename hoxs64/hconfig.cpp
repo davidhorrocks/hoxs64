@@ -48,6 +48,7 @@ CConfig::CConfig()
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
+	SetPalettePepto();
 }
 
 void CConfig::SetCiaNewOldMode(bool isNew)
@@ -79,7 +80,7 @@ void CConfig::SetRunNormal()
 }
 
 #define readregkeyboarditem(n) tempLenValue = lenValue;\
-		lRetCode = RegQueryValueEx(hKey1, TEXT(#n), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);\
+		lRetCode = RegReadStr(hKey1, TEXT(#n), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);\
 		if (lRetCode == ERROR_SUCCESS)\
 		{\
 			m_KeyMap[n] = (unsigned char) _ttol(szValue);\
@@ -91,13 +92,13 @@ HRESULT CConfig::LoadCurrentSetting()
 TCHAR szValue[20];
 HKEY  hKey1; 
 LONG   lRetCode; 
-ULONG tempLenValue,lenValue;
+ULONG tempLenValue;
 DWORD type,dw;
 const int maxbutton = 31;
-
-
+int i;
+	
+	const ULONG lenValue = sizeof(szValue);
 	ZeroMemory(&m_KeyMap[0], sizeof(m_KeyMap));
-
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"),
 		0, KEY_READ,
@@ -130,8 +131,6 @@ const int maxbutton = 31;
 	
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		lenValue = sizeof(szValue);
-
 		readregkeyboarditem(C64K_0);
 		readregkeyboarditem(C64K_1);
 		readregkeyboarditem(C64K_2);
@@ -225,232 +224,348 @@ const int maxbutton = 31;
 	
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		lenValue = sizeof(szValue);
-
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("D1541_Emulation"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("D1541_Emulation"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bD1541_Emulation_Enable = _ttol(szValue) != 0;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("SID_Emulation"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("SID_Emulation"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bSID_Emulation_Enable = _ttol(szValue) != 0;
 		}
 		
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("LimitSpeed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("LimitSpeed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bLimitSpeed = _ttol(szValue) != 0;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("ShowSpeed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("ShowSpeed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bShowSpeed = _ttol(szValue) != 0;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("SkipAltFrames"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("SkipAltFrames"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bSkipFrames = _ttol(szValue) != 0;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("SIDSampleMode"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("SIDSampleMode"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bSIDResampleMode = _ttol(szValue) != 0;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("SyncMode1"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("SyncMode1"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_syncMode = (HCFG::FULLSCREENSYNCMODE) _ttol(szValue);
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("DoubleSizedWindow"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("DoubleSizedWindow"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bDoubleSizedWindow = _ttol(szValue) != 0;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("UseBlitStretch"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("UseBlitStretch"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bUseBlitStretch = _ttol(szValue) != 0;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("UseKeymap"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("UseKeymap"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bUseKeymap = _ttol(szValue) != 0;
 		}
 		
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("SwapJoysticks"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("SwapJoysticks"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
+		{
 			m_bSwapJoysticks = _ttol(szValue) != 0;
-		else
-			m_bSwapJoysticks = false;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("CPUFriendly"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_bCPUFriendly = _ttol(szValue) != 0;
-		else
-			m_bCPUFriendly = true;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("AudioClockSync"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_bAudioClockSync = _ttol(szValue) != 0;
-		else
-			m_bAudioClockSync = true;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("SIDDigiBoost"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_bSidDigiBoost = _ttol(szValue) != 0;
-		else
-			m_bSidDigiBoost = true;
-
-		lRetCode = G::GetClsidFromRegValue(hKey1, TEXT("FullscreenAdapterId"), &m_fullscreenAdapterId);
-		if (FAILED(lRetCode))
-			ZeroMemory(&m_fullscreenAdapterId, sizeof(GUID));
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("FullscreenAdapterNumber"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_fullscreenAdapterNumber = _ttol(szValue);
-		else
-			m_fullscreenAdapterNumber = 0;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("FullscreenWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_fullscreenWidth = _ttol(szValue);
-		else
-			m_fullscreenWidth = 0;
-	
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("FullscreenHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_fullscreenHeight = _ttol(szValue);
-		else
-			m_fullscreenHeight = 0;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("FullscreenRefresh"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_fullscreenRefresh = _ttol(szValue);
-		else
-			m_fullscreenRefresh = 0;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("FullscreenFormat"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_fullscreenFormat = _ttol(szValue);
-		else
-			m_fullscreenFormat = 0;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("FullscreenStretch"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_fullscreenStretch = (HCFG::EMUWINDOWSTRETCH) _ttol(szValue);
-		else
-			m_fullscreenStretch = (HCFG::EMUWINDOWSTRETCH)0;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("BlitFilter"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_blitFilter = (HCFG::EMUWINDOWFILTER)_ttol(szValue);
-		else
-			m_blitFilter = (HCFG::EMUWINDOWFILTER)0;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("BorderSize"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_borderSize = (HCFG::EMUBORDERSIZE)_ttol(szValue);
-		else
-			m_borderSize = HCFG::EMUBORDER_TV;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("ShowFloppyLed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_bShowFloppyLed = _ttol(szValue) != 0;
-		else
-			m_bShowFloppyLed = true;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("FPS"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_fps = (HCFG::EMUFPS)_ttol(szValue);
-		else
-			m_fps = HCFG::EMUFPS_50;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("TrackZeroSensor"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_TrackZeroSensorStyle = (HCFG::ETRACKZEROSENSORSTYLE)_ttol(szValue);
-		else
-			m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("CIAMode"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_CIAMode = (HCFG::CIAMODE)_ttol(szValue);
-		else
-			m_CIAMode = HCFG::CM_CIA6526A;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("CIATimerBbug"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			this->m_bTimerBbug = _ttol(szValue) != 0;
-		else
-			this->m_bTimerBbug = false;
-
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("DiskThreadEnable"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_bD1541_Thread_Enable = _ttol(szValue) != 0;
+		}
 		else
 		{
-			if (G::IsMultiCore())
-				m_bD1541_Thread_Enable = true;
-			else
-				m_bD1541_Thread_Enable = false;
+			m_bSwapJoysticks = false;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("AllowOpposingJoystick"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("CPUFriendly"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
-			m_bAllowOpposingJoystick = _ttol(szValue) != 0;
+		{
+			m_bCPUFriendly = _ttol(szValue) != 0;
+		}
 		else
-			m_bAllowOpposingJoystick = false;
+		{
+			m_bCPUFriendly = true;
+		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("DisableDwmFullscreen"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("AudioClockSync"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
-			m_bDisableDwmFullscreen = _ttol(szValue) != 0;
+		{
+			m_bAudioClockSync = _ttol(szValue) != 0;
+		}
 		else
-			m_bDisableDwmFullscreen = false;
+		{
+			m_bAudioClockSync = true;
+		}
 
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("SIDDigiBoost"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_bSidDigiBoost = _ttol(szValue) != 0;
+		}
+		else
+		{
+			m_bSidDigiBoost = true;
+		}
+
+		lRetCode = G::GetClsidFromRegValue(hKey1, TEXT("FullscreenAdapterId"), &m_fullscreenAdapterId);
+		if (FAILED(lRetCode))
+		{
+			ZeroMemory(&m_fullscreenAdapterId, sizeof(GUID));
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("FullscreenAdapterNumber"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenAdapterNumber = _ttol(szValue);
+		}
+		else
+		{
+			m_fullscreenAdapterNumber = 0;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("FullscreenWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenWidth = _ttol(szValue);
+		}
+		else
+		{
+			m_fullscreenWidth = 0;
+		}
+	
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("FullscreenHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenHeight = _ttol(szValue);
+		}
+		else
+		{
+			m_fullscreenHeight = 0;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("FullscreenRefresh"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenRefresh = _ttol(szValue);
+		}
+		else
+		{
+			m_fullscreenRefresh = 0;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("FullscreenFormat"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenFormat = _ttol(szValue);
+		}
+		else
+		{
+			m_fullscreenFormat = 0;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("FullscreenStretch"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenStretch = (HCFG::EMUWINDOWSTRETCH) _ttol(szValue);
+		}
+		else
+		{
+			m_fullscreenStretch = (HCFG::EMUWINDOWSTRETCH)0;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("BlitFilter"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_blitFilter = (HCFG::EMUWINDOWFILTER)_ttol(szValue);
+		}
+		else
+		{
+			m_blitFilter = (HCFG::EMUWINDOWFILTER)0;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("BorderSize"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_borderSize = (HCFG::EMUBORDERSIZE)_ttol(szValue);
+		}
+		else
+		{
+			m_borderSize = HCFG::EMUBORDER_TV;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("ShowFloppyLed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_bShowFloppyLed = _ttol(szValue) != 0;
+		}
+		else
+		{
+			m_bShowFloppyLed = true;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("FPS"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fps = (HCFG::EMUFPS)_ttol(szValue);
+		}
+		else
+		{
+			m_fps = HCFG::EMUFPS_50;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("TrackZeroSensor"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_TrackZeroSensorStyle = (HCFG::ETRACKZEROSENSORSTYLE)_ttol(szValue);
+		}
+		else
+		{
+			m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("CIAMode"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_CIAMode = (HCFG::CIAMODE)_ttol(szValue);
+		}
+		else
+		{
+			m_CIAMode = HCFG::CM_CIA6526A;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("CIATimerBbug"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			this->m_bTimerBbug = _ttol(szValue) != 0;
+		}
+		else
+		{
+			this->m_bTimerBbug = false;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("DiskThreadEnable"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_bD1541_Thread_Enable = _ttol(szValue) != 0;
+		}
+		else
+		{
+			if (G::IsMultiCore())
+			{
+				m_bD1541_Thread_Enable = true;
+			}
+			else
+			{
+				m_bD1541_Thread_Enable = false;
+			}
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("AllowOpposingJoystick"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_bAllowOpposingJoystick = _ttol(szValue) != 0;
+		}
+		else
+		{
+			m_bAllowOpposingJoystick = false;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("DisableDwmFullscreen"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_bDisableDwmFullscreen = _ttol(szValue) != 0;
+		}
+		else
+		{
+			m_bDisableDwmFullscreen = false;
+		}
 		
 		RegCloseKey(hKey1);
 	} 
 
+	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
+		TEXT("SOFTWARE\\Hoxs64\\1.0\\VICIIPalette"),
+		0, KEY_READ,
+		&hKey1);
+	if (lRetCode == ERROR_SUCCESS)
+	{
+		std::basic_string<TCHAR> colorregkeyname;
+		for (i = 0; i < VicIIPalette::NumColours; i++)
+		{
+			colorregkeyname.clear();
+			colorregkeyname.append(TEXT("color_"));
+			if (i < 0xa)
+			{
+				colorregkeyname.push_back(TEXT('0') + i);
+			}
+			else
+			{
+				colorregkeyname.push_back(TEXT('a') + i - 0xa);
+			}
 
+			tempLenValue = sizeof(DWORD);
+			type = REG_DWORD;
+			lRetCode = RegQueryValueEx(hKey1, colorregkeyname.c_str(), NULL, &type, (PBYTE) &szValue[0], &tempLenValue);
+			if (lRetCode == ERROR_SUCCESS && tempLenValue == sizeof(DWORD))
+			{
+				this->m_colour_palette[i] = (*(DWORD *)szValue);
+			}
+			else
+			{
+				this->m_colour_palette[i] = VicIIPalette::Pepto[i];
+			}
+		}
+
+		RegCloseKey(hKey1);
+	}
+	
 	m_joy1config.bValid = false;
 	m_joy2config.bValid = false;
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
@@ -459,10 +574,8 @@ const int maxbutton = 31;
 		&hKey1);
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		lenValue = sizeof(szValue);
-
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy1Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_joy1config.bValid = _ttol(szValue) != 0;
@@ -473,7 +586,7 @@ const int maxbutton = 31;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy2Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_joy2config.bValid = _ttol(szValue) != 0;
@@ -484,7 +597,7 @@ const int maxbutton = 31;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy1Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_joy1config.bEnabled = _ttol(szValue) != 0;
@@ -495,7 +608,7 @@ const int maxbutton = 31;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy2Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_joy2config.bEnabled = _ttol(szValue) != 0;
@@ -506,7 +619,7 @@ const int maxbutton = 31;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy1POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_joy1config.bPovEnabled = _ttol(szValue) != 0;
@@ -517,7 +630,7 @@ const int maxbutton = 31;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy2POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_joy2config.bPovEnabled = _ttol(szValue) != 0;
@@ -532,22 +645,32 @@ const int maxbutton = 31;
 		m_joy2config.bXReverse = false;
 		m_joy2config.bYReverse = false;
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1RevX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy1RevX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
+		{
 			m_joy1config.bXReverse = _ttol(szValue) != 0;
-		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1RevY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-			m_joy1config.bYReverse = _ttol(szValue) != 0;
+		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2RevX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy1RevY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
-			m_joy2config.bXReverse = _ttol(szValue) != 0;
+		{
+			m_joy1config.bYReverse = _ttol(szValue) != 0;
+		}
+
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2RevY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("Joy2RevX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_joy2config.bXReverse = _ttol(szValue) != 0;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("Joy2RevY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
 			m_joy2config.bYReverse = _ttol(szValue) != 0;
+		}
 
 		m_joy1config.dwOfs_X = DIJOFS_X;
 		m_joy1config.dwOfs_Y = DIJOFS_Y;
@@ -564,36 +687,44 @@ const int maxbutton = 31;
 
 				//Joystick 1 X Axis
 				tempLenValue = lenValue;
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1AxisX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+				lRetCode = RegReadStr(hKey1, TEXT("Joy1AxisX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
 					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)) && dw>= DIJOFS_BUTTON0)
+					{
 						m_joy1config.dwOfs_X = dw;
+					}
 				}
 					
 				//Joystick 1 Y Axis
 				tempLenValue = lenValue;
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1AxisY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+				lRetCode = RegReadStr(hKey1, TEXT("Joy1AxisY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
 					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+					{
 						m_joy1config.dwOfs_Y = dw;
+					}
 				}					
 
 				//Joystick 1 Fire
 				tempLenValue = lenValue;
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+				lRetCode = RegReadStr(hKey1, TEXT("Joy1Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
 					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+					{
 						m_joy1config.dwOfs_firebutton = dw;
+					}
 				}
 			}
 			else
+			{
 				m_joy1config.bValid = false;
+			}
 		}
 
 		if (m_joy2config.bValid)
@@ -605,27 +736,31 @@ const int maxbutton = 31;
 
 				//Joystick 2 X Axis
 				tempLenValue = lenValue;
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2AxisX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+				lRetCode = RegReadStr(hKey1, TEXT("Joy2AxisX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
 					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+					{
 						m_joy2config.dwOfs_X = dw;
+					}
 				}
 
 				//Joystick 2 Y Axis
 				tempLenValue = lenValue;
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2AxisY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+				lRetCode = RegReadStr(hKey1, TEXT("Joy2AxisY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
 					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+					{
 						m_joy2config.dwOfs_Y = dw;
+					}
 				}
 
 				//Joystick 2 Fire
 				tempLenValue = lenValue;
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+				lRetCode = RegReadStr(hKey1, TEXT("Joy2Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
@@ -635,8 +770,9 @@ const int maxbutton = 31;
 			}
 		}
 		else
+		{
 			m_joy2config.bValid = false;
-
+		}
 		
 		RegCloseKey(hKey1);
 	}
@@ -783,7 +919,7 @@ ULONG tempLenValue,lenValue;
 
 		lenValue = sizeof(szValue);
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("MainWinPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode != ERROR_SUCCESS)
 		{
 			break;
@@ -797,7 +933,7 @@ ULONG tempLenValue,lenValue;
 		}
 		
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("MainWinPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode != ERROR_SUCCESS)
 		{
 			break;
@@ -819,7 +955,7 @@ ULONG tempLenValue,lenValue;
 		if (_WindowedCustomSize)
 		{
 			tempLenValue = lenValue;
-			lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+			lRetCode = RegReadStr(hKey1, TEXT("MainWinWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 			if (lRetCode != ERROR_SUCCESS)
 			{
 				break;
@@ -833,7 +969,7 @@ ULONG tempLenValue,lenValue;
 			}
 
 			tempLenValue = lenValue;
-			lRetCode = RegQueryValueEx(hKey1, TEXT("MainWinHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+			lRetCode = RegReadStr(hKey1, TEXT("MainWinHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 			if (lRetCode != ERROR_SUCCESS)
 			{
 				break;
@@ -897,28 +1033,28 @@ ULONG tempLenValue,lenValue;
 		lenValue = sizeof(szValue);
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("MDIWinDebuggerPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			pos.x = max(min(_ttol(szValue), max_x), left);
 		}
 		
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("MDIWinDebuggerPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			pos.y = max(min(_ttol(szValue), max_y), top);
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("MDIWinDebuggerWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{			
 			size.cx = max(min(_ttol(szValue), max_x), min_x);
 		}
 		
 		tempLenValue = lenValue;
-		lRetCode = RegQueryValueEx(hKey1, TEXT("MDIWinDebuggerHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			size.cy = max(min(_ttol(szValue), max_y), min_y);
@@ -939,6 +1075,7 @@ HKEY  hKey1;
 DWORD  dwDisposition; 
 LONG   lRetCode; 
 bool bGuidOK;
+int i;
 
 	lRetCode = RegCreateKeyEx (HKEY_CURRENT_USER, 
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Keyboard"), 
@@ -1044,7 +1181,7 @@ bool bGuidOK;
 	{
 		G::ShowLastError(NULL);
 		return E_FAIL;
-	} 
+	}
 
 	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bD1541_Emulation_Enable ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("D1541_Emulation"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
@@ -1138,6 +1275,36 @@ bool bGuidOK;
 	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bDisableDwmFullscreen ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("DisableDwmFullscreen"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
+	RegCloseKey(hKey1);
+
+	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
+		TEXT("SOFTWARE\\Hoxs64\\1.0\\VICIIPalette"), 
+		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
+		NULL, &hKey1, 
+		&dwDisposition); 
+	if (lRetCode != ERROR_SUCCESS)
+	{
+		G::ShowLastError(NULL);
+		return E_FAIL;
+	} 
+
+	std::basic_string<TCHAR> colorregkeyname;
+	for (i = 0; i < VicIIPalette::NumColours; i++)
+	{
+		colorregkeyname.clear();
+		colorregkeyname.append(TEXT("color_"));
+		if (i < 0xa)
+		{
+			colorregkeyname.push_back(TEXT('0') + i);
+		}
+		else
+		{
+			colorregkeyname.push_back(TEXT('a') + i - 0xa);
+		}
+		DWORD rgbcolor = this->m_colour_palette[i];
+		RegSetValueEx(hKey1, colorregkeyname.c_str(), NULL, REG_DWORD, (PBYTE) &rgbcolor, sizeof(DWORD));
+	}
+
 	lstrcpy(szValue, TEXT("1"));
 	RegSetValueEx(hKey1, TEXT("PrefsSaved"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 	RegCloseKey(hKey1);
@@ -1216,8 +1383,18 @@ bool bGuidOK;
 	return S_OK;
 }
 
+void CConfig::SetPalettePepto()
+{
+int i;
+	for(i = 0; i < VicIIPalette::NumColours; i++)
+	{
+		m_colour_palette[i] = VicIIPalette::Pepto[i];
+	}
+}
+
 void CConfig::LoadDefaultSetting()
 {
+	SetPalettePepto();
 	ZeroMemory(&m_KeyMap[0], sizeof(m_KeyMap));
 	m_KeyMap[C64K_PLUS]=	DIK_MINUS;
 	m_KeyMap[C64K_MINUS]=	DIK_EQUALS;
@@ -1351,4 +1528,53 @@ void CConfig::LoadDefaultSetting()
 int CConfig::GetKeyScanCode(UINT ch)
 {
 	return MapVirtualKey(ch, 0);
+}
+
+LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
+{
+	DWORD maxlen = 0;
+	if (lpcbData != NULL)
+	{
+		maxlen = *lpcbData;
+	}
+
+	LONG r = RegQueryValueEx(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+	if (r == ERROR_SUCCESS)
+	{
+		DWORD bytesCopied = 0;
+		if (lpcbData == NULL)
+		{
+			return r;
+		}
+
+		bytesCopied = *lpcbData;
+		DWORD fixup = 0;
+		if (sizeof(TCHAR) > 1)
+		{
+			//fixup if a TCHAR is cut in half.
+			fixup = bytesCopied % sizeof(TCHAR);
+		}
+
+		if (fixup == 0 && bytesCopied >=sizeof(TCHAR))
+		{
+			if (((TCHAR *)lpData)[(bytesCopied / 2) - 1] == TEXT('\0'))
+			{
+				//If the string is already NULL terminated then return.
+				return r;
+			}
+		}
+
+		if (bytesCopied + fixup + sizeof(TCHAR) >= maxlen)
+		{
+			//No room for the NULL terminator.
+			return ERROR_MORE_DATA;
+		}
+
+		//Add the TCHAR null terminator plus any fix up zeros if the last TCHAR was cut in half.
+		for (unsigned int i = 0; i < sizeof(TCHAR) + fixup; i++)
+		{
+			lpData[bytesCopied + i] = 0;
+		}
+	}
+	return r;
 }

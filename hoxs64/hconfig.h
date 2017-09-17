@@ -1,6 +1,9 @@
 #ifndef __HCONFIG_H__
 #define __HCONFIG_H__
 
+#include "bits.h"
+#include "viciipalette.h"
+
 struct joyconfig
 {
 	bool bEnabled;
@@ -30,19 +33,21 @@ class CConfig
 {
 public:
 	CConfig();
+	static LONG RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
 	HRESULT SaveWindowSetting(HWND);
 	static HRESULT SaveMDIWindowSetting(HWND hWnd);
 	HRESULT LoadWindowSetting(POINT& pos, bool& bWindowedCustomSize, int& winWidth, int& winHeight);
 	static HRESULT LoadMDIWindowSetting(POINT& pos, SIZE& size);
 	static int GetKeyScanCode(UINT ch);
-
 	HRESULT LoadCurrentSetting();
 	HRESULT SaveCurrentSetting();
 	void LoadDefaultSetting();
+	void SetPalettePepto();
 	void SetCiaNewOldMode(bool isNew);
 	void SetRunFast();
 	void SetRunNormal();
-
+	
+	bit32 m_colour_palette[VicIIPalette::NumColours];
 	unsigned char m_KeyMap[256];
 	struct joyconfig m_joy1config;
 	struct joyconfig m_joy2config;

@@ -5,6 +5,7 @@
 #define GACCESS_COL1_CYCLE (16)
 #define SPRITE_DISPLAY_CHECK_XPOS (0x164)
 
+#include "viciipalette.h"
 #include "vicpixelbuffer.h"
 
 class VIC6569;

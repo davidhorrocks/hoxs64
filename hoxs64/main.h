@@ -13,6 +13,7 @@ public:
 	HRESULT RegisterWindowClasses(HINSTANCE hInstance);
 	HRESULT InitInstance(int nCmdShow, LPTSTR lpCmdLine);
 	HRESULT RegisterKeyPressWindow(HINSTANCE hInstance);
+	HRESULT RegisterVicColorWindow(HINSTANCE hInstance);
 #if _WIN32_WINNT >= 0x400
 	LRESULT LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam );
 #else

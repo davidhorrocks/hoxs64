@@ -29,7 +29,7 @@
 #include "diagnewblankdisk.h"
 #include "diagabout.h"
 #include "diagfilesaved64.h"
-
+#include "diagcolour.h"
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -201,6 +201,7 @@ HWND hWndDebuggerFrame;
 LRESULT lr;
 RECT rcClient;
 /*Dialogs*/
+shared_ptr<CDiagColour> pDiagColour;
 shared_ptr<CDiagKeyboard> pDiagKeyboard;
 shared_ptr<CDiagJoystick> pDiagJoystick;
 shared_ptr<CDiagEmulationSettingsTab> pDiagEmulationSettingsTab;
@@ -542,6 +543,36 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			}
 			appStatus->SoundResume();
 			return 0;
+		case IDM_SETTING_COLOUR:
+			appStatus->SoundHalt();
+			try
+			{
+				appStatus->GetUserConfig(tCfg);
+				pDiagColour = shared_ptr<CDiagColour>(new CDiagColour());
+				if (pDiagColour!=0)
+				{
+					hr = pDiagColour->Init(&tCfg);
+					if (SUCCEEDED(hr))
+					{			 
+						r = pDiagColour->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_VICIICOLOURPALETTE),hWnd);
+						if (LOWORD(r) == IDOK)
+						{
+							tCfg = pDiagColour->newCfg;
+							appStatus->SetUserConfig(tCfg);
+							appStatus->ApplyConfig(tCfg);
+						}
+					}
+					else
+					{
+						pDiagColour->DisplayError(hWnd, appStatus->GetAppName());
+					}
+				}
+			}
+			catch(...)
+			{
+			}
+			appStatus->SoundResume();
+			return 0;
 		case IDM_SETTING_KEYBOARD:
 			appStatus->SoundHalt();
 			try
@@ -567,7 +598,9 @@ shared_ptr<CDiagAbout> pDiagAbout;
 						pDiagKeyboard->FreePages();
 					}
 					else
+					{
 						pDiagKeyboard->DisplayError(hWnd, appStatus->GetAppName());
+					}
 				}
 				dx->pKeyboard->Unacquire();
 				dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY); 
