@@ -268,18 +268,20 @@ END
 // Dialog
 //
 
-IDD_ABOUT DIALOGEX 0, 0, 185, 154
+IDD_STATIC_ABOUT_ABOUT DIALOGEX 0, 0, 185, 180
 STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,69,126,50,14,BS_CENTER | BS_VCENTER
-    CTEXT           "Version",IDC_VERSION,35,110,121,8
-    CTEXT           "The Hoxs64 emulator is written by ",IDC_INFO1,35,13,121,8
-    ICON            IDI_ICON_BIG,IDC_STATIC,7,7,20,20
-    CTEXT           "David Horrocks",IDC_INFO2,35,23,121,8
-    CTEXT           "email: support@hoxs64.net",IDC_INFO3,35,33,121,10
-    LTEXT           "For updates visit:-\r\rwww.hoxs64.net",IDC_STATIC,36,47,129,56
+    DEFPUSHBUTTON   "OK",IDOK,71,159,50,14,BS_CENTER | BS_VCENTER
+    CTEXT           "Version",IDC_VERSION,35,142,121,10
+    CTEXT           "The Hoxs64 emulator is written by ",IDC_STATIC_ABOUT_TITLE,35,13,121,8
+    ICON            IDI_ICON_BIG,IDC_STATIC,7,7,21,20
+    CTEXT           "David Horrocks",IDC_STATIC_ABOUT_AUTHOR,35,23,121,8
+    LTEXT           "email: support@hoxs64.net",IDC_STATIC_ABOUT_AUTHOR_EMAIL,35,113,121,10
+    LTEXT           "www.hoxs64.net",IDC_STATIC_ABOUT_AUTHOR_WEB,35,126,121,10
+    CTEXT           "Guy Eric Schalnat\r\nAndreas Dilger\r\nJohn Bowler\r\nGlenn Randers-Pehrson\r\nhttp://www.libpng.org",IDC_STATIC_ABOUT_LIBPNG_TITLE,7,51,171,54
+    CTEXT           "Uses Lib PNG version 1.6.31 written by",IDC_STATIC_ABOUT_LIBPNG_AUTHOR,7,36,171,8
 END
 
 IDD_NEWDISK DIALOGEX 0, 0, 186, 134
@@ -692,12 +694,12 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
 BEGIN
-    IDD_ABOUT, DIALOG
+    IDD_STATIC_ABOUT_ABOUT, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 178
         TOPMARGIN, 7
-        BOTTOMMARGIN, 147
+        BOTTOMMARGIN, 173
     END
 
     IDD_NEWDISK, DIALOG

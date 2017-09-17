@@ -7,6 +7,7 @@
 #define IDI_ICON_BIG                    102
 #define IDI_ICON_SMALL                  103
 #define IDD_ABOUT                       104
+#define IDD_STATIC_ABOUT_ABOUT          104
 #define IDI_BREAK                       106
 #define IDD_NEWDISK                     107
 #define IDD_KEYBOARD                    108
@@ -66,8 +67,11 @@
 #define IDD_VICIICOLOURPALETTE          189
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
+#define IDC_STATIC_ABOUT_TITLE          1001
 #define IDC_INFO2                       1002
+#define IDC_STATIC_ABOUT_AUTHOR         1002
 #define IDC_INFO3                       1003
+#define IDC_STATIC_ABOUT_AUTHOR_EMAIL   1003
 #define IDC_1541_EMULATION              1004
 #define IDC_SID_EMULATION               1005
 #define IDC_SHOWSPEED                   1006
@@ -242,6 +246,10 @@
 #define IDC_BUTTON_LOADPEPTO2           1348
 #define IDC_BUTTON2                     1348
 #define IDC_BUTTON_LOADPREVIOUSCOLOURS  1348
+#define IDC_STATIC_ABOUT_AUTHOR_WEB     1349
+#define IDC_STATIC_ABOUT_LIBPNG         1350
+#define IDC_STATIC_ABOUT_LIBPNG_TITLE   1350
+#define IDC_STATIC_ABOUT_LIBPNG_AUTHOR  1351
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -327,7 +335,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        190
 #define _APS_NEXT_COMMAND_VALUE         40186
-#define _APS_NEXT_CONTROL_VALUE         1349
+#define _APS_NEXT_CONTROL_VALUE         1352
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif
