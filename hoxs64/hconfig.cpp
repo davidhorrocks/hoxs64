@@ -1275,6 +1275,9 @@ int i;
 	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bDisableDwmFullscreen ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("DisableDwmFullscreen"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
+	lstrcpy(szValue, TEXT("1"));
+	RegSetValueEx(hKey1, TEXT("PrefsSaved"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+
 	RegCloseKey(hKey1);
 
 	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
@@ -1305,8 +1308,6 @@ int i;
 		RegSetValueEx(hKey1, colorregkeyname.c_str(), NULL, REG_DWORD, (PBYTE) &rgbcolor, sizeof(DWORD));
 	}
 
-	lstrcpy(szValue, TEXT("1"));
-	RegSetValueEx(hKey1, TEXT("PrefsSaved"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 	RegCloseKey(hKey1);
 
 	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
