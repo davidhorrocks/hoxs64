@@ -14,3 +14,12 @@ x64
 *.sdf
 *.o65
 *.ncb
+Win32_DLL_Release
+Win32_DLL_Debug
+Win32_DLL_VB
+Win32_LIB_Release
+Win32_LIB_Debug
+x64/
+x86/
+Release Library/
+Debug Library/
