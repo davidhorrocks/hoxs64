@@ -827,7 +827,7 @@ WINDOWPLACEMENT wp;
 
 	//Warning
 	//VS2005 does not have an templated overload for fixed size arrays which then does not expect the count pararmter to be passed in.
-	//In other words, would would be passing in too many arguments. 
+	//In other words, would be passing in too many arguments. 
 	//The count (_TRUNCATE) would be seen as an additional argument for formatting would would cause a buffer overrun in szValue.
 	//The cast of buffer to (TCHAR *) and the passing of count as _TRUNCATE ensures that VS2005 will compile correctly
 	_sntprintf_s((TCHAR *)(&szValue[0]), _countof(szValue), _TRUNCATE, TEXT("%d"), w);
