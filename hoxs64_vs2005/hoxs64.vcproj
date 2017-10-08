@@ -136,7 +136,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="comctl32.lib version.lib d3dx9.lib d3d9.lib dsound.lib dinput.lib dxguid.lib nothrownew.obj"
-				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\boost_1_48_0\stage\vc80\release\lib&quot;;&quot;$(ProjectDir)..\..\DirectX2006Oct\Lib\x64&quot;"
+				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\boost_1_48_0\stage\vc80\release\lib&quot;;&quot;$(ProjectDir)..\..\DirectX2006Oct\Lib\x86&quot;"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
