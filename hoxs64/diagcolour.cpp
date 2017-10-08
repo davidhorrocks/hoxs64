@@ -74,7 +74,9 @@ static const int controlIdList[] = { IDC_VICCOLOR0, IDC_VICCOLOR1, IDC_VICCOLOR2
 		controlpalette[i].ControlId = id;
 		controlpalette[i].RGBColour = this->newCfg.m_colour_palette[i];
 		controlpalette[i].IsPalette = true;
+		#pragma warning(disable:4244)
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)this);
+		#pragma warning(default:4244)
 	}
 
 	this->SelectPaletteItem(&controlpalette[0], false);
@@ -91,8 +93,9 @@ static const int controlIdList[] = { IDC_VICCOLOR0, IDC_VICCOLOR1, IDC_VICCOLOR2
 	largepaletteitem.ControlId = id;
 	largepaletteitem.VicColour = 0;
 	largepaletteitem.IsPalette = false;
+	#pragma warning(disable:4244)
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)this);
-
+	#pragma warning(default:4244)
 	InitSlider(hwndDlg, IDC_SLIDERRGBCOLORRED, IDC_EDITRGBCOLORRED);
 	InitSlider(hwndDlg, IDC_SLIDERRGBCOLORGREEN, IDC_EDITRGBCOLORGREEN);
 	InitSlider(hwndDlg, IDC_SLIDERRGBCOLORBLUE, IDC_EDITRGBCOLORBLUE);

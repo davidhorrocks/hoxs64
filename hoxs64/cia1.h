@@ -49,7 +49,7 @@ public:
 	VIC6569 *vic;
 	Tape64 *tape64;
 	IC64 *pIC64;
-	std::uniform_int_distribution<int> dist_pal_frame;
+	uniform_int_distribution<int> dist_pal_frame;
 protected:
 	bool m_bAltLatch;
 private:

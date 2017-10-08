@@ -1,7 +1,6 @@
 #include "png.h"
 #include <windows.h>
 #include <commctrl.h>
-#include <random>
 #include "dx_version.h"
 #include <d3d9.h>
 #include <d3dx9core.h>
@@ -1214,12 +1213,12 @@ const TCHAR CouldNotGenerateParam1[] = TEXT("Could not generate the PNG file %s"
 	info.width = PngWidth;
 	info.height = PngHeight;
 	info.interlaced = PNG_INTERLACE_NONE;
-	std::unique_ptr<png_color []> pallet;
-	std::unique_ptr<png_byte> row;
+	shared_ptr<png_color> pallet;
+	shared_ptr<png_byte> row;
 	try
 	{
-		pallet = std::unique_ptr<png_color []>(new png_color[256]);
-		row = std::unique_ptr<png_byte []>(new png_byte[PngWidth]);
+		pallet = shared_ptr<png_color>(new png_color[256], array_deleter<png_color>());
+		row = shared_ptr<png_byte>(new png_byte[PngWidth], array_deleter<png_byte>());
 	}
 	catch(...)
 	{
@@ -1229,9 +1228,9 @@ const TCHAR CouldNotGenerateParam1[] = TEXT("Could not generate the PNG file %s"
 	for (int i = 0; i < 256; i++)
 	{
 		int cl = vic.vic_color_array[i & 0xf];
-		pallet[i].red = (cl >> 16) & 0xff;
-		pallet[i].green = (cl >> 8) & 0xff;
-		pallet[i].blue = cl & 0xff;
+		pallet.get()[i].red = (cl >> 16) & 0xff;
+		pallet.get()[i].green = (cl >> 8) & 0xff;
+		pallet.get()[i].blue = cl & 0xff;
 	}
 
 	info.pallet = pallet.get();
@@ -3765,7 +3764,7 @@ void C64::ProcessReset()
 
 void C64::ExecuteRandomClocks()
 {
-	std::uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
+	uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
 	SynchroniseDevicesWithVIC();
 	int randomclocks = dist_byte(G::randengine_main);
 	while (randomclocks-- > 0)

@@ -2,7 +2,6 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
-#include <random>
 #include <d3d9.h>
 #include <d3dx9core.h>
 #include <dinput.h>
@@ -53,7 +52,7 @@ void RAM64::InitReset(bool poweronreset)
 	bool usecommon = false;
 	bool userandom = true;
 	bool isnewc64 = true;
-	std::uniform_int_distribution<int> dist_byte(0, 255);
+	uniform_int_distribution<int> dist_byte(0, 255);
 
 	for (i=0; i <= 0xFFFF; i++)
 	{

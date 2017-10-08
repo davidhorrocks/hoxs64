@@ -52,7 +52,7 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>zlib</RootNamespace>
   </PropertyGroup>
-  <Import Project="$(SolutionDir)\zlib.props" />
+  <Import Project="..\zlib.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Library|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>

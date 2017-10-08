@@ -18,11 +18,11 @@ MemoryStream::~MemoryStream()
 
 HRESULT MemoryStream::CreateObject(ULONG bufferSize, IStream ** ppStream)
 {
-	PBYTE buf = nullptr;
+	PBYTE buf = NULL;
 	if (bufferSize)
 	{
 		buf = (PBYTE)malloc(bufferSize);
-		if (buf==nullptr)
+		if (buf==NULL)
 		{
 			return E_OUTOFMEMORY;
 		}
@@ -225,10 +225,10 @@ void MemoryStream::FreeBuffer()
 {
 	if (_bOwnBuffer)
 	{
-		if (_pBuffer != nullptr)
+		if (_pBuffer != NULL)
 		{
 			free(_pBuffer);
-			_pBuffer = nullptr;
+			_pBuffer = NULL;
 		}
 		_bOwnBuffer = false;
 	}

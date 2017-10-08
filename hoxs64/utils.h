@@ -1,7 +1,5 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
-
-#include <random>
 #include <assert.h>
 #include "oldos_multimon.h"
 #include "boost2005.h"
@@ -120,8 +118,8 @@ private:
 public:
 	static bool IsHideMessageBox;
 	static bool IsHideWindow;
-	static std::random_device rd;
-	static std::mt19937 randengine_main;
+	static random_device rd;
+	static mt19937 randengine_main;
 	static void InitLateBindLibraryCalls();
 	static bool IsMultiMonitorApiOk();
 	static bool IsDwmApiOk();

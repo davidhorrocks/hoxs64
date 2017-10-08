@@ -39,6 +39,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\zlib&quot;;&quot;$(ProjectDir)..\libpng&quot;;&quot;$(ProjectDir)..\..\DirectX2006Oct\Include&quot;;&quot;$(ProjectDir)..\..\boost_1_48_0&quot;"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_WIN32_WINDOWS=0x400;WINVER=0x0400"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -60,6 +61,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="comctl32.lib version.lib d3dx9.lib d3d9.lib dsound.lib dinput.lib dxguid.lib nothrownew.obj"
+				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\boost_1_48_0\stage\vc80\debug\lib&quot;;&quot;$(ProjectDir)..\..\DirectX2006Oct\Lib\x86&quot;"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
@@ -114,6 +116,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\zlib&quot;;&quot;$(ProjectDir)..\libpng&quot;;&quot;$(ProjectDir)..\..\DirectX2006Oct\Include&quot;;&quot;$(ProjectDir)..\..\boost_1_48_0&quot;"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_WIN32_WINDOWS=0x400;WINVER=0x0400"
 				RuntimeLibrary="0"
 				FloatingPointModel="2"
@@ -133,6 +136,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="comctl32.lib version.lib d3dx9.lib d3d9.lib dsound.lib dinput.lib dxguid.lib nothrownew.obj"
+				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\boost_1_48_0\stage\vc80\release\lib&quot;;&quot;$(ProjectDir)..\..\DirectX2006Oct\Lib\x64&quot;"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
@@ -166,6 +170,14 @@
 		</Configuration>
 	</Configurations>
 	<References>
+		<ProjectReference
+			ReferencedProjectIdentifier="{0008960E-E0DD-41A6-8265-00B31DDB4C21}"
+			RelativePathToProject="..\libpng\projects\vstudio8\libpng.vcproj"
+		/>
+		<ProjectReference
+			ReferencedProjectIdentifier="{2D4F8105-7D21-454C-9932-B47CAB71A5C0}"
+			RelativePathToProject="..\libpng\projects\vstudio8\zlib.vcproj"
+		/>
 	</References>
 	<Files>
 		<Filter
@@ -231,6 +243,10 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\diagAbout.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\diagcolour.cpp"
 				>
 			</File>
 			<File
@@ -330,6 +346,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\memorystream.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\prgbrowse.cpp"
 				>
 			</File>
@@ -367,6 +387,14 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\vic6569.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\viciipalette.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\write_png.cpp"
 				>
 			</File>
 			<Filter
@@ -569,6 +597,18 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="p64"
+				>
+				<File
+					RelativePath="..\hoxs64\p64.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\p64ref.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -660,6 +700,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\diagcolour.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\diagEmulationSettingsTab.h"
 				>
 			</File>
@@ -724,11 +768,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\iquit.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\main.h"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\mainwin.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\memorystream.h"
 				>
 			</File>
 			<File
@@ -801,6 +853,14 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\vic6569.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\viciipalette.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\write_png.h"
 				>
 			</File>
 			<Filter
@@ -968,6 +1028,18 @@
 				>
 				<File
 					RelativePath="..\hoxs64\savestate.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="p64"
+				>
+				<File
+					RelativePath="..\hoxs64\p64.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\p64config.h"
 					>
 				</File>
 			</Filter>

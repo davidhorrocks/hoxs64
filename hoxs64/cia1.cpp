@@ -2,7 +2,6 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
-#include <random>
 #include <d3d9.h>
 #include <d3dx9core.h>
 #include <dinput.h>

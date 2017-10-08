@@ -11,6 +11,15 @@ struct null_deleter
     }
 };
 
+template< typename T >
+struct array_deleter
+{
+	void operator ()( T const * p)
+	{ 
+		delete[] p; 
+	}
+};
+
 namespace HCFG
 {
 	typedef enum tagAUDIOSPEED

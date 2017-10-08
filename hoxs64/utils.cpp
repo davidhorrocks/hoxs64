@@ -891,8 +891,8 @@ HWND hWnd;
 //Static constructed members for G
 bool G::IsHideMessageBox = false;
 bool G::IsHideWindow = false;
-std::random_device G::rd;
-std::mt19937 G::randengine_main;
+random_device G::rd;
+mt19937 G::randengine_main;
 const TCHAR G::EmptyString[1] = TEXT("");
 
 /**************************************************************************/

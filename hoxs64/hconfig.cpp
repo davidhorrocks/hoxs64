@@ -825,13 +825,18 @@ WINDOWPLACEMENT wp;
 	int w = max(0, wp.rcNormalPosition.right - wp.rcNormalPosition.left);
 	int h = max(0, wp.rcNormalPosition.bottom - wp.rcNormalPosition.top);		
 
-	_sntprintf_s(szValue, _TRUNCATE, TEXT("%d"), w);
+	//Warning
+	//VS2005 does not have an templated overload for fixed size arrays which then does not expect the count pararmter to be passed in.
+	//In other words, would would be passing in too many arguments. 
+	//The count (_TRUNCATE) would be seen as an additional argument for formatting would would cause a buffer overrun in szValue.
+	//The cast of buffer to (TCHAR *) and the passing of count as _TRUNCATE ensures that VS2005 will compile correctly
+	_sntprintf_s((TCHAR *)(&szValue[0]), _countof(szValue), _TRUNCATE, TEXT("%d"), w);
 	RegSetValueEx(hKey1, TEXT("MainWinWidth"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
-
-	_sntprintf_s(szValue, _TRUNCATE, TEXT("%d"), h);
+	
+	_sntprintf_s((TCHAR *)(&szValue[0]), _countof(szValue), _TRUNCATE, TEXT("%d"), h);
 	RegSetValueEx(hKey1, TEXT("MainWinHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bDoubleSizedWindow ? 1: 0));
+	wsprintf(szValue, TEXT("%d"), (int) (m_bDoubleSizedWindow ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("DoubleSizedWindow"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 	
 	RegCloseKey(hKey1);

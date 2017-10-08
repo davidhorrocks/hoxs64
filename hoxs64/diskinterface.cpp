@@ -8,7 +8,6 @@
 #include <dsound.h>
 #include <stdio.h>
 #include <assert.h>
-#include <random>
 #include "boost2005.h"
 #include "defines.h"
 #include "mlist.h"
@@ -743,7 +742,7 @@ bit8 bandpos;
 	}
 	clockDivider1_UE7 = m_clockDivider1_UE7;
 	clockDivider2_UF4 = m_clockDivider2_UF4;
-	bandpos = m_totalclocks_UE7 & 0xf;
+	bandpos = (bit8)(m_totalclocks_UE7 & 0xf);
 	writeClock = bandpos;
 	m_lastPulseTime +=clocks;
 	m_lastWeakPulseTime +=clocks;

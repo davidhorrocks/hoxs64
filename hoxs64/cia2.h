@@ -38,7 +38,7 @@ public:
 	volatile bit8 c64_serialbus;
 	bit8 m_commandedVicBankIndex;
 private:
-	std::uniform_int_distribution<int> dist_port_temperature;
+	uniform_int_distribution<int> dist_port_temperature;
 };
 
 

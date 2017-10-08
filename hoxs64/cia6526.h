@@ -179,8 +179,8 @@ protected:
 	void SetState(const SsCiaV2 &state);
 	static void UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out);
 	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);	
-	std::random_device rd;
-	std::mt19937 randengine;
+	random_device rd;
+	mt19937 randengine;
 };
 
 
