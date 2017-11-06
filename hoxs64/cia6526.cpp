@@ -87,7 +87,6 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 	bPB67TimerOut=0;
 	icr=0;
 	icr_ack=0;
-	fast_clear_pending_int = false;
 	imr=0;
 	Interrupt=0;
 }
@@ -528,26 +527,23 @@ ICLKS todclocks;
 		}
 
 		icr_ack = icr_ack & ~new_icr;
-		if ((delay & ClearIcr1) !=0)
+
+		if (bTimerBbug && (new_icr & 2) !=0 && ClockReadICR == CurrentClock && (delay & (ReadIcr1)) == 0)
 		{
-			icr = icr & ~icr_ack;
-			icr_ack = 0;
-		}
-		if (bTimerBbug && (new_icr & 2) !=0 && ClockReadICR == CurrentClock)
-		{
-			icr |= (new_icr & ~2);
+			icr |= new_icr;
+			icr_ack |= 2;
 		}
 		else
 		{
 			icr |= new_icr;
 		}
+
 		if (new_icr & imr & 0x1F) 
 		{ 
 			if (bEarlyIRQ)
 			{
 				//new CIA
-				//if (ClockReadICR == CurrentClock)
-				if ((delay & ReadIcr0) != 0)
+				if (ClockReadICR == CurrentClock)
 				{
 					//TEST TLR's CIA read DC0D (icr) when Timer counts to zero;
 					//Used by testprogs\interrupts\irqnmi\cia-int-irq-new.prg
@@ -557,8 +553,8 @@ ICLKS todclocks;
 				}
 				else
 				{
-					delay|=(Interrupt1 | Interrupt1);
-					delay|=(SetIcr1 | SetIcr1);
+					delay|=Interrupt1;
+					delay|=SetIcr1;
 				}
 			}
 			else
@@ -578,6 +574,12 @@ ICLKS todclocks;
 		{
 			Interrupt = 1;
 			SetSystemInterrupt();
+		}
+
+		if ((delay & ClearIcr1) !=0)
+		{
+			icr = icr & ~icr_ack;
+			icr_ack = 0;
 		}
 
 		delay=((delay << 1) & DelayMask) | feed;
@@ -756,6 +758,7 @@ void CIA::CntChanged()
 
 bit8 CIA::ReadRegister(bit16 address, ICLK sysclock)
 {
+bit8 result;
 	ExecuteCycle(sysclock);
 
 	switch(address & 0x0F)
@@ -834,8 +837,9 @@ bit8 CIA::ReadRegister(bit16 address, ICLK sysclock)
 				icr_ack |= ((icr & 0x9F) | 0x80);
 			}
 			delay |= ClearIcr0;
-			delay &= ~(Interrupt0 | Interrupt1);
-			delay &= ~(SetIcr0 | SetIcr1);
+			delay &= ~(Interrupt1);
+			delay &= ~(SetIcr1);
+			result = icr;
 		}
 		else
 		{
@@ -843,37 +847,20 @@ bit8 CIA::ReadRegister(bit16 address, ICLK sysclock)
 			{
 				icr_ack |= ((icr & 0x9F) | 0x80);
 			}
-			if (fast_clear_pending_int)
-			{
-				if ((delay & SetIcr1) == 0)
-				{
-					fast_clear_pending_int = false;
-				}
-				delay |= ClearIcr0;
-				delay &= ~(Interrupt0 | Interrupt1);
-			}
-			else
-			{
-				if ((delay & SetIcr1) != 0)
-				{
-					delay |= ClearIcr0;
-					fast_clear_pending_int = true;
-				}			
-				else
-				{
-					delay |= ClearIcr1;
-				}
-				delay &= ~(Interrupt0 | Interrupt1);
-				delay &= ~(SetIcr0 | SetIcr1);
-			}
-		}		
+
+			delay |= ClearIcr0;
+			delay &= ~(Interrupt1);
+			result = icr;
+			icr = icr & 0x80;
+		}
+
 		delay |= ReadIcr0;
 		Interrupt = 0;
 		ClearSystemInterrupt();
 		idle = false;
 		no_change_count = 0;
 		SetWakeUpClock();
-		return icr;
+		return result;
 	case 0x0E:		// control register a
 		return cra & ~0x10;
 	case 0x0F:		// control register b
@@ -1108,6 +1095,7 @@ bit8 data_old;
 		{
 			imr&=(~data);
 		}
+
 		if ((icr & imr & 0x1F) != 0)
 		{
 			//Both pending interrupts and currently active interrupts are never cancelled or cleared.
@@ -1138,7 +1126,7 @@ bit8 data_old;
 
 				//Not sure if this is correct.
 				//Allow a pending interrupt to be cancelled if a write to $DD0D had also occurred in the previous clock cycle.
-				if ((icr & old_imr) !=0 && (delay & WriteIcr1) !=0)
+				if ((delay & ClearIcr2) != 0)
 				{
 					/*
 					The test testprogs\CIA\dd0dtest\dd0dtest.prg test number $11 requires that a pending Timer A interrupt is cancelled with a write to ICR ($DD0D in this case).

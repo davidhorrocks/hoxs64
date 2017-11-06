@@ -48,22 +48,25 @@
 #define OneShotB0   0x00200000ULL
 #define ClearIcr0   0x00400000ULL
 #define ClearIcr1   0x00800000ULL
-#define ReadIcr0    0x01000000ULL
-#define ReadIcr1    0x02000000ULL
-#define WriteIcr0   0x04000000ULL
-#define WriteIcr1   0x08000000ULL
-#define SetIcr0     0x10000000ULL
-#define SetIcr1     0x20000000ULL
-
-#define SetCntFlip0   0x0000000040000000ULL
-#define SetCntFlip1   0x0000000080000000ULL
-#define SetCntFlip2   0x0000000100000000ULL
-#define SetCntFlip3   0x0000000200000000ULL
-#define SetCnt0       0x0000000400000000ULL
-#define SetCnt1       0x0000000800000000ULL
-#define SetCnt2       0x0000001000000000ULL
-#define SetCnt3       0x0000002000000000ULL
-#define DelayMask   ~(0x0000004000000000ULL | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0 | SetCntFlip0 | SetCnt0)
+#define ClearIcr2   0x01000000ULL
+#define ReadIcr0    0x02000000ULL
+#define ReadIcr1    0x04000000ULL
+#define ReadIcr2    0x08000000ULL
+#define WriteIcr0   0x10000000ULL
+#define WriteIcr1   0x20000000ULL
+#define WriteIcr2   0x40000000ULL
+#define SetIcr0     0x80000000ULL
+#define SetIcr1       0x0000000100000000ULL
+#define SetIcr2       0x0000000200000000ULL
+#define SetCntFlip0   0x0000000400000000ULL
+#define SetCntFlip1   0x0000000800000000ULL
+#define SetCntFlip2   0x0000001000000000ULL
+#define SetCntFlip3   0x0000002000000000ULL
+#define SetCnt0       0x0000004000000000ULL
+#define SetCnt1       0x0000008000000000ULL
+#define SetCnt2       0x0000010000000000ULL
+#define SetCnt3       0x0000020000000000ULL
+#define DelayMask   ~(0x0000040000000000ULL | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0 | SetCntFlip0 | SetCnt0)
 
 #define CIA_MAX_TEMPERATURE_TIME (1000000 * 60)
 
@@ -145,7 +148,6 @@ public:
 	bit32 timerb_output;
 	bit8 icr;
 	bit8 icr_ack;
-	bool fast_clear_pending_int;
 	bit8 imr;
 	bit8 Interrupt;
 	bit8 serial_data_register;
