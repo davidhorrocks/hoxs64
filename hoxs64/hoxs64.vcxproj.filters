@@ -675,6 +675,18 @@
     <ClInclude Include="viciipalette.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sidWave_PS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidWave_PST.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidWave_PT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidWave_ST.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="c64def.asm">

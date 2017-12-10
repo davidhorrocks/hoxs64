@@ -921,6 +921,10 @@
     <ClInclude Include="runcommand.h" />
     <ClInclude Include="cart_simons_basic.h" />
     <ClInclude Include="savestate.h" />
+    <ClInclude Include="sidWave_PS.h" />
+    <ClInclude Include="sidWave_PST.h" />
+    <ClInclude Include="sidWave_PT.h" />
+    <ClInclude Include="sidWave_ST.h" />
     <ClInclude Include="toolitemaddress.h" />
     <ClInclude Include="viciipalette.h" />
     <ClInclude Include="vicpixelbuffer.h" />
