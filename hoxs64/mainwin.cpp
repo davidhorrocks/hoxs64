@@ -615,22 +615,17 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			try
 			{
 				appStatus->GetUserConfig(tCfg);
-				pDiagJoystick = shared_ptr<CDiagJoystick>(new CDiagJoystick());
-				if (pDiagJoystick!=0)
+				pDiagJoystick = shared_ptr<CDiagJoystick>(new CDiagJoystick(dx, &tCfg));
+				if (pDiagJoystick != 0)
 				{
-					hr = pDiagJoystick->Init(dx, &tCfg);
-					if (SUCCEEDED(hr))
+					pDiagJoystick->Init();
+					r = pDiagJoystick->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
+					if (LOWORD(r) == IDOK)
 					{
-						r = pDiagJoystick->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
-						if (LOWORD(r) == IDOK)
-						{
-							tCfg = pDiagJoystick->newCfg;
-							appStatus->SetUserConfig(tCfg);
-							appStatus->ApplyConfig(tCfg);
-						}
+						tCfg = pDiagJoystick->newCfg;
+						appStatus->SetUserConfig(tCfg);
+						appStatus->ApplyConfig(tCfg);
 					}
-					else
-						pDiagJoystick->DisplayError(hWnd, appStatus->GetAppName());
 				}
 			}
 			catch(...)

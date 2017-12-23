@@ -32,6 +32,39 @@
 
 #define ASSUMED_DPI_DEFAULT (96)
 
+class EnumJoyData
+{
+public:
+	EnumJoyData(joyconfig& joycfg)
+		: joycfg(joycfg)
+	{
+		this->buttonCount = 0;
+	}
+
+	joyconfig& joycfg;
+	int buttonCount;
+	BOOL EnumButton(LPCDIDEVICEOBJECTINSTANCE lpddoi)
+	{
+		if (this->buttonCount >= 32)
+		{
+			return DIENUM_STOP;
+		}
+
+		if (lpddoi->dwOfs + sizeof(BYTE) <= sizeof(DIJOYSTATE))
+		{
+			joycfg.buttonOffsets[this->buttonCount] = lpddoi->dwOfs;
+			this->buttonCount++;
+		}
+
+		return DIENUM_CONTINUE;
+	}
+
+	static BOOL CALLBACK EnumJoyButtonCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
+	{
+		return ((EnumJoyData *) pvRef)->EnumButton(lpddoi);
+	}
+};
+
 CDX9::CDX9()
 {
 int i;
@@ -2722,10 +2755,13 @@ HRESULT CDX9::EnumDevices(DWORD dwDevType, 	LPDIENUMDEVICESCALLBACK lpCallback, 
 }
 
 
-HRESULT CDX9::EnumObjectsJoy(int joyindex, LPDIENUMDEVICEOBJECTSCALLBACK lpCallback, LPVOID pvRef,DWORD dwFlags)
+HRESULT CDX9::EnumObjectsJoy(int joyindex, LPDIENUMDEVICEOBJECTSCALLBACK lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
 	if (joy[joyindex] == NULL)
+	{
 		return E_POINTER;
+	}
+
 	return joy[joyindex]->EnumObjects(lpCallback, pvRef, dwFlags);
 }
 
@@ -2769,24 +2805,35 @@ HRESULT CDX9::InitJoy(HWND hWnd, int joyindex, struct joyconfig &joycfg)
 HRESULT hr = S_OK;
 DIPROPRANGE diprg; 
 DIDEVICEOBJECTINSTANCE didoi;
-int i;
-int j;
+DIDEVCAPS dicaps;
+unsigned int i;
+unsigned int j;
+EnumJoyData joyObjRef(joycfg);
+
 	ClearError();
 	if (hWnd==0)
 	{
 		return E_FAIL;
 	}
+
 	joycfg.joyObjectKindX = HCFG::JoyKindNone;
 	joycfg.joyObjectKindY = HCFG::JoyKindNone;
 	joycfg.xMax= +1000;
 	joycfg.xMin= -1000;
 	joycfg.yMax= +1000;
 	joycfg.yMin= -1000;
+	joycfg.countOfButtons = 0;
+	for(i = 0; i < _countof(joycfg.buttonOffsets); i++)
+	{
+		joycfg.buttonOffsets[i] = 0;
+	}
+
 	for(i = 0; i < _countof(joycfg.povAvailable); i++)
 	{
 		joycfg.povAvailable[0] = 0;
 		joycfg.povIndex[0] = 0;
 	}
+
 	bool ok = false;
 	if (joycfg.bValid && joycfg.bEnabled)
 	{
@@ -2794,115 +2841,135 @@ int j;
 		hr = CreateDeviceJoy(joyindex, joycfg.joystickID);
 		if (SUCCEEDED(hr))
 		{
-			hr = SetDataFormatJoy(joyindex, &c_dfDIJoystick);
+			ZeroMemory(&dicaps, sizeof(dicaps));
+			dicaps.dwSize = sizeof(dicaps);
+			hr = joy[joyindex]->GetCapabilities(&dicaps);
 			if (SUCCEEDED(hr))
 			{
-				hr = SetCooperativeLevelJoy(joyindex, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+				hr = SetDataFormatJoy(joyindex, &c_dfDIJoystick);
 				if (SUCCEEDED(hr))
 				{
-					ok = true;
-					//X Axis
-					ZeroMemory(&didoi, sizeof(didoi));
-					didoi.dwSize = sizeof(didoi);
-					hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_X, DIPH_BYOFFSET);
+					hr = EnumObjectsJoy(joyindex, EnumJoyData::EnumJoyButtonCallback, &joyObjRef, DIDFT_BUTTON);
 					if (SUCCEEDED(hr))
 					{
-						if ((didoi.dwType & DIDFT_AXIS) != 0)
+						joycfg.countOfButtons = joyObjRef.buttonCount;
+						hr = SetCooperativeLevelJoy(joyindex, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+						if (SUCCEEDED(hr))
 						{
-							joycfg.joyObjectKindX = HCFG::JoyKindAxis;
-							ZeroMemory(&diprg, sizeof(diprg));
-							diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-							diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-							diprg.diph.dwHow        = DIPH_BYOFFSET; 
-							diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
-							diprg.lMin              = joycfg.xMin; 
-							diprg.lMax              = joycfg.xMax; 
-							hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
-							if (FAILED(hr))
+							ok = true;
+							//X Axis
+							ZeroMemory(&didoi, sizeof(didoi));
+							didoi.dwSize = sizeof(didoi);
+							hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_X, DIPH_BYOFFSET);
+							if (SUCCEEDED(hr))
 							{
-								ZeroMemory(&diprg, sizeof(diprg));
-								diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-								diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-								diprg.diph.dwHow        = DIPH_BYOFFSET; 
-								diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
-								hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
-								if (FAILED(hr))
+								if ((didoi.dwType & DIDFT_AXIS) != 0)
 								{
-									SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
+									joycfg.joyObjectKindX = HCFG::JoyKindAxis;
+									ZeroMemory(&diprg, sizeof(diprg));
+									diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+									diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+									diprg.diph.dwHow        = DIPH_BYOFFSET; 
+									diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
+									diprg.lMin              = joycfg.xMin; 
+									diprg.lMax              = joycfg.xMax; 
+									hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+									if (FAILED(hr))
+									{
+										ZeroMemory(&diprg, sizeof(diprg));
+										diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+										diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+										diprg.diph.dwHow        = DIPH_BYOFFSET; 
+										diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
+										hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+										if (FAILED(hr))
+										{
+											SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
+										}
+										if (SUCCEEDED(hr))
+										{
+											joycfg.xMin = diprg.lMin; 
+											joycfg.xMax = diprg.lMax; 
+										}
+									}
+									joycfg.xLeft = joycfg.xMin + 60L * (joycfg.xMax - joycfg.xMin)/200L;
+									joycfg.xRight = joycfg.xMax - 60L * (joycfg.xMax - joycfg.xMin)/200L;
 								}
-								if (SUCCEEDED(hr))
+								else if ((didoi.dwType & DIDFT_POV) != 0)
 								{
-									joycfg.xMin = diprg.lMin; 
-									joycfg.xMax = diprg.lMax; 
+									joycfg.joyObjectKindX = HCFG::JoyKindPov;
 								}
 							}
-							joycfg.xLeft = joycfg.xMin + 60L * (joycfg.xMax - joycfg.xMin)/200L;
-							joycfg.xRight = joycfg.xMax - 60L * (joycfg.xMax - joycfg.xMin)/200L;
-						}
-						else if ((didoi.dwType & DIDFT_POV) != 0)
-						{
-							joycfg.joyObjectKindX = HCFG::JoyKindPov;
-						}
-					}
 
-					//Y Axis
-					ZeroMemory(&didoi, sizeof(didoi));
-					didoi.dwSize = sizeof(didoi);
-					hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_Y, DIPH_BYOFFSET);
-					if (SUCCEEDED(hr))
-					{
-						if ((didoi.dwType & DIDFT_AXIS) != 0)
-						{
-							joycfg.joyObjectKindY = HCFG::JoyKindAxis;
-							diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-							diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-							diprg.diph.dwHow        = DIPH_BYOFFSET; 
-							diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
-							diprg.lMin              = joycfg.yMin; 
-							diprg.lMax              = joycfg.yMax; 
-							hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
-							if (FAILED(hr))
+							//Y Axis
+							ZeroMemory(&didoi, sizeof(didoi));
+							didoi.dwSize = sizeof(didoi);
+							hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_Y, DIPH_BYOFFSET);
+							if (SUCCEEDED(hr))
 							{
-								ZeroMemory(&diprg, sizeof(diprg));
-								diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
-								diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
-								diprg.diph.dwHow        = DIPH_BYOFFSET; 
-								diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
-								hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
-								if (SUCCEEDED(hr))
+								if ((didoi.dwType & DIDFT_AXIS) != 0)
 								{
-									joycfg.yMin = diprg.lMin; 
-									joycfg.yMax = diprg.lMax; 
+									joycfg.joyObjectKindY = HCFG::JoyKindAxis;
+									diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+									diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+									diprg.diph.dwHow        = DIPH_BYOFFSET; 
+									diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
+									diprg.lMin              = joycfg.yMin; 
+									diprg.lMax              = joycfg.yMax; 
+									hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+									if (FAILED(hr))
+									{
+										ZeroMemory(&diprg, sizeof(diprg));
+										diprg.diph.dwSize       = sizeof(DIPROPRANGE); 
+										diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+										diprg.diph.dwHow        = DIPH_BYOFFSET; 
+										diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
+										hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+										if (SUCCEEDED(hr))
+										{
+											joycfg.yMin = diprg.lMin; 
+											joycfg.yMax = diprg.lMax; 
+										}
+									}
+									joycfg.yUp = joycfg.yMin + 60L * (joycfg.yMax - joycfg.yMin)/200L;
+									joycfg.yDown = joycfg.yMax - 60L * (joycfg.yMax - joycfg.yMin)/200L;
+								}
+								else if ((didoi.dwType & DIDFT_POV) != 0)
+								{
+									joycfg.joyObjectKindY = HCFG::JoyKindPov;
 								}
 							}
-							joycfg.yUp = joycfg.yMin + 60L * (joycfg.yMax - joycfg.yMin)/200L;
-							joycfg.yDown = joycfg.yMax - 60L * (joycfg.yMax - joycfg.yMin)/200L;
-						}
-						else if ((didoi.dwType & DIDFT_POV) != 0)
-						{
-							joycfg.joyObjectKindY = HCFG::JoyKindPov;
-						}
-					}
 
-					//POV
-					if (joycfg.bPovEnabled)
-					{
-						ZeroMemory(&didoi, sizeof(didoi));
-						didoi.dwSize = sizeof(didoi);
-						for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
-						{
-							hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
-							if (hr == DIERR_OBJECTNOTFOUND)
+							//POV
+							if (joycfg.bPovEnabled)
 							{
-								continue;
+								ZeroMemory(&didoi, sizeof(didoi));
+								didoi.dwSize = sizeof(didoi);
+								for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
+								{
+									hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
+									if (hr == DIERR_OBJECTNOTFOUND)
+									{
+										continue;
+									}
+									if (FAILED(hr))
+									{
+										break;
+									}
+									joycfg.povAvailable[j] = DIJOFS_POV(i);
+									joycfg.povIndex[j] = i;
+									j++;
+								}
 							}
-							if (FAILED(hr))
+
+							if (dicaps.dwButtons <= 32)
 							{
-								break;
+								joycfg.countOfButtons = dicaps.dwButtons;
 							}
-							joycfg.povAvailable[j] = DIJOFS_POV(i);
-							joycfg.povIndex[j] = i;
-							j++;
+							else
+							{
+								joycfg.countOfButtons = 0;
+							}
 						}
 					}
 				}

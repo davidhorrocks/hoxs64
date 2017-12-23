@@ -6,6 +6,7 @@
 
 struct joyconfig
 {
+	joyconfig();
 	bool bEnabled;
 	bool bPovEnabled;
 	bool bValid;
@@ -25,8 +26,12 @@ struct joyconfig
 	LONG yUp;
 	LONG yDown;
 	DWORD dwOfs_firebutton;
+	DWORD firemask;
 	DWORD povAvailable[4];
 	int povIndex[4];
+	int countOfButtons;
+	DWORD buttonOffsets[32];
+	void LoadDefault();
 };
 
 class CConfig

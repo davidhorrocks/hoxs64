@@ -94,11 +94,10 @@ HKEY  hKey1;
 LONG   lRetCode; 
 ULONG tempLenValue;
 DWORD type,dw;
-const int maxbutton = 31;
 int i;
 	
+	LoadDefaultSetting();
 	const ULONG lenValue = sizeof(szValue);
-	ZeroMemory(&m_KeyMap[0], sizeof(m_KeyMap));
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"),
 		0, KEY_READ,
@@ -110,13 +109,11 @@ int i;
 		RegCloseKey(hKey1);
 		if (lRetCode != ERROR_SUCCESS)
 		{
-			LoadDefaultSetting();
 			return S_OK;
 		}
 	}
 	else
 	{
-		LoadDefaultSetting();
 		return S_OK;
 	}
 
@@ -566,8 +563,6 @@ int i;
 		RegCloseKey(hKey1);
 	}
 	
-	m_joy1config.bValid = false;
-	m_joy2config.bValid = false;
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Joystick"),
 		0, KEY_READ,
@@ -640,10 +635,6 @@ int i;
 			m_joy2config.bPovEnabled = true;
 		}
 
-		m_joy1config.bXReverse = false;
-		m_joy1config.bYReverse = false;
-		m_joy2config.bXReverse = false;
-		m_joy2config.bYReverse = false;
 		tempLenValue = lenValue;
 		lRetCode = RegReadStr(hKey1, TEXT("Joy1RevX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
@@ -671,13 +662,6 @@ int i;
 		{
 			m_joy2config.bYReverse = _ttol(szValue) != 0;
 		}
-
-		m_joy1config.dwOfs_X = DIJOFS_X;
-		m_joy1config.dwOfs_Y = DIJOFS_Y;
-		m_joy1config.dwOfs_firebutton = DIJOFS_BUTTON0;
-		m_joy2config.dwOfs_X = DIJOFS_X;
-		m_joy2config.dwOfs_Y = DIJOFS_Y;
-		m_joy2config.dwOfs_firebutton = DIJOFS_BUTTON0;
 
 		if (m_joy1config.bValid)
 		{
@@ -710,12 +694,19 @@ int i;
 				}					
 
 				//Joystick 1 Fire
+				tempLenValue = sizeof(DWORD);
+				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1FireMask"), NULL, NULL, (LPBYTE)&dw, &tempLenValue);
+				if (lRetCode == ERROR_SUCCESS && tempLenValue == sizeof(DWORD))
+				{
+					m_joy1config.firemask = dw;
+				}
+
 				tempLenValue = lenValue;
 				lRetCode = RegReadStr(hKey1, TEXT("Joy1Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
-					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+					if (dw >= DIJOFS_BUTTON0 && dw <= DIJOFS_BUTTON31)
 					{
 						m_joy1config.dwOfs_firebutton = dw;
 					}
@@ -759,13 +750,22 @@ int i;
 				}
 
 				//Joystick 2 Fire
+				tempLenValue = sizeof(DWORD);
+				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2FireMask"), NULL, NULL, (LPBYTE)&dw, &tempLenValue);
+				if (lRetCode == ERROR_SUCCESS && tempLenValue == sizeof(DWORD))
+				{
+					m_joy2config.firemask = dw;
+				}
+
 				tempLenValue = lenValue;
 				lRetCode = RegReadStr(hKey1, TEXT("Joy2Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 				if (lRetCode == ERROR_SUCCESS)
 				{
 					dw = _ttol(szValue);
-					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)) && dw>= DIJOFS_BUTTON0)
+					if (dw >= DIJOFS_BUTTON0 && dw <= DIJOFS_BUTTON31)
+					{
 						m_joy2config.dwOfs_firebutton = dw;
+					}
 				}
 			}
 		}
@@ -1382,8 +1382,12 @@ int i;
 	
 	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.dwOfs_firebutton);
 	RegSetValueEx(hKey1, TEXT("Joy1Fire"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.firemask);
+	RegSetValueEx(hKey1, TEXT("Joy1FireMask"), 0, REG_DWORD, (LPBYTE) &m_joy1config.firemask, sizeof(DWORD));
 	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy2config.dwOfs_firebutton);
 	RegSetValueEx(hKey1, TEXT("Joy2Fire"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.firemask);
+	RegSetValueEx(hKey1, TEXT("Joy2FireMask"), 0, REG_DWORD, (LPBYTE) &m_joy2config.firemask, sizeof(DWORD));
 
 	RegCloseKey(hKey1);
 	return S_OK;
@@ -1402,6 +1406,8 @@ void CConfig::LoadDefaultSetting()
 {
 	SetPalettePepto();
 	ZeroMemory(&m_KeyMap[0], sizeof(m_KeyMap));
+	m_joy1config.LoadDefault();
+	m_joy2config.LoadDefault();
 	m_KeyMap[C64K_PLUS]=	DIK_MINUS;
 	m_KeyMap[C64K_MINUS]=	DIK_EQUALS;
 	m_KeyMap[C64K_ASTERISK]= DIK_RBRACKET;
@@ -1493,12 +1499,8 @@ void CConfig::LoadDefaultSetting()
 	m_bDoubleSizedWindow = true;
 	m_bUseBlitStretch = true;
 	m_bUseKeymap = false;
-	m_joy1config.bValid = false;
-	m_joy1config.bEnabled = false;
-	m_joy1config.bPovEnabled = true;
-	m_joy2config.bValid = false;
-	m_joy2config.bEnabled = false;
-	m_joy2config.bPovEnabled = true;
+	m_joy1config.LoadDefault();
+	m_joy2config.LoadDefault();
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
@@ -1583,4 +1585,24 @@ LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPD
 		}
 	}
 	return r;
+}
+
+joyconfig::joyconfig()
+{
+	LoadDefault();
+}
+
+void joyconfig::LoadDefault()
+{
+	bEnabled = false;
+	bPovEnabled = true;
+	bValid = false;
+	bXReverse = false;
+	bYReverse = false;
+	dwOfs_X = DIJOFS_X;
+	dwOfs_Y = DIJOFS_Y;
+	dwOfs_firebutton = DIJOFS_BUTTON0;
+	firemask = 0;
+	countOfButtons = 0;
+	ZeroMemory(buttonOffsets, sizeof(buttonOffsets));
 }

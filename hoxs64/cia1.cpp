@@ -485,9 +485,23 @@ const DWORD povDownRight = 18000 - 2250;
 			}
 		}
 
-		if (((BYTE *)&js)[joycfg.dwOfs_firebutton] & 0x80)
+		if (joycfg.firemask == 0)
 		{
-			fire = true;
+			if (((BYTE *)&js)[joycfg.dwOfs_firebutton] & 0x80)
+			{
+				fire = true;
+			}
+		}
+		else
+		{
+			for (i=0; i < joycfg.countOfButtons; i++)
+			{
+				if (((BYTE *)&js)[joycfg.buttonOffsets[i]] & 0x80)
+				{
+					fire = true;
+					break;
+				}
+			}
 		}
 		return true;
 	}
