@@ -1055,7 +1055,7 @@ HRESULT hr;
 		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, showWindowFlags);
 		G::EnsureWindowPosition(m_hWnd);
 		SaveMainWindowSize();
-		if (appStatus->m_syncMode == HCFG::FSSM_VBL && !appStatus->m_bDebug)
+		if (appStatus->m_syncModeWindowed == HCFG::FSSM_VBL && !appStatus->m_bDebug)
 		{
 			appStatus->m_fskip = 1;
 		}
@@ -1170,10 +1170,7 @@ D3DTEXTUREFILTERTYPE filter;
 RECT rc;
 	ClearError();
 	ZeroMemory(&displayModeRequested, sizeof(D3DDISPLAYMODE));
-
 	filter = CDX9::GetDxFilterFromEmuFilter(appStatus->m_blitFilter);
-
-
 	if (bWindowed)
 	{
   		if (bWindowedCustomSize)
@@ -1191,13 +1188,14 @@ RECT rc;
 			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
 		}
 		
-		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, true, bDoubleSizedWindow, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
+		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, true, bDoubleSizedWindow, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncModeWindowed, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
 			appStatus->m_bWindowed = true;
 			appStatus->m_bWindowedCustomSize = false;
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
+
 		appStatus->m_bWindowed = true;		
 	}
 	else
@@ -1206,14 +1204,14 @@ RECT rc;
 		displayModeRequested.Height = appStatus->m_fullscreenHeight;
 		displayModeRequested.Width = appStatus->m_fullscreenWidth;
 		displayModeRequested.RefreshRate = appStatus->m_fullscreenRefresh;
-
-		hRet = dx->InitD3D(m_hWnd, m_hWnd, false, true, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncMode, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
+		hRet = dx->InitD3D(m_hWnd, m_hWnd, false, true, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncModeFullscreen, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
 		if (FAILED(hRet))
 		{
 			appStatus->m_bWindowed = true;
 			appStatus->m_bWindowedCustomSize = false;
 			return SetError(hRet, TEXT("InitD3D failed."));
 		}
+
 		appStatus->m_bWindowed = false;
 	}
 

@@ -461,8 +461,8 @@ HRESULT hr;
 				return hr;
 			}
 
-			HRESULT hr = m_pd3dDevice->TestCooperativeLevel();
-			if (FAILED(hr))
+			HRESULT hrTest = m_pd3dDevice->TestCooperativeLevel();
+			if (FAILED(hrTest))
 			{				
 				m_appStatus->m_bReady = false;
 				m_appStatus->SoundHalt();
@@ -595,22 +595,31 @@ HRESULT CDX9::Reset()
 {
 HRESULT hr = E_FAIL;
 	if (!m_pD3D)
+	{
 		return E_FAIL;
+	}
+
 	if (!m_pd3dDevice || !m_hWndDevice)
+	{
 		return E_FAIL;
+	}
 
 	OnLostDevice();
 	D3DPRESENT_PARAMETERS d3dpp;
-	hr = GetPresentationParams(m_hWndDevice, m_hWndFocus, m_bWindowedMode, this->m_appStatus->m_syncMode, m_iAdapterNumber, m_displayModeActual, d3dpp);
+	hr = GetPresentationParams(m_hWndDevice, m_hWndFocus, m_bWindowedMode, this->m_syncMode, m_iAdapterNumber, m_displayModeActual, d3dpp);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	hr = m_pd3dDevice->Reset(&d3dpp); 
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	m_d3dpp = d3dpp;
 	OnResetDevice();
-
 	return hr;
 }
 
@@ -625,7 +634,7 @@ GUID empty;
 	ZeroMemory(&empty, sizeof(empty));
 	m_hWndDevice = hWndDevice;
 	m_hWndFocus = hWndFocus;
-
+	
 	// Create the D3D object, which is needed to create the D3DDevice.
 	if (m_pD3D == NULL)
 	{
@@ -781,6 +790,7 @@ GUID empty;
 			}
 		}
 	}
+
 	m_iAdapterNumber = adapterNumber;
 	m_d3dpp = d3dpp;
 	m_displayModeActual = chooseDisplayMode;	
@@ -792,6 +802,7 @@ GUID empty;
 	m_bUseBlitStretch = bUseBlitStretch;
 	m_stretch = stretch;
 	m_filter = filter;
+	m_syncMode = syncMode;
 	hr = OnInitaliseDevice(m_pd3dDevice);
 	if (FAILED(hr))
 	{

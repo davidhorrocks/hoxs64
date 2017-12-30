@@ -72,7 +72,8 @@ private:
 	bool m_bSaveSkipFrames;;
 	bool m_bSaveLimitSpeed;
 	bool m_bSaveUseBlitStretch;
-	HCFG::FULLSCREENSYNCMODE m_SaveSyncMode;
+	HCFG::FULLSCREENSYNCMODE m_SaveSyncModeFullscreen;
+	HCFG::FULLSCREENSYNCMODE m_SaveSyncModeWindowed;
 };
 
 #endif

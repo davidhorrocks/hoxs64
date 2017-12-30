@@ -22,20 +22,16 @@ CAppStatus::CAppStatus()
 	m_bPaused=false;
 	m_bClosing=false;
 	m_bInitDone=false;
-
 	m_fskip = 0;
 	m_displayFormat = 0;
 	m_ScreenDepth = 0;
 	m_bUseCPUDoubler = false;
 	m_blitFilterDX = 0;
-
 	m_audioSpeedStatus = HCFG::AUDIO_OK;
-
 	m_bAutoload = 0;
 	m_bDiskLedMotor = false;
 	m_bDiskLedDrive = false;
 	m_bSerialTooBusyForSeparateThread = false;
-
 	SaveSpeedSettings();
 }
 
@@ -45,7 +41,8 @@ void CAppStatus::SaveSpeedSettings()
 	m_bSaveSkipFrames = m_bSkipFrames;
 	m_bSaveLimitSpeed = m_bLimitSpeed;
 	m_bSaveUseBlitStretch = m_bUseBlitStretch;
-	m_SaveSyncMode = m_syncMode;
+	m_SaveSyncModeFullscreen = m_syncModeFullscreen;
+	m_syncModeWindowed = m_SaveSyncModeWindowed;
 }
 
 void CAppStatus::RestoreSpeedSettings()
@@ -53,5 +50,6 @@ void CAppStatus::RestoreSpeedSettings()
 	m_bSkipFrames = m_bSaveSkipFrames;
 	m_bLimitSpeed = m_bSaveLimitSpeed;
 	m_bUseBlitStretch = m_bSaveUseBlitStretch;
-	m_syncMode = m_SaveSyncMode;
+	m_syncModeFullscreen = m_SaveSyncModeFullscreen;
+	m_syncModeWindowed = m_SaveSyncModeWindowed;
 }

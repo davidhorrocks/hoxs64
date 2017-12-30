@@ -81,8 +81,8 @@
 #define IDC_STATIC2                     1010
 #define IDC_BYTEID1                     1011
 #define IDC_BYTEID2                     1012
-#define IDC_VBLSYNC                     1013
-#define IDC_LINESYNC                    1014
+#define IDC_VBLSYNC_FSC                 1013
+#define IDC_LINESYNC_FSC                1014
 #define IDC_SKIPFRAMES                  1015
 #define IDC_TXT_ARROWLEFT               1016
 #define IDC_TXT_STOP                    1017
@@ -250,6 +250,11 @@
 #define IDC_STATIC_ABOUT_LIBPNG         1350
 #define IDC_STATIC_ABOUT_LIBPNG_TITLE   1350
 #define IDC_STATIC_ABOUT_LIBPNG_AUTHOR  1351
+#define IDC_VBLSYNC_WND                 1352
+#define IDC_RADIO2                      1353
+#define IDC_LINESYNC_WND                1353
+#define IDC_GROUP_WINDOWED              1354
+#define IDC_GROUP_FULLSCREEN            1355
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -335,7 +340,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        190
 #define _APS_NEXT_COMMAND_VALUE         40186
-#define _APS_NEXT_CONTROL_VALUE         1352
+#define _APS_NEXT_CONTROL_VALUE         1356
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif

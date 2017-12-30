@@ -267,7 +267,14 @@ int i;
 		lRetCode = RegReadStr(hKey1, TEXT("SyncMode1"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_syncMode = (HCFG::FULLSCREENSYNCMODE) _ttol(szValue);
+			m_syncModeFullscreen = (HCFG::FULLSCREENSYNCMODE) _ttol(szValue);
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadStr(hKey1, TEXT("SyncMode2"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_syncModeWindowed = (HCFG::FULLSCREENSYNCMODE) _ttol(szValue);
 		}
 
 		tempLenValue = lenValue;
@@ -1206,8 +1213,11 @@ int i;
 	wsprintf(szValue, TEXT("%lu"), (DWORD) m_bSIDResampleMode);
 	RegSetValueEx(hKey1, TEXT("SIDSampleMode"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_syncMode);
+	wsprintf(szValue, TEXT("%lu"), (DWORD) m_syncModeFullscreen);
 	RegSetValueEx(hKey1, TEXT("SyncMode1"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+
+	wsprintf(szValue, TEXT("%lu"), (DWORD) m_syncModeWindowed);
+	RegSetValueEx(hKey1, TEXT("SyncMode2"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
 	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bDoubleSizedWindow ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("DoubleSizedWindow"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
@@ -1495,7 +1505,8 @@ void CConfig::LoadDefaultSetting()
 	m_bShowSpeed = true;
 	m_bLimitSpeed = true;
 	m_bSIDResampleMode = true;
-	m_syncMode = HCFG::FSSM_VBL;
+	m_syncModeFullscreen = HCFG::FSSM_VBL;
+	m_syncModeWindowed = HCFG::FSSM_LINE;
 	m_bDoubleSizedWindow = true;
 	m_bUseBlitStretch = true;
 	m_bUseKeymap = false;

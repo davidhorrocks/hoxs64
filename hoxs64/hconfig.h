@@ -70,7 +70,8 @@ public:
 	bool m_bSID_Emulation_Enable;
 	bool m_bShowSpeed;
 	bool m_bLimitSpeed;
-	HCFG::FULLSCREENSYNCMODE m_syncMode;
+	HCFG::FULLSCREENSYNCMODE m_syncModeFullscreen;
+	HCFG::FULLSCREENSYNCMODE m_syncModeWindowed;
 	bool m_bUseKeymap;
 	bool m_bSkipFrames;
 	bool m_bDoubleSizedWindow;

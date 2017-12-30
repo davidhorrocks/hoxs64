@@ -204,6 +204,7 @@ private:
 	int m_iAdapterNumber;
 	D3DDISPLAYMODE m_displayModeActual;
 	bool m_bWindowedMode;
+	HCFG::FULLSCREENSYNCMODE m_syncMode;
 	bool m_bDoubleSizedWindow;
 	HCFG::EMUBORDERSIZE m_borderSize;
 	bool m_bShowFloppyLed;

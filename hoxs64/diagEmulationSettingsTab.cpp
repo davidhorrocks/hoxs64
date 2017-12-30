@@ -1368,17 +1368,40 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (cfg->m_bSkipFrames)
+		{
 			CheckDlgButton(hWnd, IDC_SKIPFRAMES, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_SKIPFRAMES, BST_UNCHECKED);
-		if (cfg->m_syncMode == HCFG::FSSM_VBL)
-			CheckRadioButton(hWnd, IDC_VBLSYNC, IDC_LINESYNC, IDC_VBLSYNC);
+		}
+
+		if (cfg->m_syncModeFullscreen == HCFG::FSSM_VBL)
+		{
+			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_FSC, IDC_VBLSYNC_FSC);
+		}
 		else
-			CheckRadioButton(hWnd, IDC_VBLSYNC, IDC_LINESYNC, IDC_LINESYNC);
+		{
+			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_FSC, IDC_LINESYNC_FSC);
+		}
+
+		if (cfg->m_syncModeWindowed == HCFG::FSSM_VBL)
+		{
+			CheckRadioButton(hWnd, IDC_VBLSYNC_WND, IDC_LINESYNC_WND, IDC_VBLSYNC_WND);
+		}
+		else
+		{
+			CheckRadioButton(hWnd, IDC_VBLSYNC_WND, IDC_LINESYNC_WND, IDC_LINESYNC_WND);
+		}
+
 		if (cfg->m_bUseBlitStretch)
+		{
 			CheckRadioButton(hWnd, IDC_DOUBLER_BLIT, IDC_DOUBLER_CPU, IDC_DOUBLER_BLIT);
+		}
 		else
+		{
 			CheckRadioButton(hWnd, IDC_DOUBLER_BLIT, IDC_DOUBLER_CPU, IDC_DOUBLER_CPU);	
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_AUDIO)) != NULL)
@@ -1443,34 +1466,58 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_HOSTCPU_FRIENDLY))
+		{
 			cfg->m_bCPUFriendly=true;
+		}
 		else
+		{
 			cfg->m_bCPUFriendly=false;
+		}
+
 		if (IsDlgButtonChecked(hWnd, IDC_SHOWSPEED))
+		{
 			cfg->m_bShowSpeed = true;
+		}
 		else
 		{
 			cfg->m_bShowSpeed = false;
 		}
+
 		if (IsDlgButtonChecked(hWnd, IDC_LIMITSPEED))
+		{
 			cfg->m_bLimitSpeed = true;
+		}
 		else
+		{
 			cfg->m_bLimitSpeed = false;
+		}
 
 		if (IsDlgButtonChecked(hWnd, IDC_DISKONSEPARATETHREAD))
+		{
 			cfg->m_bD1541_Thread_Enable = true;
+		}
 		else
+		{
 			cfg->m_bD1541_Thread_Enable = false;
+		}
 
 		if (IsDlgButtonChecked(hWnd, IDC_ALLOWOPPOSINGJOYSTICK))
+		{
 			cfg->m_bAllowOpposingJoystick = true;
+		}
 		else
+		{
 			cfg->m_bAllowOpposingJoystick = false;
+		}
 
 		if (IsDlgButtonChecked(hWnd, IDC_DISABLE_DWM_FULLSCREEN))
+		{
 			cfg->m_bDisableDwmFullscreen = true;
+		}
 		else
+		{
 			cfg->m_bDisableDwmFullscreen = false;
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
@@ -1484,14 +1531,33 @@ shared_ptr<CTabPageDialog> pPage;
 		{
 			cfg->m_bSkipFrames = false;
 		}
-		if (IsDlgButtonChecked(hWnd, IDC_VBLSYNC))
-			cfg->m_syncMode = HCFG::FSSM_VBL;
+
+		if (IsDlgButtonChecked(hWnd, IDC_VBLSYNC_FSC))
+		{
+			cfg->m_syncModeFullscreen = HCFG::FSSM_VBL;
+		}
 		else
-			cfg->m_syncMode = HCFG::FSSM_LINE;
+		{
+			cfg->m_syncModeFullscreen = HCFG::FSSM_LINE;
+		}
+
+		if (IsDlgButtonChecked(hWnd, IDC_VBLSYNC_WND))
+		{
+			cfg->m_syncModeWindowed = HCFG::FSSM_VBL;
+		}
+		else
+		{
+			cfg->m_syncModeWindowed = HCFG::FSSM_LINE;
+		}
+
 		if (IsDlgButtonChecked(hWnd, IDC_DOUBLER_BLIT))
+		{
 			cfg->m_bUseBlitStretch = true;
+		}
 		else
+		{
 			cfg->m_bUseBlitStretch = false;
+		}
 
 		GUID zeroGuid;
 		DWORD adapterOrdinal;
@@ -1511,22 +1577,26 @@ shared_ptr<CTabPageDialog> pPage;
 				cfg->m_fullscreenAdapterId = adapterId;
 			}
 		}
+
 		D3DDISPLAYMODE adapterMode;
 		if (SUCCEEDED(ReadAdapterMode(&adapterMode)))
 		{
 			cfg->m_fullscreenWidth = adapterMode.Width;
 			cfg->m_fullscreenHeight = adapterMode.Height;
 		}
+
 		D3DFORMAT adapterFormat;
 		if (SUCCEEDED(ReadAdapterFormat(&adapterFormat)))
 		{
 			cfg->m_fullscreenFormat = adapterFormat;
 		}
+
 		HCFG::EMUWINDOWSTRETCH adapterStretch;
 		if (SUCCEEDED(ReadAdapterStretch(&adapterStretch)))
 		{
 			cfg->m_fullscreenStretch = adapterStretch;
 		}
+
 		HCFG::EMUWINDOWFILTER adapterFilter;
 		if (SUCCEEDED(ReadAdapterFilter(&adapterFilter)))
 		{
@@ -1536,48 +1606,71 @@ shared_ptr<CTabPageDialog> pPage;
 		HCFG::EMUBORDERSIZE border;
 		ReadBorder(&border);
 		cfg->m_borderSize = border;
-
-
 		HCFG::EMUFPS fps;
 		ReadFps(&fps);
 		cfg->m_fps = fps;
-
 	}
+
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_AUDIO)) != NULL)
 	{
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_AUDIOCLOCKSYNC))
+		{
 			cfg->m_bAudioClockSync=true;
+		}
 		else
+		{
 			cfg->m_bAudioClockSync=false;
+		}
+
 		if (IsDlgButtonChecked(hWnd, IDC_SIDDIGIBOOT))
+		{
 			cfg->m_bSidDigiBoost=true;
+		}
 		else
+		{
 			cfg->m_bSidDigiBoost=false;
+		}
+
 		if (IsDlgButtonChecked(hWnd, IDC_SID_EMULATION))
 		{
 			cfg->m_bSID_Emulation_Enable = true;
 		}
 		else
+		{
 			cfg->m_bSID_Emulation_Enable = false;
+		}
+
 		if (IsDlgButtonChecked(hWnd, IDC_SID_RESAMPLE))
+		{
 			cfg->m_bSIDResampleMode = true;
+		}
 		else
+		{
 			cfg->m_bSIDResampleMode = false;
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
 	{
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_1541_EMULATION))
+		{
 			cfg->m_bD1541_Emulation_Enable=true;
+		}
 		else
+		{
 			cfg->m_bD1541_Emulation_Enable=false;
+		}
 
 		if (IsDlgButtonChecked(hWnd, IDC_CHK_SHOWFLOPPYLED))
+		{
 			cfg->m_bShowFloppyLed=true;
+		}
 		else
+		{
 			cfg->m_bShowFloppyLed=false;
+		}
 
 		ReadTrackZeroSensor(&cfg->m_TrackZeroSensorStyle);
 	}
@@ -1586,22 +1679,30 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_RAD_CIA6526))
+		{
 			cfg->m_CIAMode = HCFG::CM_CIA6526; 
+		}
 		else if (IsDlgButtonChecked(hWnd, IDC_RAD_CIA6526A))
+		{
 			cfg->m_CIAMode = HCFG::CM_CIA6526A; 
+		}
 		else
+		{
 			cfg->m_CIAMode = HCFG::CM_CIA6526A; 
+		}
 
 		if (IsDlgButtonChecked(hWnd, IDC_CHK_TIMERBBUG))
+		{
 			cfg->m_bTimerBbug = true;
+		}
 		else
+		{
 			cfg->m_bTimerBbug = false;
+		}
 	}
 
 	cfg->m_bMaxSpeed = false;
 }
-
-
 
 BOOL CDiagEmulationSettingsTab::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -1614,10 +1715,16 @@ HRESULT hr;
 		//G::ArrangeOKCancel(hWndDlg);
 		br = OnTabbedDialogInit(hWndDlg);
 		if (!br)
+		{
 			return FALSE;
+		}
+
 		hr = CreateAllPages();
 		if (FAILED(hr))
+		{
 			return FALSE;
+		}
+
 		loadconfig(&CurrentCfg);
 		FillFps();
 		FillBorder();

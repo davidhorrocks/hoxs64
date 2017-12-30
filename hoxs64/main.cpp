@@ -103,7 +103,7 @@ CApp::CApp()
 	m_bDebug      = false;
 	m_bPaused      = false;
 	m_bMaxSpeed   = false;
-	m_syncMode = HCFG::FSSM_LINE;
+	m_syncModeFullscreen = HCFG::FSSM_LINE;
 	m_bAutoload = false;
 	m_bWindowSizing = false;
 	m_bClosing = false;
@@ -380,7 +380,7 @@ msgloop:
 				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
 				if (SUCCEEDED(hRet))
 				{
-					dx.Present(0);
+					dx.Present(D3DPRESENT_DONOTWAIT);
 				}
 			}
 
@@ -1621,7 +1621,8 @@ int i;
 		|| newcfg.m_blitFilter != this->m_blitFilter
 		|| newcfg.m_borderSize != this->m_borderSize
 		|| newcfg.m_bShowFloppyLed != this->m_bShowFloppyLed
-		|| newcfg.m_syncMode != this->m_syncMode
+		|| newcfg.m_syncModeFullscreen != this->m_syncModeFullscreen
+		|| newcfg.m_syncModeWindowed != this->m_syncModeWindowed
 		|| newcfg.m_fullscreenAdapterNumber != this->m_fullscreenAdapterNumber)
 	{
 		bNeedDisplayReset = true;
