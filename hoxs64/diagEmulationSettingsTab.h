@@ -45,6 +45,7 @@ public:
 	HRESULT Init(CDX9 *dx, const CConfig *cfg);
 	CConfig CurrentCfg;
 	CConfig NewCfg;
+	HFONT defaultFont;
 protected:
 	void SettingsOnLimitSpeedChange();
 	void SettingsOnPixelDoublerChange();
@@ -57,15 +58,14 @@ private:
 	void UpdatePageVideo(HWND hWndDlg);
 	void UpdatePageAudio(HWND hWndDlg);
 	void UpdatePageDisk(HWND hWndDlg);
-
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 	virtual BOOL OnPageEvent(CTabPageDialog *page, HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-	CDX9 *m_pDx;
 
+	CDX9 *m_pDx;
 	CAdapterArray m_AdapterArray;
 	CDisplayModeList m_ModeList;
 	CDisplayModeList m_ModeFormatList;
+
 	void FillDevices();
 	void FillModes();
 	void FillModes(UINT adapterOrdinal);
@@ -78,6 +78,9 @@ private:
 	void FillFps();
 	void VideoPageSizeComboBoxes();
 	void DiskPageSizeComboBoxes();
+	void InitFonts();
+	void CloseFonts();
+	void InitSizes();
 
 	static int fnFindMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);
 	static int fnFindModeFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);

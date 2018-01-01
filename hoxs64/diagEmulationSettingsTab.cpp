@@ -19,6 +19,7 @@
 #include "dxstuff9.h"
 #include "carray.h"
 #include "MList.h"
+#include "besttextwidth.h"
 #include "diagemulationsettingstab.h"
 #include "resource.h"
 
@@ -37,6 +38,7 @@ struct StringAndInt
 
 CDiagEmulationSettingsTab::CDiagEmulationSettingsTab()
 {
+	defaultFont = NULL;
 }
 
 CDiagEmulationSettingsTab::~CDiagEmulationSettingsTab()
@@ -58,8 +60,6 @@ void CDiagEmulationSettingsTab::VideoPageSizeComboBoxes()
 		return;
 	static int ctls[] = {IDC_CBO_ADAPTER, IDC_CBO_MODE, IDC_CBO_FORMAT, IDC_CBO_FILTER, IDC_CBO_STRETCH, IDC_CBO_BORDER, IDC_CBO_FPS};
 	G::AutoSetComboBoxHeight(hVideoPage, ctls, _countof(ctls), 0);
-
-	SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_SETDROPPEDWIDTH, 130, 0);
 }
 
 void CDiagEmulationSettingsTab::DiskPageSizeComboBoxes()
@@ -85,20 +85,25 @@ GUID emptyGuid;
 LRESULT currentSelection = -1;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
 		return;
+	}
+
 	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	if (!hVideoPage)
+	{
 		return;
-	
+	}
+
 	hWndCboAdapter = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER);
 	if (hWndCboAdapter == NULL)
+	{
 		return;
+	}
 
 	SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_RESETCONTENT, 0, 0);
 	m_AdapterArray.Clear();
-
 	UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();
-
 	hr = m_AdapterArray.Resize(iAdapterCount);
 	if (FAILED(hr))
 	{
@@ -106,7 +111,6 @@ LRESULT currentSelection = -1;
 	}
 
 	ZeroMemory(&emptyGuid, sizeof(emptyGuid));
-
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Auto"));
 	if (lr >= 0)
 	{
@@ -117,11 +121,13 @@ LRESULT currentSelection = -1;
 		}
 	}
 
+	HDC hdcControl = GetDC(hWndCboAdapter);
+	BestTextWidthDC tw(hdcControl);
+	tw.SetFont(this->defaultFont);
 	for (i=0 ; i < iAdapterCount ; i++)
 	{
 		ZeroMemory(&displayInfo, sizeof(displayInfo));
 		displayInfo.bRequireClean = true;
-
 		displayInfo.adapterOrdinal = i;
 		m_pDx->m_pD3D->GetAdapterIdentifier(i, 0, &displayInfo.adapter);
 		hMonitor = m_pDx->m_pD3D->GetAdapterMonitor(i);
@@ -130,6 +136,7 @@ LRESULT currentSelection = -1;
 			displayInfo.monitor.cbSize = sizeof(MONITORINFOEX);
 			m_pDx->DXUTGetMonitorInfo(hMonitor, &displayInfo.monitor);
 		}
+
 		if (SUCCEEDED(displayInfo.MakeName()))
 		{
 			//appends a shallow copy of displayInfo
@@ -138,14 +145,14 @@ LRESULT currentSelection = -1;
 			{
 				return;
 			}
+
+			tw.GetWidth(displayInfo.name);
 			//m_AdapterArray now controls the life time of displayInfo allocated memory
 			//prevent clean of local displayInfo. 
 			displayInfo.bRequireClean = false;
-
-
 			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) displayInfo.name);
 			if (lr >= 0)
-			{
+			{				
 				SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM) j);
 				//if (NewCfg.m_fullscreenAdapterId == displayInfo.adapter.DeviceIdentifier)
 				if ((NewCfg.m_fullscreenAdapterNumber == i) && (NewCfg.m_fullscreenAdapterId != emptyGuid))
@@ -156,39 +163,70 @@ LRESULT currentSelection = -1;
 		}
 	}
 
+	if (tw.maxWidth > 0)
+	{
+		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hVideoPage), 0);
+	}
+
 	if (currentSelection >= 0)
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETCURSEL, currentSelection, 0);
+	}
 	else
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETCURSEL, 0, 0);
+	}
+
+	if (hdcControl)
+	{
+		ReleaseDC(hWndCboAdapter, hdcControl);
+		hdcControl = NULL;
+	}
 }
 
 int CDiagEmulationSettingsTab::fnFindMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
 {
 	if (mode1.mode.Height == mode2.mode.Height && mode1.mode.Width == mode2.mode.Width)
+	{
 		return 0;
+	}
 	else
+	{
 		return 1;
+	}
 }
 
 int CDiagEmulationSettingsTab::fnFindModeFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
 {
 	if (mode1.mode.Format == mode2.mode.Format)
+	{
 		return 0;
+	}
 	else
+	{
 		return 1;
+	}
 }
 
 int CDiagEmulationSettingsTab::fnCompareMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
 {
 	if (mode1.mode.Width>mode2.mode.Width)
+	{
 		return 1;
+	}
 	else if (mode1.mode.Width<mode2.mode.Width)
+	{
 		return -1;
+	}
 
 	if (mode1.mode.Height>mode2.mode.Height)
+	{
 		return 1;
+	}
 	else if (mode1.mode.Height<mode2.mode.Height)
+	{
 		return -1;
+	}
 
 	return 0;
 }
@@ -196,9 +234,13 @@ int CDiagEmulationSettingsTab::fnCompareMode(CDisplayModeInfo &mode1, CDisplayMo
 int CDiagEmulationSettingsTab::fnCompareFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
 {
 	if (CDX9::GetBitsPerPixel(mode1.mode.Format) > CDX9::GetBitsPerPixel(mode2.mode.Format))
+	{
 		return 1;
+	}
 	else if (CDX9::GetBitsPerPixel(mode1.mode.Format)<CDX9::GetBitsPerPixel(mode2.mode.Format))
+	{
 		return -1;
+	}
 
 	return 0;
 }
@@ -503,15 +545,22 @@ bool bAdd1X, bAdd2X, bAddStretch;
 bool bShowFloppyLed;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
 		return;
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+	}
 
+	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	hWndCboSize = GetDlgItem(hVideoPage, IDC_CBO_STRETCH);
 	if (hWndCboSize == NULL)
+	{
 		return;
+	}
 
+	HDC hdcControl = GetDC(hWndCboSize);
+	BestTextWidthDC tw(hdcControl);
+	tw.SetFont(this->defaultFont);
 	SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_RESETCONTENT, 0, 0);
-
+	tw.GetWidth(szAuto);
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szAuto);
 	if (lr >= 0)
 	{
@@ -529,12 +578,10 @@ bool bShowFloppyLed;
 		bShowFloppyLed = IsDlgButtonChecked(hDiskPage, IDC_CHK_SHOWFLOPPYLED) != 0;
 	}
 
-
 	HCFG::EMUBORDERSIZE border;
 	ReadBorder(&border);
 	C64WindowDimensions dims;
 	dims.SetBorder(border);
-
 	bAdd1X = false;
 	bAdd2X = false;
 	bAddStretch = false;
@@ -548,7 +595,9 @@ bool bShowFloppyLed;
 		bAdd1X = true;
 		bAdd2X = true;
 		if (IsDlgButtonChecked(hVideoPage, IDC_DOUBLER_BLIT))
+		{
 			bAddStretch = true;
+		}
 	}
 	else
 	{
@@ -567,12 +616,16 @@ bool bShowFloppyLed;
 				bAdd1X = m_pDx->CanMode1X(*pMode, dims, bShowFloppyLed);
 				bAdd2X = m_pDx->CanMode2X(*pMode, dims, bShowFloppyLed);
 				if (IsDlgButtonChecked(hVideoPage, IDC_DOUBLER_BLIT))
+				{
 					bAddStretch = true;
+				}
 			}
 		}
 	}
+
 	if (bAdd1X)
 	{
+		tw.GetWidth(szVideoFilter_1X);
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_1X);
 		if (lr >= 0)
 		{
@@ -583,8 +636,10 @@ bool bShowFloppyLed;
 			}
 		}
 	}
+
 	if (bAdd2X)
 	{
+		tw.GetWidth(szVideoFilter_2X);
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_2X);
 		if (lr >= 0)
 		{
@@ -595,8 +650,10 @@ bool bShowFloppyLed;
 			}
 		}
 	}
+
 	if (bAddStretch)
 	{
+		tw.GetWidth(szVideoFilter_StretchToFit);
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchToFit);
 		if (lr >= 0)
 		{
@@ -606,6 +663,8 @@ bool bShowFloppyLed;
 				currentSelection = lr;
 			}
 		}
+
+		tw.GetWidth(szVideoFilter_StretchWithBorderClip);
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
 		if (lr >= 0)
 		{
@@ -618,9 +677,24 @@ bool bShowFloppyLed;
 	}
 
 	if (currentSelection >= 0)
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETCURSEL, currentSelection, 0);
+	}
 	else
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETCURSEL, 0, 0);
+	}
+
+	if (tw.maxWidth > 0)
+	{
+		SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hVideoPage), 0);
+	}
+
+	if (hdcControl != NULL)
+	{
+		ReleaseDC(hWndCboSize, hdcControl);
+		hdcControl = NULL;
+	}
 }
 
 void CDiagEmulationSettingsTab::FillFilters()
@@ -775,12 +849,21 @@ LRESULT lr;
 LRESULT currentSelection = -1;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
 		return;
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+	}
 
+	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	hWndCboBorder = GetDlgItem(hVideoPage, IDC_CBO_BORDER);
 	if (hWndCboBorder == NULL)
+	{
 		return;
+	}
+
+	LPCTSTR ptxt;
+	HDC hdcControl = GetDC(hWndCboBorder);
+	BestTextWidthDC tw(hdcControl);
+	tw.SetFont(this->defaultFont);
 
 	ComboTextAndValue lst[] = 
 	{
@@ -803,11 +886,11 @@ LRESULT currentSelection = -1;
 			TEXT("None"), HCFG::EMUBORDER_NOBORDER
 		},
 	};
-	SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_RESETCONTENT, 0, 0);
 
-	
+	SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_RESETCONTENT, 0, 0);	
 	for (int i = 0; i<_countof(lst); i++)
 	{
+		tw.GetWidth(lst[i].Text);
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_ADDSTRING, 0, (LPARAM) lst[i].Text);
 		if (lr >= 0)
 		{
@@ -820,9 +903,24 @@ LRESULT currentSelection = -1;
 	}
 
 	if (currentSelection >= 0)
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_SETCURSEL, currentSelection, 0);
+	}
 	else
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_SETCURSEL, 0, 0);
+	}
+
+	if (tw.maxWidth > 0)
+	{
+		SendDlgItemMessage(hVideoPage, IDC_CBO_BORDER, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hVideoPage), 0);
+	}
+
+	if (hdcControl != NULL)
+	{
+		ReleaseDC(hWndCboBorder, hdcControl);
+		hdcControl = NULL;
+	}
 }
 
 void CDiagEmulationSettingsTab::FillDiskTrackZero()
@@ -872,17 +970,26 @@ LRESULT lr;
 LRESULT currentSelection = -1;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
 		return;
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+	}
 
+	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	hWndCboFps = GetDlgItem(hVideoPage, IDC_CBO_FPS);
 	if (hWndCboFps == NULL)
+	{
 		return;
+	}
 
-	SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_RESETCONTENT, 0, 0);
+	LPCTSTR ptxt;
+	HDC hdcControl = GetDC(hWndCboFps);
+	BestTextWidthDC tw(hdcControl);
+	tw.SetFont(this->defaultFont);
+	SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_RESETCONTENT, 0, 0);	
 
-	
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_ADDSTRING, 0, (LPARAM) TEXT("50Hz (Performance)"));
+	ptxt = TEXT("50Hz (Performance)");
+	tw.GetWidth(ptxt);
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_ADDSTRING, 0, (LPARAM) ptxt);
 	if (lr >= 0)
 	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUFPS_50);
@@ -892,7 +999,9 @@ LRESULT currentSelection = -1;
 		}
 	}
 
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_ADDSTRING, 0, (LPARAM) TEXT("50.12Hz (Large FIR)"));
+	ptxt = TEXT("50.12Hz (Large FIR)");
+	tw.GetWidth(ptxt);
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_ADDSTRING, 0, (LPARAM) ptxt);
 	if (lr >= 0)
 	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUFPS_50_12);
@@ -903,7 +1012,9 @@ LRESULT currentSelection = -1;
 	}
 
 #ifdef ALLOW_EMUFPS_50_12_MULTI
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_ADDSTRING, 0, (LPARAM) TEXT("50.12Hz (Multistage FIR)"));
+	ptxt = TEXT("50.12Hz (Multistage FIR)");
+	tw.GetWidth(ptxt);
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_ADDSTRING, 0, (LPARAM) ptxt);
 	if (lr >= 0)
 	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUFPS_50_12_MULTI);
@@ -914,9 +1025,24 @@ LRESULT currentSelection = -1;
 	}
 #endif
 	if (currentSelection >= 0)
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_SETCURSEL, currentSelection, 0);
+	}
 	else
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_SETCURSEL, 0, 0);
+	}
+
+	if (tw.maxWidth > 0)
+	{
+		SendDlgItemMessage(hVideoPage, IDC_CBO_FPS, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hVideoPage), 0);
+	}
+
+	if (hdcControl != NULL)
+	{
+		ReleaseDC(hWndCboFps, hdcControl);
+		hdcControl = NULL;
+	}
 }
 
 void CDiagEmulationSettingsTab::SettingsOnLimitSpeedChange()
@@ -1704,6 +1830,34 @@ shared_ptr<CTabPageDialog> pPage;
 	cfg->m_bMaxSpeed = false;
 }
 
+void CDiagEmulationSettingsTab::InitFonts()
+{
+	defaultFont = CreateFont(
+	8,
+	0,
+	0,
+	0,
+	FW_NORMAL,
+	FALSE,
+	FALSE,
+	FALSE,
+	ANSI_CHARSET,
+	OUT_TT_ONLY_PRECIS,
+	CLIP_DEFAULT_PRECIS,
+	CLEARTYPE_QUALITY,
+	FIXED_PITCH | FF_DONTCARE,
+	TEXT("MS Shell Dlg"));
+}
+
+void CDiagEmulationSettingsTab::CloseFonts()
+{
+	if (defaultFont)
+	{
+		DeleteObject(defaultFont);
+		defaultFont = NULL;
+	}
+}
+
 BOOL CDiagEmulationSettingsTab::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 LPNMHDR lpnmhdr;
@@ -1724,7 +1878,7 @@ HRESULT hr;
 		{
 			return FALSE;
 		}
-
+		InitFonts();
 		loadconfig(&CurrentCfg);
 		FillFps();
 		FillBorder();
@@ -1768,6 +1922,9 @@ HRESULT hr;
 			return TRUE; 
 		}
 		break;
+	case WM_DESTROY:
+		CloseFonts();
+		break;
 	}
 	return FALSE; 
 }
@@ -1781,7 +1938,10 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 		return OnChildDialogInit(hWndDlg);
 	case WM_DESTROY:
 		if (hWndDlg == m_hwndDisplay)
+		{
 			m_hwndDisplay = NULL;
+		}
+
 		return TRUE;
 	case WM_COMMAND: 
 		switch (LOWORD(wParam)) 
