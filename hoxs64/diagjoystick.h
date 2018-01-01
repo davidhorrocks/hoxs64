@@ -1,6 +1,8 @@
 #ifndef __DIAGJOYSTICK_H__
 #define __DIAGJOYSTICK_H__
 
+#include "CDPI.h"
+
 struct ButtonItem
 {
 	typedef enum tagButtonItemOption
@@ -54,6 +56,7 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		CDevAxisArray DevButtonArray;
 		int ID;
 		int cbo_joydevice;
+		CDPI m_dpi;
 		int cbo_joyfire;
 		int cbo_joyv;
 		int cbo_joyh;
@@ -65,7 +68,6 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		unsigned int defaultX;
 		unsigned int defaultY;
 		unsigned int defaultFire;
-
 		BOOL EnumJoyAxis(LPCDIDEVICEOBJECTINSTANCE);
 		BOOL EnumJoyButton(LPCDIDEVICEOBJECTINSTANCE);
 		void FillJoyAxis(bool bSetConfig);
@@ -83,10 +85,14 @@ public:
 	virtual void loadconfig(const CConfig *);
 	virtual void saveconfig(CConfig *);
 private:
-	CDevArray DevArray;
-
-	HRESULT FillDevices();
 	int m_bActive;
+	CDevArray DevArray;
+	HFONT defaultFont;
+	BestTextWidthDC tw;
+	CDPI m_dpi;
+	HRESULT FillDevices();
+	void InitFonts();
+	void CloseFonts();
 	BOOL EnumDevices(LPCDIDEVICEINSTANCE lpddi);
 	BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	friend BOOL CALLBACK ::EnumDlgJoyCallback(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef);

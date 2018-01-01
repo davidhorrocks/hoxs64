@@ -14,6 +14,7 @@
 #include "IC64.h"
 #include "CDPI.h"
 #include "utils.h"
+#include "besttextwidth.h"
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"

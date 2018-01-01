@@ -25,6 +25,7 @@
 #include "appstatus.h"
 #include "dxstuff9.h"
 #include "resource.h"
+#include "besttextwidth.h"
 #include "diagjoystick.h"
 
 CDiagJoystick::JoyUi::JoyUi(CDX9 *pDX, const struct joyconfig& jconfig, int ID, int cbo_joydevice, int cbo_joyfire, int cbo_joyv, int cbo_joyh, int cbo_joyenable)
@@ -400,8 +401,8 @@ HRESULT r;
 
 	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_RESETCONTENT, 0, 0);
 	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_RESETCONTENT, 0, 0);
-	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_SETDROPPEDWIDTH, 250, 0);
-	SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_SETDROPPEDWIDTH, 250, 0);
+	//SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_SETDROPPEDWIDTH, 250, 0);
+	//SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_SETDROPPEDWIDTH, 250, 0);
 
 	hWnd1 = GetDlgItem(m_hWnd, IDC_CBO_JOY1DEVICE);
 	if (!hWnd1)
@@ -505,7 +506,26 @@ HRESULT r;
 		SetForegroundWindow(hWnd1);
 	}
 
+	HDC hdcControl = GetDC(hWnd1);
+	tw.SetDC(hdcControl);
+	tw.SetFont(this->defaultFont);
+	tw.Reset();
+	int dpiX = this->m_dpi.GetDPIX();
+	int dpiY = this->m_dpi.GetDPIY();
 	r = pDX->EnumDevices(DIDEVTYPE_JOYSTICK, EnumDlgJoyCallback, this, DIEDFL_ATTACHEDONLY);	
+	if (tw.maxWidth > 0)
+	{
+		SendDlgItemMessage(this->m_hWnd, IDC_CBO_JOY1DEVICE, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(this->m_hWnd), 0);
+		SendDlgItemMessage(this->m_hWnd, IDC_CBO_JOY2DEVICE, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(this->m_hWnd), 0);
+	}
+
+	tw.Clean();
+	if (hdcControl != NULL)
+	{
+		ReleaseDC(hWnd1, hdcControl);
+		hdcControl = NULL;
+	}
+
 	return r;
 }
 
@@ -521,7 +541,9 @@ unsigned int i;
 		return DIENUM_STOP;
 	}
 
-	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_ADDSTRING, 0, (LPARAM) &lpddi->tszProductName[0]);
+	LPCTSTR pName = &lpddi->tszProductName[0];
+
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_ADDSTRING, 0, (LPARAM) pName);
 	if (lr >= 0)
 	{
 		SendDlgItemMessage(m_hWnd, IDC_CBO_JOY1DEVICE, CB_SETITEMDATA, lr, (LPARAM) i);
@@ -534,7 +556,8 @@ unsigned int i;
 			}
 	}
 
-	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_ADDSTRING, 0, (LPARAM) &lpddi->tszProductName[0]);
+	tw.GetWidth(pName);
+	lr = SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_ADDSTRING, 0, (LPARAM) pName);
 	if (lr >= 0)
 	{
 		SendDlgItemMessage(m_hWnd, IDC_CBO_JOY2DEVICE, CB_SETITEMDATA, lr, (LPARAM) i);
@@ -550,20 +573,44 @@ unsigned int i;
 	return DIENUM_CONTINUE;
 }
 
+void CDiagJoystick::InitFonts()
+{
+	defaultFont = CreateFont(
+	8,
+	0,
+	0,
+	0,
+	FW_NORMAL,
+	FALSE,
+	FALSE,
+	FALSE,
+	ANSI_CHARSET,
+	OUT_TT_ONLY_PRECIS,
+	CLIP_DEFAULT_PRECIS,
+	CLEARTYPE_QUALITY,
+	FIXED_PITCH | FF_DONTCARE,
+	TEXT("MS Shell Dlg"));
+}
+
+void CDiagJoystick::CloseFonts()
+{
+	if (defaultFont)
+	{
+		DeleteObject(defaultFont);
+		defaultFont = NULL;
+	}
+}
+
 BOOL CDiagJoystick::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) 
 	{ 
 	case WM_INITDIALOG:
+		InitFonts();
 		G::ArrangeOKCancel(hWndDlg);
 		FillDevices();
 		loadconfig(&newCfg);
 		return TRUE;
-	case WM_ACTIVATE:
-		if( WA_INACTIVE != wParam )
-		{
-		}
-		return 0;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
@@ -619,9 +666,13 @@ BOOL CDiagJoystick::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lP
 			}
 			break;
 		}
+
+		break;
 	case WM_DESTROY:
-		return TRUE;
+		CloseFonts();
+		return 0;
 	}
+
 	return FALSE;
 }
 

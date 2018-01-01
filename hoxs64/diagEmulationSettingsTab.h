@@ -80,7 +80,6 @@ private:
 	void DiskPageSizeComboBoxes();
 	void InitFonts();
 	void CloseFonts();
-	void InitSizes();
 
 	static int fnFindMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);
 	static int fnFindModeFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);

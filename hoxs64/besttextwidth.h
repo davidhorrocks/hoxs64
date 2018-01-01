@@ -3,18 +3,24 @@
 class BestTextWidthDC
 {
 public:
+	BestTextWidthDC();
 	BestTextWidthDC(HDC hdc);
 	~BestTextWidthDC();
+	void SetDC(HDC hdc);
 	void SetFont(HFONT font);
 	void Reset(); 
-	int GetWidth(LPCTSTR s);
-	void InitSizes();
 	void Clean();
-	int GetSuggestedDlgComboBoxWidth(HWND);
+	int GetWidth(LPCTSTR s);
+	int GetSuggestedDlgComboBoxWidth(HWND hDialog);
 	int maxWidth;
-	int comboBoxPaddingX;
+private:
 	HDC hdc;
 	HFONT oldfont;
 	TEXTMETRIC tm;
 	bool tm_ok;
+	int comboBoxPaddingX;
+	void Init();
+	void InitSizes();
+	void RestoreFont();
+	void InitTextMetrics();
 };

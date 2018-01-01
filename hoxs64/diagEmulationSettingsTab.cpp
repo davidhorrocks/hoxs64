@@ -860,7 +860,6 @@ LRESULT currentSelection = -1;
 		return;
 	}
 
-	LPCTSTR ptxt;
 	HDC hdcControl = GetDC(hWndCboBorder);
 	BestTextWidthDC tw(hdcControl);
 	tw.SetFont(this->defaultFont);
@@ -1921,11 +1920,13 @@ HRESULT hr;
 			EndDialog(hWndDlg, wParam); 
 			return TRUE; 
 		}
+
 		break;
 	case WM_DESTROY:
 		CloseFonts();
-		break;
+		return 0;
 	}
+
 	return FALSE; 
 }
 

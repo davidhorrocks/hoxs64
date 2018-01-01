@@ -3,13 +3,36 @@
 #include <tchar.h>
 #include "besttextwidth.h"
 
+BestTextWidthDC::BestTextWidthDC()
+	: hdc(NULL)
+{
+	Init();
+}
+
 BestTextWidthDC::BestTextWidthDC(HDC hdc)
 	: hdc(hdc)
 {
+	Init();
+}
+
+BestTextWidthDC::~BestTextWidthDC()
+{
+	Clean();
+}
+
+void BestTextWidthDC::Init()
+{
 	tm_ok = false;
 	oldfont = NULL;
+	comboBoxPaddingX = 0;
 	InitSizes();
 	Reset();
+	InitTextMetrics();
+}
+
+void BestTextWidthDC::InitTextMetrics()
+{
+	tm_ok = false;
 	if (hdc)
 	{
 		if (GetTextMetrics(hdc, &tm))
@@ -19,15 +42,17 @@ BestTextWidthDC::BestTextWidthDC(HDC hdc)
 	}
 }
 
-BestTextWidthDC::~BestTextWidthDC()
-{
-	Clean();
-}
-
 void BestTextWidthDC::InitSizes()
 {
 	comboBoxPaddingX = 2 * GetSystemMetrics(SM_CYFIXEDFRAME);
 	comboBoxPaddingX += GetSystemMetrics(SM_CXVSCROLL);
+}
+
+void BestTextWidthDC::SetDC(HDC hdc)
+{
+	this->RestoreFont();
+	this->hdc = hdc;
+	this->InitTextMetrics();
 }
 
 void BestTextWidthDC::SetFont(HFONT font)
@@ -66,7 +91,7 @@ int BestTextWidthDC::GetWidth(LPCTSTR s)
 	return 0;
 }
 
-void BestTextWidthDC::Clean()	
+void BestTextWidthDC::RestoreFont()
 {
 	if (hdc)
 	{
@@ -78,6 +103,11 @@ void BestTextWidthDC::Clean()
 
 		hdc = NULL;
 	}
+}
+
+void BestTextWidthDC::Clean()
+{
+	RestoreFont();
 }
 
 int BestTextWidthDC::GetSuggestedDlgComboBoxWidth(HWND hDialog)

@@ -30,6 +30,7 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "besttextwidth.h"
 #include "errormsg.h"
 #include "hexconv.h"
 #include "C64.h"
