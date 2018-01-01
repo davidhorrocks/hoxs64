@@ -1049,10 +1049,14 @@ HRESULT hr;
 		}
 		else
 		{
-			showWindowFlags = SWP_NOZORDER | SWP_NOSIZE | SWP_FRAMECHANGED;
+			showWindowFlags = SWP_NOZORDER | SWP_FRAMECHANGED;
+			if (width <= 0 || height <= 0)
+			{
+				showWindowFlags = SWP_NOSIZE;
+			}
 		}
 
-		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, 0, 0, showWindowFlags);
+		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, width, height, showWindowFlags);
 		G::EnsureWindowPosition(m_hWnd);
 		SaveMainWindowSize();
 		if (appStatus->m_syncModeWindowed == HCFG::FSSM_VBL && !appStatus->m_bDebug)

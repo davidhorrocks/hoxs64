@@ -2298,7 +2298,7 @@ bool bGotWorkArea = false;
 	}
 	else
 	{
-		showWindowFlags = SWP_NOZORDER | SWP_NOSIZE;
+		showWindowFlags = SWP_NOZORDER;
 	}
 
 	SetWindowPos(hWnd, HWND_TOP, rcMain.left,rcMain.top, rcMain.right-rcMain.left, rcMain.bottom-rcMain.top, showWindowFlags);
