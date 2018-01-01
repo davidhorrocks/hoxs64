@@ -42,9 +42,7 @@
 #include "diagnewblankdisk.h"
 #include "diagabout.h"
 #include "diagfilesaved64.h"
-
 #include "cmdarg.h"
-
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"

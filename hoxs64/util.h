@@ -99,6 +99,7 @@ class C64WindowDimensions
 public:
 	C64WindowDimensions();
 	C64WindowDimensions(int Width, int Height, int start, int FirstRasterLine, int LastRasterLine);
+
 	int Width;
 	int Height;
 	int Start;
@@ -108,8 +109,9 @@ public:
 	void SetBorder(int screenWidth, int screenHeight, int toolbarHeight);
 	void SetBorder2(int screenWidth, int screenHeight, int toolbarHeight);
 
-	static const int WDToolbarHeight = 10;
+	static const int BEZEL = 28;
 
+	static const int WDToolbarHeight = 10;
 	static const int WDFullHeight = HEIGHT_64;
 	static const int WDFullWidth = WIDTH_64;
 	static const int WDFullStart = 0;
@@ -135,6 +137,23 @@ public:
 	static const int WDNoBorderFirstRaster = 51;
 	static const int WDNoBorderLastRaster = 250;
 
+private:
+
+	struct Scaling
+	{
+		typedef enum tagScalingType
+		{
+			TopBottomInner,
+			TopBottomOuter,
+			LeftRightInner,
+			LeftRightOuter
+		} ScalingType;
+
+		Scaling();
+		Scaling(ScalingType scaleType, double scale);
+		ScalingType scaleType;
+		double scale;
+	};
 };
 
 namespace DBGSYM

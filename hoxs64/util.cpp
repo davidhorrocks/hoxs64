@@ -1,5 +1,8 @@
+#include <windows.h>
 #include <assert.h>
+#include <tchar.h>
 #include <math.h>
+#include <vector>
 #include "defines.h"
 #include "bits.h"
 #include "util.h"
@@ -108,6 +111,16 @@ void C64WindowDimensions::SetBorder(int screenWidth, int screenHeight, int toolb
 	LastRasterLine = lr;
 }
 
+C64WindowDimensions::Scaling::Scaling(ScalingType scaleType, double scale)
+	: scaleType(scaleType), scale(scale)
+{
+}
+
+C64WindowDimensions::Scaling::Scaling()
+	: scaleType(Scaling::TopBottomOuter), scale((double)(WDNoBorderWidth + 2 * BEZEL) / (double)(WDNoBorderHeight + 2 * BEZEL))
+{
+}
+
 void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight, int toolbarHeight)
 {
 	int h;
@@ -115,50 +128,80 @@ void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight, int tool
 	int lr;
 	int fr;
 	int s;
-	const int BEZEL = 28;
-	double c64ratio, screenratio;
+	double c64ratio, c64wbratio, screenratio;
+	Scaling scaleInner;
+	Scaling scaleOuter;
+	Scaling scale;
+	int clientHeight = screenHeight - toolbarHeight;
+	int clientWidth = screenWidth;
+	int withBorderHeight = WDNoBorderHeight + 2 * BEZEL;
+	int withBorderWidth = WDNoBorderWidth + 2 * BEZEL;
 	c64ratio = (double)WDNoBorderWidth/ (double)WDNoBorderHeight;
-	screenratio = (double)screenWidth / (double)(screenHeight - toolbarHeight);
-	if (screenratio >= c64ratio)
+	c64wbratio = (double)(withBorderWidth)/ (double)(withBorderHeight);
+	screenratio = (double)clientWidth / (double)(clientHeight);
+	Scaling scaleTopBottomOuter(Scaling::TopBottomOuter, (double)clientHeight / (double)(withBorderHeight));
+	Scaling scaleTopBottomInner(Scaling::TopBottomInner, (double)clientHeight / (double)(WDNoBorderHeight));
+	Scaling scaleLeftRightOuter(Scaling::LeftRightOuter, (double)clientWidth / (double)(withBorderWidth));
+	Scaling scaleLeftRightInner(Scaling::LeftRightInner, (double)clientWidth / (double)(WDNoBorderWidth));
+	if (scaleTopBottomInner.scale < scaleLeftRightInner.scale)
 	{
-		int bw = (int)floor(((double)WDNoBorderHeight * screenratio - (double)WDNoBorderWidth) / 2.0);
-		if (bw >= BEZEL)
-		{
-			w = BEZEL * 2 + WDNoBorderWidth;
-			h = WDNoBorderHeight;
-			fr = WDNoBorderFirstRaster;
-			lr = WDNoBorderLastRaster;
-			s = WDNoBorderStart - BEZEL;
-		}
-		else
-		{
-			w = BEZEL * 2 + WDNoBorderWidth;
-			h = (int)floor((double)w / screenratio);
-			fr = WDNoBorderFirstRaster - (h - WDNoBorderHeight) / 2;
-			lr = WDNoBorderLastRaster + (h - WDNoBorderHeight) / 2;
-			s = WDNoBorderStart - BEZEL;
-		}
+		scaleInner = scaleTopBottomInner;
 	}
 	else
 	{
-		int bw = (int)floor(((double)WDNoBorderWidth / (double)screenratio - WDNoBorderHeight) / 2.0);
-		if (bw >= BEZEL)
-		{
-			w = WDNoBorderWidth;
-			h = BEZEL * 2 + WDNoBorderHeight;
-			fr = WDNoBorderFirstRaster - BEZEL;
-			lr = WDNoBorderLastRaster + BEZEL;
-			s = WDNoBorderStart;
-		}
-		else
-		{
-			h = BEZEL * 2 + WDNoBorderHeight;
-			w = (int)floor((double)h * screenratio);
-			fr = WDNoBorderFirstRaster - BEZEL;
-			lr = WDNoBorderLastRaster + BEZEL;
-			s = WDNoBorderStart - (w - WDNoBorderWidth) / 2;
-		}
+		scaleInner = scaleLeftRightInner;
 	}
+
+	if (scaleTopBottomOuter.scale > scaleLeftRightOuter.scale)
+	{
+		scaleOuter = scaleTopBottomOuter;
+	}
+	else
+	{
+		scaleOuter = scaleLeftRightOuter;
+	}
+
+	if (scaleOuter.scale < scaleInner.scale)
+	{
+		scale = scaleOuter;
+	}
+	else
+	{
+		scale = scaleInner;
+	}
+
+	switch (scale.scaleType)
+	{
+	case Scaling::TopBottomOuter:
+		h = withBorderHeight;
+		w = min((int)floor(clientWidth / scale.scale), withBorderWidth);
+		s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
+		fr = WDNoBorderFirstRaster - BEZEL;		
+		lr = fr + h - 1;
+		break;
+	case Scaling::TopBottomInner:
+		h = WDNoBorderHeight;
+		w = min((int)floor(clientWidth / scale.scale), withBorderWidth);
+		s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
+		fr = WDNoBorderFirstRaster;
+		lr = fr + h - 1;
+		break;
+	case Scaling::LeftRightInner:
+		w = WDNoBorderWidth;
+		h = min((int)floor(clientHeight / scale.scale), withBorderHeight);
+		s = WDNoBorderStart;
+		fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
+		lr = fr + h - 1;
+		break;
+	case Scaling::LeftRightOuter:
+		w = withBorderWidth;
+		h = min((int)floor(clientHeight / scale.scale), withBorderHeight);
+		s = WDNoBorderStart - BEZEL;
+		fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
+		lr = fr + h - 1;
+		break;
+	}
+
 	Width = w;
 	Height = h;
 	Start = s;
