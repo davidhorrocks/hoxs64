@@ -527,6 +527,23 @@ ICLKS todclocks;
 		}
 
 		icr_ack = icr_ack & ~new_icr;
+		if (this->bEarlyIRQ)
+		{
+			if ((delay & ClearIcr1) !=0)
+			{
+				icr = icr & ~icr_ack;
+				icr_ack = 0;
+			}
+		}
+		else
+		{
+			if ((delay & ClearIcr1) != 0)
+			{
+				icr = icr & ~icr_ack;
+				icr = icr & 0x7f;
+				icr_ack = 0;
+			}
+		}
 
 		if (bTimerBbug && (new_icr & 2) !=0 && ClockReadICR == CurrentClock && (delay & (ReadIcr1)) == 0)
 		{
@@ -564,22 +581,17 @@ ICLKS todclocks;
 				delay|=SetIcr0;
 			}
 		}
-		
+
 		// Check for interrupt condition
 		if ((delay & SetIcr1) != 0)
 		{
 			icr |= 0x80;
 		}
+
 		if (delay & Interrupt1)
 		{
 			Interrupt = 1;
 			SetSystemInterrupt();
-		}
-
-		if ((delay & ClearIcr1) !=0)
-		{
-			icr = icr & ~icr_ack;
-			icr_ack = 0;
 		}
 
 		delay=((delay << 1) & DelayMask) | feed;
@@ -843,11 +855,6 @@ bit8 result;
 		}
 		else
 		{
-			if ((icr & 0x9F) != 0)
-			{
-				icr_ack |= ((icr & 0x9F) | 0x80);
-			}
-
 			delay |= ClearIcr0;
 			delay &= ~(Interrupt1);
 			result = icr;
