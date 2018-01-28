@@ -177,6 +177,7 @@ BOOL bRet;
 	m_bPaused=0;
 	m_bInitDone = true;
 	bool bExecuteFrameDone = false;
+	int framesSkipped = 0;
     //-------------------------------------------------------------------------
     //                          The Message Pump
     //-------------------------------------------------------------------------
@@ -268,9 +269,8 @@ msgloop:
 				tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 				if ((LONGLONG)tSlice.QuadPart <= 0)
 				{
-					// prevent timer overflow. A large negative "tSlice" would cause a long delay before "tSlice"s value would surpass the value of "frequency".
-					last_counter.QuadPart = new_counter.QuadPart - frequency.QuadPart;
-					tSlice.QuadPart = frequency.QuadPart;
+					last_counter.QuadPart = new_counter.QuadPart;
+					tSlice.QuadPart = 0ULL;
 				}
 
 				if (m_bLimitSpeed)
@@ -284,7 +284,7 @@ msgloop:
 						}
 						else if (m_audioSpeedStatus == HCFG::AUDIO_SLOW)
 						{
-							last_counter.QuadPart = last_counter.QuadPart + frequency.QuadPart/4;
+							last_counter.QuadPart = last_counter.QuadPart + frequency.QuadPart/16;
 							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 						}
 						m_audioSpeedStatus = HCFG::AUDIO_OK;
@@ -311,18 +311,31 @@ msgloop:
 									goto msgloop;
 								}
 							}
+
 							QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
 							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-						}				
+						}
 					}
 					else
 					{
 						//If we get here is means we took a very large time slice.
-						if (tSlice.QuadPart > 4*frequency.QuadPart)
+						if ((LONGLONG)tSlice.QuadPart >= (LONGLONG)(2)*(LONGLONG)frequency.QuadPart)
 						{
-							tSlice.QuadPart = 4*frequency.QuadPart;
+							if ((LONGLONG)tSlice.QuadPart > (LONGLONG)(4)*(LONGLONG)frequency.QuadPart)
+							{
+								tSlice.QuadPart = (LONGLONG)(4)*(LONGLONG)frequency.QuadPart;
+							}
+							
+							if (!this->m_bDebug && this->m_bWindowed && this->dx.m_syncMode == HCFG::FSSM_VBL)
+							{
+								if (framesSkipped <= 2)
+								{
+									this->m_fskip = 1;
+								}
+							}
 						}
 					}
+
 					last_counter.QuadPart = new_counter.QuadPart - (tSlice.QuadPart-frequency.QuadPart);
 				}
 				else
@@ -330,25 +343,37 @@ msgloop:
 					//No limit speed
 					if (m_bSkipFrames)
 					{
-						//No limit speed and skip frames.
+						//No limit speed and skip frames.						
 						if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 						{
-							//We were quick so skip this frame.
-							m_fskip = 1;
+							//We were quick so see if we can skip frames.
+							if (framesSkipped < frequency.QuadPart / tSlice.QuadPart)
+							{
+								m_fskip = 0;
+							}
 						}
 						else
 						{
-							//We were slow so show this frame.
+							//We were slow so we might as well show this frame.
 							last_counter.QuadPart = new_counter.QuadPart;
 							m_fskip = -1;
 						}
 					}
 					else
 					{
-						//No limit speed but want every frame
-						last_counter.QuadPart = new_counter.QuadPart;
-						m_fskip = -1;
+						if ((LONGLONG)tSlice.QuadPart >= (LONGLONG)(2)*(LONGLONG)frequency.QuadPart)
+						{
+							if (!this->m_bDebug && this->m_bWindowed && this->dx.m_syncMode == HCFG::FSSM_VBL)
+							{
+								if (framesSkipped <= 2)
+								{
+									this->m_fskip = 1;
+								}
+							}
+						}
 					}
+
+					last_counter.QuadPart = new_counter.QuadPart;
 				}
 			
 				//Execute one frame.
@@ -373,22 +398,34 @@ msgloop:
 			}
 
 			captionUpdateCounter--;
-			bool bDrawThisFrame = ((m_fskip < 0) || m_bDebug);
+			bool bDrawThisFrame = ((m_fskip < 0) || m_bIsDebugCart || m_bDebug);
 			if (bDrawThisFrame)
 			{
 				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
-				if (SUCCEEDED(hRet))
+				if (!m_bIsDebugCart)
 				{
-					dx.Present(D3DPRESENT_DONOTWAIT);
+					if (SUCCEEDED(hRet))
+					{
+						dx.Present(D3DPRESENT_DONOTWAIT);
+					}
 				}
+
+				framesSkipped = 0;
+			}
+			else
+			{
+				framesSkipped++;
+#if defined(DEBUG)
+				OutputDebugString(TEXT("fskip\n"));
+#endif
 			}
 
 			//Handle frame skip
-			if (m_bSkipFrames && bDrawThisFrame)
+			if (m_bSkipFrames && framesSkipped == 0)
 			{
-				m_fskip = 1;
+				m_fskip = 0;
 			}
-			else if (m_fskip>=0)
+			else if (m_fskip >= 0)
 			{
 				--m_fskip;
 			}
@@ -923,8 +960,8 @@ RECT rcMain;
 
 	//Initialise joysticks
 	dx.InitJoys(hWndMain, m_joy1config, m_joy2config);
-
-	c64.Set_EnableDebugCart(caDebugCart != NULL);
+	this->m_bIsDebugCart = caDebugCart != NULL;
+	c64.Set_EnableDebugCart(this->m_bIsDebugCart);
 	if (caLimitCycles != NULL)
 	{
 		if (caLimitCycles->ParamCount >= 1)

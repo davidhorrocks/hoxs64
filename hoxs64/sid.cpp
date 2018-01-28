@@ -49,9 +49,9 @@
 #define STAGE1X  25
 #define STAGE2X  49
 
-#define DSGAP1 (1L+8L) //1
+#define DSGAP1 (1L+8L)
 #define DSGAP2 (8L+8L)
-#define DSGAP3 (1L+8L+8L+8L) //2
+#define DSGAP3 (1L+8L+8L+8L)
 #define DSGAP4 (8L+8L+8L+8L+8L)
 
 #define NOISE_ZERO_FEED ((~((1U << 20) | (1 << 18) | (1 << 14) | (1 << 11) | (1 << 9) | (1 << 5) | (1 << 2) | (1 << 0))) & 0x7fffff)
@@ -117,9 +117,16 @@ DWORD gap;
 DWORD soundplay_pos;
 DWORD soundwrite_pos;
 
+	if (appStatus->m_bMaxSpeed)
+	{
+		return E_FAIL;
+	}
+
 	hRet = dx->pSecondarySoundBuffer->GetCurrentPosition(&soundplay_pos, &soundwrite_pos);
 	if (FAILED(hRet))
+	{
 		return hRet;
+	}
 
 	if (soundwrite_pos > bufferLockPoint) 
 	{
@@ -133,26 +140,30 @@ DWORD soundwrite_pos;
 	if (gap < (DSGAP1 * bufferLockSize/8))
 	{
 		/*audio is getting ahead of us*/
-		bufferLockPoint =  (soundwrite_pos + 4 * bufferLockSize) % soundBufferSize;
+		bufferLockPoint =  (soundwrite_pos + 3 * bufferLockSize) % soundBufferSize;
 		//return E_FAIL;
 		//bufferLockPoint =  (soundplay_pos + 4 * bufferLockSize) % soundBufferSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
+		currentAudioSyncState = 0;
 	}
 	else if (gap <= (DSGAP2 * bufferLockSize/8))
 	{
 		//AUDIO_QUICK means to apply a correction using the audio clock sync function to speed up the emulation to catch up with the audio.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_QUICK;
+		currentAudioSyncState = 1;
 	}
 	else if (gap <= (DSGAP3 * bufferLockSize/8))
 	{
 		/*ideal condition where sound pointer is in the comfort zone*/
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
+		currentAudioSyncState = 2;
 	}
 	else if (gap <= (DSGAP4 * bufferLockSize/8))
 	{
 		//AUDIO_SLOW means to apply a correction using the audio clock sync function to slow down the emulation to catch up with the audio.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_SLOW;
+		currentAudioSyncState = 3;
 	}
 	else
 	{
@@ -160,41 +171,80 @@ DWORD soundwrite_pos;
 		bufferLockPoint =  (soundwrite_pos + 4 * bufferLockSize) % soundBufferSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
-
+		currentAudioSyncState = 4;
 	}
+
+#if defined(DEBUG)
+	if (lastAudioSyncState != currentAudioSyncState)
+	{
+		lastAudioSyncState = currentAudioSyncState;
+		switch (currentAudioSyncState)
+		{
+		case 0:
+			OutputDebugString(TEXT("AUDIO_QUICK2\n"));
+			break;
+		case 1:
+			OutputDebugString(TEXT("AUDIO_QUICK\n"));
+			break;
+		case 2:
+			OutputDebugString(TEXT("AUDIO_OK\n"));
+			break;
+		case 3:
+			OutputDebugString(TEXT("AUDIO_SLOW\n"));
+			break;
+		case 4:
+			OutputDebugString(TEXT("AUDIO_SLOW2\n"));
+			break;
+		}
+	}
+#endif
 
 	hRet = dx->pSecondarySoundBuffer->Lock(bufferLockPoint, bufferLockSize ,(LPVOID *)&pBuffer1 ,&bufferLen1 ,(LPVOID *)&pBuffer2 ,&bufferLen2 ,0);
 	if (FAILED(hRet))
+	{
 		pBuffer1=NULL;
+	}
 	else
 	{
 		bufferSampleLen1 = bufferLen1 / 2;
 		bufferSampleLen2 = bufferLen2 / 2;
 		bufferIndex=0;
 		bufferSplit=0;
-		if (overflowBufferIndex>0)
+		DWORD bytesWritten = 0;
+		DWORD bytesToWrite;
+		if (overflowBufferIndex > 0)
 		{
-			if (overflowBufferIndex>bufferSampleLen1)
+			if (overflowBufferIndex >= bufferSampleLen1)
 			{
 				memcpy_s(pBuffer1, bufferLen1, pOverflowBuffer, bufferLen1);
-				if (overflowBufferIndex > (bufferSampleLen1+bufferSampleLen2))
+				bytesWritten += bufferLen1;
+				if (overflowBufferIndex >= (bufferSampleLen1 + bufferSampleLen2))
 				{
 					memcpy_s(pBuffer2, bufferLen2, &pOverflowBuffer[bufferSampleLen1], bufferLen2);
 					bufferSplit = 2;
+					bytesWritten += bufferLen2;
 				}
 				else
 				{
-					memcpy_s(pBuffer2, bufferLen2, &pOverflowBuffer[bufferSampleLen1], (overflowBufferIndex-bufferSampleLen1) * 2);
+					bytesToWrite = (overflowBufferIndex - bufferSampleLen1) * BYTES_PER_SAMPLE;
+					memcpy_s(pBuffer2, bufferLen2, &pOverflowBuffer[bufferSampleLen1], bytesToWrite);
 					bufferSplit = 1;
+					bytesWritten += bytesToWrite;
 				}
+
+				bufferIndex = bytesWritten / BYTES_PER_SAMPLE;
 			}
 			else
 			{
-				memcpy_s(pBuffer1, bufferLen1, pOverflowBuffer, overflowBufferIndex * 2);
+				bytesToWrite = overflowBufferIndex * BYTES_PER_SAMPLE;
+				memcpy_s(pBuffer1, bufferLen1, pOverflowBuffer, bytesToWrite);
 				bufferIndex = overflowBufferIndex;
+				bytesWritten += bytesToWrite;
 			}
 		}
+
 		overflowBufferIndex = 0;
+		bufferLockPoint = (bufferLockPoint + bytesWritten) % (soundBufferSize);
 	}
 	return hRet;
 }
@@ -1072,8 +1122,10 @@ void SID64::WriteSample(short dxsample)
 			{
 				bufferSplit = 2;
 			}
+
 			bufferIndex = 0;
 		}
+
 		bufferLockPoint = (bufferLockPoint + BYTES_PER_SAMPLE) % (soundBufferSize);
 	}
 	else if (bufferSplit == 1)
@@ -1085,6 +1137,7 @@ void SID64::WriteSample(short dxsample)
 			bufferSplit = 2;
 			bufferIndex = 0;
 		}
+
 		bufferLockPoint = (bufferLockPoint + BYTES_PER_SAMPLE) % (soundBufferSize);
 	}
 	else if (bufferSplit == 2)

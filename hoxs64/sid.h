@@ -166,7 +166,9 @@ private:
 	bit8 sidInternalBusByte;
 	ICLK sidReadDelay;
 	long sidSampler;//Used for filter
-
+	int currentAudioSyncState;
+	int lastAudioSyncState;
+	int lastAudioGap;
 	void SetFilter();
 	double GetCutOff(bit16 sidfreq);
 	struct SIDVoice voice1, voice2, voice3;

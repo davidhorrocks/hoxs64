@@ -157,6 +157,7 @@ public:
 	bool m_bWindowedCustomSize; 
 	static const D3DFORMAT Formats[];
 
+	HCFG::FULLSCREENSYNCMODE m_syncMode;
 private:
 	HRESULT SetRenderStyle(bool bWindowedMode, bool bDoubleSizedWindow, bool bWindowedCustomSize, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bUseBlitStretch, HCFG::EMUWINDOWSTRETCH stretch, D3DTEXTUREFILTERTYPE filter, D3DDISPLAYMODE currentDisplayMode);
 	void SetClearingRects(D3DRECT [], int);
@@ -204,7 +205,6 @@ private:
 	int m_iAdapterNumber;
 	D3DDISPLAYMODE m_displayModeActual;
 	bool m_bWindowedMode;
-	HCFG::FULLSCREENSYNCMODE m_syncMode;
 	bool m_bDoubleSizedWindow;
 	HCFG::EMUBORDERSIZE m_borderSize;
 	bool m_bShowFloppyLed;

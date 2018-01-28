@@ -18,7 +18,7 @@ public:
 	bool					m_bPaused;
 	bool					m_bWindowSizing;
 	bool					m_bClosing;
-
+	bool                    m_bIsDebugCart;
 	signed int				m_fskip;
 	DWORD					m_displayFormat;	//Direct 3D9 Display format
 	DWORD					m_blitFilterDX;	//Direct 3D9 Blit filter
