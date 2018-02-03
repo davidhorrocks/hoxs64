@@ -326,12 +326,9 @@ msgloop:
 								tSlice.QuadPart = (LONGLONG)(4)*(LONGLONG)frequency.QuadPart;
 							}
 							
-							if (!this->m_bDebug && this->m_bWindowed && this->dx.m_syncMode == HCFG::FSSM_VBL)
+							if (framesSkipped <= 2)
 							{
-								if (framesSkipped <= 2)
-								{
-									this->m_fskip = 1;
-								}
+								this->m_fskip = 0;
 							}
 						}
 					}
@@ -363,12 +360,9 @@ msgloop:
 					{
 						if ((LONGLONG)tSlice.QuadPart >= (LONGLONG)(2)*(LONGLONG)frequency.QuadPart)
 						{
-							if (!this->m_bDebug && this->m_bWindowed && this->dx.m_syncMode == HCFG::FSSM_VBL)
+							if (framesSkipped <= 2)
 							{
-								if (framesSkipped <= 2)
-								{
-									this->m_fskip = 1;
-								}
+								this->m_fskip = 0;
 							}
 						}
 					}
