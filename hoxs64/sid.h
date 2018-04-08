@@ -31,6 +31,7 @@ typedef enum
 	sidNOISETRIANGLESAWTOOTHPULSE = sidNOISE + sidPULSE + sidSAWTOOTH + sidTRIANGLE
 } eWaveType;
 
+class ICia1;
 class SID64;
 struct SIDVoice
 {
@@ -86,25 +87,24 @@ struct SIDVoice
 	bit32s shifterTestCounter;
 };
 
-class SID64 : public IRegister, public ErrorMsg
+class SID64 : public ISid, public ErrorMsg
 {
 public:
 	SID64();
 	~SID64();
 	CDX9 *dx;
 	CAppStatus *appStatus;
-	HRESULT Init(CAppStatus *, CDX9 *, HCFG::EMUFPS fps);
+	double MasterVolume;
+	short m_last_dxsample;
+
+	HRESULT Init(CAppStatus *, CDX9 *, HCFG::EMUFPS fps, ICia1 *cia1);
 	HRESULT InitResamplingFilters(HCFG::EMUFPS fps);
 	DWORD UpdateSoundBufferLockSize(HCFG::EMUFPS fps);
-
-
-	double MasterVolume;
-
 	HRESULT LockSoundBuffer();
 	void UnLockSoundBuffer();
 	void SoundHalt(short value);
-
 	void InitReset(ICLK sysclock, bool poweronreset);
+
 	//IRegister
 	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual void ExecuteCycle(ICLK sysclock);
@@ -113,6 +113,13 @@ public:
 	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
 	virtual ICLK GetCurrentClock();
 	virtual void SetCurrentClock(ICLK sysclock);
+
+	//ISid
+	virtual bit8 Get_PotX();
+	virtual void Set_PotX(ICLK sysclock, bit8 data);
+	virtual bit8 Get_PotY();
+	virtual void Set_PotY(ICLK sysclock, bit8 data);
+
 	void ClockSid(BOOL bResample, ICLK sysclock);
 	void ClockSidResample(ICLK sysclock);
 	void ClockSidDownSample(ICLK sysclock);
@@ -122,7 +129,6 @@ public:
 	static void UpgradeStateV0ToV1(const SsSid &in, SsSidV1 &out);
 
 	friend struct SIDVoice;
-	short m_last_dxsample;
 private:
 	DWORD GetSoundBufferLockSize(HCFG::EMUFPS fps);
 	long filterInterpolationFactor;
@@ -161,18 +167,19 @@ private:
 	bit8 sidVoice_though_filter;
 	bit8 sidResonance;
 	bit16 sidFilterFrequency;
-
-	BYTE sidBlock_Voice3;
+	bit8 sidPotX;
+	bit8 sidPotY;
+	bool sidBlock_Voice3;
 	bit8 sidInternalBusByte;
 	ICLK sidReadDelay;
 	long sidSampler;//Used for filter
 	int currentAudioSyncState;
 	int lastAudioSyncState;
 	int lastAudioGap;
+	ICia1 *cia1;
 	void SetFilter();
 	double GetCutOff(bit16 sidfreq);
 	struct SIDVoice voice1, voice2, voice3;
-	void CleanUp();
-	
+	void CleanUp();	
 };
 #endif

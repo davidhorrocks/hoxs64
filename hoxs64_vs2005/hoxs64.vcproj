@@ -246,6 +246,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\diagbuttonselection.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\diagcolour.cpp"
 				>
 			</File>
@@ -700,6 +704,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\diagbuttonselection.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\diagcolour.h"
 				>
 			</File>
@@ -749,6 +757,10 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\filter.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\gamecontrolleritem.h"
 				>
 			</File>
 			<File

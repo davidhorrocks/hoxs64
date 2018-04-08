@@ -85,7 +85,9 @@ SID64::SID64()
 	sidVoice_though_filter=0;
 	sidResonance=0;
 	sidFilterFrequency=0;
-	sidBlock_Voice3=0;
+	sidPotX=255;
+	sidPotY=255;
+	sidBlock_Voice3=false;
 	sidInternalBusByte=0;
 	sidReadDelay=0;
 	sidSampler=0;
@@ -101,7 +103,10 @@ SID64::~SID64()
 void SID64::CleanUp()
 {
 	if (appStatus)
+	{
 		appStatus->m_bFilterOK = false;
+	}
+
 	trig.cleanup();
 	if (pOverflowBuffer)
 	{
@@ -174,7 +179,7 @@ DWORD soundwrite_pos;
 		currentAudioSyncState = 4;
 	}
 
-#if defined(DEBUG)
+#if defined(DEBUG) && DEBUG_AUDIO_CLOCK_SYNC != 0
 	if (lastAudioSyncState != currentAudioSyncState)
 	{
 		lastAudioSyncState = currentAudioSyncState;
@@ -299,17 +304,14 @@ const bit16 SID64::AdsrTable[16] = {
  0x0A93
 };
 
-HRESULT SID64::Init(CAppStatus *appStatus, CDX9 *dx, HCFG::EMUFPS fps)
+HRESULT SID64::Init(CAppStatus *appStatus, CDX9 *dx, HCFG::EMUFPS fps, ICia1 *cia1)
 {
 HRESULT hr;
+	this->cia1 = cia1;
 	this->appStatus = appStatus;
-	this->dx = dx;
-			
+	this->dx = dx;			
 	appStatus->m_bFilterOK = false;
-
 	CleanUp();
-
-
 	if (appStatus->m_bSoundOK)
 	{		
 		bufferLockSize = GetSoundBufferLockSize(fps);
@@ -500,7 +502,9 @@ void SID64::InitReset(ICLK sysclock, bool poweronreset)
 	sidVoice_though_filter=0;
 	sidResonance=0;
 	sidFilterFrequency=0;
-	sidBlock_Voice3=0;
+	sidPotX=255;
+	sidPotY=255;
+	sidBlock_Voice3=false;
 	sidInternalBusByte = 0;
 	sidReadDelay = 0;
 }
@@ -1002,7 +1006,9 @@ short dxsample;
 		voice3.SyncRecheck();
 
 		if (appStatus->m_bMaxSpeed)
+		{
 			continue;
+		}
 
 		sidSampler = sidSampler + filterInterpolationFactor;
 		if (sidSampler >= 0)
@@ -1014,12 +1020,18 @@ short dxsample;
 			voice3.Modulate();
 
 			if (pBuffer1==NULL)
+			{
 				return;
-			
+			}
+
 			if (sidBlock_Voice3)
+			{
 				voice3nofilter = 0;
+			}
 			else
+			{
 				voice3nofilter = voice3.fVolSample;
+			}
 
 			switch (sidVoice_though_filter)
 			{
@@ -1529,9 +1541,13 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		sidVolume = data & 0xf;
 		sidFilter = (data & 0x70);
 		if ((data & 0x80) !=0)
-			sidBlock_Voice3 = 1;
+		{
+			sidBlock_Voice3 = true;
+		}
 		else
-			sidBlock_Voice3 = 0;
+		{
+			sidBlock_Voice3 = false;
+		}
 		break;
 	}
 }
@@ -1550,11 +1566,11 @@ bit8 data;
 	switch (address & 0x1f)
 	{
 	case 0x19:
-		data = 255;
+		data = this->Get_PotX();
 		sidReadDelay = SIDREADDELAYFREQ;
 		break;
 	case 0x1a:
-		data = 255;
+		data = this->Get_PotY();
 		sidReadDelay = SIDREADDELAYFREQ;
 		break;
 	case 0x1b:
@@ -1590,10 +1606,10 @@ bit8 data;
 	switch (address & 0x1f)
 	{
 	case 0x19:
-		data = 255;
+		data = this->Get_PotX();
 		break;
 	case 0x1a:
-		data = 255;
+		data = this->Get_PotY();
 		break;
 	case 0x1b:
 		data = (bit8)(voice3.WaveRegister() >> 4);
@@ -1636,6 +1652,26 @@ void SID64::SetCurrentClock(ICLK sysclock)
 	CurrentClock = sysclock;
 }
 
+bit8 SID64::Get_PotX()
+{
+	return this->sidPotX;
+}
+
+void SID64::Set_PotX(ICLK sysclock, bit8 data)
+{
+	this->sidPotX=data;
+}
+
+bit8 SID64::Get_PotY()
+{
+	return this->sidPotY;
+}
+
+void SID64::Set_PotY(ICLK sysclock, bit8 data)
+{
+	this->sidPotY=data;
+}
+
 void SID64::GetState(SsSidV1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
@@ -1648,7 +1684,7 @@ void SID64::GetState(SsSidV1 &state)
 	state.sidVoice_though_filter = sidVoice_though_filter;
 	state.sidResonance = sidResonance;
 	state.sidFilterFrequency = sidFilterFrequency;
-	state.sidBlock_Voice3 = sidBlock_Voice3;
+	state.sidBlock_Voice3 = sidBlock_Voice3 ? 1 : 0;
 	state.sidInternalBusByte = sidInternalBusByte;
 	state.sidReadDelay = sidReadDelay;
 }
@@ -1664,7 +1700,7 @@ void SID64::SetState(const SsSidV1 &state)
 	sidVoice_though_filter = state.sidVoice_though_filter;
 	sidResonance = state.sidResonance;
 	sidFilterFrequency = state.sidFilterFrequency;
-	sidBlock_Voice3 = state.sidBlock_Voice3;
+	sidBlock_Voice3 = state.sidBlock_Voice3 != 0;
 	sidInternalBusByte = state.sidInternalBusByte;
 	sidReadDelay = state.sidReadDelay;
 }

@@ -27,6 +27,8 @@
 #include "diagkeyboard.h"
 #include "resource.h"
 
+#define IDT_TIMER1 1001
+
 CDiagKeyboard::CDiagKeyboard()
 {
 }
@@ -64,67 +66,89 @@ LPNMHDR lpnmhdr;
 	switch (message) 
 	{ 
 	case WM_INITDIALOG:
-		m_b_scanningkey = FALSE;
-		m_bBeginKeyScan = FALSE;
-		m_bKeyCapture = FALSE;
-        SetTimer( hwndDlg, 0, 1000 / 15, NULL );
+		m_b_scanningkey = false;
+		m_bBeginKeyScan = false;
+		m_bKeyCapture = false;
+        SetTimer( hwndDlg, IDT_TIMER1, 1000 / 15, NULL );
 		hr = pDX->pKeyboard->Unacquire();
 		hr = pDX->pKeyboard->SetCooperativeLevel(hwndDlg, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE); 
 		if (FAILED(hr))
+		{
 			return FALSE;
+		}
+
 		loadconfig(&newCfg);
 		return OnTabbedDialogInit(hwndDlg);
     case WM_ACTIVATE:	
-		//return 0;
         if( WA_INACTIVE == wParam )
-            m_bActive = FALSE;
+		{
+            m_bActive = false;
+		}
         else
-            m_bActive = TRUE;
+		{
+            m_bActive = true;
+		}
 
         SetAcquire();
         return 0;
 	case WM_DESTROY:
-        KillTimer( hwndDlg, 0 );    
+        KillTimer(hwndDlg, IDT_TIMER1);
 		return TRUE;
 	case WM_TIMER:
-		if (m_bKeyCapture==FALSE)
-			return 0;
-		if (m_bBeginKeyScan)
+		if (wParam == IDT_TIMER1)
 		{
-			m_b_scanningkey=FALSE;
-			m_bBeginKeyScan=FALSE;
-		}
-		if (m_b_scanningkey)
-		{
-			hr = ReadScanCode(&m_scancode);
-			if (hr == S_OK)
+			if (!m_bKeyCapture)
 			{
-				lstrcpy(m_szkeyname, TEXT(""));
-				GetKeyName(m_scancode, m_szkeyname, sizeof(m_szkeyname));
-				AssignKey(keycontrol[m_current_c64key].control_id,m_current_c64key);
-				SendMessage(keycontrol[m_current_c64key].hwnd, WM_KEYCAPTURE, FALSE , 0);
-				m_bKeyCapture=FALSE;
+				return 0;
+			}
+
+			if (m_bBeginKeyScan)
+			{
+				m_b_scanningkey=false;
+				m_bBeginKeyScan=false;
+			}
+
+			if (m_b_scanningkey)
+			{
+				hr = ReadScanCode(&m_scancode);
+				if (hr == S_OK)
+				{
+					lstrcpy(m_szkeyname, TEXT(""));
+					GetKeyName(m_scancode, m_szkeyname, sizeof(m_szkeyname));
+					AssignKey(keycontrol[m_current_c64key].control_id,m_current_c64key);
+					SendMessage(keycontrol[m_current_c64key].hwnd, WM_KEYCAPTURE, FALSE, 0);
+					m_bKeyCapture = false;
+				}
+				else
+				{
+					if (FAILED(hr))
+					{
+						SendMessage(keycontrol[m_current_c64key].hwnd, WM_KEYCAPTURE, FALSE , 0);
+					}
+				}
 			}
 			else
 			{
-				if (FAILED(hr))
+				hr = ReadScanCode(&m_scancode);
+				if (hr == S_FALSE)
 				{
-					SendMessage(keycontrol[m_current_c64key].hwnd, WM_KEYCAPTURE, FALSE , 0);
+					m_b_scanningkey = true;
+				}
+				else if (FAILED(hr))
+				{
+					SetAcquire();
 				}
 			}
+
+			return TRUE;
 		}
-		else
-		{
-			hr = ReadScanCode(&m_scancode);
-			if (hr == S_FALSE)
-				m_b_scanningkey = TRUE;
-			else if (FAILED(hr))
-				SetAcquire();
-		}
-		return TRUE;
+		break;
 	case WM_NOTIFY: 
 		if (lParam == 0)
+		{
 			return FALSE;
+		}
+
 		lpnmhdr = (LPNMHDR) lParam;
 		if (lpnmhdr->hwndFrom == m_hwndTab)
 		{
@@ -153,6 +177,7 @@ LPNMHDR lpnmhdr;
 			return TRUE;
 		}
 	}
+
 	return FALSE;
 }
 
@@ -174,15 +199,24 @@ BOOL bReplace;
 			}
 		}
 	}
+
 	if (IsWindow(m_hwndDisplay))
 	{
 		if (bReplace)
+		{
 			UpdatePage(m_current_page_index, m_hwndDisplay);
+		}
 		else
+		{
 			if (keymap[c64key]==0)
+			{
 				SetDlgItemText(m_hwndDisplay, label, TEXT(""));
+			}
 			else
+			{
 				SetDlgItemText(m_hwndDisplay, label, m_szkeyname);
+			}
+		}
 	}
 }
 
@@ -204,6 +238,7 @@ HWND hWnd = 0;
 		hWnd = keycontrol[C64K_JOY1FIRE].hwnd;
 		break;
 	}
+
 	if (hWnd)
 	{
 		if (IsWindowVisible(hWnd))
@@ -236,11 +271,8 @@ void CDiagKeyboard::UpdatePage1(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
 
-	//GetDlgItem(hwndDlg,  IDC_TXT_ARROWLEFT);
-
 	GetKeyName(keymap[C64K_HOME], szBuffer, sizeof(szBuffer));
-	SetDlgItemText(hwndDlg, IDC_TXT_HOME, szBuffer);
-	
+	SetDlgItemText(hwndDlg, IDC_TXT_HOME, szBuffer);	
 
 	GetKeyName(keymap[C64K_ASTERISK], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_ASTERISK, szBuffer);
@@ -304,14 +336,6 @@ TCHAR szBuffer[30];
 
 	GetKeyName(keymap[C64K_SPACE], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_SPACE, szBuffer);
-
-	
-/*
-	if (bUseKeymap == FALSE)
-		CheckRadioButton(hwndDlg, IDC_WINKEY, IDC_CUSTOMKEY, IDC_CUSTOMKEY);
-	else
-		CheckRadioButton(hwndDlg, IDC_WINKEY, IDC_CUSTOMKEY, IDC_WINKEY);
-*/
 }
 
 
@@ -321,7 +345,6 @@ TCHAR szBuffer[30];
 void CDiagKeyboard::UpdatePage2(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
-
 
 	_updatekeypage(A);
 	_updatekeypage(B);
@@ -355,7 +378,6 @@ void CDiagKeyboard::UpdatePage3(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
 
-
 	_updatekeypage(1);
 	_updatekeypage(2);
 	_updatekeypage(3);
@@ -380,7 +402,6 @@ void CDiagKeyboard::UpdatePage4(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
 
-
 	_updatekeypage(JOY1FIRE);
 	_updatekeypage(JOY1UP);
 	_updatekeypage(JOY1DOWN);
@@ -398,8 +419,7 @@ void CDiagKeyboard::clear_keypress_contols()
 int i;
 
 	m_current_c64key=0;
-	m_bKeyCapture=FALSE;
-
+	m_bKeyCapture=false;
 	for(i=0 ; i<=C64K_MAX ; i++)
 	{
 		keycontrol[i].control_id=0;
@@ -423,6 +443,7 @@ HRESULT CDiagKeyboard::initkeycapturecontrols(int pageno, HWND hwndDlg)
 	case 3:
 		return initkeycapturecontrols4(hwndDlg);
 	}
+
 	return E_FAIL;
 }
 
@@ -441,14 +462,18 @@ HWND parentHwnd;
 	case WM_NCCREATE:
 		parentHwnd = ((CREATESTRUCT *)lParam)->hwndParent;
 		if (parentHwnd==0)
+		{
 			return FALSE;
+		}
+
 		parentHwnd = GetParent(parentHwnd);
 		if (parentHwnd==0)
+		{
 			return FALSE;
+		}
 
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, GetWindowLongPtr(parentHwnd, GWLP_USERDATA));				
 		break;
-
 	case WM_DESTROY:
 		// This is our signal to destroy the window object.
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
@@ -460,9 +485,13 @@ HWND parentHwnd;
 
 	// Call its message proc method.
 	if (NULL != pWin)
+	{
 		return (pWin->OnEventKeyControl(hWnd, uMsg, wParam, lParam));
+	}
 	else
+	{
 		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+	}
 }
 
 LRESULT CDiagKeyboard::OnEventKeyControl(
@@ -485,7 +514,10 @@ COLORREF textcolor_old,backcolor_old;
 
 	id=GetDlgCtrlID(hwnd);
 	if (id==0)
+	{
 		return DefWindowProc(hwnd,uMsg,wParam,lParam);
+	}
+
 	for (i=0 ; i <= C64K_MAX ; i++)
 	{
 		if (id == keycontrol[i].control_id)
@@ -494,27 +526,35 @@ COLORREF textcolor_old,backcolor_old;
 			break;
 		}
 	}
-	if (c64key<0)
-		return DefWindowProc(hwnd,uMsg,wParam,lParam);
 
+	if (c64key<0)
+	{
+		return DefWindowProc(hwnd,uMsg,wParam,lParam);
+	}
 
 	switch (uMsg)
 	{
 	case WM_SETTEXT:
-		lstrcpyn(
-			keycontrol[c64key].text, 
-			(LPCTSTR) lParam, 
-			sizeof(keycontrol[c64key].text)-1);
+		lstrcpyn(keycontrol[c64key].text, (LPCTSTR) lParam, sizeof(keycontrol[c64key].text)-1);
 		InvalidateRect(hwnd, NULL, TRUE);
 		return 0;
 	case WM_LBUTTONDOWN:
 		if (keycontrol[c64key].bGotFocus)
+		{
 			if (keycontrol[m_current_c64key].state == kcs_getkey)
+			{
 				SendMessage(hwnd, WM_KEYCAPTURE, FALSE, 0);
+			}
 			else
+			{
 				SendMessage(hwnd, WM_KEYCAPTURE, TRUE, 0);
+			}
+		}
 		else
+		{
 			SetFocus(hwnd);
+		}
+
 		return 0;
 	case WM_KEYCAPTURE:
 		if (wParam!=FALSE)
@@ -564,6 +604,7 @@ COLORREF textcolor_old,backcolor_old;
 		{
 			return 0;
 		}
+
 		hdc = BeginPaint(hwnd, &ps); 
 		if (hdc != NULL)
 		{
@@ -642,6 +683,7 @@ COLORREF textcolor_old,backcolor_old;
 					DrawText(hdc,G::GetStringRes(IDS_PRESSANYKEY),lstrlen(G::GetStringRes(IDS_PRESSANYKEY)),&rc,DT_CENTER);
 				}
 			}
+
 			if (textcolor_old) SetTextColor(hdc, textcolor_old);
 			if (backcolor_old) SetBkColor(hdc, backcolor_old);
 			if (hPenOld) SelectObject(hdc, hPenOld); 
@@ -654,6 +696,7 @@ COLORREF textcolor_old,backcolor_old;
 	default:
 		return DefWindowProc(hwnd,uMsg,wParam,lParam);
 	}
+
 	return 0;
 }
 
@@ -661,8 +704,8 @@ void CDiagKeyboard::SetKeyCapture(int c64key)
 {
 int i;
 	m_current_c64key = c64key;
-	m_bKeyCapture = TRUE;
-	m_bBeginKeyScan = TRUE;
+	m_bKeyCapture = true;
+	m_bBeginKeyScan = true;
 	for (i=0 ; i < C64K_MAX ; i++)
 	{
 		if (m_current_c64key!=i && keycontrol[i].state!=kcs_display)
@@ -671,22 +714,27 @@ int i;
 			InvalidateRect(keycontrol[i].hwnd, NULL, TRUE);
 		}
 	}
+
 	keycontrol[m_current_c64key].state = kcs_getkey;
 	if (keycontrol[m_current_c64key].hwnd != 0)
+	{
 		InvalidateRect(keycontrol[m_current_c64key].hwnd, NULL, TRUE);
+	}
 }
 
 void CDiagKeyboard::ResetKeyCapture()
 {
 int i;
-	m_bKeyCapture=FALSE;
+	m_bKeyCapture=false;
 	for (i=0 ; i < C64K_MAX ; i++)
 	{
 		if (keycontrol[i].state!=kcs_display)
 		{
 			keycontrol[i].state=kcs_display;
 			if (keycontrol[i].hwnd != 0)
+			{
 				InvalidateRect(keycontrol[i].hwnd, NULL, TRUE);
+			}
 		}
 	}
 }
@@ -699,12 +747,6 @@ int i;
 HRESULT CDiagKeyboard::initkeycapturecontrols1(HWND hwndDlg)
 {
 HWND hWnd;
-/*
-	hWnd = GetDlgItem(hwndDlg, IDC_TXT_ARROWLEFT);
-	if (hWnd==NULL) return E_FAIL;
-	keycontrol[C64K_ARROWLEFT].hwnd=hWnd;
-	keycontrol[C64K_ARROWLEFT].control_id=IDC_TXT_ARROWLEFT;
-*/
 	_initcapturectrls(HOME);
 	_initcapturectrls(ASTERISK);
 	_initcapturectrls(SLASH);
@@ -814,12 +856,18 @@ HRESULT hr;
 	case WM_INITDIALOG:
 		hr=initkeycapturecontrols(page->m_pageindex, hwndDlg);
 		if (FAILED(hr))
+		{
 			return FALSE;
+		}
+
 		UpdatePage(page->m_pageindex, hwndDlg);
 		return OnChildDialogInit(hwndDlg);
 	case WM_DESTROY:
 		if (hwndDlg == m_hwndDisplay)
+		{
 			m_hwndDisplay = NULL;
+		}
+
 		return TRUE;
 	} 
 	return FALSE; 
@@ -833,7 +881,10 @@ HRESULT CDiagKeyboard::Acquire()
 HRESULT	hr=E_FAIL;
 
 	if (pDX->pKeyboard)
+	{
 		hr = pDX->pKeyboard->Acquire();
+	}
+
 	return hr;
 }
 
@@ -868,23 +919,36 @@ HRESULT  hr;
 		if (hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST )
 		{
 			hr = pDX->pKeyboard->Acquire();
-			if ( FAILED(hr) )  
+			if ( FAILED(hr) )
+			{
 				return hr;
+			}
+
 			hr = pDX->pKeyboard->GetDeviceState(sizeof(buffer), (LPVOID)&buffer); 
 			if FAILED(hr) 
+			{
 				return hr;
+			}
 		}
 		else if (hr==DIERR_INVALIDPARAM)
+		{
 			return hr; 
+		}
 		else if (hr==DIERR_NOTINITIALIZED)
+		{
 			return hr;
+		}
 		else if (hr==E_PENDING)
+		{
 			return hr;
+		}
 		else
+		{
 			return hr;
+		}
 	} 
 
-	hr = S_FALSE;
+	hr = S_FALSE;// S_FALSE: no key was pressed. S_OK: A key was pressed.
 	for (i=0 ; i<256 ; i++)
 	{
 		switch (i)
@@ -1040,11 +1104,12 @@ HRESULT  hr;
 				*scancode = i;
 				hr = S_OK;
 				return hr;
-			}		default:
+			}
+		default:
 			continue;
 		}
-
 	}
+
 	return hr;
 }
 

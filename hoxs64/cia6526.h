@@ -74,8 +74,8 @@ class CIA : public IRegister
 {
 public:
 	CIA();
-
 	void InitReset(ICLK sysclock, bool poweronreset);
+
 	//IRegister
 	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual void ExecuteCycle(ICLK sysclock);
@@ -85,28 +85,36 @@ public:
 	virtual ICLK GetCurrentClock();
 	virtual void SetCurrentClock(ICLK sysclock);
 
-	bit8 PortAOutput_Strong0s();
-	bit8 PortBOutput_Strong0s();
-	void incrementTOD();
-
-	bit8 PortAOutput_Strong1s();
-	bit8 PortBOutput_Strong1s();
-
 	virtual bit8 ReadPortA()=0;
 	virtual bit8 ReadPortB()=0;
 	virtual void WritePortA(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)=0;
 	virtual void WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new, bit8 portdata_new)=0;
 	virtual void SetSystemInterrupt()=0;
 	virtual void ClearSystemInterrupt()=0;
-
-	ICLK DevicesClock;
 	virtual void ExecuteDevices(ICLK sysclock)=0;
 
+	virtual void SetWakeUpClock();
+	bit8 PortAOutput_Strong0s();
+	bit8 PortBOutput_Strong0s();
+	void incrementTOD();
+	bit8 PortAOutput_Strong1s();
+	bit8 PortBOutput_Strong1s();
 	void Pulse(ICLK sysclock);
-
 	void SetMode(HCFG::CIAMODE mode, bool bTimerBbug);
-
 	void PreventClockOverflow();
+	void SetTODWakeUpClock();
+	void CheckTODAlarmCompare(ICLK sysclock);
+	bool ReadCntPinLevel();
+	bool ReadSpPinLevel();
+	void CntChanged();
+	bool SetSerialCntOut(bool value);
+	void SetSerialSpOut(bool value);
+
+	static long GetTenthsFromTimeToAlarm(const cia_tod &time, const cia_tod &alarm);
+	static int prec_bitcount[256];
+	static void init_bitcount();
+
+	ICLK DevicesClock;
 	int ID;
 	bit64 delay;
 	bit64 feed;
@@ -164,23 +172,13 @@ public:
 	unsigned char bPB67Toggle;
 	ICLK ClockNextWakeUpClock;
 	ICLK ClockNextTODWakeUpClock;
-	virtual void SetWakeUpClock();
-	void SetTODWakeUpClock();
-	void CheckTODAlarmCompare(ICLK sysclock);
-	bool ReadCntPinLevel();
-	bool ReadSpPinLevel();
-	void CntChanged();
-	bool SetSerialCntOut(bool value);
-	void SetSerialSpOut(bool value);
-	static long GetTenthsFromTimeToAlarm(const cia_tod &time, const cia_tod &alarm);
-	static int prec_bitcount[256];
-	static void init_bitcount();
 	bool is_warm;
 protected:
 	void GetState(SsCiaV2 &state);
 	void SetState(const SsCiaV2 &state);
 	static void UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out);
-	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);	
+	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);
+
 	random_device rd;
 	mt19937 randengine;
 };

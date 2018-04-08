@@ -160,7 +160,7 @@ public:
 	static void AutoSetComboBoxHeight(HWND hWnd,  int maxHeight);
 	static void AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int maxHeight);
 	static HRESULT GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
-	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
+	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID *pId);
 	static BOOL DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType);
 	static void InitOfn(OPENFILENAME_500EX& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile);
 	static void RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h);

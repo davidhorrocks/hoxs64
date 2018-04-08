@@ -60,7 +60,7 @@ private:
 	unsigned char keymap[256];
 	struct keycontrolstate keycontrol[C64K_MAX+1];
 	int m_current_c64key;
-	BOOL m_bKeyCapture;
+	bool m_bKeyCapture;
 	int	m_c64key;
 	BYTE m_scancode;
 	TCHAR m_szkeyname[50];
@@ -70,9 +70,9 @@ private:
 	void SetAcquire();
 	HRESULT ReadScanCode(LPBYTE);
 	void AssignKey(int label, int c64key);
-	BOOL m_b_scanningkey;
-	BOOL m_bActive;
-	BOOL m_bBeginKeyScan;
+	bool m_b_scanningkey;
+	bool m_bActive;
+	bool m_bBeginKeyScan;
 
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 

@@ -24,6 +24,7 @@ using boost::function;
 using boost::random_device;
 using boost::mt19937;
 using boost::random::uniform_int_distribution;
+using boost::make_shared;
 using boost::int8_t;
 using boost::int16_t;
 using boost::int32_t;
@@ -35,6 +36,7 @@ using boost::uint64_t;
 #else
 #include <random>
 using std::shared_ptr;
+using std::unique_ptr;
 using std::weak_ptr;
 using std::enable_shared_from_this;
 using std::static_pointer_cast;
@@ -42,4 +44,5 @@ using std::function;
 using std::random_device;
 using std::mt19937;
 using std::uniform_int_distribution;
+using std::make_shared;
 #endif

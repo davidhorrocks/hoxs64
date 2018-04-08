@@ -43,31 +43,59 @@ C64::~C64()
 HRESULT C64::Init(CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR *szAppDirectory)
 {
 	ClearError();
-
 	this->appStatus = appStatus;
 	this->pIC64Event = pIC64Event;
 	this->dx = dx;
 	if (szAppDirectory==NULL)
+	{
 		m_szAppDirectory[0] = 0;
+	}
 	else
+	{
 		_tcscpy_s(m_szAppDirectory, _countof(m_szAppDirectory), szAppDirectory);
+	}
 
 	tape64.TapeEvent = (ITapeEvent *)this;
+	if (ram.Init(m_szAppDirectory, &cart)!=S_OK) 
+	{
+		return SetError(ram);
+	}
 
-	if (ram.Init(m_szAppDirectory, &cart)!=S_OK) return SetError(ram);
+	if (cpu.Init(static_cast<IC64 *>(this), pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK)
+	{
+		return SetError(cpu);
+	}
 
-	if (cpu.Init(static_cast<IC64 *>(this), pIC64Event, CPUID_MAIN, &cia1, &cia2, &vic, &sid, &cart, &ram, static_cast<ITape *>(&tape64), &mon)!=S_OK) return SetError(cpu);
 	cart.Init(&cpu, ram.mMemory);
-	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &tape64, dx)!=S_OK) return SetError(cia1);
-	if (cia2.Init(appStatus, &cpu, &vic, &diskdrive)!=S_OK) return SetError(cia2);
+	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &sid, &tape64, dx)!=S_OK)
+	{
+		return SetError(cia1);
+	}
 
-	if (vic.Init(appStatus, dx, &ram, &cpu, &mon)!=S_OK) return SetError(vic);
+	if (cia2.Init(appStatus, &cpu, &vic, &diskdrive)!=S_OK)
+	{
+		return SetError(cia2);
+	}
 
-	if (sid.Init(appStatus, dx, appStatus->m_fps)!=S_OK) return SetError(sid);
+	if (vic.Init(appStatus, dx, &ram, &cpu, &mon)!=S_OK) 
+	{
+		return SetError(vic);
+	}
 
-	if (diskdrive.Init(appStatus, static_cast<IC64 *>(this), pIC64Event, &mon, szAppDirectory)!=S_OK) return SetError(diskdrive);
+	if (sid.Init(appStatus, dx, appStatus->m_fps, &cia1)!=S_OK)
+	{
+		return SetError(sid);
+	}
 
-	if (mon.Init(pIC64Event, &cpu, &diskdrive.cpu, &vic, &diskdrive)!=S_OK) return SetError(E_FAIL, TEXT("C64 monitor initialisation failed"));
+	if (diskdrive.Init(appStatus, static_cast<IC64 *>(this), pIC64Event, &mon, szAppDirectory)!=S_OK)
+	{
+		return SetError(diskdrive);
+	}
+
+	if (mon.Init(pIC64Event, &cpu, &diskdrive.cpu, &vic, &diskdrive)!=S_OK)
+	{
+		return SetError(E_FAIL, TEXT("C64 monitor initialisation failed"));
+	}
 
 	return S_OK;
 }
@@ -705,7 +733,7 @@ char szAddress[7];
 const char szSysCall[] = {19,25,19,32,0};
 	CopyMemory(&ram.miMemory[SCREENWRITELOCATION], szSysCall, strlen(szSysCall));
 	szAddress[0] = 0;
-	sprintf_s(szAddress, _countof(szAddress), "%ld", startaddress);
+	sprintf_s(szAddress, _countof(szAddress), "%u", (unsigned int)startaddress);
 	unsigned int i;
 	for (i=0 ; i < strlen(szAddress) ; i++)
 		ram.miMemory[SCREENWRITELOCATION + 4 + i] = szAddress[i];
@@ -798,7 +826,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 				{
 					CopyMemory(&ram.miMemory[SCREENWRITELOCATION], szSysCall, strlen(szSysCall));
 					szAddress[0] = 0;
-					sprintf_s(szAddress, _countof(szAddress), "%ld", autoLoadCommand.startaddress);
+					sprintf_s(szAddress, _countof(szAddress), "%u", (unsigned int)autoLoadCommand.startaddress);
 					unsigned int i;
 					for (i=0 ; i < strlen(szAddress) ; i++)
 					{
@@ -937,7 +965,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 						{
 							CopyMemory(&ram.miMemory[SCREENWRITELOCATION], szSysCall, strlen(szSysCall));
 							szAddress[0] = 0;
-							sprintf_s(szAddress, _countof(szAddress), "%ld", autoLoadCommand.startaddress);
+							sprintf_s(szAddress, _countof(szAddress), "%u", (unsigned int)autoLoadCommand.startaddress);
 							unsigned int i;
 							for (i=0 ; i < strlen(szAddress) ; i++)
 								ram.miMemory[SCREENWRITELOCATION + 4 + i] = szAddress[i];
@@ -3502,8 +3530,8 @@ ULARGE_INTEGER pos_next_track_header;
 
 		cia1.SetState(sbCia1V2);
 		cia2.SetState(sbCia2V2);
-		appStatus->m_bTimerBbug = sbCia1V1.cia.bTimerBbug != 0;
-		if (sbCia1V1.cia.bEarlyIRQ)
+		appStatus->m_bTimerBbug = sbCia1V2.cia.bTimerBbug != 0;
+		if (sbCia1V2.cia.bEarlyIRQ)
 		{
 			appStatus->m_CIAMode = HCFG::CM_CIA6526A;
 		}

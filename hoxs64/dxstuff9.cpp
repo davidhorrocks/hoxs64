@@ -27,43 +27,11 @@
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
+#include "enumjoydata.h"
 #include "dxstuff9.h"
 #include "resource.h"
 
 #define ASSUMED_DPI_DEFAULT (96)
-
-class EnumJoyData
-{
-public:
-	EnumJoyData(joyconfig& joycfg)
-		: joycfg(joycfg)
-	{
-		this->buttonCount = 0;
-	}
-
-	joyconfig& joycfg;
-	int buttonCount;
-	BOOL EnumButton(LPCDIDEVICEOBJECTINSTANCE lpddoi)
-	{
-		if (this->buttonCount >= 32)
-		{
-			return DIENUM_STOP;
-		}
-
-		if (lpddoi->dwOfs + sizeof(BYTE) <= sizeof(DIJOYSTATE))
-		{
-			joycfg.buttonOffsets[this->buttonCount] = lpddoi->dwOfs;
-			this->buttonCount++;
-		}
-
-		return DIENUM_CONTINUE;
-	}
-
-	static BOOL CALLBACK EnumJoyButtonCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
-	{
-		return ((EnumJoyData *) pvRef)->EnumButton(lpddoi);
-	}
-};
 
 CDX9::CDX9()
 {
@@ -1803,7 +1771,7 @@ DWORD CDX9::DDColorMatch(IDirect3DSurface9* pdds, COLORREF rgb)
 
 DWORD CDX9::CheckDXVersion9()
 {
-TCHAR strDirectXVersion[10];
+TCHAR strDirectXVersion[50];
 DWORD dxVersion;
 HRESULT hr;
 
@@ -2819,7 +2787,6 @@ DIDEVICEOBJECTINSTANCE didoi;
 DIDEVCAPS dicaps;
 unsigned int i;
 unsigned int j;
-EnumJoyData joyObjRef(joycfg);
 
 	ClearError();
 	if (hWnd==0)
@@ -2833,12 +2800,6 @@ EnumJoyData joyObjRef(joycfg);
 	joycfg.xMin= -1000;
 	joycfg.yMax= +1000;
 	joycfg.yMin= -1000;
-	joycfg.countOfButtons = 0;
-	for(i = 0; i < _countof(joycfg.buttonOffsets); i++)
-	{
-		joycfg.buttonOffsets[i] = 0;
-	}
-
 	for(i = 0; i < _countof(joycfg.povAvailable); i++)
 	{
 		joycfg.povAvailable[0] = 0;
@@ -2846,7 +2807,7 @@ EnumJoyData joyObjRef(joycfg);
 	}
 
 	bool ok = false;
-	if (joycfg.bValid && joycfg.bEnabled)
+	if (joycfg.IsValidId && joycfg.IsEnabled)
 	{
 		UnacquireJoy(joyindex);
 		hr = CreateDeviceJoy(joyindex, joycfg.joystickID);
@@ -2860,14 +2821,12 @@ EnumJoyData joyObjRef(joycfg);
 				hr = SetDataFormatJoy(joyindex, &c_dfDIJoystick);
 				if (SUCCEEDED(hr))
 				{
-					hr = EnumObjectsJoy(joyindex, EnumJoyData::EnumJoyButtonCallback, &joyObjRef, DIDFT_BUTTON);
+					hr = SetCooperativeLevelJoy(joyindex, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
 					if (SUCCEEDED(hr))
 					{
-						joycfg.countOfButtons = joyObjRef.buttonCount;
-						hr = SetCooperativeLevelJoy(joyindex, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-						if (SUCCEEDED(hr))
+						ok = true;
+						if (joycfg.isValidXAxis)
 						{
-							ok = true;
 							//X Axis
 							ZeroMemory(&didoi, sizeof(didoi));
 							didoi.dwSize = sizeof(didoi);
@@ -2897,6 +2856,7 @@ EnumJoyData joyObjRef(joycfg);
 										{
 											SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
 										}
+
 										if (SUCCEEDED(hr))
 										{
 											joycfg.xMin = diprg.lMin; 
@@ -2911,8 +2871,11 @@ EnumJoyData joyObjRef(joycfg);
 									joycfg.joyObjectKindX = HCFG::JoyKindPov;
 								}
 							}
+						}
 
-							//Y Axis
+						//Y Axis
+						if (joycfg.isValidYAxis)
+						{
 							ZeroMemory(&didoi, sizeof(didoi));
 							didoi.dwSize = sizeof(didoi);
 							hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_Y, DIPH_BYOFFSET);
@@ -2942,6 +2905,7 @@ EnumJoyData joyObjRef(joycfg);
 											joycfg.yMax = diprg.lMax; 
 										}
 									}
+
 									joycfg.yUp = joycfg.yMin + 60L * (joycfg.yMax - joycfg.yMin)/200L;
 									joycfg.yDown = joycfg.yMax - 60L * (joycfg.yMax - joycfg.yMin)/200L;
 								}
@@ -2950,36 +2914,29 @@ EnumJoyData joyObjRef(joycfg);
 									joycfg.joyObjectKindY = HCFG::JoyKindPov;
 								}
 							}
+						}
 
-							//POV
-							if (joycfg.bPovEnabled)
+						//POV
+						if (joycfg.isPovEnabled)
+						{
+							ZeroMemory(&didoi, sizeof(didoi));
+							didoi.dwSize = sizeof(didoi);
+							for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
 							{
-								ZeroMemory(&didoi, sizeof(didoi));
-								didoi.dwSize = sizeof(didoi);
-								for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
+								hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
+								if (hr == DIERR_OBJECTNOTFOUND)
 								{
-									hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
-									if (hr == DIERR_OBJECTNOTFOUND)
-									{
-										continue;
-									}
-									if (FAILED(hr))
-									{
-										break;
-									}
-									joycfg.povAvailable[j] = DIJOFS_POV(i);
-									joycfg.povIndex[j] = i;
-									j++;
+									continue;
 								}
-							}
 
-							if (dicaps.dwButtons <= 32)
-							{
-								joycfg.countOfButtons = dicaps.dwButtons;
-							}
-							else
-							{
-								joycfg.countOfButtons = 0;
+								if (FAILED(hr))
+								{
+									break;
+								}
+
+								joycfg.povAvailable[j] = DIJOFS_POV(i);
+								joycfg.povIndex[j] = i;
+								j++;
 							}
 						}
 					}
@@ -2987,6 +2944,7 @@ EnumJoyData joyObjRef(joycfg);
 			}
 		}
 	}
+
 	if (ok)
 	{
 		joyok[joyindex] = true;
@@ -3006,9 +2964,10 @@ HRESULT CDX9::InitJoys(HWND hWnd, struct joyconfig &joy1config,struct joyconfig 
 	{
 		return E_FAIL;
 	}
+
 	InitJoy(hWnd, JOY1, joy1config);
 	InitJoy(hWnd, JOY2, joy2config);	
-	if ((joy1config.bValid && joy1config.bEnabled && !joyok[JOY1]) || (joy2config.bValid && joy2config.bEnabled && !joyok[JOY2]))
+	if ((joy1config.IsValidId && joy1config.IsEnabled && !joyok[JOY1]) || (joy2config.IsValidId && joy2config.IsEnabled && !joyok[JOY2]))
 	{
 		return E_FAIL;
 	}

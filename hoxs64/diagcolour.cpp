@@ -121,6 +121,7 @@ int editCtrlID;
 	switch (message) 
 	{ 
 	case WM_INITDIALOG:
+		G::ArrangeOKCancel(hWndDlg);
 		hr=InitVicColourControls(hWndDlg);
 		if (FAILED(hr))
 		{

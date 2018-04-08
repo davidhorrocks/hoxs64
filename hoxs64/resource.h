@@ -65,6 +65,7 @@
 #define IDB_PNG1                        188
 #define IDB_PNG_WINDOWFULLSCREEN        188
 #define IDD_VICIICOLOURPALETTE          189
+#define IDD_JOYBUTTONSELECTION          190
 #define IDC_VERSION                     1000
 #define IDC_INFO1                       1001
 #define IDC_STATIC_ABOUT_TITLE          1001
@@ -178,7 +179,9 @@
 #define IDC_CBO_JOY1FIRE                1107
 #define IDC_CBO_JOY2FIRE                1108
 #define IDC_SIDDIGIBOOT                 1109
+#define IDC_CBO_JOY1FIRE2               1109
 #define IDC_SID_RESAMPLE                1110
+#define IDC_CBO_JOY2FIRE2               1110
 #define IDC_SID_DOWNSAMPLE              1111
 #define IDC_CUSTOMPRGLIST               1112
 #define IDC_CHKQUICKLOAD                1114
@@ -243,18 +246,60 @@
 #define IDC_SLIDERRGBCOLORBLUE          1346
 #define IDC_BUTTON1                     1347
 #define IDC_BUTTON_LOADPEPTO            1347
+#define IDC_BTN_DETECT                  1347
+#define IDC_BTN_CFG_JOY1FIRE1           1347
 #define IDC_BUTTON_LOADPEPTO2           1348
 #define IDC_BUTTON2                     1348
 #define IDC_BUTTON_LOADPREVIOUSCOLOURS  1348
+#define IDC_BTN_CFG_JOY2FIRE1           1348
+#define IDC_BTN_REMOVE                  1348
 #define IDC_STATIC_ABOUT_AUTHOR_WEB     1349
+#define IDC_BTN_CFG_JOY2FIRE2           1349
+#define IDC_BTN_CLEARALL                1349
 #define IDC_STATIC_ABOUT_LIBPNG         1350
 #define IDC_STATIC_ABOUT_LIBPNG_TITLE   1350
+#define IDC_BTN_CFG_JOY1FIRE2           1350
 #define IDC_STATIC_ABOUT_LIBPNG_AUTHOR  1351
+#define IDC_BTN_CFG_JOY1UP              1351
 #define IDC_VBLSYNC_WND                 1352
+#define IDC_BTN_CFG_JOY1DOWN            1352
 #define IDC_RADIO2                      1353
 #define IDC_LINESYNC_WND                1353
+#define IDC_BTN_CFG_JOY1LEFT            1353
 #define IDC_GROUP_WINDOWED              1354
+#define IDC_BTN_CFG_JOY1RIGHT           1354
 #define IDC_GROUP_FULLSCREEN            1355
+#define IDC_BTN_CFG_JOY2UP              1355
+#define IDC_CBO_JOY1UP                  1356
+#define IDC_CBO_JOY1DOWN                1357
+#define IDC_LBL_JOY1FIRE                1358
+#define IDC_LBL_JOY1FIRE2               1359
+#define IDC_LBL_JOY1UP                  1360
+#define IDC_LBL_JOY1DOWN                1361
+#define IDC_CBO_JOY1LEFT                1362
+#define IDC_CBO_JOY1RIGHT               1363
+#define IDC_LBL_JOY1LEFT                1364
+#define IDC_LBL_JOY1RIGHT               1365
+#define IDC_LBL_JOY2FIRE                1366
+#define IDC_LIST_BUTTONS                1367
+#define IDC_BTN_CFG_JOY2DOWN            1367
+#define IDC_LBL_DEVICE_NAME             1368
+#define IDC_BTN_CFG_JOY2LEFT            1368
+#define IDC_TXT_DEVICE_NAME             1369
+#define IDC_BTN_CFG_JOY2DOWN2           1369
+#define IDC_BTN_CFG_JOY2RIGHT           1369
+#define IDC_CBO_JOY2UP                  1370
+#define IDC_LBL_TARGET_C64_BUTTON       1370
+#define IDC_CBO_JOY2DOWN                1371
+#define IDC_TXT_MAPPED_NAME             1371
+#define IDC_LBL_JOY2UP                  1372
+#define IDC_EDIT1                       1372
+#define IDC_LBL_JOY2DOWN                1373
+#define IDC_CBO_JOY2LEFT                1374
+#define IDC_CBO_JOY2RIGHT               1375
+#define IDC_LBL_JOY2LEFT                1376
+#define IDC_LBL_JOY2RIGHT               1377
+#define IDC_LBL_JOY2FIRE2               1382
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -338,9 +383,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        190
+#define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40186
-#define _APS_NEXT_CONTROL_VALUE         1356
+#define _APS_NEXT_CONTROL_VALUE         1373
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif

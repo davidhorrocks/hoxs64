@@ -147,7 +147,7 @@ public:
 	//The first C64 X pixel position (zero based) that is at the left most edge of the display window.
 	unsigned int m_displayStart;
 
-	//Status bar dimensions
+	LPDIRECTINPUT7 pDI;
 	LPDIRECTINPUTDEVICE7	pKeyboard;
 	LPDIRECTINPUTDEVICE7 joy[NUMJOYS];
 	LPDIRECTSOUND lpDirectSound;
@@ -192,7 +192,6 @@ private:
 	DWORD m_iEraseCount;
 	D3DRECT m_drcStatusBar;
 	bool m_bStatusBarOk;
-	LPDIRECTINPUT7		pDI;
 	int m_soundResumeDelay;
 	HINSTANCE DIHinst;
 	DIRECTDRAWCREATEEX pDirectDrawCreateEx;

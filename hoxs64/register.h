@@ -94,6 +94,24 @@ public:
 	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState)=0;
 };
 
+class ISid : public IRegister
+{
+public:
+	virtual bit8 Get_PotX()=0;
+	virtual void Set_PotX(ICLK sysclock, bit8 data)=0;
+	virtual bit8 Get_PotY()=0;
+	virtual void Set_PotY(ICLK sysclock, bit8 data)=0;
+};
+
+class ICia1
+{
+public:
+	virtual bit8 Get_PotAX()=0;
+	virtual bit8 Get_PotAY()=0;
+	virtual bit8 Get_PotBX()=0;
+	virtual bit8 Get_PotBY()=0;
+};
+
 class ITape
 {
 public:

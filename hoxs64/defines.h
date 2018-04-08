@@ -9,6 +9,8 @@
 #define HOXS_MONITOR_WND_CLASS TEXT("Hoxs64Monitor")
 #define HOXS_MONITOR_DISS_WND_CLASS TEXT("Hoxs64DisassembleMonitor")
 
+#define DEBUG_AUDIO_CLOCK_SYNC 0
+
 #define FRAMEUPDATEFREQ 64
 
 //define CLOCK_SAMPLES_PER_SEC (982800)

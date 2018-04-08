@@ -16,33 +16,145 @@
 #include "carray.h"
 #include "hconfig.h"
 
+LPCTSTR JoyKeyName::Name[2][JoynLast] =
+{
+	{
+		TEXT("Joy1Enabled"),
+		TEXT("Joy1Valid"),
+		TEXT("Joy1GUID"),
+		TEXT("Joy1IsValidAxisX"),
+		TEXT("Joy1IsValidAxisY"),
+		TEXT("Joy1AxisX"),
+		TEXT("Joy1AxisY"),
+		TEXT("Joy1RevX"),
+		TEXT("Joy1RevY"),
+		TEXT("Joy1POV"),
+		TEXT("Joy1Fire"),
+		TEXT("Joy1FireMask"),
+		TEXT("Joy1FireButtonCount"),
+		TEXT("Joy1FireButtonList"),
+		TEXT("Joy1Fire2"),
+		TEXT("Joy1Fire2Mask"),
+		TEXT("Joy1Fire2ButtonCount"),
+		TEXT("Joy1Fire2ButtonList"),
+		TEXT("Joy1ButtonUp"),
+		TEXT("Joy1ButtonUpMask"),
+		TEXT("Joy1ButtonUpCount"),
+		TEXT("Joy1ButtonUpList"),
+		TEXT("Joy1ButtonDown"),
+		TEXT("Joy1ButtonDownMask"),
+		TEXT("Joy1ButtonDownCount"),
+		TEXT("Joy1ButtonDownList"),
+		TEXT("Joy1ButtonLeft"),
+		TEXT("Joy1ButtonLeftMask"),
+		TEXT("Joy1ButtonLeftCount"),
+		TEXT("Joy1ButtonLeftList"),
+		TEXT("Joy1ButtonRight"),
+		TEXT("Joy1ButtonRightMask"),
+		TEXT("Joy1ButtonRightCount"),
+		TEXT("Joy1ButtonRightList")
+	}
+	,
+	{
+		TEXT("Joy2Enabled"),
+		TEXT("Joy2Valid"),
+		TEXT("Joy2GUID"),
+		TEXT("Joy2IsValidAxisX"),
+		TEXT("Joy2IsValidAxisY"),
+		TEXT("Joy2AxisX"),
+		TEXT("Joy2AxisY"),
+		TEXT("Joy2RevX"),
+		TEXT("Joy2RevY"),
+		TEXT("Joy2POV"),
+		TEXT("Joy2Fire"),
+		TEXT("Joy2FireMask"),
+		TEXT("Joy2FireButtonCount"),
+		TEXT("Joy2FireButtonList"),
+		TEXT("Joy2Fire2"),	
+		TEXT("Joy2Fire2Mask"),
+		TEXT("Joy2Fire2ButtonCount"),
+		TEXT("Joy2Fire2ButtonList"),
+		TEXT("Joy2ButtonUp"),
+		TEXT("Joy2ButtonUpMask"),
+		TEXT("Joy2ButtonUpCount"),
+		TEXT("Joy2ButtonUpList"),
+		TEXT("Joy2ButtonDown"),
+		TEXT("Joy2ButtonDownMask"),
+		TEXT("Joy2ButtonDownCount"),
+		TEXT("Joy2ButtonDownList"),
+		TEXT("Joy2ButtonLeft"),
+		TEXT("Joy2ButtonLeftMask"),
+		TEXT("Joy2ButtonLeftCount"),
+		TEXT("Joy2ButtonLeftList"),
+		TEXT("Joy2ButtonRight"),
+		TEXT("Joy2ButtonRightMask"),
+		TEXT("Joy2ButtonRightCount"),
+		TEXT("Joy2ButtonRightList")
+	}
+};
+
+JoyKeyName::ButtonKeySet JoyKeyName::Fire1 = 
+{
+	JoyKeyName::JoynFire1,
+	JoyKeyName::JoynFire1Mask,
+	JoyKeyName::JoynFire1ButtonCount,
+	JoyKeyName::JoynFire1ButtonList
+};
+
+JoyKeyName::ButtonKeySet JoyKeyName::Fire2 = 
+{
+	JoyKeyName::JoynFire2,
+	JoyKeyName::JoynFire2Mask,
+	JoyKeyName::JoynFire2ButtonCount,
+	JoyKeyName::JoynFire2ButtonList
+};
+
+JoyKeyName::ButtonKeySet JoyKeyName::Up = 
+{
+	JoyKeyName::JoynButtonUp,
+	JoyKeyName::JoynButtonUpMask,
+	JoyKeyName::JoynButtonUpCount,
+	JoyKeyName::JoynButtonUpList
+};
+
+JoyKeyName::ButtonKeySet JoyKeyName::Down = 
+{
+	JoyKeyName::JoynButtonDown,
+	JoyKeyName::JoynButtonDownMask,
+	JoyKeyName::JoynButtonDownCount,
+	JoyKeyName::JoynButtonDownList
+};
+
+JoyKeyName::ButtonKeySet JoyKeyName::Left = 
+{
+	JoyKeyName::JoynButtonLeft,
+	JoyKeyName::JoynButtonLeftMask,
+	JoyKeyName::JoynButtonLeftCount,
+	JoyKeyName::JoynButtonLeftList
+};
+
+JoyKeyName::ButtonKeySet JoyKeyName::Right = 
+{
+	JoyKeyName::JoynButtonRight,
+	JoyKeyName::JoynButtonRightMask,
+	JoyKeyName::JoynButtonRightCount,
+	JoyKeyName::JoynButtonRightList
+};
+
 CConfig::CConfig()
 {
 	ZeroMemory(&m_fullscreenAdapterId, sizeof(m_fullscreenAdapterId));
 	ZeroMemory(&m_joy1config.joystickID, sizeof(m_joy1config.joystickID));
 	ZeroMemory(&m_joy2config.joystickID, sizeof(m_joy2config.joystickID));
-
 	m_bD1541_Thread_Enable = false;
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
-
 	m_bWindowedCustomSize = false;
 	m_bUseBlitStretch = true;
-
-	m_joy1config.bEnabled = false;
-	m_joy2config.bEnabled = false;
-
-	m_joy1config.bValid = false;
-	m_joy2config.bValid = false;
-
-	m_joy1config.bXReverse = false;
-	m_joy2config.bYReverse = false;
-
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
 	m_bSidDigiBoost = true;
-
 	m_bMaxSpeed = false;
 	m_bSkipFrames = false;
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
@@ -93,7 +205,7 @@ TCHAR szValue[20];
 HKEY  hKey1; 
 LONG   lRetCode; 
 ULONG tempLenValue;
-DWORD type,dw;
+DWORD type;
 int i;
 	
 	LoadDefaultSetting();
@@ -568,225 +680,260 @@ int i;
 		}
 
 		RegCloseKey(hKey1);
+
+		// Load joystick 1 setting
+		LoadCurrentJoystickSetting(1, this->m_joy1config);
+
+		// Load joystick 2 setting
+		LoadCurrentJoystickSetting(2, this->m_joy2config);
 	}
 	
+	return S_OK;
+}
+
+HRESULT CConfig::LoadCurrentJoystickSetting(int joystickNumber, struct joyconfig& jconfig)
+{
+HKEY  hKey1; 
+LONG   lRetCode; 
+DWORD dw;
+
+	unsigned int joyIndex = joystickNumber - 1;
+	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	{
+		return E_FAIL;
+	}
+
+	jconfig.fire1ButtonCount = 0;
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Joystick"),
 		0, KEY_READ,
 		&hKey1);
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy1Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynValid], &dw);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_joy1config.bValid = _ttol(szValue) != 0;
+			jconfig.IsValidId = dw != 0;
 		}
 		else
 		{
-			m_joy1config.bValid = false;
+			jconfig.IsValidId = false;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy2Valid"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynEnabled], &dw);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_joy2config.bValid = _ttol(szValue) != 0;
+			jconfig.IsEnabled = dw != 0;
 		}
 		else
 		{
-			m_joy2config.bValid = false;
+			jconfig.IsEnabled = false;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy1Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynPOV], &dw);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_joy1config.bEnabled = _ttol(szValue) != 0;
+			jconfig.isPovEnabled = dw != 0;
 		}
 		else
 		{
-			m_joy1config.bEnabled = false;
+			jconfig.isPovEnabled = true;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy2Enabled"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynRevX], &dw);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_joy2config.bEnabled = _ttol(szValue) != 0;
-		}
-		else
-		{
-			m_joy2config.bEnabled = false;
+			jconfig.isXReverse = dw != 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy1POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynRevY], &dw);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_joy1config.bPovEnabled = _ttol(szValue) != 0;
-		}
-		else
-		{
-			m_joy1config.bPovEnabled = true;
+			jconfig.isYReverse = dw != 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy2POV"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
+		if (jconfig.IsValidId)
 		{
-			m_joy2config.bPovEnabled = _ttol(szValue) != 0;
-		}
-		else
-		{
-			m_joy2config.bPovEnabled = true;
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy1RevX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			m_joy1config.bXReverse = _ttol(szValue) != 0;
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy1RevY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			m_joy1config.bYReverse = _ttol(szValue) != 0;
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy2RevX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			m_joy2config.bXReverse = _ttol(szValue) != 0;
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("Joy2RevY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			m_joy2config.bYReverse = _ttol(szValue) != 0;
-		}
-
-		if (m_joy1config.bValid)
-		{
-			if (SUCCEEDED(G::GetClsidFromRegValue(hKey1, TEXT("Joy1GUID"), &m_joy1config.joystickID)))
+			if (SUCCEEDED(G::GetClsidFromRegValue(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynGUID], &jconfig.joystickID)))
 			{
-				m_joy1config.bValid = true;
-
-				//Joystick 1 X Axis
-				tempLenValue = lenValue;
-				lRetCode = RegReadStr(hKey1, TEXT("Joy1AxisX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS)
-				{
-					dw = _ttol(szValue);
-					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)) && dw>= DIJOFS_BUTTON0)
-					{
-						m_joy1config.dwOfs_X = dw;
-					}
-				}
-					
-				//Joystick 1 Y Axis
-				tempLenValue = lenValue;
-				lRetCode = RegReadStr(hKey1, TEXT("Joy1AxisY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS)
-				{
-					dw = _ttol(szValue);
-					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
-					{
-						m_joy1config.dwOfs_Y = dw;
-					}
-				}					
-
-				//Joystick 1 Fire
-				tempLenValue = sizeof(DWORD);
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy1FireMask"), NULL, NULL, (LPBYTE)&dw, &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS && tempLenValue == sizeof(DWORD))
-				{
-					m_joy1config.firemask = dw;
-				}
-
-				tempLenValue = lenValue;
-				lRetCode = RegReadStr(hKey1, TEXT("Joy1Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS)
-				{
-					dw = _ttol(szValue);
-					if (dw >= DIJOFS_BUTTON0 && dw <= DIJOFS_BUTTON31)
-					{
-						m_joy1config.dwOfs_firebutton = dw;
-					}
-				}
+				jconfig.IsValidId = true;
 			}
 			else
 			{
-				m_joy1config.bValid = false;
+				jconfig.IsValidId = false;
 			}
-		}
 
-		if (m_joy2config.bValid)
-		{
-			if (SUCCEEDED(G::GetClsidFromRegValue(hKey1, TEXT("Joy2GUID"), &m_joy2config.joystickID)))
+			//Joystick X axis
+			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisX], &dw);
+			if (lRetCode == ERROR_SUCCESS)
 			{
+				jconfig.isValidXAxis = dw != 0;
+			}
+			else
+			{
+				jconfig.isValidXAxis = true;
+			}
 
-				m_joy2config.bValid = true;
-
-				//Joystick 2 X Axis
-				tempLenValue = lenValue;
-				lRetCode = RegReadStr(hKey1, TEXT("Joy2AxisX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS)
+			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisX], &dw);
+			if (lRetCode == ERROR_SUCCESS)
+			{
+				if (dw <= (sizeof(DIJOYSTATE) - sizeof(DWORD)))
 				{
-					dw = _ttol(szValue);
-					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
-					{
-						m_joy2config.dwOfs_X = dw;
-					}
-				}
-
-				//Joystick 2 Y Axis
-				tempLenValue = lenValue;
-				lRetCode = RegReadStr(hKey1, TEXT("Joy2AxisY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS)
-				{
-					dw = _ttol(szValue);
-					if (dw < (sizeof(DIJOYSTATE) - sizeof(DWORD)))
-					{
-						m_joy2config.dwOfs_Y = dw;
-					}
-				}
-
-				//Joystick 2 Fire
-				tempLenValue = sizeof(DWORD);
-				lRetCode = RegQueryValueEx(hKey1, TEXT("Joy2FireMask"), NULL, NULL, (LPBYTE)&dw, &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS && tempLenValue == sizeof(DWORD))
-				{
-					m_joy2config.firemask = dw;
-				}
-
-				tempLenValue = lenValue;
-				lRetCode = RegReadStr(hKey1, TEXT("Joy2Fire"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-				if (lRetCode == ERROR_SUCCESS)
-				{
-					dw = _ttol(szValue);
-					if (dw >= DIJOFS_BUTTON0 && dw <= DIJOFS_BUTTON31)
-					{
-						m_joy2config.dwOfs_firebutton = dw;
-					}
+					jconfig.dwOfs_X = dw;
 				}
 			}
+					
+			//Joystick Y axis
+			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisY], &dw);
+			if (lRetCode == ERROR_SUCCESS)
+			{
+				jconfig.isValidYAxis = dw != 0;
+			}
+			else
+			{
+				jconfig.isValidYAxis = true;
+			}
+
+			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisY], &dw);
+			if (lRetCode == ERROR_SUCCESS)
+			{
+				if (dw <= (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+				{
+					jconfig.dwOfs_Y = dw;
+				}
+			}					
+
+			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Fire1, jconfig.fire1ButtonOffsets, jconfig.fire1ButtonCount);
+			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Fire2, jconfig.fire2ButtonOffsets, jconfig.fire2ButtonCount);
+			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Up, jconfig.upButtonOffsets, jconfig.upButtonCount);
+			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Down, jconfig.downButtonOffsets, jconfig.downButtonCount);
+			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Left, jconfig.leftButtonOffsets, jconfig.leftButtonCount);
+			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Right, jconfig.rightButtonOffsets, jconfig.rightButtonCount);
 		}
-		else
-		{
-			m_joy2config.bValid = false;
-		}
-		
+
 		RegCloseKey(hKey1);
 	}
+
 	return S_OK;
 }
 
-#define writeregkeyboarditem(n)	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_KeyMap[n]));\
+HRESULT CConfig::WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pButtonOffsets, const unsigned int &buttonCount)
+{
+DWORD dwValue;
+unsigned int joyIndex = joystickNumber - 1;
+
+	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	{
+		return E_FAIL;
+	}
+
+	dwValue = (DWORD)buttonCount;
+	if (dwValue > joyconfig::MAXBUTTONS)
+	{
+		dwValue = joyconfig::MAXBUTTONS;
+	}
+
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][regnames.count], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][regnames.list], 0, REG_BINARY, (LPBYTE) &pButtonOffsets[0], sizeof(DWORD) * dwValue);
+
+	return S_OK;
+}
+
+HRESULT CConfig::ReadJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pButtonOffsets, unsigned int &buttonCount)
+{
+LONG lRetCode;
+DWORD dw;
+DWORD dwOffset;
+DWORD buttonIndexList[joyconfig::MAXBUTTONS];
+DWORD storedButtonCount;
+DWORD tempLen;
+DWORD numButtons = 0;
+unsigned int i;
+unsigned int j;
+unsigned int joyIndex = joystickNumber - 1;
+
+	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	{
+		return E_FAIL;
+	}
+
+	buttonCount = 0;
+	lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][regnames.count], (LPDWORD)&storedButtonCount);
+	if (lRetCode == ERROR_SUCCESS)
+	{
+		if (storedButtonCount > joyconfig::MAXBUTTONS)
+		{
+			storedButtonCount = joyconfig::MAXBUTTONS;
+		}
+
+		tempLen = sizeof(buttonIndexList);
+		lRetCode = RegQueryValueEx(hKey1, JoyKeyName::Name[joyIndex][regnames.list], NULL, NULL, (LPBYTE)&buttonIndexList[0], &tempLen);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			tempLen = tempLen / sizeof(DWORD);
+			if (storedButtonCount > tempLen)
+			{
+				storedButtonCount = tempLen;
+			}
+
+			for (i = 0; i < storedButtonCount; i++)
+			{
+				dwOffset = buttonIndexList[i];
+				if (dwOffset >= DIJOFS_BUTTON0 && dwOffset <= DIJOFS_BUTTON31)
+				{
+					pButtonOffsets[numButtons++] = dwOffset;
+				}
+			}
+
+			buttonCount = numButtons;
+		}
+	}
+	else if (lRetCode == ERROR_FILE_NOT_FOUND)
+	{
+		//WIP
+		lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][regnames.mask], &dw);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			for (i = 0, j = 1; i < joyconfig::MAXBUTTONS; i++, j<<=1)
+			{
+				if (dw & j)
+				{
+					dwOffset = DIJOFS_BUTTON0 + i;
+					if (dwOffset >= DIJOFS_BUTTON0 && dwOffset <= DIJOFS_BUTTON31)
+					{
+						pButtonOffsets[numButtons++] = dwOffset;
+					}
+				}
+			}
+
+			buttonCount = numButtons;
+		}
+
+		if (lRetCode == ERROR_FILE_NOT_FOUND || (lRetCode == ERROR_SUCCESS && numButtons == 0))
+		{
+			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][regnames.single], &dw);
+			if (lRetCode == ERROR_SUCCESS)
+			{
+				dwOffset = dw;
+				if (dwOffset >= DIJOFS_BUTTON0 && dwOffset <= DIJOFS_BUTTON31)
+				{
+					pButtonOffsets[numButtons++] = dwOffset;
+				}
+			}
+
+			buttonCount = numButtons;
+		}
+	}
+	else
+	{
+		return lRetCode;
+	}
+	
+	return S_OK;
+}
+
+
+#define writeregkeyboarditem(n)	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_KeyMap[n]));\
 	RegSetValueEx(hKey1, TEXT(#n), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR))
 
 HRESULT CConfig::SaveWindowSetting(HWND hWnd)
@@ -885,16 +1032,16 @@ WINDOWPLACEMENT wp;
 		return E_FAIL;
 	} 
 
-	wsprintf(szValue, TEXT("%ld"), (DWORD) (pt_mdidebuggerwinpos.x));
+	wsprintf(szValue, TEXT("%ld"), (LONG) (pt_mdidebuggerwinpos.x));
 	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerPosX"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%ld"), (DWORD) (pt_mdidebuggerwinpos.y));
+	wsprintf(szValue, TEXT("%ld"), (LONG) (pt_mdidebuggerwinpos.y));
 	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerPosY"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%ld"), (DWORD) (sz_mdidebuggerwinsize.cx));
+	wsprintf(szValue, TEXT("%ld"), (LONG) (sz_mdidebuggerwinsize.cx));
 	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerWidth"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%ld"), (DWORD) (sz_mdidebuggerwinsize.cy));
+	wsprintf(szValue, TEXT("%ld"), (LONG) (sz_mdidebuggerwinsize.cy));
 	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
 	RegCloseKey(hKey1);
@@ -1086,7 +1233,6 @@ TCHAR szValue[50];
 HKEY  hKey1; 
 DWORD  dwDisposition; 
 LONG   lRetCode; 
-bool bGuidOK;
 int i;
 
 	lRetCode = RegCreateKeyEx (HKEY_CURRENT_USER, 
@@ -1195,99 +1341,99 @@ int i;
 		return E_FAIL;
 	}
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bD1541_Emulation_Enable ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bD1541_Emulation_Enable ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("D1541_Emulation"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bSID_Emulation_Enable ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSID_Emulation_Enable ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("SID_Emulation"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bShowSpeed ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bShowSpeed ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("ShowSpeed"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bLimitSpeed ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bLimitSpeed ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("LimitSpeed"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bSkipFrames ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSkipFrames ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("SkipAltFrames"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_bSIDResampleMode);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_bSIDResampleMode);
 	RegSetValueEx(hKey1, TEXT("SIDSampleMode"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_syncModeFullscreen);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_syncModeFullscreen);
 	RegSetValueEx(hKey1, TEXT("SyncMode1"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_syncModeWindowed);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_syncModeWindowed);
 	RegSetValueEx(hKey1, TEXT("SyncMode2"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bDoubleSizedWindow ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bDoubleSizedWindow ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("DoubleSizedWindow"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bUseBlitStretch ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bUseBlitStretch ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("UseBlitStretch"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bUseKeymap ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bUseKeymap ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("UseKeymap"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bSwapJoysticks ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSwapJoysticks ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("SwapJoysticks"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bCPUFriendly ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bCPUFriendly ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("CPUFriendly"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bAudioClockSync ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bAudioClockSync ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("AudioClockSync"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 	
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bSidDigiBoost ? 1: 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSidDigiBoost ? 1: 0));
 	RegSetValueEx(hKey1, TEXT("SIDDigiBoost"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
 	G::SaveClsidToRegValue(hKey1, TEXT("FullscreenAdapterId"), &m_fullscreenAdapterId);
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_fullscreenAdapterNumber);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenAdapterNumber);
 	RegSetValueEx(hKey1, TEXT("FullscreenAdapterNumber"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_fullscreenWidth);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenWidth);
 	RegSetValueEx(hKey1, TEXT("FullscreenWidth"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_fullscreenHeight);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenHeight);
 	RegSetValueEx(hKey1, TEXT("FullscreenHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_fullscreenRefresh);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenRefresh);
 	RegSetValueEx(hKey1, TEXT("FullscreenRefresh"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_fullscreenFormat);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenFormat);
 	RegSetValueEx(hKey1, TEXT("FullscreenFormat"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_fullscreenStretch);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenStretch);
 	RegSetValueEx(hKey1, TEXT("FullscreenStretch"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_blitFilter);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_blitFilter);
 	RegSetValueEx(hKey1, TEXT("BlitFilter"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_borderSize);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_borderSize);
 	RegSetValueEx(hKey1, TEXT("BorderSize"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bShowFloppyLed ? 1 : 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bShowFloppyLed ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("ShowFloppyLed"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_fps);
+	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fps);
 	RegSetValueEx(hKey1, TEXT("FPS"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_TrackZeroSensorStyle));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_TrackZeroSensorStyle));
 	RegSetValueEx(hKey1, TEXT("TrackZeroSensor"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_CIAMode));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_CIAMode));
 	RegSetValueEx(hKey1, TEXT("CIAMode"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bTimerBbug ? 1 : 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bTimerBbug ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("CIATimerBbug"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 	
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bD1541_Thread_Enable ? 1 : 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bD1541_Thread_Enable ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("DiskThreadEnable"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bAllowOpposingJoystick ? 1 : 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bAllowOpposingJoystick ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("AllowOpposingJoystick"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_bDisableDwmFullscreen ? 1 : 0));
+	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bDisableDwmFullscreen ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("DisableDwmFullscreen"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
 	lstrcpy(szValue, TEXT("1"));
@@ -1325,6 +1471,23 @@ int i;
 
 	RegCloseKey(hKey1);
 
+	//Save joystick 1 setting.
+	SaveCurrentJoystickSetting(1, this->m_joy1config);
+
+	//Save joystick 2 setting.
+	SaveCurrentJoystickSetting(2, this->m_joy2config);
+	return S_OK;
+}
+
+HRESULT CConfig::SaveCurrentJoystickSetting(int joystickNumber, const struct joyconfig& jconfig)
+{
+HKEY  hKey1; 
+DWORD  dwDisposition; 
+LONG   lRetCode; 
+bool bGuidOK;
+DWORD dwValue;
+
+	int joyIndex = joystickNumber - 1;
 	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Joystick"), 
 		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
@@ -1336,69 +1499,60 @@ int i;
 		return E_FAIL;
 	} 
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy1config.bEnabled ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("Joy1Enabled"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy2config.bEnabled ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("Joy2Enabled"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	//Save the joystick enabled option.
+	dwValue = (jconfig.IsEnabled ? 1: 0);
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynEnabled], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy1config.bPovEnabled ? 0xffffffff: 0));
-	RegSetValueEx(hKey1, TEXT("Joy1POV"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) (m_joy2config.bPovEnabled ? 0xffffffff: 0));
-	RegSetValueEx(hKey1, TEXT("Joy2POV"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	//Save the POV option.
+	dwValue = (jconfig.isPovEnabled ? 0xffffffff: 0);
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynPOV], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
 	bGuidOK = false;
-	if (m_joy1config.bValid)
+	if (jconfig.IsValidId)
 	{
-		if (SUCCEEDED(G::SaveClsidToRegValue(hKey1, TEXT("Joy1GUID"), &m_joy1config.joystickID)))
+		if (SUCCEEDED(G::SaveClsidToRegValue(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynGUID], &jconfig.joystickID)))
 		{
 			bGuidOK = true;
 		}
 	}
-	wsprintf(szValue, TEXT("%lu"), (DWORD) ((m_joy1config.bValid && bGuidOK) ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("Joy1Valid"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 
+	//Save the device ID.
+	dwValue = ((jconfig.IsValidId && bGuidOK) ? 1: 0);
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynValid], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
-	bGuidOK = false;
-	if (m_joy2config.bValid)
-	{
-		if (SUCCEEDED(G::SaveClsidToRegValue(hKey1, TEXT("Joy2GUID"), &m_joy2config.joystickID)))
-		{
-			bGuidOK = true;
-		}
-	}
-	wsprintf(szValue, TEXT("%lu"), (DWORD) ((m_joy2config.bValid && bGuidOK) ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("Joy2Valid"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	//Save the X axis validity.
+	dwValue = jconfig.isValidXAxis ? 1 : 0;
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisX], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.dwOfs_X);
-	RegSetValueEx(hKey1, TEXT("Joy1AxisX"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.dwOfs_Y);
-	RegSetValueEx(hKey1, TEXT("Joy1AxisY"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	//Save the X axis.
+	dwValue = jconfig.dwOfs_X;
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisX], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+
+	//Save the Y axis validity.
+	dwValue = jconfig.isValidYAxis ? 1 : 0;
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisY], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+
+	//Save the Y axis.
+	dwValue = jconfig.dwOfs_Y;
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisY], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 	
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy2config.dwOfs_X);
-	RegSetValueEx(hKey1, TEXT("Joy2AxisX"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy2config.dwOfs_Y);
-	RegSetValueEx(hKey1, TEXT("Joy2AxisY"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	//Save the X axis reverse.
+	dwValue = jconfig.isXReverse ? 1 : 0;
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynRevX], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.bXReverse);
-	RegSetValueEx(hKey1, TEXT("Joy1RevX"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.bYReverse);
-	RegSetValueEx(hKey1, TEXT("Joy1RevY"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy2config.bXReverse);
-	RegSetValueEx(hKey1, TEXT("Joy2RevX"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy2config.bYReverse);
-	RegSetValueEx(hKey1, TEXT("Joy2RevY"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-
+	//Save the Y axis reverse.
+	dwValue = jconfig.isYReverse ? 1 : 0;
+	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynRevY], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 	
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.dwOfs_firebutton);
-	RegSetValueEx(hKey1, TEXT("Joy1Fire"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.firemask);
-	RegSetValueEx(hKey1, TEXT("Joy1FireMask"), 0, REG_DWORD, (LPBYTE) &m_joy1config.firemask, sizeof(DWORD));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy2config.dwOfs_firebutton);
-	RegSetValueEx(hKey1, TEXT("Joy2Fire"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-	wsprintf(szValue, TEXT("%lu"), (DWORD) m_joy1config.firemask);
-	RegSetValueEx(hKey1, TEXT("Joy2FireMask"), 0, REG_DWORD, (LPBYTE) &m_joy2config.firemask, sizeof(DWORD));
+	//Save buttons
+	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Fire1, &jconfig.fire1ButtonOffsets[0], jconfig.fire1ButtonCount);
+	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Fire2, &jconfig.fire2ButtonOffsets[0], jconfig.fire2ButtonCount);
+	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Up, &jconfig.upButtonOffsets[0], jconfig.upButtonCount);
+	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Down, &jconfig.downButtonOffsets[0], jconfig.downButtonCount);
+	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Left, &jconfig.leftButtonOffsets[0], jconfig.leftButtonCount);
+	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Right, &jconfig.rightButtonOffsets[0], jconfig.rightButtonCount);
 
+	// Close the reg key.
 	RegCloseKey(hKey1);
 	return S_OK;
 }
@@ -1549,6 +1703,60 @@ int CConfig::GetKeyScanCode(UINT ch)
 	return MapVirtualKey(ch, 0);
 }
 
+LONG CConfig::RegReadDWordOrStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD dwValue)
+{
+LONG lRetCode;
+DWORD type;
+DWORD tempLenValue;
+DWORD dw;
+TCHAR szValue[20];
+LPDWORD lpReserved = 0;
+	const DWORD lenValue = sizeof(szValue);
+	lRetCode = RegQueryValueEx(hKey, lpValueName, lpReserved, &type, NULL, NULL);
+	if (lRetCode == ERROR_SUCCESS)
+	{
+		if (type == REG_DWORD)
+		{
+			tempLenValue = sizeof(dw);
+			lRetCode = RegQueryValueEx(hKey, lpValueName, lpReserved, NULL, (LPBYTE)&dw, &tempLenValue);
+			if (lRetCode == ERROR_SUCCESS)
+			{
+				if (dwValue != NULL)
+				{
+					*dwValue = dw;
+				}
+			}
+		}
+		else if (type == REG_SZ)
+		{
+			tempLenValue = lenValue;
+			lRetCode = RegReadStr(hKey, lpValueName, lpReserved, NULL, (PBYTE) &szValue[0], &tempLenValue);
+			if (lRetCode == ERROR_SUCCESS)
+			{
+				errno = 0;
+				dw = _tcstoul(szValue, NULL, 10);				
+				if (errno == 0)
+				{
+					if (dwValue != NULL)
+					{
+						*dwValue = dw;
+					}
+				}
+				else
+				{
+					lRetCode = ERROR_FILE_NOT_FOUND;
+				}
+			}
+		}
+		else
+		{
+			lRetCode = ERROR_FILE_NOT_FOUND;
+		}
+	}
+
+	return lRetCode;
+}
+
 LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
 {
 	DWORD maxlen = 0;
@@ -1576,7 +1784,7 @@ LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPD
 
 		if (fixup == 0 && bytesCopied >=sizeof(TCHAR))
 		{
-			if (((TCHAR *)lpData)[(bytesCopied / 2) - 1] == TEXT('\0'))
+			if (((TCHAR *)lpData)[(bytesCopied / sizeof(TCHAR)) - 1] == TEXT('\0'))
 			{
 				//If the string is already NULL terminated then return.
 				return r;
@@ -1599,21 +1807,34 @@ LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPD
 }
 
 joyconfig::joyconfig()
-{
+{	
 	LoadDefault();
 }
 
 void joyconfig::LoadDefault()
 {
-	bEnabled = false;
-	bPovEnabled = true;
-	bValid = false;
-	bXReverse = false;
-	bYReverse = false;
+	ZeroMemory(&joystickID, sizeof(joystickID));
+	ZeroMemory(&fire1ButtonOffsets, sizeof(fire1ButtonOffsets));
+	ZeroMemory(&fire2ButtonOffsets, sizeof(fire2ButtonOffsets));
+	ZeroMemory(&upButtonOffsets, sizeof(upButtonOffsets));
+	ZeroMemory(&downButtonOffsets, sizeof(downButtonOffsets));
+	ZeroMemory(&leftButtonOffsets, sizeof(leftButtonOffsets));
+	ZeroMemory(&rightButtonOffsets, sizeof(rightButtonOffsets));
+	IsEnabled = false;
+	isPovEnabled = true;
+	IsValidId = false;
+	isXReverse = false;
+	isYReverse = false;
 	dwOfs_X = DIJOFS_X;
 	dwOfs_Y = DIJOFS_Y;
-	dwOfs_firebutton = DIJOFS_BUTTON0;
-	firemask = 0;
-	countOfButtons = 0;
-	ZeroMemory(buttonOffsets, sizeof(buttonOffsets));
-}
+	isValidXAxis = true;
+	isValidYAxis = true;
+	fire1ButtonOffsets[0] = DIJOFS_BUTTON0;
+	fire1ButtonCount = 1;
+	fire2ButtonCount = 0;
+	upButtonCount = 0;
+	downButtonCount = 0;
+	leftButtonCount = 0;
+	rightButtonCount = 0;
+};
+

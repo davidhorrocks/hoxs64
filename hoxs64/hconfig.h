@@ -4,17 +4,98 @@
 #include "bits.h"
 #include "viciipalette.h"
 
+namespace C64JoystickButton
+{
+	typedef enum tagJoyItem
+	{
+		None = 0,
+		Fire1,
+		Fire2,
+		Up,
+		Down,
+		Left,
+		Right
+	} C64JoystickButtonNumber;
+};
+
+class JoyKeyName
+{
+public:
+	typedef enum tagJoystickKey
+	{
+		JoynEnabled = 0,
+		JoynValid,
+		JoynGUID,
+		JoynIsValidAxisX,
+		JoynIsValidAxisY,
+		JoynAxisX,
+		JoynAxisY,
+		JoynRevX,
+		JoynRevY,
+		JoynPOV,
+		JoynFire1,
+		JoynFire1Mask,
+		JoynFire1ButtonCount,
+		JoynFire1ButtonList,
+		JoynFire2,
+		JoynFire2Mask,
+		JoynFire2ButtonCount,
+		JoynFire2ButtonList,
+		JoynButtonUp,
+		JoynButtonUpMask,
+		JoynButtonUpCount,
+		JoynButtonUpList,
+		JoynButtonDown,
+		JoynButtonDownMask,
+		JoynButtonDownCount,
+		JoynButtonDownList,
+		JoynButtonLeft,
+		JoynButtonLeftMask,
+		JoynButtonLeftCount,
+		JoynButtonLeftList,
+		JoynButtonRight,
+		JoynButtonRightMask,
+		JoynButtonRightCount,
+		JoynButtonRightList,
+		JoynLast
+	} JOYSTICKKEY;
+
+	struct ButtonKeySet
+	{
+		JOYSTICKKEY single;
+		JOYSTICKKEY mask;
+		JOYSTICKKEY count;
+		JOYSTICKKEY list;
+	};
+
+	static LPCTSTR Name[2][JoynLast];
+	static ButtonKeySet Fire1;
+	static ButtonKeySet Fire2;
+	static ButtonKeySet Up;
+	static ButtonKeySet Down;
+	static ButtonKeySet Left;
+	static ButtonKeySet Right;
+};
+
+
 struct joyconfig
 {
+	static const unsigned int MAXBUTTONS = 32;
 	joyconfig();
-	bool bEnabled;
-	bool bPovEnabled;
-	bool bValid;
 	GUID joystickID;
-	bool bXReverse;
-	bool bYReverse;
+	bool IsValidId;
+	bool IsEnabled;
+	bool isPovEnabled;
+	bool isXReverse;
+	bool isYReverse;
+	bool isValidXAxis;
+	bool isValidYAxis;
 	DWORD dwOfs_X;
 	DWORD dwOfs_Y;
+	DWORD dwOfs_Up;
+	DWORD dwOfs_Down;
+	DWORD dwOfs_Left;
+	DWORD dwOfs_Right;
 	HCFG::JOYOBJECTKIND joyObjectKindX;
 	HCFG::JOYOBJECTKIND joyObjectKindY;	
 	LONG xMin;
@@ -25,12 +106,20 @@ struct joyconfig
 	LONG yMax;
 	LONG yUp;
 	LONG yDown;
-	DWORD dwOfs_firebutton;
-	DWORD firemask;
+	unsigned int fire1ButtonCount;
+	unsigned int fire2ButtonCount;
+	unsigned int upButtonCount;
+	unsigned int downButtonCount;
+	unsigned int leftButtonCount;
+	unsigned int rightButtonCount;
+	DWORD fire1ButtonOffsets[MAXBUTTONS];
+	DWORD fire2ButtonOffsets[MAXBUTTONS];
+	DWORD upButtonOffsets[MAXBUTTONS];
+	DWORD downButtonOffsets[MAXBUTTONS];
+	DWORD leftButtonOffsets[MAXBUTTONS];
+	DWORD rightButtonOffsets[MAXBUTTONS];
 	DWORD povAvailable[4];
 	int povIndex[4];
-	int countOfButtons;
-	DWORD buttonOffsets[32];
 	void LoadDefault();
 };
 
@@ -38,6 +127,7 @@ class CConfig
 {
 public:
 	CConfig();
+	static LONG RegReadDWordOrStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD dwValue);
 	static LONG RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
 	HRESULT SaveWindowSetting(HWND);
 	static HRESULT SaveMDIWindowSetting(HWND hWnd);
@@ -45,13 +135,17 @@ public:
 	static HRESULT LoadMDIWindowSetting(POINT& pos, SIZE& size);
 	static int GetKeyScanCode(UINT ch);
 	HRESULT LoadCurrentSetting();
+	HRESULT LoadCurrentJoystickSetting(int joystickNumber, struct joyconfig& jconfig);
+	HRESULT WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pButtonOffsets, const unsigned int &buttonCount);
+	HRESULT ReadJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pButtonOffsets, unsigned int &buttonCount);
 	HRESULT SaveCurrentSetting();
+	HRESULT SaveCurrentJoystickSetting(int joystickNumber, const struct joyconfig& jconfig);
 	void LoadDefaultSetting();
 	void SetPalettePepto();
 	void SetCiaNewOldMode(bool isNew);
 	void SetRunFast();
 	void SetRunNormal();
-	
+
 	bit32 m_colour_palette[VicIIPalette::NumColours];
 	unsigned char m_KeyMap[256];
 	struct joyconfig m_joy1config;

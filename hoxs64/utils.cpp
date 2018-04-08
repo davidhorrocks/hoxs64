@@ -693,10 +693,15 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	DWORD dwDlgBase = GetDialogBaseUnits(); 
 	TCITEM tie; 
 	RECT rcTab,rcTemp; 
-	HWND hwndButton; 
-	RECT rcButton; 
+	HWND hwndButtonOK;
+	HWND hwndButtonCancel;
+	RECT rcButtonOK;
+	RECT rcButtonCancel;
+	SIZE sizeButtonOK = {0 , 0};
+	SIZE sizeButtonCancel = {0 , 0};
 	size_t i;
 	BOOL bResult=FALSE;
+	const LONG DialogMargin = 2;
 	// Create the tab control. 
 	InitCommonControls(); 
 
@@ -711,8 +716,8 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 		return FALSE;
 	
 	SetRectEmpty(&rcTemp);
-	rcTemp.right=1;
-	rcTemp.bottom=1;
+	rcTemp.right=DialogMargin;
+	rcTemp.bottom=DialogMargin;
 	MapDialogRect(hwndDlg, &rcTemp);
 	int cxMargin = abs(rcTemp.right - rcTemp.left);
 	int cyMargin = abs(rcTemp.bottom - rcTemp.top);
@@ -769,30 +774,67 @@ BOOL CTabDialog::OnTabbedDialogInit(HWND hwndDlg)
 	SetWindowPos(m_hwndTab, NULL, rcTab.left, rcTab.top, 
 			rcTab.right - rcTab.left, rcTab.bottom - rcTab.top, 
 			SWP_NOZORDER); 
- 
-	// Move the first button below the tab control. 
-	hwndButton = GetDlgItem(hwndDlg, IDOK); 
-	SetWindowPos(hwndButton, NULL, 
-			rcTab.left, rcTab.bottom + cyMargin, 0, 0, 
-			SWP_NOSIZE | SWP_NOZORDER); 
- 
-	// Determine the size of the button. 
-	GetWindowRect(hwndButton, &rcButton); 
-	rcButton.right -= rcButton.left; 
-	rcButton.bottom -= rcButton.top; 
- 
-	// Move the second button to the right of the first. 
-	hwndButton = GetDlgItem(hwndDlg, IDCANCEL); 
-	SetWindowPos(hwndButton, NULL, 
-		rcTab.left + rcButton.right + cxMargin, 
-		rcTab.bottom + cyMargin, 0, 0, 
-		SWP_NOSIZE | SWP_NOZORDER); 
+
+	hwndButtonOK = GetDlgItem(hwndDlg, IDOK);
+	if (hwndButtonOK)
+	{
+		GetWindowRect(hwndButtonOK, &rcButtonOK);
+		sizeButtonOK.cx = rcButtonOK.right - rcButtonOK.left;
+		sizeButtonOK.cy = rcButtonOK.bottom - rcButtonOK.top;
+	}
+
+	hwndButtonCancel = GetDlgItem(hwndDlg, IDCANCEL);
+	if (hwndButtonCancel)
+	{
+		GetWindowRect(hwndButtonCancel, &rcButtonCancel);
+		sizeButtonCancel.cx = rcButtonCancel.right - rcButtonCancel.left;
+		sizeButtonCancel.cy = rcButtonCancel.bottom - rcButtonCancel.top;
+	}
+
+	if (false)
+	{
+		// Move the OK button below the tab control. 
+		if (hwndButtonOK)
+		{
+			SetWindowPos(hwndButtonOK, NULL, 
+					rcTab.left, rcTab.bottom + cyMargin, 0, 0, 
+					SWP_NOSIZE | SWP_NOZORDER); 
+  
+			// Move the Cancel button to the right of the OK. 
+			if (hwndButtonCancel)
+			{
+				SetWindowPos(hwndButtonCancel, NULL, 
+					rcTab.left + sizeButtonOK.cx + cxMargin, 
+					rcTab.bottom + cyMargin, 0, 0, 
+					SWP_NOSIZE | SWP_NOZORDER);
+			}
+		}
+	}
+	else
+	{
+		if (hwndButtonCancel)
+		{
+			// Move the Cancel button below the tab control. 
+			SetWindowPos(hwndButtonCancel, NULL, 
+				rcTab.right - sizeButtonCancel.cx, 
+				rcTab.bottom + cyMargin, 0, 0, 
+				SWP_NOSIZE | SWP_NOZORDER);
+			if (hwndButtonOK)
+			{
+				// Move the OK button to the left of the Cancel. 
+				SetWindowPos(hwndButtonOK, NULL, 
+					rcTab.right - sizeButtonCancel.cx - sizeButtonOK.cx - cxMargin, 
+					rcTab.bottom + cyMargin, 0, 0, 
+					SWP_NOSIZE | SWP_NOZORDER);
+			}
+		}
+	}
  
 	// Size the dialog box. 
 	SetWindowPos(hwndDlg, NULL, 0, 0, 
 		rcTab.right + cyMargin + 
 		2 * GetSystemMetrics(SM_CXDLGFRAME), 
-		rcTab.bottom + rcButton.bottom + 2 * cyMargin + 
+		rcTab.bottom + sizeButtonOK.cy + 2 * cyMargin + 
 		2 * GetSystemMetrics(SM_CYDLGFRAME) + 
 		GetSystemMetrics(SM_CYCAPTION), 
 		SWP_NOMOVE | SWP_NOZORDER); 
@@ -1172,22 +1214,94 @@ LPTSTR G::GetStringRes (int id)
 
 void G::ArrangeOKCancel(HWND hwndDlg)
 {
-HWND hwndButton;
-RECT rcButton;
-	// Move the first button below the tab control. 
-	hwndButton = GetDlgItem(hwndDlg, IDOK); 
-	GetWindowRect(hwndButton, &rcButton); 
-	ScreenToClient(hwndDlg, (LPPOINT)&rcButton.left);
-	ScreenToClient(hwndDlg, (LPPOINT)&rcButton.right);
-	rcButton.right -= rcButton.left; 
-	rcButton.bottom -= rcButton.top; 
+HWND hwndButtonOK;
+HWND hwndButtonCancel;
+RECT rcDlg;
+RECT rcTemp;
+RECT rcButtonOK;
+RECT rcButtonCancel;
+SIZE sizeButtonOK = {0, 0};
+SIZE sizeButtonCancel = {0, 0};
+SIZE margin = {0, 0};
 
-	// Move the second button to the right of the first. 
-	hwndButton = GetDlgItem(hwndDlg, IDCANCEL); 
-	SetWindowPos(hwndButton, NULL, 
-		rcButton.left + rcButton.right + 1, 
-		rcButton.top, 0, 0, 
-		SWP_NOSIZE | SWP_NOZORDER); 
+const bool ShowLeft = false;
+const LONG DialogMargin = 2;
+
+	GetClientRect(hwndDlg, &rcDlg);
+
+	SetRectEmpty(&rcTemp);
+	rcTemp.right = DialogMargin;
+	rcTemp.bottom = DialogMargin;
+	MapDialogRect(hwndDlg, &rcTemp);
+	margin.cx = abs(rcTemp.right - rcTemp.left);
+	margin.cy = abs(rcTemp.bottom - rcTemp.top);
+
+	hwndButtonOK = GetDlgItem(hwndDlg, IDOK); 
+	if (hwndButtonOK)
+	{
+		if (GetWindowRect(hwndButtonOK, &rcButtonOK))
+		{
+			ScreenToClient(hwndDlg, (LPPOINT)&rcButtonOK.left);
+			ScreenToClient(hwndDlg, (LPPOINT)&rcButtonOK.right);
+			sizeButtonOK.cx = rcButtonOK.right - rcButtonOK.left;
+			sizeButtonOK.cy = rcButtonOK.bottom - rcButtonOK.top;
+		}
+	}
+
+	hwndButtonCancel = GetDlgItem(hwndDlg, IDCANCEL); 
+	if (hwndButtonCancel)
+	{
+		if (GetWindowRect(hwndButtonCancel, &rcButtonCancel))
+		{
+			ScreenToClient(hwndDlg, (LPPOINT)&rcButtonCancel.left);
+			ScreenToClient(hwndDlg, (LPPOINT)&rcButtonCancel.right);
+			sizeButtonCancel.cx = rcButtonCancel.right - rcButtonCancel.left;
+			sizeButtonCancel.cy = rcButtonCancel.bottom - rcButtonCancel.top;
+		}
+	}
+
+	if (ShowLeft)
+	{
+		if (hwndButtonOK)
+		{
+			// Move the OK button. 
+			SetWindowPos(hwndButtonOK, NULL, 
+				margin.cx + rcDlg.left, 
+				rcDlg.bottom - sizeButtonOK.cy - margin.cy, 
+				0, 0, SWP_NOSIZE | SWP_NOZORDER); 
+
+		}
+
+		if (hwndButtonCancel)
+		{
+			// Move the Cancel button to the right of the OK.
+			SetWindowPos(hwndButtonCancel, NULL,
+				margin.cx + rcDlg.left + sizeButtonOK.cx + margin.cx,
+				rcDlg.bottom - sizeButtonCancel.cy - margin.cy, 
+				0, 0, SWP_NOSIZE | SWP_NOZORDER); 
+		}
+	}
+	else
+	{
+		if (hwndButtonOK)
+		{
+			// Move the OK button. 
+			SetWindowPos(hwndButtonOK, NULL, 
+				rcDlg.right - margin.cx - sizeButtonCancel.cx - margin.cx - sizeButtonOK.cx,
+				rcDlg.bottom - sizeButtonOK.cy - margin.cy, 
+				0, 0, SWP_NOSIZE | SWP_NOZORDER); 
+
+		}
+
+		if (hwndButtonCancel)
+		{
+			// Move the Cancel button to the right of the OK.
+			SetWindowPos(hwndButtonCancel, NULL,
+				rcDlg.right - margin.cx - sizeButtonCancel.cx,
+				rcDlg.bottom - sizeButtonCancel.cy - margin.cy, 
+				0, 0, SWP_NOSIZE | SWP_NOZORDER); 
+		}
+	}
 }
 
 LPGETMONITORINFO G::s_pFnGetMonitorInfo = NULL;
@@ -1671,7 +1785,7 @@ ULONG buflen1;
 		return lRetCode;
 }
 
-HRESULT G::SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId)
+HRESULT G::SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID *pId)
 {
 TCHAR szValue[50];
 WCHAR szwValue[50];

@@ -409,7 +409,7 @@ msgloop:
 			else
 			{
 				framesSkipped++;
-#if defined(DEBUG)
+#if defined(DEBUG) && DEBUG_AUDIO_CLOCK_SYNC != 0
 				OutputDebugString(TEXT("fskip\n"));
 #endif
 			}
