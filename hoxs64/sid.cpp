@@ -263,28 +263,6 @@ void SID64::UnLockSoundBuffer()
 	}
 }
 
-
-const WORD SID64::sidAttackRate[16]=
-{
-/*0*/	9,
-/*1*/	32,
-/*2*/	63,
-/*3*/	95,
-/*4*/	149,
-/*5*/	220,
-/*6*/	267,
-/*7*/	313,
-/*8*/	392,
-/*9*/	977,
-/*a*/	1954,
-/*b*/	3126,
-/*c*/	3907,
-/*d*/	11720,
-/*e*/	19532,
-/*f*/	31251
-};
-
-
 const bit16 SID64::AdsrTable[16] = {
  0x7F00,
  0x0006,
@@ -466,10 +444,15 @@ void SIDVoice::Reset(bool poweronreset)
 	{
 		counter=0x555555;
 	}
+
 	shifterTestCounter=0;
+	gotNextVolume = false;
+	nextvolume = 0;
 	volume=0;
+	samplevolume = 0;
 	sampleHoldDelay = 0;
 	exponential_counter_period=1;
+	next_exponential_counter_period = 0;
 	frequency=0;
 	sustain_level=0;
 	attack_value=0;
@@ -480,6 +463,13 @@ void SIDVoice::Reset(bool poweronreset)
 	zeroTheCounter=0;
 	wavetype=sidWAVNONE;
 	envmode=sidRELEASE;
+	next_envmode = sidRELEASE;
+	envmode_changing_delay = 0;
+	envelope_count_delay = 0;
+	exponential_count_delay = 0;
+	reset_envelope_counter = false;
+	reset_exponential_counter = false;
+	envelope_tick = false;	
 	pulse_width_reg=0;
 	pulse_width_counter=0;
 	gate=0;
@@ -556,6 +546,7 @@ void SIDVoice::SyncRecheck()
 void SIDVoice::Envelope()
 {
 bit32 t, c;
+	samplevolume = volume;
 	if (test)
 	{
 		phaseOfShiftRegister = 0;
@@ -565,6 +556,7 @@ bit32 t, c;
 			shifterTestCounter=SHIFTERTESTDELAY;
 			sidShiftRegister = (sidShiftRegister << 1) | 1;
 		}
+
 		affected_voice->zeroTheCounter = 0;
 	}
 	else
@@ -590,83 +582,316 @@ bit32 t, c;
 
 		t = counter;
 		c = (t + frequency) & 0x00ffffff;
-		if ((c & 0x080000) && (!(t & 0x080000))) {
+		if ((c & 0x080000) && (!(t & 0x080000))) 
+		{
 			phaseOfShiftRegister = 1;
 		}
+
 		affected_voice->zeroTheCounter = (affected_voice->sync !=0 && !(t & 0x0800000) && (c & 0x0800000)) != 0;
 		counter = c;
 	}
 
-	bit16 feedback = ((envelope_counter >> 14) ^ (envelope_counter >> 13)) & 1;
-	if (envelope_counter == envelope_compare)
+	if (envmode_changing_delay)
 	{
-		envelope_counter=ENVELOPE_LFSR_RESET;
-		exponential_counter++;
-		if (envmode == sidATTACK || exponential_counter == exponential_counter_period)
-		{
-			exponential_counter = 0;			
-			if (keep_zero_volume)
-			{
-				return;
-			}
+		envmode_changing_delay--;
+		UpdateNextEnvMode();
+	}
 
-			switch (envmode)
+	if (reset_exponential_counter)
+	{
+		reset_exponential_counter = false;
+		exponential_counter = 0;
+		envelope_tick = true;
+	}
+
+	exponential_counter_period = next_exponential_counter_period;
+	
+	if (envelope_count_delay)
+	{
+		envelope_count_delay--;
+		if (envelope_count_delay == 0)
+		{
+			if (envmode == sidATTACK || exponential_counter == exponential_counter_period)
 			{
-			case sidENVNONE:
-				break;
-			case sidATTACK:
-				volume = (volume + 1) & 255;
-				if (volume == 255)
-				{
-					envelope_compare = SID64::AdsrTable[decay_value];
-					envmode = sidDECAY;
-				}
-				break;
-			case sidDECAY:
-				if (volume != sustain_level)
-				{
-					volume = (volume - 1) & 255;
-				}
-				break;
-			case sidSUSTAIN:
-				break;
-			case sidRELEASE:
-				volume = (volume - 1) & 255;
-				break;
-			}
-			if (volume == 0)
-			{
-				keep_zero_volume=1;
+				reset_exponential_counter = true;
 			}
 		}
+	}
+
+	if (exponential_count_delay)
+	{
+		exponential_count_delay--;
+		if (exponential_count_delay == 0)
+		{
+			if (exponential_counter == exponential_counter_period)
+			{
+				if (envmode == sidATTACK)
+				{
+					if (!gotNextVolume)
+					{
+						gotNextVolume = true;
+						nextvolume = volume;
+					}
+				}
+
+				reset_exponential_counter = true;
+			}
+		}
+		else if (exponential_count_delay == 1)
+		{
+			// The ADSR may remain in decay / release mode even if attack mode is selected in the next clock.
+			if (exponential_counter == exponential_counter_period)
+			{
+				// Capture what the volume would be for the current ADSR mode.
+				nextvolume = GetNextVolume();
+				gotNextVolume = true;
+			}
+		}
+	}
+
+	if (envelope_tick)
+	{
+		envelope_tick = false;
+		if (gotNextVolume)
+		{
+			gotNextVolume = false;
+			volume = nextvolume;
+		}
+		else
+		{
+			volume = GetNextVolume();
+		}
+
 		switch (volume)
 		{
 		case 0x00:
-			exponential_counter_period = 0x01;
+			next_exponential_counter_period = 0x01;
 			break;
 		case 0x06:
-			exponential_counter_period = 0x1e;
+			next_exponential_counter_period = 0x1e;
 			break;
 		case 0x0e:
-			exponential_counter_period = 0x10;
+			next_exponential_counter_period = 0x10;
 			break;
 		case 0x1a:
-			exponential_counter_period = 0x08;
+			next_exponential_counter_period = 0x08;
 			break;
 		case 0x36:
-			exponential_counter_period = 0x04;
+			next_exponential_counter_period = 0x04;
 			break;
 		case 0x5d:
-			exponential_counter_period = 0x02;
+			next_exponential_counter_period = 0x02;
 			break;
 		case 0xff:
-			exponential_counter_period = 0x01;
+			next_exponential_counter_period = 0x01;
 			break;
+		}
+
+		exponential_counter = 0;		
+	}
+	
+	if (reset_envelope_counter)
+	{
+		reset_envelope_counter = false;
+		envelope_counter = ENVELOPE_LFSR_RESET;			
+		exponential_counter++;
+		if (envmode == sidATTACK)
+		{
+			envelope_count_delay = 1;
+		}
+		else
+		{
+			// There is a one cycle extra delay if the exponential counter period more than one.
+			exponential_count_delay = exponential_counter_period == 1 ? 1 : 2;
+
+			// The ADSR may remain in decay / release mode even if attack mode is selected in the next clock.
+			if (exponential_counter == exponential_counter_period && exponential_counter_period == 1)
+			{
+				// Capture what the volume would be for the current ADSR mode.
+				nextvolume = GetNextVolume();
+				gotNextVolume = true;
+			}
+		}
+	}
+
+	if (envelope_counter == envelope_compare)
+	{
+		reset_envelope_counter = true;
+	}
+	else
+	{
+		bit16 feedback = ((envelope_counter >> 14) ^ (envelope_counter >> 13)) & 1;
+		envelope_counter = ((envelope_counter << 1) & 0x7ffe) | feedback;
+	}
+}
+
+bit8 SIDVoice::GetNextVolume()
+{
+bit8 nextvol = volume;
+	if (!keep_zero_volume)
+	{
+		switch (envmode)
+		{
+		case sidENVNONE:
+			break;
+		case sidATTACK:
+			nextvol = (volume + 1) & 255;
+			if (nextvol == 255)
+			{
+				envelope_compare = SID64::AdsrTable[decay_value];
+				next_envmode = sidDECAY;
+				envmode_changing_delay = 2;
+			}
+
+			break;
+		case sidDECAY:
+			if (volume != sustain_level)
+			{
+				nextvol = (volume - 1) & 255;
+			}
+
+			break;
+		case sidSUSTAIN:
+			break;
+		case sidRELEASE:
+			nextvol = (volume - 1) & 255;
+			break;
+		}
+
+		if (nextvol == 0)
+		{
+			keep_zero_volume = 1;
+		}
+	}
+
+	return nextvol;
+}
+
+void SIDVoice::UpdateNextEnvMode()
+{
+	switch(next_envmode)
+	{
+	case sidATTACK:
+		if (envmode_changing_delay == 1)
+		{
+			// In a post titled "Understanding the Sid" drfiemost said, "One funny fact is that in the first cycle of the attack and decay phases the wrong rate is used, as the R0 line reacts with one cycle delay."
+			// The assumption is that the decay rate is selected for one clock before selecting the attack rate.
+			// http://forum.6502.org/viewtopic.php?f=8&t=4150&start=105
+			if (this->reset_envelope_counter && this->exponential_counter_period != 1)
+			{
+				// Hack required for attack during release where one extra delay cycle may be required.
+				envmode = sidDECAY;
+			}
+			else
+			{
+				envmode = sidATTACK;
+			}
+
+			envelope_compare = SID64::AdsrTable[decay_value];
+		}
+		else if (envmode_changing_delay == 0)
+		{
+			// Two clocks later, select the attack rate.
+			envmode = sidATTACK;
+			envelope_compare = SID64::AdsrTable[attack_value];
+			keep_zero_volume = 0;
+		}
+
+		break;
+	case sidDECAY:
+		if (envmode_changing_delay == 0)
+		{
+			envmode = sidDECAY;
+			envelope_compare = SID64::AdsrTable[decay_value];
+		}
+
+		break;
+	case sidRELEASE:
+		if (envmode_changing_delay == 1)
+		{
+			if (envmode == sidDECAY)
+			{
+				envmode = sidRELEASE;
+				envelope_compare = SID64::AdsrTable[release_value];
+			}
+		}
+		else if (envmode_changing_delay == 0)
+		{
+			envmode = sidRELEASE;
+			envelope_compare = SID64::AdsrTable[release_value];			
+		}
+
+		break;
+	}
+}
+
+void SIDVoice::SetWave(bit8 new_control)
+{
+bit8 prev_control = control;
+	control = new_control;
+	wavetype = (eWaveType)((new_control >> 4) & 0xf);
+	sync=(new_control & 2);
+	ring_mod=(new_control & 4);
+	if ((new_control ^ prev_control) & 0xf0)//control changing
+	{				
+		if (wavetype == sidWAVNONE)
+		{
+			sampleHoldDelay = SAMPLEHOLDRESETTIME;
+			sampleHold = lastSample;
+			wavetype = sidWAVNONE;
+		}
+	}
+
+	if (new_control & 8)
+	{
+		if (test == 0)
+		{
+			phaseOfShiftRegister = 0;
+			shifterTestCounter = SHIFTERTESTDELAY;
+			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
+			{
+				NoiseWriteback(prev_control);
+			}
+
+			test=1;
+		}
+		
+		counter=0;
+	}
+	else
+	{
+		if (test)
+		{
+			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
+			{
+				NoiseWriteback(prev_control);
+			}
+
+			ClockShiftRegister();
+			phaseOfShiftRegister = 2;
+			test=0;
+		}
+	}
+
+	if (new_control & 1)
+	{
+		if (gate == 0)
+		{
+			gate = 1;
+			next_envmode = sidATTACK;
+			envmode_changing_delay = 2;
 		}
 	}
 	else
 	{
-		envelope_counter = ((envelope_counter << 1) & 0x7ffe) | feedback;
+		if (gate != 0)
+		{
+			gate = 0;
+			next_envmode = sidRELEASE;
+			
+			// Release during attack appears require to 3 cycles to take effect.
+			envmode_changing_delay = 3;
+		}
 	}
 }
 
@@ -1162,72 +1387,6 @@ void SID64::WriteSample(short dxsample)
 	}
 }
 
-void SIDVoice::SetWave(bit8 new_control)
-{
-bit8 prev_control = control;
-	control = new_control;
-	wavetype = (eWaveType)((new_control >> 4) & 0xf);
-	sync=(new_control & 2);
-	ring_mod=(new_control & 4);
-	if ((new_control ^ prev_control) & 0xf0)//control changing
-	{				
-		if (wavetype == sidWAVNONE)
-		{
-			sampleHoldDelay = SAMPLEHOLDRESETTIME;
-			sampleHold = lastSample;
-			wavetype = sidWAVNONE;
-		}
-	}
-	if (new_control & 8)
-	{
-		if (test == 0)
-		{
-			phaseOfShiftRegister = 0;
-			shifterTestCounter = SHIFTERTESTDELAY;
-			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
-			{
-				NoiseWriteback(prev_control);
-			}
-			test=1;
-		}
-		
-		counter=0;
-	}
-	else
-	{
-		if (test)
-		{
-			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
-			{
-				NoiseWriteback(prev_control);
-			}
-			ClockShiftRegister();
-			phaseOfShiftRegister = 2;
-			test=0;
-		}
-	}
-
-	if (new_control & 1)
-	{
-		if (gate==0)
-		{
-			gate=1;
-			envmode = sidATTACK;
-			envelope_compare=SID64::AdsrTable[attack_value];
-			keep_zero_volume = 0;
-		}
-	}
-	else
-	{
-		if (gate!=0)
-		{
-			gate=0;
-			envelope_compare = SID64::AdsrTable[release_value];
-			envmode = sidRELEASE;
-		}
-	}
-}
-
 void SIDVoice::NoiseWriteback(bit8 control)
 {
 	if ((control & 0x80) != 0 && (control & 0x70) != 0)
@@ -1285,7 +1444,7 @@ void SIDVoice::SetState(const SsSidVoiceV1 &state)
 {
 	counter = state.counter;
 	frequency = state.frequency;
-	volume = state.volume;
+	volume = (bit8)state.volume;
 	sampleHoldDelay = state.sampleHoldDelay;
 	envmode = (eEnvelopeMode) state.envmode;
 	wavetype = (eWaveType) state.wavetype;
@@ -1385,6 +1544,7 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	{
 		ExecuteCycle(sysclock);
 	}
+
 	sidInternalBusByte = data;
 	switch (address & 0x1f)
 	{
@@ -1559,10 +1719,12 @@ bit8 data;
 	{
 		sysclock--;
 	}
+
 	if (appStatus->m_bSID_Emulation_Enable)
 	{
 		ExecuteCycle(sysclock);
 	}
+
 	switch (address & 0x1f)
 	{
 	case 0x19:
@@ -1578,7 +1740,7 @@ bit8 data;
 		sidReadDelay = SIDREADDELAYFREQ;
 		break;
 	case 0x1c:
-		data = (bit8) voice3.volume;
+		data = (bit8) voice3.samplevolume;
 		sidReadDelay = SIDREADDELAYFREQ;
 		break;
 	default:
@@ -1592,6 +1754,7 @@ bit8 data;
 		}
 		break;
 	}
+
 	sidInternalBusByte = data;
 	return data;
 }
@@ -1603,6 +1766,7 @@ bit8 data;
 	{
 		ExecuteCycle(sysclock);
 	}
+
 	switch (address & 0x1f)
 	{
 	case 0x19:
@@ -1615,7 +1779,7 @@ bit8 data;
 		data = (bit8)(voice3.WaveRegister() >> 4);
 		break;
 	case 0x1c:
-		data = (bit8) voice3.volume;
+		data = (bit8) voice3.samplevolume;
 		break;
 	default:
 		if (sidReadDelay==0)

@@ -38,6 +38,7 @@ struct SIDVoice
 	~SIDVoice();
 	HRESULT Init(CAppStatus *appStatus);
 	void Envelope();
+	bit8 GetNextVolume();
 	void Modulate();
 	void SyncRecheck();
 	bit16 ShiftRegisterOutput();
@@ -47,6 +48,7 @@ struct SIDVoice
 	void NoiseWriteback(bit8 control);
 	void Reset(bool hardreset);
 	void SetWave(bit8 new_control);
+	void UpdateNextEnvMode();
 	void GetState(SsSidVoiceV1 &state);
 	void SetState(const SsSidVoiceV1 &state);
 	static void UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out);
@@ -54,9 +56,20 @@ struct SIDVoice
 	SID64 *sid;
 	bit32 counter;
 	bit32 frequency;
-	bit16 volume;
+	bool gotNextVolume;
+	bit8 nextvolume;
+	bit8 volume;
+	bit8 samplevolume;
 	bit32 sampleHoldDelay;
 	eEnvelopeMode envmode;
+	eEnvelopeMode next_envmode;
+	bit8 envmode_changing_delay;
+	bit8 envelope_count_delay;
+	bit8 exponential_count_delay;
+	bool reset_envelope_counter;
+	bool reset_exponential_counter;
+	bit8 next_exponential_counter_period;
+	bool envelope_tick;
 	eWaveType wavetype;
 	bit8 sync;
 	bit8 ring_mod;
@@ -135,7 +148,6 @@ private:
 	long filterDecimationFactor;
 	long filterKernelLength;
 
-	static const WORD SID64::sidAttackRate[16];
 	static const bit16 SID64::AdsrTable[16];	
 
 	Filter filterPreFilterStage2;
