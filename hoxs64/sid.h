@@ -49,9 +49,10 @@ struct SIDVoice
 	void Reset(bool hardreset);
 	void SetWave(bit8 new_control);
 	void UpdateNextEnvMode();
-	void GetState(SsSidVoiceV1 &state);
-	void SetState(const SsSidVoiceV1 &state);
+	void GetState(SsSidVoiceV2 &state);
+	void SetState(const SsSidVoiceV2 &state);
 	static void UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out);
+	static void UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out);
 	CAppStatus *appStatus;
 	SID64 *sid;
 	bit32 counter;
@@ -137,9 +138,10 @@ public:
 	void ClockSidResample(ICLK sysclock);
 	void ClockSidDownSample(ICLK sysclock);
 	void WriteSample(short dxsample);
-	void GetState(SsSidV1 &state);
-	void SetState(const SsSidV1 &state);
+	void GetState(SsSidV2 &state);
+	void SetState(const SsSidV2 &state);
 	static void UpgradeStateV0ToV1(const SsSid &in, SsSidV1 &out);
+	static void UpgradeStateV1ToV2(const SsSidV1 &in, SsSidV2 &out);
 
 	friend struct SIDVoice;
 private:

@@ -1408,7 +1408,7 @@ void SIDVoice::NoiseWriteback(bit8 control)
 	}	
 }
 
-void SIDVoice::GetState(SsSidVoiceV1 &state)
+void SIDVoice::GetState(SsSidVoiceV2 &state)
 {
 	state.counter = counter;
 	state.frequency = frequency;
@@ -1438,9 +1438,22 @@ void SIDVoice::GetState(SsSidVoiceV1 &state)
 	state.exponential_counter = exponential_counter;
 	state.control = control;
 	state.shifterTestCounter = shifterTestCounter;
+	//
+	state.nextvolume = nextvolume;
+	state.samplevolume = samplevolume;
+	state.next_envmode = next_envmode;
+	state.envmode_changing_delay = envmode_changing_delay;
+	state.envelope_count_delay = envelope_count_delay;
+	state.exponential_count_delay = exponential_count_delay;
+	state.next_exponential_counter_period = next_exponential_counter_period;
+	state.gotNextVolume = gotNextVolume ? 1 : 0;
+	state.reset_envelope_counter = reset_envelope_counter ? 1 : 0;
+	state.reset_exponential_counter = reset_exponential_counter ? 1 : 0;
+	state.envelope_tick = envelope_tick ? 1 : 0;
+
 }
 
-void SIDVoice::SetState(const SsSidVoiceV1 &state)
+void SIDVoice::SetState(const SsSidVoiceV2 &state)
 {
 	counter = state.counter;
 	frequency = state.frequency;
@@ -1472,6 +1485,17 @@ void SIDVoice::SetState(const SsSidVoiceV1 &state)
 	shifterTestCounter = state.shifterTestCounter;
 	shifterTestCounter = state.phaseOfShiftRegister;
 	shifterTestCounter = state.lastSampleNoNoise;
+	nextvolume = state.nextvolume;
+	samplevolume = state.samplevolume;
+	next_envmode = (eEnvelopeMode)state.next_envmode;
+	envmode_changing_delay = state.envmode_changing_delay;
+	envelope_count_delay = state.envelope_count_delay;
+	exponential_count_delay = state.exponential_count_delay;
+	next_exponential_counter_period = state.next_exponential_counter_period;
+	gotNextVolume = state.gotNextVolume != 0;
+	reset_envelope_counter = state.reset_envelope_counter != 0;
+	reset_exponential_counter = state.reset_exponential_counter != 0;
+	envelope_tick = state.envelope_tick != 0;
 }
 
 void SIDVoice::UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out)
@@ -1507,6 +1531,54 @@ void SIDVoice::UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out)
 	out.shifterTestCounter = in.shifterTestCounter;
 	out.phaseOfShiftRegister = 0;
 	out.lastSampleNoNoise = in.lastSample;
+}
+
+void SIDVoice::UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out)
+{
+	ZeroMemory(&out, sizeof(out));
+	out.counter = in.counter;
+	out.frequency = in.frequency;
+	out.volume = in.volume;
+	out.sampleHoldDelay = in.sampleHoldDelay;
+	out.envmode = (eEnvelopeMode) in.envmode;
+	out.wavetype = (eWaveType)((in.control) >> 4) & 0xf;
+	out.sync = in.sync;
+	out.ring_mod = in.ring_mod;
+	out.sustain_level = in.sustain_level;
+	out.zeroTheCounter = in.zeroTheCounter;
+	out.exponential_counter_period = in.exponential_counter_period;
+	out.attack_value = in.attack_value;
+	out.decay_value = in.decay_value;
+	out.release_value = in.release_value;
+	out.pulse_width_counter = in.pulse_width_counter;
+	out.pulse_width_reg = in.pulse_width_reg;
+	out.sampleHold = in.sampleHold;
+	out.lastSample = in.lastSample;
+	out.fVolSample = in.fVolSample;
+	out.gate = in.gate;
+	out.test = in.test;
+	out.sidShiftRegister = in.sidShiftRegister;
+	out.keep_zero_volume = in.keep_zero_volume;
+	out.envelope_counter = in.envelope_counter;
+	out.envelope_compare = in.envelope_compare;
+	out.exponential_counter = in.exponential_counter;
+	out.control = in.control;
+	out.shifterTestCounter = in.shifterTestCounter;
+	out.phaseOfShiftRegister = 0;
+	out.lastSampleNoNoise = in.lastSample;
+
+	// Fields added to the new version 2.
+	out.nextvolume = (bit8)in.volume;
+	out.samplevolume = (bit8)in.volume;
+	out.next_envmode = (eEnvelopeMode)in.envmode;
+	out.envmode_changing_delay = 0;
+	out.envelope_count_delay = 0;
+	out.exponential_count_delay = 0;
+	out.next_exponential_counter_period = in.exponential_counter_period;
+	out.gotNextVolume = false;
+	out.reset_envelope_counter = false;
+	out.reset_exponential_counter = false;
+	out.envelope_tick = false;
 }
 
 double SID64::GetCutOff(bit16 sidfreq)
@@ -1836,7 +1908,7 @@ void SID64::Set_PotY(ICLK sysclock, bit8 data)
 	this->sidPotY=data;
 }
 
-void SID64::GetState(SsSidV1 &state)
+void SID64::GetState(SsSidV2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	voice1.GetState(state.voice1);
@@ -1853,7 +1925,7 @@ void SID64::GetState(SsSidV1 &state)
 	state.sidReadDelay = sidReadDelay;
 }
 
-void SID64::SetState(const SsSidV1 &state)
+void SID64::SetState(const SsSidV2 &state)
 {
 	voice1.SetState(state.voice1);
 	voice2.SetState(state.voice2);
@@ -1875,6 +1947,23 @@ void SID64::UpgradeStateV0ToV1(const SsSid &in, SsSidV1 &out)
 	SIDVoice::UpgradeStateV0ToV1(in.voice1, out.voice1);
 	SIDVoice::UpgradeStateV0ToV1(in.voice2, out.voice2);
 	SIDVoice::UpgradeStateV0ToV1(in.voice3, out.voice3);
+	out.CurrentClock = in.CurrentClock;
+	out.sidVolume = in.sidVolume;
+	out.sidFilter = in.sidFilter;
+	out.sidVoice_though_filter = in.sidVoice_though_filter;
+	out.sidResonance = in.sidResonance;
+	out.sidFilterFrequency = in.sidFilterFrequency;
+	out.sidBlock_Voice3 = in.sidBlock_Voice3;
+	out.sidInternalBusByte = in.sidInternalBusByte;
+	out.sidReadDelay = in.sidReadDelay;
+}
+
+void SID64::UpgradeStateV1ToV2(const SsSidV1 &in, SsSidV2 &out)
+{
+	ZeroMemory(&out, sizeof(out));	
+	SIDVoice::UpgradeStateV1ToV2(in.voice1, out.voice1);
+	SIDVoice::UpgradeStateV1ToV2(in.voice2, out.voice2);
+	SIDVoice::UpgradeStateV1ToV2(in.voice3, out.voice3);
 	out.CurrentClock = in.CurrentClock;
 	out.sidVolume = in.sidVolume;
 	out.sidFilter = in.sidFilter;

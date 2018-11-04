@@ -38,7 +38,8 @@ namespace SsLib
 			DriveControllerV2 = 25,
 			C64SidV1 = 26,
 			C64Cia1V2 = 27,
-			C64Cia2V2 = 28
+			C64Cia2V2 = 28,
+			C64SidV2 = 29
 		};
 	}
 };
@@ -522,6 +523,21 @@ struct SsSidVoiceV1 : SsSidVoice
 	bit16 lastSampleNoNoise;
 };
 
+struct SsSidVoiceV2 : SsSidVoiceV1
+{
+	bit8 nextvolume;
+	bit8 samplevolume;
+	bit8 next_envmode;
+	bit8 envmode_changing_delay;
+	bit8 envelope_count_delay;
+	bit8 exponential_count_delay;
+	bit8 next_exponential_counter_period;
+	bit8 gotNextVolume;
+	bit8 reset_envelope_counter;
+	bit8 reset_exponential_counter;
+	bit8 envelope_tick;
+};
+
 struct SsSid
 {
 	bit32 CurrentClock;
@@ -546,6 +562,24 @@ struct SsSidV1
 	SsSidVoiceV1 voice1;
 	SsSidVoiceV1 voice2;
 	SsSidVoiceV1 voice3;
+
+	bit8 sidVolume;
+	bit8 sidFilter;
+	bit8 sidVoice_though_filter;
+	bit8 sidResonance;
+	bit16 sidFilterFrequency;
+
+	bit8 sidBlock_Voice3;
+	bit8 sidInternalBusByte;
+	bit32 sidReadDelay;
+};
+
+struct SsSidV2
+{
+	bit32 CurrentClock;
+	SsSidVoiceV2 voice1;
+	SsSidVoiceV2 voice2;
+	SsSidVoiceV2 voice3;
 
 	bit8 sidVolume;
 	bit8 sidFilter;
@@ -709,7 +743,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 4;
+    static const int VERSION = 5;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;
