@@ -39,7 +39,8 @@ namespace SsLib
 			C64SidV1 = 26,
 			C64Cia1V2 = 27,
 			C64Cia2V2 = 28,
-			C64SidV2 = 29
+			C64SidV2 = 29,
+			C64SidV3 = 30
 		};
 	}
 };
@@ -514,13 +515,13 @@ struct SsSidVoice
 	bit16 envelope_compare;
 	bit8 exponential_counter;
 	bit8 control;
-	bit32s shifterTestCounter;
+	bit32s shifterTestCounter;	
 };
 
 struct SsSidVoiceV1 : SsSidVoice
 {
 	bit32 phaseOfShiftRegister;
-	bit16 lastSampleNoNoise;
+	bit16 noiseFeedbackSample1;
 };
 
 struct SsSidVoiceV2 : SsSidVoiceV1
@@ -536,6 +537,19 @@ struct SsSidVoiceV2 : SsSidVoiceV1
 	bit8 reset_envelope_counter;
 	bit8 reset_exponential_counter;
 	bit8 envelope_tick;
+};
+
+struct SsSidVoiceV3 : SsSidVoiceV2
+{
+	bit8 latched_envmode;
+	bit8 want_latched_envmode;
+	bit32 countertest;
+	bit32 sidShiftRegisterFill;
+	bit16 noiseFeedbackSample1;
+	bit16 noiseFeedbackSample2;
+	bit16 noiseFeedbackMask1;
+	bit16 noiseFeedbackMask0;
+	bit8 shifterTestBegun;
 };
 
 struct SsSid
@@ -580,6 +594,24 @@ struct SsSidV2
 	SsSidVoiceV2 voice1;
 	SsSidVoiceV2 voice2;
 	SsSidVoiceV2 voice3;
+
+	bit8 sidVolume;
+	bit8 sidFilter;
+	bit8 sidVoice_though_filter;
+	bit8 sidResonance;
+	bit16 sidFilterFrequency;
+
+	bit8 sidBlock_Voice3;
+	bit8 sidInternalBusByte;
+	bit32 sidReadDelay;
+};
+
+struct SsSidV3
+{
+	bit32 CurrentClock;
+	SsSidVoiceV3 voice1;
+	SsSidVoiceV3 voice2;
+	SsSidVoiceV3 voice3;
 
 	bit8 sidVolume;
 	bit8 sidFilter;
@@ -743,7 +775,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 5;
+    static const int VERSION = 6;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

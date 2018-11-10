@@ -42,17 +42,17 @@ struct SIDVoice
 	void Modulate();
 	void SyncRecheck();
 	bit16 ShiftRegisterOutput();
-	bit16 WaveRegister();
-	bit16 CalcWaveOutput(bit8 waveType, bit16 &waveNoNoise);
+	bit16 CalcWaveOutput(bit8 waveType, bit16 &noiseFeedbackWave, bit16 &mask0, bit16 &mask1);
 	void ClockShiftRegister();
-	void NoiseWriteback(bit8 control);
+	void NoiseWriteback(bit8 control, bit16 sample, bit16 mask0, bit16 mask1);
 	void Reset(bool hardreset);
 	void SetWave(bit8 new_control);
 	void UpdateNextEnvMode();
-	void GetState(SsSidVoiceV2 &state);
-	void SetState(const SsSidVoiceV2 &state);
+	void GetState(SsSidVoiceV3 &state);
+	void SetState(const SsSidVoiceV3 &state);
 	static void UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out);
 	static void UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out);
+	static void UpgradeStateV2ToV3(const SsSidVoiceV2 &in, SsSidVoiceV3 &out);
 	CAppStatus *appStatus;
 	SID64 *sid;
 	bit32 counter;
@@ -88,12 +88,16 @@ struct SIDVoice
 	bit32 pulse_width_reg;
 	bit16 sampleHold;
 	bit16 lastSample;
-	bit16 lastSampleNoNoise;
+	bit16 noiseFeedbackSample1;
+	bit16 noiseFeedbackSample2;
+	bit16 noiseFeedbackMask1;
+	bit16 noiseFeedbackMask0;
 	double fVolSample;
 	bit8 gate;
 	bit8 test;
 	bit32 sidShiftRegister;
 	bit32 sidLatchedShiftRegister;
+	bit32 sidShiftRegisterFill;
 	int phaseOfShiftRegister;
 	bit8 keep_zero_volume;
 	bit16 envelope_counter;
@@ -101,6 +105,7 @@ struct SIDVoice
 	bit8 exponential_counter;
 	bit8 control;
 	bit32s shifterTestCounter;
+	bool zeroTheShiftRegister;
 };
 
 class SID64 : public ISid, public ErrorMsg
@@ -140,10 +145,11 @@ public:
 	void ClockSidResample(ICLK sysclock);
 	void ClockSidDownSample(ICLK sysclock);
 	void WriteSample(short dxsample);
-	void GetState(SsSidV2 &state);
-	void SetState(const SsSidV2 &state);
+	void GetState(SsSidV3 &state);
+	void SetState(const SsSidV3 &state);
 	static void UpgradeStateV0ToV1(const SsSid &in, SsSidV1 &out);
 	static void UpgradeStateV1ToV2(const SsSidV1 &in, SsSidV2 &out);
+	static void UpgradeStateV2ToV3(const SsSidV2 &in, SsSidV3 &out);
 
 	friend struct SIDVoice;
 private:

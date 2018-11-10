@@ -64,8 +64,6 @@ SID64::SID64()
 	voice1.sid = this;
 	voice2.sid = this;
 	voice3.sid = this;
-	//m_soundplay_pos=0;
-	//m_soundwrite_pos=0;
 	bufferLockSize=0;
 	bufferSplit=0;
 	pBuffer1=NULL;
@@ -446,10 +444,10 @@ void SIDVoice::Reset(bool poweronreset)
 	}
 
 	shifterTestCounter=0;
+	zeroTheShiftRegister = false;
 	gotNextVolume = false;
 	nextvolume = 0;
 	volume=0;
-	samplevolume = 0;
 	sampleHoldDelay = 0;
 	exponential_counter_period=1;
 	next_exponential_counter_period = 0;
@@ -477,13 +475,18 @@ void SIDVoice::Reset(bool poweronreset)
 	gate=0;
 	test=0;
 	sidShiftRegister=0x7fffff;
+	sidShiftRegisterFill = 1;
 	phaseOfShiftRegister = 0;
 	keep_zero_volume=1;
 	envelope_counter=ENVELOPE_LFSR_RESET;
 	envelope_compare=SID64::AdsrTable[0];
 	exponential_counter=0;
 	control=0;
-	lastSample = CalcWaveOutput(wavetype, lastSampleNoNoise);
+	noiseFeedbackMask1 = 0x000;
+	noiseFeedbackMask0 = 0xfff;
+	noiseFeedbackSample1 = 0;
+	noiseFeedbackSample2 = 0;
+	lastSample = CalcWaveOutput(wavetype, this->noiseFeedbackSample1, this->noiseFeedbackMask0, this->noiseFeedbackMask1);
 }
 
 void SID64::InitReset(ICLK sysclock, bool poweronreset)
@@ -528,13 +531,17 @@ bit32 t;
 	if (test)
 	{
 		t = ((sidShiftRegister >> 17) & 0x1) ^ 0x1;
-		sidShiftRegister = ((sidShiftRegister << 1) | t) & 0x7fffff;
 	}
 	else
 	{
 		t = ((sidShiftRegister >> 22) ^ (sidShiftRegister >> 17)) & 0x1;
-		sidShiftRegister = ((sidShiftRegister << 1) | t) & 0x7fffff;
-	}
+		if (zeroTheShiftRegister)
+		{
+			t = 0;
+		}
+	}	
+
+	sidShiftRegister = ((sidShiftRegister << 1) | t) & 0x7fffff;
 }
 
 void SIDVoice::SyncRecheck()
@@ -549,6 +556,7 @@ void SIDVoice::Envelope()
 {
 bit32 t, c;
 	samplevolume = volume;
+
 	if (test)
 	{
 		phaseOfShiftRegister = 0;
@@ -556,7 +564,9 @@ bit32 t, c;
 		if (shifterTestCounter<0)
 		{
 			shifterTestCounter=SHIFTERTESTDELAY;
-			sidShiftRegister = (sidShiftRegister << 1) | 1;
+			sidShiftRegister |= sidShiftRegisterFill;
+			sidShiftRegisterFill = sidShiftRegisterFill <<= 1;
+			zeroTheShiftRegister = false;
 		}
 
 		affected_voice->zeroTheCounter = 0;
@@ -568,7 +578,7 @@ bit32 t, c;
 			switch(phaseOfShiftRegister)
 			{
 			case 1:
-				NoiseWriteback(this->control);
+				NoiseWriteback(this->control, this->noiseFeedbackSample1, this->noiseFeedbackMask0, 0);
 				ClockShiftRegister();
 				phaseOfShiftRegister++;
 				break;
@@ -579,7 +589,7 @@ bit32 t, c;
 		}
 		else
 		{
-			NoiseWriteback(this->control);
+			NoiseWriteback(this->control, this->noiseFeedbackSample1, this->noiseFeedbackMask0, 0);
 		}
 
 		t = counter;
@@ -853,33 +863,88 @@ bit8 prev_control = control;
 
 	if (new_control & 8)
 	{
-		if (test == 0)
+		if (test == 0) // test bit going on
 		{
+			sidShiftRegisterFill = 1;
 			phaseOfShiftRegister = 0;
 			shifterTestCounter = SHIFTERTESTDELAY;
-			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
+			if ((prev_control & 0xF0) == 0x80 && (new_control & 0xF0) == 0xA0)
 			{
-				NoiseWriteback(prev_control);
+				// check_A_to_8_new.prg:
+				// No noise writeback
+			}
+			else if ((prev_control & 0xF0) == 0x80 && (new_control & 0xF0) == 0x90)
+			{
+				// Test 9a ?
+				// No noise writeback
+			}
+			else if ((prev_control & 0xF0) == 0x80 && (new_control & 0xF0) == 0xB0)
+			{
+				// Test 11a ?
+				// No noise writeback
+			}
+			else if ((prev_control & 0xF0) == 0x80 && (new_control & 0xC0) == 0xC0 && (new_control & 0x30) != 0)
+			{
+				// wf12nsr-8580.prg test 8
+				NoiseWriteback(new_control, 0, 0xfff, 0x03C0);
+			}
+			else if ((prev_control & 0xF0) == 0xC0 && (new_control & 0xC0) == 0xC0 && (new_control & 0x30) != 0)
+			{
+				// wf12nsr-8580.prg test 12
+				NoiseWriteback(new_control, 0, 0xfff, 0x0180);
+			}
+			else if ((prev_control & 0xC0) == 0xC0 && (prev_control & 0x30) != 0)
+			{
+				// wf12nsr-8580.prg test 15
+				NoiseWriteback(prev_control, 0, 0xfff, 0x0000);
 			}
 
 			test=1;
-		}
-		
-		counter=0;
+			counter=0;
+		}			
 	}
 	else
 	{
-		if (test)
+		if (test) // test bit going off.
 		{
-			if ((new_control & 0x80) != 0 && (new_control & 0x70) != 0)
+			if ((prev_control & 0xF0) == 0xA0 && (new_control & 0xF0) == 0x80)
 			{
-				NoiseWriteback(prev_control);
+				// check_A_to_8_new.prg:
+				// No noise writeback
+			}
+			else if ((prev_control & 0xF0) == 0x90 && (new_control & 0xF0) == 0x80)
+			{
+				// Test 9a ?
+				// No noise writeback
+			}
+			else if ((prev_control & 0xF0) == 0xB0 && (new_control & 0xF0) == 0x80)
+			{
+				// Test 11a ?
+				// No noise writeback
+			}
+			else if ((prev_control & 0xC0) == 0xC0 && (prev_control & 0x30) != 0 && (new_control & 0xF0) == 0x80)
+			{
+				// wf12nsr-8580.prg tests 8, 12
+				NoiseWriteback(prev_control, 0, 0xfff, 0x03c0);
+			}
+			else if (((new_control & 0x80) != 0 && (new_control & 0x70) != 0) || ((prev_control & 0x80) != 0 && (prev_control & 0x70) != 0 && (new_control & 0x80) != 0))
+			{				
+				NoiseWriteback(prev_control, this->noiseFeedbackSample1, this->noiseFeedbackMask0, this->noiseFeedbackMask1);
 			}
 
 			ClockShiftRegister();
 			phaseOfShiftRegister = 2;
 			test=0;
 		}
+	}
+
+	if ((new_control & 0xC0) == 0xC0)
+	{
+		zeroTheShiftRegister = true;
+	}
+	else
+	{
+		zeroTheShiftRegister = false;
 	}
 
 	if (new_control & 1)
@@ -904,11 +969,14 @@ bit8 prev_control = control;
 	}
 }
 
-bit16 SIDVoice::CalcWaveOutput(bit8 waveType, bit16 &waveNoNoise)
+bit16 SIDVoice::CalcWaveOutput(bit8 waveType, bit16 &noiseFeedbackWave, bit16 &mask0, bit16 &mask1)
 {
 bool msb;
 DWORD dwMsb;
 bit16 wave;
+	
+	mask0 = 0xfff;
+	mask1 = 0;
 	switch (waveType)
 	{
 	case sidTRIANGLE:
@@ -929,10 +997,12 @@ bit16 wave;
 		{
 			wave = (unsigned short)  ((counter & 0x007fffff) >> 11);
 		}
-		waveNoNoise = wave;
+
+		noiseFeedbackWave = wave;
 		return wave;
 	case sidSAWTOOTH:
-		wave = waveNoNoise = (unsigned short) (counter >> 12);
+		wave = noiseFeedbackWave = (unsigned short) (counter >> 12);
+		noiseFeedbackWave = wave;
 		return wave;
 	case sidPULSE:
 		if(test)
@@ -950,9 +1020,11 @@ bit16 wave;
 				wave = 0x0000;
 			}
 		}
-		waveNoNoise = wave;
+
+		noiseFeedbackWave = wave;
 		return wave;
 	case sidNOISE:
+		noiseFeedbackWave = 0xfff;
 		return ShiftRegisterOutput();
 	case sidTRIANGLEPULSE:
 		if (ring_mod)
@@ -963,52 +1035,93 @@ bit16 wave;
 		{
 			dwMsb = (counter & 0x00800000);
 		}
-		wave = CalcWaveOutput(sidPULSE, waveNoNoise) & (unsigned short)sidWave_PT[(unsigned short)  ((dwMsb | (counter & 0x007fffff)) >> 12)] << 4;
-		waveNoNoise = wave;
+
+		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PT[(unsigned short)  ((dwMsb | (counter & 0x007fffff)) >> 12)] << 4;
+		noiseFeedbackWave = wave;
 		return wave;
 	case sidSAWTOOTHPULSE:
-		wave = CalcWaveOutput(sidPULSE, waveNoNoise) & sidWave_PS[counter >> 12] << 4;
-		waveNoNoise = wave;
+		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & sidWave_PS[counter >> 12] << 4;
+		noiseFeedbackWave = wave;
 		return wave;
 	case sidTRIANGLESAWTOOTHPULSE:
-		wave = CalcWaveOutput(sidPULSE, waveNoNoise) & (unsigned short)sidWave_PST[counter >> 12] << 4;
-		waveNoNoise = wave;
+		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PST[counter >> 12] << 4;
+		noiseFeedbackWave = wave;
 		return wave;
+	//case sidNOISESAWTOOTHPULSE:
+	//	wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PS[counter >> 12] << 4;
+	//	noiseFeedbackWave = wave;
+	//	mask0 = 0x0fff;
+	//	mask1 = 0x03c0;
+	//	wave &= ShiftRegisterOutput();
+	//	return wave;
+	//case sidNOISETRIANGLEPULSE:
+	//	wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PT[counter >> 12] << 4;
+	//	noiseFeedbackWave = wave;
+	//	mask0 = 0x0fff;
+	//	mask1 = 0x03c0;
+	//	wave &= ShiftRegisterOutput();
+	//	return wave;
+	//case sidNOISESTRIANGLESAWTOOTH:
+	//	wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_ST[counter >> 12] << 4;
+	//	noiseFeedbackWave = wave;
+	//	mask0 = 0x0fff;
+	//	mask1 = 0x03c0;
+	//	wave &= ShiftRegisterOutput();
+	//	return wave;
 	case sidTRIANGLESAWTOOTH:
 		wave = (unsigned short)sidWave_ST[counter >> 12] << 4;
-		waveNoNoise = wave;
+		noiseFeedbackWave = wave;
 		return wave;
 	case sidWAVNONE:
 		if (sampleHoldDelay > 0)
 		{
-			waveNoNoise = sampleHold;
+			noiseFeedbackWave = 0;
+			mask0 = 0x000;
+			mask1 = 0x000;
 			return sampleHold;
 		}
 		else
 		{
-			waveNoNoise = 0;
+			noiseFeedbackWave = 0;
+			mask0 = 0x000;
+			mask1 = 0x000;
 			return 0;
 		}
 	case sidNOISETRIANGLE:
-		wave = CalcWaveOutput(sidTRIANGLE, waveNoNoise);
+		wave = CalcWaveOutput(sidTRIANGLE, noiseFeedbackWave, mask0, mask1);
 		wave &= ShiftRegisterOutput();
 		return wave;
 	case sidNOISESAWTOOTH:
-		wave = CalcWaveOutput(sidSAWTOOTH, waveNoNoise);
+		wave = CalcWaveOutput(sidSAWTOOTH, noiseFeedbackWave, mask0, mask1);
 		wave &= ShiftRegisterOutput();
 		return wave;
 	case sidNOISEPULSE:
-		wave = CalcWaveOutput(sidPULSE, waveNoNoise);
+		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1);
+		noiseFeedbackWave = wave;
+		if (test)
+		{
+			wave &= 0xfe0;
+		}
+		else
+		{
+			wave &= 0xfc0;
+		}
+
+		mask0 = 0x0fff;
+		mask1 = 0x0180;
 		wave &= ShiftRegisterOutput();
 		return wave;
 	default:
-		waveNoNoise = 0;
+		noiseFeedbackWave = 0;
+		mask0 = 0x000;
+		mask1 = 0x000;
 		return 0;
 	}
 }
 
 bit16 SIDVoice::ShiftRegisterOutput()
 {
+	// Noise: the lower four bits are grounded while the others are connected respectively to the bits 0, 2, 5, 9, 11, 14, 18 and 20 of the LFSR register;
 	return ((unsigned short)(
 	((sidShiftRegister & 0x100000) >> 9) |
 	((sidShiftRegister & 0x040000) >> 8) |
@@ -1021,12 +1134,6 @@ bit16 SIDVoice::ShiftRegisterOutput()
 	));
 }
 
-bit16 SIDVoice::WaveRegister()
-{	
-bit16 d;
-	return CalcWaveOutput(wavetype, d);
-}
-
 void SIDVoice::Modulate()
 {
 short sample;
@@ -1034,7 +1141,8 @@ short sample;
 	{
 		sampleHoldDelay--;
 	}
-	lastSample = CalcWaveOutput(wavetype, lastSampleNoNoise);
+
+	lastSample = CalcWaveOutput(wavetype, noiseFeedbackSample1, noiseFeedbackMask0, noiseFeedbackMask1);
 	sample = ((short)(lastSample & 0xfff) - 0x800);
 	fVolSample = ((double)((long)sample * (long)volume) / (255.0));
 }
@@ -1076,6 +1184,10 @@ long sampleOffset;
 	for( ; clocks > 0 ; clocks--)
 	{
 		CurrentClock++;
+		voice1.Modulate();
+		voice2.Modulate();
+		voice3.Modulate();
+
 		voice1.Envelope();
 		voice2.Envelope();
 		voice3.Envelope();
@@ -1089,9 +1201,6 @@ long sampleOffset;
 			continue;
 		}
 
-		voice1.Modulate();
-		voice2.Modulate();
-		voice3.Modulate();
 		if (sidBlock_Voice3)
 		{
 			voice3nofilter = 0;
@@ -1396,14 +1505,12 @@ void SID64::WriteSample(short dxsample)
 	}
 }
 
-void SIDVoice::NoiseWriteback(bit8 control)
+void SIDVoice::NoiseWriteback(bit8 control, bit16 sample, bit16 mask0, bit16 mask1)
 {
 	if ((control & 0x80) != 0 && (control & 0x70) != 0)
 	{	
-		bit16 s;
-		bit32 t;
-		this->CalcWaveOutput((control>>4) & 0xf, s);
-		t = (bit32)s;
+		bit32 t;	
+		t = (bit32)(sample & mask0) | mask1;
 		t = ((t & 0x010) >> 4) | 
 			((t & 0x020) >> 3) |
 			((t & 0x040) >> 1) |
@@ -1412,12 +1519,11 @@ void SIDVoice::NoiseWriteback(bit8 control)
 			((t & 0x200) << 5) |
 			((t & 0x400) << 8) |
 			((t & 0x800) << 9);
-		t |= this->lastSampleNoNoise;
 		sidShiftRegister = (sidShiftRegister & (t | NOISE_ZERO_FEED));
-	}	
+	}
 }
 
-void SIDVoice::GetState(SsSidVoiceV2 &state)
+void SIDVoice::GetState(SsSidVoiceV3 &state)
 {
 	state.counter = counter;
 	state.frequency = frequency;
@@ -1447,7 +1553,6 @@ void SIDVoice::GetState(SsSidVoiceV2 &state)
 	state.exponential_counter = exponential_counter;
 	state.control = control;
 	state.shifterTestCounter = shifterTestCounter;
-	//
 	state.nextvolume = nextvolume;
 	state.samplevolume = samplevolume;
 	state.next_envmode = next_envmode;
@@ -1460,9 +1565,17 @@ void SIDVoice::GetState(SsSidVoiceV2 &state)
 	state.reset_exponential_counter = reset_exponential_counter ? 1 : 0;
 	state.envelope_tick = envelope_tick ? 1 : 0;
 
+	// Fields added to the new version 3.
+	state.want_latched_envmode = want_latched_envmode ? 1 : 0;
+	state.latched_envmode = latched_envmode;
+	state.sidShiftRegisterFill = sidShiftRegisterFill;
+	state.noiseFeedbackSample1 = noiseFeedbackSample1;
+	state.noiseFeedbackSample2 = noiseFeedbackSample2;
+	state.noiseFeedbackMask0 = noiseFeedbackMask0;
+	state.noiseFeedbackMask1 = noiseFeedbackMask1;
 }
 
-void SIDVoice::SetState(const SsSidVoiceV2 &state)
+void SIDVoice::SetState(const SsSidVoiceV3 &state)
 {
 	counter = state.counter;
 	frequency = state.frequency;
@@ -1492,8 +1605,9 @@ void SIDVoice::SetState(const SsSidVoiceV2 &state)
 	exponential_counter = state.exponential_counter;
 	control = state.control;
 	shifterTestCounter = state.shifterTestCounter;
-	shifterTestCounter = state.phaseOfShiftRegister;
-	shifterTestCounter = state.lastSampleNoNoise;
+	phaseOfShiftRegister = state.phaseOfShiftRegister;
+	noiseFeedbackSample1 = state.noiseFeedbackSample1;
+	noiseFeedbackSample2 = state.noiseFeedbackSample2;
 	nextvolume = state.nextvolume;
 	samplevolume = state.samplevolume;
 	next_envmode = (eEnvelopeMode)state.next_envmode;
@@ -1505,6 +1619,15 @@ void SIDVoice::SetState(const SsSidVoiceV2 &state)
 	reset_envelope_counter = state.reset_envelope_counter != 0;
 	reset_exponential_counter = state.reset_exponential_counter != 0;
 	envelope_tick = state.envelope_tick != 0;
+
+	// Fields added to the new version 3.
+	want_latched_envmode = state.want_latched_envmode != 0;	
+	latched_envmode = (eEnvelopeMode)state.latched_envmode;
+	sidShiftRegisterFill = state.sidShiftRegisterFill;
+	noiseFeedbackSample1 = state.noiseFeedbackSample1;
+	noiseFeedbackSample2 = state.noiseFeedbackSample2;
+	noiseFeedbackMask0 = state.noiseFeedbackMask0;
+	noiseFeedbackMask1 = state.noiseFeedbackMask1;
 }
 
 void SIDVoice::UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out)
@@ -1539,7 +1662,7 @@ void SIDVoice::UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out)
 	out.control = in.control;
 	out.shifterTestCounter = in.shifterTestCounter;
 	out.phaseOfShiftRegister = 0;
-	out.lastSampleNoNoise = in.lastSample;
+	out.noiseFeedbackSample1 = in.lastSample;
 }
 
 void SIDVoice::UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out)
@@ -1574,7 +1697,7 @@ void SIDVoice::UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out)
 	out.control = in.control;
 	out.shifterTestCounter = in.shifterTestCounter;
 	out.phaseOfShiftRegister = 0;
-	out.lastSampleNoNoise = in.lastSample;
+	out.noiseFeedbackSample1 = in.lastSample;
 
 	// Fields added to the new version 2.
 	out.nextvolume = (bit8)in.volume;
@@ -1584,10 +1707,67 @@ void SIDVoice::UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out)
 	out.envelope_count_delay = 0;
 	out.exponential_count_delay = 0;
 	out.next_exponential_counter_period = in.exponential_counter_period;
-	out.gotNextVolume = false;
-	out.reset_envelope_counter = false;
-	out.reset_exponential_counter = false;
-	out.envelope_tick = false;
+	out.gotNextVolume = 0;
+	out.reset_envelope_counter = 0;
+	out.reset_exponential_counter = 0;
+	out.envelope_tick = 0;	
+}
+
+void SIDVoice::UpgradeStateV2ToV3(const SsSidVoiceV2 &in, SsSidVoiceV3 &out)
+{
+	ZeroMemory(&out, sizeof(out));
+	out.counter = in.counter;
+	out.frequency = in.frequency;
+	out.volume = in.volume;
+	out.sampleHoldDelay = in.sampleHoldDelay;
+	out.envmode = (eEnvelopeMode) in.envmode;
+	out.wavetype = (eWaveType)((in.control) >> 4) & 0xf;
+	out.sync = in.sync;
+	out.ring_mod = in.ring_mod;
+	out.sustain_level = in.sustain_level;
+	out.zeroTheCounter = in.zeroTheCounter;
+	out.exponential_counter_period = in.exponential_counter_period;
+	out.attack_value = in.attack_value;
+	out.decay_value = in.decay_value;
+	out.release_value = in.release_value;
+	out.pulse_width_counter = in.pulse_width_counter;
+	out.pulse_width_reg = in.pulse_width_reg;
+	out.sampleHold = in.sampleHold;
+	out.lastSample = in.lastSample;
+	out.fVolSample = in.fVolSample;
+	out.gate = in.gate;
+	out.test = in.test;
+	out.sidShiftRegister = in.sidShiftRegister;
+	out.keep_zero_volume = in.keep_zero_volume;
+	out.envelope_counter = in.envelope_counter;
+	out.envelope_compare = in.envelope_compare;
+	out.exponential_counter = in.exponential_counter;
+	out.control = in.control;
+	out.shifterTestCounter = in.shifterTestCounter;
+	out.phaseOfShiftRegister = 0;
+	out.noiseFeedbackSample1 = in.lastSample;
+
+	// Fields added to the new version 2.
+	out.nextvolume = (bit8)in.volume;
+	out.samplevolume = (bit8)in.volume;
+	out.next_envmode = (eEnvelopeMode)in.envmode;
+	out.envmode_changing_delay = 0;
+	out.envelope_count_delay = 0;
+	out.exponential_count_delay = 0;
+	out.next_exponential_counter_period = in.exponential_counter_period;
+	out.gotNextVolume = 0;
+	out.reset_envelope_counter = 0;
+	out.reset_exponential_counter = 0;
+	out.envelope_tick = 0;
+
+	// Fields added to the new version 3.
+	out.want_latched_envmode = 0;
+	out.latched_envmode = (eEnvelopeMode)in.envmode;
+	out.sidShiftRegisterFill = 0;
+	out.noiseFeedbackSample1 = 0;
+	out.noiseFeedbackSample2 = 0;
+	out.noiseFeedbackMask0 = 0xfff;
+	out.noiseFeedbackMask1 = 0x000;
 }
 
 double SID64::GetCutOff(bit16 sidfreq)
@@ -1796,10 +1976,10 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
 {
 bit8 data;
-	if ((address & 0x1f) == 0x1b)
-	{
-		sysclock--;
-	}
+	//if ((address & 0x1f) == 0x1b)
+	//{
+	//	sysclock--;
+	//}
 
 	if (appStatus->m_bSID_Emulation_Enable)
 	{
@@ -1817,7 +1997,7 @@ bit8 data;
 		sidReadDelay = SIDREADDELAYFREQ;
 		break;
 	case 0x1b:
-		data = (bit8)(voice3.WaveRegister() >> 4);
+		data = (bit8)(voice3.lastSample >> 4);
 		sidReadDelay = SIDREADDELAYFREQ;
 		break;
 	case 0x1c:
@@ -1857,7 +2037,7 @@ bit8 data;
 		data = this->Get_PotY();
 		break;
 	case 0x1b:
-		data = (bit8)(voice3.WaveRegister() >> 4);
+		data = (bit8)(voice3.lastSample >> 4);
 		break;
 	case 0x1c:
 		data = (bit8) voice3.samplevolume;
@@ -1917,7 +2097,7 @@ void SID64::Set_PotY(ICLK sysclock, bit8 data)
 	this->sidPotY=data;
 }
 
-void SID64::GetState(SsSidV2 &state)
+void SID64::GetState(SsSidV3 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	voice1.GetState(state.voice1);
@@ -1934,7 +2114,7 @@ void SID64::GetState(SsSidV2 &state)
 	state.sidReadDelay = sidReadDelay;
 }
 
-void SID64::SetState(const SsSidV2 &state)
+void SID64::SetState(const SsSidV3 &state)
 {
 	voice1.SetState(state.voice1);
 	voice2.SetState(state.voice2);
@@ -1973,6 +2153,23 @@ void SID64::UpgradeStateV1ToV2(const SsSidV1 &in, SsSidV2 &out)
 	SIDVoice::UpgradeStateV1ToV2(in.voice1, out.voice1);
 	SIDVoice::UpgradeStateV1ToV2(in.voice2, out.voice2);
 	SIDVoice::UpgradeStateV1ToV2(in.voice3, out.voice3);
+	out.CurrentClock = in.CurrentClock;
+	out.sidVolume = in.sidVolume;
+	out.sidFilter = in.sidFilter;
+	out.sidVoice_though_filter = in.sidVoice_though_filter;
+	out.sidResonance = in.sidResonance;
+	out.sidFilterFrequency = in.sidFilterFrequency;
+	out.sidBlock_Voice3 = in.sidBlock_Voice3;
+	out.sidInternalBusByte = in.sidInternalBusByte;
+	out.sidReadDelay = in.sidReadDelay;
+}
+
+void SID64::UpgradeStateV2ToV3(const SsSidV2 &in, SsSidV3 &out)
+{
+	ZeroMemory(&out, sizeof(out));	
+	SIDVoice::UpgradeStateV2ToV3(in.voice1, out.voice1);
+	SIDVoice::UpgradeStateV2ToV3(in.voice2, out.voice2);
+	SIDVoice::UpgradeStateV2ToV3(in.voice3, out.voice3);
 	out.CurrentClock = in.CurrentClock;
 	out.sidVolume = in.sidVolume;
 	out.sidFilter = in.sidFilter;
