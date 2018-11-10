@@ -464,6 +464,8 @@ void SIDVoice::Reset(bool poweronreset)
 	wavetype=sidWAVNONE;
 	envmode=sidRELEASE;
 	next_envmode = sidRELEASE;
+	latched_envmode = sidRELEASE;
+	want_latched_envmode = false;
 	envmode_changing_delay = 0;
 	envelope_count_delay = 0;
 	exponential_count_delay = 0;
@@ -613,6 +615,13 @@ bit32 t, c;
 		{
 			if (envmode == sidATTACK || exponential_counter == exponential_counter_period)
 			{
+				// Sustain is checked one cycle before the volume is decremented.
+				if (envmode == sidDECAY && volume == sustain_level)
+				{
+					nextvolume = volume;
+					gotNextVolume = true;
+				}
+
 				reset_exponential_counter = true;
 			}
 		}
@@ -627,11 +636,19 @@ bit32 t, c;
 			{
 				if (envmode == sidATTACK)
 				{
-					if (!gotNextVolume)
+					if (!want_latched_envmode)
 					{
-						gotNextVolume = true;
+						// Release to attack one cycle before the volume is decremented will freeze the volume for one rate period.
 						nextvolume = volume;
+						gotNextVolume = true;
 					}
+				}
+
+				// Sustain is checked one cycle before the volume is decremented.
+				if (envmode == sidDECAY && volume == sustain_level)
+				{
+					nextvolume = volume;
+					gotNextVolume = true;
 				}
 
 				reset_exponential_counter = true;
@@ -642,9 +659,8 @@ bit32 t, c;
 			// The ADSR may remain in decay / release mode even if attack mode is selected in the next clock.
 			if (exponential_counter == exponential_counter_period)
 			{
-				// Capture what the volume would be for the current ADSR mode.
-				nextvolume = GetNextVolume();
-				gotNextVolume = true;
+				latched_envmode = envmode;
+				want_latched_envmode = true;
 			}
 		}
 	}
@@ -707,9 +723,8 @@ bit32 t, c;
 			// The ADSR may remain in decay / release mode even if attack mode is selected in the next clock.
 			if (exponential_counter == exponential_counter_period && exponential_counter_period == 1)
 			{
-				// Capture what the volume would be for the current ADSR mode.
-				nextvolume = GetNextVolume();
-				gotNextVolume = true;
+				latched_envmode = envmode;
+				want_latched_envmode = true;
 			}
 		}
 	}
@@ -717,6 +732,8 @@ bit32 t, c;
 	if (envelope_counter == envelope_compare)
 	{
 		reset_envelope_counter = true;
+		want_latched_envmode = false;
+		latched_envmode = envmode;
 	}
 	else
 	{
@@ -730,29 +747,18 @@ bit8 SIDVoice::GetNextVolume()
 bit8 nextvol = volume;
 	if (!keep_zero_volume)
 	{
-		switch (envmode)
+		switch (want_latched_envmode ? latched_envmode : envmode)
 		{
-		case sidENVNONE:
-			break;
 		case sidATTACK:
 			nextvol = (volume + 1) & 255;
 			if (nextvol == 255)
 			{
 				envelope_compare = SID64::AdsrTable[decay_value];
-				next_envmode = sidDECAY;
-				envmode_changing_delay = 2;
+				envmode = sidDECAY;
 			}
 
 			break;
 		case sidDECAY:
-			if (volume != sustain_level)
-			{
-				nextvol = (volume - 1) & 255;
-			}
-
-			break;
-		case sidSUSTAIN:
-			break;
 		case sidRELEASE:
 			nextvol = (volume - 1) & 255;
 			break;
@@ -772,7 +778,7 @@ void SIDVoice::UpdateNextEnvMode()
 	switch(next_envmode)
 	{
 	case sidATTACK:
-		if (envmode_changing_delay == 1)
+		if (envmode_changing_delay == 2)
 		{
 			// In a post titled "Understanding the Sid" drfiemost said, "One funny fact is that in the first cycle of the attack and decay phases the wrong rate is used, as the R0 line reacts with one cycle delay."
 			// The assumption is that the decay rate is selected for one clock before selecting the attack rate.
@@ -789,11 +795,14 @@ void SIDVoice::UpdateNextEnvMode()
 
 			envelope_compare = SID64::AdsrTable[decay_value];
 		}
-		else if (envmode_changing_delay == 0)
+		else if (envmode_changing_delay == 1)
 		{
 			// Two clocks later, select the attack rate.
 			envmode = sidATTACK;
 			envelope_compare = SID64::AdsrTable[attack_value];
+		}
+		else if (envmode_changing_delay == 0)
+		{
 			keep_zero_volume = 0;
 		}
 
@@ -879,7 +888,7 @@ bit8 prev_control = control;
 		{
 			gate = 1;
 			next_envmode = sidATTACK;
-			envmode_changing_delay = 2;
+			envmode_changing_delay = 3;
 		}
 	}
 	else

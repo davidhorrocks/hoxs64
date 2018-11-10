@@ -64,6 +64,8 @@ struct SIDVoice
 	bit32 sampleHoldDelay;
 	eEnvelopeMode envmode;
 	eEnvelopeMode next_envmode;
+	eEnvelopeMode latched_envmode;
+	bool want_latched_envmode;
 	bit8 envmode_changing_delay;
 	bit8 envelope_count_delay;
 	bit8 exponential_count_delay;
