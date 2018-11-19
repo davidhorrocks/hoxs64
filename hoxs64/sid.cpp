@@ -1573,6 +1573,7 @@ void SIDVoice::GetState(SsSidVoiceV3 &state)
 	state.noiseFeedbackSample2 = noiseFeedbackSample2;
 	state.noiseFeedbackMask0 = noiseFeedbackMask0;
 	state.noiseFeedbackMask1 = noiseFeedbackMask1;
+	state.zeroTheShiftRegister = zeroTheShiftRegister ? 1 : 0;
 }
 
 void SIDVoice::SetState(const SsSidVoiceV3 &state)
@@ -1628,6 +1629,7 @@ void SIDVoice::SetState(const SsSidVoiceV3 &state)
 	noiseFeedbackSample2 = state.noiseFeedbackSample2;
 	noiseFeedbackMask0 = state.noiseFeedbackMask0;
 	noiseFeedbackMask1 = state.noiseFeedbackMask1;
+	zeroTheShiftRegister  = state.zeroTheShiftRegister != 0;
 }
 
 void SIDVoice::UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out)
@@ -1710,7 +1712,7 @@ void SIDVoice::UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out)
 	out.gotNextVolume = 0;
 	out.reset_envelope_counter = 0;
 	out.reset_exponential_counter = 0;
-	out.envelope_tick = 0;	
+	out.envelope_tick = 0;		
 }
 
 void SIDVoice::UpgradeStateV2ToV3(const SsSidVoiceV2 &in, SsSidVoiceV3 &out)
@@ -1768,6 +1770,7 @@ void SIDVoice::UpgradeStateV2ToV3(const SsSidVoiceV2 &in, SsSidVoiceV3 &out)
 	out.noiseFeedbackSample2 = 0;
 	out.noiseFeedbackMask0 = 0xfff;
 	out.noiseFeedbackMask1 = 0x000;
+	out.zeroTheShiftRegister = false;
 }
 
 double SID64::GetCutOff(bit16 sidfreq)

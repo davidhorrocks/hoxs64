@@ -549,7 +549,7 @@ struct SsSidVoiceV3 : SsSidVoiceV2
 	bit16 noiseFeedbackSample2;
 	bit16 noiseFeedbackMask1;
 	bit16 noiseFeedbackMask0;
-	bit8 shifterTestBegun;
+	bit8 zeroTheShiftRegister;
 };
 
 struct SsSid
