@@ -2957,6 +2957,7 @@ ULARGE_INTEGER pos_next_track_header;
 
 				SID64::UpgradeStateV0ToV1(sbSidV0, sbSidV1);
 				SID64::UpgradeStateV1ToV2(sbSidV1, sbSidV2);
+				SID64::UpgradeStateV2ToV3(sbSidV2, sbSidV3);
 				bC64Sid = true;
 				break;
 			case SsLib::SectionType::C64SidV1:
