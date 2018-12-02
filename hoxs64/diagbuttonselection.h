@@ -36,6 +36,8 @@ private:
 	std::vector<GameControllerItem> buttons;
 	LPDIRECTINPUT7 pDI;
 	LPDIRECTINPUTDEVICE7 pJoy;
+	LPCDIDATAFORMAT inputDeviceFormat;
+	DWORD sizeOfInputDeviceFormat;
 	C64JoystickButton::C64JoystickButtonNumber c64button;
 	int c64JoystickNumber;
 	std::vector<shared_ptr<ButtonItemData>> currentButtonOffsets;	

@@ -1,17 +1,18 @@
 #include <windows.h>
-#include <windowsx.h>
+#include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
+#include "CDPI.h"
+#include "utils.h"
 #include "gamedeviceitem.h"
 
 GameDeviceItem::GameDeviceItem(LPDIRECTINPUT7 pDI, LPCDIDEVICEINSTANCE lpddi)
 	:pDI(pDI), deviceInstance(*lpddi)
 {
-	pInputJoy = NULL;
-	hrStatus = E_POINTER;
+	this->pInputJoy = NULL;
+	this->hrStatus = E_POINTER;
+	this->inputDeviceFormat = &c_dfDIJoystick;
+	this->sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
 }
 
 GameDeviceItem::~GameDeviceItem()
@@ -22,16 +23,37 @@ GameDeviceItem::~GameDeviceItem()
 
 HRESULT GameDeviceItem::OpenDevice(REFGUID refguid)
 {
+HRESULT hr;
+DIDEVCAPS dicaps;
 	CloseDevice();
 	LPDIRECTINPUTDEVICE7 p = NULL;
-	hrStatus = pDI->CreateDeviceEx(refguid, IID_IDirectInputDevice7, (LPVOID *)&p, NULL);
-	if (SUCCEEDED(hrStatus))
+	hr = pDI->CreateDeviceEx(refguid, IID_IDirectInputDevice7, (LPVOID *)&p, NULL);
+	if (SUCCEEDED(hr))
 	{
-		this->pInputJoy = p;
-		hrStatus = p->SetDataFormat(&c_dfDIJoystick);
+		ZeroMemory(&dicaps, sizeof(dicaps));
+		dicaps.dwSize = sizeof(dicaps);
+		hr = p->GetCapabilities(&dicaps);
+		if (SUCCEEDED(hr))
+		{
+			if (G::IsLargeGameDevice(dicaps))
+			{
+				this->inputDeviceFormat = &c_dfDIJoystick2;
+				this->sizeOfInputDeviceFormat = sizeof(DIJOYSTATE2);
+
+			}
+			else
+			{
+				this->inputDeviceFormat = &c_dfDIJoystick;
+				this->sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
+			}
+
+			this->pInputJoy = p;
+			hr = p->SetDataFormat(this->inputDeviceFormat);
+		}
 	}
 
-	return hrStatus;
+	this->hrStatus = hr;
+	return hr;
 }
 
 void GameDeviceItem::CloseDevice()
@@ -40,7 +62,7 @@ void GameDeviceItem::CloseDevice()
 	{
 		this->pInputJoy->Release();
 		this->pInputJoy = NULL;
-		hrStatus = E_POINTER;
+		this->hrStatus = E_POINTER;
 	}
 }
 

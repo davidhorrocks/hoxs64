@@ -72,6 +72,7 @@ private:
 	static const unsigned int JOYDIR_RIGHT = 1;
 	CAppStatus *appStatus;
 	CDX9 *dx;
+	DIJOYSTATE2  js;
 	bool restore_was_up;
 	bool F12_was_up;
 	bool F11_was_up;

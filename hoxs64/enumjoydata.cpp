@@ -45,7 +45,7 @@ BOOL EnumJoyData::EnumButton(LPCDIDEVICEOBJECTINSTANCE lpddoi)
 		return DIENUM_STOP;
 	}
 
-	if (lpddoi->dwOfs + sizeof(BYTE) <= sizeof(DIJOYSTATE))
+	if (lpddoi->dwOfs + sizeof(BYTE) <= sizeof(DIJOYSTATE2))
 	{
 		this->buttonOffsets[this->buttonCount] = lpddoi->dwOfs;
 		this->buttonCount++;

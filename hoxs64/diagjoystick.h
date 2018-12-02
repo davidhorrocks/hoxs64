@@ -30,10 +30,10 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 
 	struct C64JoyItem
 	{
-		C64JoyItem(int ctrlid, C64JoystickButton::C64JoystickButtonNumber buttonnumber, DWORD * const pButtonOffsets, unsigned int &buttonCount);
+		C64JoyItem(int ctrlid, C64JoystickButton::C64JoystickButtonNumber buttonnumber, DWORD * const pItemOffsets, unsigned int &itemCount);
 		const C64JoystickButton::C64JoystickButtonNumber buttonnumber;
-		DWORD * const pButtonOffsets;
-		unsigned int &buttonCount;
+		DWORD * const pItemOffsets;
+		unsigned int &itemCount;
 		const int ctrlid;
 	};
 
@@ -52,12 +52,8 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		int ID;
 		CDPI m_dpi;
 		const JoyControlNum& controlNum;
-		bool bJoyAxisSetConfig;
-		bool bGotDefaultX;
-		bool bGotDefaultY;
-		unsigned int defaultX;
-		unsigned int defaultY;
 		unsigned int numButtons;
+		unsigned int numAxis;
 		BestTextWidthDC tw;
 		C64JoyItem c64buttonFire1;
 		C64JoyItem c64buttonFire2;
@@ -65,19 +61,24 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		C64JoyItem c64buttonDown;
 		C64JoyItem c64buttonLeft;
 		C64JoyItem c64buttonRight;
+		C64JoyItem c64AxisHorizontal;
+		C64JoyItem c64AxisVertical;
 		BOOL EnumJoyAxis(LPCDIDEVICEOBJECTINSTANCE);
 		BOOL EnumJoyButton(LPCDIDEVICEOBJECTINSTANCE);
 		void FillDeviceSelection();
 		void DeviceChanged(bool bSetConfig);
 		void ButtonSelectionChanged(C64JoyItem& c64joybutton);
+		void AxisSelectionChanged(C64JoyItem& c64joybutton);
+		void DeviceItemSelectionChanged(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions);
 		void FillJoyAxis(bool bSetConfig);
+		void FillJoyAxisDropdown(int ctrlid);
 		void FillJoyButton(bool bSetConfig);
-		void FillJoyButtonDropdown(int ctrlid);
-		void SelectJoyButtonDropdownItem(C64JoyItem& c64joybutton, bool bSetConfig);
+		void FillJoyButtonDropdown(int ctrlid, std::vector<ButtonItem> buttonAxisOptions);
+		void SelectJoyButtonDropdownItem(C64JoyItem& c64joyaxis, bool bSetConfig);
+		void SelectJoyAxisDropdownItem(C64JoyItem& c64joyaxis, bool bSetConfig);
+		void SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions, bool bSetConfig);
 		void loadconfig(const joyconfig& cfg);
 		void saveconfig(joyconfig* cfg);
-		bool isReservedButton(const joyconfig *cfg, DWORD dwOffset);
-
 	private:
 		std::basic_string<TCHAR> tmpDeviceName;
 	};

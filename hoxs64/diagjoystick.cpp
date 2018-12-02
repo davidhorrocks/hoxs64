@@ -29,7 +29,6 @@
 #include "diagbuttonselection.h"
 #include "diagjoystick.h"
 
-
 CDiagJoystick::JoyControlNum CDiagJoystick::joy1ControlNum =
 {
 	IDC_CBO_JOY1DEVICE,
@@ -72,11 +71,14 @@ CDiagJoystick::JoyUi::JoyUi(CDX9 *pDX, const struct joyconfig& outerjconfig, int
 	, c64buttonDown(controlNum.cbo_joydown, C64JoystickButton::Down, &jconfig.downButtonOffsets[0], jconfig.downButtonCount)
 	, c64buttonLeft(controlNum.cbo_joyleft, C64JoystickButton::Left, &jconfig.leftButtonOffsets[0], jconfig.leftButtonCount)
 	, c64buttonRight(controlNum.cbo_joyright, C64JoystickButton::Right, &jconfig.rightButtonOffsets[0], jconfig.rightButtonCount)
+	, c64AxisHorizontal(controlNum.cbo_joyh, C64JoystickButton::AxisHorizontal, &jconfig.dwOfs_X, jconfig.horizontalAxisCount)
+	, c64AxisVertical(controlNum.cbo_joyv, C64JoystickButton::AxisVertical, &jconfig.dwOfs_Y, jconfig.verticalAxisCount)
 {
 	const int InitialAxisSize = 10;
 	axisOptions.reserve(InitialAxisSize);
 	buttonOptions.reserve(joyconfig::MAXBUTTONS + 5);
 	numButtons = 0;
+	numAxis = 0;
 }
 
 CDiagJoystick::CDiagJoystick(CDX9 *pDX, const CConfig *currentCfg)
@@ -369,20 +371,20 @@ unsigned int datadeviceindex;
 
 	joyui.ButtonSelectionChanged(c64joybutton);
 	std::vector<DWORD> vecButtonOffsets;
-	AddToVec<DWORD>(vecButtonOffsets, c64joybutton.pButtonOffsets, c64joybutton.buttonCount);
+	AddToVec<DWORD>(vecButtonOffsets, c64joybutton.pItemOffsets, c64joybutton.itemCount);
 	shared_ptr<CDiagButtonSelection> pDiagButtonSelection = make_shared<CDiagButtonSelection>(CDiagButtonSelection(pDX->pDI, spdev->deviceInstance.guidInstance, joyui.ID, c64joybutton.buttonnumber, vecButtonOffsets));
 	if (pDiagButtonSelection != 0)
 	{
 		if (IDOK == pDiagButtonSelection->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_JOYBUTTONSELECTION), this->m_hWnd))
 		{
 			std::vector<DWORD>::const_iterator iter;
-			unsigned int &i = c64joybutton.buttonCount;
+			unsigned int &i = c64joybutton.itemCount;
 			i = 0;
 			for (iter = pDiagButtonSelection->resultButtonOffsets.cbegin(); iter != pDiagButtonSelection->resultButtonOffsets.cend(); iter++)
 			{
-				if (*iter >= DIJOFS_BUTTON0 && *iter <= DIJOFS_BUTTON31)
+				if (*iter >= DIJOFS_BUTTON0 && *iter < DIJOFS_BUTTON(joyconfig::MAXBUTTONS))
 				{
-					c64joybutton.pButtonOffsets[i] = *iter;
+					c64joybutton.pItemOffsets[i] = *iter;
 					i++;
 				}
 			}
@@ -529,19 +531,19 @@ LRESULT lr;
 			buttonOptions.push_back(buttonsCustom);
 
 			// Fill buttonOptions vector
-			numButtons = 0;
+			this->numButtons = 0;
 			hr = spdev->pInputJoy->EnumObjects(EnumDlgJoyButtonCallback, this, DIDFT_BUTTON);
 			if (SUCCEEDED(hr))
 			{
-				// Fill dropdown
-				FillJoyButtonDropdown(this->controlNum.cbo_joyfire1);
-				FillJoyButtonDropdown(this->controlNum.cbo_joyfire2);
-				FillJoyButtonDropdown(this->controlNum.cbo_joyup);
-				FillJoyButtonDropdown(this->controlNum.cbo_joydown);
-				FillJoyButtonDropdown(this->controlNum.cbo_joyleft);
-				FillJoyButtonDropdown(this->controlNum.cbo_joyright);
+				// Fill dropdowns
+				FillJoyButtonDropdown(this->controlNum.cbo_joyfire1, buttonOptions);
+				FillJoyButtonDropdown(this->controlNum.cbo_joyfire2, buttonOptions);
+				FillJoyButtonDropdown(this->controlNum.cbo_joyup, buttonOptions);
+				FillJoyButtonDropdown(this->controlNum.cbo_joydown, buttonOptions);
+				FillJoyButtonDropdown(this->controlNum.cbo_joyleft, buttonOptions);
+				FillJoyButtonDropdown(this->controlNum.cbo_joyright, buttonOptions);
 
-				// Search the drop down and set the current selection.
+				// Search the dropdowns and set the current selection.
 				SelectJoyButtonDropdownItem(this->c64buttonFire1, bSetConfig);
 				SelectJoyButtonDropdownItem(this->c64buttonFire2, bSetConfig);
 				SelectJoyButtonDropdownItem(this->c64buttonUp, bSetConfig);
@@ -557,13 +559,37 @@ LRESULT lr;
 	}
 }
 
-void CDiagJoystick::JoyUi::FillJoyButtonDropdown(int ctrlid)
+void CDiagJoystick::JoyUi::FillJoyAxisDropdown(int ctrlid)
 {
 unsigned int i;
 LRESULT lr;
-	for (i = 0; i < buttonOptions.size(); i++)
+	for (i = 0; i < axisOptions.size(); i++)
 	{
-		ButtonItem& item = buttonOptions[i];
+		ButtonItem& item = axisOptions[i];
+		LPDIDEVICEOBJECTINSTANCE lpddoi = &item.objectInfo;
+		if (item.option == ButtonItem::SingleAxis)
+		{
+			lr = SendDlgItemMessage(dialog->m_hWnd, ctrlid, CB_ADDSTRING, 0, (LPARAM) &lpddoi->tszName[0]);
+		}
+		else if (item.option == ButtonItem::None)
+		{
+			lr = SendDlgItemMessage(dialog->m_hWnd, ctrlid, CB_ADDSTRING, 0, (LPARAM) TEXT(""));
+		}
+
+		if (lr != CB_ERR && lr >= 0)
+		{
+			SendDlgItemMessage(dialog->m_hWnd, ctrlid, CB_SETITEMDATA, lr, (LPARAM) i);
+		}
+	}
+}
+
+void CDiagJoystick::JoyUi::FillJoyButtonDropdown(int ctrlid, std::vector<ButtonItem> buttonAxisOptions)
+{
+unsigned int i;
+LRESULT lr;
+	for (i = 0; i < buttonAxisOptions.size(); i++)
+	{
+		ButtonItem& item = buttonAxisOptions[i];
 		LPDIDEVICEOBJECTINSTANCE lpddoi = &item.objectInfo;
 		if (item.option == ButtonItem::SingleButton)
 		{
@@ -589,28 +615,53 @@ LRESULT lr;
 	}
 }
 
+void CDiagJoystick::JoyUi::SelectJoyAxisDropdownItem(C64JoyItem& c64joybutton, bool bSetConfig)
+{
+	SelectJoyButtonAxisDropdownItem(c64joybutton, this->axisOptions, bSetConfig);
+}
+
 void CDiagJoystick::JoyUi::SelectJoyButtonDropdownItem(C64JoyItem& c64joybutton, bool bSetConfig)
+{
+	SelectJoyButtonAxisDropdownItem(c64joybutton, this->buttonOptions, bSetConfig);
+}
+
+void CDiagJoystick::JoyUi::SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions, bool bSetConfig)
 {
 int selindex;
 unsigned int i;
-bool bGotDefaultFire;
-unsigned int defaultFire;
+bool bGotdefaultTrigger;
+unsigned int defaultTrigger;
 LRESULT lr;
-ButtonItem::ButtonItemOption defaultFireOption = ButtonItem::SingleButton;
-DWORD defaultFireOffset = DIJOFS_BUTTON0;
+ButtonItem::ButtonItemOption defaultTriggerOption = ButtonItem::SingleButton;
+DWORD defaultTriggerOffset = DIJOFS_BUTTON0;
 
 	if (c64joybutton.buttonnumber == C64JoystickButton::Fire1)
 	{
-		defaultFireOption = ButtonItem::SingleButton;
-		defaultFireOffset = DIJOFS_BUTTON0;
+		defaultTriggerOption = ButtonItem::SingleButton;
+		defaultTriggerOffset = DIJOFS_BUTTON0;
+	}
+	else if (c64joybutton.buttonnumber == C64JoystickButton::Fire2)
+	{
+		defaultTriggerOption = ButtonItem::None;
+		defaultTriggerOffset = 0;
+	}
+	else if (c64joybutton.buttonnumber == C64JoystickButton::AxisHorizontal)
+	{
+		defaultTriggerOption = ButtonItem::SingleAxis;
+		defaultTriggerOffset = DIJOFS_X;
+	}
+	else if (c64joybutton.buttonnumber == C64JoystickButton::AxisVertical)
+	{
+		defaultTriggerOption = ButtonItem::SingleAxis;
+		defaultTriggerOffset = DIJOFS_Y;
 	}
 	else
 	{
-		defaultFireOption = ButtonItem::None;
-		defaultFireOffset = 0;
+		defaultTriggerOption = ButtonItem::None;
+		defaultTriggerOffset = 0;
 	}
 
-	bGotDefaultFire = false;
+	bGotdefaultTrigger = false;
 	selindex = -1;	
 	lr = SendDlgItemMessage(dialog->m_hWnd, c64joybutton.ctrlid, CB_GETCOUNT, 0, 0);
 	if (lr != CB_ERR && lr >= 0)
@@ -623,15 +674,15 @@ DWORD defaultFireOffset = DIJOFS_BUTTON0;
 			lr = SendDlgItemMessage(dialog->m_hWnd, c64joybutton.ctrlid, CB_GETITEMDATA, i, 0);
 			if (lr != CB_ERR)
 			{
-				if (lr >= 0 && (size_t)lr < buttonOptions.size())
+				if (lr >= 0 && (size_t)lr < buttonAxisOptions.size())
 				{
-					ButtonItem& item = buttonOptions[(size_t)lr];
-					if (!bGotDefaultFire)
+					ButtonItem& item = buttonAxisOptions[(size_t)lr];
+					if (!bGotdefaultTrigger)
 					{
-						if (item.option == defaultFireOption && item.objectInfo.dwOfs == defaultFireOffset)
+						if (item.option == defaultTriggerOption && item.objectInfo.dwOfs == defaultTriggerOffset)
 						{
-							defaultFire = i;
-							bGotDefaultFire = true;
+							defaultTrigger = i;
+							bGotdefaultTrigger = true;
 						}
 					}
 					
@@ -639,28 +690,35 @@ DWORD defaultFireOffset = DIJOFS_BUTTON0;
 					{
 						if (item.option == ButtonItem::SingleButton)
 						{
-							if (c64joybutton.buttonCount== 1 && item.objectInfo.dwOfs == c64joybutton.pButtonOffsets[0])
+							if (c64joybutton.itemCount== 1 && item.objectInfo.dwOfs == c64joybutton.pItemOffsets[0])
+							{
+								match = true;
+							}
+						}
+						else if (item.option == ButtonItem::SingleAxis)
+						{
+							if (c64joybutton.itemCount == 1 && item.objectInfo.dwOfs == c64joybutton.pItemOffsets[0])
 							{
 								match = true;
 							}
 						}
 						else if (item.option == ButtonItem::AllButtons)
 						{
-							if (c64joybutton.buttonCount >= numButtons)
+							if (c64joybutton.itemCount >= numButtons)
 							{
 								match = true;
 							}
 						}
 						else if (item.option == ButtonItem::MultipleButton)
 						{
-							if (c64joybutton.buttonCount > 1 && c64joybutton.buttonCount < numButtons)
+							if (c64joybutton.itemCount > 1 && c64joybutton.itemCount < numButtons)
 							{
 								match = true;
 							}
 						}
 						else if (item.option == ButtonItem::None)
 						{
-							if (c64joybutton.buttonCount == 0)
+							if (c64joybutton.itemCount == 0)
 							{
 								match = true;
 							}
@@ -680,9 +738,9 @@ DWORD defaultFireOffset = DIJOFS_BUTTON0;
 		}
 	}
 
-	if (selindex < 0 && bGotDefaultFire)
+	if (selindex < 0 && bGotdefaultTrigger)
 	{
-		selindex = defaultFire;
+		selindex = defaultTrigger;
 	}
 
 	if (selindex >= 0)
@@ -694,15 +752,10 @@ DWORD defaultFireOffset = DIJOFS_BUTTON0;
 void CDiagJoystick::JoyUi::FillJoyAxis(bool bSetConfig)
 {
 HRESULT hr;
-unsigned int i;
 LRESULT lr;
-unsigned int count;
 
 	try
 	{
-		bJoyAxisSetConfig = bSetConfig;
-		bGotDefaultX = false;
-		bGotDefaultY = false;
 		SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyv, CB_RESETCONTENT, 0, 0);
 		SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyh, CB_RESETCONTENT, 0, 0);
 		axisOptions.clear();
@@ -726,48 +779,19 @@ unsigned int count;
 		shared_ptr<GameDeviceItem> spdev = dialog->devices[(size_t)lr];
 		if (SUCCEEDED(spdev->hrStatus))
 		{
+			ButtonItem axisNone(ButtonItem::None);
+			axisOptions.push_back(axisNone);
+			this->numAxis = 0;
 			hr = spdev->pInputJoy->EnumObjects(EnumDlgJoyAxisCallback, this, DIDFT_ABSAXIS);
 			if (SUCCEEDED(hr))
 			{
-				if (!bSetConfig && bGotDefaultX)
-				{
-					lr = SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyh, CB_GETCOUNT, 0, 0);
-					if (lr != CB_ERR && lr >= 0)
-					{
-						count = (unsigned int)lr;
-						for (i = 0; i < count; i++)
-						{
-							lr = SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyh, CB_GETITEMDATA, i, 0);
-							if (lr != CB_ERR && lr >= 0)
-							{
-								if (lr == defaultX)
-								{
-									SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyh, CB_SETCURSEL, i, 0);
-								}
-							}
-						}
-					}
-				}
+				// Fill dropdowns
+				FillJoyAxisDropdown(this->controlNum.cbo_joyh);
+				FillJoyAxisDropdown(this->controlNum.cbo_joyv);
 
-				if (!bSetConfig && bGotDefaultY)
-				{
-					lr = SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyv, CB_GETCOUNT, 0, 0);
-					if (lr != CB_ERR && lr >= 0)
-					{
-						count = (unsigned int)lr;
-						for (i = 0; i < count; i++)
-						{
-							lr = SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyv, CB_GETITEMDATA, i, 0);
-							if (lr != CB_ERR && lr >= 0)
-							{
-								if (lr == defaultY)
-								{
-									SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyv, CB_SETCURSEL, i, 0);
-								}
-							}
-						}
-					}
-				}
+				// Search the dropdowns and set the current selection.
+				SelectJoyAxisDropdownItem(this->c64AxisHorizontal, bSetConfig);
+				SelectJoyAxisDropdownItem(this->c64AxisVertical, bSetConfig);
 			}
 		}
 	}
@@ -784,6 +808,10 @@ ButtonItem item(ButtonItem::SingleButton, (DIDEVICEOBJECTINSTANCE)*lpddoi);
 	{
 		buttonOptions.push_back(item);
 		numButtons++;
+		if (numButtons >= joyconfig::MAXBUTTONS)
+		{
+			return DIENUM_STOP;
+		}
 	}
 	catch (std::exception&)
 	{
@@ -795,60 +823,15 @@ ButtonItem item(ButtonItem::SingleButton, (DIDEVICEOBJECTINSTANCE)*lpddoi);
 
 BOOL CDiagJoystick::JoyUi::EnumJoyAxis(LPCDIDEVICEOBJECTINSTANCE lpddoi)
 {
-LRESULT lr;
-unsigned int lastIndex;
 ButtonItem item(ButtonItem::SingleAxis, *lpddoi);
 
 	try
 	{
 		axisOptions.push_back(item);
-		lastIndex = (unsigned int)axisOptions.size() - 1;
-		lr = SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyv, CB_ADDSTRING, 0, (LPARAM) &lpddoi->tszName[0]);
-		if (lr < 0)
+		numAxis++;
+		if (numAxis >= joyconfig::MAXAXIS)
 		{
 			return DIENUM_STOP;
-		}
-
-		SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyv, CB_SETITEMDATA, lr, (LPARAM) lastIndex);
-		if (bJoyAxisSetConfig)
-		{
-			if (lpddoi->dwOfs == this->jconfig.dwOfs_Y)
-			{
-				SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyv, CB_SETCURSEL, lr, 0);
-			}
-		}
-	
-		lr = SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyh, CB_ADDSTRING, 0, (LPARAM) &lpddoi->tszName[0]);
-		if (lr < 0)
-		{
-			return DIENUM_STOP;
-		}
-
-		SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyh, CB_SETITEMDATA, lr, (LPARAM) lastIndex);
-		if (bJoyAxisSetConfig)
-		{
-			if (lpddoi->dwOfs == this->jconfig.dwOfs_X)
-			{
-				SendDlgItemMessage(dialog->m_hWnd, this->controlNum.cbo_joyh, CB_SETCURSEL, lr, 0);
-			}
-		}
-	
-		if (!bGotDefaultX)
-		{
-			if (axisOptions[lastIndex].objectInfo.guidType == GUID_XAxis)
-			{
-				defaultX = lastIndex;
-				bGotDefaultX = true;
-			}
-		}
-
-		if (!bGotDefaultY)
-		{
-			if (axisOptions[lastIndex].objectInfo.guidType == GUID_YAxis)
-			{
-				defaultY = lastIndex;
-				bGotDefaultY = true;
-			}
 		}
 
 		return DIENUM_CONTINUE;
@@ -859,52 +842,67 @@ ButtonItem item(ButtonItem::SingleAxis, *lpddoi);
 		return DIENUM_STOP;
 	}
 }
-
+//ButtonSelectionChanged
 void CDiagJoystick::JoyUi::ButtonSelectionChanged(C64JoyItem& c64joybutton)
+{
+	DeviceItemSelectionChanged(c64joybutton, this->buttonOptions);
+}
+
+void CDiagJoystick::JoyUi::AxisSelectionChanged(C64JoyItem& c64joybutton)
+{
+	DeviceItemSelectionChanged(c64joybutton, this->axisOptions);
+}
+
+void CDiagJoystick::JoyUi::DeviceItemSelectionChanged(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions)
 {
 LRESULT lr;
 unsigned int i;
 unsigned int j;
 
-	unsigned int oldcount = c64joybutton.buttonCount;
+	unsigned int oldcount = c64joybutton.itemCount;
 	lr = SendDlgItemMessage(dialog->m_hWnd, c64joybutton.ctrlid, CB_GETCURSEL, 0, 0);
 	if (lr >= 0)
 	{
 		lr = SendDlgItemMessage(dialog->m_hWnd, c64joybutton.ctrlid, CB_GETITEMDATA, lr, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{		
-			if ((size_t)lr < this->buttonOptions.size())
+			if ((size_t)lr < buttonAxisOptions.size())
 			{
-				ButtonItem &item = this->buttonOptions[(size_t)lr];
+				ButtonItem &item = buttonAxisOptions[(size_t)lr];
 				if (item.option == ButtonItem::SingleButton)
 				{
-					c64joybutton.buttonCount = 1;
-					c64joybutton.pButtonOffsets[0] = item.objectInfo.dwOfs;
+					c64joybutton.itemCount = 1;
+					c64joybutton.pItemOffsets[0] = item.objectInfo.dwOfs;
+				}
+				else if (item.option == ButtonItem::SingleAxis)
+				{
+					c64joybutton.itemCount = 1;
+					c64joybutton.pItemOffsets[0] = item.objectInfo.dwOfs;
 				}
 				else if (item.option == ButtonItem::AllButtons)
 				{
-					for (i = 0, j = 0; i < joyconfig::MAXBUTTONS && j < this->buttonOptions.size(); j++)
+					for (i = 0, j = 0; i < joyconfig::MAXBUTTONS && j < buttonAxisOptions.size(); j++)
 					{
-						const ButtonItem& item = this->buttonOptions[j];
+						const ButtonItem& item = buttonAxisOptions[j];
 						if (item.option == ButtonItem::SingleButton)
 						{
 							DWORD dwOffset = item.objectInfo.dwOfs;
-							if (dwOffset + sizeof(BYTE) <= sizeof(DIJOYSTATE))
+							if (dwOffset + sizeof(BYTE) <= sizeof(DIJOYSTATE2))
 							{
-								c64joybutton.pButtonOffsets[i++] = dwOffset;
+								c64joybutton.pItemOffsets[i++] = dwOffset;
 							}
 						}						
 					}
 
-					c64joybutton.buttonCount = i;
+					c64joybutton.itemCount = i;
 				}
 				else if (item.option == ButtonItem::MultipleButton)
 				{
-					c64joybutton.buttonCount = oldcount;
+					c64joybutton.itemCount = oldcount;
 				}
 				else if (item.option == ButtonItem::None)
 				{
-					c64joybutton.buttonCount = 0;
+					c64joybutton.itemCount = 0;
 				}
 			}
 		}
@@ -955,16 +953,18 @@ void CDiagJoystick::JoyUi::loadconfig(const joyconfig& cfg)
 void CDiagJoystick::JoyUi::saveconfig(joyconfig *cfg)
 {
 LRESULT lr;
-DWORD dwOffset;
+//DWORD dwOffset;
 unsigned int i;
 
 	HWND hWnd = this->dialog->m_hWnd;
 	cfg->IsValidId = false;
 	cfg->isPovEnabled = true;
 	cfg->dwOfs_X = DIJOFS_X;
+	cfg->horizontalAxisCount = 1;
 	cfg->dwOfs_Y = DIJOFS_Y;
+	cfg->verticalAxisCount = 1;
 	cfg->isValidXAxis = true;
-	cfg->isValidYAxis = true;
+	cfg->isValidYAxis = true;	
 	cfg->fire1ButtonOffsets[0] = DIJOFS_BUTTON0;
 	cfg->fire1ButtonCount = 1;
 	cfg->fire2ButtonCount = 0;	
@@ -982,40 +982,18 @@ unsigned int i;
 		}
 	}
 
-	lr = SendDlgItemMessage(hWnd, this->controlNum.cbo_joyv, CB_GETCURSEL, 0, 0);
-	if (lr >= 0)
-	{
-		lr = SendDlgItemMessage(hWnd, this->controlNum.cbo_joyv, CB_GETITEMDATA, lr, 0);
-		if (lr != CB_ERR && lr >= 0)
-		{		
-			if ((size_t)lr < this->axisOptions.size())
-			{
-				dwOffset = this->axisOptions[(size_t)lr].objectInfo.dwOfs;
-				if (dwOffset + sizeof(LONG) <= sizeof(DIJOYSTATE))
-				{
-					cfg->dwOfs_Y = dwOffset;
-				}
-			}
-		}
-	}
+	// Save vertical axis
+	this->AxisSelectionChanged(this->c64AxisVertical);
+	cfg->dwOfs_Y = this->jconfig.dwOfs_Y;
+	cfg->verticalAxisCount = this->jconfig.verticalAxisCount;
 
-	lr = SendDlgItemMessage(hWnd, this->controlNum.cbo_joyh, CB_GETCURSEL, 0, 0);
-	if (lr >= 0)
-	{
-		lr = SendDlgItemMessage(hWnd, this->controlNum.cbo_joyh, CB_GETITEMDATA, lr, 0);
-		if (lr != CB_ERR && lr >= 0)
-		{		
-			if ((size_t)lr < this->axisOptions.size())
-			{
-				dwOffset = this->axisOptions[(size_t)lr].objectInfo.dwOfs;
-				if (dwOffset + sizeof(LONG) <= sizeof(DIJOYSTATE))
-				{
-					cfg->dwOfs_X = dwOffset;
-				}
-			}
-		}
-	}
+	// Save horizontal axis
+	this->AxisSelectionChanged(this->c64AxisHorizontal);
+	cfg->dwOfs_X = this->jconfig.dwOfs_X;
+	cfg->horizontalAxisCount = this->jconfig.horizontalAxisCount;
 
+	// Save fire1
+	C64JoyItem& item = c64buttonFire1;
 	this->ButtonSelectionChanged(this->c64buttonFire1);
 	cfg->fire1ButtonCount = this->jconfig.fire1ButtonCount;
 	for(i = 0; i < this->jconfig.fire1ButtonCount; i++)
@@ -1023,6 +1001,7 @@ unsigned int i;
 		cfg->fire1ButtonOffsets[i] = this->jconfig.fire1ButtonOffsets[i];
 	}
 
+	// Save fire2
 	this->ButtonSelectionChanged(this->c64buttonFire2);
 	cfg->fire2ButtonCount = this->jconfig.fire2ButtonCount;
 	for(i = 0; i < this->jconfig.fire2ButtonCount; i++)
@@ -1030,6 +1009,7 @@ unsigned int i;
 		cfg->fire2ButtonOffsets[i] = this->jconfig.fire2ButtonOffsets[i];
 	}
 
+	// Save button up
 	this->ButtonSelectionChanged(this->c64buttonUp);
 	cfg->upButtonCount = this->jconfig.upButtonCount;
 	for(i = 0; i < this->jconfig.upButtonCount; i++)
@@ -1037,6 +1017,7 @@ unsigned int i;
 		cfg->upButtonOffsets[i] = this->jconfig.upButtonOffsets[i];
 	}
 
+	// Save button down
 	this->ButtonSelectionChanged(this->c64buttonDown);
 	cfg->downButtonCount = this->jconfig.downButtonCount;
 	for(i = 0; i < this->jconfig.downButtonCount; i++)
@@ -1044,6 +1025,7 @@ unsigned int i;
 		cfg->downButtonOffsets[i] = this->jconfig.downButtonOffsets[i];
 	}
 
+	// Save button left
 	this->ButtonSelectionChanged(this->c64buttonLeft);
 	cfg->leftButtonCount = this->jconfig.leftButtonCount;
 	for(i = 0; i < this->jconfig.leftButtonCount; i++)
@@ -1051,6 +1033,7 @@ unsigned int i;
 		cfg->leftButtonOffsets[i] = this->jconfig.leftButtonOffsets[i];
 	}
 
+	// Save button right
 	this->ButtonSelectionChanged(this->c64buttonRight);
 	cfg->rightButtonCount = this->jconfig.rightButtonCount;
 	for(i = 0; i < this->jconfig.rightButtonCount; i++)
@@ -1095,19 +1078,7 @@ unsigned int i;
 	}
 }
 
-bool CDiagJoystick::JoyUi::isReservedButton(const joyconfig *cfg, DWORD dwOffset)
-{
-	if (dwOffset != 0 && cfg != NULL && cfg->dwOfs_Left == dwOffset || cfg->dwOfs_Right == dwOffset || cfg->dwOfs_Up == dwOffset || cfg->dwOfs_Down == dwOffset)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-CDiagJoystick::C64JoyItem::C64JoyItem(int ctrlid, C64JoystickButton::C64JoystickButtonNumber buttonnumber, DWORD *pButtonOffsets, unsigned int &buttonCount)
-	: ctrlid(ctrlid), buttonnumber(buttonnumber), pButtonOffsets(pButtonOffsets), buttonCount(buttonCount)
+CDiagJoystick::C64JoyItem::C64JoyItem(int ctrlid, C64JoystickButton::C64JoystickButtonNumber buttonnumber, DWORD *pItemOffsets, unsigned int &itemCount)
+	: ctrlid(ctrlid), buttonnumber(buttonnumber), pItemOffsets(pItemOffsets), itemCount(itemCount)
 {
 }

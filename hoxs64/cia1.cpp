@@ -56,6 +56,7 @@ CIA1::CIA1()
 	F12_was_up=true;
 	F11_was_up=true;
 	keyboardNotAcquiredClock = 0;
+	ZeroMemory(&this->js, sizeof(this->js));
 }
 
 HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, ISid *sid, Tape64 *tape64, CDX9 *dx)
@@ -134,6 +135,8 @@ int i;
 		keyboard_matrix[i] = 0xFF;
 		keyboard_rmatrix[i] = 0xFF;
 	}
+
+	ZeroMemory(&this->js, sizeof(this->js));
 }
 
 bit8 CIA1::ReadPortA()
@@ -445,7 +448,6 @@ bool CIA1::ReadJoyAxis(int joyindex, struct joyconfig& joycfg, unsigned int& axi
 {
 LPDIRECTINPUTDEVICE7 joystick7;
 HRESULT  hr;
-DIJOYSTATE  js;
 unsigned int i;
 const DWORD povRightUp = 9000 - 2250;
 const DWORD povRightDown = 9000 + 2250;
@@ -461,7 +463,7 @@ const DWORD povDownRight = 18000 - 2250;
 	fire2 = false;
 	joystick7 = (LPDIRECTINPUTDEVICE7) dx->GetJoy(joyindex);
 	joystick7->Poll();
-	hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js);
+	hr = joystick7->GetDeviceState(joycfg.sizeOfInputDeviceFormat, &this->js);
 	if (hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
 	{
 		if ((this->CurrentClock - joycfg.joyNotAcquiredClock) > DEVICEACQUIRECLOCKS)
@@ -469,7 +471,7 @@ const DWORD povDownRight = 18000 - 2250;
 			hr = joystick7->Acquire();
 			if (SUCCEEDED(hr))
 			{
-				hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js);
+				hr = joystick7->GetDeviceState(joycfg.sizeOfInputDeviceFormat, &this->js);
 			}
 			else
 			{
@@ -487,7 +489,7 @@ const DWORD povDownRight = 18000 - 2250;
 				break;
 			}
 
-			DWORD pov = *((LONG *)(((BYTE *)&js) + joycfg.povAvailable[i]));
+			DWORD pov = *((LONG *)(((BYTE *)&this->js) + joycfg.povAvailable[i]));
 			if (LOWORD(pov) != 0xFFFF)
 			{
 				if (pov < povRightUp || pov > povLeftUp)
@@ -512,9 +514,9 @@ const DWORD povDownRight = 18000 - 2250;
 			}
 		}
 		
-		if (joycfg.isValidXAxis && joycfg.joyObjectKindX == HCFG::JoyKindAxis)
+		if (joycfg.isValidXAxis && joycfg.horizontalAxisCount > 0 && joycfg.joyObjectKindX == HCFG::JoyKindAxis)
 		{
-			LONG xpos = *((LONG *)(((BYTE *)&js) + joycfg.dwOfs_X));
+			LONG xpos = *((LONG *)(((BYTE *)&this->js) + joycfg.dwOfs_X));
 			if (xpos < joycfg.xLeft)
 			{
 				if (joycfg.isXReverse)
@@ -543,9 +545,9 @@ const DWORD povDownRight = 18000 - 2250;
 			}
 		}
 
-		if (joycfg.isValidYAxis && joycfg.joyObjectKindY == HCFG::JoyKindAxis)
+		if (joycfg.isValidYAxis && joycfg.verticalAxisCount > 0 && joycfg.joyObjectKindY == HCFG::JoyKindAxis)
 		{
-			LONG ypos = *((LONG *)(((BYTE *)&js) + joycfg.dwOfs_Y));
+			LONG ypos = *((LONG *)(((BYTE *)&this->js) + joycfg.dwOfs_Y));
 			if (ypos < joycfg.yUp)
 			{
 				if (joycfg.isYReverse)
@@ -576,7 +578,7 @@ const DWORD povDownRight = 18000 - 2250;
 
 		for (i=0; i < joycfg.downButtonCount; i++)
 		{
-			if (((BYTE *)&js)[joycfg.downButtonOffsets[i]] & 0x80)
+			if (((BYTE *)&this->js)[joycfg.downButtonOffsets[i]] & 0x80)
 			{
 				axis |= JOYDIR_DOWN;
 				axis = axis & ~(JOYDIR_UP);
@@ -586,7 +588,7 @@ const DWORD povDownRight = 18000 - 2250;
 
 		for (i=0; i < joycfg.upButtonCount; i++)
 		{
-			if (((BYTE *)&js)[joycfg.upButtonOffsets[i]] & 0x80)
+			if (((BYTE *)&this->js)[joycfg.upButtonOffsets[i]] & 0x80)
 			{
 				axis |= JOYDIR_UP;
 				axis = axis & ~(JOYDIR_DOWN);
@@ -596,7 +598,7 @@ const DWORD povDownRight = 18000 - 2250;
 
 		for (i=0; i < joycfg.rightButtonCount; i++)
 		{
-			if (((BYTE *)&js)[joycfg.rightButtonOffsets[i]] & 0x80)
+			if (((BYTE *)&this->js)[joycfg.rightButtonOffsets[i]] & 0x80)
 			{
 				axis |= JOYDIR_RIGHT;
 				axis = axis & ~(JOYDIR_LEFT);
@@ -606,7 +608,7 @@ const DWORD povDownRight = 18000 - 2250;
 
 		for (i=0; i < joycfg.leftButtonCount; i++)
 		{
-			if (((BYTE *)&js)[joycfg.leftButtonOffsets[i]] & 0x80)
+			if (((BYTE *)&this->js)[joycfg.leftButtonOffsets[i]] & 0x80)
 			{
 				axis |= JOYDIR_LEFT;
 				axis = axis & ~(JOYDIR_RIGHT);
@@ -616,7 +618,7 @@ const DWORD povDownRight = 18000 - 2250;
 
 		for (i=0; i < joycfg.fire1ButtonCount; i++)
 		{
-			if (((BYTE *)&js)[joycfg.fire1ButtonOffsets[i]] & 0x80)
+			if (((BYTE *)&this->js)[joycfg.fire1ButtonOffsets[i]] & 0x80)
 			{
 				fire1 = true;
 				break;
@@ -625,7 +627,7 @@ const DWORD povDownRight = 18000 - 2250;
 
 		for (i=0; i < joycfg.fire2ButtonCount; i++)
 		{
-			if (((BYTE *)&js)[joycfg.fire2ButtonOffsets[i]] & 0x80)
+			if (((BYTE *)&this->js)[joycfg.fire2ButtonOffsets[i]] & 0x80)
 			{
 				fire2 = true;
 				break;

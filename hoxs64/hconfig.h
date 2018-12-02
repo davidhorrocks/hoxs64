@@ -1,6 +1,8 @@
 #ifndef __HCONFIG_H__
 #define __HCONFIG_H__
 
+#include <windows.h>
+#include "dx_version.h"
 #include "bits.h"
 #include "viciipalette.h"
 
@@ -14,7 +16,9 @@ namespace C64JoystickButton
 		Up,
 		Down,
 		Left,
-		Right
+		Right,
+		AxisHorizontal,
+		AxisVertical
 	} C64JoystickButtonNumber;
 };
 
@@ -80,7 +84,9 @@ public:
 
 struct joyconfig
 {
-	static const unsigned int MAXBUTTONS = 32;
+	static const unsigned int MAXBUTTONS = 128;
+	static const unsigned int MAXBUTTONS32 = 32;
+	static const unsigned int MAXAXIS = 32;
 	joyconfig();
 	GUID joystickID;
 	bool IsValidId;
@@ -92,10 +98,6 @@ struct joyconfig
 	bool isValidYAxis;
 	DWORD dwOfs_X;
 	DWORD dwOfs_Y;
-	DWORD dwOfs_Up;
-	DWORD dwOfs_Down;
-	DWORD dwOfs_Left;
-	DWORD dwOfs_Right;
 	HCFG::JOYOBJECTKIND joyObjectKindX;
 	HCFG::JOYOBJECTKIND joyObjectKindY;	
 	LONG xMin;
@@ -112,6 +114,8 @@ struct joyconfig
 	unsigned int downButtonCount;
 	unsigned int leftButtonCount;
 	unsigned int rightButtonCount;
+	unsigned int horizontalAxisCount;
+	unsigned int verticalAxisCount;
 	DWORD fire1ButtonOffsets[MAXBUTTONS];
 	DWORD fire2ButtonOffsets[MAXBUTTONS];
 	DWORD upButtonOffsets[MAXBUTTONS];
@@ -120,6 +124,8 @@ struct joyconfig
 	DWORD rightButtonOffsets[MAXBUTTONS];
 	DWORD povAvailable[4];
 	int povIndex[4];
+	LPCDIDATAFORMAT inputDeviceFormat;
+	DWORD sizeOfInputDeviceFormat;
 	void LoadDefault();
 	ICLK joyNotAcquiredClock;
 };
@@ -137,8 +143,8 @@ public:
 	static int GetKeyScanCode(UINT ch);
 	HRESULT LoadCurrentSetting();
 	HRESULT LoadCurrentJoystickSetting(int joystickNumber, struct joyconfig& jconfig);
-	HRESULT WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pButtonOffsets, const unsigned int &buttonCount);
-	HRESULT ReadJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pButtonOffsets, unsigned int &buttonCount);
+	HRESULT WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pItemOffsets, const unsigned int &buttonCount);
+	HRESULT ReadJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pItemOffsets, unsigned int &buttonCount);
 	HRESULT SaveCurrentSetting();
 	HRESULT SaveCurrentJoystickSetting(int joystickNumber, const struct joyconfig& jconfig);
 	void LoadDefaultSetting();

@@ -568,7 +568,6 @@
     <ClCompile Include="DxLabel.cpp" />
     <ClCompile Include="DxTexture.cpp" />
     <ClCompile Include="DxWindow.cpp" />
-    <ClCompile Include="enumjoydata.cpp" />
     <ClCompile Include="FDI.cpp" />
     <ClCompile Include="filestream.cpp" />
     <ClCompile Include="gamecontrolleritem.cpp" />

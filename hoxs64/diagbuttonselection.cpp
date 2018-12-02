@@ -3,12 +3,8 @@
 #include <tchar.h>
 #include <windowsx.h>
 #include <winuser.h>
-#include "boost2005.h"
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
+#include "boost2005.h"
 #include <stdio.h>
 #include "servicerelease.h"
 #include "defines.h"
@@ -29,6 +25,8 @@ CDiagButtonSelection::CDiagButtonSelection()
 {
 	ZeroMemory(&deviceId, sizeof(deviceId));	
 	initvars();
+	inputDeviceFormat = &c_dfDIJoystick;
+	sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
 }
 
 CDiagButtonSelection::CDiagButtonSelection(LPDIRECTINPUT7 pDI, GUID deviceId, int c64JoystickNumber, C64JoystickButton::C64JoystickButtonNumber c64button, std::vector<DWORD> &buttonOffsets)
@@ -176,18 +174,20 @@ LRESULT lr;
 void CDiagButtonSelection::PollJoystick()
 {
 HRESULT hr;
-DIJOYSTATE  js;
+DIJOYSTATE2  js;
 
 	if (pJoy)
 	{
+		ZeroMemory(&js, sizeof(js));
 		pJoy->Poll();
-		hr = pJoy->GetDeviceState(sizeof(DIJOYSTATE), &js);
+		hr = pJoy->GetDeviceState(this->sizeOfInputDeviceFormat, &js);
 		if(hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
 		{
 			hr = pJoy->Acquire();
 			if (SUCCEEDED(hr))
 			{
-				hr = pJoy->GetDeviceState(sizeof(DIJOYSTATE), &js);
+				ZeroMemory(&js, sizeof(js));
+				hr = pJoy->GetDeviceState(this->sizeOfInputDeviceFormat, &js);
 			}
 		}
 
@@ -323,54 +323,58 @@ int len;
 	hr = pDI->CreateDeviceEx(deviceId, IID_IDirectInputDevice7, (LPVOID *)&pJoy, NULL);
 	if (SUCCEEDED(hr))
 	{
-		hr = pJoy->SetDataFormat(&c_dfDIJoystick);
-		if (SUCCEEDED(hr))
-		{
-			hr = pJoy->EnumObjects(::EnumDlgJoyButtonSelectionCallback, this, DIDFT_BUTTON);
-			if (hwndListBox)
-			{
-				std::vector<shared_ptr<ButtonItemData>>::iterator iter;
-				for (iter = currentButtonOffsets.begin(); iter != currentButtonOffsets.end(); iter++)
-				{
-					deviceButtonName.clear();
-					DWORD offset = (*iter)->buttonOffset;			
-					if (GetButtonNameFromOffset(deviceButtonName, offset))
-					{
-						int pos = (int)SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM) deviceButtonName.c_str());
-						if (pos >= 0)
-						{
-							SendMessage(hwndListBox, LB_SETITEMDATA, pos, (LPARAM) (*iter).get());
-						}
-					}
-				}
-			}
-		}
-
-		ZeroMemory(&phName, sizeof(phName));
-		phName.diph.dwSize       = sizeof(DIPROPSTRING); 
-		phName.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-		if (SUCCEEDED(pJoy->GetProperty(DIPROP_INSTANCENAME, &phName.diph)))
-		{
-			if (hwndDeviceName)
-			{
-				Edit_SetText(hwndDeviceName, phName.wsz);
-			}
-		}
-
 		ZeroMemory(&dicaps, sizeof(dicaps));
 		dicaps.dwSize = sizeof(dicaps);
 		hr = pJoy->GetCapabilities(&dicaps);
 		if (SUCCEEDED(hr))
 		{
-			hr = pJoy->SetDataFormat(&c_dfDIJoystick);
+			if (G::IsLargeGameDevice(dicaps))
+			{
+				this->inputDeviceFormat = &c_dfDIJoystick2;
+				this->sizeOfInputDeviceFormat = sizeof(DIJOYSTATE2);
+
+			}
+			else
+			{
+				this->inputDeviceFormat = &c_dfDIJoystick;
+				this->sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
+			}
+
+			hr = pJoy->SetDataFormat(this->inputDeviceFormat);
 			if (SUCCEEDED(hr))
 			{
-				hr = pJoy->SetCooperativeLevel(this->m_hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-				if (SUCCEEDED(hr))
+				hr = pJoy->EnumObjects(::EnumDlgJoyButtonSelectionCallback, this, DIDFT_BUTTON);
+				if (hwndListBox)
 				{
-
+					std::vector<shared_ptr<ButtonItemData>>::iterator iter;
+					for (iter = currentButtonOffsets.begin(); iter != currentButtonOffsets.end(); iter++)
+					{
+						deviceButtonName.clear();
+						DWORD offset = (*iter)->buttonOffset;			
+						if (GetButtonNameFromOffset(deviceButtonName, offset))
+						{
+							int pos = (int)SendMessage(hwndListBox, LB_ADDSTRING, 0, (LPARAM) deviceButtonName.c_str());
+							if (pos >= 0)
+							{
+								SendMessage(hwndListBox, LB_SETITEMDATA, pos, (LPARAM) (*iter).get());
+							}
+						}
+					}
 				}
 			}
+
+			ZeroMemory(&phName, sizeof(phName));
+			phName.diph.dwSize       = sizeof(DIPROPSTRING); 
+			phName.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+			if (SUCCEEDED(pJoy->GetProperty(DIPROP_INSTANCENAME, &phName.diph)))
+			{
+				if (hwndDeviceName)
+				{
+					Edit_SetText(hwndDeviceName, phName.wsz);
+				}
+			}
+
+			hr = pJoy->SetCooperativeLevel(this->m_hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
 		}
 	}
 
@@ -380,7 +384,7 @@ int len;
 bool CDiagButtonSelection::GetButtonNameFromOffset(std::basic_string<TCHAR> &name, DWORD offset)
 {	
 	std::vector<GameControllerItem>::iterator iter;
-	if (offset >= DIJOFS_BUTTON0 && offset <= DIJOFS_BUTTON31)
+	if (offset >= DIJOFS_BUTTON0 && offset < DIJOFS_BUTTON(joyconfig::MAXBUTTONS))
 	{
 		for (iter = buttons.begin(); iter != buttons.end(); iter++)
 		{

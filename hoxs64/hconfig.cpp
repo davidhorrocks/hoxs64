@@ -703,7 +703,6 @@ DWORD dw;
 		return E_FAIL;
 	}
 
-	jconfig.fire1ButtonCount = 0;
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\Joystick"),
 		0, KEY_READ,
@@ -764,6 +763,7 @@ DWORD dw;
 			}
 
 			//Joystick X axis
+			jconfig.horizontalAxisCount = 0;
 			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisX], &dw);
 			if (lRetCode == ERROR_SUCCESS)
 			{
@@ -777,13 +777,15 @@ DWORD dw;
 			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisX], &dw);
 			if (lRetCode == ERROR_SUCCESS)
 			{
-				if (dw <= (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+				if (dw <= (sizeof(DIJOYSTATE2) - sizeof(DWORD)))
 				{
 					jconfig.dwOfs_X = dw;
+					jconfig.horizontalAxisCount = 1;
 				}
 			}
 					
 			//Joystick Y axis
+			jconfig.verticalAxisCount = 0;
 			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisY], &dw);
 			if (lRetCode == ERROR_SUCCESS)
 			{
@@ -797,9 +799,10 @@ DWORD dw;
 			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisY], &dw);
 			if (lRetCode == ERROR_SUCCESS)
 			{
-				if (dw <= (sizeof(DIJOYSTATE) - sizeof(DWORD)))
+				if (dw <= (sizeof(DIJOYSTATE2) - sizeof(DWORD)))
 				{
 					jconfig.dwOfs_Y = dw;
+					jconfig.verticalAxisCount = 1;
 				}
 			}					
 
@@ -861,6 +864,7 @@ unsigned int joyIndex = joystickNumber - 1;
 	lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][regnames.count], (LPDWORD)&storedButtonCount);
 	if (lRetCode == ERROR_SUCCESS)
 	{
+		// Array of 32 bit indexes. Maximum of 128 buttons.
 		if (storedButtonCount > joyconfig::MAXBUTTONS)
 		{
 			storedButtonCount = joyconfig::MAXBUTTONS;
@@ -879,7 +883,7 @@ unsigned int joyIndex = joystickNumber - 1;
 			for (i = 0; i < storedButtonCount; i++)
 			{
 				dwOffset = buttonIndexList[i];
-				if (dwOffset >= DIJOFS_BUTTON0 && dwOffset <= DIJOFS_BUTTON31)
+				if (dwOffset >= DIJOFS_BUTTON0 && dwOffset < DIJOFS_BUTTON(joyconfig::MAXBUTTONS))
 				{
 					pButtonOffsets[numButtons++] = dwOffset;
 				}
@@ -890,11 +894,11 @@ unsigned int joyIndex = joystickNumber - 1;
 	}
 	else if (lRetCode == ERROR_FILE_NOT_FOUND)
 	{
-		//WIP
+		// 32 bit mask representation. Maximum of 32 buttons.
 		lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][regnames.mask], &dw);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			for (i = 0, j = 1; i < joyconfig::MAXBUTTONS; i++, j<<=1)
+			for (i = 0, j = 1; i < joyconfig::MAXBUTTONS32; i++, j<<=1)
 			{
 				if (dw & j)
 				{
@@ -909,13 +913,14 @@ unsigned int joyIndex = joystickNumber - 1;
 			buttonCount = numButtons;
 		}
 
+		// Single button. One of a 128 buttons.
 		if (lRetCode == ERROR_FILE_NOT_FOUND || (lRetCode == ERROR_SUCCESS && numButtons == 0))
 		{
 			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][regnames.single], &dw);
 			if (lRetCode == ERROR_SUCCESS)
 			{
 				dwOffset = dw;
-				if (dwOffset >= DIJOFS_BUTTON0 && dwOffset <= DIJOFS_BUTTON31)
+				if (dwOffset >= DIJOFS_BUTTON0 && dwOffset < DIJOFS_BUTTON(joyconfig::MAXBUTTONS))
 				{
 					pButtonOffsets[numButtons++] = dwOffset;
 				}
@@ -1521,7 +1526,7 @@ DWORD dwValue;
 	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynValid], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
 	//Save the X axis validity.
-	dwValue = jconfig.isValidXAxis ? 1 : 0;
+	dwValue = (jconfig.isValidXAxis && jconfig.horizontalAxisCount > 0) ? 1 : 0;
 	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisX], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
 	//Save the X axis.
@@ -1529,7 +1534,7 @@ DWORD dwValue;
 	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisX], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
 	//Save the Y axis validity.
-	dwValue = jconfig.isValidYAxis ? 1 : 0;
+	dwValue =(jconfig.isValidYAxis && jconfig.verticalAxisCount > 0) ? 1 : 0;
 	RegSetValueEx(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisY], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
 
 	//Save the Y axis.
@@ -1664,8 +1669,6 @@ void CConfig::LoadDefaultSetting()
 	m_bDoubleSizedWindow = true;
 	m_bUseBlitStretch = true;
 	m_bUseKeymap = false;
-	m_joy1config.LoadDefault();
-	m_joy2config.LoadDefault();
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
@@ -1827,7 +1830,9 @@ void joyconfig::LoadDefault()
 	isXReverse = false;
 	isYReverse = false;
 	dwOfs_X = DIJOFS_X;
+	horizontalAxisCount = 1;
 	dwOfs_Y = DIJOFS_Y;
+	verticalAxisCount = 1;
 	isValidXAxis = true;
 	isValidYAxis = true;
 	fire1ButtonOffsets[0] = DIJOFS_BUTTON0;
@@ -1837,5 +1842,7 @@ void joyconfig::LoadDefault()
 	downButtonCount = 0;
 	leftButtonCount = 0;
 	rightButtonCount = 0;
+	inputDeviceFormat = &c_dfDIJoystick;
+	sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
 };
 

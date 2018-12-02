@@ -66,15 +66,9 @@ public:
 	void ReleaseJoy();
 	HRESULT EnumObjectsJoy(int, LPDIENUMDEVICEOBJECTSCALLBACK, LPVOID, DWORD);
 	HRESULT CreateDeviceJoy(int, REFGUID refguid);
-	HRESULT GetObjectInfo(int joyindex, LPDIDEVICEOBJECTINSTANCE pdidoi, DWORD dwObj, DWORD dwHow);
-	HRESULT GetPropJoy(int joyindex, REFGUID rguid, LPDIPROPHEADER pph);
-	HRESULT SetPropJoy(int joyindex, REFGUID rguid, LPCDIPROPHEADER pph);
-	HRESULT SetDataFormatJoy(int, LPCDIDATAFORMAT);
 	HRESULT AcquireJoy(int);
 	HRESULT UnacquireJoy(int);
 	HRESULT PollJoy(int);
-	HRESULT SetCooperativeLevelJoy(int, HWND, DWORD);
-	HRESULT GetDeviceState(int joyindex, LPVOID pData);
 	LPDIRECTINPUTDEVICE7 GetJoy(int joyindex);
 	HRESULT ListDisplayMode(DWORD adapterNumber);
 	HRESULT ChooseDisplayMode(DWORD adapterNumber, D3DDISPLAYMODE *pMode);
@@ -115,7 +109,7 @@ public:
 	static UINT GetDisplayResolutionText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, UINT charBufferLen);
 	static UINT GetDisplayFormatText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, UINT charBufferLen);
 	static D3DTEXTUREFILTERTYPE GetDxFilterFromEmuFilter(HCFG::EMUWINDOWFILTER emuFilter);
-	static int GetToolBarHeight(BOOL bShowFloppyLed);
+	static int GetToolBarHeight(BOOL bShowFloppyLed);	
 
 	WAVEFORMATEX m_wfx;
 	DWORD BufferLockSize;

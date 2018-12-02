@@ -1,6 +1,7 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 #include <assert.h>
+#include "dx_version.h"
 #include "oldos_multimon.h"
 #include "boost2005.h"
 #include "mlist.h"
@@ -190,6 +191,7 @@ public:
 	static __int64 FileSize(HANDLE hfile);
 	static void InitRandomSeed();
 	static const TCHAR EmptyString[1];
+	static bool IsLargeGameDevice(const DIDEVCAPS &didevcaps);
 };
 
 extern INT_PTR CALLBACK DialogProc(HWND hWndDlg, UINT uMsg,  WPARAM wParam, LPARAM lParam);

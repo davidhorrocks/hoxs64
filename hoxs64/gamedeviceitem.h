@@ -6,12 +6,13 @@ public:
 	GameDeviceItem(LPDIRECTINPUT7, LPCDIDEVICEINSTANCE);
 	~GameDeviceItem();
 
-	HRESULT hrStatus;
-
 	HRESULT OpenDevice(REFGUID refguid);
 	void CloseDevice();
-public:
+
+	HRESULT hrStatus;
 	LPDIRECTINPUT7 pDI;
 	LPDIRECTINPUTDEVICE7 pInputJoy;
 	DIDEVICEINSTANCE deviceInstance;
+	LPCDIDATAFORMAT inputDeviceFormat;
+	DWORD sizeOfInputDeviceFormat;
 };

@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "dx_version.h"
 #include <RichEdit.h>
 #include <tchar.h>
 #include <winuser.h>
@@ -12,7 +13,6 @@
 #include "carray.h"
 #include "mlist.h"
 #include "CDPI.h"
-#include <d3d9.h>
 #include "utils.h"
 
 /*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
@@ -2637,4 +2637,9 @@ void G::InitRandomSeed()
 	QueryPerformanceCounter((PLARGE_INTEGER)&counter);
 	srand(counter.LowPart);
 	randengine_main.seed(rd());
+}
+
+bool G::IsLargeGameDevice(const DIDEVCAPS &didevcaps)
+{
+	return didevcaps.dwButtons > 32 || didevcaps.dwAxes > 8;
 }

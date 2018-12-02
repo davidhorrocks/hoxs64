@@ -355,9 +355,6 @@
     <ClCompile Include="besttextwidth.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="enumjoydata.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="diagbuttonselection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

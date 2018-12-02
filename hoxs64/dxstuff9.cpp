@@ -27,7 +27,6 @@
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
-#include "enumjoydata.h"
 #include "dxstuff9.h"
 #include "resource.h"
 
@@ -2671,46 +2670,16 @@ HRESULT hr;
 		joy[joyindex]->Unacquire();
 		joy[joyindex]->Release();
 	}
+
 	joy[joyindex] = NULL;
 	hr = pDI->CreateDeviceEx(refguid, IID_IDirectInputDevice7, (LPVOID *)&joy[joyindex], NULL);
 	return hr;
-}
-
-HRESULT CDX9::GetObjectInfo(int joyindex, LPDIDEVICEOBJECTINSTANCE pdidoi, DWORD dwObj, DWORD dwHow)
-{
-	if (joy[joyindex] == NULL)
-	{
-		return E_POINTER;
-	}
-	return joy[joyindex]->GetObjectInfo(pdidoi, dwObj, dwHow);
-}
-
-HRESULT CDX9::GetPropJoy(int joyindex, REFGUID rguid, LPDIPROPHEADER pph)
-{
-	if (joy[joyindex] == NULL)
-		return E_POINTER;
-	return joy[joyindex]->GetProperty(rguid, pph);
-}
-
-HRESULT CDX9::SetPropJoy(int joyindex, REFGUID rguid, LPCDIPROPHEADER pph)
-{
-	if (joy[joyindex] == NULL)
-		return E_POINTER;
-	return joy[joyindex]->SetProperty(rguid, pph);
-}
-
-HRESULT CDX9::GetDeviceState(int joyindex, LPVOID pData)
-{
-	if (joy[joyindex] == NULL)
-		return E_POINTER;
-	return joy[joyindex]->GetDeviceState(sizeof(DIJOYSTATE), pData);
 }
 
 LPDIRECTINPUTDEVICE7 CDX9::GetJoy(int joyindex)
 {
 	return joy[joyindex];
 }
-
 
 void CDX9::ReleaseJoy()
 {
@@ -2744,13 +2713,6 @@ HRESULT CDX9::EnumObjectsJoy(int joyindex, LPDIENUMDEVICEOBJECTSCALLBACK lpCallb
 	return joy[joyindex]->EnumObjects(lpCallback, pvRef, dwFlags);
 }
 
-HRESULT CDX9::SetDataFormatJoy(int joyindex, LPCDIDATAFORMAT lpdf)
-{
-	if (joy[joyindex] == NULL)
-		return E_POINTER;
-	return joy[joyindex]->SetDataFormat(lpdf);
-}
-
 HRESULT CDX9::AcquireJoy(int joyindex)
 {
 	if (joy[joyindex] == NULL)
@@ -2770,13 +2732,6 @@ HRESULT CDX9::PollJoy(int joyindex)
 	if (joy[joyindex] == NULL)
 		return E_POINTER;
 	return joy[joyindex]->Poll();
-}
-
-HRESULT CDX9::SetCooperativeLevelJoy(int joyindex, HWND hWnd, DWORD dwFlags)
-{
-	if (joy[joyindex] == NULL)
-		return E_POINTER;
-	return joy[joyindex]->SetCooperativeLevel(hWnd, dwFlags);
 }
 
 HRESULT CDX9::InitJoy(HWND hWnd, int joyindex, struct joyconfig &joycfg)
@@ -2813,15 +2768,27 @@ unsigned int j;
 		hr = CreateDeviceJoy(joyindex, joycfg.joystickID);
 		if (SUCCEEDED(hr))
 		{
+			LPDIRECTINPUTDEVICE7 pJoy = (LPDIRECTINPUTDEVICE7) this->GetJoy(joyindex);
 			ZeroMemory(&dicaps, sizeof(dicaps));
 			dicaps.dwSize = sizeof(dicaps);
-			hr = joy[joyindex]->GetCapabilities(&dicaps);
+			hr = pJoy->GetCapabilities(&dicaps);
 			if (SUCCEEDED(hr))
 			{
-				hr = SetDataFormatJoy(joyindex, &c_dfDIJoystick);
+				if (G::IsLargeGameDevice(dicaps))
+				{					
+					joycfg.sizeOfInputDeviceFormat = sizeof(DIJOYSTATE2);
+					joycfg.inputDeviceFormat = &c_dfDIJoystick2;
+				}
+				else
+				{
+					joycfg.sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
+					joycfg.inputDeviceFormat = &c_dfDIJoystick;
+				}
+
+				hr = pJoy->SetDataFormat(joycfg.inputDeviceFormat);
 				if (SUCCEEDED(hr))
 				{
-					hr = SetCooperativeLevelJoy(joyindex, hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+					hr = pJoy->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
 					if (SUCCEEDED(hr))
 					{
 						ok = true;
@@ -2830,7 +2797,7 @@ unsigned int j;
 							//X Axis
 							ZeroMemory(&didoi, sizeof(didoi));
 							didoi.dwSize = sizeof(didoi);
-							hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_X, DIPH_BYOFFSET);
+							hr = pJoy->GetObjectInfo(&didoi, joycfg.dwOfs_X, DIPH_BYOFFSET);
 							if (SUCCEEDED(hr))
 							{
 								if ((didoi.dwType & DIDFT_AXIS) != 0)
@@ -2843,7 +2810,7 @@ unsigned int j;
 									diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
 									diprg.lMin              = joycfg.xMin; 
 									diprg.lMax              = joycfg.xMax; 
-									hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+									hr = pJoy->SetProperty(DIPROP_RANGE, &diprg.diph);
 									if (FAILED(hr))
 									{
 										ZeroMemory(&diprg, sizeof(diprg));
@@ -2851,7 +2818,7 @@ unsigned int j;
 										diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
 										diprg.diph.dwHow        = DIPH_BYOFFSET; 
 										diprg.diph.dwObj        = joycfg.dwOfs_X; // Specify the enumerated axis
-										hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+										hr = pJoy->GetProperty(DIPROP_RANGE, &diprg.diph);
 										if (FAILED(hr))
 										{
 											SetError(hr, TEXT("GetProperty DIPROP_RANGE failed."));
@@ -2863,6 +2830,7 @@ unsigned int j;
 											joycfg.xMax = diprg.lMax; 
 										}
 									}
+
 									joycfg.xLeft = joycfg.xMin + 60L * (joycfg.xMax - joycfg.xMin)/200L;
 									joycfg.xRight = joycfg.xMax - 60L * (joycfg.xMax - joycfg.xMin)/200L;
 								}
@@ -2878,7 +2846,7 @@ unsigned int j;
 						{
 							ZeroMemory(&didoi, sizeof(didoi));
 							didoi.dwSize = sizeof(didoi);
-							hr = GetObjectInfo(joyindex, &didoi, joycfg.dwOfs_Y, DIPH_BYOFFSET);
+							hr = pJoy->GetObjectInfo(&didoi, joycfg.dwOfs_Y, DIPH_BYOFFSET);
 							if (SUCCEEDED(hr))
 							{
 								if ((didoi.dwType & DIDFT_AXIS) != 0)
@@ -2890,7 +2858,7 @@ unsigned int j;
 									diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
 									diprg.lMin              = joycfg.yMin; 
 									diprg.lMax              = joycfg.yMax; 
-									hr = SetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+									hr = pJoy->SetProperty(DIPROP_RANGE, &diprg.diph);
 									if (FAILED(hr))
 									{
 										ZeroMemory(&diprg, sizeof(diprg));
@@ -2898,7 +2866,7 @@ unsigned int j;
 										diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
 										diprg.diph.dwHow        = DIPH_BYOFFSET; 
 										diprg.diph.dwObj        = joycfg.dwOfs_Y; // Specify the enumerated axis
-										hr = GetPropJoy(joyindex, DIPROP_RANGE, &diprg.diph);
+										hr = pJoy->GetProperty(DIPROP_RANGE, &diprg.diph);
 										if (SUCCEEDED(hr))
 										{
 											joycfg.yMin = diprg.lMin; 
@@ -2923,7 +2891,7 @@ unsigned int j;
 							didoi.dwSize = sizeof(didoi);
 							for(i = 0, j = 0; i < _countof(joycfg.povAvailable); i++)
 							{
-								hr = this->GetObjectInfo(joyindex, &didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
+								hr = pJoy->GetObjectInfo(&didoi, DIJOFS_POV(i), DIPH_BYOFFSET); 
 								if (hr == DIERR_OBJECTNOTFOUND)
 								{
 									continue;
