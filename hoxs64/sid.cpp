@@ -1047,27 +1047,6 @@ bit16 wave;
 		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PST[counter >> 12] << 4;
 		noiseFeedbackWave = wave;
 		return wave;
-	//case sidNOISESAWTOOTHPULSE:
-	//	wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PS[counter >> 12] << 4;
-	//	noiseFeedbackWave = wave;
-	//	mask0 = 0x0fff;
-	//	mask1 = 0x03c0;
-	//	wave &= ShiftRegisterOutput();
-	//	return wave;
-	//case sidNOISETRIANGLEPULSE:
-	//	wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PT[counter >> 12] << 4;
-	//	noiseFeedbackWave = wave;
-	//	mask0 = 0x0fff;
-	//	mask1 = 0x03c0;
-	//	wave &= ShiftRegisterOutput();
-	//	return wave;
-	//case sidNOISESTRIANGLESAWTOOTH:
-	//	wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_ST[counter >> 12] << 4;
-	//	noiseFeedbackWave = wave;
-	//	mask0 = 0x0fff;
-	//	mask1 = 0x03c0;
-	//	wave &= ShiftRegisterOutput();
-	//	return wave;
 	case sidTRIANGLESAWTOOTH:
 		wave = (unsigned short)sidWave_ST[counter >> 12] << 4;
 		noiseFeedbackWave = wave;
