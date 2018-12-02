@@ -2134,7 +2134,7 @@ bit32 dwordCount;
 
 		SsSidV3 sbSid;
 		this->sid.GetState(sbSid);
-		hr = SaveState::SaveSection(pfs, sbSid, SsLib::SectionType::C64SidV1);
+		hr = SaveState::SaveSection(pfs, sbSid, SsLib::SectionType::C64SidV3);
 		if (FAILED(hr))
 		{
 			break;
