@@ -154,7 +154,7 @@ CConfig::CConfig()
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
-	m_bSidDigiBoost = true;
+	m_bSidDigiBoost = false;
 	m_bMaxSpeed = false;
 	m_bSkipFrames = false;
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
@@ -451,7 +451,7 @@ int i;
 		}
 		else
 		{
-			m_bSidDigiBoost = true;
+			m_bSidDigiBoost = false;
 		}
 
 		lRetCode = G::GetClsidFromRegValue(hKey1, TEXT("FullscreenAdapterId"), &m_fullscreenAdapterId);
@@ -1669,7 +1669,7 @@ void CConfig::LoadDefaultSetting()
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
-	m_bSidDigiBoost = true;
+	m_bSidDigiBoost = false;
 
 	if (G::IsMultiCore())
 	{
