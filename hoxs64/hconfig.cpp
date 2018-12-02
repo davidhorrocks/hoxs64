@@ -1809,6 +1809,7 @@ LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPD
 joyconfig::joyconfig()
 {	
 	LoadDefault();
+	joyNotAcquiredClock = 0;
 }
 
 void joyconfig::LoadDefault()

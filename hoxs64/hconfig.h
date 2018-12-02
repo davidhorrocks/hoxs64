@@ -121,6 +121,7 @@ struct joyconfig
 	DWORD povAvailable[4];
 	int povIndex[4];
 	void LoadDefault();
+	ICLK joyNotAcquiredClock;
 };
 
 class CConfig

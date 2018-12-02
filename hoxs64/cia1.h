@@ -75,6 +75,7 @@ private:
 	bool restore_was_up;
 	bool F12_was_up;
 	bool F11_was_up;
+	ICLK keyboardNotAcquiredClock;
 };
 
 #endif

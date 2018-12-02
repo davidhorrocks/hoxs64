@@ -32,6 +32,7 @@
 #include "cia1.h"
 
 #define KEYBOARDMINSCANINTERVAL (3000)
+#define DEVICEACQUIRECLOCKS (500 * PALCLOCKSPERSECOND / 1000)
 
 #define KEYMATRIX_DOWN(row,col) keyboard_matrix[row] = \
 	(keyboard_matrix[row] & (bit8)~(1<<col));\
@@ -54,6 +55,7 @@ CIA1::CIA1()
 	restore_was_up=true;
 	F12_was_up=true;
 	F11_was_up=true;
+	keyboardNotAcquiredClock = 0;
 }
 
 HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, ISid *sid, Tape64 *tape64, CDX9 *dx)
@@ -460,10 +462,20 @@ const DWORD povDownRight = 18000 - 2250;
 	joystick7 = (LPDIRECTINPUTDEVICE7) dx->GetJoy(joyindex);
 	joystick7->Poll();
 	hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js);
-	if(hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
+	if (hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
 	{
-		hr = joystick7->Acquire();
-		hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js);
+		if ((this->CurrentClock - joycfg.joyNotAcquiredClock) > DEVICEACQUIRECLOCKS)
+		{
+			hr = joystick7->Acquire();
+			if (SUCCEEDED(hr))
+			{
+				hr = joystick7->GetDeviceState(sizeof(DIJOYSTATE), &js);
+			}
+			else
+			{
+				joycfg.joyNotAcquiredClock = this->CurrentClock;
+			}
+		}
 	}
 
 	if (SUCCEEDED(hr))
@@ -654,6 +666,7 @@ static int softcursorleftcount = 0;
 static int softcursorupcount = 0;
 bool joy1ok;
 bool joy2ok;
+bool keyboardok;
 bit8 localjoyport1;
 bit8 localjoyport2;
 //3-2-1-0 bit postion in joynaxis
@@ -689,27 +702,30 @@ bit8 localpotBy = 0xff;
 	}
 	
 	hr = dx->pKeyboard->GetDeviceState(sizeof(buffer),(LPVOID)&buffer); 
-	if FAILED(hr) 
+	if SUCCEEDED(hr) 
+	{
+		keyboardok = true;
+	}
+	else
 	{ 
+		keyboardok = false;
 		if (hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
 		{
-			hr = dx->pKeyboard->Acquire();
-			if ( FAILED(hr) )
+			if ((this->CurrentClock - keyboardNotAcquiredClock) > DEVICEACQUIRECLOCKS)
 			{
-				return;
+				hr = dx->pKeyboard->Acquire();
+				if (SUCCEEDED(hr))
+				{
+					hr = dx->pKeyboard->GetDeviceState(sizeof(buffer),(LPVOID)&buffer); 
+					if SUCCEEDED(hr)
+					{
+						keyboardok = true;
+					}
+				}
 			}
+		}
+	}
 
-			hr = dx->pKeyboard->GetDeviceState(sizeof(buffer),(LPVOID)&buffer); 
-			if FAILED(hr)
-			{
-				return;
-			}
-		}
-		else
-		{
-			return; 
-		}
-	} 
 	if (SUCCEEDED(hr))
 	{
 		hr=S_OK;
@@ -787,527 +803,534 @@ bit8 localpotBy = 0xff;
 		}
 	}
 
-	if (RAWKEYDOWN(buffer, DIK_LALT) || GetAsyncKeyState(VK_MENU) < 0 || m_bAltLatch)	 
+	if (keyboardok)
 	{
-		//Make sure all emulated c64 keys are released before recognising an emulated c64 key.
-		m_bAltLatch = true;
-		int k;
-		for (k = 0; k < C64K_MAX && k < _countof(buffer); k++)
+		if (RAWKEYDOWN(buffer, DIK_LALT) || GetAsyncKeyState(VK_MENU) < 0 || m_bAltLatch)	 
 		{
-			if ((buffer[c64KeyMap[k]] & 0x80)!=0)
+			//Make sure all emulated c64 keys are released before recognising an emulated c64 key.
+			m_bAltLatch = true;
+			int k;
+			for (k = 0; k < C64K_MAX && k < _countof(buffer); k++)
 			{
-				break;
-			}
-		}
-		if (k >= _countof(buffer) || k >= C64K_MAX)
-		{
-			m_bAltLatch = false;
-		}
-	}
-	else
-	{
-		if (KEYDOWN(buffer, C64K_COLON))
-		{
-			KEYMATRIX_DOWN(5, 5);
-		}
-
-		if (KEYDOWN(buffer, C64K_STOP))
-		{
-			KEYMATRIX_DOWN(7, 7);
-		}
-
-		if (KEYDOWN(buffer, C64K_1))  
-		{
-			KEYMATRIX_DOWN(7, 0);
-		}
-
-		if (KEYDOWN(buffer, C64K_2))  
-		{
-			KEYMATRIX_DOWN(7, 3);
-		}
-			
-		if (KEYDOWN(buffer, C64K_3))  
-		{
-			KEYMATRIX_DOWN(1, 0);
-		}
-			
-		if (KEYDOWN(buffer, C64K_4))  
-		{
-			KEYMATRIX_DOWN(1, 3);
-		}
-			
-		if (KEYDOWN(buffer, C64K_5))  
-		{
-			KEYMATRIX_DOWN(2, 0);
-		}
-			
-		if (KEYDOWN(buffer, C64K_6))  
-		{
-			KEYMATRIX_DOWN(2, 3);
-		}
-			
-		if (KEYDOWN(buffer, C64K_7))  
-		{
-			KEYMATRIX_DOWN(3, 0);
-		}
-			
-		if (KEYDOWN(buffer, C64K_8))  
-		{
-			KEYMATRIX_DOWN(3, 3);
-		}
-			
-		if (KEYDOWN(buffer, C64K_9))  
-		{
-			KEYMATRIX_DOWN(4, 0);
-		}
-			
-		if (KEYDOWN(buffer, C64K_0))  
-		{
-			KEYMATRIX_DOWN(4, 3);
-		}
-			
-		if (KEYDOWN(buffer, C64K_MINUS))  
-		{
-			KEYMATRIX_DOWN(5, 3);
-		}
-			
-		if (KEYDOWN(buffer, C64K_PLUS))  
-		{
-			KEYMATRIX_DOWN(5, 0);
-		}
-
-		if (KEYDOWN(buffer, C64K_EQUAL))  
-		{
-			KEYMATRIX_DOWN(6, 5);
-		}
-			
-		if (KEYDOWN(buffer, C64K_POUND))  
-		{
-			KEYMATRIX_DOWN(6, 0);
-		}
-
-		if (KEYDOWN(buffer, C64K_DEL))
-		{
-			KEYMATRIX_DOWN(0, 0);
-		}
-			
-		if (KEYDOWN(buffer, C64K_STOP))   
-		{
-			KEYMATRIX_DOWN(7, 7);
-		}
-			
-		if (KEYDOWN(buffer, C64K_Q))   
-		{
-			KEYMATRIX_DOWN(7, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_W))   
-		{
-			KEYMATRIX_DOWN(1, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_E))   
-		{
-			KEYMATRIX_DOWN(1, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_R))   
-		{
-			KEYMATRIX_DOWN(2, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_T))   
-		{
-			KEYMATRIX_DOWN(2, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_Y))   
-		{
-			KEYMATRIX_DOWN(3, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_U))   
-		{
-			KEYMATRIX_DOWN(3, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_I))   
-		{
-			KEYMATRIX_DOWN(4, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_O))   
-		{
-			KEYMATRIX_DOWN(4, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_P))   
-		{
-			KEYMATRIX_DOWN(5, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_ASTERISK))
-		{
-			KEYMATRIX_DOWN(6, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_ARROWUP))
-		{
-			KEYMATRIX_DOWN(6, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_RETURN))
-		{
-			KEYMATRIX_DOWN(0, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_CONTROL))
-		{
-			KEYMATRIX_DOWN(7, 2);
-		}
-			
-		if (KEYDOWN(buffer, C64K_A))   
-		{
-			KEYMATRIX_DOWN(1, 2);
-		}
-			
-		if (KEYDOWN(buffer, C64K_S))   
-		{
-			KEYMATRIX_DOWN(1, 5);
-		}
-			
-		if (KEYDOWN(buffer, C64K_D))   
-		{
-			KEYMATRIX_DOWN(2, 2);
-		}
-			
-		if (KEYDOWN(buffer, C64K_F))   
-		{
-			KEYMATRIX_DOWN(2, 5);
-		}
-			
-		if (KEYDOWN(buffer, C64K_G))   
-		{
-			KEYMATRIX_DOWN(3, 2);
-		}
-			
-		if (KEYDOWN(buffer, C64K_H))   
-		{
-			KEYMATRIX_DOWN(3, 5);
-		}
-			
-		if (KEYDOWN(buffer, C64K_J))   
-		{
-			KEYMATRIX_DOWN(4, 2);
-		}
-			
-		if (KEYDOWN(buffer, C64K_K))   
-		{
-			KEYMATRIX_DOWN(4, 5);
-		}
-			
-		if (KEYDOWN(buffer, C64K_L))   
-		{
-			KEYMATRIX_DOWN(5, 2);
-		}
-			
-		if (KEYDOWN(buffer, C64K_SEMICOLON))
-		{
-			KEYMATRIX_DOWN(6, 2);
-		}
-			
-		if (KEYDOWN(buffer, C64K_AT))   
-		{
-			KEYMATRIX_DOWN(5, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_ARROWLEFT))
-		{
-			KEYMATRIX_DOWN(7, 1);
-		}
-			
-		if (KEYDOWN(buffer, C64K_LEFTSHIFT))
-		{
-			KEYMATRIX_DOWN(1, 7);
-		}
-			
-		if (KEYDOWN(buffer, C64K_COMMODORE))
-		{
-			KEYMATRIX_DOWN(7, 5);
-		}
-
-		if (KEYDOWN(buffer, C64K_Z))   
-		{
-			KEYMATRIX_DOWN(1, 4);
-		}
-			
-		if (KEYDOWN(buffer, C64K_X))   
-		{
-			KEYMATRIX_DOWN(2, 7);
-		}
-			
-		if (KEYDOWN(buffer, C64K_C))   
-		{
-			KEYMATRIX_DOWN(2, 4);
-		}
-			
-		if (KEYDOWN(buffer, C64K_V))   
-		{
-			KEYMATRIX_DOWN(3, 7);
-		}
-			
-		if (KEYDOWN(buffer, C64K_B))   
-		{
-			KEYMATRIX_DOWN(3, 4);
-		}
-			
-		if (KEYDOWN(buffer, C64K_N))   
-		{
-			KEYMATRIX_DOWN(4, 7);
-		}
-			
-		if (KEYDOWN(buffer, C64K_M))   
-		{
-			KEYMATRIX_DOWN(4, 4);
-		}
-			
-		if (KEYDOWN(buffer, C64K_COMMA))   
-		{
-			KEYMATRIX_DOWN(5, 7);
-		}
-			
-		if (KEYDOWN(buffer, C64K_DOT))   
-		{
-			KEYMATRIX_DOWN(5, 4);
-		}
-			
-		if (KEYDOWN(buffer, C64K_SLASH))
-		{
-			KEYMATRIX_DOWN(6, 7);
-		}
-			
-		if (KEYDOWN(buffer, C64K_RIGHTSHIFT)) 
-		{
-			KEYMATRIX_DOWN(6, 4);
-		}
-					
-		if (KEYDOWN(buffer, C64K_SPACE))
-		{
-			KEYMATRIX_DOWN(7, 4);
-		}
-			
-		if (KEYDOWN(buffer, C64K_F1))   
-		{
-			KEYMATRIX_DOWN(0, 4);
-		}
-			
-		if (KEYDOWN(buffer, C64K_F3))   
-		{
-			KEYMATRIX_DOWN(0, 5);
-		}
-			
-		if (KEYDOWN(buffer, C64K_F5))   
-		{
-			KEYMATRIX_DOWN(0, 6);
-		}
-			
-		if (KEYDOWN(buffer, C64K_F7))   
-		{
-			KEYMATRIX_DOWN(0, 3);
-		}
-											
-		if (RAWKEYDOWN(buffer, DIK_F12))   
-		{
-			if (F12_was_up)
-			{
-				pIC64->PostHardReset(true);
-			}
-			F12_was_up=false;
-		}
-		else
-		{
-			F12_was_up=true;
-		}
-
-		if (RAWKEYDOWN(buffer, DIK_F11))
-		{
-			if (F11_was_up)
-			{
-				pIC64->PostSoftReset(true);
-			}
-			F11_was_up=false;
-		}
-		else
-		{
-			F11_was_up=true;
-		}
-
-		if (KEYDOWN(buffer, C64K_HOME))  
-		{
-			KEYMATRIX_DOWN(6, 3);
-		}
-
-		if (KEYDOWN(buffer, C64K_RESTORE))
-		{
-			if (restore_was_up)
-			{
-				bit8 currentNMI = cpu->NMI;
-				if (cpu->NMI == 0)
+				if ((buffer[c64KeyMap[k]] & 0x80) != 0)
 				{
-					cpu->SetNMI(CurrentClock);
+					break;
 				}
-
-				cpu->NMI = currentNMI;
 			}
-			restore_was_up=false;
-		}
-		else
-		{
-			restore_was_up=true;
-		}
 
-		if (KEYDOWN(buffer, C64K_CURSORRIGHT))
-		{
-			KEYMATRIX_DOWN(0, 2);
-		}
-
-		if (KEYDOWN(buffer, C64K_CURSORDOWN))
-		{
-			KEYMATRIX_DOWN(0, 7);
-		}
-
-		if (KEYDOWN(buffer, C64K_CURSORUP))
-		{
-			KEYMATRIX_DOWN(6, 4);
-			if (softcursorupcount > 0)
+			if (k >= _countof(buffer) || k >= C64K_MAX)
 			{
-				KEYMATRIX_DOWN(0, 7);
-			}
-			else 
-			{
-				softcursorupcount++;
+				m_bAltLatch = false;
 			}
 		}
 		else
 		{
-			if (softcursorupcount > 0)
+			if (KEYDOWN(buffer, C64K_COLON))
 			{
-				softcursorupcount--;
+				KEYMATRIX_DOWN(5, 5);
+			}
+
+			if (KEYDOWN(buffer, C64K_STOP))
+			{
+				KEYMATRIX_DOWN(7, 7);
+			}
+
+			if (KEYDOWN(buffer, C64K_1))  
+			{
+				KEYMATRIX_DOWN(7, 0);
+			}
+
+			if (KEYDOWN(buffer, C64K_2))  
+			{
+				KEYMATRIX_DOWN(7, 3);
+			}
+			
+			if (KEYDOWN(buffer, C64K_3))  
+			{
+				KEYMATRIX_DOWN(1, 0);
+			}
+			
+			if (KEYDOWN(buffer, C64K_4))  
+			{
+				KEYMATRIX_DOWN(1, 3);
+			}
+			
+			if (KEYDOWN(buffer, C64K_5))  
+			{
+				KEYMATRIX_DOWN(2, 0);
+			}
+			
+			if (KEYDOWN(buffer, C64K_6))  
+			{
+				KEYMATRIX_DOWN(2, 3);
+			}
+			
+			if (KEYDOWN(buffer, C64K_7))  
+			{
+				KEYMATRIX_DOWN(3, 0);
+			}
+			
+			if (KEYDOWN(buffer, C64K_8))  
+			{
+				KEYMATRIX_DOWN(3, 3);
+			}
+			
+			if (KEYDOWN(buffer, C64K_9))  
+			{
+				KEYMATRIX_DOWN(4, 0);
+			}
+			
+			if (KEYDOWN(buffer, C64K_0))  
+			{
+				KEYMATRIX_DOWN(4, 3);
+			}
+			
+			if (KEYDOWN(buffer, C64K_MINUS))  
+			{
+				KEYMATRIX_DOWN(5, 3);
+			}
+			
+			if (KEYDOWN(buffer, C64K_PLUS))  
+			{
+				KEYMATRIX_DOWN(5, 0);
+			}
+
+			if (KEYDOWN(buffer, C64K_EQUAL))  
+			{
+				KEYMATRIX_DOWN(6, 5);
+			}
+			
+			if (KEYDOWN(buffer, C64K_POUND))  
+			{
+				KEYMATRIX_DOWN(6, 0);
+			}
+
+			if (KEYDOWN(buffer, C64K_DEL))
+			{
+				KEYMATRIX_DOWN(0, 0);
+			}
+			
+			if (KEYDOWN(buffer, C64K_STOP))   
+			{
+				KEYMATRIX_DOWN(7, 7);
+			}
+			
+			if (KEYDOWN(buffer, C64K_Q))   
+			{
+				KEYMATRIX_DOWN(7, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_W))   
+			{
+				KEYMATRIX_DOWN(1, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_E))   
+			{
+				KEYMATRIX_DOWN(1, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_R))   
+			{
+				KEYMATRIX_DOWN(2, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_T))   
+			{
+				KEYMATRIX_DOWN(2, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_Y))   
+			{
+				KEYMATRIX_DOWN(3, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_U))   
+			{
+				KEYMATRIX_DOWN(3, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_I))   
+			{
+				KEYMATRIX_DOWN(4, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_O))   
+			{
+				KEYMATRIX_DOWN(4, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_P))   
+			{
+				KEYMATRIX_DOWN(5, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_ASTERISK))
+			{
+				KEYMATRIX_DOWN(6, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_ARROWUP))
+			{
+				KEYMATRIX_DOWN(6, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_RETURN))
+			{
+				KEYMATRIX_DOWN(0, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_CONTROL))
+			{
+				KEYMATRIX_DOWN(7, 2);
+			}
+			
+			if (KEYDOWN(buffer, C64K_A))   
+			{
+				KEYMATRIX_DOWN(1, 2);
+			}
+			
+			if (KEYDOWN(buffer, C64K_S))   
+			{
+				KEYMATRIX_DOWN(1, 5);
+			}
+			
+			if (KEYDOWN(buffer, C64K_D))   
+			{
+				KEYMATRIX_DOWN(2, 2);
+			}
+			
+			if (KEYDOWN(buffer, C64K_F))   
+			{
+				KEYMATRIX_DOWN(2, 5);
+			}
+			
+			if (KEYDOWN(buffer, C64K_G))   
+			{
+				KEYMATRIX_DOWN(3, 2);
+			}
+			
+			if (KEYDOWN(buffer, C64K_H))   
+			{
+				KEYMATRIX_DOWN(3, 5);
+			}
+			
+			if (KEYDOWN(buffer, C64K_J))   
+			{
+				KEYMATRIX_DOWN(4, 2);
+			}
+			
+			if (KEYDOWN(buffer, C64K_K))   
+			{
+				KEYMATRIX_DOWN(4, 5);
+			}
+			
+			if (KEYDOWN(buffer, C64K_L))   
+			{
+				KEYMATRIX_DOWN(5, 2);
+			}
+			
+			if (KEYDOWN(buffer, C64K_SEMICOLON))
+			{
+				KEYMATRIX_DOWN(6, 2);
+			}
+			
+			if (KEYDOWN(buffer, C64K_AT))   
+			{
+				KEYMATRIX_DOWN(5, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_ARROWLEFT))
+			{
+				KEYMATRIX_DOWN(7, 1);
+			}
+			
+			if (KEYDOWN(buffer, C64K_LEFTSHIFT))
+			{
+				KEYMATRIX_DOWN(1, 7);
+			}
+			
+			if (KEYDOWN(buffer, C64K_COMMODORE))
+			{
+				KEYMATRIX_DOWN(7, 5);
+			}
+
+			if (KEYDOWN(buffer, C64K_Z))   
+			{
+				KEYMATRIX_DOWN(1, 4);
+			}
+			
+			if (KEYDOWN(buffer, C64K_X))   
+			{
+				KEYMATRIX_DOWN(2, 7);
+			}
+			
+			if (KEYDOWN(buffer, C64K_C))   
+			{
+				KEYMATRIX_DOWN(2, 4);
+			}
+			
+			if (KEYDOWN(buffer, C64K_V))   
+			{
+				KEYMATRIX_DOWN(3, 7);
+			}
+			
+			if (KEYDOWN(buffer, C64K_B))   
+			{
+				KEYMATRIX_DOWN(3, 4);
+			}
+			
+			if (KEYDOWN(buffer, C64K_N))   
+			{
+				KEYMATRIX_DOWN(4, 7);
+			}
+			
+			if (KEYDOWN(buffer, C64K_M))   
+			{
+				KEYMATRIX_DOWN(4, 4);
+			}
+			
+			if (KEYDOWN(buffer, C64K_COMMA))   
+			{
+				KEYMATRIX_DOWN(5, 7);
+			}
+			
+			if (KEYDOWN(buffer, C64K_DOT))   
+			{
+				KEYMATRIX_DOWN(5, 4);
+			}
+			
+			if (KEYDOWN(buffer, C64K_SLASH))
+			{
+				KEYMATRIX_DOWN(6, 7);
+			}
+			
+			if (KEYDOWN(buffer, C64K_RIGHTSHIFT)) 
+			{
 				KEYMATRIX_DOWN(6, 4);
 			}
-		}
-
-		if (KEYDOWN(buffer, C64K_CURSORLEFT))
-		{
-			KEYMATRIX_DOWN(6, 4);
-			if (softcursorleftcount > 0)
+					
+			if (KEYDOWN(buffer, C64K_SPACE))
 			{
-				KEYMATRIX_DOWN(0, 2);
+				KEYMATRIX_DOWN(7, 4);
+			}
+			
+			if (KEYDOWN(buffer, C64K_F1))   
+			{
+				KEYMATRIX_DOWN(0, 4);
+			}
+			
+			if (KEYDOWN(buffer, C64K_F3))   
+			{
+				KEYMATRIX_DOWN(0, 5);
+			}
+			
+			if (KEYDOWN(buffer, C64K_F5))   
+			{
+				KEYMATRIX_DOWN(0, 6);
+			}
+			
+			if (KEYDOWN(buffer, C64K_F7))   
+			{
+				KEYMATRIX_DOWN(0, 3);
+			}
+											
+			if (RAWKEYDOWN(buffer, DIK_F12))   
+			{
+				if (F12_was_up)
+				{
+					pIC64->PostHardReset(true);
+				}
+
+				F12_was_up=false;
 			}
 			else
 			{
-				softcursorleftcount++;
+				F12_was_up=true;
+			}
+
+			if (RAWKEYDOWN(buffer, DIK_F11))
+			{
+				if (F11_was_up)
+				{
+					pIC64->PostSoftReset(true);
+				}
+
+				F11_was_up=false;
+			}
+			else
+			{
+				F11_was_up=true;
+			}
+
+			if (KEYDOWN(buffer, C64K_HOME))  
+			{
+				KEYMATRIX_DOWN(6, 3);
+			}
+
+			if (KEYDOWN(buffer, C64K_RESTORE))
+			{
+				if (restore_was_up)
+				{
+					bit8 currentNMI = cpu->NMI;
+					if (cpu->NMI == 0)
+					{
+						cpu->SetNMI(CurrentClock);
+					}
+
+					cpu->NMI = currentNMI;
+				}
+
+				restore_was_up=false;
+			}
+			else
+			{
+				restore_was_up=true;
+			}
+
+			if (KEYDOWN(buffer, C64K_CURSORRIGHT))
+			{
+				KEYMATRIX_DOWN(0, 2);
+			}
+
+			if (KEYDOWN(buffer, C64K_CURSORDOWN))
+			{
+				KEYMATRIX_DOWN(0, 7);
+			}
+
+			if (KEYDOWN(buffer, C64K_CURSORUP))
+			{
+				KEYMATRIX_DOWN(6, 4);
+				if (softcursorupcount > 0)
+				{
+					KEYMATRIX_DOWN(0, 7);
+				}
+				else 
+				{
+					softcursorupcount++;
+				}
+			}
+			else
+			{
+				if (softcursorupcount > 0)
+				{
+					softcursorupcount--;
+					KEYMATRIX_DOWN(6, 4);
+				}
+			}
+
+			if (KEYDOWN(buffer, C64K_CURSORLEFT))
+			{
+				KEYMATRIX_DOWN(6, 4);
+				if (softcursorleftcount > 0)
+				{
+					KEYMATRIX_DOWN(0, 2);
+				}
+				else
+				{
+					softcursorleftcount++;
+				}
+			}
+			else
+			{
+				if (softcursorleftcount > 0)
+				{
+					softcursorleftcount--;
+					KEYMATRIX_DOWN(6, 4);
+				}
+			}
+		}
+
+		if (appStatus->m_bAllowOpposingJoystick)
+		{
+			if (KEYDOWN(buffer, C64K_JOY1UP))
+			{
+				localjoyport1 &= (bit8) ~1;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY1DOWN))   
+			{
+				localjoyport1 &= (bit8) ~2;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY1LEFT))   
+			{
+				localjoyport1 &= (bit8) ~4;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY1RIGHT))
+			{
+				localjoyport1 &= (bit8) ~8;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY2UP))
+			{
+				localjoyport2 &= (bit8) ~1;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY2DOWN))
+			{
+				localjoyport2 &= (bit8) ~2;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY2LEFT))
+			{
+				localjoyport2 &= (bit8) ~4;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY2RIGHT))
+			{
+				localjoyport2 &= (bit8) ~8;
 			}
 		}
 		else
 		{
-			if (softcursorleftcount > 0)
+			if (KEYDOWN(buffer, C64K_JOY1UP))
 			{
-				softcursorleftcount--;
-				KEYMATRIX_DOWN(6, 4);
+				localjoyport1 &= (bit8) ~1;
+			}
+			else if (KEYDOWN(buffer, C64K_JOY1DOWN))
+			{
+				localjoyport1 &= (bit8) ~2;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY1LEFT))
+			{
+				localjoyport1 &= (bit8) ~4;
+			}
+			else if (KEYDOWN(buffer, C64K_JOY1RIGHT))
+			{
+				localjoyport1 &= (bit8) ~8;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY2UP))
+			{
+				localjoyport2 &= (bit8) ~1;
+			}
+			else if (KEYDOWN(buffer, C64K_JOY2DOWN))
+			{
+				localjoyport2 &= (bit8) ~2;
+			}
+
+			if (KEYDOWN(buffer, C64K_JOY2LEFT))
+			{
+				localjoyport2 &= (bit8) ~4;
+			}
+			else if (KEYDOWN(buffer, C64K_JOY2RIGHT))
+			{
+				localjoyport2 &= (bit8) ~8;
 			}
 		}
-	}
 
-	if (appStatus->m_bAllowOpposingJoystick)
-	{
-		if (KEYDOWN(buffer, C64K_JOY1UP))
+		if (KEYDOWN(buffer, C64K_JOY2FIRE))   
 		{
-			localjoyport1 &= (bit8) ~1;
+			localjoyport2 &= (bit8) ~16;
 		}
 
-		if (KEYDOWN(buffer, C64K_JOY1DOWN))   
+		if (KEYDOWN(buffer, C64K_JOY1FIRE))   
 		{
-			localjoyport1 &= (bit8) ~2;
+			localjoyport1 &= (bit8) ~16;
 		}
-
-		if (KEYDOWN(buffer, C64K_JOY1LEFT))   
-		{
-			localjoyport1 &= (bit8) ~4;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY1RIGHT))
-		{
-			localjoyport1 &= (bit8) ~8;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY2UP))
-		{
-			localjoyport2 &= (bit8) ~1;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY2DOWN))
-		{
-			localjoyport2 &= (bit8) ~2;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY2LEFT))
-		{
-			localjoyport2 &= (bit8) ~4;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY2RIGHT))
-		{
-			localjoyport2 &= (bit8) ~8;
-		}
-	}
-	else
-	{
-		if (KEYDOWN(buffer, C64K_JOY1UP))
-		{
-			localjoyport1 &= (bit8) ~1;
-		}
-		else if (KEYDOWN(buffer, C64K_JOY1DOWN))
-		{
-			localjoyport1 &= (bit8) ~2;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY1LEFT))
-		{
-			localjoyport1 &= (bit8) ~4;
-		}
-		else if (KEYDOWN(buffer, C64K_JOY1RIGHT))
-		{
-			localjoyport1 &= (bit8) ~8;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY2UP))
-		{
-			localjoyport2 &= (bit8) ~1;
-		}
-		else if (KEYDOWN(buffer, C64K_JOY2DOWN))
-		{
-			localjoyport2 &= (bit8) ~2;
-		}
-
-		if (KEYDOWN(buffer, C64K_JOY2LEFT))
-		{
-			localjoyport2 &= (bit8) ~4;
-		}
-		else if (KEYDOWN(buffer, C64K_JOY2RIGHT))
-		{
-			localjoyport2 &= (bit8) ~8;
-		}
-	}
-
-	if (KEYDOWN(buffer, C64K_JOY2FIRE))   
-	{
-		localjoyport2 &= (bit8) ~16;
-	}
-
-	if (KEYDOWN(buffer, C64K_JOY1FIRE))   
-	{
-		localjoyport1 &= (bit8) ~16;
 	}
 
 	if (appStatus->m_bSwapJoysticks)
