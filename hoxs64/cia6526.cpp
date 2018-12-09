@@ -997,8 +997,9 @@ bit8 data_old;
 			if (tod_write_freeze)
 			{
 				tod_write_freeze=0;
-				tod_tick = 0;
+				tod_tick = tod_tick % PALCLOCKSPERSECOND;
 			}
+
 			tod.byte.ths=data & 0xf;
 			if (prevtime.dword != tod.dword)
 			{
