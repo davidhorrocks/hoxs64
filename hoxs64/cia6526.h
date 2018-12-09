@@ -142,7 +142,6 @@ public:
 	ICLKS tod_clock_reload;
 	ICLKS tod_clock_rate;
 	ICLKS tod_tick;
-	ICLKS tod_clock_compare_band;
 	volatile bit8 tod_alarm;
 	volatile bit8 tod_read_freeze;	
 	volatile cia_tod tod_read_latch;

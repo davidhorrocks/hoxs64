@@ -48,7 +48,6 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 	tod_clock_rate=TODDIVIDER60;
 	tod_clock_reload=TODRELOAD60;
 	tod_tick=0;
-	tod_clock_compare_band=TODCLOCKCOMPAREBAND60;
 	tod.byte.ths=0;
 	tod.byte.sec=0;
 	tod.byte.min=0;
@@ -1258,20 +1257,15 @@ bit8 data_old;
 			{
 				tod_clock_reload = TODRELOAD50;
 				tod_clock_rate = TODDIVIDER50;
-				tod_clock_compare_band = TODCLOCKCOMPAREBAND50;
-				tod_tick = tod_tick / (TODDIVIDER60/TODDIVIDER50);
 			}
 			else
 			{
 				tod_clock_reload = TODRELOAD60;
 				tod_clock_rate = TODDIVIDER60;
-				tod_clock_compare_band = TODCLOCKCOMPAREBAND60;
-				tod_tick = tod_tick * (TODDIVIDER60/TODDIVIDER50);
 			}
 		}
 
 		cra=data & 0xEF;
-
 		idle=false;
 		no_change_count=0;
 		break;
@@ -1579,7 +1573,7 @@ void CIA::GetState(SsCiaV2 &state)
 	state.tod_clock_reload = tod_clock_reload;
 	state.tod_clock_rate = tod_clock_rate;
 	state.tod_tick = tod_tick;
-	state.tod_clock_compare_band = tod_clock_compare_band;
+	state.tod_clock_compare_band = 0;
 	state.tod_alarm = tod_alarm;
 	state.tod_read_freeze = tod_read_freeze;	
 	state.tod_read_latch.dword = tod_read_latch.dword;
@@ -1644,7 +1638,6 @@ void CIA::SetState(const SsCiaV2 &state)
 	tod_clock_reload = state.tod_clock_reload;
 	tod_clock_rate = state.tod_clock_rate;
 	tod_tick = state.tod_tick;
-	tod_clock_compare_band = state.tod_clock_compare_band;
 	tod_alarm = state.tod_alarm;
 	tod_read_freeze = state.tod_read_freeze;	
 	tod_read_latch.dword = state.tod_read_latch.dword;
