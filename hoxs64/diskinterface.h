@@ -57,6 +57,7 @@ public:
 	bool StepHeadOut();
 	void StepHeadAuto();
 	void D64_serial_write(bit8 c64_serialbus);
+	bool Get_ATN(bit8& outputPortB);
 	void D64_Attention_Change();
 	void D64_DiskProtect(bool bOn);
 
@@ -114,7 +115,7 @@ public:
 	bit16 m_shifterReader_UD2; //74LS164 UD2 Two flops make the shifter effectively 10 bits. The lower 8 bits are read by VIA2 port A.
 	ICLK m_busDataUpdateClock;
 	bit16 m_busByteReadyPreviousData;
-	bit8 m_busByteReadySignal;
+	bool m_busByteReadySignal;
 	bit8 m_frameCounter_UC3; //74LS191 UC3
 	bit8 m_debugFrameCounter;
 	bit8 m_clockDivider1_UE7_Reload;

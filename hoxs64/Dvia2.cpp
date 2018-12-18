@@ -77,13 +77,17 @@ void VIA2::ExecuteDevices(ICLK sysclock)
 	disk->SpinDisk(sysclock);
 }
 
-void VIA2::SetCA2Output(bit8 value)
+void VIA2::SetCA2Output(bool value)
 {
 	disk->SpinDisk(CurrentClock);
 	disk->m_d64_soe_enable = value;
 }
 
-void VIA2::SetCB2Output(bit8 value)
+void VIA2::SetCB1Output(bool value)
+{
+}
+
+void VIA2::SetCB2Output(bool value)
 {
 bit8 oldWE;
 

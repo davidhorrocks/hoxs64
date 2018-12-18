@@ -719,16 +719,16 @@ struct SsViaCommon
 	bit8 cb2_in_prev;
 	bit8 ca2_out;
 	bit8 cb2_out;
-	bit8 shift;
+	bit8 shiftRegisterData;
 	bit8 ifr;
 	bit8 ier;
-	bit8 serial_active;
-	bit8 serial_mode;
+	bit8 shiftRegisterMode;
+	bit8 shiftClockLevel;
 	unsigned __int64 delay;
 	unsigned __int64 feed;
 	unsigned __int64 old_delay;
 	unsigned __int64 old_feed;
-	bit8 modulo;
+	bit8 shiftCounter;
 	bit8 Interrupt;
 
 	bit8 bPB7TimerMode;

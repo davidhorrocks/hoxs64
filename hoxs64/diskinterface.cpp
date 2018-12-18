@@ -64,7 +64,7 @@ DiskInterface::DiskInterface()
 	m_shifterWriter_UD3 = 0;
 	m_shifterReader_UD2 = 0;	
 	m_busByteReadyPreviousData = 0;
-	m_busByteReadySignal = 1;
+	m_busByteReadySignal = true;
 	m_busDataUpdateClock = 0;
 	m_frameCounter_UC3 = 0;
 	m_debugFrameCounter = 0;
@@ -136,7 +136,7 @@ void DiskInterface::InitReset(ICLK sysclock, bool poweronreset)
 	m_shifterWriter_UD3 = 0;
 	m_shifterReader_UD2 = 0;
 	m_busByteReadyPreviousData = 0;
-	m_busByteReadySignal = 1;
+	m_busByteReadySignal = true;
 	m_busDataUpdateClock = sysclock;
 	m_frameCounter_UC3 = 0;
 	m_debugFrameCounter = 0;
@@ -194,6 +194,7 @@ void DiskInterface::InitReset(ICLK sysclock, bool poweronreset)
 
 void DiskInterface::Reset(ICLK sysclock, bool poweronreset)
 {
+bit8 via1OutputPortB;
 	ThreadSignalPause();
 	WaitThreadReady();
 	CurrentClock = sysclock;
@@ -206,6 +207,14 @@ void DiskInterface::Reset(ICLK sysclock, bool poweronreset)
 	via1.Reset(sysclock, poweronreset);
 	via2.Reset(sysclock, poweronreset);
 	cpu.Reset(sysclock, poweronreset);
+	via1.SetCA1Input(this->Get_ATN(via1OutputPortB), 0);// ATN line. (Shared with PB7)
+	via1.SetCA2Input(true, 0);// Not connected
+	via1.SetCB1Input(true, 0);// Not connected
+	via1.SetCB2Input(true, 0);// Not connected
+	via2.SetCA1Input(true, 0);// Byte ready (Low = byte is ready)
+	via2.SetCA2Input(true, 0);// CPU SO V Flag trigger (High = disabled)
+	via2.SetCB1Input(true, 0);// Not connected
+	via2.SetCB2Input(true, 0);// Write to disk enable (high = Reading or Low = Writing)
 	PrepareP64Head(m_currentTrackNumber);
 }
 
@@ -623,16 +632,18 @@ void DiskInterface::D64_serial_write(bit8 c64_serialbus)
 	D64_Attention_Change();
 }
 
+bool DiskInterface::Get_ATN(bit8& outputPortB)
+{
+	outputPortB = via1.PortBOutput();
+	return ((~m_c64_serialbus_diskview <<2) & outputPortB & 0x80) != 0;
+}
+
 void DiskInterface::D64_Attention_Change()
 {
 bit8 t,autoATN,portOut;
-bit8 ATN;
+bool ATN;
 
-	portOut = via1.PortBOutput();
-
-	ATN = (~m_c64_serialbus_diskview <<2) & portOut & 0x80;
-
-
+	ATN = Get_ATN(portOut);
 	autoATN = portOut & 0x10;
 	t=~portOut;
 	if (autoATN)//auto attention
@@ -646,7 +657,7 @@ bit8 ATN;
 			|((t & 0x8)<< 3);//CLOCK OUT
 	}
 
-	via1.SetCA1Input(ATN!=0, 1);//1
+	via1.SetCA1Input(ATN, 1);
 }
 
 
@@ -730,7 +741,7 @@ void DiskInterface::ClockDividerAdd(bit8 clocks, bit8 speed, bool bStartWithPuls
 bit8 clockDivider1_UE7;
 bit8 clockDivider2_UF4;
 bit8 prevClockDivider2;
-bit8 byteReady;
+bool byteReady;
 bit8 writeClock;
 bool bUF4_QB_rising;
 bit8 bandpos;
@@ -756,13 +767,14 @@ bit8 bandpos;
 		clockDivider1_UE7 = speed;
 		clockDivider2_UF4 = 0;
 
-		byteReady=1;
+		byteReady = true;
 		if ((m_frameCounter_UC3 & 7) == 7)
 		{
 			if (m_d64_soe_enable!=0 && (clockDivider2_UF4 & 2) == 0)
 			{
-				byteReady = 0;
+				byteReady = false;
 			}
+
 			if (m_busByteReadySignal != byteReady)
 			{
 				m_busByteReadySignal = byteReady;
@@ -1489,7 +1501,7 @@ void DiskInterface::GetState(SsDiskInterfaceV2 &state)
 	state.m_shifterReader_UD2 = m_shifterReader_UD2;
 	state.m_busDataUpdateClock = m_busDataUpdateClock;
 	state.m_busByteReadyPreviousData = m_busByteReadyPreviousData;
-	state.m_busByteReadySignal = m_busByteReadySignal;
+	state.m_busByteReadySignal = m_busByteReadySignal ? 1 : 0;
 	state.m_frameCounter_UC3 = m_frameCounter_UC3;
 	state.m_debugFrameCounter = m_debugFrameCounter;
 	state.m_clockDivider1_UE7_Reload = m_clockDivider1_UE7_Reload;
@@ -1545,7 +1557,7 @@ void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 	m_shifterReader_UD2 = state.m_shifterReader_UD2;
 	m_busDataUpdateClock = state.m_busDataUpdateClock;
 	m_busByteReadyPreviousData = state.m_busByteReadyPreviousData;
-	m_busByteReadySignal = state.m_busByteReadySignal;
+	m_busByteReadySignal = state.m_busByteReadySignal != 0;
 	m_frameCounter_UC3 = state.m_frameCounter_UC3;
 	m_debugFrameCounter = state.m_debugFrameCounter;
 	m_clockDivider1_UE7_Reload = state.m_clockDivider1_UE7_Reload;

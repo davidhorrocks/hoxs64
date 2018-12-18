@@ -12,8 +12,9 @@ public:
 
 	HRESULT Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk);
 	virtual void ExecuteDevices(ICLK sysclock);
-	void SetCA2Output(bit8 value);
-	void SetCB2Output(bit8 value);
+	void SetCA2Output(bool value);
+	void SetCB1Output(bool value);
+	void SetCB2Output(bool value);
 	bit8 ReadPinsPortA();
 	bit8 ReadPinsPortB();
 	void SetPinsPortA(bit8);

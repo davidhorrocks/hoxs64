@@ -107,17 +107,20 @@ bit8 t;
 	return ((t^0x85) | disk->m_d64_dipswitch);	
 }
 
-void VIA1::SetCA2Output(bit8 value)
+void VIA1::SetCA2Output(bool value)
 {
 }
 
-void VIA1::SetCB2Output(bit8 value)
+void VIA1::SetCB1Output(bool value)
+{
+}
+
+void VIA1::SetCB2Output(bool value)
 {
 }
 
 void VIA1::SetPinsPortA(bit8 newPin)
 {
-
 }
 
 void VIA1::SetPinsPortB(bit8 newPin)

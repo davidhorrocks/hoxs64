@@ -1,15 +1,14 @@
 #ifndef __VIA6522_H__
 #define __VIA6522_H__
 
-#define VIA_SER_IDLE		0x1
-#define VIA_SER_DISABLED	0
-#define VIA_SER_IN_T2		0x4
-#define VIA_SER_IN_02		0x8
-#define VIA_SER_IN_CB1		0xc0
-#define VIA_SER_OUT_T2_CIRC	0x10
-#define VIA_SER_OUT_T2		0x14
-#define VIA_SER_OUT_02		0x18
-#define VIA_SER_OUT_CB1		0x1c
+#define VIA_SER_DISABLED	(0x0)
+#define VIA_SER_IN_T2		(0x1)
+#define VIA_SER_IN_02		(0x2)
+#define VIA_SER_IN_CB1		(0x3)
+#define VIA_SER_OUT_T2_CIRC	(0x4)
+#define VIA_SER_OUT_T2		(0x5)
+#define VIA_SER_OUT_02		(0x6)
+#define VIA_SER_OUT_CB1		(0x7)
 
 #define VIA_INT_CA2 1
 #define VIA_INT_CA1	2
@@ -47,19 +46,24 @@
 #define VIAOneShotB0       0x000800000ULL
 #define VIAPostOneShotA0   0x001000000ULL
 #define VIAPostOneShotB0   0x002000000ULL
+#define VIACA1Trans0  (1ULL << 26)
+#define VIACA1Trans1  (1ULL << 27)
+#define VIACA2Trans0  (1ULL << 28)
+#define VIACA2Trans1  (1ULL << 29)
+#define VIACB1Trans0  (1ULL << 30)
+#define VIACB1Trans1  (1ULL << 31)
+#define VIACB2Trans0  (1ULL << 32)
+#define VIACB2Trans1  (1ULL << 33)
+#define VIAShift0     (1ULL << 34)
+#define VIAShift1     (1ULL << 35)
+#define VIAShift2     (1ULL << 36)
+#define VIAShift3     (1ULL << 37)
+#define VIAShift4     (1ULL << 38)
+#define VIAMaskMSB    (1ULL << 39)
 
-#define VIACA1Trans0 (1ULL << 26)
-#define VIACA1Trans1 (1ULL << 27)
-#define VIACA2Trans0 (1ULL << 28)
-#define VIACA2Trans1 (1ULL << 29)
-#define VIACB1Trans0 (1ULL << 30)
-#define VIACB1Trans1 (1ULL << 31)
-#define VIACB2Trans0 (1ULL << 32)
-#define VIACB2Trans1 (1ULL << 33)
-
-#define VIAMaskMSB         (1ULL << 34)
-
-#define VIADelayMask     ~(VIAMaskMSB | VIACountA0 | VIACountB0 | VIALoadA0 | VIALoadB0 | VIACA2Low0 | VIACB2Low0 | VIAPB7Low0 | VIAInterrupt0 | VIAOneShotA0 | VIAOneShotB0 | VIAPostOneShotA0 | VIAPostOneShotB0 | VIACA1Trans0 | VIACA2Trans0 | VIACB1Trans0 | VIACB2Trans0)
+#define VIADelayMask ~(VIAMaskMSB | VIACountA0 | VIACountB0 | VIALoadA0 | VIALoadB0 | VIACA2Low0 | VIACB2Low0 | \
+	VIAPB7Low0 | VIAInterrupt0 | VIAOneShotA0 | VIAOneShotB0 | VIAPostOneShotA0 | VIAPostOneShotB0 | \
+	VIACA1Trans0 | VIACA2Trans0 | VIACB1Trans0 | VIACB2Trans0 | VIAShift0)
 
 #define VIATrans1 (VIACA1Trans1 | VIACA2Trans1 | VIACB1Trans1 | VIACB2Trans1)
 
@@ -70,8 +74,9 @@
 class VIA : public IRegister
 {
 public:
-	virtual void SetCA2Output(bit8)=0;
-	virtual void SetCB2Output(bit8)=0;
+	virtual void SetCA2Output(bool)=0;
+	virtual void SetCB1Output(bool)=0;
+	virtual void SetCB2Output(bool)=0;
 	virtual bit8 ReadPinsPortA()=0;
 	virtual bit8 ReadPinsPortB()=0;
 	virtual void SetPinsPortA(bit8 newPin)=0;
@@ -96,16 +101,19 @@ public:
 
 	bit8 PortAOutput();
 	bit8 PortBOutput();
-	void SetCA1Input(bit8, int phase);
-	void SetCA2Input(bit8, int phase);
-	void SetCB1Input(bit8, int phase);
-	void SetCB2Input(bit8, int phase);
+	void SetCA1Input(bool, int phase);
+	void SetCA2Input(bool, int phase);
+	void SetCB1Input(bool, int phase);
+	void SetCB2Input(bool, int phase);
 	void WakeUp();
 	void SetPortA();
 	void SetPortB();
 
 protected:
 	virtual void OnTransitionCA1Low();
+	void LocalCA2Output(bool);
+	void LocalCB1Output(bool);
+	void LocalCB2Output(bool);
 
 public:
 	int ID;
@@ -126,32 +134,31 @@ public:
 	bit16u timer2_latch;
 	bit8 acr;
 	bit8 pcr;
-	bit8 ca1_in;
-	bit8 ca1_in_prev;
-	bit8 ca2_in;
-	bit8 ca2_in_prev;
-	bit8 cb1_in;
-	bit8 cb1_in_prev;
-	bit8 cb2_in;
-	bit8 cb2_in_prev;
-	bit8 ca2_out;
-	bit8 cb2_out;
-	bit8 shift;
+	bool ca1_in;
+	bool ca1_in_prev;
+	bool ca2_in;
+	bool ca2_in_prev;
+	bool cb1_in;
+	bool cb1_in_prev;
+	bool cb2_in;
+	bool cb2_in_prev;
+	bool ca2_out;
+	bool cb1_out;
+	bool cb2_out;
 	bit8 ifr;
 	bit8 ier;
-	bit8 serial_active;
-	bit8 serial_mode;
+	bit8 shiftRegisterMode;
+	bool shiftClockLevel;
+	bit8 shiftCounter;
+	bit8 shiftRegisterData;
 	unsigned __int64 delay;
 	unsigned __int64 feed;
 	unsigned __int64 old_delay;
 	unsigned __int64 old_feed;
-	bit8 modulo;
 	bit8 Interrupt;
-
 	bit8 bPB7TimerMode;
 	bit8 bPB7Toggle;
 	bit8 bPB7TimerOut;
-
 	bit8 no_change_count;
 	bit16 dec_2;
 	bit8 idle;

@@ -102,16 +102,16 @@ bit8 CPUDisk::ReadByte(bit16 address)
 	}
 	else
 	{
-		address = address & 0x1fff;
-		if (address < 0x0800)
+		bit16 mappedAddress = address & 0x1fff;
+		if (mappedAddress < 0x0800)
 		{
 			return pMappedRAM[address];
 		}
-		else if (address >= 0x1c00)
+		else if (mappedAddress >= 0x1c00)
 		{
 			return via2->ReadRegister(address, CurrentClock);
 		}
-		else if (address >= 0x1800)
+		else if (mappedAddress >= 0x1800)
 		{
 			return via1->ReadRegister(address, CurrentClock);
 		}
