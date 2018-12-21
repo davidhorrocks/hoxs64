@@ -479,6 +479,7 @@ bit8 t;
 			//No latching
 			t = ReadPinsPortB();
 		}
+
 		t = (((orb & ddrb) | (t & ~ddrb)) & ~bPB7TimerMode) | (bPB7TimerMode & bPB7TimerOut);
         return t;
 	case 1://port a
@@ -729,8 +730,10 @@ bit8 t;
 
 void VIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
-	ExecuteCycle(sysclock);
+bit8 oldpb6;
+bit8 newpb6;
 
+	ExecuteCycle(sysclock);
 	switch (address & 15)
 	{
 	case 0://port b
@@ -770,8 +773,26 @@ void VIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			ClearSystemInterrupt();
 		}
 
+		if (acr & 0x20)
+		{
+			// Timer 2 counts negative going edges on PB6.
+			oldpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;		
+		}
+
 		orb = data;
 		SetPinsPortB(PortBOutput());
+		if (acr & 0x20)
+		{
+			// Timer 2 counts negative going edges on PB6.
+			newpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;
+			if (newpb6 == 0 && oldpb6 != 0)
+			{
+				// A negative going edge occurred on PB6.
+				WakeUp();
+				delay |= VIACountB2;
+			}
+		}
+
 		break;			
 	case 1://port a
 		switch ((pcr>>1) & 7)
@@ -814,9 +835,26 @@ void VIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		SetPinsPortA(PortAOutput());
 		break;
 	case 2://ddrb
+		if (acr & 0x20)
+		{
+			// Timer 2 counts negative going edges on PB6.
+			oldpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;		
+		}
+
 		ddrb = data;
 		SetPinsPortB(PortBOutput());
-		break;			
+		if (acr & 0x20)
+		{
+			// Timer 2 counts negative going edges on PB6.
+			newpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;
+			if (newpb6 == 0 && oldpb6 != 0)
+			{
+				// A negative going edge occurred on PB6.
+				WakeUp();
+				delay |= VIACountB2;
+			}
+		}
+		break;
 	case 3://ddra
 		ddra = data;
 		SetPinsPortA(PortAOutput());
