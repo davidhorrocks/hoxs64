@@ -818,8 +818,6 @@ unsigned long sourceCounter;
 unsigned long nextRawCounter;
 unsigned long rawSize;
 unsigned long bits;
-const bool bAllowTrackStretch = true;
-const bool bAllowTrackShrink = true;
 
 	rawSize = P64PulseSamplesPerRotation;
 	sourceSize = 0;
@@ -833,8 +831,6 @@ const bool bAllowTrackShrink = true;
 		}
 
 		speed = GetSpeedZone(trackNumber, (unsigned short) i);
-		////WRONG?
-		//speed = ~speed & 3;
 
 		//four clocks per bit per 16 clocks (16Mhz clock) if the speed at VIA2 PortB 6-7 is zero
 		sourceSize = sourceSize + (16 - speed) * 4 * bits;
@@ -850,29 +846,21 @@ const bool bAllowTrackShrink = true;
 		}
 
 		speed = GetSpeedZone(trackNumber, (unsigned short)i);
-		//WRONG?
-		//speed = ~speed & 3;
-
 		speed = (16 - speed) * 4;
 		byte = trackData[trackNumber][i];
 		for (j = 0 ; j < bits ; j++)
 		{
-			if (((bAllowTrackStretch && sourceSize < rawSize) || (bAllowTrackShrink && sourceSize > rawSize)))
-			{
-				nextRawCounter = (unsigned long)(((double)sourceCounter / (double)sourceSize) * (double)rawSize);
-			}
-			else 
-			{
-				nextRawCounter = sourceCounter;				
-			}
+			nextRawCounter = (unsigned long)(((double)sourceCounter / (double)sourceSize) * (double)rawSize);
 			if (nextRawCounter >= rawSize) 
 			{
 				break;
 			}
+
 			if ((signed char)byte < 0)
 			{
 				P64PulseStreamAddPulse(&this->m_P64Image.PulseStreams[P64FirstHalfTrack + trackNumber], nextRawCounter, 0xffffffff);
 			}
+
 			byte <<= 1;
 			sourceCounter += speed;
 		}
@@ -892,6 +880,7 @@ bit8 tr;
 		{
 			return;
 		}
+
 		ConvertP64toGCR(tr);
 	}
 }
