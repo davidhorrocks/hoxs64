@@ -239,7 +239,7 @@ protected:
 private:
 	void SharedSoftReset();
 	void ProcessReset();
-	void ExecuteRandomClocks();
+	void ExecuteRandomClocks(int minimumClocks, int maximumClocks);
 	bool bPendingSystemCommand;
 	C64Cmd m_SystemCommand;
 	bool m_bLastPostedDriveWriteLed;

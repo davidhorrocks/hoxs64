@@ -1365,7 +1365,7 @@ BOOL b = FALSE;
 
 BOOL G::WaitMessageTimeout(DWORD dwTimeout)
 {
-	return MsgWaitForMultipleObjects(0, NULL, FALSE, dwTimeout, QS_ALLINPUT) == WAIT_TIMEOUT;
+	return MsgWaitForMultipleObjectsEx(0, NULL, dwTimeout, QS_ALLINPUT, MWMO_INPUTAVAILABLE) == WAIT_TIMEOUT;
 }
 
 HRESULT G::GetVersion_Res(LPTSTR filename, VS_FIXEDFILEINFO *p_vinfo)

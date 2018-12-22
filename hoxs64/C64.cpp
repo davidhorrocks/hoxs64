@@ -344,11 +344,9 @@ ICLK sysclock;
 
 	EnterDebugRun(false);
 	sysclock = vic.CurrentClock;
-	
 	do
 	{
 		sysclock++;
-
 		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
@@ -361,9 +359,7 @@ ICLK sysclock;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
-		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
-
 		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock);
@@ -372,11 +368,13 @@ ICLK sysclock;
 				diskdrive.ExecuteOnePendingDiskCpuClock();
 			}
 		}
+
 		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
 	} while (false);
+
 	FinishDebugRun();
 }
 
@@ -684,7 +682,6 @@ int result = 0;
 
 	sid.UnLockSoundBuffer();
 	CheckDriveLedNofication();
-
 	return result;
 }
 
@@ -3736,7 +3733,7 @@ void C64::SoftReset(bool bCancelAutoload)
 
 	if (!appStatus->m_bDebug)
 	{
-		ExecuteRandomClocks();
+		ExecuteRandomClocks(0, PAL_CLOCKS_PER_FRAME - 1);
 	}
 
 	SharedSoftReset();
@@ -3763,7 +3760,7 @@ void C64::CartFreeze(bool bCancelAutoload)
 
 	if (!appStatus->m_bDebug)
 	{
-		ExecuteRandomClocks();
+		ExecuteRandomClocks(0, PAL_CLOCKS_PER_FRAME - 1);
 	}
 
 	cart.CartFreeze();
@@ -3779,7 +3776,7 @@ void C64::CartReset(bool bCancelAutoload)
 
 	if (!appStatus->m_bDebug)
 	{
-		ExecuteRandomClocks();
+		ExecuteRandomClocks(0, PAL_CLOCKS_PER_FRAME - 1);
 	}
 
 	SharedSoftReset();
@@ -3838,7 +3835,7 @@ void C64::ProcessReset()
 	}
 }
 
-void C64::ExecuteRandomClocks()
+void C64::ExecuteRandomClocks(int minimumClocks, int maximumClocks)
 {
 	uniform_int_distribution<int> dist_byte(0, PAL_CLOCKS_PER_FRAME - 1);
 	SynchroniseDevicesWithVIC();
