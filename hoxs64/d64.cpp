@@ -1468,11 +1468,6 @@ WORD s;
 		return SetError(E_FAIL,TEXT("%s is not a supported G64 file version. Version 2.x only is supported."), filename);
 	}
 
-	if (g64Header.trackSize > G64_MAX_BYTES_PER_TRACK)
-	{
-		return SetError(E_FAIL,TEXT("G64 track size is too long."));
-	}
-
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
 		hr = ReadFromFile(hfile, filename, (char *)&data32, 4, 0);
@@ -1530,9 +1525,9 @@ WORD s;
 				return hr;
 			}
 
-			if ((bit16)s > g64Header.trackSize)
+			if ((bit16)s > g64Header.fileAllocatedTrackSize)
 			{
-				return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
+				return SetError(E_FAIL,TEXT("The G64 file header file wide track size of $%04X is shorter than actual size declared for half track %d / %d 2 byte which is $%04X."), (unsigned int)g64Header.fileAllocatedTrackSize, (unsigned int)tr, (unsigned int)G64_MAX_TRACKS, (unsigned int)s);
 			}
 
 			if (s==0)

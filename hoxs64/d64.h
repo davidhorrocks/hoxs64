@@ -27,7 +27,7 @@ struct G64Header
 	char signature[8];
 	unsigned char version;
 	unsigned char trackCount;
-	unsigned short trackSize;
+	unsigned short fileAllocatedTrackSize;
 
 };
 
