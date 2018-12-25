@@ -57,10 +57,15 @@ HRESULT hr;
 
 	hr = disk.Init();
 	if (FAILED(hr))
-		return hr;
+	{
+		return SetError(disk);
+	}
+
 	hr = directory.Init();
 	if (FAILED(hr))
-		return hr;
+	{
+		return SetError(hr, ErrorMsg::ERR_OUTOFMEMORY);
+	}
 
 	return S_OK;
 }

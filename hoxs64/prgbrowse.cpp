@@ -113,14 +113,16 @@ RGBQUAD rgb;
 	if (FAILED(hr))
 	{
 		CleanUp();
-		return E_FAIL;
+		return SetError(m_c64file);
 	}
+
 	mhEvtComplete = CreateEvent(NULL, TRUE, TRUE, NULL);
 	if (!mhEvtComplete)
 	{
 		CleanUp();
 		return E_FAIL;
 	}
+
 	mhEvtQuit = CreateEvent(NULL, TRUE, TRUE, NULL);
 	if (!mhEvtQuit)
 	{

@@ -1277,9 +1277,11 @@ CPRGBrowse prgBrowse;
 int i;
 	
 	initfilename[0] = 0;
+	TCHAR title[] = TEXT("Load T64");
 	hr = prgBrowse.Init(c64.ram.mCharGen);
 	if (FAILED(hr))
 	{
+		prgBrowse.DisplayError(hWnd, title);
 		return ; 
 	}
 
@@ -1304,7 +1306,7 @@ int i;
 		}
 		else
 		{
-			c64.DisplayError(hWnd, TEXT("Load T64"));
+			c64.DisplayError(hWnd, title);
 		}
 	}
 }
@@ -1321,7 +1323,8 @@ CPRGBrowse prgBrowse;
 	TCHAR title[] = TEXT("Insert Disk Image");
 	hr = prgBrowse.Init(c64.ram.mCharGen);
 	if (FAILED(hr))
-	{
+	{		
+		prgBrowse.DisplayError(hWnd, title);
 		return ; 
 	}
 
@@ -1370,13 +1373,20 @@ CDiagFileSaveD64 childDialog;
 
 	hr = childDialog.Init(c64.diskdrive.m_d64TrackCount);
 	if (FAILED(hr))
+	{
 		return ; 
+	}
 
 	ZeroMemory(&of, sizeof(of));
 	if (G::IsEnhancedWinVer())
+	{
 		of.lStructSize = sizeof(OPENFILENAME_500EX);
+	}
 	else
+	{
 		of.lStructSize = sizeof(OPENFILENAME);
+	}
+
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.d64)\0*.d64\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex =1;
@@ -1435,9 +1445,14 @@ HRESULT hr;
 
 	ZeroMemory(&of, sizeof(of));
 	if (G::IsEnhancedWinVer())
+	{
 		of.lStructSize = sizeof(OPENFILENAME_500EX);
+	}
 	else
+	{
 		of.lStructSize = sizeof(OPENFILENAME);
+	}
+
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.fdi)\0*.fdi\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
@@ -1486,9 +1501,14 @@ HRESULT hr;
 
 	ZeroMemory(&of, sizeof(of));
 	if (G::IsEnhancedWinVer())
+	{
 		of.lStructSize = sizeof(OPENFILENAME_500EX);
+	}
 	else
+	{
 		of.lStructSize = sizeof(OPENFILENAME);
+	}
+
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.p64)\0*.p64\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
@@ -1532,9 +1552,14 @@ HRESULT hr;
 
 	ZeroMemory(&of, sizeof(of));
 	if (G::IsEnhancedWinVer())
+	{
 		of.lStructSize = sizeof(OPENFILENAME_500EX);
+	}
 	else
+	{
 		of.lStructSize = sizeof(OPENFILENAME);
+	}
+
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("State Image (*.64s)\0*.64s\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
@@ -1598,14 +1623,19 @@ HRESULT hr;
 void CApp::SoundHalt()
 {
 	if (m_bSoundOK)
+	{
 		dx.SoundHalt(c64.sid.m_last_dxsample);
+	}
+
 	c64.sid.SoundHalt(c64.sid.m_last_dxsample);
 }
 
 void CApp::SoundResume()
 {
 	if ((m_bSID_Emulation_Enable && m_bMaxSpeed==0) && m_bSoundOK && m_bRunning)
+	{
 		dx.SoundResume();
+	}
 }
 
 void CApp::GetUserConfig(CConfig& cfg)
@@ -1699,6 +1729,7 @@ int i;
 					h = max(0, rc.bottom - rc.top);
 				}
 			}
+
 			m_pWinAppWindow->SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, bWindowedCustomSize, w, h, newcfg.m_bUseBlitStretch);
 		}
 	}
@@ -1708,19 +1739,20 @@ int i;
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&frequency)!=0)
 	{
 		if (this->m_fps == HCFG::EMUFPS_50)
+		{
 			this->m_framefrequency.QuadPart = frequency.QuadPart / PAL50FRAMESPERSECOND;
+		}
 		else 
+		{
 			this->m_framefrequency.QuadPart = (ULONGLONG)(((double)frequency.QuadPart / ((double)PALCLOCKSPERSECOND/((double)PAL_LINES_PER_FRAME * (double)PAL_CLOCKS_PER_LINE))));
+		}
 
 	}
+
 	CopyMemory(&c64.cia1.c64KeyMap[0], &newcfg.m_KeyMap[0], sizeof(c64.cia1.c64KeyMap));
-
-	this->m_fskip = -1;
-	
+	this->m_fskip = -1;	
 	m_bUseKeymap = false;
-
 	dx.InitJoys(hWnd, this->m_joy1config, this->m_joy2config);
-
 	if (this->m_bSoundOK)
 	{
 		c64.sid.UpdateSoundBufferLockSize(this->m_fps);
@@ -1743,13 +1775,18 @@ void CApp::SetBusy(bool bBusy)
 		this->m_bBusy = true;
 		UpdateWindow(m_pWinAppWindow->GetHwnd());
 		if (hOldCursor == NULL)
+		{
 			hOldCursor = SetCursor(hCursorBusy);
+		}
 	}
 	else
 	{
 		this->m_bBusy = false;
 		if (hOldCursor)
+		{
 			SetCursor(hOldCursor);
+		}
+
 		hOldCursor = NULL;
 	}
 }
@@ -1851,7 +1888,10 @@ EventArgs e;
 	{
 		hWnd = m_pWinAppWindow->GetHwnd();
 		if (hWnd)
+		{
 			SetForegroundWindow(hWnd);
+		}
+
 		SoundResume();
 		EsResume.Raise(this, e);
 	}
@@ -1869,7 +1909,10 @@ EventArgs e;
 	m_bPaused = false;
 	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 	if (hWnd)
+	{
 		SetForegroundWindow(hWnd);
+	}
+
 	SoundResume();
 	EsTrace.Raise(this, e);
 }
@@ -1955,49 +1998,73 @@ void CApp::ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::Disassem
 {
 HWND hWndMdiDebugger = NULL;
 	if (m_pWinAppWindow->m_pMDIDebugger.expired())
+	{
 		hWndMdiDebugger = m_pWinAppWindow->ShowDevelopment();
+	}
+
 	if (m_pWinAppWindow->m_pMDIDebugger.expired())
+	{
 		return;
+	}
 
 	shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();
 	if (cpuid == CPUID_MAIN)
+	{
 		pWinDebugger->ShowDebugCpuC64(pcmode, address);
+	}
 	else if (cpuid == CPUID_DISK)
+	{
 		pWinDebugger->ShowDebugCpuDisk(pcmode, address);
+	}
 }
 
 HWND CApp::GetMainFrameWindow()
 {
 	if (m_pWinAppWindow == 0)
+	{
 		return NULL;
+	}
+
 	return this->m_pWinAppWindow->GetHwnd();
 }
 
 void CApp::DisplayVicCursor(bool bEnabled)
 {
 	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	{
 		return;
+	}
+
 	m_pWinAppWindow->m_pWinEmuWin->DisplayVicCursor(bEnabled);
 }
 
 void CApp::DisplayVicRasterBreakpoints(bool bEnabled)
 {
 	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	{
 		return;
+	}
+
 	m_pWinAppWindow->m_pWinEmuWin->DisplayVicRasterBreakpoints(bEnabled);
 }
 
 void CApp::SetVicCursorPos(int iCycle, int iLine)
 {
 	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	{
 		return;
+	}
+
 	m_pWinAppWindow->m_pWinEmuWin->SetVicCursorPos(iCycle, iLine);
 }
 
 void CApp::GetVicCursorPos(int *piCycle, int *piLine)
 {
 	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	{
 		return;
+	}
+
 	m_pWinAppWindow->m_pWinEmuWin->GetVicCursorPos(piCycle, piLine);
 }
 
@@ -2011,9 +2078,14 @@ void CApp::ToggleSoundMute()
 {
 	m_bSoundMute= !m_bSoundMute;
 	if (m_bSoundMute)
+	{
 		c64.sid.MasterVolume = 0.0;
+	}
 	else
+	{
 		c64.sid.MasterVolume = 1.0;
+	}
+
 	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
 }
 
@@ -2027,19 +2099,22 @@ HWND hWnd = NULL;
 	{
 		EsShowDevelopment.Raise(this, e);
 	}
+
 	return hWnd;
 }
-
 
 #if _WIN32_WINNT >= 0x400
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	return app.LowLevelKeyboardProc(nCode, wParam, lParam); 
 }
+
 LRESULT CApp::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode < 0 || nCode != HC_ACTION )  // do not process message 
+	{
         return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam); 
+	}
  
     bool bEatKeystroke = false;
     switch (wParam) 
@@ -2056,9 +2131,13 @@ LRESULT CApp::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     }
  
     if( bEatKeystroke )
+	{
         return 1;
+	}
     else
+	{
         return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam );
+	}
 }
 #else
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
@@ -2068,7 +2147,9 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 LRESULT CApp::KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode < 0 || nCode != HC_ACTION )  // do not process message 
+	{
         return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam); 
+	}
  
     bool bEatKeystroke = false;
     switch (wParam) 
@@ -2084,9 +2165,13 @@ LRESULT CApp::KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     }
  
     if( bEatKeystroke )
+	{
         return 1;
+	}
     else
+	{
         return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam );
+	}
 }
 #endif
 

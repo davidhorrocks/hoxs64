@@ -313,7 +313,9 @@ int i;
 		trackSize[i] = 0;
 		trackData[i] = 0;
 		speedZone[i] = 0;
+		trackAllocatedMemorySize[i] = 0;
 	}
+
 	P64ImageCreate(&this->m_P64Image);
 	d64Errors=0;
 	m_pD64Binary=0;
@@ -335,6 +337,7 @@ unsigned int startBitPos;
 	{
 		return;
 	}
+
 	startBitPos = bitIndex;
 	bitIndex = (startBitPos + bitCount) % trackSize[trackNumber];
 }
@@ -430,6 +433,7 @@ int datalength = 0;
 	{
 		tracks = D64_MAX_TRACKS;
 	}
+
 	ClearD64LoadStatus();
 	st = S_OK;
 	memset(m_pD64Binary, 0x0, MAX_D64_SIZE);
@@ -618,6 +622,11 @@ void GCRDISK::ClearD64LoadStatus()
 		{
 			d64LoadStatus[track].trackSize = trackSize[g64track];
 		}
+		else
+		{
+			d64LoadStatus[track].trackSize = 0;
+		}
+
 		for(unsigned int sector = 0; sector < _countof(d64LoadStatus[track].d64SectorLoadStatus); sector++)
 		{
 			d64LoadStatus[track].d64SectorLoadStatus[sector].loaded = GCRDISK::Missing;
@@ -632,10 +641,12 @@ GCRDISK::LoadState GCRDISK::get_D64LoadStatus(unsigned int track, unsigned int s
 	{
 		return GCRDISK::Bad;
 	}
+
 	if (sector >= D64_info[track].sector_count || sector >= _countof(d64LoadStatus[track].d64SectorLoadStatus))
 	{
 		return GCRDISK::Bad;
 	}
+
 	return d64LoadStatus[track].d64SectorLoadStatus[sector].loaded;
 }
 
@@ -718,6 +729,7 @@ int i;
 
 		trackSize[i] = 0;
 		trackData[i] = 0;
+		trackAllocatedMemorySize[i] = 0;
 		if (speedZone[i])
 		{
 			GlobalFree(speedZone[i]);
@@ -725,12 +737,14 @@ int i;
 
 		speedZone[i] = 0;
 	}
+
 	P64ImageDestroy(&m_P64Image);
 }
 
 HRESULT GCRDISK::Init()
 {
-int i;
+unsigned int i;
+HRESULT hr = E_FAIL;
 	P64ImageCreate(&this->m_P64Image);
 	m_pD64Binary = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, MAX_D64_SIZE);
 	if (m_pD64Binary == 0)
@@ -740,23 +754,101 @@ int i;
 
 	for (i=0 ; i < HOST_MAX_TRACKS ; i++)
 	{
-		trackData[i] = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, G64_MAX_BYTES_PER_TRACK);
-		if (trackData[i] == 0)
+		hr = InitTrackMemory(i, G64_MAX_ALLOCATED_BYTES_PER_TRACK, false);
+		if (FAILED(hr))
 		{
 			goto fail;
 		}
+	}
 
-		trackSize[i] = 0;
-		speedZone[i] = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (G64_MAX_BYTES_PER_TRACK + 3) / 4);
-		if (speedZone[i] == 0)
-		{
-			goto fail;
-		}
-	}	
 	return S_OK;
 fail:
 	Clean();
-	return SetError(E_FAIL,TEXT("Out of memory."));
+	return SetError(hr ,TEXT("Out of memory."));
+}
+
+HRESULT GCRDISK::InitTrackMemory(unsigned int trackNumber, unsigned int byteLength, bool preserveData)
+{
+bit8 *pTrackData = NULL;
+bit8 *pSpeed = NULL;
+bit32 maxLen;
+
+	if (byteLength == trackAllocatedMemorySize[trackNumber] && trackData[trackNumber] != NULL && speedZone[trackNumber] != NULL)
+	{
+		trackSize[trackNumber] = 0;
+		return S_OK;
+	}
+
+	// Try to prevent lots of small memory reallocation increases.
+	if (preserveData)
+	{
+		if (byteLength < G64_MAX_ALLOCATED_BYTES_PER_TRACK)
+		{
+			byteLength = G64_MAX_ALLOCATED_BYTES_PER_TRACK;
+		}
+		else if (byteLength > trackAllocatedMemorySize[trackNumber])
+		{
+			if (byteLength < (trackAllocatedMemorySize[trackNumber] * 2)) 
+			{
+				byteLength = trackAllocatedMemorySize[trackNumber] * 2;
+			}
+		}
+	}
+
+	bit32 oldSpeedLength = (trackAllocatedMemorySize[trackNumber] + 3) / 4;
+	bit32 newSpeedLength = (byteLength + 3) / 4;
+	pTrackData = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, byteLength);
+	if (!pTrackData)
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	pSpeed = (bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, newSpeedLength);
+	if (!pSpeed)
+	{
+		GlobalFree(pTrackData);
+		return E_OUTOFMEMORY;
+	}
+
+	if (trackData[trackNumber])
+	{
+		if (preserveData && trackAllocatedMemorySize[trackNumber] != 0)
+		{
+			maxLen = trackAllocatedMemorySize[trackNumber];
+			if (maxLen > byteLength)
+			{
+				maxLen = byteLength;
+			}
+
+			CopyMemory(pTrackData, trackData[trackNumber], maxLen);
+		}
+
+		GlobalFree(trackData[trackNumber]);
+		trackData[trackNumber] = 0;
+	}
+
+	if (speedZone[trackNumber])
+	{
+		if (preserveData && oldSpeedLength != 0)
+		{
+			maxLen = oldSpeedLength;
+			if (maxLen > newSpeedLength)
+			{
+				maxLen = newSpeedLength;
+			}
+
+			CopyMemory(pSpeed, speedZone[trackNumber], maxLen);
+		}
+
+		GlobalFree(speedZone[trackNumber]);
+		speedZone[trackNumber] = 0;
+	}
+
+	trackData[trackNumber] = pTrackData;
+	speedZone[trackNumber] = pSpeed;
+	trackAllocatedMemorySize[trackNumber] = byteLength;	
+	trackSize[trackNumber] = 0;
+	return S_OK;
 }
 
 bit16 GCRDISK::GetD64TrackSize(bit8 track)
@@ -765,6 +857,7 @@ bit16 GCRDISK::GetD64TrackSize(bit8 track)
 	{
 		track = D64_MAX_TRACKS - 1;
 	}
+
 	return (bit16)(D64_info[track].gcr_byte_count);
 }
 
@@ -774,37 +867,52 @@ bit8 GCRDISK::GetD64SpeedZone(bit8 track)
 	{
 		track = D64_MAX_TRACKS - 1;
 	}
+
 	return D64_info[track].defaultSpeed;
 }
 
 bit8 GCRDISK::GetSpeedZone(bit8 trackNumber, bit16 byteIndex)
 {
 bit8 t,s;
-	if (trackNumber >= HOST_MAX_TRACKS)
+const unsigned int SmallestTrackBits = 8;
+	if (trackSize[trackNumber] >= SmallestTrackBits)
 	{
-		trackNumber = HOST_MAX_TRACKS - 1;
+		if (trackNumber >= HOST_MAX_TRACKS)
+		{
+			trackNumber = HOST_MAX_TRACKS - 1;
+		}
+
+		byteIndex = byteIndex % (trackSize[trackNumber] / SmallestTrackBits);
+		if (byteIndex < trackAllocatedMemorySize[trackNumber])
+		{
+			t = speedZone[trackNumber][byteIndex/4];
+			s = (3 - (byteIndex & 3)) * 2;
+			t = (t >> s) & 3;
+		}
 	}
-	if (byteIndex >= G64_MAX_BYTES_PER_TRACK)
-	{
-		byteIndex = G64_MAX_BYTES_PER_TRACK - 1;
-	}
-	t = speedZone[trackNumber][byteIndex/4];
-	s = (3 - (byteIndex & 3)) * 2;
-	t = (t >> s) & 3;
+
 	return t;
 }
 
 void GCRDISK::SetSpeedZone(bit8 trackNumber, bit16 byteIndex, bit8 speed)
 {
 bit8 t,s,mask;
-	if (trackNumber < HOST_MAX_TRACKS && byteIndex < G64_MAX_BYTES_PER_TRACK)
+const unsigned int SmallestTrackBits = 8;
+	if (trackSize[trackNumber] >= SmallestTrackBits)
 	{
-		speed = speed & 3;
-		t = speedZone[trackNumber][byteIndex/4];
-		s = (3 - (byteIndex & 3)) * 2;
-		mask = 3 << s;
-		speed = speed << s;
-		speedZone[trackNumber][byteIndex/4] =  (t & ~mask) | speed;
+		byteIndex = byteIndex % (trackSize[trackNumber] / SmallestTrackBits);
+		if (byteIndex < trackAllocatedMemorySize[trackNumber])
+		{
+			if (trackNumber < HOST_MAX_TRACKS)
+			{
+				speed = speed & 3;
+				t = speedZone[trackNumber][byteIndex/4];
+				s = (3 - (byteIndex & 3)) * 2;
+				mask = 3 << s;
+				speed = speed << s;
+				speedZone[trackNumber][byteIndex/4] =  (t & ~mask) | speed;
+			}
+		}
 	}
 }
 
@@ -832,7 +940,7 @@ unsigned long bits;
 
 		speed = GetSpeedZone(trackNumber, (unsigned short) i);
 
-		//four clocks per bit per 16 clocks (16Mhz clock) if the speed at VIA2 PortB 6-7 is zero
+		// 1 bit is 4 ticks of 
 		sourceSize = sourceSize + (16 - speed) * 4 * bits;
 	}
 
@@ -864,6 +972,7 @@ unsigned long bits;
 			byte <<= 1;
 			sourceCounter += speed;
 		}
+
 		if (nextRawCounter >= rawSize) 
 		{
 			break;
@@ -871,18 +980,29 @@ unsigned long bits;
 	}
 }
 
-void GCRDISK::ConvertP64toGCR()
+HRESULT GCRDISK::ConvertP64toGCR()
 {
 bit8 tr;
+HRESULT hrRet = S_OK;
+HRESULT hr;
 	for (tr=0 ; tr < HOST_MAX_TRACKS; tr++)
 	{
 		if (IsEventQuitSignalled())
 		{
-			return;
+			return E_FAIL;
 		}
 
-		ConvertP64toGCR(tr);
+		hr = ConvertP64toGCR(tr);
+		if (FAILED(hr))
+		{
+			if (SUCCEEDED(hrRet))
+			{
+				hrRet = hr;
+			}
+		}
 	}
+
+	return hrRet;
 }
 
 #if defined(SHOWGCR)
@@ -900,19 +1020,24 @@ bool isfirstbitzonetrack(int trackNumber)
 }
 #endif
 
-void GCRDISK::ConvertP64toGCR(bit8 trackNumber)
+HRESULT GCRDISK::ConvertP64toGCR(bit8 trackNumber)
 {
-int i;
+unsigned int i;
 bit8 dataByte;
+HRESULT hr;
+bool memoryAllocFailed = false;
+bit32 requiredTrackBitSize;
+bit32 requiredTrackByteSize;
+
 	if (trackNumber >= HOST_MAX_TRACKS)
 	{
-		return;
+		return E_FAIL;
 	}
 
 	int defaultSpeed = (int)GetD64SpeedZone(trackNumber / 2);
 	trackSize[trackNumber] = 0;
-	ZeroMemory(trackData[trackNumber], G64_MAX_BYTES_PER_TRACK);
-	for (i = 0 ; i < G64_MAX_BYTES_PER_TRACK ; i++)
+	ZeroMemory(trackData[trackNumber], trackAllocatedMemorySize[trackNumber]);
+	for (i = 0 ; i < trackAllocatedMemorySize[trackNumber] ; i++)
 	{
 		SetSpeedZone(trackNumber, (bit16)i, defaultSpeed); 
 	}
@@ -938,6 +1063,7 @@ bit8 dataByte;
 				break;
 			}
 		}
+
 		for (currentindex = track->UsedLast; currentindex >= 0; currentindex = ppulse->Previous)
 		{
 			ppulse = &track->Pulses[currentindex];
@@ -947,6 +1073,7 @@ bit8 dataByte;
 				break;
 			}
 		}
+
 		if (firstStrongIndex >= 0)
 		{
 			P64PulseStreamSeek(track, 0);
@@ -998,10 +1125,12 @@ bit8 dataByte;
 							{
 								currentindex = track->Pulses[currentindex].Next;
 							}
+
 							if (currentindex < 0)
 							{
 								currentindex = track->UsedFirst;
 							}
+
 							if (currentindex >= 0)
 							{
 								ppulse = &track->Pulses[currentindex];
@@ -1017,6 +1146,7 @@ bit8 dataByte;
 										{
 											delayCounter = P64PulseSamplesPerRotation - sourceBitPosition + ppulse->Position;
 										}
+
 										lastPosition = ppulse->Position;
 										break;
 									}
@@ -1024,6 +1154,7 @@ bit8 dataByte;
 							}
 						}
 					}
+
 					clockDivider1_UE7 = (clockDivider1_UE7 + 1) & 0xf;
 					if (lastPulseTime == pulseFilterWidth && pulseFlip != lastPulseFlip)
 					{
@@ -1031,12 +1162,14 @@ bit8 dataByte;
 						clockDivider1_UE7 = defaultSpeed;
 						clockDivider2_UF4 = 0;
 					}
+
 					if (delayCounter == 0)
 					{
 						pulseFlip = !pulseFlip;
 						lastPulseTime = 0;
 						getNextPulse = true;
 					}
+
 					if (clockDivider1_UE7 == 0)
 					{
 						clockDivider1_UE7 = defaultSpeed;
@@ -1048,6 +1181,7 @@ bit8 dataByte;
 							{
 								shifterReader_UD2 |= 1;
 							}
+
 							bitOfByteIndex = (bitOfByteIndex + 1) & 7;
 							byteInShifterReady = (bitOfByteIndex == 0);
 							if ((shifterReader_UD2 & 0x3ff) == 0x3ff)
@@ -1062,7 +1196,17 @@ bit8 dataByte;
 							{
 								byteInShifterReady = false;
 								dataByte = (bit8)(shifterReader_UD2 & 0xff);
-								if (destByteIndex < G64_MAX_BYTES_PER_TRACK)
+								requiredTrackByteSize = destByteIndex + 1;
+								if (requiredTrackByteSize >= trackAllocatedMemorySize[trackNumber])
+								{
+									hr = this->InitTrackMemory(trackNumber, requiredTrackByteSize, true);
+									if (FAILED(hr))
+									{
+										memoryAllocFailed = true;
+									}
+								}
+
+								if (destByteIndex < trackAllocatedMemorySize[trackNumber])
 								{
 									trackData[trackNumber][destByteIndex] = dataByte;
 									destByteIndex++;
@@ -1078,6 +1222,7 @@ bit8 dataByte;
 						}
 					}
 				}
+
 				unsigned int numtrailingbits = 0;
 				if (bitOfByteIndex > 0 || byteInShifterReady)
 				{
@@ -1087,8 +1232,18 @@ bit8 dataByte;
 					shift = (bitOfByteIndex > 0) ? (8 - numtrailingbits) : 0;
 					unsigned int maskoff = (0xff << shift) & 0xff;
 					unsigned int trailingbits = (shifterReader_UD2 << shift) & 0xff;
+					requiredTrackBitSize = (destByteIndex + 1) * 8;
+					requiredTrackByteSize = requiredTrackBitSize / 8;
+					if (destByteIndex >= trackAllocatedMemorySize[trackNumber])
+					{
+						hr = this->InitTrackMemory(trackNumber, requiredTrackByteSize, true);
+						if (FAILED(hr))
+						{
+							memoryAllocFailed = true;
+						}
+					}
 
-					if (destByteIndex < G64_MAX_BYTES_PER_TRACK)
+					if (destByteIndex < trackAllocatedMemorySize[trackNumber])
 					{
 						trackData[trackNumber][destByteIndex] = trailingbits;
 					}
@@ -1103,12 +1258,30 @@ bit8 dataByte;
 					}
 #endif
 				}
-				trackSize[trackNumber] = destByteIndex * 8 + numtrailingbits;
+
+				requiredTrackByteSize = destByteIndex + 1;
+				requiredTrackBitSize = requiredTrackByteSize * 8;
+				if (requiredTrackByteSize > trackAllocatedMemorySize[trackNumber])
+				{
+					trackSize[trackNumber] = trackAllocatedMemorySize[trackNumber];
+				}
+				else
+				{
+					trackSize[trackNumber] = requiredTrackBitSize;
+				}
+
 				bitOfByteIndex = 0;
 				byteInShifterReady = false;
 			}
 		}
 	}
+
+	if (memoryAllocFailed)
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	return S_OK;
 }
 
 void GCRDISK::WriteLineToDebugger()
@@ -1199,7 +1372,7 @@ bit32 i;
 
 }
 
-void GCRDISK::MakeGCRImage(bit8 *d64Binary, bit32 tracks, bit16 errorBytes, bool bAlignD64Tracks)
+HRESULT GCRDISK::MakeGCRImage(bit8 *d64Binary, bit32 tracks, bit16 errorBytes, bool bAlignD64Tracks)
 {
 bit32 i,j;
 bit8 *pb,*pGcr,*p,sum,id1,id2,sec,tr,tr2;
@@ -1208,18 +1381,39 @@ bit8 tempGcrBuffer[260*5/4];
 bit8 c;
 bit8 sectorError;
 bit8 id1x,id2x;
-int wi = 0;
-int trackByteLen;
-int dostracknumber;
+unsigned int wi = 0;
+unsigned int trackByteLen;
+unsigned int dostracknumber;
+HRESULT hr;
+bool memoryAllocFailed = false;
 
 	for(tr = 0 ; tr < HOST_MAX_TRACKS ; tr++)
 	{
-		memset(trackData[tr], 0x55, G64_MAX_BYTES_PER_TRACK);
-		trackSize[tr] = GetD64TrackSize(tr/2) * 8;
-		for (i=0 ; i < G64_MAX_BYTES_PER_TRACK ; i++)
-        {
+		bit32 requiredTrackByteSize = GetD64TrackSize(tr/2);
+		bit32 requiredTrackBitSize = requiredTrackByteSize * 8;
+		if (requiredTrackByteSize > trackAllocatedMemorySize[tr])
+		{
+			hr = this->InitTrackMemory(tr, requiredTrackByteSize, false);
+			if (FAILED(hr))
+			{
+				memoryAllocFailed = true;
+			}
+		}
+
+		bit32 actualTrackByteSize = trackAllocatedMemorySize[tr];
+		bit32 actualTrackBitSize = actualTrackByteSize * 8;
+		if (requiredTrackBitSize < actualTrackBitSize)
+		{
+			actualTrackBitSize = requiredTrackBitSize;
+			actualTrackByteSize = requiredTrackByteSize;
+		}
+
+		trackSize[tr] = actualTrackBitSize;
+		memset(trackData[tr], 0x55, actualTrackByteSize);
+		for (i = 0; i < requiredTrackByteSize; i++)
+		{
 			SetSpeedZone(tr, (bit16)i, GetD64SpeedZone(tr/2));
-        }
+		}
 	}
 
 	id1x = d64Binary[D64_info[17].file_offset + 162];
@@ -1234,18 +1428,22 @@ int dostracknumber;
         }
 
 		trackByteLen = trackSize[tr] / 8;
-		pGcr = &trackData[tr][0];
+		if (trackByteLen == 0)
+		{
+			continue;
+		}
 
+		pGcr = &trackData[tr][0];
 		if (bAlignD64Tracks)
         {
 			wi = 0;
         }
 		else
         {
-			wi = ((int)(((double)(trackSize[tr]/8)) * (D64_info[tr/2].track_stagger))) % (trackSize[tr]/8);
+			wi = ((int)(((double)(trackSize[tr]/8)) * (D64_info[tr/2].track_stagger))) % (trackByteLen);
         }
 	
-		for(c=0 ; c < D64_info[tr2].sector_count ; c++)
+		for(c = 0; c < D64_info[tr2].sector_count; c++)
 		{
 			/*sector interleave*/
 			sec=c;
@@ -1302,13 +1500,13 @@ int dostracknumber;
             {
 				p[1] = ~(sec ^ (dostracknumber) ^ id2 ^ id1);
             }
+
 			p[2] = sec;
 			p[3] = (dostracknumber);
 			p[4] = id2;
 			p[5] = id1;
 			p[6] = 0xf;
 			p[7] = 0xf;
-
 			D64_Binary_to_GCR(p, &tempGcrBuffer[0], 8);
 			for (j = 0 ; j < 10; j++, wi=(wi+1) % trackByteLen)
             {
@@ -1344,12 +1542,14 @@ int dostracknumber;
             {
 				p[0] = 0x0;
             }
+
 			sum=0;
 			for (i=0 ; i < 256 ; i++)
 			{
 				p[i+1] = pb[i];
 				sum = sum ^ pb[i];
 			}
+
 			if (sectorError!=5)
             {
 				p[257] = sum;
@@ -1358,9 +1558,9 @@ int dostracknumber;
             {
 				p[257] = ~sum;
             }
+
 			p[258] = 0;
 			p[259] = 0;
-
 			D64_Binary_to_GCR(p, &tempGcrBuffer[0], 260);
 			for (j = 0 ; j < (260*5/4); j++, wi=(wi+1) % trackByteLen)
             {
@@ -1384,16 +1584,30 @@ int dostracknumber;
 			{
 				sectorgap = D64_GAPSECTOR_31_40;
 			}
+
 			for (j = 0 ; j < sectorgap; j++, wi=(wi+1) % trackByteLen)
             {
 				pGcr[wi]=0x55;
             }			
 		}
 	}
+
 	for (tr=0 ; tr < HOST_MAX_TRACKS ; tr++)
     {
 		ConvertGCRtoP64(tr);
     }
+
+	hr = S_OK;
+	if (memoryAllocFailed)
+	{
+		hr = E_OUTOFMEMORY;
+	}
+	else
+	{
+		return S_OK;
+	}
+
+	return hr;
 }
 
 HRESULT GCRDISK::ReadFromFile(HANDLE hfile, TCHAR *filename, char *buffer, DWORD byteCount, DWORD *bytesRead)
@@ -1437,12 +1651,12 @@ struct G64Header g64Header;
 bit8 tr;
 unsigned long trackOffset[G64_MAX_TRACKS];
 unsigned long speedOffset[G64_MAX_TRACKS];
-long i;
+unsigned long i;
 DWORD file_size,j;
 bit32 data32;
 bit8 speed;
 bit8 data8;
-WORD s;
+bit16 s;
 
 	ClearError();
 	P64ImageClear(&m_P64Image);
@@ -1459,10 +1673,12 @@ WORD s;
 	{
 		return hr;
 	}
+
 	if (_memicmp(&g64Header.signature[0],"GCR-1541", 8)!=0)
 	{
 		return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
 	}
+
 	if (g64Header.version != 0)
 	{
 		return SetError(E_FAIL,TEXT("%s is not a supported G64 file version. Version 2.x only is supported."), filename);
@@ -1475,10 +1691,12 @@ WORD s;
 		{
 			return hr;
 		}
+
 		if (data32 + 2 >= file_size)
 		{
 			return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
 		}
+
 		trackOffset[tr] = data32;
 	}
 	
@@ -1489,6 +1707,7 @@ WORD s;
 		{
 			return hr;
 		}
+
 		if (data32 > 3)
 		{
 			if (data32 + 2 >= file_size)
@@ -1496,48 +1715,61 @@ WORD s;
 				return SetError(E_FAIL,TEXT("%s is not a valid G64 file."), filename);
 			}
 		}
+
 		speedOffset[tr] = data32;
 	}
 
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
 		speed = GetD64SpeedZone(tr/2);
-		ZeroMemory(trackData[tr], G64_MAX_BYTES_PER_TRACK);
-		for (i = 0 ; i < G64_MAX_BYTES_PER_TRACK ; i++)
+		ZeroMemory(trackData[tr], trackAllocatedMemorySize[tr]);
+		for (i = 0 ; i < trackAllocatedMemorySize[tr] ; i++)
 		{
 			SetSpeedZone(tr, (bit16)i, speed); 
 		}
-		trackSize[tr] = D64_TRACK_SIZE_1_17 * 8;
+
+		trackSize[tr] = 0;
 	}
 
 	for (tr=0 ; tr < G64_MAX_TRACKS ; tr++)
 	{
-		if (trackOffset[tr]!=0)
+		if (trackOffset[tr] != 0)
 		{
 			r = SetFilePointer (hfile, trackOffset[tr], 0L, FILE_BEGIN);
 			if (r == INVALID_SET_FILE_POINTER)
 			{
 				return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 			}
+
 			hr = ReadFromFile(hfile, filename, (char *)&s, 2, 0);
 			if (FAILED(hr))
 			{
 				return hr;
 			}
 
-			if ((bit16)s > g64Header.fileAllocatedTrackSize)
+			if (s > trackAllocatedMemorySize[tr])
 			{
-				return SetError(E_FAIL,TEXT("The G64 file header file wide track size of $%04X is shorter than actual size declared for half track %d / %d 2 byte which is $%04X."), (unsigned int)g64Header.fileAllocatedTrackSize, (unsigned int)tr, (unsigned int)G64_MAX_TRACKS, (unsigned int)s);
+				hr = InitTrackMemory(tr, s, false);
+				if (FAILED(hr))
+				{
+					return hr;
+				}
+			}
+
+			if (s > g64Header.fileAllocatedTrackSize)
+			{
+				double track = ((double)(tr) / 2.0) + 1.0;
+				return SetError(E_FAIL,TEXT("The track %.1f with length %d is longer than the G64 file header file wide track allocation of %d."), (double)track, (unsigned int)s, (unsigned int)g64Header.fileAllocatedTrackSize);
 			}
 
 			if (s==0)
 			{
+				trackSize[tr] = 0;
 				continue;
 			}
 
-			trackSize[tr] = (DWORD)s * 8L;
-
-			hr = ReadFromFile(hfile, filename, (char *)&trackData[tr][0], s, 0);
+			trackSize[tr] =  (bit32)s * 8L;
+			hr = ReadFromFile(hfile, filename, (char *)&trackData[tr][0], (DWORD)s, 0);
 			if (FAILED(hr))
 			{
 				return hr;
@@ -1551,6 +1783,7 @@ WORD s;
 				{
 					return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 				}
+
 				for (j=0 ; j < (trackSize[tr] / 8) ; j++)
 				{
 					switch (j & 3)
@@ -1677,17 +1910,19 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 	{
 		return SetError(E_FAIL,TEXT("Could not open %s."), filename);
 	}
+
 	hr = ReadFromFile(hfile, filename, &fdiHeader.signature[0], sizeof(struct FDIHeader), 0);
 	if (FAILED(hr))
 	{
 		return hr;
 	}
+
 	if (_memicmp(fdiHeader.signature,"Formatted Disk Image file\r\n", 27)!=0)
 	{
 		return SetError(E_FAIL,TEXT("%s is not a valid FDI file."), filename);
 	}
-	fdiHeader.ltrack = wordswap(fdiHeader.ltrack);
 
+	fdiHeader.ltrack = wordswap(fdiHeader.ltrack);
 	if (fdiHeader.type != 1)
 	{//5.25 inch check
 		return SetError(E_FAIL,TEXT("%s is not a valid C64 FDI file."), filename);
@@ -1704,6 +1939,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 		{
 			fdiHeader.ltrack = HOST_MAX_TRACKS/2 - 1;
 		}
+
 		m_d64TrackCount = fdiHeader.ltrack+1;
 	}
 	else if (fdiHeader.tpi == 2)
@@ -1712,6 +1948,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 		{
 			fdiHeader.ltrack = HOST_MAX_TRACKS - 1;
 		}
+
 		m_d64TrackCount = (fdiHeader.ltrack+1) / 2;
 	}
 	else
@@ -1733,23 +1970,26 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 		{
 			return E_FAIL;
 		}
+
 		hr = ReadFromFile(hfile, filename, (char *)&fdiTrackDescription[ftr], sizeof(struct FDITrackDescription), 0);
 		if (FAILED(hr))
 		{
 			return hr;
 		}
+
 		ftr++;
 	}
 
 	ftr=0;
 	tr=0;
 	filePointer = 0x200;
-	while (ftr<=fdiHeader.ltrack)
+	while (ftr <= fdiHeader.ltrack)
 	{
 		if (IsEventQuitSignalled())
 		{
 			return E_FAIL;
 		}
+
 		if (fdiTrackDescription[ftr].type == 0)
 		{
 			dw = (DWORD)fdiTrackDescription[ftr].size * 256;
@@ -1761,6 +2001,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 			{
 				return SetError(hr, TEXT("%s is not a valid C64 FDI file."), filename);
 			}
+
 			dw = fdiTrackDescription[ftr].size;
 			dw = dw | ((DWORD)(fdiTrackDescription[ftr].type & 0x3f)<<8);
 			dw *= 0x100;
@@ -1772,6 +2013,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 			{
 				return SetError(hr, TEXT("%s is not a valid C64 FDI file."), filename);
 			}
+
 			dw = (DWORD)fdiTrackDescription[ftr].size * 256;
 		}
 		else if ((fdiTrackDescription[ftr].type & 0xf0) == 0xc0)
@@ -1787,6 +2029,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 		{
 			return SetError(E_FAIL,TEXT("%s is not a valid C64 FDI file."), filename);
 		}
+
 		filePointer += dw;
 		if (fdiHeader.tpi == 0)
 		{
@@ -1817,6 +2060,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 	{
 		return FDICheckCRC(hfile, filename, file_size);
 	}
+
 	return S_OK;
 }
 
@@ -1931,7 +2175,8 @@ bit8 speedG64;
 	speedG64 |= (speed<<2);
 	speedG64 |= (speed<<4);
 	speedG64 |= (speed<<6);
-	FillMemory(&speedZone[trackNumber][0], G64_MAX_BYTES_PER_TRACK/4, speedG64);
+	bit32 speedLength = (trackAllocatedMemorySize[trackNumber] + 3) / 4;
+	FillMemory(&speedZone[trackNumber][0], speedLength, speedG64);
 }
 
 
@@ -1944,6 +2189,7 @@ bit32 indexPos;
 bit8 speed;
 DWORD r;
 
+	trackSize[trackNumber] = 0;
 	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
@@ -1952,50 +2198,77 @@ DWORD r;
 
 	hr = ReadFromFileQ(hfile, (char *)&trackBitLength, 4, 0);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
-	if (trackBitLength > G64_MAX_BYTES_PER_TRACK*8)
+	if (trackBitLength > G64_MAX_BYTES_PER_TRACK * 10)
+	{
 		return E_FAIL;
+	}
 
 	hr = ReadFromFileQ(hfile, (char *)&indexPos, 4, 0);
 	if (FAILED(hr))
+	{
 		return hr;
-	
-	trackByteLength = (trackBitLength + 7)/8;
+	}
 
-	if (trackByteLength > G64_MAX_BYTES_PER_TRACK && trackByteLength < 6000)
-		return E_FAIL;
+	trackByteLength = (trackBitLength + 7) / 8;
+	if (trackByteLength > trackAllocatedMemorySize[trackNumber])
+	{
+		hr = InitTrackMemory(trackNumber, trackByteLength, false);
+		if (SUCCEEDED(hr))
+		{
+			trackSize[trackNumber] = trackBitLength;
+		}
+		else
+		{
+			return hr;
+		}
+	}
 	
+	if (trackByteLength < 6000)
+	{
+		return E_FAIL;
+	}
+
 	hr = ReadFromFileQ(hfile, (char *)&trackData[trackNumber][0], trackByteLength, 0);
 	if (FAILED(hr))
+	{
 		return hr;
-	trackSize[trackNumber] = trackBitLength;
+	}
+	
 	speed = FDIDecodeBitRate(fdiTrackType);
 	if (speed == 0xff)
-		return E_FAIL;
+	{
+		speed = 3;
+	}
+
 	G64SetTrackSpeedZone(trackNumber, speed);
-
 	ConvertGCRtoP64(trackNumber);
-
 	return S_OK;
 }
 
 void GCRDISK::WriteGCRBit(bit8 trackNumber, bit32 index, bit8 v)
 {
 bit8 i,m;
-
-	index = index % (G64_MAX_BYTES_PER_TRACK*8);
-	i = trackData[trackNumber][index/8];
-	m = 1 << (7-(index & 7));
-	v = v << (7-(index & 7));
-	trackData[trackNumber][index/8] = (i & ~m) | v;
+	
+	// this->trackSize is invalid during this call so we check this->trackAllocatedMemorySize
+	bit32 byteIndex = index / 8;
+	if (trackAllocatedMemorySize[trackNumber] > 0 && byteIndex < trackAllocatedMemorySize[trackNumber])
+	{
+		i = trackData[trackNumber][index/8];
+		m = 1 << (7-(index & 7));
+		v = v << (7-(index & 7));
+		trackData[trackNumber][index/8] = (i & ~m) | v;
+	}
 }
 
 void GCRDISK::WriteGCRByte(bit8 trackNumber, bit32 index, bit8 v)
 {
 int j;
 
-	for (j=7; j>=0; j--)
+	for (j=7; j >= 0; j--)
 	{
 		WriteGCRBit(trackNumber, index+j, (v & 0x1));
 		v>>=1;
@@ -2015,6 +2288,7 @@ bit8 byteData;
 bit8 buffer4[4];
 bit8 b1,b2,b3,b4,b5;
 
+	trackSize[trackNumber] = 0;
 	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
@@ -2023,41 +2297,66 @@ bit8 b1,b2,b3,b4,b5;
 
 	hr = ReadFromFileQ(hfile, (char *)&encoding, 1, 0);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	if (encoding!=1)//Commodore GCR
+	{
 		return hr;
+	}
+
 	hr = ReadFromFileQ(hfile, (char *)&indexPos, 3, 0);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	c=0;
 	i=0;
 	bool done=false;
 	while (!done)
 	{
-		if (i > G64_MAX_BYTES_PER_TRACK*8)
-			return E_FAIL;
+		bit32 byteIndex = i / 8;
+		if (byteIndex > trackAllocatedMemorySize[trackNumber] * 8)
+		{
+			hr = this->InitTrackMemory(trackNumber, byteIndex * 2, true);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}
 
 		hr = ReadFromFileQ(hfile, (char *)&token, 1, 0);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
+
 		switch(token)
 		{
 		case 0x2://CBM sync mark {word size in bits}
 			hr = ReadFromFileQ(hfile, (char *)&wordData, 2, 0);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			wordData = wordswap(wordData);
 			for (c=0 ; c < wordData; c++)
 			{
 				WriteGCRBit(trackNumber, i, 1);
 				i++;
 			}
+
 			break;
 		case 0x8://RLE GCR encoded {byte size in bytes}, {1 data byte}
 			hr = ReadFromFileQ(hfile, (char *)&wordData, 2, 0);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			byteData = wordData >> 8;
 			size = wordData & 0xff;
 			for (c=0 ; c < size ; c++)
@@ -2070,7 +2369,10 @@ bit8 b1,b2,b3,b4,b5;
 		case 0x9://CBM RLE GCR decoded {byte size in bytes}, {1 data byte}
 			hr = ReadFromFileQ(hfile, (char *)&wordData, 1, 0);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			byteData = wordData >> 8;
 			size = wordData & 0xff;
 			D64_Binary_to_GCR(&byteData, &buffer4[0], 1);
@@ -2091,24 +2393,37 @@ bit8 b1,b2,b3,b4,b5;
 		case 0xb://GCR encoded {word size in bits-65536}, {ceil(size in bits/8) data bytes}
 			hr = ReadFromFileQ(hfile, (char *)&wordData, 1, 0);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			wordData = wordswap(wordData);
 			size = wordData/8;
 			if (token=0xb)
+			{
 				size+=0x2000;
+			}
+
 			for (c=0 ; c < size ; c++)
 			{
 				hr = ReadFromFileQ(hfile, (char *)&byteData, 1, 0);
 				if (FAILED(hr))
+				{
 					return hr;
+				}
+
 				WriteGCRByte(trackNumber, i, byteData);
 				i+=8;
 			}
+
 			if (wordData & 7)
 			{
 				hr = ReadFromFileQ(hfile, (char *)&byteData, 1, 0);
 				if (FAILED(hr))
+				{
 					return hr;
+				}
+
 				WriteGCRByte(trackNumber, i, byteData);
 				i+=(wordData & 7);
 			}
@@ -2116,7 +2431,10 @@ bit8 b1,b2,b3,b4,b5;
 		case 0xc://CBM GCR decoded {word size in nibbles}, {ceil(size in bits/8 data bytes)}
 			hr = ReadFromFileQ(hfile, (char *)&wordData, 1, 0);
 			if (FAILED(hr))
+			{
 				return hr;
+			}
+
 			size = wordData;
 			for (c=0 ; c < size ; c++)
 			{
@@ -2124,11 +2442,15 @@ bit8 b1,b2,b3,b4,b5;
 				{
 					hr = ReadFromFileQ(hfile, (char *)&byteData, 1, 0);
 					if (FAILED(hr))
+					{
 						return hr;
+					}
+
 					D64_Binary_to_GCR(&byteData, &buffer4[0], 1);
 					b1 = (buffer4[1] >> 7) & 1;
 					b2 = (buffer4[1] >> 6) & 1;
 				}
+
 				if (c+1 < size)
 				{
 					WriteGCRByte(trackNumber, i, buffer4[0]);
@@ -2165,11 +2487,14 @@ bit8 b1,b2,b3,b4,b5;
 		}
 	}
 	
+	trackSize[trackNumber] = i;	
 	speed = FDIDecodeBitRate(fdiTrackType);
 	if (speed == 0xff)
+	{
 		return E_FAIL;
-	G64SetTrackSpeedZone(trackNumber, speed);
+	}
 
+	G64SetTrackSpeedZone(trackNumber, speed);
 	ConvertGCRtoP64(trackNumber);
 	return S_OK;
 }
@@ -2575,6 +2900,7 @@ HRESULT GCRDISK::LoadD64FromFile(TCHAR *filename, bool bConvertToRAW, bool bAlig
 HANDLE hfile=0;
 BOOL r;
 DWORD bytes_read,file_size;
+HRESULT hr = S_OK;
 
 	ClearError();
 	P64ImageClear(&m_P64Image);
@@ -2628,11 +2954,11 @@ DWORD bytes_read,file_size;
 
 	if (bConvertToRAW)
 	{
-		MakeGCRImage(m_pD64Binary, m_d64TrackCount, d64Errors, bAlignD64Tracks);
+		hr = MakeGCRImage(m_pD64Binary, m_d64TrackCount, d64Errors, bAlignD64Tracks);
 	}
 
 	m_d64_protectOff=0;
-	return S_OK;
+	return hr;
 }
 
 #define SOFFSET(t, m)	(INT_PTR)(&(((t *)(0))->m))
@@ -3027,9 +3353,14 @@ HRESULT hr;
 		tracks = 40;
 	}
 
+	bool memoryAllocFailed = false;
 	for (tr=0 ; tr < HOST_MAX_TRACKS ; tr++)
 	{
-		ConvertP64toGCR(tr);
+		hr = ConvertP64toGCR(tr);
+		if (FAILED(hr))
+		{
+			memoryAllocFailed = true;			
+		}
 	}
 
 	r = ConvertGCRToD64(tracks);
@@ -3041,19 +3372,26 @@ HRESULT hr;
 	hfile=CreateFile(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL ,NULL); 
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
-		return SetError(E_FAIL,TEXT("Could not save %s."),filename);
+		return SetError(E_FAIL,TEXT("Could not save %s"), filename);
 	}
 	
 	rb = WriteFile(hfile, m_pD64Binary, file_size, &bytes_written, NULL);
 	CloseHandle(hfile);
 	if (rb == FALSE)
 	{
-		return SetError(E_FAIL,TEXT("Could not write to %s."),filename);
+		return SetError(E_FAIL,TEXT("Could not write to %s"), filename);
 	}
+
 	if (bytes_written!=file_size)
 	{
-		return SetError(E_FAIL,TEXT("Could not write to %s."),filename);
+		return SetError(E_FAIL,TEXT("Could not write to %s"),filename);
 	}
+
+	if (memoryAllocFailed)
+	{
+		return SetError(E_OUTOFMEMORY, TEXT("Out of memory while saving %s"), filename);
+	}
+
 	return hr;
 }
 

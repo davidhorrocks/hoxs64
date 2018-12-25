@@ -5,7 +5,7 @@ typedef class CArrayElement<struct C64Filename> CDirectoryElement;
 typedef class CArray<struct C64Filename> CDirectoryArray;
 
 
-class CPRGBrowse
+class CPRGBrowse : public ErrorMsg
 {
 public:
 	CPRGBrowse();
