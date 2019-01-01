@@ -385,20 +385,19 @@ ICLK vicCurrentClock;
 	multiColourPrev = vic->vicSpriteMultiColorPrev & spriteBit;
 	xExpand = vic->vicSpriteXExpand & spriteBit;
 	xExpandPrev = vic->vicSpriteXExpandPrev  & spriteBit;
-
 	clockMultiColorChange = vic->clockSpriteMultiColorChange;
 	clockSpriteXExpandChange = vic->clockSpriteXExpandChange;
-	clockSpriteDataPriorityChange = vic->clockSpriteDataPriorityChange;
-	
+	clockSpriteDataPriorityChange = vic->clockSpriteDataPriorityChange;	
 	color1=12 | 128;
 	color2=(4 + spriteNumber) | 128;
 	color3=13 | 128;
-
 	maskShift = (xPixel + 4) & 7;
 	maskByte  = (xPixel + 4) / 8;
 
 	if (maskByte<14 || maskByte>57)
+	{
 		mask = 0;
+	}
 	else
 	{
 		mask = ((bit16)(vic->pixelMaskBuffer[maskByte])) << 8;
@@ -410,14 +409,21 @@ ICLK vicCurrentClock;
 	if ((c > 6) && (clockSpriteDataPriorityChange == vicCurrentClock))
 	{
 		if (dataPriority == 0)
+		{
 			foregroundmask |= (0xff >> (c - 6));
+		}
+
 		if (dataPriorityPrev == 0)
+		{
 			foregroundmask |= (0xc0 << (8 - c));
+		}
 	}
 	else
 	{
 		if (dataPriority == 0)
+		{
 			foregroundmask = -1;
+		}
 	}
 
 	/* Comment out for normal operation
@@ -434,12 +440,15 @@ ICLK vicCurrentClock;
 				if ((shiftCounter <= 0) && (ff_MC == 0))
 				{
 					if (vic->vicSpriteDisplay & spriteBit)
+					{
 						shiftStatus = srsArm;
+					}
 					else
 					{
 						shiftStatus = srsIdle;
 						vic->vicSpriteArmedOrActive = vic->vicSpriteArmedOrActive & ~(bit16)spriteBit;
 					}
+
 					break;
 				}
 
@@ -452,7 +461,6 @@ ICLK vicCurrentClock;
 				if (multiColourThisPixel || ff_MC)
 				{
 					ff_MC ^= 1;
-
 					if (ff_MC & 1)
 					{
 						
@@ -476,9 +484,13 @@ ICLK vicCurrentClock;
 				else
 				{
 					if (dataBuffer & 0x800000)
+					{
 						currentPixel = color2;
+					}
 					else
+					{
 						currentPixel = 0x00;
+					}
 				}
 			}
 
@@ -503,6 +515,7 @@ ICLK vicCurrentClock;
 						currentPixel = color3;
 						break;
 					}
+
 					ff_MC = 1;
 				}
 				else if (multiColourPrev != 0 && multiColour == 0)
@@ -521,10 +534,15 @@ ICLK vicCurrentClock;
 			if (ff_MC != 0 && ff_XP == 0 && vic->vicSpritePointer[spriteNumber] < 0x2000)
 			{
 				if (((dataBuffer & 0x800000)) == 0)
+				{
 					currentPixel = 0x00;
+				}
 				else
+				{
 					currentPixel = color2;
+				}
 			}
+
 			ff_XP = 0;
 			ff_MC = 0;
 		}
@@ -536,14 +554,22 @@ ICLK vicCurrentClock;
 		{
 			sprite_sprite_collision = sprite_data_collision = 0;
 			if (sprite_collision_line[xPixel]) // Sprite to sprite collision
+			{
 				sprite_sprite_collision= sprite_collision_line[xPixel] | spriteBit;
+			}
 			else
+			{
 				if (((signed char)foregroundmask) < 0) // Sprite data priority to foreground graphics check
+				{
 					pixelbuffer[xPixel] = currentPixel;
+				}
+			}
 
 			sprite_collision_line[xPixel]=spriteBit;
 			if (((signed short)mask) < 0) // Sprite to foreground collision 
+			{
 				sprite_data_collision=spriteBit;
+			}
 
 			//TEST 4 pixel delay of sprite collision
 			if (c > 4)
@@ -556,6 +582,7 @@ ICLK vicCurrentClock;
 				vic->vicNextSprite_sprite_collision |= sprite_sprite_collision;
 				vic->vicNextSprite_data_collision |= sprite_data_collision;
 			}
+
 			//TEST new irq behaviour
 			if (sprite_sprite_collision != 0)
 			{
@@ -568,6 +595,7 @@ ICLK vicCurrentClock;
 					vic->vicSpriteSpriteInt|=2;
 				}
 			}
+
 			if (sprite_data_collision != 0)
 			{
 				if (c > 4)
@@ -581,7 +609,6 @@ ICLK vicCurrentClock;
 			}
 		}
 
-
 		if (bleedMode != 0)
 		{
 			if (shiftCounter <= 0)
@@ -591,16 +618,21 @@ ICLK vicCurrentClock;
 				ff_MC = 0;
 				break;
 			}
+
 			shiftCounter--;
 		}
 		else
 		{
 			xExpandThisPixel = xExpand;
 			if ((c > 6) && (clockSpriteXExpandChange == vicCurrentClock))
+			{
 				xExpandThisPixel = xExpandPrev;
+			}
 
 			if (xExpandThisPixel || ff_XP != 0)
+			{
 				ff_XP ^= 1;
+			}
 
 			if (ff_XP == 0)
 			{
@@ -613,7 +645,9 @@ ICLK vicCurrentClock;
 		foregroundmask <<= 1;
 		xPixel++;
 		if (xPixel >= VIDEOWIDTH)
+		{
 			xPixel -= VIDEOWIDTH;
+		}
 
 		c--;
 	}
@@ -621,7 +655,9 @@ ICLK vicCurrentClock;
 	if ((shiftCounter <= 0 && ff_XP == 0 && ff_MC == 0))
 	{
 		if (vic->vicSpriteDisplay & spriteBit)
+		{
 			shiftStatus = srsArm;
+		}
 		else
 		{
 			shiftStatus = srsIdle;
@@ -1030,11 +1066,14 @@ bit8 c;
 void VIC6569::check_38_col_left_border()
 {
 	vic_border_part_38 = vicMainBorder;
-	if (vicCSEL==0)
+	if (vicCSEL == 0)
 	{
-		if (vicVerticalBorder==0) 
-			vicMainBorder=0;
+		if (vicVerticalBorder == 0) 
+		{
+			vicMainBorder = 0;
+		}
 	}
+
 	vic_border_part_38 |= (vicMainBorder<<1);
 }
 
@@ -1072,11 +1111,14 @@ bit8 c;
 void VIC6569::check_40_col_left_border()
 {
 	vic_border_part_40=vicMainBorder;
-	if (vicCSEL==1)
+	if (vicCSEL == 1)
 	{
-		if (vicVerticalBorder==0)
+		if (vicVerticalBorder == 0)
+		{
 			vicMainBorder=0;
+		}
 	}
+
 	vic_border_part_40|=(vicMainBorder<<1);
 }
 
@@ -1096,6 +1138,7 @@ void VIC6569::C_ACCESS()
 				cpu->ExecuteCycle(CurrentClock);
 				cpu_next_op_code = cpu->m_op_code;
 			}
+
 			VideoMatrix[vicVMLI] = ((bit16)(cpu_next_op_code & 0xF) << 8) | 0xFF;
 		}
 	}
@@ -1148,6 +1191,7 @@ bit8 gData;
 			gData = vic_ph1_read_byte(0x39ff);
 			break;
 		}
+
 		if (vicIDLE_DELAY)
 		{
 			vicIDLE_DELAY=0;
@@ -1194,6 +1238,7 @@ bit8 gData;
 				}
 			}
 		}
+
 		switch (ecm_bmm_mcm)
 		{
 		case 0: // std text
@@ -1359,7 +1404,9 @@ bit8 color;
 bit8 a_color4[4];
 
 	if (verticalBorder)
+	{
 		gData = 0;
+	}
 
 	bit8 pixelsToSkip = DF_PixelsToSkip;
 	if (pixelsToSkip > 0)
@@ -2408,7 +2455,7 @@ void VIC6569::SetBA(ICLK &cycles, bit8 cycle)
 			--vicAEC;
 		//If cpu->m_bIsWriteCycle == false or cycles != 0 then it means that the cpu has recently executed a read cycle which should have caused a cpu BA delay.
 		//We synchronise the vic with all cpu-write cycles but allow the cpu to run ahead with reads from RAM.
-		//If we call here on a cpu write cycle then 'cycles' will be zero through 'cycles' may be zero for cpu read cycles too.
+		//If we call here on a cpu write cycle then 'cycles' will be zero though 'cycles' may be zero for cpu read cycles too.
 		if (!cpu->m_bDebug)
 		{
 			if (!cpu->m_bIsWriteCycle || cycles != 0)
@@ -2491,13 +2538,16 @@ bit8 data8;
 		{
 			vic_raster_cycle = 1;
 		}
-		cycle = vic_raster_cycle;
-	
+
+		cycle = vic_raster_cycle;	
 		switch (cycle)
 		{
 		case 1:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			if(vic_raster_line == PAL_MAX_LINE)
 			{
 				vic_check_irq_in_cycle2=true;
@@ -2544,12 +2594,17 @@ bit8 data8;
 				MC[sprite3] = (MC[sprite3] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite3, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
 
 			break;
 		case 2:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			if(vic_check_irq_in_cycle2)
 			{
 				vic_check_irq_in_cycle2=false;
@@ -2567,7 +2622,6 @@ bit8 data8;
 				vic_latchDEN=0;
 				vic_in_display_y=0;
 				vicVCBASE=0;
-
 				if (vicRASTER_compare == 0)
 				{
 					if (!bVicRasterMatch)
@@ -2584,8 +2638,8 @@ bit8 data8;
                 {
 					bVicRasterMatch = false;
                 }
-
 			}
+
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite3))
 			{
@@ -2599,11 +2653,15 @@ bit8 data8;
 				LOADSPRITEDATA(sprite3, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite3, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite3].dataBuffer = vicSpriteData[sprite3];
 			break;
 		case 3:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			SetBA(clocks, cycle);
 			vicSpritePointer[sprite4] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite4) * 64;
 			if (vicSpriteDMA & (1<<sprite4))
@@ -2612,11 +2670,17 @@ bit8 data8;
 				MC[sprite4] = (MC[sprite4] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite4, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
+
 			break;
 		case 4:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite4))
 			{
@@ -2630,11 +2694,15 @@ bit8 data8;
 				LOADSPRITEDATA(sprite4, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite4, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite4].dataBuffer = vicSpriteData[sprite4];
 			break;
 		case 5:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			SetBA(clocks, cycle);
 			vicSpritePointer[sprite5] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite5) * 64;
 			if (vicSpriteDMA & (1<<sprite5))
@@ -2643,11 +2711,17 @@ bit8 data8;
 				MC[sprite5] = (MC[sprite5] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite5, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
+
 			break;
 		case 6:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite5))
 			{
@@ -2661,11 +2735,15 @@ bit8 data8;
 				LOADSPRITEDATA(sprite5, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite5, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite5].dataBuffer = vicSpriteData[sprite5];
 			break;
 		case 7:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			SetBA(clocks, cycle);
 			vicSpritePointer[sprite6] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite6) * 64;
 			if (vicSpriteDMA & (1<<sprite6))
@@ -2674,11 +2752,17 @@ bit8 data8;
 				MC[sprite6] = (MC[sprite6] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite6, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
+
 			break;
 		case 8:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite6))
 			{
@@ -2692,12 +2776,15 @@ bit8 data8;
 				LOADSPRITEDATA(sprite6, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite6, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite6].dataBuffer = vicSpriteData[sprite6];
 			break;
 		case 9:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
 
 			SetBA(clocks, cycle);
 			vicSpritePointer[sprite7] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite7) * 64;
@@ -2707,14 +2794,19 @@ bit8 data8;
 				MC[sprite7] = (MC[sprite7] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite7, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
+
 			break;
 		case 10: //0x1e0:		
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
-			COLOR_FOREGROUND(vicBackgroundColor, cycle);
+			}
 
+			COLOR_FOREGROUND(vicBackgroundColor, cycle);
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite7))
 			{
@@ -2728,15 +2820,18 @@ bit8 data8;
 				LOADSPRITEDATA(sprite7, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite7, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite7].dataBuffer = vicSpriteData[sprite7];
 			break;
 		case 11:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vic_ph1_read_byte(0x3f00 | vicDRAMRefresh--);
 			break;
@@ -2744,30 +2839,36 @@ bit8 data8;
 			//Left most colourised pixels in full borders mode.
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vic_ph1_read_byte(0x3f00 | vicDRAMRefresh--);
 			break;
 		case 13:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vic_ph1_read_byte(0x3f00 | vicDRAMRefresh--);
 			break;
 		case 14:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vic_ph1_read_byte(0x3f00 | vicDRAMRefresh--);
 			vicVC = vicVCBASE;
@@ -2776,28 +2877,32 @@ bit8 data8;
 			{
 				vicRC = 0;
 			}
+
 			break;
 		case 15:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vic_ph1_read_byte(0x3f00 | vicDRAMRefresh--);
 			vic_allow_c_access = vic_badline!=0;
 			vicIDLE_DELAY=0;
-
 			C_ACCESS();
 			break;
 		case 16: //0x18:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			vicSpriteDMAPrev = vicSpriteDMA;
 			for (ibit8=1,i=0 ; i < 8 ; i++,ibit8<<=1)
 			{
@@ -2817,12 +2922,11 @@ bit8 data8;
 					vicSpriteDMA &= ~ibit8;
 				}
 			}
-			vicClearingYExpandRegInClock15 = 0;
 
+			vicClearingYExpandRegInClock15 = 0;
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][vic_badline];
 			SetBA(clocks, cycle);
 			vicMainBorder_old = vicMainBorder;
-
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastCDataPrev = vicLastCData;
@@ -2832,17 +2936,17 @@ bit8 data8;
 			break;
 		case 17://0x1f:
 			check_40_col_left_border();
-
 			DrawForeground(vicLastGData, vicXSCROLL, vicLastCData, vicECM_BMM_MCM, 0, vicCharDataOutputDisabled, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DrawBorder4(cycle);//uses vicMainBorder_old
 			draw_40_col_left_border1(cycle); // uses vic_border_part_40
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vicMainBorder_old = vicMainBorder;
-
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastCDataPrev = vicLastCData;
@@ -2852,17 +2956,16 @@ bit8 data8;
 			break;
 		case 18:
 			DrawForeground(vicLastGData, vicXSCROLL, vicLastCData, vicECM_BMM_MCM, 0, vicCharDataOutputDisabled, cycle);
-
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
 
 			check_38_col_left_border();
 			draw_40_col_left_border2(cycle); // uses vic_border_part_40
 			draw_38_col_left_border(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
-
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastCDataPrev = vicLastCData;
@@ -2908,12 +3011,13 @@ bit8 data8;
 		case 54:
 			DrawForeground(vicLastGData, vicXSCROLL, vicLastCData, vicECM_BMM_MCM, 0, vicCharDataOutputDisabled, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
-
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastCDataPrev = vicLastCData;
@@ -2924,15 +3028,15 @@ bit8 data8;
 		case 55:
 			DrawForeground(vicLastGData, vicXSCROLL, vicLastCData, vicECM_BMM_MCM, 0, vicCharDataOutputDisabled, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			vic_allow_c_access = false;
-
 			vicSpriteYMatch=0;
 			ff_YP= ((~ff_YP) & vicSpriteYExpand) | (~vicSpriteYExpand & ff_YP);
-
 			for (ibit8=1,i=0 ; i < 8 ; i++)
 			{
 				if ((~vicSpriteDMA & vicSpriteEnable & ibit8)!=0 && vicSpriteY[i]==(vic_raster_line & 0xFF) )
@@ -2940,14 +3044,17 @@ bit8 data8;
 					vicSpriteDMA|=ibit8;
 					MCBASE[i]=0;
 					if (vicSpriteYExpand & ibit8)
+					{
 						ff_YP &= ~ibit8;
+					}
+
 				}
+
 				ibit8<<=1;
 			}
 
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][0];
 			SetBA(clocks, cycle);
-
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastCDataPrev = vicLastCData;
@@ -2956,16 +3063,20 @@ bit8 data8;
 			break;
 		case 56:
 			DrawForeground(vicLastGData, vicXSCROLL, vicLastCData, vicECM_BMM_MCM, 0, vicCharDataOutputDisabled, cycle);
-
 			if (vicCharDataOutputDisabled!=0)
+			{
 				pixelMaskBuffer[cycle] = 0;
+			}
+
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DrawBorder7(cycle);
 			check_38_col_right_border();
 			draw_38_col_right_border1(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			for (ibit8=1,i=0 ; i < 8 ; i++,ibit8<<=1)
 			{
 				if ((~vicSpriteDMA & vicSpriteEnable & ibit8)!=0 && vicSpriteY[i]==(vic_raster_line & 0xFF))
@@ -2973,7 +3084,9 @@ bit8 data8;
 					MCBASE[i]=0;
 					vicSpriteDMA|=ibit8;
 					if (vicSpriteYExpand & ibit8)
+					{
 						ff_YP &= ~ibit8;
+					}
 				}
 			}
 
@@ -2984,7 +3097,6 @@ bit8 data8;
 			//If a write to $D016 occurs in cycle 56 then we simulate the X-Scroll going to 7 to ensure that any 9 pixel characters get displayed.
 			//Hacky 9 pixel in the border accommodation; FIXME
 			vicXSCROLL_Cycle57 = vicXSCROLL;
-
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastCDataPrev = vicLastCData;
@@ -2996,16 +3108,16 @@ bit8 data8;
 			//Hacky 9 pixel in the border accommodation; FIXME
 			DrawForegroundEx(0, vicXSCROLL_Cycle57, vicLastCData, vicECM_BMM_MCM, 0, vicCharDataOutputDisabled, 0, 8-vicXSCROLL_Cycle57+vicXSCROLL, cycle);
 			vicXSCROLL_Cycle57 = vicXSCROLL;
-
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			check_40_col_right_border();
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vic_ph1_read_3fff_byte();
-
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastGDataPrev = 0;
@@ -3013,14 +3125,14 @@ bit8 data8;
 		case 58:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			vicLastGDataPrev2 = 0;
-
 			SetBA(clocks, cycle);
-
 			vicSpriteDisplay &= vicSpriteDMA;
 			for (ibit8=1,i=0 ; i < 8 ; i++,ibit8<<=1)
 			{
@@ -3033,7 +3145,9 @@ bit8 data8;
 				}
 
 				if ((vicSpriteDisplay & ibit8) ==0)
+				{
 					SpriteIdle(i);
+				}
 			}
 
 			vicSpritePointer[sprite0] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite0) * 64;
@@ -3044,7 +3158,9 @@ bit8 data8;
 				MC[sprite0] = (MC[sprite0] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite0, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
 
 			if (vicRC==7)
 			{
@@ -3052,19 +3168,25 @@ bit8 data8;
 				{
 					vicIDLE=1;
 				}
+
 				vicVCBASE = vicVC;
 			}
+
 			if (vicIDLE==0)
+			{
 				vicRC=(vicRC +1) & 7;
+			}
 
 			break;
 		case 59:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite0))
 			{
@@ -3078,15 +3200,18 @@ bit8 data8;
 				LOADSPRITEDATA(sprite0, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite0, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite0].dataBuffer = vicSpriteData[sprite0];
 			break;
 		case 60:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vicSpritePointer[sprite1] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite1) * 64;
 			if (vicSpriteDMA & (1<<sprite1))
@@ -3095,15 +3220,20 @@ bit8 data8;
 				MC[sprite1] = (MC[sprite1] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite1, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
+
 			break;
 		case 61:
 			DrawForeground0(vicXSCROLL, vicLastCData, vicECM_BMM_MCM, cycle);
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite1))
 			{
@@ -3117,14 +3247,17 @@ bit8 data8;
 				LOADSPRITEDATA(sprite1, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite1, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite1].dataBuffer = vicSpriteData[sprite1];
 			break;
 		case 62:
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
+
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
-
 			SetBA(clocks, cycle);
 			vicSpritePointer[sprite2] = (bit16)vic_ph1_read_byte(vicMemptrVM + 0x3f8 + sprite2) * 64;
 			if (vicSpriteDMA & (1<<sprite2))
@@ -3133,11 +3266,16 @@ bit8 data8;
 				MC[sprite2] = (MC[sprite2] + 1) & 63;
 			}
 			else
+			{
 				LOADSPRITEDATA(sprite2, 2) = vic_ph2_read_3fff_aec_byte();//0xff;
+			}
+
 			break;
 		case 63: 
 			if (vicSpriteArmedOrActive != 0)
+			{
 				DrawSprites(cyclePrev);
+			}
 
 			SetBA(clocks, cycle);
 			if (vicSpriteDMA & (1<<sprite2))
@@ -3152,6 +3290,7 @@ bit8 data8;
 				LOADSPRITEDATA(sprite2, 1) = vic_ph1_read_3fff_byte();
 				LOADSPRITEDATA(sprite2, 0) = vic_ph2_read_3fff_aec_byte();//0xff;
 			}
+
 			vicSprite[sprite2].dataBuffer = vicSpriteData[sprite2];
 			if (vic_raster_line == vic_bottom_compare)
 			{
@@ -3163,13 +3302,16 @@ bit8 data8;
 				vicVerticalBorder=0;
 				vicCharDataOutputDisabled=0;
 			}
+
 			break;
 		}
+
 		if (m_bVicModeChanging)
 		{
 			m_bVicModeChanging = false;
 			vicECM_BMM_MCM_prev = vicECM_BMM_MCM;
 		}
+
 		if (m_bVicBankChanging)
 		{
 			m_bVicBankChanging = false;
@@ -3561,21 +3703,45 @@ bit8 modeOld;
 		break;
 	case 0x10:	//sprite MSB X
 		if ((vicSpriteMSBX ^ data) & 1)
+		{
 			SpriteXChange(0, vicSpriteX[0] + (((bit16)(data & 1)) << 8), cycle);
+		}
+
 		if ((vicSpriteMSBX ^ data) & 2)
+		{
 			SpriteXChange(1, vicSpriteX[1] + (((bit16)(data & 2)) << 7), cycle);
+		}
+
 		if ((vicSpriteMSBX ^ data) & 4)
+		{
 			SpriteXChange(2, vicSpriteX[2] + (((bit16)(data & 4)) << 6), cycle);
+		}
+
 		if ((vicSpriteMSBX ^ data) & 8)
+		{
 			SpriteXChange(3, vicSpriteX[3] + (((bit16)(data & 8)) << 5), cycle);
+		}
+
 		if ((vicSpriteMSBX ^ data) & 16)
+		{
 			SpriteXChange(4, vicSpriteX[4] + (((bit16)(data & 16)) << 4), cycle);
+		}
+
 		if ((vicSpriteMSBX ^ data) & 32)
+		{
 			SpriteXChange(5, vicSpriteX[5] + (((bit16)(data & 32)) << 3), cycle);
+		}
+
 		if ((vicSpriteMSBX ^ data) & 64)
+		{
 			SpriteXChange(6, vicSpriteX[6] + (((bit16)(data & 64)) << 2), cycle);
+		}
+
 		if ((vicSpriteMSBX ^ data) & 128)
+		{
 			SpriteXChange(7, vicSpriteX[7] + (((bit16)(data & 128)) << 1), cycle);
+		}
+
 		vicSpriteMSBX = data;
 		break;
 	case 0x11:	//control 1
@@ -3595,6 +3761,7 @@ bit8 modeOld;
 				vicCharDataOutputDisabled=0;
 			}
 		}
+
 		if (vic_raster_line == vic_bottom_compare)
 		{//memories demo			
 			if (bRSELChanging)
@@ -3602,6 +3769,7 @@ bit8 modeOld;
 				vicVerticalBorder=1;
 			}
 		}
+
 		vicYSCROLL = data & 7;
 		vicRSEL = (data & 8)>>3;
 		vicDEN = (data & 0x10)>>4;
@@ -3609,10 +3777,8 @@ bit8 modeOld;
 		vicBMM = (data & 0x20)>>5;
 		vicECM_BMM_MCM = (vicECM<<2) | (vicBMM<<1) | (modeOld & 1);
 		modeNew = vicECM_BMM_MCM;
-
 		old_raster_compare = vicRASTER_compare;
 		vicRASTER_compare = (vicRASTER_compare & 0x0FF) | (((bit16)data & 0x80)<<1);
-
 		if (vicRSEL == 0)
 		{
   			vic_top_compare = 0x37;
@@ -3648,7 +3814,10 @@ bit8 modeOld;
 		}		
 
 		if (vic_raster_line==0x30)
+		{
 			vic_latchDEN|=vicDEN;
+		}
+
 		if (vic_raster_line>=0x30 && vic_raster_line<=0xf7 && ((vic_raster_line & 7)==vicYSCROLL) && vic_latchDEN!=0 && cycle !=PAL_CLOCKS_PER_LINE)
 		{			
 			if (vicIDLE != 0)
@@ -3665,12 +3834,12 @@ bit8 modeOld;
 			{
 				vic_allow_c_access = true;
 			}
+
 			vicCDataCarry=0;
 
 			//Reads from the system one clock too soon. This is fine for reading RAM or ROM.
 			//CACCESS and SetBA handle the case when the opcode is fetched from IO space.
-			cpu_next_op_code = cpu->MonReadByte(cpu->mPC.word, -1);
-			
+			cpu_next_op_code = cpu->MonReadByte(cpu->mPC.word, -1);			
 			vicIDLE=0;
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][1];
 		}
