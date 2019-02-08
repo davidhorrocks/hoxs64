@@ -911,9 +911,11 @@ void VIC6569::WRITE_MCM4_BYTE_EX (bit8 gData, signed char xscroll,const bit8 col
 {
 bit8 *pByte;
 	if ((signed char) count <=0)
+	{
 		return;
-	pByte=vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
+	}
 
+	pByte=vic_pixelbuffer + (INT_PTR)(((int)cycle*8 - 20) + (int)xscroll + 8);
 	bit8 v;
 	gData <<= (xstart & 0xfe);
 
@@ -925,6 +927,7 @@ bit8 *pByte;
 		pByte[i++] = v;
 		count--;
 	}
+
 	while (count != 0)
 	{
 		gData = _rotl8(gData, 2);
@@ -932,7 +935,10 @@ bit8 *pByte;
 		pByte[i++] =v;
 		--count;
 		if (count == 0)
+		{
 			break;
+		}
+
 		pByte[i++] = v;
 		--count;
 	}
@@ -1548,9 +1554,14 @@ bit8 color;
 bit8 a_color4[4];
 
 	if (count==0 || count > 8 || xstart > 8)
+	{
 		return;
+	}
+
 	if (verticalBorder)
+	{
 		gData = 0;
+	}
 
 	bit8 pixelsToSkip = DF_PixelsToSkip;
 	if (pixelsToSkip > 0)
@@ -1665,6 +1676,7 @@ bit8 a_color4[4];
 			a_color4[0]=(bit8)BACKCOLORINDEX3;
 			break;
 		}
+
 		WRITE_STD2_BYTE_EX(gData, xscroll, a_color4, cycle, xstart, count);
 		
 		//data mask store
@@ -1707,6 +1719,7 @@ bit8 a_color4[4];
 			//data mask store
 			WRITE_FORE_MASK_STD_EX(gData, xscroll, xstart, count, cycle);
 		}
+
 		break;
 	case 6: //invalid bitmap mode1
 		//gfx pixel write
@@ -1740,6 +1753,7 @@ bit8 a_color4[4];
 			//data mask store
 			WRITE_FORE_MASK_STD_EX(gData, xscroll, xstart, count, cycle);
 		}
+
 		break;
 	}
 }
@@ -4221,7 +4235,13 @@ bit8 modeOld;
 			//	DrawForegroundEx(0, oldXScroll, cData1, modeNew, 0, 0, 0, 8 - oldXScroll, cycle + 1);
 			//}
 
-			if (modeNew != modeOld)
+			signed char xScrollDecrement = 0;				
+			if (oldXScroll > newXScroll)
+			{
+				xScrollDecrement = oldXScroll - newXScroll;
+			}
+
+			if (modeNew != modeOld || xScrollDecrement >= 4)
 			{
 				bit8 t;
 
@@ -4235,18 +4255,16 @@ bit8 modeOld;
 				bool bBMM = (modeOld & 2) != 0;
 				bool bECM = (modeOld & 4) != 0;
 
-				signed char xScrollDecrement = 0;
-				
-				if (oldXScroll > newXScroll)
-					xScrollDecrement = oldXScroll - newXScroll;
-
 				//We may have already drawn part of the next cycle with an old and incorrect modeOld so we make a correction
-				//Need to review if this DrawForegroundEx call is still needed.
 				DrawForegroundEx(gData1, 0, cData1, modeNew, 0, vicCharDataOutputDisabled, 8 - oldXScroll, oldXScroll, cycle + 1);
 
-				if ((modeOld & 1) !=0)//Multi-color going off
+				if ((modeNew & 1) == 0)
 				{
+					// Multicolor going off or staying off.
+					// MCM: 1 -> 0
+					// MCM: 0 -> 0
 					bit32 cData1b = cData1;
+
 					//Need to check what happens with bitmap / ecm modes with decreasing x-scroll.
 					if (bBMM)
 					{
@@ -4265,6 +4283,7 @@ bit8 modeOld;
 							//Early c-data colour fetch
 							cData1b = (cData1 & 0x0ff) | (cData2 & 0xf00);
 						}
+
 						if (bECM)
 						{
 							//ECM==1
@@ -4276,35 +4295,40 @@ bit8 modeOld;
 						}
 					}
 
-					if ((cData1 & 0x800) != 0 || bBMM)
+					if (modeNew != modeOld)
 					{
-						//pixel positions 5 and 6
-						//Demo "Tense Years" by Onslaught Design
-						//Prestige - part DYXCP!
-						//Wide pixels standard colour route.
-						/*
-						00 -> 00
-						01 -> 00
-						10 -> 11
-						11 -> 11
-						*/
-						t = gData1 & 0xaa;
-						gData1Transformed = t | (t >> 1);
-					}
-					if ((cData0 & 0x800) != 0 || bBMM)
-					{
-						//pixel positions 5 and 6
-						//Demo "Tense Years" by Onslaught Design
-						//Prestige - part DYXCP!
-						//Wide pixels standard colour route.
-						/*
-						00 -> 00
-						01 -> 00
-						10 -> 11
-						11 -> 11
-						*/
-						t = gData0 & 0xaa;
-						gData0Transformed = t | (t >> 1);
+						//MCM: 1 -> 0
+						if ((cData1 & 0x800) != 0 || bBMM)
+						{
+							//pixel positions 5 and 6
+							//Demo "Tense Years" by Onslaught Design
+							//Prestige - part DYXCP!
+							//Wide pixels standard colour route.
+							/*
+							00 -> 00
+							01 -> 00
+							10 -> 11
+							11 -> 11
+							*/
+							t = gData1 & 0xaa;
+							gData1Transformed = t | (t >> 1);
+						}
+
+						if ((cData0 & 0x800) != 0 || bBMM)
+						{
+							//pixel positions 5 and 6
+							//Demo "Tense Years" by Onslaught Design
+							//Prestige - part DYXCP!
+							//Wide pixels standard colour route.
+							/*
+							00 -> 00
+							01 -> 00
+							10 -> 11
+							11 -> 11
+							*/
+							t = gData0 & 0xaa;
+							gData0Transformed = t | (t >> 1);
+						}
 					}
 					
 					//Required for Mariusz's "pattern zoom" test and the removal of stray pixels in some demos.
@@ -4355,8 +4379,10 @@ bit8 modeOld;
 						break;
 					}
 				}
-				else //Multi-color going on
+				else if ((modeOld & 1) == 0)
 				{
+					//Multicolor going on
+					//MCM:  0 -> 1
 					bit8 gData1b;
 					bit8 gData1c;
 					bit32 cData1b;
@@ -4400,7 +4426,9 @@ bit8 modeOld;
 							cData1b = cData2 & 0xfff;
 						}
 						else
+						{
 							cData1b = cData1;
+						}
 					}
 					else
 					{
@@ -4447,6 +4475,7 @@ bit8 modeOld;
 										gData1c = t | (t >> 1);
 									}
 								}
+
 								//Early c-data colour fetch;
 								//cData2-->MC Route
 								//cData2-->Colours
@@ -4454,7 +4483,9 @@ bit8 modeOld;
 							}
 						}
 						else
+						{
 							cData1b = cData1;
+						}
 					}
 											
 					//Orreys demo
@@ -4512,7 +4543,92 @@ bit8 modeOld;
 						break;
 					}
 				}
+				else if (xScrollDecrement >= 4)
+				{
+					//Multicolor staying on
+					//MCM:  1 -> 1
+					bit8 gData1b;
+					bit8 gData1c;
+					bit32 cData1b;
+					bit8 decShiftPixelShiftMode = 0;
+					gData1b = gData1;
+					gData1c = gData1;					
+
+					if (bBMM)
+					{
+						//BMM==1
+						//Early c-data colour fetch
+						cData1b = cData2 & 0xfff;
+					}
+					else
+					{
+						//BMM==0
+						//Early c-data colour fetch
+						if (xScrollDecrement == 4)
+						{
+							//Early c-data colour fetch; 
+							//cData1-->Pixel Width
+							//cData1-->MC Route
+							//cData2-->Colours
+							cData1b = (cData1 & 0x8ff) | (cData2 & 0x700);
+						}
+						else
+						{
+							//Early c-data colour fetch;
+							//cData1-->Pixel Width
+							//cData2-->MC Route
+							//cData2-->Colours
+							if ((cData1 & 0x800)==0)
+							{
+								//Single pixels
+								decShiftPixelShiftMode = 1;
+							}
+							else
+							{
+								//Wide pixels
+								if ((cData2 & 0x800)==0)
+								{
+									//First pixel is copied to the second pixel.
+									//Wide pixels standard colour route.
+									/*
+									00 -> 00
+									01 -> 00
+									10 -> 11
+									11 -> 11
+									*/
+									t = gData1b & 0xaa;
+									gData1b = t | (t >> 1);
+
+									t = gData1c & 0xaa;
+									gData1c = t | (t >> 1);
+								}
+							}
+
+							//Early c-data colour fetch;
+							//cData2-->MC Route
+							//cData2-->Colours
+							cData1b = (cData1 & 0x0ff) | (cData2 & 0xf00);
+						}
+					}
+											
+					switch (oldXScroll)
+					{
+					case 4:
+						DrawForegroundEx(gData1b, +4, cData1b, modeNew, decShiftPixelShiftMode, vicCharDataOutputDisabled, 0, 4, cycle - 0);
+						break;
+					case 5:
+						DrawForegroundEx(gData1b, +4 +1, cData1b, modeNew, decShiftPixelShiftMode, vicCharDataOutputDisabled, 0, 4, cycle - 0);
+						break;
+					case 6:
+						DrawForegroundEx(gData1b, +4 +2, cData1b, modeNew, decShiftPixelShiftMode, vicCharDataOutputDisabled, 0, 4, cycle - 0);
+						break;
+					case 7:
+						DrawForegroundEx(gData1b, +4 +3, cData1b, modeNew, decShiftPixelShiftMode, vicCharDataOutputDisabled, 0, 4, cycle - 0);
+						break;
+					}
+				}
 			}
+
 			//Faulty failed attempt to fix the 9 pixels in the border hack.
 			//if (cycle == 56)
 			//{
