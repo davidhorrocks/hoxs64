@@ -18,149 +18,59 @@ Filter::~Filter()
 
 HRESULT Filter::Init()
 {
-	int i;
-
-	m_bCoefNeedClean = false;
+	isSharedCoefficient = false;
 	coef = 0;
 	buf = 0;
 	firLength = 0L;
 	lp = hp = bp = np = peek=0;
 	svfF = 0;
-	svfQ = 0.01;
-	
-	for (i=0 ; i < FILTERLENGTH ; i++)
-	{
-		num[i]=0;
-		den[i]=0;
-		num_set[i]=0;
-		den_set[i]=0;
-		input[i]=0;
-		output[i]=0;
-	}
-	ZeroMemory(history, sizeof(double) * FILTERHISTORYLENGTH);
-	findex = 0;
-	iirfilterchange = 0;
-	mintransient = 0;
+	svfQ = 0.01;	
 	return S_OK;
-}
-
-
-double Filter::ProcessSample(double sample)
-{
-int i,j,k,vindex;
-double y;
-int m;
-
-	m = (FILTERLENGTH);
-	if (iirfilterchange)
-	{
-		iirfilterchange = 0;
-		if (mintransient)
-		{
-			for (i=0 ; i < FILTERLENGTH ; i++)
-			{
-				input_init[i] = 0;
-				output_init[i] = 0;
-			}
-
-			vindex = findex;
-			for (k=0 ; k < FILTERHISTORYLENGTH ; k++)
-			{
-
-				vindex = (vindex + m - 1) % m;
-				j = vindex;
-
-				input_init[j] = history[k];
-				y = num_set[0] * history[k];
-				j = (j + 1) % m;
-				for (i=1 ; i < FILTERLENGTH ; i++, j = (j + 1) % m)
-				{
-					y = y + num_set[i] * input_init[j] - den_set[i] * output_init[j];
-				}
-				if (!_finite(y))
-					y = 0;
-				output_init[vindex] = y;
-			}
-			for (i=0 ; i < FILTERLENGTH ; i++)
-			{
-				num[i] = num_set[i];
-				den[i] = den_set[i];
-				input[i] = input_init[i];
-				output[i] = output_init[i];
-			}
-			findex = vindex;
-		}
-		else
-		{
-			for (i=0 ; i < FILTERLENGTH ; i++)
-			{
-				num[i] = num_set[i];
-				den[i] = den_set[i];
-			}
-		}
-	}
-
-
-	if (mintransient)
-	{
-		MoveMemory(history, history +1, (FILTERHISTORYLENGTH -1) * sizeof(double));
-		history[FILTERHISTORYLENGTH-1] = sample;
-	}
-
-	findex = (findex + m - 1) % m;
-	j = findex;
-
-	input[j] = sample;
-
-	y = num[0] * sample;
-	j = (j + 1) % m;
-	for (i=1 ; i < FILTERLENGTH ; i++, j = (j + 1) % m)
-	{
-		y = y + num[i] * input[j] - den[i] * output[j];
-	}
-
-	if (!_finite(y))
-		y = 0;
-	output[findex] = y;
-	return y;
 }
 
 void Filter::CleanSync()
 {
 	if (coef)
 	{		
-		if (m_bCoefNeedClean)
+		if (!isSharedCoefficient)
+		{
 			VirtualFree(coef, 0, MEM_RELEASE);
+		}
 	}
+
 	if (buf)		
+	{
 		VirtualFree(buf, 0, MEM_RELEASE);
+	}
 
 	coef = 0;
 	buf = 0;
 	firLength = 0;
-	bufferPos=0;
+	bufferPos = 0;
 	bufferLength = 0;
-	m_bCoefNeedClean = false;
+	isSharedCoefficient = false;
 }
 
 long Filter::AllocSync(unsigned long length, unsigned long interpolation)
 {
 	CleanSync();
-	m_bCoefNeedClean = true;
+	isSharedCoefficient = false;
 	length = length | 1;
 	firLength = length;
 	assert((firLength - 1) > interpolation);
-	bufferLength = (firLength - 1) / interpolation + 1;	
+	bufferLength = (firLength) / interpolation + 1;	
 	Filter::interpolation = interpolation;
-
-	
-
 	coef = (double *)VirtualAlloc(NULL, sizeof(double) * (firLength), MEM_COMMIT, PAGE_READWRITE);	
 	if (coef == 0L)
+	{
 		goto fail;
+	}
+
 	buf = (double *)VirtualAlloc(NULL, sizeof(double) * (bufferLength), MEM_COMMIT, PAGE_READWRITE);
 	if (buf == 0L)
+	{
 		goto fail;
+	}
 
 	return 0;
 fail:
@@ -168,36 +78,32 @@ fail:
 	return 1;
 }
 
-long Filter::AllocSync(unsigned long length, unsigned long interpolation, double *sharedCoef)
+long Filter::AllocSyncShared(unsigned long length, unsigned long interpolation, double *sharedCoef)
 {
 const int padding = 20;
 	CleanSync();
 	length = length | 1;
-
 	firLength = length;
 	assert((firLength - 1) > interpolation);
-	bufferLength = (firLength - 1) / interpolation;	
+	bufferLength = (firLength) / interpolation + 1;	
 	Filter::interpolation = interpolation;
-
 	coef = sharedCoef;
 	if (coef == 0L)
+	{
 		goto fail;
+	}
+
+	isSharedCoefficient = true;
 	buf = (double *)VirtualAlloc(NULL, sizeof(double) * (bufferLength + padding), MEM_COMMIT, PAGE_READWRITE);
 	if (buf == 0L)
+	{
 		goto fail;
-
-	m_bCoefNeedClean = true;
+	}
+	
 	return 0;
 fail:
 	CleanSync();
 	return 1;
-}
-
-extern DWORD gCurrentClock;
-
-double *Filter::GetCoefficient()
-{
-	return coef;
 }
 
 void Filter::CreateFIRKernel(double frequency,long samplerate)
@@ -209,86 +115,133 @@ int fpError=_FPCLASS_ND | _FPCLASS_PD | _FPCLASS_NINF | _FPCLASS_PINF;
 
 	f = frequency * 2.0 * PI / (double) samplerate;
 
-	m = firLength;
+	// firLength should be an odd number, so m should be even.
+	m = firLength - 1;
 	g=0;
 	for (i=0 ; i < firLength ; i++)
 	{
-		if ((i - firLength/2) == 0)
-			coef[i] = f;
-		else
-			coef[i] = ::sin(f * (i - m/2)) / (i - m/2);
+		double n = (double)i;
 
-		coef[i] *= (0.42 - 0.5 * ::cos(2 * PI * (double)(i) / m) + 0.08 * ::cos(4 * PI * (double)i / m));
+		if ((i - m/2) == 0)
+		{
+			// The central part of the Sinc function curve.
+			coef[i] = f;
+		}
+		else
+		{
+			// The Sinc function curve.
+			coef[i] = ::sin(f * (i - m/2)) / (i - m/2);
+		}
+
+		// Blackman window for tapered smoothing of the Sinc function.
+		//const double a0=0.42;
+		//const double a1=0.5;
+		//const double a2=0.08;
+		coef[i] *= (0.42 - 0.5 * ::cos(2 * PI * (double)i / m) + 0.08 * ::cos(4 * PI * (double)i / m));
+
+		// Sum all coefficients so we can make the area of the curve equal to unity.
 		g += coef[i];
 	}
+
+
+	// Make the area of the curve equal to unity.
 	for (i=0 ; i < firLength ; i++)
 	{
 		coef[i] /= g;
 		if (_fpclass(coef[i]) & fpError)
+		{
 			coef[i] = 0;
-
+		}
 	}
 }
 
-double Filter::FIR_ProcessSample(double sample)
+/*
+InterpolateNextSample2x
+
+Summary
+=======
+Performs a x2 interpolation of successive samples. Two samples are produced for each input sample.
+
+Parameters
+==========
+
+[sample]
+The next input sample.
+
+[sampleout]
+A pointer to the second interpolated sample. sampleout2 must be allocated ny the caller.
+
+[return]
+The first interpolated sample.
+
+Member Inputs
+=============
+
+[buf]
+A pointer to the input sample buffer. This buffer operates as a ring buffer 
+whose first sample is pointed to by [bufferPos].
+
+[bufferPos]
+Index of the first sample in the buffer.
+
+[coef]
+The filter kernel. A pointer to the coefficients,
+
+[fircount]
+The length of the filter kernel.
+*/
+double Filter::InterpolateNextSample2x(double sample, double *sampleout2)
 {
-double t,y;
+double y,y2;
 unsigned long i;
 double *c;
 double *b;
-double mid;
-double d;
-
-	b = buf;
-	c = coef;
-	t = *b;
-	MoveMemory(b, b +1, (firLength -2) * sizeof(double));
-
-	mid = buf[firLength/2 -1];
-	d =0;
-	y = *c * t;
-
-	c++;
-	for (i=1 ; i < firLength-1 ; i++ , c++ ,b++)
-	{
-		y += *c * *b;
-	}
-
-	y += *c * sample;
-	*b = sample;
-	return y;	
-}
-
-double Filter::FIR_ProcessSample2x(double sample, double *sampleout2)
-{
-double t,y,y2;
-unsigned long i;
-double *c;
-double *b;
-unsigned bufcopylen;
+unsigned bufLen;
+unsigned int j;
 unsigned fircount;
+const unsigned long interp = 2;
 
-	bufcopylen = (firLength - 1) / 2 -1;
-	fircount = (firLength -1 - 2) / 2;
+	// The filter kernal length is assumed to be an odd number.
+	assert((firLength & 1) == 1);
+	fircount = (firLength -1) / interp;
+	bufLen = bufferLength;
+	bufferPos = bufferPos % bufLen;
 	b = buf;
 	c = coef;
-	t = *b;
-	MoveMemory(b, b +1, bufcopylen * sizeof(double));
+	j = bufferPos;
+	b[j] = sample;
+	j = (j + 1) % bufLen; 
+	bufferPos = j;
 
-	y = *c * t;
+	// The second output sample running total y2 is staggered from y by one position.
+	// y2 misses the first input sample but y misses the final input sample.
+	y = *c * buf[j];
 	y2 = 0;
-	c++;
-	for (i=0 ; i < fircount ; i++ , c++ ,b++)
+	j = (j + 1) % bufLen;
+	b = &buf[j];
+	for (i=0; i < fircount; i++, c++, b++, j = (j + 1) % bufLen)
 	{
+		assert(c >= coef && c < (coef+firLength));
+		if (j == 0)
+		{
+			b = buf;
+		}
+
 		y2 += *c * *b;
 		c++;
+		assert(c >= coef && c < (coef+firLength));
 		y += *c * *b;
 	}
-	y2 += *c * sample;
-	c++;
-	y += *c * sample;
-	*b = sample;
 
+	if (j == 0)
+	{
+		b = buf;
+	}
+
+	assert(c >= coef && c < (coef+firLength));
+
+	// y2 incorporates the final input sample.
+	y2 += *c * sample;
 	*sampleout2 = y2;
 	return y;	
 }
@@ -309,19 +262,18 @@ int STDBUFFERSIZE = 9;
 	interp = interpolation;
 	fircount = (firLength -1 -interp) / interp;
 	databuflen = bufferLength;
-
 	if (STDBUFFERSIZE > (signed int) interp)
+	{
 		STDBUFFERSIZE = interp;
+	}
 
 	j= bufferPos;
 	t = buf[j];
 	c = coef;
-
 	m = (index / interp) + 1;
 	j = (j + m) % databuflen;
 	b = &buf[j];
 	index = index % interp;
-
 	ZeroMemory(sampleout, sizeof(double) * STDBUFFERSIZE);
 	index++;
 	for (k=STDBUFFERSIZE-index-1; k>=0; k--, c++)
@@ -335,73 +287,63 @@ int STDBUFFERSIZE = 9;
 		assert(c >= coef && c < (coef+firLength+STDBUFFERSIZE));
 		assert(b >= buf && b < (buf+firLength));
 		if (j==0)
+		{
 			b = buf;
+		}
 
 		for (k = STDBUFFERSIZE-1 ; k >= 0; k--, c++)
+		{
 			sampleout[k] += *c * *b;
+		}
 	}
-
 }
 
-void Filter::FIR_ProcessSample7x(double sample, double *sampleout)
+/*************************************
+function: InterpolateQueuedSamples
+
+Summary
+=======
+This routine interpolates the samples in the sample buffer [buf] by a factor 
+[interpolation] and performs convolution with a filter kernel in [coef].
+
+Paremeters
+==========
+[index]
+The starting index with in the assumed zero padded samples.
+The value should range from 0 to (interpolation - 1)
+If index == 0 then we are starting with an actual input sample. 
+If index != 0 then we starting with an assumed padding zero.
+
+Member Inputs
+=============
+
+[buf]
+A pointer to the input sample buffer. This buffer operates as a ring buffer 
+whose first sample is pointed to by [bufferPos].
+
+[bufferPos]
+Index of the first sample in the buffer.
+
+[coef]
+The filter kernel. A pointer to the coefficients,
+
+[fircount]
+The length of the filter kernel.
+
+[interpolation]
+The interpolation count. interpolation should be greater than zero. A value
+of 1 means there is no interpolation. An interpolation filter should 
+effectively zero pad the samples. The number of padding zeros for each 
+sample is: (interpolation - 1). This zero padding does not physically occur.
+The zeros do not contribute to the convolution calcuation and are therefore 
+skipped by indexing the filter kernel at a skip interval equal to the 
+interpolation count. 
+
+******************************************************/
+double Filter::InterpolateQueuedSamples(int index)
 {
 double t;
-unsigned long i;
-double *c;
-double *b;
-unsigned bufcopylen;
-unsigned fircount;
-
-	bufcopylen = (firLength - 1) / 7 -1;
-	fircount = (firLength -1 -7) / 7;
-	b = buf;
-	c = coef;
-	t = *b;
-	MoveMemory(b, b +1, bufcopylen * sizeof(double));
-
-	sampleout[0] = *c * t;
-	sampleout[1] = 0;
-	sampleout[2] = 0;
-	sampleout[3] = 0;
-	sampleout[4] = 0;
-	sampleout[5] = 0;
-	sampleout[6] = 0;
-	c++;
-	for (i=0 ; i < fircount ; i++ , c++ ,b++)
-	{
-		sampleout[6] += *c * *b;
-		c++;
-		sampleout[5] += *c * *b;
-		c++;
-		sampleout[4] += *c * *b;
-		c++;
-		sampleout[3] += *c * *b;
-		c++;
-		sampleout[2] += *c * *b;
-		c++;
-		sampleout[1] += *c * *b;
-		c++;
-		sampleout[0] += *c * *b;
-	}
-	sampleout[6] += *c * sample;
-	c++;
-	sampleout[5] += *c * sample;
-	c++;
-	sampleout[4] += *c * sample;
-	c++;
-	sampleout[3] += *c * sample;
-	c++;
-	sampleout[2] += *c * sample;
-	c++;
-	sampleout[1] += *c * sample;
-	c++;
-	sampleout[0] += *c * sample;
-	*b = sample;
-}
-
-double Filter::fir_process_sampleNx_index(int index)
-{
-double t,y;
+double y;
 unsigned long i;
 double *c;
 double *b;
@@ -413,88 +355,130 @@ unsigned long interp;
 	interp = interpolation;
 	fircount = (firLength -1 -interp) / interp;
 	databuflen = bufferLength;
-
-	j= bufferPos;
-	t = buf[j];
+	j = bufferPos;
 	c = coef;
+	if (index == 0)
+	{
+		t = buf[j];
+		// We are starting with an actual sample.
+		// Mutiply the very first kernel coefficient with our first sample.
+		y =  *c * t;
+	}
+	else
+	{
+		// We are starting with a padding zero.
+		y = 0;
+	}
+
 	j = (j + 1) % databuflen;
 	b = &buf[j];
 
-	if (index == 0)
-		y =  *c * t;
-	else
-		y = 0;
-	c+= interp - index;
-	for (i=0 ; i <= fircount ; i++ , c+=interp ,b++, j = (j + 1) % databuflen)
+	// Fix up our kernel pointer c into the kernel coefficients to point to the next 
+	// kernel coefficient that does not get multiplied by a padding zero.
+	// If we started on a padding zero then there is [index] less distance to go
+	// to the next significant kernel coefficient.
+	c += interp - index;
+	for (i = 0; i <= fircount; i+=1, c+=interp, b++, j = (j + 1) % databuflen)
 	{
 		assert(c >= coef && c < (coef+firLength));
-		assert(b >= buf && b < (buf+firLength));
-		if (j==0)
+		if (j == 0)
+		{
+			// Reset the ring buffer pointer to the start.
 			b = buf;
+		}
+
+		// Mutiply the next non trivial kernel coefficient with the next sample in the buffer.
 		y += *c * *b;
 	}
+
 	return y;
 }
 
-void Filter::fir_buffer_sampleNx(double sample)
+/*************************************
+function: InterpolateQueuedSamples
+
+Summary
+=======
+Store the next sample into the ring buffer.
+**************************************/
+void Filter::QueueNextSample(double sample)
 {
 	buf[bufferPos] = sample;
 	bufferPos = (bufferPos + 1) % bufferLength;
 }
 
-void Filter::Set_SVF(double frequency, double samplerate,double resonance)
+void Filter::Set_SVF(double frequency, double samplerate, double resonance)
 {
 double a,b,f;
 
 	svfF = 2 * trig.sin(PI * frequency / samplerate);
 	f = 2 * trig.sin(PI * (frequency+100) / samplerate);
-
 	a = 1 - (1 - .35) * (resonance / 15.0);
-
 	if (f >= PI/3)
 	{
-	
 		b = 2.0/f - f*0.5;
 		if (a > b)
+		{
 			a = b;
+		}
 
 		if (f >= 1)
 		{
 			b = 1 / f;
 			if (a > b)
+			{
 				a = b;
+			}
 		}
 		
 		b = 2 - f;
 		if (a > b)
+		{
 			a = b;
+		}
 		
 		b= (- f + sqrt(f * f + 8)) / 2;
 		if (a > b)
+		{
 			a = b;
+		}
 	}
+
 	svfQ = a;
 }
 
-void Filter::SVF_ProcessSample(double sample)
+void Filter::SVF_ProcessNextSample(double sample)
 {
 double min = 1.0e-300;
 
 	np  = sample - svfQ * bp;
 	if (fabs(np)<min)
+	{
 		np = 0;
+	}
+
 	lp = lp + svfF * bp;
 	if (fabs(lp)<min)
+	{
 		lp = 0;
+	}
+
 	hp = np - lp;
 	if (fabs(hp)<min)
+	{
 		hp = 0;
+	}
+
 	bp = svfF * hp + bp;
 	if (fabs(bp)<min)
+	{
 		bp = 0;
+	}
 
 	if (!_finite(lp) | !_finite(bp) | !_finite(hp) | !_finite(np))
+	{
 		lp = bp = hp = np = 0;
+	}
 
 	peek = lp - bp;
 }
@@ -509,21 +493,25 @@ double a;
 long i;
 
 	cleanup();
-
 	sinTable = (double *)GlobalAlloc(GMEM_FIXED, sizeof(double) * (resolution + 1));
 	if (sinTable == 0L)
+	{
 		goto fail;
+	}
 
 	cosTable = (double *)GlobalAlloc(GMEM_FIXED, sizeof(double) * (resolution + 1));
 	if (cosTable == 0L)
+	{
 		goto fail;
+	}
 
 	sinhTable = (double *)GlobalAlloc(GMEM_FIXED, sizeof(double) * (resolution + 1));
 	if (sinhTable == 0L)
+	{
 		goto fail;
+	}
 
 	this->resolution = resolution;
-
 	for (i=0 ; i <= resolution ; i++)
 	{
 		a = 2.0 * PI * (double)i / (double)resolution;
@@ -542,11 +530,19 @@ fail:
 void TrigTable::cleanup()
 {
 	if (sinTable)
+	{
 		GlobalFree(sinTable);
+	}
+
 	if (cosTable)
+	{
 		GlobalFree(cosTable);
+	}
+
 	if (sinhTable)
+	{
 		GlobalFree(sinhTable);
+	}
 
 	sinTable = 0L;
 	cosTable = 0L;
@@ -564,13 +560,20 @@ double TrigTable::sin(double a)
 {
 long i;
 	if (resolution == 0)
+	{
 		return 0;
+	}
 
 	if (fabs(a) >= (2.0 * PI))
+	{
 		a = fmod(a, 2.0 * PI);
+	}
 
 	if (fabs(a)<0.0024)
+	{
 		return a;
+	}
+
 	if (a >= 0)
 	{
 		i = (long)((double)resolution * a / (2.0 * PI));
@@ -587,18 +590,29 @@ double TrigTable::cos(double a)
 {
 long i;
 	if (resolution == 0)
+	{
 		return 0;
+	}
 
 	if (fabs(a) >= (2.0 * PI))
+	{
 		a = fmod(a, 2.0 * PI);
+	}
 
 	if (fabs(a)<0.0024)
+	{
 		return a;
+	}
 
 	if (a >= 0)
+	{
 		i = (long)((double)resolution * a / (2.0 * PI));
+	}
 	else
+	{
 		i = (long)((double)resolution * -a / (2.0 * PI));
+	}
+
 	return cosTable[i];
 }
 
@@ -607,10 +621,14 @@ double TrigTable::sinh(double a)
 {
 long i;
 	if (resolution == 0)
+	{
 		return 0;
+	}
 
 	if (fabs(a) >= (2.0 * PI))
+	{
 		a = fmod(a, 2.0 * PI);
+	}
 
 	if (a >= 0)
 	{

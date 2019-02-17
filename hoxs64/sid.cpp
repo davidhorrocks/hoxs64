@@ -57,6 +57,9 @@
 #define NOISE_ZERO_FEED ((~((1U << 20) | (1 << 18) | (1 << 14) | (1 << 11) | (1 << 9) | (1 << 5) | (1 << 2) | (1 << 0))) & 0x7fffff)
 #define ENVELOPE_LFSR_RESET (0x7fff)
 
+const double Max16BitSample = 32767.0;
+const double Min16BitSample = -32768.0;
+
 SID64::SID64()
 {
 	appStatus = NULL;
@@ -375,10 +378,11 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		interpolatedSamplesPerSecond = PAL50CLOCKSPERSECOND * filterInterpolationFactor;
 
 		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
+		{
 			return E_OUTOFMEMORY;
+		}
 
 		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
-
 	}
 #ifdef ALLOW_EMUFPS_50_12_MULTI
 	else if (fps == HCFG::EMUFPS_50_12_MULTI)
@@ -398,24 +402,30 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		filterKernelLength = SIDRESAMPLEFIRLENGTH_50_12;
 		filterInterpolationFactor = INTERPOLATION_FACTOR_50_12;
 		filterDecimationFactor = DECIMATION_FACTOR_50_12;
-
 		interpolatedSamplesPerSecond = PALCLOCKSPERSECOND * filterInterpolationFactor;
-
 		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
+		{
 			return E_OUTOFMEMORY;
+		}
 
 		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
 	}
 
 	if (filterUpSample2xSample.AllocSync(SIDINTERPOLATE2XFIRLENGTH, 2) !=0)
+	{
 		return E_OUTOFMEMORY;
-	filterUpSample2xSample.CreateFIRKernel(INTERPOLATOR2X_CUTOFF_FREQUENCY, SAMPLES_PER_SEC * 2);// Twice the sampling frequency.
-	
+	}
+
+	filterUpSample2xSample.CreateFIRKernel(INTERPOLATOR2X_CUTOFF_FREQUENCY, SAMPLES_PER_SEC * 2);// Twice the sampling frequency.	
 
 	if (sidSampler >= filterInterpolationFactor)
+	{
 		sidSampler = filterInterpolationFactor - 1;
+	}
 	else if (sidSampler < filterDecimationFactor)
+	{
 		sidSampler = -filterDecimationFactor;
+	}
 
 	svfilterForResample.lp = 0.0;
 	svfilterForResample.hp = 0.0;
@@ -430,7 +440,6 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 	svfilterForDownSample.peek = 0.0;
 
 	SetFilter();
-
 	sidSampler=-1;
 	appStatus->m_bFilterOK = true;
 	return S_OK;
@@ -1137,9 +1146,13 @@ void SID64::ExecuteCycle(ICLK sysclock)
 void SID64::ClockSid(BOOL bResample, ICLK sysclock)
 {
 	if (bResample)
+	{
 		ClockSidResample(sysclock);
+	}
 	else
+	{
 		ClockSidDownSample(sysclock);
+	}
 }
 
 void SID64::ClockSidResample(ICLK sysclock)
@@ -1156,36 +1169,52 @@ short dxsample;
 long sampleOffset;
 
 	clocks = (ICLKS)(sysclock - CurrentClock);
+
+	// Update the SID register fade delay.
 	if (clocks >= (ICLKS)sidReadDelay)
+	{
 		sidReadDelay = 0;
+	}
 	else
+	{
 		sidReadDelay -=clocks;
+	}
+
 	for( ; clocks > 0 ; clocks--)
 	{
 		CurrentClock++;
+
+		// Update the SID waveform.
 		voice1.Modulate();
 		voice2.Modulate();
 		voice3.Modulate();
 
+		// Update the SID envelope volume.
 		voice1.Envelope();
 		voice2.Envelope();
 		voice3.Envelope();
 
+		// Handle SID Sync
 		voice1.SyncRecheck();
 		voice2.SyncRecheck();
 		voice3.SyncRecheck();
 
 		if (appStatus->m_bMaxSpeed)
 		{
+			// Host PC sound processing is not needed when sound is turned off during "Max Speed".
 			continue;
 		}
 
 		if (sidBlock_Voice3)
 		{
+			// Block unfiltered voice 3.
+			// Voice 3 is still allowed through the SID filters.
 			voice3nofilter = 0;
 		}
 		else
 		{
+			// Enable unfiltered voice 3.
+			// Voice 3 may either be filtered or unfilered.
 			voice3nofilter = voice3.fVolSample;
 		}
 
@@ -1224,19 +1253,27 @@ long sampleOffset;
 			nofilter = 0;
 			break;
 		}
+
+		// Process a sample through the SID filters.
 		fsample = nofilter;
-		svfilterForResample.SVF_ProcessSample(prefilter);
+		svfilterForResample.SVF_ProcessNextSample(prefilter);
 		lp_out = svfilterForResample.lp;
 		bp_out = svfilterForResample.bp;
 		hp_out = svfilterForResample.hp;
+
+		// SID low pass filter
 		if (sidFilter & 0x10)
 		{
 			fsample = fsample - lp_out; 
 		}
+
+		// SID band pass filter
 		if (sidFilter & 0x20)
 		{
 			fsample = fsample - bp_out;
 		}
+
+		// SID high pass filter
 		if (sidFilter & 0x40)
 		{
 			fsample = fsample - hp_out;
@@ -1244,15 +1281,20 @@ long sampleOffset;
 
 		if (appStatus->m_bSidDigiBoost)
 		{
+			// Fake a DC offset for 3 voices
 			fsample += (double)(SIDVOLMUL * 3);
+
+			// Scale the sample with the SID volume.
 			fsample = SIDBOOST_6581 * ((fsample * (double)this->sidVolume) / (15.0));
 		}
 		else
 		{
+			// Scale the sample with the SID volume.
 			fsample = SIDBOOST_8580 * ((double)(fsample * (double)this->sidVolume) / (15.0));
 		}
+
 		sidSampler = sidSampler + filterInterpolationFactor;
-		filterPreFilterResample.fir_buffer_sampleNx(fsample);
+		filterPreFilterResample.QueueNextSample(fsample);
 		if (sidSampler >= 0)
 		{
 			sampleOffset = (filterInterpolationFactor-1)-sidSampler;
@@ -1266,12 +1308,12 @@ long sampleOffset;
 				filterPreFilterResample.FIR_ProcessSampleNx_IndexTo8(offset1, filterPreFilterStage2.buf);
 
 				offset1 = sampleOffset % STAGE2X;
-				fsample = filterPreFilterStage2.fir_process_sampleNx_index(offset1);
+				fsample = filterPreFilterStage2.InterpolateQueuedSamples(offset1);
 			}
 			else
 			{
 #endif
-				fsample = filterPreFilterResample.fir_process_sampleNx_index(sampleOffset);
+				fsample = filterPreFilterResample.InterpolateQueuedSamples(sampleOffset);
 #ifdef ALLOW_EMUFPS_50_12_MULTI
 			}
 #endif
@@ -1281,13 +1323,13 @@ long sampleOffset;
 			}
 
 			fsample = fsample * (double)filterInterpolationFactor * MasterVolume;
-			if (fsample > 32767.0)
+			if (fsample > Max16BitSample)
 			{
-				fsample = 32767.0;
+				fsample = Max16BitSample;
 			}
-			else if (fsample < -32767.0)
+			else if (fsample < Min16BitSample)
 			{
-				fsample = -32767.0;
+				fsample = Min16BitSample;
 			}
 
 			dxsample = (short)(fsample);
@@ -1312,23 +1354,34 @@ double lp_out;
 short dxsample;
 
 	clocks = (ICLKS)(sysclock - CurrentClock);
+
+	// Update the SID register fade delay.
 	if (clocks >= (ICLKS)sidReadDelay)
+	{
 		sidReadDelay = 0;
+	}
 	else
+	{
 		sidReadDelay -=clocks;
+	}
+
 	for( ; clocks > 0 ; clocks--)
 	{
 		CurrentClock++;
+
+		// Update the SID waveform.
 		voice1.Envelope();
 		voice2.Envelope();
 		voice3.Envelope();
 
+		// Handle SID Sync
 		voice1.SyncRecheck();
 		voice2.SyncRecheck();
 		voice3.SyncRecheck();
 
 		if (appStatus->m_bMaxSpeed)
 		{
+			// Host PC sound processing is not needed when sound is turned off during "Max Speed".
 			continue;
 		}
 
@@ -1348,10 +1401,14 @@ short dxsample;
 
 			if (sidBlock_Voice3)
 			{
+				// Block unfiltered voice 3.
+				// Voice 3 is still allowed through the SID filters.
 				voice3nofilter = 0;
 			}
 			else
 			{
+				// Enable unfiltered voice 3.
+				// Voice 3 may either be filtered or unfilered.
 				voice3nofilter = voice3.fVolSample;
 			}
 
@@ -1390,44 +1447,57 @@ short dxsample;
 				nofilter = 0;
 				break;
 			}
-			svfilterForDownSample.SVF_ProcessSample(filterUpSample2xSample.FIR_ProcessSample2x(2.0 * prefilter, &fsample2));
-			svfilterForDownSample.SVF_ProcessSample(fsample2);
+
+			// Process a sample through the SID filters.
+			svfilterForDownSample.SVF_ProcessNextSample(filterUpSample2xSample.InterpolateNextSample2x(2.0 * prefilter, &fsample2));
+			svfilterForDownSample.SVF_ProcessNextSample(fsample2);
 
 			fsample = 0.0;
 			lp_out = svfilterForDownSample.lp;
 			bp_out = svfilterForDownSample.bp;
 			hp_out = svfilterForDownSample.hp;
+
+			// SID low pass filter
 			if (sidFilter & 0x10)
 			{
 				fsample = fsample - lp_out;
 			}
+
+			// SID band pass filter
 			if (sidFilter & 0x20)
 			{
 				fsample = fsample - bp_out;
 			}
+
+			// SID high pass filter
 			if (sidFilter & 0x40)
 			{
 				fsample = fsample - hp_out;
 			}
+
 			fsample = fsample + nofilter;
 			if (appStatus->m_bSidDigiBoost)
 			{
+				// Fake a DC offset for 3 voices
 				fsample += (double)(SIDVOLMUL * 3);
+
+				// Scale the sample with the SID volume.
 				fsample = SIDBOOST_6581 * ((fsample * (double)this->sidVolume) / (15.0));
 			}
 			else
 			{
+				// Scale the sample with the SID volume.
 				fsample = SIDBOOST_8580 * ((double)(fsample * (double)this->sidVolume) / (15.0));
 			}
 
 			fsample = fsample * MasterVolume;
-			if (fsample > 32767.0)
+			if (fsample > Max16BitSample)
 			{
-				fsample = 32767.0;
+				fsample = Max16BitSample;
 			}
-			else if (fsample < -32767.0)
+			else if (fsample < Min16BitSample)
 			{
-				fsample = -32767.0;
+				fsample = Min16BitSample;
 			}
 
 			dxsample = (WORD)(fsample);

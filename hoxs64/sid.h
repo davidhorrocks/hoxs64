@@ -202,6 +202,6 @@ private:
 	void SetFilter();
 	double GetCutOff(bit16 sidfreq);
 	struct SIDVoice voice1, voice2, voice3;
-	void CleanUp();	
+	void CleanUp();
 };
 #endif
