@@ -1211,6 +1211,7 @@ bit32 requiredTrackByteSize;
 									trackData[trackNumber][destByteIndex] = dataByte;
 									destByteIndex++;
 								}
+
 #if defined(DEBUG) && SHOWGCR == 1
 								//if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
 								if (pass == SHOWPASSNO && isfirstbitzonetrack(trackNumber))
@@ -1232,8 +1233,8 @@ bit32 requiredTrackByteSize;
 					shift = (bitOfByteIndex > 0) ? (8 - numtrailingbits) : 0;
 					unsigned int maskoff = (0xff << shift) & 0xff;
 					unsigned int trailingbits = (shifterReader_UD2 << shift) & 0xff;
-					requiredTrackBitSize = (destByteIndex + 1) * 8;
-					requiredTrackByteSize = requiredTrackBitSize / 8;
+					requiredTrackBitSize = destByteIndex * 8 + numtrailingbits;
+					requiredTrackByteSize = (requiredTrackBitSize + 7) / 8;
 					if (destByteIndex >= trackAllocatedMemorySize[trackNumber])
 					{
 						hr = this->InitTrackMemory(trackNumber, requiredTrackByteSize, true);
@@ -1246,7 +1247,9 @@ bit32 requiredTrackByteSize;
 					if (destByteIndex < trackAllocatedMemorySize[trackNumber])
 					{
 						trackData[trackNumber][destByteIndex] = trailingbits;
+						destByteIndex++;
 					}
+
 #if defined(DEBUG) && SHOWGCR == 1
 					//if (pass == SHOWPASSNO && trackNumber == SHOWTRACKNUMBER)
 					if (pass == SHOWPASSNO && isfirstbitzonetrack(trackNumber))
@@ -1258,12 +1261,15 @@ bit32 requiredTrackByteSize;
 					}
 #endif
 				}
+				else
+				{
+					requiredTrackByteSize = destByteIndex;
+					requiredTrackBitSize = requiredTrackByteSize * 8;
+				}
 
-				requiredTrackByteSize = destByteIndex + 1;
-				requiredTrackBitSize = requiredTrackByteSize * 8;
 				if (requiredTrackByteSize > trackAllocatedMemorySize[trackNumber])
 				{
-					trackSize[trackNumber] = trackAllocatedMemorySize[trackNumber];
+					trackSize[trackNumber] = trackAllocatedMemorySize[trackNumber] * 8;
 				}
 				else
 				{
