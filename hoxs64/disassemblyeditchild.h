@@ -84,6 +84,7 @@ public:
 		bool IsFocused;
 		bool WantUpdate;
 		int InstructionCycle;
+		bool IsInterrupt;
 		bool IsValid;
 
 		AssemblyLineBuffer();

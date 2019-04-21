@@ -194,6 +194,9 @@ public:
 	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint)=0;
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
+	virtual void SetStepOverBreakpoint()=0;
+	virtual void ClearStepOverBreakpoint()=0;	
+	virtual void ClearTemporaryBreakpoints()=0;
 	virtual void SetPC(bit16 address) = 0;
 	virtual void SetA(bit8 v) = 0;
 	virtual void SetX(bit8 v) = 0;
@@ -396,6 +399,8 @@ public:
 	virtual bool HasExitCode()=0;
 	virtual void ResetOnceExitCode()=0;
 	virtual HRESULT SavePng(const TCHAR * filename)=0;
+	virtual void ClearAllTemporaryBreakpoints()=0;
+
 };
 
 class DefaultCpu : IDefaultCpu

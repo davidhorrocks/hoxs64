@@ -1,6 +1,7 @@
 #ifndef __MONITOR_H__
 #define __MONITOR_H__
 
+#include "breakpointresult.h"
 
 class BreakpointC64ExecuteChangedEventArgs : public EventArgs
 {
@@ -40,8 +41,11 @@ class IAppCommand
 {
 public:
 	virtual void Resume()=0;
-	virtual void Trace()=0;
-	virtual void TraceFrame()=0;
+	virtual void Trace(int cpuId)=0;
+	virtual void TraceWithTemporaryBreakpoints(int cpuId)=0;
+	virtual void TraceFrame(int cpuId)=0;
+	virtual void TraceStepOver(int cpuId)=0;
+	virtual void ClearAllTemporaryBreakpoints()=0;
 	virtual void ExecuteC64Clock()=0;
 	virtual void ExecuteDiskClock()=0;
 	virtual void ExecuteC64Instruction()=0;

@@ -542,6 +542,7 @@
     <ClCompile Include="besttextwidth.cpp" />
     <ClCompile Include="bits.cpp" />
     <ClCompile Include="bpenum.cpp" />
+    <ClCompile Include="breakpointresult.cpp" />
     <ClCompile Include="buttonitem.cpp" />
     <ClCompile Include="cart.cpp" />
     <ClCompile Include="cart_action_replay.cpp" />
@@ -591,7 +592,7 @@
     <ClCompile Include="toolitemaddress.cpp" />
     <ClCompile Include="viciipalette.cpp" />
     <ClCompile Include="wpcbreakpoint.cpp" />
-    <ClCompile Include="break_point.cpp">
+    <ClCompile Include="breakpoint.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Ansi_Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -893,6 +894,7 @@
     <ClInclude Include="besttextwidth.h" />
     <ClInclude Include="bits.h" />
     <ClInclude Include="bpenum.h" />
+    <ClInclude Include="breakpointresult.h" />
     <ClInclude Include="buttonitem.h" />
     <ClInclude Include="cart.h" />
     <ClInclude Include="cart_dinamic.h" />
@@ -947,7 +949,7 @@
     <ClInclude Include="disassemblyeditchild.h" />
     <ClInclude Include="disassemblyframe.h" />
     <ClInclude Include="appstatus.h" />
-    <ClInclude Include="break_point.h" />
+    <ClInclude Include="breakpoint.h" />
     <ClInclude Include="C64.H" />
     <ClInclude Include="C64File.h" />
     <ClInclude Include="c64Keys.h" />

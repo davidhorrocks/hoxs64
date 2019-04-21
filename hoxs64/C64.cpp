@@ -172,6 +172,12 @@ void C64::PreventClockOverflow()
 	}
 }
 
+void C64::ClearAllTemporaryBreakpoints()
+{
+	this->cpu.ClearTemporaryBreakpoints();
+	this->diskdrive.cpu.ClearTemporaryBreakpoints();
+}
+
 void C64::EnterDebugRun(bool bWithSound)
 {
 	diskdrive.WaitThreadReady();
@@ -181,10 +187,14 @@ void C64::EnterDebugRun(bool bWithSound)
 	assert(vic.CurrentClock == diskdrive.CurrentPALClock || appStatus->m_bD1541_Emulation_Enable==0);
 
 	if (appStatus->m_bD1541_Emulation_Enable==0)
+	{
 		diskdrive.CurrentPALClock = vic.CurrentClock;
+	}
 
 	if (bWithSound && appStatus->m_bSoundOK && appStatus->m_bFilterOK)
+	{
 		sid.LockSoundBuffer();
+	}
 
 	cpu.StartDebug();
 	diskdrive.cpu.StartDebug();
@@ -195,7 +205,6 @@ void C64::FinishDebugRun()
 	sid.UnLockSoundBuffer();
 	cpu.StopDebug();
 	diskdrive.cpu.StopDebug();
-
 	PreventClockOverflow();
 	CheckDriveLedNofication();
 }
@@ -212,18 +221,20 @@ ICLK sysclock;
 	{
 		sysclock = sysclock;
 	}
+
 	cpu.ExecuteCycle(sysclock);
-	//cart.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
 	cia2.ExecuteCycle(sysclock);
 	if (appStatus->m_bSID_Emulation_Enable)
 	{
 		sid.ExecuteCycle(sysclock);
 	}
+
 	if (appStatus->m_bD1541_Emulation_Enable)
 	{
 		diskdrive.ExecutePALClock(sysclock);
 	}
+
 	cpu.StopDebug();
 	diskdrive.cpu.StopDebug();
 }
@@ -233,15 +244,18 @@ void C64::ExecuteDiskClock()
 ICLK sysclock;
 
 	if (!appStatus->m_bD1541_Emulation_Enable)
+	{
 		return;
+	}
 
 	EnterDebugRun(false);
-	sysclock = diskdrive.CurrentPALClock;
-	
+	sysclock = diskdrive.CurrentPALClock;	
 	do
 	{
 		if (diskdrive.m_pendingclocks == 0)
+		{
 			sysclock++;
+		}
 
 		if (appStatus->m_bD1541_Emulation_Enable)
 		{
@@ -256,7 +270,6 @@ ICLK sysclock;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
-		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
 
 		if (appStatus->m_bD1541_Emulation_Enable)
@@ -281,16 +294,19 @@ ICLK sysclock;
 bool bBreak;
 
 	if (!appStatus->m_bD1541_Emulation_Enable)
+	{
 		return;
+	}
 
 	EnterDebugRun(false);
-	sysclock = diskdrive.CurrentPALClock;
-	
+	sysclock = diskdrive.CurrentPALClock;	
 	bBreak = false;
-	while(!bBreak)
+	while (!bBreak)
 	{
 		if (diskdrive.m_pendingclocks == 0)
+		{
 			sysclock++;
+		}
 
 		if (appStatus->m_bD1541_Emulation_Enable)
 		{
@@ -304,16 +320,17 @@ bool bBreak;
 					break;
 				}
 			}
+
 			if (bBreak)
+			{
 				break;
+			}
 		}
 
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
-		//cart.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock); 
-
 		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock);
@@ -327,14 +344,18 @@ bool bBreak;
 				}
 			}
 		}
+
 		if (appStatus->m_bSID_Emulation_Enable)
 		{
 			sid.ExecuteCycle(sysclock);
 		}
-		if (bBreak || diskdrive.cpu.m_cpu_sequence==HLT_IMPLIED)
-			break;
 
+		if (bBreak || diskdrive.cpu.m_cpu_sequence==HLT_IMPLIED)
+		{
+			break;
+		}
 	}
+
 	FinishDebugRun();
 }
 
@@ -432,12 +453,13 @@ bool bBreak;
 	FinishDebugRun();
 }
 
-int C64::ExecuteDebugFrame()
+bool C64::ExecuteDebugFrame(int cpuId, BreakpointResult& breakpointResult)
 {
 ICLK cycles,sysclock;
 bool bBreakC64, bBreakDisk, bBreakVic;
 int result = 0;
 
+	breakpointResult = BreakpointResult();
 	if (bPendingSystemCommand)
 	{
 		ProcessReset();
@@ -472,6 +494,7 @@ int result = 0;
 		{
 			autoexitcountdown--;
 		}
+
 		if (appStatus->m_bD1541_Emulation_Enable)
 		{
 			diskdrive.AccumulatePendingDiskCpuClocksToPalClock(sysclock-1);
@@ -479,17 +502,12 @@ int result = 0;
 			{
 				bool bWasDiskCpuOnInt = diskdrive.cpu.IsInterruptInstruction();
 				diskdrive.ExecuteOnePendingDiskCpuClock();
-				if (diskdrive.cpu.IsOpcodeFetch())
+				if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word, true) == 0)
 				{
-					if (diskdrive.cpu.PROCESSOR_INTERRUPT == 0)
-					{
-						if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word, true) == 0)
-						{
-							bBreakDisk = true;
-							break;
-						}
-					}
+					bBreakDisk = true;
+					break;
 				}
+
 				if (diskdrive.cpu.GetBreakOnInterruptTaken())
 				{
 					if (diskdrive.cpu.IsInterruptInstruction() && (diskdrive.cpu.IsOpcodeFetch() || !bWasDiskCpuOnInt))
@@ -498,6 +516,7 @@ int result = 0;
 					}
 				}
 			}
+
  			if (bBreakDisk)
 			{
 				break;
@@ -521,17 +540,13 @@ int result = 0;
 			bBreakVic = true;
 		}
 
-		if (cpu.IsOpcodeFetch() && !bWasC64CpuOpCodeFetch)
-		{			
-			if (cpu.PROCESSOR_INTERRUPT == 0)
-			{
-				if (cpu.CheckExecute(cpu.mPC.word, true) == 0)
-				{
-					bBreakC64 = true;
-				}
-			}
+		// Check for an execute breakpoint for the CPU program counter.
+		if (cpu.CheckExecute(cpu.mPC.word, true) == 0 && !bWasC64CpuOpCodeFetch)
+		{
+			bBreakC64 = true;
 		}
 
+		// Check the main CPU for if we want to break on interrupt taken.
 		if (cpu.GetBreakOnInterruptTaken())
 		{
 			if (cpu.IsInterruptInstruction() && (cpu.IsOpcodeFetch() || !bWasC64CpuOnInt))
@@ -547,18 +562,14 @@ int result = 0;
 			{
 				bool bWasDiskCpuOnInt = diskdrive.cpu.IsInterruptInstruction();
 				diskdrive.ExecuteOnePendingDiskCpuClock();
-				if (diskdrive.cpu.IsOpcodeFetch())
+
+				if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word, true) == 0)
 				{
-					if (diskdrive.cpu.PROCESSOR_INTERRUPT == 0)
-					{
-						if (diskdrive.cpu.CheckExecute(diskdrive.cpu.mPC.word, true) == 0)
-						{
-							bBreakDisk = true;
-							break;
-						}
-					}
+					bBreakDisk = true;
+					break;
 				}
 
+				// Check the disk CPU for if we want to break on interrupt taken.
 				if (diskdrive.cpu.GetBreakOnInterruptTaken())
 				{
 					if (diskdrive.cpu.IsInterruptInstruction() && (diskdrive.cpu.IsOpcodeFetch() || !bWasDiskCpuOnInt))
@@ -575,35 +586,55 @@ int result = 0;
 		}
 
  		if (bBreakC64 || bBreakDisk || bBreakVic)
-		{
+		{			
 			break;
 		}
 	}
 
 	FinishDebugRun();
-	if (pIC64Event)
+	if (bBreakC64)
 	{
-		if (bBreakC64)
+		breakpointResult.IsBreak = true;
+		breakpointResult.IsMainExecute = true;
+		if (pIC64Event)
 		{
 			pIC64Event->BreakExecuteCpu64();
 		}
-		if (bBreakDisk)
+	}
+
+	if (bBreakDisk)
+	{
+		breakpointResult.IsBreak = true;
+		breakpointResult.IsDiskExecute = true;
+		if (pIC64Event)
 		{
 			pIC64Event->BreakExecuteCpuDisk();
 		}
-		if (bBreakVic)
+	}
+
+	if (bBreakVic)
+	{
+		breakpointResult.IsBreak = true;
+		breakpointResult.IsVicRasterLineAndCycle = true;
+		if (pIC64Event)
 		{
 			pIC64Event->BreakVicRasterCompare();
 		}
 	}
+
 	if (autoExitEnabled && ((ICLKS)autoexitcountdown <= 0 && autoexitcountdown <= PAL_CLOCKS_PER_FRAME))
 	{
-		return 1;
+		breakpointResult.IsBreak = true;
+		breakpointResult.ExitCode = 1;
+		breakpointResult.IsApplicationExitCode = true;
 	}
-	else
+
+	if (breakpointResult.IsBreak)
 	{
-		return 0;
+		this->ClearAllTemporaryBreakpoints();
 	}
+
+	return breakpointResult.IsBreak;
 }
 
 int C64::ExecuteFrame()

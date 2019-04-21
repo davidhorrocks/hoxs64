@@ -53,8 +53,11 @@ public:
 
 	// IAppCommand
 	virtual void IAppCommand::Resume();
-	virtual void IAppCommand::Trace();
-	virtual void IAppCommand::TraceFrame();
+	virtual void IAppCommand::Trace(int cpuId);
+	virtual void IAppCommand::TraceWithTemporaryBreakpoints(int cpuId);
+	virtual void IAppCommand::TraceFrame(int cpuId);
+	virtual void IAppCommand::TraceStepOver(int cpuId);
+	virtual void IAppCommand::ClearAllTemporaryBreakpoints();
 	virtual void IAppCommand::ExecuteC64Clock();
 	virtual void IAppCommand::ExecuteDiskClock();
 	virtual void IAppCommand::ExecuteC64Instruction();

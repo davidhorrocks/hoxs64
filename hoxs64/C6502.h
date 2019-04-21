@@ -520,6 +520,9 @@ public:
 	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint);
 	virtual void SetBreakOnInterruptTaken();
 	virtual void ClearBreakOnInterruptTaken();
+    virtual void SetStepOverBreakpoint();
+    virtual void ClearStepOverBreakpoint();
+	virtual void ClearTemporaryBreakpoints();
 	virtual void SetPC(bit16 address);
 	virtual void SetA(bit8 v);
 	virtual void SetX(bit8 v);
@@ -622,9 +625,11 @@ protected:
 	void GetState(SsCpuCommon &state);
 	void SetState(const SsCpuCommon &state);
 private:
-
 	void InitDecoder();
-
+    bool m_bEnableStepOverBreakpoint;
+    bool m_bStepOverGotNextAddress;
+    bit16 m_stepOverAddressBreakpoint;
+	bool m_bStepOverBreakNextInstruction;
 	IBreakpointManager *m_pIBreakpointManager;
 };
 

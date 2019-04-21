@@ -76,7 +76,7 @@ public:
 	void ExecuteC64Instruction();
 	void ExecuteC64Clock();
 	void ExecuteDiskClock();
-	int ExecuteDebugFrame();
+	bool ExecuteDebugFrame(int cpuId, BreakpointResult &breakpointResult);
 	int ExecuteFrame();
 	void Warm();
 	void EnterDebugRun(bool bWithSound);
@@ -148,6 +148,7 @@ public:
 	virtual bool HasExitCode();
 	virtual void ResetOnceExitCode();
 	virtual HRESULT SavePng(const TCHAR * filename);
+	virtual void ClearAllTemporaryBreakpoints();
 
 	IMonitorCpu *GetCpu(int cpuid);
 

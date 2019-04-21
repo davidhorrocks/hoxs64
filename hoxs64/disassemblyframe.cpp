@@ -701,7 +701,7 @@ void CDisassemblyFrame::CancelEditing()
 
 void CDisassemblyFrame::OnResume(void *sender, EventArgs& e)
 {
-	this->GetCpu()->ClearBreakOnInterruptTaken();
+	this->GetCpu()->ClearTemporaryBreakpoints();
 }
 
 void CDisassemblyFrame::OnTrace(void *sender, EventArgs& e)
@@ -746,10 +746,10 @@ void CDisassemblyFrame::OnExecuteDiskInstruction(void *sender, EventArgs& e)
 
 void CDisassemblyFrame::OnShowDevelopment(void *sender, EventArgs& e)
 {
-	this->GetCpu()->ClearBreakOnInterruptTaken();
+	this->GetCpu()->ClearTemporaryBreakpoints();
 	if (IsWindow(this->m_hWnd))
 	{
-		SetHome();
+		// SetHome(); Uncomment to scroll the CPU program counter to the top of the disassembly window.
 		UpdateDisplay(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		SetMenuState();
 	}
@@ -768,12 +768,21 @@ bool CDisassemblyFrame::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 void CDisassemblyFrame::SetMenuState()
 {
 	if (!m_pAppCommand)
+	{
 		return ;
+	}
+
 	if (!m_hWnd)
+	{
 		return ;
+	}
+
 	HMENU hMenu = GetMenu(m_hWnd);
 	if (!hMenu)
+	{
 		return ;
+	}
+
 	UINT state;
 	UINT stateOpp;
 	UINT stateTb;
@@ -799,8 +808,8 @@ void CDisassemblyFrame::SetMenuState()
 	EnableMenuItem(hMenu, IDM_STEP_ONEINSTRUCTION, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_TRACE, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_TRACEFRAME, MF_BYCOMMAND | state);
-	EnableMenuItem(hMenu, IDM_STEP_TRACEINTERRUPTTAKEN, MF_BYCOMMAND | state);
-	
+	EnableMenuItem(hMenu, IDM_STEP_TRACEINTERRUPTTAKEN, MF_BYCOMMAND | state);	
+	EnableMenuItem(hMenu, IDM_STEP_OVER_INSTRUCTION, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
 	if (m_hWndTooBarStep!=NULL)
 	{
@@ -810,13 +819,15 @@ void CDisassemblyFrame::SetMenuState()
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEINTERRUPTTAKEN, stateTb);
-
+		//SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OVER_INSTRUCTION, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
 	}
+
 	if (m_hWndTooBarStep!=NULL)
 	{
 		SendMessage(m_hWndTooBarAddress, TB_SETSTATE, IDM_VIEW_ADDRESS, stateTb);
 	}
+
 	if (m_hWndToolItemAddress!=NULL)
 	{
 		EnableWindow(m_hWndToolItemAddress, (BOOL)!bIsRunning);
@@ -950,42 +961,76 @@ int wmId, wmEvent;
 		break;
 	case IDM_STEP_ONECLOCK:
 		if (m_pAppCommand->IsRunning())
+		{
 			break;
+		}
+
 		CancelEditing();
 		if (this->GetCpuId() == CPUID_MAIN)
+		{
 			m_pAppCommand->ExecuteC64Clock();
+		}
 		else
+		{
 			m_pAppCommand->ExecuteDiskClock();
+		}
+
 		m_pAppCommand->UpdateApplication();
 		break;
 	case IDM_STEP_ONEINSTRUCTION:
 		if (m_pAppCommand->IsRunning())
+		{
 			break;
+		}
+
 		CancelEditing();
 		if (this->GetCpuId() == CPUID_MAIN)
+		{
 			m_pAppCommand->ExecuteC64Instruction();
+		}
 		else
+		{
 			m_pAppCommand->ExecuteDiskInstruction();
+		}
+
 		m_pAppCommand->UpdateApplication();
 		break;
 	case IDM_STEP_TRACEFRAME:
 		if (m_pAppCommand->IsRunning())
+		{
 			break;
+		}
+
 		CancelEditing();
-		m_pAppCommand->TraceFrame();
+		m_pAppCommand->TraceFrame(CPUID_MAIN);
 		m_pAppCommand->UpdateApplication();
 		break;
 	case IDM_STEP_TRACE:
 		if (m_pAppCommand->IsRunning())
+		{
 			break;
+		}
+
 		CancelEditing();
-		m_pAppCommand->Trace();
+		m_pAppCommand->Trace(this->GetCpuId());
+		break;
+	case IDM_STEP_OVER_INSTRUCTION:
+		if (m_pAppCommand->IsRunning())
+		{
+			break;
+		}
+
+		CancelEditing();
+		m_pAppCommand->TraceStepOver(this->GetCpuId());
 		break;
 	case IDM_STEP_TRACEINTERRUPTTAKEN:
 		if (m_pAppCommand->IsRunning())
+		{
 			break;
+		}
+
 		this->GetCpu()->SetBreakOnInterruptTaken();
-		m_pAppCommand->Trace();
+		m_pAppCommand->TraceWithTemporaryBreakpoints(this->GetCpuId());
 		break;
 	case IDM_FILE_MONITOR:
 	case IDM_STEP_STOP:

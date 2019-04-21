@@ -374,17 +374,18 @@
 #define IDM_FILE_SAVESTATE              40177
 #define ID_DEBUG_HOMETOPC               40178
 #define IDM_DEBUG_HOMETOPC              40179
-#define ID_ACCELERATOR40180             40180
 #define IDM_DISK_SAVEDISK_P64           40183
 #define ID_SETTING_COLOUR               40184
 #define IDM_SETTING_COLOUR              40185
+#define ID_DEBUG_STEPOVERINSTRUCTION    40186
+#define IDM_STEP_OVER_INSTRUCTION       40187
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
-#define _APS_NEXT_COMMAND_VALUE         40186
+#define _APS_NEXT_COMMAND_VALUE         40194
 #define _APS_NEXT_CONTROL_VALUE         1373
 #define _APS_NEXT_SYMED_VALUE           117
 #endif

@@ -49,9 +49,6 @@
     <ClCompile Include="appstatus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="break_point.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="C64.CPP">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -367,15 +364,18 @@
     <ClCompile Include="gamedeviceitem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="breakpointresult.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="breakpoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="appstatus.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="break_point.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C64.H">
@@ -718,6 +718,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gamedeviceitem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="breakpointresult.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="breakpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -69,13 +69,13 @@ void CDisassemblyEditChild::Cleanup()
 {
 	m_hWndEditText = NULL;
 	m_wpOrigEditProc = NULL;
-
 	FreeTextBuffer();
 	if (m_hBmpBreakEnabled)
 	{
 		DeleteBitmap(m_hBmpBreakEnabled);
 		m_hBmpBreakEnabled=NULL;
 	}
+
 	if (m_hBmpBreakDisabled)
 	{
 		DeleteBitmap(m_hBmpBreakDisabled);
@@ -87,18 +87,22 @@ HRESULT CDisassemblyEditChild::Init()
 {
 HRESULT hr;
 HSink hs;
-	Cleanup();
-	
+	Cleanup();	
 	hr = AllocTextBuffer();
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	m_FirstAddress = GetNearestTopAddress(0);
 	m_NumLines = 0;
 	m_CurrentEditLineBuffer = NULL;
-
 	hs = m_pAppCommand->EsBreakpointChanged.Advise(this);
 	if (!hs)
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;
 }
 
@@ -106,10 +110,16 @@ HRESULT CDisassemblyEditChild::AllocTextBuffer()
 {
 	m_pFrontTextBuffer = new AssemblyLineBuffer [MAX_BUFFER_HEIGHT];
 	if (m_pFrontTextBuffer == NULL)
+	{
 		return E_OUTOFMEMORY;
+	}
+
 	m_pBackTextBuffer = new AssemblyLineBuffer [MAX_BUFFER_HEIGHT];
 	if (m_pBackTextBuffer == NULL)
+	{
 		return E_OUTOFMEMORY;
+	}
+
 	return S_OK;
 }
 
@@ -120,6 +130,7 @@ void CDisassemblyEditChild::FreeTextBuffer()
 		delete[] m_pFrontTextBuffer;
 		m_pFrontTextBuffer = NULL;
 	}
+
 	if (m_pBackTextBuffer != NULL)
 	{
 		delete[] m_pBackTextBuffer;
@@ -136,6 +147,7 @@ void CDisassemblyEditChild::ClearBuffer()
 			m_pFrontTextBuffer[i].Clear();
 		}
 	}
+
 	if (m_pBackTextBuffer != NULL)
 	{
 		for(int i=0 ; i < MAX_BUFFER_HEIGHT ; i++)
@@ -149,7 +161,9 @@ void CDisassemblyEditChild::InvalidateBuffer()
 {
 	ClearBuffer();
 	if (m_hWnd)
+	{
 		InvalidateRect(m_hWnd, NULL, TRUE);
+	}
 }
 
 void CDisassemblyEditChild::FlipBuffer()
@@ -177,7 +191,10 @@ WNDCLASSEX  wc;
     wc.lpszClassName = ClassName;
 	wc.hIconSm       = NULL;
 	if (RegisterClassEx(&wc)==0)
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;	
 };
 
@@ -188,14 +205,20 @@ HWND CDisassemblyEditChild::Create(HINSTANCE hInstance, HWND hWndParent, const T
 	{
 		m_hBmpBreakEnabled = (HBITMAP) LoadImage(hInstance, MAKEINTRESOURCE(IDB_BREAK), IMAGE_BITMAP, 0, 0, LR_LOADTRANSPARENT);
 		if (m_hBmpBreakEnabled==NULL)
+		{
 			return NULL;
+		}
 	}
+
 	if (m_hBmpBreakDisabled == NULL)
 	{
 		m_hBmpBreakDisabled = (HBITMAP) LoadImage(hInstance, MAKEINTRESOURCE(IDB_BREAKDISABLE), IMAGE_BITMAP, 0, 0, LR_LOADTRANSPARENT);
 		if (m_hBmpBreakDisabled==NULL)
+		{
 			return NULL;
+		}
 	}
+
 	return CVirWindow::CreateVirWindow(0L, ClassName, NULL, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
@@ -217,6 +240,7 @@ RECT rect;
 		(HMENU) LongToPtr(ID_EDITDISASSEMBLY),//Menu
 		m_hInst,//application instance
 		NULL);
+
 	if (hWnd)
 	{
 		SendMessage(hWnd, WM_SETFONT, (WPARAM)m_hFont, FALSE);
@@ -234,6 +258,7 @@ bool CDisassemblyEditChild::IsEditing()
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -242,7 +267,9 @@ void CDisassemblyEditChild::CancelAsmEditing()
 	bool bHadFocus = IsEditing();
 	this->HideEditMnemonic();
 	if (bHadFocus && m_hWnd != NULL)
+	{
 		SetFocus(m_hWnd);
+	}
 }
 
 HRESULT CDisassemblyEditChild::SaveAsmEditing()
@@ -255,7 +282,10 @@ bit8 acode[256];
 bit16 address;
 
 	if (!IsEditing())
+	{
 		return S_OK;
+	}
+
 	if (GetDlgItemText(m_hWnd, GetDlgCtrlID(m_hWndEditText), szText, _countof(szText)) != 0)
 	{
 		if (m_CurrentEditLineBuffer != NULL)
@@ -274,7 +304,8 @@ bit16 address;
 				return S_OK;
 			}
 		}
-	}	
+	}
+
 	return E_FAIL;
 }
 
@@ -284,45 +315,55 @@ TEXTMETRIC tm;
 SIZE sz;
 	HDC hdc = GetDC(m_hWnd);
 	if (!hdc)
+	{
 		return E_FAIL;
+	}
+
 	if (!GetTextMetrics(hdc, &tm))
+	{
 		return E_FAIL;
+	}
+
 	LPCTSTR szSampleProgramCounterPointer = TEXT("I>0");
 	if (!::GetTextExtentExPoint(hdc, szSampleProgramCounterPointer, lstrlen(szSampleProgramCounterPointer), 0, NULL, NULL, &sz))
 	{
 		return E_FAIL;
 	}
+
 	WIDTH_LEFTBAR2 = sz.cx + m_dpi.ScaleX(1);
 	LINE_HEIGHT =  tm.tmHeight;
-
 	int min_w = m_dpi.ScaleX(WIDTH_LEFTBAR_96);
 	int min_h = GetSystemMetrics(SM_CYVTHUMB) * 2 + GetSystemMetrics(SM_CYVTHUMB);
-
 	min_w += WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96) + m_dpi.ScaleX(PADDING_RIGHT_96);			
-
 	TCHAR s[]= TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
 	int slen = lstrlen(s);
 	SIZE sizeText;
 	BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
 	if (!br)
+	{
 		return E_FAIL;
+	}
+
 	min_w += sizeText.cx;
 	min_h += sizeText.cy * 5;
 	m_MinSizeW = min_w;
 	m_MinSizeH = min_h;							
 	m_MinSizeDone = true;
-
-
 	LPCTSTR szSampleAddress = TEXT("$ABCDxx");
 	LPCTSTR szSampleBytes = TEXT("ABxABxABxx");
 	xcol_Address = m_dpi.ScaleX(WIDTH_LEFTBAR_96) + WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96);
 	if (!::GetTextExtentExPoint(hdc, szSampleAddress,lstrlen(szSampleAddress),0,NULL,NULL,&sz))
+	{
 		return E_FAIL;
+	}
+
 	xcol_Bytes = xcol_Address + sz.cx;
 	if (!::GetTextExtentExPoint(hdc, szSampleBytes,lstrlen(szSampleBytes),0,NULL,NULL,&sz))
+	{
 		return E_FAIL;
-	xcol_Mnemonic = xcol_Bytes + sz.cx;
+	}
 
+	xcol_Mnemonic = xcol_Bytes + sz.cx;
 	return S_OK;
 }
 
@@ -338,10 +379,16 @@ HRESULT hr;
 	m_bIsFocused = false;
 	hr = UpdateMetrics();
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	m_hWndEditText = CreateAsmEdit(hWnd);
 	if (m_hWndEditText == NULL)
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;
 }
 
@@ -356,6 +403,7 @@ void CDisassemblyEditChild::OnDestroy(HWND hWnd)
 		}
 		m_hOldFont = 0;
 	}
+
 	if (m_wpOrigEditProc!=NULL && m_hWndEditText!=NULL)
 	{
 		SubclassChildWindow(m_hWndEditText, m_wpOrigEditProc);
@@ -383,7 +431,10 @@ BOOL br;
 	case WM_CREATE:
 		hr = OnCreate(hWnd);
 		if (FAILED(hr))
+		{
 			return -1;
+		}
+
 		return 0;
 	case WM_DESTROY:
 		OnDestroy(hWnd);
@@ -399,33 +450,55 @@ BOOL br;
 				EndPaint (hWnd, &ps);
 			}
 		}
+
 		return 0;
 	case WM_SIZE:
 		if (wParam==SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
+		{
 			return 0;
+		}
+
 		if (wParam==SIZE_MINIMIZED)
+		{
 			return 0;
+		}
+
 		UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 		return 0;
 	case WM_KEYDOWN:
 		if (OnKeyDown(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_CHAR:
 		if (OnChar(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_LBUTTONDOWN:
 		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_LBUTTONUP:
 		if (OnLButtonUp(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_NOTIFY:
 		OnNotify(hWnd, uMsg, wParam, lParam);
@@ -441,6 +514,7 @@ BOOL br;
 		UpdateWindow(m_hWnd);
 		break;
 	}
+
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
@@ -448,7 +522,10 @@ LRESULT CDisassemblyEditChild::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM w
 {
 HRESULT hr;
 	if (hWnd == NULL)
+	{
 		return 0;
+	}
+
 	if (hWnd == this->m_hWndEditText)
 	{
 		switch(uMsg)
@@ -462,6 +539,7 @@ HRESULT hr;
 			{				
 				return 0;
 			}
+
 			break;
 		case WM_KEYDOWN:
 			if (wParam == VK_ESCAPE)
@@ -478,13 +556,17 @@ HRESULT hr;
 					MoveNextLine();
 					InvalidateRectChanges();
 					if (m_hWnd != NULL)
+					{
 						SetFocus(m_hWnd);
+					}
+
 					UpdateWindow(m_hWnd);
 					return 0;
 				}
 			}
 			break;
 		}
+
 		if (m_wpOrigEditProc)
 		{
 			return ::CallWindowProc(m_wpOrigEditProc, hWnd, uMsg, wParam, lParam);
@@ -518,11 +600,19 @@ HBRUSH bshWhite;
 	}
 
 	if (prevBrush)
+	{
 		SelectObject(hdc, prevBrush);
+	}
+
 	if (prevFont)
+	{
 		SelectObject(hdc, prevFont);
+	}
+
 	if (prevMapMode)
+	{
 		SetMapMode(hdc, prevMapMode);
+	}
 }
 
 int CDisassemblyEditChild::GetNumberOfLines()
@@ -534,13 +624,24 @@ int CDisassemblyEditChild::GetNumberOfLinesForRect(const RECT& rc, int lineHeigh
 {
 	int num = 0;
 	if (lineHeight > 0)
+	{
 		num = (rc.bottom - rc.top - m_dpi.ScaleY(MARGIN_TOP_96) - m_dpi.ScaleY(PADDING_TOP_96)) / lineHeight;
+	}
+
 	if (num <= 0)
+	{
 		num = 1;
+	}
 	else
+	{
 		num++;
+	}
+
 	if (num > MAX_BUFFER_HEIGHT)
+	{
 		num = MAX_BUFFER_HEIGHT;
+	}
+
 	return num;
 }
 
@@ -584,12 +685,17 @@ void CDisassemblyEditChild::InvalidateFocus()
 			bool bIsChanged = false;
 			AssemblyLineBuffer &front = m_pFrontTextBuffer[i];
 			if (front.IsFocused)
+			{
 				bIsChanged = true;
+			}
+
 			if (bIsChanged)
 			{				
 				SetRect(&rcLine, x, y, rcClient.right, y+LINE_HEIGHT);
 				if (IntersectRect(&rcChange, &rcClient, &rcLine))
+				{
 					InvalidateRect(m_hWnd, &rcChange, TRUE);
+				}
 			}
 		}
 	}
@@ -616,16 +722,25 @@ void CDisassemblyEditChild::InvalidateRectChanges()
 			AssemblyLineBuffer &front = m_pFrontTextBuffer[i];
 			AssemblyLineBuffer &back = m_pBackTextBuffer[i];
 			if (!front.IsEqual(back) || !front.IsValid)
+			{
 				bIsChanged = true;
+			}
+
 			if ((m_bIsFocused && !front.IsFocused) || (!m_bIsFocused && front.IsFocused))
+			{
 				bIsChanged = true;
+			}
+
 			if (bIsChanged)
 			{				
 				SetRect(&rcLine, x, y, rcClient.right, y+LINE_HEIGHT);
 				if (IntersectRect(&rcChange, &rcClient, &rcLine))
+				{
 					InvalidateRect(m_hWnd, &rcChange, TRUE);
+				}
 			}
 		}
+
 		if (y < rcClient.bottom)
 		{
 			//Make sure then very bottom of the window is updated.
@@ -646,22 +761,23 @@ bit16 prevAddress;
 bool bHasPrevAddress;
 
 	m_bMouseDownOnFocusedAddress = false;
-
 	if (m_pAppCommand->IsRunning())
+	{
 		return false;
+	}
+
 	bool bWasWindowFocused = (hWnd == GetFocus());
 	if (hWnd)
 	{
 		::SetFocus(hWnd);
 	}
+
 	int xPos = GET_X_LPARAM(lParam); 
 	int yPos = GET_Y_LPARAM(lParam);
 
 	GetClientRect(hWnd, &rcClient);
-
 	GetRect_Bar(rcClient, &rcBarBreak);
 	GetRect_Edit(rcClient, &rcEdit);
-
 	POINT pt = {xPos,yPos};
 	if (PtInRect(&rcBarBreak, pt))
 	{
@@ -675,9 +791,13 @@ bool bHasPrevAddress;
 			if (pIMonitorCpu)
 			{
 				if (pIMonitorCpu->IsBreakpoint(DBGSYM::BreakpointType::Execute, address))
+				{
 					pIMonitorCpu->DeleteBreakpoint(DBGSYM::BreakpointType::Execute, address);
+				}
 				else 
+				{
 					pIMonitorCpu->SetBreakpoint(DBGSYM::BreakpointType::Execute, address, true, 0, 0);
+				}
 			}
 		}
 	}
@@ -706,6 +826,7 @@ bool bHasPrevAddress;
 		{
 			ClearFocusedAddress();
 		}
+
 		InvalidateRectChanges();
 		UpdateWindow(m_hWnd);
 	}
@@ -726,17 +847,20 @@ bool CDisassemblyEditChild::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	RECT rcEdit;
 
 	if (m_pAppCommand->IsRunning())
+	{
 		return false;
+	}
+
 	if (::GetFocus() != hWnd)
+	{
 		return true;
+	}
 
 	int xPos = GET_X_LPARAM(lParam); 
 	int yPos = GET_Y_LPARAM(lParam);
 	POINT pt = {xPos,yPos};
-
 	GetClientRect(hWnd, &rcClient);
 	GetRect_Edit(rcClient, &rcEdit);
-
 	if (PtInRect(&rcEdit, pt) && m_bMouseDownOnFocusedAddress)
 	{
 		int iline = GetLineFromYPos(yPos);
@@ -749,6 +873,7 @@ bool CDisassemblyEditChild::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			}
 		}
 	}
+
 	return true;
 }
 
@@ -768,7 +893,10 @@ HRESULT CDisassemblyEditChild::ShowEditMnemonic(AssemblyLineBuffer *pAlb)
 {
 RECT rcEdit;
 	if (m_hWndEditText==NULL)
+	{
 		return E_FAIL;
+	}
+
 	CopyRect(&rcEdit, &pAlb->MnemonicRect);
 	m_CurrentEditLineBuffer = pAlb;
 	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
@@ -784,6 +912,7 @@ RECT rcEdit;
 	{
 		SendMessage(m_hWndEditText, EM_SETREADONLY, FALSE, 0);
 	}
+
 	SendMessage(m_hWndEditText, EM_SETSEL, 0, -1);
 	SetFocus(m_hWndEditText);
 	return S_OK;
@@ -793,7 +922,10 @@ void CDisassemblyEditChild::HideEditMnemonic()
 {
 	m_CurrentEditLineBuffer = NULL;
 	if (m_hWndEditText==NULL)
+	{
 		return;
+	}
+
 	SetWindowPos(m_hWndEditText, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE);
 }
 
@@ -817,11 +949,15 @@ AssemblyLineBuffer *pAlb;
 bool CDisassemblyEditChild::GetFocusedAddress(bit16 *address)
 {
 	if (!m_bIsFocusedAddress)
+	{
 		return false;
+	}
+
 	if (address!=NULL)
 	{
 		*address = m_iFocusedAddress;
 	}
+
 	return true;
 }
 
@@ -873,6 +1009,7 @@ bool CDisassemblyEditChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 	{
 		SendMessage(::GetParent(hWnd), uMsg, wParam, lParam);
 	}
+
 	return true;
 }
 
@@ -886,13 +1023,16 @@ bool CDisassemblyEditChild::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			SendMessage(m_hWndEditText, uMsg, wParam, lParam);
 		}
 	}
+
 	return true;
 }
 
 bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (hWnd != m_hWnd)
+	{
 		return false;
+	}
 
 	if ((HWND)lParam == this->m_hWndEditText)
 	{
@@ -903,8 +1043,12 @@ bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 			break;
 		}
 	}
+
 	if (lParam == NULL)
+	{
 		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
+	}
+
 	return true;
 }
 
@@ -912,7 +1056,10 @@ bool CDisassemblyEditChild::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 {
 LPNMHDR pn;
 	if (lParam == NULL)
+	{
 		return 0;
+	}
+
 	pn = (LPNMHDR)lParam;
 	if (pn->hwndFrom == this->m_hWndEditText)
 	{
@@ -936,7 +1083,10 @@ void CDisassemblyEditChild::SetHome()
 int CDisassemblyEditChild::GetLineFromYPos(int y)
 {
 	if (LINE_HEIGHT==0)
+	{
 		return -1;
+	}
+
 	int k = (y - m_dpi.ScaleY(MARGIN_TOP_96) - m_dpi.ScaleY(PADDING_TOP_96)) / LINE_HEIGHT;
 	return k;
 }
@@ -956,16 +1106,15 @@ TEXTMETRIC tm;
 
 	CPUState cpustate;
 	this->GetCpu()->GetCpuState(cpustate);
-
 	SetBkMode(hdc, OPAQUE);
 	SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
 	SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-
 	SetTextAlign(hdc, TA_LEFT | TA_TOP | TA_NOUPDATECP);
-
 	br = GetClientRect(hWnd, &rcClient);
 	if (!br)
+	{
 		return;
+	}
 
 	GetRect_Bar(rcClient, &rcBarBreak);
 	GetRect_Status(rcClient, &rcBarStatus);
@@ -977,17 +1126,15 @@ TEXTMETRIC tm;
 		SelectObject(hdc, bshBarBreak);
 		FillRect(hdc, &rcBarBreak, bshBarBreak);
 	}
+
 	bshBarStatus = GetSysColorBrush (COLOR_WINDOW);
 	bshEdit = GetSysColorBrush (COLOR_WINDOW);
-
 	FillRect(hdc, &rcEdit, bshEdit);
-
 	HPEN oldpen = NULL;
 	if (bshBarStatus != NULL)
 	{
 		SelectObject(hdc, bshBarStatus);
-		FillRect(hdc, &rcBarStatus, bshBarStatus);
-		
+		FillRect(hdc, &rcBarStatus, bshBarStatus);		
 		HPEN pen = CreatePen(PS_SOLID, 1, GetSysColor(COLOR_BTNFACE));
 		if (pen)
 		{
@@ -998,12 +1145,12 @@ TEXTMETRIC tm;
 				LineTo(hdc, rcBarStatus.right - 1, rcBarStatus.bottom);
 				SelectObject(hdc, oldpen);
 			}
+
 			DeleteObject(pen);
 		}
 	}
 
 	bool bUnavailable = m_pAppCommand->IsRunning();
-
 	br = GetTextMetrics(hdc, &tm);
 	if (br)
 	{
@@ -1015,7 +1162,6 @@ TEXTMETRIC tm;
 			y = m_dpi.ScaleY(MARGIN_TOP_96) + m_dpi.ScaleY(PADDING_TOP_96);
 			SIZE sizeText;
 			BOOL brTextExtent;
-
 			LONG width_intflag = 0;
 			TCHAR szIntText[] = TEXT("I");
 			slen = (int)_tcsnlen(szIntText, _countof(szIntText));
@@ -1068,6 +1214,7 @@ TEXTMETRIC tm;
 									{
 										DrawBitmap(hdc, 0, y, hMemDC, m_hBmpBreakDisabled);
 									}
+
 									SelectObject(hdc, bshBarStatus);
 								}
 							}
@@ -1078,12 +1225,18 @@ TEXTMETRIC tm;
 								{
 									SetTextColor(hdc, RGB(0xff,02,70));
 									ExtTextOut(hdc, x_status, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szIntText, lstrlen(szIntText), NULL);
-								}									
+								}
+
 								TCHAR szArrowText[3] = TEXT(">0");
 								if (cpustate.cycle >= 0 && cpustate.cycle <= 9)
+								{
 									szArrowText[1] = TEXT('0') + ((abs(cpustate.cycle) % 10));
+								}
 								else
+								{
 									szArrowText[1] = TEXT('#');
+								}
+
 								SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
 								ExtTextOut(hdc, x_status + width_intflag, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, szArrowText, lstrlen(szArrowText), NULL);
 							}
@@ -1118,23 +1271,32 @@ TEXTMETRIC tm;
 							if (slen > 0)
 							{
 								if (albFront.IsUnDoc)
+								{
 									SetTextColor(hdc, RGB(2, 134, 172));
+								}
 								else
+								{
 									SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+								}
+
 								brTextExtent = GetTextExtentExPoint(hdc, albFront.MnemonicText, slen, 0, NULL, NULL, &sizeText);
 								ExtTextOut(hdc, x, y, ETO_NUMERICSLATIN | ETO_OPAQUE, NULL, albFront.MnemonicText, slen, NULL);
 							}
+
 							::SetBkColor(hdc, GetSysColor(sys_back_colour));
 							if (albFront.IsFocused && m_bIsFocused)
 							{
 								::DrawFocusRect(hdc, &albFront.MnemonicRect);
 							}
+
 							albFront.WantUpdate = false;
 							m_pFrontTextBuffer[i] = albFront;
 							m_pBackTextBuffer[i] = albFront;
 						}
+
 						SelectObject(hMemDC, hbmpPrev);						
 					}//
+
 					DeleteDC(hMemDC);
 				}
 			}
@@ -1194,6 +1356,7 @@ int iEnsureAddress = -1;
 	{
 		iEnsureAddress = -1;
 	}
+
 	UpdateBuffer(m_pFrontTextBuffer, m_NumLines, iEnsureAddress);
 }
 
@@ -1217,6 +1380,7 @@ RECT rc;
 					break;
 				}
 			}
+
 			if (pcline < 0 || pcline > m_NumLines - 5)
 			{
 				address = iEnsureAddress;
@@ -1233,16 +1397,13 @@ bit16 currentAddress = address;
 CPUState cpustate;
 	
 	this->GetCpu()->GetCpuState(cpustate);
-
 	bit16s pcdiff_start = (bit16s)((cpustate.PC_CurrentOpcode - address) & 0xffff);	
 	bool pcfound = false;
 	int currentLine = startLine;
 	for (currentLine = startLine; currentLine < startLine + numLines && currentLine < MAX_BUFFER_HEIGHT; currentLine++)
 	{
 		AssemblyLineBuffer buffer = AssemblyLineBuffer();
-
 		CopyRect(&buffer.MnemonicRect, &assemblyLineBuffer[currentLine].MnemonicRect);
-
 		if (!pcfound)
 		{
 			if (currentAddress == cpustate.PC_CurrentOpcode)
@@ -1264,6 +1425,7 @@ CPUState cpustate;
 		{
 			buffer.IsPC = true;
 			buffer.InstructionCycle = cpustate.cycle;
+			buffer.IsInterrupt = cpustate.IsInterruptInstruction;
 		}
 
 		if (currentAddress == this->m_iFocusedAddress)
@@ -1313,13 +1475,20 @@ bit16 nextAddress;
 		{
 			nextAddress = currentAddress + instructionLength;
 		}
+
 		if (nextAddress == address)
+		{
 			return nextAddress;
+		}
+
 		if ((bit16s)(nextAddress - address) > 0)
+		{
 			return currentAddress;
+		}
 
 		currentAddress=nextAddress;			
 	}
+
 	return currentAddress;
 }
 
@@ -1337,18 +1506,26 @@ bit16 CDisassemblyEditChild::GetBottomAddress()
 {
 bool isUndoc = false;
 	if (m_NumLines <= 1)
+	{
 		return m_FirstAddress;
+	}
 	else
+	{
 		return GetNthAddress(m_FirstAddress, m_NumLines - 1);
+	}
 }
 
 bit16 CDisassemblyEditChild::GetBottomAddress(int offset)
 {
 bool isUndoc = false;
 	if (m_NumLines+offset <= 1)
+	{
 		return m_FirstAddress;
+	}
 	else
+	{
 		return GetNthAddress(m_FirstAddress, m_NumLines + offset - 1);
+	}
 }
 
 typedef std::vector<bit16> VecAddress;
@@ -1365,6 +1542,7 @@ bool isUndoc = false;
 			int instructionLength = c64->GetMon()->DisassembleOneInstruction(this->GetCpu(), currentAddress, -1, NULL, 0, NULL, 0, NULL, 0, isUndoc);
 			currentAddress += instructionLength;
 		}
+
 		return currentAddress;
 	}
 	else
@@ -1385,14 +1563,21 @@ bool isUndoc = false;
 			{
 				nextAddress = currentAddress + instructionLength;
 			}
+
 			if ((bit16s)(nextAddress - startaddress) >= 0)
 			{
 				if (vecAddress.size() + linenumber >= 0)
+				{
 					return vecAddress[vecAddress.size() + linenumber];
+				}
 				else if (vecAddress.size() > 0)
+				{
 					return vecAddress[0];
+				}
 				else
+				{
 					return currentAddress;
+				}
 			}
 
 			currentAddress = nextAddress;
@@ -1450,6 +1635,7 @@ void CDisassemblyEditChild::AssemblyLineBuffer::Clear()
 	IsBreak = false;
 	IsBreakEnabled = false;
 	InstructionCycle = 0;
+	IsInterrupt = false;
 	IsValid = false;
 	IsFocused = false;
 	WantUpdate = false;
@@ -1459,32 +1645,64 @@ void CDisassemblyEditChild::AssemblyLineBuffer::Clear()
 bool CDisassemblyEditChild::AssemblyLineBuffer::IsEqual(AssemblyLineBuffer& other)
 {
 	if (IsValid != other.IsValid)
+	{
 		return false;	
+	}
+
 	if (Address != other.Address)
+	{
 		return false;
+	}
+
 	if (IsUnDoc != other.IsUnDoc)
+	{
 		return false;
+	}
+
 	if (IsPC != other.IsPC)
+	{
 		return false;
+	}
+
 	if (IsBreak != other.IsBreak)
+	{
 		return false;
+	}
+
 	if (IsBreakEnabled != other.IsBreakEnabled)
+	{
 		return false;
+	}
+
 	if (IsFocused != other.IsFocused)
+	{
 		return false;
+	}
+
 	if (WantUpdate != other.WantUpdate)
+	{
 		return false;
+	}
+
 	if (InstructionCycle != other.InstructionCycle)
+	{
 		return false;
+	}
 
 	if (_tcscmp(AddressText, other.AddressText)!=0)
+	{
 		return false;
+	}
 
 	if (_tcscmp(BytesText, other.BytesText)!=0)
+	{
 		return false;
+	}
 
 	if (_tcscmp(MnemonicText, other.MnemonicText)!=0)
+	{
 		return false;
+	}
 
 	return true;
 }

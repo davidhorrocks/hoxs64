@@ -333,6 +333,7 @@ CPU6502::CPU6502()
 	m_bBreakOnInterruptTaken = false;
 	bSoftResetOnHltInstruction = false;
 	bHardResetOnHltInstruction = false;
+	ClearTemporaryBreakpoints();
 }
 
 CPU6502::~CPU6502()

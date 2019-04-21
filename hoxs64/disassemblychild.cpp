@@ -47,7 +47,10 @@ HRESULT CDisassemblyChild::Init()
 HRESULT hr;
 	hr = AdviseEvents();
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	return S_OK;
 }
 
@@ -69,7 +72,10 @@ WNDCLASSEX  wc;
     wc.lpszClassName = ClassName;
 	wc.hIconSm       = NULL;
 	if (RegisterClassEx(&wc)==0)
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;	
 };
 
@@ -105,9 +111,15 @@ RECT rcChild;
 	br = ::GetClientRect(m_hWnd, &rcChild);
 	SetRect(&rc, rcChild.left, rcChild.top, rcChild.right - GetSystemMetrics(SM_CXHTHUMB), rcChild.bottom);
 	if (rc.right < rc.left)
+	{
 		rc.right = rc.left;
+	}
+
 	if (rc.bottom < rc.top)
+	{
 		rc.bottom = rc.top;
+	}
+
 	return S_OK;
 }
 
@@ -118,9 +130,15 @@ RECT rcChild;
 	br = ::GetClientRect(m_hWnd, &rcChild);
 	SetRect(&rc, rcChild.right - GetSystemMetrics(SM_CXHTHUMB), rcChild.top, rcChild.right, rcChild.bottom);
 	if (rc.right < rc.left)
+	{
 		rc.right = rc.left;
+	}
+
 	if (rc.bottom < rc.top)
+	{
 		rc.bottom = rc.top;
+	}
+
 	return S_OK;
 }
 
@@ -137,16 +155,23 @@ HRESULT hr;
 	{
 		m_hWndScroll = CreateScrollBar(); 
 		if (m_hWndScroll == NULL)
+		{
 			return E_FAIL;
+		}
 
 		RECT rc;
 		ZeroMemory(&rc, sizeof(rc));
 		hr = GetSizeRectEditWindow(rc);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
+
 		HWND hWndDisAsm = CreateEditWindow(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top);
 		if (hWndDisAsm == NULL)
+		{
 			return E_FAIL;	
+		}
 
 		ShowScrollBar(m_hWndScroll, SB_CTL, TRUE);
 		return S_OK;
@@ -164,14 +189,22 @@ RECT rc;
 
 	hr = GetSizeRectEditWindow(rc);
 	if (FAILED(hr))
+	{
 		return;
+	}
 
 	LONG x,y,w,h;
 	G::RectToWH(rc, x, y, w, h);
 	if (w < 0)
+	{
 		w = 0;
+	}
+
 	if (h < 0)
-		h = 0;			
+	{
+		h = 0;
+	}
+
 	SetWindowPos(hWnd, 0, x, y, w, h, SWP_NOREPOSITION | SWP_NOZORDER);
 }
 
@@ -182,14 +215,22 @@ RECT rc;
 
 	hr = GetSizeRectScrollBar(rc);
 	if (FAILED(hr))
+	{
 		return;
+	}
 
 	LONG x,y,w,h;
 	G::RectToWH(rc, x, y, w, h);
 	if (w < 0)
+	{
 		w = 0;
+	}
+
 	if (h < 0)
-		h = 0;					
+	{
+		h = 0;
+	}
+
 	MoveWindow(hWnd, x, y, w, h, TRUE);
 }
 
@@ -197,16 +238,24 @@ RECT rc;
 void CDisassemblyChild::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (wParam == SIZE_MAXHIDE || wParam == SIZE_MINIMIZED)
+	{
 		return;
+	}
+
 	if (hWnd != this->m_hWnd)
+	{
 		return;
+	}
+
 	int w = LOWORD(lParam);
 	int h = HIWORD(lParam);
 	OnSizeScrollBar(m_hWndScroll, w, h);
 
 	HWND hWndDisassemblyEditChild = this->m_pWinDisassemblyEditChild->GetHwnd();
 	if (hWndDisassemblyEditChild!=NULL)
+	{
 		OnSizeDisassembly(hWndDisassemblyEditChild, w, h);
+	}
 
 	bit16 address = this->m_pWinDisassemblyEditChild->GetTopAddress();
 	this->SetAddressScrollPos(address);
@@ -218,7 +267,9 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 	bit16 bottomAddress = m_pWinDisassemblyEditChild->GetBottomAddress(-1);
 	int page = abs((int)(bit16s)(bottomAddress - topAddress));
 	if (page <=0)
+	{
 		page = 1;
+	}
 
 	SCROLLINFO scrollinfo;
 	ZeroMemory(&scrollinfo, sizeof(SCROLLINFO));
@@ -229,9 +280,14 @@ void CDisassemblyChild::SetAddressScrollPos(int pos)
 	scrollinfo.nPage=page;
 
 	if ((bit16s)pos < 0 && (bit16s)pos>-32)
+	{
 		scrollinfo.nPos=0;
+	}
 	else
+	{
 		scrollinfo.nPos=(pos) & 0xffff;
+	}
+
 	SetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo, TRUE);
 
 }
@@ -262,13 +318,18 @@ void CDisassemblyChild::SetTopAddress(bit16 address, bool bSetScrollBarPage)
 {
 	m_pWinDisassemblyEditChild->SetTopAddress(address);
 	if (bSetScrollBarPage)
+	{
 		SetAddressScrollPos((int)address);
+	}
 }
 
 void CDisassemblyChild::UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)
 {
 	if (pcmode == DBGSYM::SetDisassemblyAddress::SetTopAddress)
+	{
 		m_pWinDisassemblyEditChild->SetTopAddress(address);
+	}
+
 	m_pWinDisassemblyEditChild->UpdateDisplay(pcmode, address);
 	bit16 currentaddress = m_pWinDisassemblyEditChild->GetTopAddress();
 	SetAddressScrollPos((int)currentaddress);
@@ -315,7 +376,10 @@ int pos;
 			page = this->GetNumberOfLines();
 			page -= 2;
 			if (page < 0)
+			{
 				page = 1;
+			}
+
 			address = this->GetTopAddress();
 			address = this->GetNthAddress(address, - page);
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
@@ -347,7 +411,10 @@ int pos;
 			scrollinfo.fMask  = SIF_ALL;
 			br = GetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo);
 			if (!br)
+			{
 				return;
+			}
+
 			pos = scrollinfo.nTrackPos;
 			address = (bit16)((unsigned int)pos & 0xffff);
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
@@ -361,7 +428,10 @@ int pos;
 			scrollinfo.fMask  = SIF_ALL;
 			br = GetScrollInfo(m_hWndScroll, SB_CTL, &scrollinfo);
 			if (!br)
+			{
 				return;
+			}
+
 			pos = scrollinfo.nTrackPos;
 			address = (bit16)((unsigned int)pos & 0xffff);
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
@@ -425,6 +495,7 @@ bool CDisassemblyChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
 		return true;
 	}
+
 	return false;
 }
 
@@ -436,7 +507,10 @@ HRESULT hr;
 	case WM_CREATE:
 		hr = OnCreate(hWnd);
 		if (FAILED(hr))
+		{
 			return -1;
+		}
+
 		return 0;
 	case WM_SIZE:
 		OnSize(hWnd, uMsg, wParam, lParam);
@@ -446,20 +520,33 @@ HRESULT hr;
 		return 0;
 	case WM_KEYDOWN:
 		if (OnKeyDown(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_LBUTTONDOWN:
 		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_NOTIFY:
 		if (OnNotify(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 	}
+
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
@@ -489,14 +576,20 @@ HRESULT CDisassemblyChild::AdviseEvents()
 	do
 	{
 		if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+		{
 			hs = this->m_pAppCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
+		}
 		else
+		{
 			hs = this->m_pAppCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
+		}
+
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
+
 		hr = S_OK;
 	} while (false);
 	return hr;

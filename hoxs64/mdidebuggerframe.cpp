@@ -285,19 +285,25 @@ void CMDIDebuggerFrame::OnMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 void CMDIDebuggerFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (hWnd != this->m_hWnd)
+	{
 		return;
+	}
+
 	if (wParam == SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
+	{
 		return;
-	
+	}
+
 	if (wParam == SIZE_MINIMIZED)
+	{
 		return;
+	}
 
 	int w = LOWORD(lParam);
 	int h = HIWORD(lParam);
 
 	RECT rcRootPanel;
 	SetRect(&rcRootPanel, 0, 0, w, h);
-
 	if (m_hWndRebar != NULL)
 	{
 		RECT rcAbsRebar;
@@ -305,9 +311,7 @@ void CMDIDebuggerFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 		if (br)
 		{
 			int heightRebar = rcAbsRebar.bottom - rcAbsRebar.top;
-
 			SetWindowPos(m_hWndRebar, 0, 0, 0, w, heightRebar, SWP_NOREPOSITION | SWP_NOZORDER);
-
 			SetRect(&rcRootPanel, 0, heightRebar, w, h);
 		}
 	}
@@ -321,15 +325,22 @@ HRESULT CMDIDebuggerFrame::CreateMDIToolBars(HDC hdc) throw(...)
 	{
 		m_hImageListToolBarNormal = CreateImageListNormal(m_hWnd);
 		if (m_hImageListToolBarNormal == NULL)
+		{
 			return E_FAIL;
+		}
 	}
 
 	m_hWndTooBar = G::CreateToolBar(m_hInst, m_hWnd, ID_TOOLBAR, m_hImageListToolBarNormal, TB_StepButtons, _countof(TB_StepButtons), m_dpi.ScaleX(TOOLBUTTON_WIDTH_96), m_dpi.ScaleY(TOOLBUTTON_HEIGHT_96));
 	if (m_hWndTooBar == NULL)
+	{
 		return E_FAIL;
+	}
+
 	m_hWndRebar = G::CreateRebar(m_hInst, m_hWnd, m_hWndTooBar, ID_RERBAR);
 	if (m_hWndRebar == NULL)
+	{
 		return E_FAIL;
+	}
 
 	if (m_hBmpRebarNotSized)
 	{
@@ -367,6 +378,7 @@ HRESULT hr;
 			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_MAIN, c64, m_pAppCommand, TEXT("C64 - cpu"), m_hFont));
 			m_pWinDebugCpuC64 = pwin;
 		}
+
 		if (pwin != NULL)
 		{
 			hr = pwin->Show(this->shared_from_this());
@@ -392,6 +404,7 @@ HRESULT hr;
 			pwin = shared_ptr<CDisassemblyFrame>(new CDisassemblyFrame(CPUID_DISK, c64, m_pAppCommand, TEXT("Disk - cpu"), m_hFont));		
 			m_pWinDebugCpuDisk = pwin;
 		}
+
 		if (pwin != NULL)
 		{
 			hr = pwin->Show(this->shared_from_this());
@@ -463,16 +476,25 @@ int wmId, wmEvent;
 		return true;
 	case IDM_STEP_TRACEFRAME:
 		if (!m_pAppCommand)
+		{
 			return false;
+		}
+
 		if (m_pAppCommand->IsRunning())
+		{
 			return false;
-		m_pAppCommand->TraceFrame();
+		}
+
+		m_pAppCommand->TraceFrame(CPUID_MAIN);
 		m_pAppCommand->UpdateApplication();
 		return true;
 	case IDM_STEP_TRACE:
 		if (!m_pAppCommand)
+		{
 			return false;
-		this->m_pAppCommand->Trace();
+		}
+
+		this->m_pAppCommand->Trace(CPUID_MAIN);
 		return true;
 	case IDM_FILE_MONITOR:
 	case IDM_STEP_STOP:
@@ -490,7 +512,6 @@ int wmId, wmEvent;
 		c64->GetMon()->BM_DisableAllBreakpoints();
 		return true;
 	case IDM_BREAKPOINT_VICRASTER:
-		//ShowDlgBreakpointVicRaster();
 		ShowModelessDlgBreakpointVicRaster();
 		return TRUE;
 	default:
@@ -502,7 +523,10 @@ void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 {
 	Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pAppCommand, this->c64));	
 	if (pdlg == 0)
+	{
 		return;
+	}
+
 	pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
 }
 
@@ -512,11 +536,12 @@ void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 	{
 		Sp_CDiagBreakpointVicRaster pdlg(new CDiagBreakpointVicRaster(this->m_pAppCommand, this->c64));	
 		if (pdlg == 0)
+		{
 			return;
-		HWND hWndOwner;
-		//hWndOwner = this->m_hWnd;
-		hWndOwner = this->m_pAppCommand->GetMainFrameWindow();
+		}
 
+		HWND hWndOwner;
+		hWndOwner = this->m_pAppCommand->GetMainFrameWindow();
 		HWND hwnd = pdlg->ShowModelessDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), hWndOwner);
 		if (hwnd)
 		{
@@ -532,6 +557,7 @@ void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 					{
 						OffsetRect(&rcDlg, -rcDlg.left, 0);
 					}
+
 					bAutoPos = true;
 					x = rcDlg.left;
 					y = rcDlg.top;
@@ -574,7 +600,6 @@ bool CMDIDebuggerFrame::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 {
 	return m_WPanelManager.Splitter_OnLButtonUp(hWnd, uMsg, wParam, lParam);
 }
-
 
 LRESULT CMDIDebuggerFrame::MdiFrameWindowProc(HWND hWnd, HWND hWndMDIClient, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -672,12 +697,14 @@ HRESULT CMDIDebuggerFrame::AdviseEvents()
 			hr = E_FAIL;
 			break;
 		}
+
 		hs = m_pAppCommand->EsTrace.Advise((CMDIDebuggerFrame_EventSink_OnTrace *)this);
 		if (hs == NULL)
 		{
 			hr = E_FAIL;
 			break;
 		}
+
 		hr = S_OK;
 	} while (false);
 	return hr;

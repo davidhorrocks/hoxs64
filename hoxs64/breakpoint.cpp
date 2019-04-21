@@ -16,7 +16,7 @@
 #include "register.h"
 #include "bpenum.h"
 #include "c6502.h"
-#include "break_point.h"
+#include "breakpoint.h"
 
 
 BreakpointKey::BreakpointKey()
@@ -121,7 +121,29 @@ void CPU6502::ClearBreakOnInterruptTaken()
 
 bool CPU6502::GetBreakOnInterruptTaken()
 {
-	return m_bBreakOnInterruptTaken ;
+	return m_bBreakOnInterruptTaken;
+}
+
+void CPU6502::SetStepOverBreakpoint()
+{
+    m_bEnableStepOverBreakpoint = true;
+	m_bStepOverGotNextAddress = false;
+	m_stepOverAddressBreakpoint = 0;
+	m_bStepOverBreakNextInstruction = false;
+}
+
+void CPU6502::ClearStepOverBreakpoint()
+{
+	m_bEnableStepOverBreakpoint = false;
+	m_bStepOverGotNextAddress = false;
+	m_stepOverAddressBreakpoint = 0;
+	m_bStepOverBreakNextInstruction = false;
+}
+
+void CPU6502::ClearTemporaryBreakpoints()
+{
+	this->ClearStepOverBreakpoint();
+	this->ClearBreakOnInterruptTaken();
 }
 
 bool CPU6502::SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
@@ -139,24 +161,70 @@ bool CPU6502::GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16
 	return this->m_pIBreakpointManager->BM_GetBreakpoint(k, breakpoint);
 }
 
+// Returns: 
+// -1: No execute breakpoint is hit.
+// > 0: The hit count remaining from a counted breakpoint.
+// 0: An execute breakpoint is hit.
 int CPU6502::CheckExecute(bit16 address, bool bHitIt)
 {
 int i = -1;
 
-	Sp_BreakpointItem bp;
-	if (GetBreakpoint(DBGSYM::BreakpointType::Execute, address, bp))
+	if (m_bEnableStepOverBreakpoint)
 	{
-		if (bp->enabled)
-		{
-			i = bp->currentSkipOnHitCount;
-			if (bHitIt && i == 0)
+		if (!m_bStepOverGotNextAddress)
+		{			
+			if (!this->IsOpcodeFetch())
 			{
-				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+				if (this->m_op_code == JSR_ABSOLUTE)
+				{
+					m_stepOverAddressBreakpoint = this->m_CurrentOpcodeAddress.word + (bit16)CPU6502::AssemblyData[this->m_op_code].size;
+					m_bStepOverGotNextAddress = true;
+				}
+				else
+				{
+					m_bStepOverBreakNextInstruction = true;
+					m_bEnableStepOverBreakpoint = false;
+				}
 			}
-		}			
+		}
+
+		if (m_bStepOverGotNextAddress && address == m_stepOverAddressBreakpoint)
+		{
+			return 0;
+		}
 	}
+
+	// Check for opcode fetch cycle
+	if (this->IsOpcodeFetch())
+	{	
+		if (this->PROCESSOR_INTERRUPT == 0)
+		{
+			// An interrupt sequence is not currently being taken.
+			// This is a normal instruction opcode.
+			Sp_BreakpointItem bp;
+			if (GetBreakpoint(DBGSYM::BreakpointType::Execute, address, bp))
+			{
+				if (bp->enabled)
+				{
+					i = bp->currentSkipOnHitCount;
+					if (bHitIt && i == 0)
+					{
+						bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+					}
+				}			
+			}
+		}
+
+		if (m_bStepOverBreakNextInstruction)
+		{
+			// We wanted to break on either the next instruction or the next interrupt instruction sequence.
+			i = 0;
+		}
+	}
+
 	return i;
 } 
+
 
 bool CPU6502::IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {

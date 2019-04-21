@@ -379,7 +379,15 @@ msgloop:
 				}
 				else
 				{
-					frameResult = c64.ExecuteDebugFrame();
+					BreakpointResult breakpointResult;
+					frameResult = 0;
+					if (c64.ExecuteDebugFrame(CPUID_MAIN, breakpointResult))
+					{
+						if (breakpointResult.IsApplicationExitCode)
+						{
+							frameResult = breakpointResult.ExitCode;
+						}
+					}
 				}
 
 				if (frameResult)
@@ -1897,7 +1905,61 @@ EventArgs e;
 	}
 }
 
-void CApp::Trace()
+void CApp::ClearAllTemporaryBreakpoints()
+{
+	this->c64.ClearAllTemporaryBreakpoints();
+}
+
+void CApp::TraceStepOver(int cpuId)
+{
+const int MaxFramesToTryBeforeEnteringNormalTrace = 5;
+EventArgs e;
+BreakpointResult breakpointResult;
+bool breakPoint = false;
+int i;
+
+	c64.GetMon()->QuitCommands();
+	c64.ClearAllTemporaryBreakpoints();
+	if (cpuId == CPUID_MAIN)
+	{
+		c64.cpu.SetStepOverBreakpoint();
+	}
+	else
+	{
+		c64.diskdrive.cpu.SetStepOverBreakpoint();
+	}
+
+	// Try a few frames to help cut down on screen flicker
+	for (i = 0; i < MaxFramesToTryBeforeEnteringNormalTrace; i++)
+	{
+		m_fskip = -1;
+		breakPoint = c64.ExecuteDebugFrame(cpuId, breakpointResult);
+		if (breakPoint)
+		{
+			break;
+		}
+	}
+
+	if (breakPoint)
+	{
+		EsTrace.Raise(this, e);
+	}
+	else
+	{
+		// If a breakpoint has not occurred after trying a few frames then 
+		// enable user interaction of the emulator main window by 
+		// tracing via the application message loop.
+		TraceWithTemporaryBreakpoints(cpuId);
+	}
+}
+
+void CApp::Trace(int cpuId)
+{
+	this->ClearAllTemporaryBreakpoints();
+	this->TraceWithTemporaryBreakpoints(cpuId);
+}
+
+void CApp::TraceWithTemporaryBreakpoints(int cpuId)
 {
 HWND hWnd;
 EventArgs e;
@@ -1917,12 +1979,14 @@ EventArgs e;
 	EsTrace.Raise(this, e);
 }
 
-void CApp::TraceFrame()
+void CApp::TraceFrame(int cpuId)
 {
 EventArgs e;
+BreakpointResult breakpointResult;
 	c64.GetMon()->QuitCommands();
+	ClearAllTemporaryBreakpoints();
 	m_fskip = -1;
-	c64.ExecuteDebugFrame();
+	c64.ExecuteDebugFrame(cpuId, breakpointResult);
 	EsTraceFrame.Raise(this, e);
 }
 
