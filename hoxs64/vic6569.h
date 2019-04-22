@@ -29,29 +29,51 @@ struct VICSprite
 	VIC6569 *vic;
 	enum SpriteShiftRegister
 	{
+		// The sprite shift register is idle.
 		srsIdle=0,
+
+		// The sprite shift register armed waiting for an xPos match.
 		srsArm=1,
+
+		// The sprite shift register actively shifting out data.
 		srsActive=3,
+
+		// The sprite shift register became active mid column. Either 8 or less pixel could be produced 
+		// for the first column.
 		srsActiveXChange=4
 	};
+
+	// The sprite data shift buffer.
+	// Data is shifted out at bits 23 and 22.
 	bit32 dataBuffer;
+
 	bit16 bufferPos;
-	//The vic sprite x position for the sprite
+	
+	// The vic sprite x position for the sprite
 	bit16 xPos;
-	//The vic cycle (1-63) that contains the sprite position. 0 means the sprite has an x position that never matches a the x comparison.
+	
+	// The vic cycle (1-63) that contains the sprite position. 0 means the sprite has an x position that never matches a the x comparison.
 	bit8 column;
-	//The vic x position of the start of a vic cycle which may be be less than or equal to the sprite's x position.
+	
+	// The vic x position of the start of a vic cycle which may be be less than or equal to the sprite's x position.
 	bit16 columnX;
-	//The index to the host emulation pixel buffer array for first pixel of the sprite.
+	
+	// The index to the host emulation pixel buffer array for first pixel of the sprite.
 	bit16 xPixelInit;
-	//The index to the host emulation pixel buffer array
+	
+	// The index to the host emulation pixel buffer array
 	bit16 xPixel;
+
 	bit16 dataLoadClock;
 	bit16 dataLoadedClock;
 	bit16 dataLoadIndex;
 	enum SpriteShiftRegister shiftStatus;
 	signed char shiftCounter;
+
+	// The sprite X expansion flip-flop.
 	bit8 ff_XP;
+
+	// The sprite multi-colour expansion flip-flop.
 	bit8 ff_MC;
 	bit8 bleedMode;
 	bit8 currentPixel;

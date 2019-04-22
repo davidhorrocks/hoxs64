@@ -136,42 +136,104 @@ void VICSprite::Reset(bool poweronreset)
 	ff_MC = 0;
 }
 
+/*
+VICSprite::GetVicXPosFromCycle
+
+Summary
+Gets a sprite x-position value from a VIC cycle. An optional pixel offset will adjust the final result.
+
+[cycle]
+Can be a unsigned value 1 - 63. This is the VIC cycle number.
+
+[offset]
+Is a signed value <= 8 or >=-8 that is added as an offset to the sprite x-position. 
+The offset will be "added" in monitor viewer pixel space and not simply added numerically. 
+A positive offset moves to the right. A negative offset move to the left.
+*/
 bit16 VIC6569::GetVicXPosFromCycle(bit8 cycle, signed char offset)
 {
 signed short x;
 	if (cycle < 14)
+	{
 		x = 0x18C + ((signed short)cycle * 8);
+	}
 	else
+	{
 		x = ((signed short)cycle - 14) * 8 + 4;
+	}
 
 	x += offset;
 	if (x >= 0x1f8)
+	{
 		x -= 0x1f8;
+	}
 	else if (x < 0)
+	{
 		x = 0x1f8 - x;
+	}
+
 	return (bit16)x;
 }
 
+/*
+VICSprite::SetXPos
+
+Summary
+=======
+Update sprite X-Position registers (LSB and MSB) as though the CPU write to an X-Pos register occurred in a specific cycle.
+
+Parameters
+==========
+
+[x]
+Can be a unsigned value 0x000 - 0x1FF. [x] is the new sprite x-position as updated by the CPU.
+
+[currentColumn]
+Can be a unsigned value 1 - 63. This is the VIC cycle that the CPU writes to the sprites X-Position register
+
+Members
+=======
+
+[xPos]
+The sprite X Position register (VIC coordinates)
+*/
 void VICSprite::SetXPos(bit16 x, bit8 currentColumn)
 {
 bit16 currentColumnXPos;
 signed short xDiff;
 
+	// Get the sprite X position that the CPU writes to the VIC into currentColumnXPos
+	// Add a +4 offset to simulate the CPU writing in the second phase of the cycle.
 	currentColumnXPos = VIC6569::GetVicXPosFromCycle(currentColumn, +4);
 	xDiff = (signed short)(currentColumnXPos - xPos);
 	if (xDiff > 0xfa)
+	{
 		xDiff =  xDiff - 0x1f8;
+	}
 	else if (xDiff < -0xfa)
+	{
 		xDiff += 0x1f8;
+	}
 
+	// Check if xPos is changing.
 	if (xPos != x)
 	{
+		// xPos is changing.
 		if (shiftStatus == srsArm)
 		{
+			// The sprite is already armed.
+			// Check if the old xPos would match.
 			if (currentColumn == column && xDiff > 0)
 			{
-				/*We just moved to another X position for this column but X comparison matched the previous position*/
+				// Nah! We're too late to change it.
+				// The X comparison has already matched before this update could hit the sprite X register.
+				// We just attempt moved the sprite to new X position but X comparison matched the previous position.
+
+				// HOST SPECIFIC
+				// Prepare to draw.
 				InitDraw();
+
+				// Make the sprite active, while that noting that xPos had just been changed.
 				shiftStatus = srsActiveXChange;
 			}
 		}
@@ -179,38 +241,83 @@ signed short xDiff;
 	
 
 	if (x >= 0x1f8)
+	{
+		// The sprites comparison never matches x >= 0x1f8
+		// Assigning 0 to column is a trick to prevent the sprites first "column" from matching a real column 1 - 63.		
 		column = 0;
+	}
 	else if (x >= 0x194)
 	{
+		// HOST SPECIFIC
+		// Cache the column number that the sprite is first drawn in.
+		// Is quicker in C++ to check the [column] for a match only 63 times per line instead of each pixel clock.
 		column = (bit8)(((x - 0x18c)/8) & 0xff);
+
+		// This is new true VIC sprite X position.
+		// Update columnX to be the new x-position.
 		columnX = (((bit16)column) << 3) + 0x18c;
+
+		// HOST SPECIFIC
+		// Update the host emulation array index pointer.
 		xPixelInit = x - 0x194;
 	}
 	else
 	{
+		// HOST SPECIFIC
+		// Cache the column number that the sprite is first drawn in.
 		column = (bit8)(((x + 4)/8 + 13) & 0xff);
 
-		/*
-		Warning: Hacky columnX can go signed negative instead of wrapping to 0x1f7. 
-		This is a hack to accommodate VICSprite::InitDraw whose computation of 'drawCount' uses a simple subtraction which does not wrap around sprite position 0x1f7
-		*/
+		// WARNING!
+		// Hacky columnX can go signed negative instead of wrapping to 0x1f7. 
+		// This is a hack to accommodate VICSprite::InitDraw whose computation of 'drawCount' uses a simple subtraction which does not wrap around sprite position 0x1f7		
 		columnX = (((bit16)column - 13)<< 3) - 4;
+
+		// WARNING!
+		// An other implementation might need to do:
+		/*		
+		if ((signed short)columnX < 0)
+		{
+			columnX = (signed short)0x1f8 - (signed short)columnX;
+		}
+		*/
+
+		// HOST SPECIFIC
+		// Update the host emulation array index pointer.
 		xPixelInit = x + (DISPLAY_START + LEFT_BORDER_WIDTH/2);
 	}
 
 	if ((column == currentColumn) && (shiftStatus == srsArm)  && (xPos != x))
 	{
+		// Uh Oh!
+		// We are setting a new sprite X position that could trigger a match.
+		// We better check and see.
 		xDiff = (signed short)(currentColumnXPos - x);
 		if (xDiff > 0xfa)
+		{
 			xDiff =  xDiff - 0x1f8;
+		}
 		else if (xDiff < -0xfa)
+		{
 			xDiff += 0x1f8;
+		}
+
 		if (xDiff > 0)
 		{
-			/*We just set an X position for this column but missed the X comparison*/
+			// Nah! We missed it.
+			// The sprite was armed. We just set an X position for this [currentColumn] but we just missed the sprite X comparison.
+			// The sprite shifter will not trigger but it does remain in the armed state.
+
+			// HOST SPECIFIC
+			// armDelay is a trick that prevents from matching in this column and line only.
 			armDelay = 1;
 		}
+		//else
+		//{
+		//	// Phew! we just made it in. That was close!
+		//  // The sprite X comparison will now match at the new position.
+		//}
 	}
+
 	xPos = x;
 }
 
@@ -233,6 +340,7 @@ int VICSprite::InitDraw()
 		shiftCounter = 24;
 		drawCount = (signed short)8 - ((signed short)xPos - (signed short)columnX);
 	}
+
 	return drawCount;
 }
 
@@ -353,7 +461,32 @@ void VIC6569::SpriteCollisionUpdateArmedOrActive()
 	vicSpriteArmedOrActive = (vicSpriteArmedOrActive & 0xff) | ((vicSpriteDataInt | vicSpriteSpriteInt | vicNextSprite_sprite_collision | vicNextSprite_data_collision) << 8);
 }
 
-void VICSprite::DrawSprite(int c)
+/*
+VICSprite::DrawSprite
+
+Summary
+=======
+Draws up to 8 pixels of a sprite into a "column". The column is related to that VIC cycle where the CPU 
+can first visibly affect the sprite x-expand or multi-colour mode or sprite data priority. 
+Such an affect will be seen to transition between two modes in this column.
+
+pixelsLeftToDrawInThisColumn is effectively used as a phase indicator that helps determine if a write to a VIC register 
+by the CPU can affect the current pixel.
+
+Parameters
+==========
+
+[pixelsLeftToDrawInThisColumn]
+The number of pixels to draw. If 8, then the sprite fills the column. 
+If less than 8 then the sprite starts at (8 - pixelsLeftToDrawInThisColumn) pixels into the column.
+
+Members
+=======
+
+[xPos]
+The sprite X Position register (VIC coordinates)
+*/
+void VICSprite::DrawSprite(int pixelsLeftToDrawInThisColumn)
 {
 bit8 maskShift,maskByte;
 bit8 foregroundmask;
@@ -376,6 +509,7 @@ ICLK clockSpriteXExpandChange;
 ICLK clockSpriteDataPriorityChange;
 ICLK vicCurrentClock;
 
+	//Copy member variables into local variables.
 	sprite_collision_line = vic->vic_sprite_collision_line;
 	vicCurrentClock = vic->CurrentClock;
 	pixelbuffer = vic->vic_pixelbuffer;
@@ -388,12 +522,28 @@ ICLK vicCurrentClock;
 	clockMultiColorChange = vic->clockSpriteMultiColorChange;
 	clockSpriteXExpandChange = vic->clockSpriteXExpandChange;
 	clockSpriteDataPriorityChange = vic->clockSpriteDataPriorityChange;	
+
+	// HOST SPECIFIC
+	// About colour representation.
+	// When bit 7 is set then the colour is deferred to colour register
+	// that is custom indexed (not by address) by bits 0 - 4.
+
+	// Sprite multi-colour 0
 	color1=12 | 128;
+
+	// Sprite n colour
 	color2=(4 + spriteNumber) | 128;
+
+	// Sprite multi-colour 1
 	color3=13 | 128;
+
+	// HOST SPECIFIC
+	// xPixel is not the VIC's numerical sprite x-position but is the host emulation's index into a pixel array.
 	maskShift = (xPixel + 4) & 7;
 	maskByte  = (xPixel + 4) / 8;
-
+	
+	// HOST SPECIFIC
+	// mask is used to check for collision of the sprite with foreground data.
 	if (maskByte<14 || maskByte>57)
 	{
 		mask = 0;
@@ -405,46 +555,92 @@ ICLK vicCurrentClock;
 		mask <<= maskShift;
 	}
 
+	// foregroundmask is used to mask sprites to appear on top of foreground data.
 	foregroundmask = ~(mask>>8);
-	if ((c > 6) && (clockSpriteDataPriorityChange == vicCurrentClock))
+	if ((pixelsLeftToDrawInThisColumn > 6) && (clockSpriteDataPriorityChange == vicCurrentClock))
 	{
+		// Handle case where the sprite priority is changed during the cycle.
 		if (dataPriority == 0)
 		{
-			foregroundmask |= (0xff >> (c - 6));
+			// This number 6 represents where in the phase the change is seen.
+			foregroundmask |= (0xff >> (pixelsLeftToDrawInThisColumn - 6));
 		}
-
+		
 		if (dataPriorityPrev == 0)
 		{
-			foregroundmask |= (0xc0 << (8 - c));
+			foregroundmask |= (0xc0 << (8 - pixelsLeftToDrawInThisColumn));
 		}
 	}
 	else
 	{
 		if (dataPriority == 0)
 		{
+			// Foreground data does not have any priority.
 			foregroundmask = -1;
 		}
 	}
 
-	/* Comment out for normal operation
-	//sprites always on top
-	//foregroundmask = -1;
+	/* Comment out for normal operation	
+	foregroundmask = -1; // Test sprites always on top
 	*/
 
-	while (c>0)
+	/*
+	Loop for each physical pixel to draw.
+
+	A column here references a somewhat arbitrary index into the VIC's 12 pixel pipeline.
+	8 pixels get entered into the pixel pipeline for each VIC cycle.
+	There will typically be 8 pixels left to draw in a column when we call in here.
+	If a sprite was started not at a column boundary then we would call here with less than 8 pixel left
+	for the initial part of the sprite. The true number of pixel left in the sprite data shifter buffer 
+	is kept in shiftCounter.
+	*/
+	while (pixelsLeftToDrawInThisColumn > 0)
 	{
+		/********
+		bleedMode : Bleed mode flag
+		*********
+
+		Summary
+		Indicates whether the sprite data buffer shifter [dataBuffer] is in 
+		normal operation or is "bleeding" the last pixel.
+
+		Values
+		0: Normal shifter.
+
+		1: Bleed mode shifter.
+		*/
 		if (bleedMode == 0)
 		{
+			/****
+			ff_XP : The X-Expansion Flip Flop
+			*****
+
+			Summary
+			Control X expansion by either repeating the last pixel or getting a new pixel.
+
+			Values			
+			0: New pixel mode. This indicates to read a new pixel in to "currentPixel" from the front of the sprite data buffer.
+
+			1: Repeat last pixel mode. This indicates to reuse the pixel data in already in "currentPixel"
+			*/
 			if (((ff_XP) == 0))
 			{
+				// Krestage 3
+				// It is not enough to stop after shifting 24 pixels. The MC flip-flop must also be in "new pixel mode".
+				// If shiftCounter has shifted all 24 pixels and if MC flip-flop has been in
+				// "repeat last pixel mode" then more pixel data is produced.
 				if ((shiftCounter <= 0) && (ff_MC == 0))
 				{
+					// MC flip-flop is in "new pixel mode" but the shiftCounter indicates there are no more 
+					// bits to shift out.
 					if (vic->vicSpriteDisplay & spriteBit)
 					{
+						// If the sprite display is on then shifter is armed.
 						shiftStatus = srsArm;
 					}
 					else
 					{
+						// If the sprite display is off then shifter is idled.
 						shiftStatus = srsIdle;
 						vic->vicSpriteArmedOrActive = vic->vicSpriteArmedOrActive & ~(bit16)spriteBit;
 					}
@@ -453,29 +649,55 @@ ICLK vicCurrentClock;
 				}
 
 				multiColourThisPixel = multiColour;
-				if ((c > 6) && (clockMultiColorChange == vicCurrentClock))
+				// This number 6 represents where in the phase the change is seen.
+				if ((pixelsLeftToDrawInThisColumn > 6) && (clockMultiColorChange == vicCurrentClock))
 				{
+					// Multi-colour mode has just been changed in this column, but an VIC 8565 still needs to 
+					// draw the first 2 pixels of the column with the previous colour rule.
+					// Operation on a VIC 6569 is unverified. Probably, it either is the same or 2 pixels more than a 8565.
 					multiColourThisPixel = multiColourPrev;
 				}
 
+				/****
+				ff_MC : The MC Flip Flop
+				*****
+
+				Control multi-colour expansion by either repeating the last pixel or getting a new pixel.
+
+				Summary				
+				0: New pixel mode. This indicates to read new pixel data from the front of the sprite data buffer.
+
+				1: Repeat last pixel mode. This indicates to reuse the pixel data in already in "currentPixel"
+				*/
+
+				// Check for multi-colour mode or multi-colour repeat mode.
 				if (multiColourThisPixel || ff_MC)
 				{
+					// Draw this pixel using multi-colour rules.
+
+					// Flip the MC flip-flop.
 					ff_MC ^= 1;
+					
 					if (ff_MC & 1)
 					{
-						
+						// We leave ff_MC in repeat mode, but we get new pixel data now.
+						// Multi-colour mode checks 2 bits at the front of the shifter.
 						switch ((bit8)((dataBuffer & 0xc00000) >> 22))
 						{
 						case 0:
+							// Transparent
 							currentPixel = 0x00;
 							break;
 						case 1:
+							// Sprite multi-colour 0
 							currentPixel = color1;
 							break;
 						case 2:
+							// Sprite's own colour
 							currentPixel = color2;
 							break;
 						case 3:
+							// Sprite multi-colour 1
 							currentPixel = color3;
 							break;
 						}
@@ -483,62 +705,91 @@ ICLK vicCurrentClock;
 				}
 				else
 				{
+					// Draw this pixel using hi-res rules.
+					// Multi-colour mode checks only 1 bit at the front of the shifter.
 					if (dataBuffer & 0x800000)
 					{
+						// Sprite's own colour
 						currentPixel = color2;
 					}
 					else
 					{
+						// Transparent
 						currentPixel = 0x00;
 					}
 				}
 			}
 
-			if (c == 6 && (ff_XP == 1) && (clockMultiColorChange == vicCurrentClock))
+			// This number 6 represents where in the phase the change is seen.
+			if (pixelsLeftToDrawInThisColumn == 6 && (ff_XP == 1) && (clockMultiColorChange == vicCurrentClock))
 			{
-				//We are in the second expanded pixel part and the multi colour status is changing
+				// Edge case where multi-colour mode has just been changed in 
+				// this column with exactly 6 pixel left and 
+				// the expansion flip-flop is also in repeat pixel mode.
 				if (multiColourPrev == 0 && multiColour != 0)
 				{
-					//Multicolour is going on
+					// Multi-colour is going on
 					switch ((bit8)((dataBuffer & 0x800000) >> 22))
 					{
 					case 0:
+						// Transparent
 						currentPixel = 0x00;
 						break;
 					case 1:
+						// Sprite multi-colour 0
 						currentPixel = color1;
 						break;
 					case 2:
+						// Sprite's own colour
 						currentPixel = color2;
 						break;
 					case 3:
+						// Sprite multi-colour 1
 						currentPixel = color3;
 						break;
 					}
 
+					// Leave MC in repeat pixel mode.
 					ff_MC = 1;
 				}
 				else if (multiColourPrev != 0 && multiColour == 0)
 				{
-					//Multicolour is going off
+					// Multi-colour is going off
+					// Leave MC in new pixel mode.
 					ff_MC = 0;
 				}
 			}
 		}
 
+		// Check if this sprite has just reached its own sprite number specific bleed position
+		// and also that shiftCounter indicates more pixels are remaining.		
+
+		// HOST SPECIFIC
+		// Both xPixel and dataLoadIndex are host emualtion C++ array indexes.
+		// xPixel is calculated from function SpriteIndexFromClock() that maps VIC columns to host array indexes
 		if (xPixel == dataLoadIndex && shiftCounter > 0)
-		{
-			//Same colour pixel is output 7 times
+		{			
+			// Enable bleed mode.
 			bleedMode = 1;
-			shiftCounter = 7;
+
+			// The same colour pixel is output 7 times in bleed mode.
+			// Force the count to be 7 no matter what.
+			shiftCounter = 7; 
+
+			// Mariusz Mlynski reported a difference with multi-colour that is observed when bit 7 of the sprite pointer is clear.
+			// If we are right at the start of the bleed position and the MC flip-flop is in repeat mode 
+			// and the X-Expand flip-flop is in new mode then we 
+			// get we transparent pixels instead of the sprites own colour.
 			if (ff_MC != 0 && ff_XP == 0 && vic->vicSpritePointer[spriteNumber] < 0x2000)
 			{
 				if (((dataBuffer & 0x800000)) == 0)
 				{
+					// Transparent
 					currentPixel = 0x00;
 				}
 				else
 				{
+					// Sprite's own colour
 					currentPixel = color2;
 				}
 			}
@@ -547,32 +798,40 @@ ICLK vicCurrentClock;
 			ff_MC = 0;
 		}
 
-		//TEST sprites on//off
-		//currentPixel = 0x0;			
+		////TEST sprites on//off
+		////currentPixel = 0x0;			
 
-		if (currentPixel!=0) // Is a non transparent sprite pixel
+		if (currentPixel != 0)
 		{
+			// This is a non transparent sprite pixel.
 			sprite_sprite_collision = sprite_data_collision = 0;
-			if (sprite_collision_line[xPixel]) // Sprite to sprite collision
+			if (sprite_collision_line[xPixel])
 			{
+				// Sprite to sprite collision
 				sprite_sprite_collision= sprite_collision_line[xPixel] | spriteBit;
 			}
 			else
 			{
-				if (((signed char)foregroundmask) < 0) // Sprite data priority to foreground graphics check
+				if (((signed char)foregroundmask) < 0)
 				{
+					// Sprite data appears through the mask.
 					pixelbuffer[xPixel] = currentPixel;
 				}
 			}
 
 			sprite_collision_line[xPixel]=spriteBit;
-			if (((signed short)mask) < 0) // Sprite to foreground collision 
+			if (((signed short)mask) < 0)
 			{
+				// Sprite to foreground collision 
 				sprite_data_collision=spriteBit;
 			}
 
-			//TEST 4 pixel delay of sprite collision
-			if (c > 4)
+			// Sprite collision latency.
+			// Collisons that occur early enough with in the column are seen in the registers in this cycle.
+			// Both vicCurrSprite_sprite_collision and vicCurrSprite_data_collision
+			// get ORed into their repestive VIC collision registers after this function finishes.
+			// This number 4 represents where in the phase the collsion can be read in this cycle.
+			if (pixelsLeftToDrawInThisColumn > 4)
 			{
 				vic->vicCurrSprite_sprite_collision |= sprite_sprite_collision;
 				vic->vicCurrSprite_data_collision |= sprite_data_collision;
@@ -583,27 +842,35 @@ ICLK vicCurrentClock;
 				vic->vicNextSprite_data_collision |= sprite_data_collision;
 			}
 
-			//TEST new irq behaviour
+			// Check for sprite sprite IRQ flag.
 			if (sprite_sprite_collision != 0)
 			{
-				if (c > 4)
+				// Collisons with sprites that occur early enough with in this column will trigger an IRQ in this cycle.
+				// This number 4 represents where in the phase the IRQ can make this cycle.
+				if (pixelsLeftToDrawInThisColumn > 4)
 				{
+					// We are early in the column so we see the IRQ early.
 					vic->vicSpriteSpriteInt|=1;
 				}
 				else
 				{
+					// We are late in the column so we see the IRQ late.
 					vic->vicSpriteSpriteInt|=2;
 				}
 			}
 
 			if (sprite_data_collision != 0)
 			{
-				if (c > 4)
+				// Collisons with data that occur early enough with in this column will trigger an IRQ in this cycle.
+				// This number 4 represents where in the phase the IRQ can make this cycle.
+				if (pixelsLeftToDrawInThisColumn > 4)
 				{
+					// We are early in the column so we see the IRQ early.
 					vic->vicSpriteDataInt|=1;
 				}
 				else
 				{
+					// We are late in the column so we see the IRQ late.
 					vic->vicSpriteDataInt|=2;
 				}
 			}
@@ -611,6 +878,7 @@ ICLK vicCurrentClock;
 
 		if (bleedMode != 0)
 		{
+			// We are in bleed mode.
 			if (shiftCounter <= 0)
 			{
 				//Ensure the condition for going idle is satisfied.
@@ -619,23 +887,30 @@ ICLK vicCurrentClock;
 				break;
 			}
 
+			// Count this pixel as shifted out of the sprite data buffer.
 			shiftCounter--;
 		}
 		else
 		{
+			// We are normal mode.
 			xExpandThisPixel = xExpand;
-			if ((c > 6) && (clockSpriteXExpandChange == vicCurrentClock))
+			if ((pixelsLeftToDrawInThisColumn > 6) && (clockSpriteXExpandChange == vicCurrentClock))
 			{
+				// Use the previous sprite expand register value if we are early in the column.
 				xExpandThisPixel = xExpandPrev;
 			}
 
 			if (xExpandThisPixel || ff_XP != 0)
 			{
+				// Toggle the X-Expand flip-flop if either we are in X-Expanded mode or 
+				// the X-Expansion flip-flop was in repeat mode.
 				ff_XP ^= 1;
 			}
 
 			if (ff_XP == 0)
 			{
+				// Count this pixel as shifted out of the sprite data buffer 
+				// if we find X-Expansion flip-flop in new pixel mode at the end of this run loop.
 				dataBuffer <<= 1;
 				shiftCounter--;
 			}
@@ -643,24 +918,36 @@ ICLK vicCurrentClock;
 
 		mask <<= 1;
 		foregroundmask <<= 1;
+
+		// HOST SPECIFIC
+		// Update host emulation index pointer.		
 		xPixel++;
 		if (xPixel >= VIDEOWIDTH)
 		{
+			// Handle array wraparound.
 			xPixel -= VIDEOWIDTH;
 		}
 
-		c--;
+		// Count down a pixel in this VIC column cycle as done.
+		pixelsLeftToDrawInThisColumn--;
 	}
 
+	// Check if we can stop shifting.
 	if ((shiftCounter <= 0 && ff_XP == 0 && ff_MC == 0))
-	{
+	{		
+		// There must be no more pixels and both ff_XP and ff_MC must be in "new pixel mode".
 		if (vic->vicSpriteDisplay & spriteBit)
 		{
+			// If the sprite display is on then shifter becomes armed.
 			shiftStatus = srsArm;
 		}
 		else
 		{
+			// If the sprite display is on then shifter becomes idle.
 			shiftStatus = srsIdle;
+
+			// HOST SPECIFIC
+			// optimisation
 			vic->vicSpriteArmedOrActive = vic->vicSpriteArmedOrActive & ~(bit16)spriteBit;
 		}
 	}
