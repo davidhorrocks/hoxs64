@@ -379,13 +379,15 @@
 #define IDM_SETTING_COLOUR              40185
 #define ID_DEBUG_STEPOVERINSTRUCTION    40186
 #define IDM_STEP_OVER_INSTRUCTION       40187
+#define IDM_STEP_OUT_INSTRUCTION        40191
+#define IDM_STEP_OUT_RTS_RTI            40194
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
-#define _APS_NEXT_COMMAND_VALUE         40194
+#define _APS_NEXT_COMMAND_VALUE         40197
 #define _APS_NEXT_CONTROL_VALUE         1373
 #define _APS_NEXT_SYMED_VALUE           117
 #endif

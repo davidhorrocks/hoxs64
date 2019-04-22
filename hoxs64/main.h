@@ -57,6 +57,7 @@ public:
 	virtual void IAppCommand::TraceWithTemporaryBreakpoints(int cpuId);
 	virtual void IAppCommand::TraceFrame(int cpuId);
 	virtual void IAppCommand::TraceStepOver(int cpuId);
+	virtual void IAppCommand::TraceStepOut(int cpuId, bool requireRtsRti);
 	virtual void IAppCommand::ClearAllTemporaryBreakpoints();
 	virtual void IAppCommand::ExecuteC64Clock();
 	virtual void IAppCommand::ExecuteDiskClock();

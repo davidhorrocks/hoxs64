@@ -522,6 +522,10 @@ public:
 	virtual void ClearBreakOnInterruptTaken();
     virtual void SetStepOverBreakpoint();
     virtual void ClearStepOverBreakpoint();
+    virtual void SetStepOutWithRtsRtiPlaTsx();
+    virtual void ClearStepOutWithRtsRtiPlaTsx();
+    virtual void SetStepOutWithRtsRti();
+    virtual void ClearStepOutWithRtsRti();
 	virtual void ClearTemporaryBreakpoints();
 	virtual void SetPC(bit16 address);
 	virtual void SetA(bit8 v);
@@ -630,6 +634,9 @@ private:
     bool m_bStepOverGotNextAddress;
     bit16 m_stepOverAddressBreakpoint;
 	bool m_bStepOverBreakNextInstruction;
+	bool m_bEnableStepOutWithRtsRtiPlaPlpTxs;
+	bool m_bEnableStepOutWithRtsRti;
+	bit8 m_stepOutStackPointer;
 	IBreakpointManager *m_pIBreakpointManager;
 };
 

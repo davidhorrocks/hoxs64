@@ -140,10 +140,35 @@ void CPU6502::ClearStepOverBreakpoint()
 	m_bStepOverBreakNextInstruction = false;
 }
 
+void CPU6502::SetStepOutWithRtsRtiPlaTsx()
+{
+    m_bEnableStepOutWithRtsRtiPlaPlpTxs = true;
+	m_stepOutStackPointer = this->mSP;
+}
+
+void CPU6502::ClearStepOutWithRtsRtiPlaTsx()
+{
+	m_bEnableStepOutWithRtsRtiPlaPlpTxs = false;
+	m_stepOutStackPointer = 0xff;
+}
+
+void CPU6502::SetStepOutWithRtsRti()
+{
+    m_bEnableStepOutWithRtsRti = true;
+	m_stepOutStackPointer = this->mSP;
+}
+
+void CPU6502::ClearStepOutWithRtsRti()
+{
+	m_bEnableStepOutWithRtsRti = false;
+	m_stepOutStackPointer = 0xff;
+}
+
 void CPU6502::ClearTemporaryBreakpoints()
 {
 	this->ClearStepOverBreakpoint();
 	this->ClearBreakOnInterruptTaken();
+	this->ClearStepOutWithRtsRtiPlaTsx();
 }
 
 bool CPU6502::SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
@@ -172,7 +197,7 @@ int i = -1;
 	if (m_bEnableStepOverBreakpoint)
 	{
 		if (!m_bStepOverGotNextAddress)
-		{			
+		{
 			if (!this->IsOpcodeFetch())
 			{
 				if (this->m_op_code == JSR_ABSOLUTE)
@@ -191,6 +216,48 @@ int i = -1;
 		if (m_bStepOverGotNextAddress && address == m_stepOverAddressBreakpoint)
 		{
 			return 0;
+		}
+	}
+
+	if (m_bEnableStepOutWithRtsRtiPlaPlpTxs)
+	{
+		if (this->BA != 0)
+		{
+			if (this->m_cpu_sequence == C_RTS_5 || this->m_cpu_sequence == C_RTI_5)
+			{
+				if ((signed)this->mSP > (signed)m_stepOutStackPointer)
+				{
+					return 0;
+				}
+			}
+			else if (this->m_cpu_sequence == TXS_IMPLIED)
+			{
+				if ((signed)this->mX > (signed)m_stepOutStackPointer)
+				{
+					return 0;
+				}
+			}
+			else if (this->m_cpu_sequence == C_PLP_IMPLIED_3 || this->m_cpu_sequence == C_PLA_IMPLIED_3)
+			{
+				if ((signed)this->mSP > (signed)m_stepOutStackPointer)
+				{
+					return 0;
+				}
+			}
+		}
+	}
+
+	if (m_bEnableStepOutWithRtsRti)
+	{
+		if (this->BA != 0)
+		{
+			if (this->m_cpu_sequence == C_RTS_5 || this->m_cpu_sequence == C_RTI_5)
+			{
+				if ((signed)this->mSP > (signed)m_stepOutStackPointer)
+				{
+					return 0;
+				}
+			}
 		}
 	}
 

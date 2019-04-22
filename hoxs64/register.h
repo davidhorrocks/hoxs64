@@ -195,7 +195,11 @@ public:
 	virtual void SetBreakOnInterruptTaken()=0;
 	virtual void ClearBreakOnInterruptTaken()=0;
 	virtual void SetStepOverBreakpoint()=0;
-	virtual void ClearStepOverBreakpoint()=0;	
+	virtual void ClearStepOverBreakpoint()=0;
+	virtual void SetStepOutWithRtsRtiPlaTsx()=0;
+	virtual void ClearStepOutWithRtsRtiPlaTsx()=0;	
+	virtual void SetStepOutWithRtsRti()=0;
+	virtual void ClearStepOutWithRtsRti()=0;	
 	virtual void ClearTemporaryBreakpoints()=0;
 	virtual void SetPC(bit16 address) = 0;
 	virtual void SetA(bit8 v) = 0;

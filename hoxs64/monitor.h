@@ -45,6 +45,7 @@ public:
 	virtual void TraceWithTemporaryBreakpoints(int cpuId)=0;
 	virtual void TraceFrame(int cpuId)=0;
 	virtual void TraceStepOver(int cpuId)=0;
+	virtual void TraceStepOut(int cpuId, bool requireRtsRti)=0;
 	virtual void ClearAllTemporaryBreakpoints()=0;
 	virtual void ExecuteC64Clock()=0;
 	virtual void ExecuteDiskClock()=0;

@@ -1953,6 +1953,63 @@ int i;
 	}
 }
 
+void CApp::TraceStepOut(int cpuId, bool requireRtsRti)
+{
+const int MaxFramesToTryBeforeEnteringNormalTrace = 5;
+EventArgs e;
+BreakpointResult breakpointResult;
+bool breakPoint = false;
+int i;
+
+	c64.GetMon()->QuitCommands();
+	c64.ClearAllTemporaryBreakpoints();
+	if (cpuId == CPUID_MAIN)
+	{
+		if (requireRtsRti)
+		{
+			c64.cpu.SetStepOutWithRtsRti();
+		}
+		else
+		{
+			c64.cpu.SetStepOutWithRtsRtiPlaTsx();
+		}
+	}
+	else
+	{
+		if (requireRtsRti)
+		{
+			c64.diskdrive.cpu.SetStepOutWithRtsRti();
+		}
+		else
+		{
+			c64.diskdrive.cpu.SetStepOutWithRtsRtiPlaTsx();
+		}
+	}
+
+	// Try a few frames to help cut down on screen flicker
+	for (i = 0; i < MaxFramesToTryBeforeEnteringNormalTrace; i++)
+	{
+		m_fskip = -1;
+		breakPoint = c64.ExecuteDebugFrame(cpuId, breakpointResult);
+		if (breakPoint)
+		{
+			break;
+		}
+	}
+
+	if (breakPoint)
+	{
+		EsTrace.Raise(this, e);
+	}
+	else
+	{
+		// If a breakpoint has not occurred after trying a few frames then 
+		// enable user interaction of the emulator main window by 
+		// tracing via the application message loop.
+		TraceWithTemporaryBreakpoints(cpuId);
+	}
+}
+
 void CApp::Trace(int cpuId)
 {
 	this->ClearAllTemporaryBreakpoints();

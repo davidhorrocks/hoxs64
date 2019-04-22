@@ -810,6 +810,8 @@ void CDisassemblyFrame::SetMenuState()
 	EnableMenuItem(hMenu, IDM_STEP_TRACEFRAME, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_TRACEINTERRUPTTAKEN, MF_BYCOMMAND | state);	
 	EnableMenuItem(hMenu, IDM_STEP_OVER_INSTRUCTION, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_OUT_INSTRUCTION, MF_BYCOMMAND | state);
+	EnableMenuItem(hMenu, IDM_STEP_OUT_RTS_RTI, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
 	if (m_hWndTooBarStep!=NULL)
 	{
@@ -819,7 +821,9 @@ void CDisassemblyFrame::SetMenuState()
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEINTERRUPTTAKEN, stateTb);
-		//SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OVER_INSTRUCTION, stateTb);
+		////SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OVER_INSTRUCTION, stateTb);
+		////SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OUT_INSTRUCTION, stateTb);
+		////SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OUT_RTS_RTI, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
 	}
 
@@ -1022,6 +1026,24 @@ int wmId, wmEvent;
 
 		CancelEditing();
 		m_pAppCommand->TraceStepOver(this->GetCpuId());
+		break;
+	case IDM_STEP_OUT_INSTRUCTION:
+		if (m_pAppCommand->IsRunning())
+		{
+			break;
+		}
+
+		CancelEditing();
+		m_pAppCommand->TraceStepOut(this->GetCpuId(), false);
+		break;
+	case IDM_STEP_OUT_RTS_RTI:
+		if (m_pAppCommand->IsRunning())
+		{
+			break;
+		}
+
+		CancelEditing();
+		m_pAppCommand->TraceStepOut(this->GetCpuId(), true);
 		break;
 	case IDM_STEP_TRACEINTERRUPTTAKEN:
 		if (m_pAppCommand->IsRunning())
