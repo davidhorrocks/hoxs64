@@ -30,8 +30,10 @@ const ImageInfo CDisassemblyFrame::TB_ImageList[] =
 	{IDB_DEBUGGERTRACEFRAME, IDB_DEBUGGERTRACEFRAMEMASK, 0},
 	{IDB_DEBUGGERSTEPONECLOCK, IDB_DEBUGGERSTEPONECLOCKMASK, 0},
 	{IDB_DEBUGGERSTEPIN, IDB_DEBUGGERSTEPINMASK, 0},
+	{IDB_DEBUGGERSTEPOVER, IDB_DEBUGGERSTEPOVERMASK, 0},
 	//{IDB_DEBUGGERTRACEINT, IDB_DEBUGGERTRACEINTMASK, 0},
-	{IDB_DEBUGGERTRACEINT_64, 0, 0},	
+	{IDB_DEBUGGERTRACEINT_64, 0, 0},
+	{IDB_DEBUGGERSTEPOUT, IDB_DEBUGGERSTEPOUT, 0},
 	{IDB_DEBUGGERSTOP, IDB_DEBUGGERSTOPMASK, 0},
 	{0, 0, IDI_GREENFIND}
 };
@@ -42,14 +44,16 @@ const ButtonInfo CDisassemblyFrame::TB_ButtonsStep[] =
 	{1, TEXT("Trace Frame"), TEXT("Trace 1 frame"), BTNS_BUTTON, IDM_STEP_TRACEFRAME},
 	{2, TEXT("1 Clock"), TEXT("Step 1 clock"), BTNS_BUTTON, IDM_STEP_ONECLOCK},
 	{3, TEXT("1 Instruction"), TEXT("Step 1 instruction"), BTNS_BUTTON, IDM_STEP_ONEINSTRUCTION},
-	{4, TEXT("Trace INT"), TEXT("Trace till IRQ/NMI taken"), BTNS_BUTTON, IDM_STEP_TRACEINTERRUPTTAKEN},
-	{5, TEXT("Stop"), TEXT("Stop tracing"), BTNS_BUTTON, IDM_STEP_STOP}
+	{4, TEXT("Step Over JSR"), TEXT("Step over JSR instruction"), BTNS_BUTTON, IDM_STEP_OVER_INSTRUCTION},
+	{5, TEXT("Trace INT"), TEXT("Trace till IRQ/NMI taken"), BTNS_BUTTON, IDM_STEP_TRACEINTERRUPTTAKEN},
+	{6, TEXT("Step Out"), TEXT("Step out with RTS or RTI instructions"), BTNS_BUTTON, IDM_STEP_OUT_RTS_RTI},
+	{7, TEXT("Stop"), TEXT("Stop tracing"), BTNS_BUTTON, IDM_STEP_STOP}
 };
 
 const ButtonInfo CDisassemblyFrame::TB_ButtonsAddress[] = 
 {
 	{1, (TCHAR *)-1, TEXT(""), BTNS_SEP, 0},
-	{6, TEXT("Find Address"), TEXT("Find address"), BTNS_BUTTON, IDM_VIEW_ADDRESS}
+	{8, TEXT("Find Address"), TEXT("Find address"), BTNS_BUTTON, IDM_VIEW_ADDRESS}
 };
 
 CDisassemblyFrame::CDisassemblyFrame(int cpuid, IC64 *c64, IAppCommand *pAppCommand, LPCTSTR pszCaption, HFONT hFont)
@@ -821,9 +825,9 @@ void CDisassemblyFrame::SetMenuState()
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_TRACEINTERRUPTTAKEN, stateTb);
-		////SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OVER_INSTRUCTION, stateTb);
-		////SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OUT_INSTRUCTION, stateTb);
-		////SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OUT_RTS_RTI, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OVER_INSTRUCTION, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OUT_INSTRUCTION, stateTb);
+		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_OUT_RTS_RTI, stateTb);
 		SendMessage(m_hWndTooBarStep, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
 	}
 
