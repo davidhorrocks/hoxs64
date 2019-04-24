@@ -1082,8 +1082,8 @@ unsigned int v;
 		switch (m_cpu_sequence)
 		{
 		case C_FETCH_OPCODE:
-			m_op_code=ReadByte(mPC.word);
 			CHECK_BA;
+			m_op_code=ReadByte(mPC.word);
 			if (PROCESSOR_INTERRUPT==0)
 			{
 				mPC.word++;
@@ -1102,8 +1102,8 @@ unsigned int v;
 			}
 			break;
 		case C_IRQ:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_IRQ_2:
@@ -1137,8 +1137,8 @@ unsigned int v;
 			CheckForCartFreeze();
 			break;
 		case C_NMI:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_NMI_2:
@@ -1159,8 +1159,8 @@ unsigned int v;
 			CheckForCartFreeze();
 			break;
 		case C_BRK_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
@@ -1207,52 +1207,51 @@ unsigned int v;
 			CheckForCartFreeze();
 			break;
 		case C_LOAD_PC:
-			CPU6502_LOAD_PCL(ReadByte(addr.word));
 			CHECK_BA;
+			CPU6502_LOAD_PCL(ReadByte(addr.word));
 			addr.word++;
 			m_cpu_sequence++;
 			break;
 		case C_LOAD_PC_2:
-			CPU6502_LOAD_PCH(ReadByte(addr.word));
+			// A normal opcode always follows the interrupt sequence.
 			CHECK_BA;
-
-			//A check_interrupts1() here does fail Wolfgang's NMI test
+			CPU6502_LOAD_PCH(ReadByte(addr.word));
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_RESET:
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_RESET_1:
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_RESET_2:
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_RESET_3:
-			ReadByte(mSP + 0x0100);
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);
 			mSP--;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_4:
-			ReadByte(mSP + 0x0100);
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);
 			mSP--;
 			PROCESSOR_INTERRUPT = 0;
 			NMI_TRIGGER = 0;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_5:
-			ReadByte(mSP + 0x0100);
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);
 			mSP--;
 			fBREAK = 1;
 			fINTERRUPT = 1;
@@ -1260,68 +1259,67 @@ unsigned int v;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_6:
-			CPU6502_LOAD_PCL(ReadByte(addr.word));
 			CHECK_BA;
+			CPU6502_LOAD_PCL(ReadByte(addr.word));
 			addr.word++;
 			m_cpu_sequence++;
 			break;
 		case C_RESET_7:
-			CPU6502_LOAD_PCH(ReadByte(addr.word));
 			CHECK_BA;
-
+			CPU6502_LOAD_PCH(ReadByte(addr.word));
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_INDIRECTX:
-			ptr.word=ReadByte(mPC.word);
 			CHECK_BA;
+			ptr.word=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_2:
-			ReadByte(ptr.word);
 			CHECK_BA;
+			ReadByte(ptr.word);
 			ptr.byte.loByte+=mX;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_3:
-			addr.byte.loByte=ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(ptr.word);
 			ptr.byte.loByte++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_4:
-			addr.byte.hiByte=ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(ptr.word);
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_INDIRECTX_READWRITE:
-			ptr.word=ReadByte(mPC.word);
 			CHECK_BA;
+			ptr.word=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_READWRITE_2:
-			ReadByte(ptr.word);
 			CHECK_BA;
+			ReadByte(ptr.word);
 			ptr.byte.loByte+=mX;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_READWRITE_3:
-			addr.byte.loByte=ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(ptr.word);
 			ptr.byte.loByte++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_READWRITE_4:
-			addr.byte.hiByte=ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(ptr.word);
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_READWRITE_5:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTX_READWRITE_6:
@@ -1329,74 +1327,80 @@ unsigned int v;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_INDIRECTY_READ:
-			ptr.word= ReadByte(mPC.word);
 			CHECK_BA;
+			ptr.word= ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_READ_2:
-			addr.byte.loByte= ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.loByte= ReadByte(ptr.word);
 			ptr.byte.loByte++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_READ_3:
-			addr.byte.hiByte= ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.hiByte= ReadByte(ptr.word);
 			addr.byte.loByte+=mY;
 			if (addr.byte.loByte < mY)
+			{
 				m_cpu_sequence++;
+			}
 			else
 			{
 				m_cpu_sequence=m_cpu_final_sequence;
 			}
+
 			break;
 		case C_INDIRECTY_READ_4:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			addr.byte.hiByte++;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_INDIRECTY_WRITE:
-			ptr.word= ReadByte(mPC.word);
 			CHECK_BA;
+			ptr.word= ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_WRITE_2:
-			addr.byte.loByte= ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.loByte= ReadByte(ptr.word);
 			ptr.byte.loByte++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_WRITE_3:
-			addr.byte.hiByte= ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.hiByte= ReadByte(ptr.word);
 			addr.byte.loByte+=mY;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_WRITE_4:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			if (addr.byte.loByte < mY)
+			{
 				addr.byte.hiByte++;
+			}
+
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_INDIRECTY_READWRITE:
-			ptr.word= ReadByte(mPC.word);
 			CHECK_BA;
+			ptr.word= ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_READWRITE_2:
-			addr.byte.loByte= ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.loByte= ReadByte(ptr.word);
 			ptr.byte.loByte++;
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_READWRITE_3:
-			addr.byte.hiByte= ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.hiByte= ReadByte(ptr.word);
 			addr.byte.loByte+=mY;
 			m_cpu_sequence++;
 			
@@ -1405,12 +1409,15 @@ unsigned int v;
 			//ReadByte(addr.word);
 			//FIXME remove C_INDIRECTY_READWRITE_4 and re-number the cpu sequence case constants
 			if (addr.byte.loByte < mY)
+			{
 				addr.byte.hiByte++;
+			}
+
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_READWRITE_5:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			m_cpu_sequence++;
 			break;
 		case C_INDIRECTY_READWRITE_6:
@@ -1418,20 +1425,20 @@ unsigned int v;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ZEROPAGE:
-			addr.word=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.word=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ZEROPAGE_READWRITE:
-			addr.word=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.word=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ZEROPAGE_READWRITE_2:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			m_cpu_sequence++;
 			break;
 		case C_ZEROPAGE_READWRITE_3:
@@ -1439,44 +1446,44 @@ unsigned int v;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ZEROPAGEX:
-			addr.word=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.word=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ZEROPAGEX_2:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			addr.byte.loByte+=mX;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ZEROPAGEY:
-			addr.word=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.word=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ZEROPAGEY_2:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			addr.byte.loByte+=mY;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ZEROPAGEX_READWRITE:
-			addr.word=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.word=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ZEROPAGEX_READWRITE_2:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			addr.byte.loByte+=mX;
 			m_cpu_sequence++;
 			break;
 		case C_ZEROPAGEX_READWRITE_3:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			m_cpu_sequence++;
 			break;
 		case C_ZEROPAGEX_READWRITE_4:
@@ -1484,14 +1491,14 @@ unsigned int v;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_JMP_ABSOLUTE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_JMP_ABSOLUTE_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word=addr.word;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1499,14 +1506,14 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_JSR_ABSOLUTE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_JSR_ABSOLUTE_2:
-			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			m_cpu_sequence++;
 			break;
 		case C_JSR_ABSOLUTE_3:
@@ -1518,8 +1525,8 @@ unsigned int v;
 			m_cpu_sequence++;
 			break;
 		case C_JSR_ABSOLUTE_5:
-			addr.byte.hiByte= ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte= ReadByte(mPC.word);
 			mPC = addr;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1527,59 +1534,59 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_JMP_INDIRECT:
-			ptr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			ptr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_JMP_INDIRECT_2:
-			ptr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			ptr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_JMP_INDIRECT_3:
-			addr.byte.loByte=ReadByte(ptr.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(ptr.word);
 			ptr.byte.loByte++;
 			mPC.byte.loByte=addr.byte.loByte;
 			m_cpu_sequence++;
 			break;
 		case C_JMP_INDIRECT_4:
-			mPC.byte.hiByte=ReadByte(ptr.word);
 			CHECK_BA;
+			mPC.byte.hiByte=ReadByte(ptr.word);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_ABSOLUTE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTE_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ABSOLUTE_READWRITE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTE_READWRITE_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTE_READWRITE_3:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTE_READWRITE_4:
@@ -1587,14 +1594,14 @@ unsigned int v;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ABSOLUTEX_READ:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEX_READ_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			addr.byte.loByte+=mX;
 			if (addr.byte.loByte < mX)
@@ -1605,20 +1612,20 @@ unsigned int v;
 			}
 			break;
 		case C_ABSOLUTEX_READ_3:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			addr.byte.hiByte++;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;		
 		case C_ABSOLUTEY_READ:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEY_READ_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			addr.byte.loByte+=mY;
 			if (addr.byte.loByte < mY)
@@ -1629,74 +1636,83 @@ unsigned int v;
 			}
 			break;
 		case C_ABSOLUTEY_READ_3:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			addr.byte.hiByte++;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;		
 		case C_ABSOLUTEX_WRITE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;		
 		case C_ABSOLUTEX_WRITE_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			addr.byte.loByte+=mX;
 			m_cpu_sequence++;
 			break;		
 		case C_ABSOLUTEX_WRITE_3:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			if (addr.byte.loByte < mX)
+			{
 				addr.byte.hiByte++;
+			}
+
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;		
 		case C_ABSOLUTEY_WRITE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;		
 		case C_ABSOLUTEY_WRITE_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			addr.byte.loByte+=mY;
 			m_cpu_sequence++;
 			break;		
 		case C_ABSOLUTEY_WRITE_3:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			if (addr.byte.loByte < mY)
+			{
 				addr.byte.hiByte++;
+			}
+
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;		
 		case C_ABSOLUTEX_READWRITE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEX_READWRITE_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			addr.byte.loByte+=mX;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEX_READWRITE_3:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			if (addr.byte.loByte < mX)
+			{
 				addr.byte.hiByte++;
+			}
+
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEX_READWRITE_4:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEX_READWRITE_5:
@@ -1704,28 +1720,31 @@ unsigned int v;
 			m_cpu_sequence=m_cpu_final_sequence;
 			break;
 		case C_ABSOLUTEY_READWRITE:
-			addr.byte.loByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.loByte=ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEY_READWRITE_2:
-			addr.byte.hiByte=ReadByte(mPC.word);
 			CHECK_BA;
+			addr.byte.hiByte=ReadByte(mPC.word);
 			mPC.word++;
 			addr.byte.loByte+=mY;
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEY_READWRITE_3:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			if (addr.byte.loByte < mY)
+			{
 				addr.byte.hiByte++;
+			}
+
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEY_READWRITE_4:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			m_cpu_sequence++;
 			break;
 		case C_ABSOLUTEY_READWRITE_5:
@@ -1742,8 +1761,8 @@ unsigned int v;
 		case ORA_ABSOLUTEX:
 		case ORA_INDIRECTY:
 		case ORA_INDIRECTX:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			mA|=databyte;
 			fZERO= (mA==0);
 			fNEGATIVE= (mA & 0x80) >> 7;
@@ -1762,8 +1781,8 @@ unsigned int v;
 		case AND_ABSOLUTEX:
 		case AND_INDIRECTY:
 		case AND_INDIRECTX:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			mA&=databyte;
 			fZERO= (mA==0);
 			fNEGATIVE= (mA & 0x80) >> 7;
@@ -1782,8 +1801,8 @@ unsigned int v;
 		case EOR_ABSOLUTEX:
 		case EOR_INDIRECTY:
 		case EOR_INDIRECTX:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			mA^=databyte;
 			fZERO= (mA==0);
 			fNEGATIVE= (mA & 0x80) >> 7;
@@ -1802,8 +1821,8 @@ unsigned int v;
 		case ADC_ABSOLUTEX:
 		case ADC_INDIRECTY:
 		case ADC_INDIRECTX:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			mA = code_add(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1820,8 +1839,8 @@ unsigned int v;
 		case SBC_ABSOLUTEX:
 		case SBC_INDIRECTY:
 		case SBC_INDIRECTX:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			mA = code_sub(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1838,8 +1857,8 @@ unsigned int v;
 		case CMP_ABSOLUTEY:
 		case CMP_INDIRECTX:
 		case CMP_INDIRECTY:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			code_cmp(mA, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1851,8 +1870,8 @@ unsigned int v;
 			m_cpu_sequence = CPX_ZEROPAGE;
 		case CPX_ZEROPAGE:
 		case CPX_ABSOLUTE:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			code_cmp(mX, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1864,8 +1883,8 @@ unsigned int v;
 			m_cpu_sequence = CPY_ZEROPAGE;
 		case CPY_ZEROPAGE:
 		case CPY_ABSOLUTE:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			code_cmp(mY, databyte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -1885,10 +1904,9 @@ unsigned int v;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
-
 		case DEX_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mX--;
 			fZERO = (mX == 0);
 			fNEGATIVE = (mX & 0x80) >>7;
@@ -1898,8 +1916,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case DEY_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mY--;
 			fZERO = (mY == 0);
 			fNEGATIVE = (mY & 0x80) >>7;
@@ -1909,8 +1927,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case INX_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mX++;
 			fZERO = (mX == 0);
 			fNEGATIVE = (mX & 0x80) >>7;
@@ -1920,8 +1938,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case INY_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mY++;
 			fZERO = (mY == 0);
 			fNEGATIVE = (mY & 0x80) >>7;
@@ -1953,8 +1971,8 @@ unsigned int v;
 		case LDA_ABSOLUTEY:
 		case LDA_INDIRECTX:
 		case LDA_INDIRECTY:
-			mA=ReadByte(addr.word);
 			CHECK_BA;
+			mA=ReadByte(addr.word);
 			fZERO = (mA == 0);
 			fNEGATIVE = (mA & 0x80) >>7;
 			check_interrupts1();
@@ -1969,8 +1987,8 @@ unsigned int v;
 		case LDX_ZEROPAGEY:
 		case LDX_ABSOLUTE:
 		case LDX_ABSOLUTEY:
-			mX=ReadByte(addr.word);
 			CHECK_BA;
+			mX=ReadByte(addr.word);
 			fZERO = (mX == 0);
 			fNEGATIVE = (mX & 0x80) >>7;
 			check_interrupts1();
@@ -1985,8 +2003,8 @@ unsigned int v;
 		case LDY_ZEROPAGEX:
 		case LDY_ABSOLUTE:
 		case LDY_ABSOLUTEX:
-			mY=ReadByte(addr.word);
 			CHECK_BA;
+			mY=ReadByte(addr.word);
 			fZERO = (mY == 0);
 			fNEGATIVE = (mY & 0x80) >>7;
 			check_interrupts1();
@@ -1995,8 +2013,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case LSR_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			fCARRY=(mA & 0x1);
 			mA>>=1;
 			fNEGATIVE= 0;
@@ -2021,8 +2039,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case ASL_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			fCARRY=(mA & 0x0080) >> 7;
 			mA<<=1;
 			fNEGATIVE= (mA & 0x0080) >> 7;
@@ -2047,8 +2065,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case ROL_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			v=mA;
 			v<<=1;
 			v|=fCARRY;
@@ -2079,8 +2097,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;		
 		case ROR_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			v=mA;
 			v|= (fCARRY << 8);
 			fCARRY= v & 1;
@@ -2144,8 +2162,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case TAX_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mX=mA;
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
@@ -2155,8 +2173,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case TAY_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mY=mA;
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
@@ -2166,8 +2184,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case TXA_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mA=mX;
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
@@ -2177,8 +2195,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case TYA_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mA=mY;
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
@@ -2188,8 +2206,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case TSX_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mX=mSP;
 			fNEGATIVE=(mX & 0x80) >> 7;
 			fZERO= (mX==0);
@@ -2199,8 +2217,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case TXS_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mSP=mX;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2208,16 +2226,16 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case NOP_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_PHA_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_PHA_IMPLIED_2:
@@ -2228,19 +2246,19 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_PLA_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_PLA_IMPLIED_2:
-			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			mSP++;
 			m_cpu_sequence++;
 			break;
 		case C_PLA_IMPLIED_3:
-			mA=ReadByte(mSP + 0x0100);
 			CHECK_BA;
+			mA=ReadByte(mSP + 0x0100);
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
 			check_interrupts1();
@@ -2249,8 +2267,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case BPL_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			if (fNEGATIVE==0)
 			{
@@ -2266,8 +2284,8 @@ unsigned int v;
 			}
 			break;
 		case BMI_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			if (fNEGATIVE==0)
 			{
@@ -2283,8 +2301,8 @@ unsigned int v;
 			}
 			break;
 		case BNE_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			if (fZERO==0)
 			{
@@ -2300,8 +2318,8 @@ unsigned int v;
 			}
 			break;
 		case BEQ_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			if (fZERO==0)
 			{
@@ -2317,8 +2335,8 @@ unsigned int v;
 			}
 			break;
 		case BVC_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			SyncVFlag();
 			if (fOVERFLOW==0)
@@ -2335,8 +2353,8 @@ unsigned int v;
 			}
 			break;
 		case BVS_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			SyncVFlag();
 			if (fOVERFLOW==0)
@@ -2353,8 +2371,8 @@ unsigned int v;
 			}
 			break;
 		case BCC_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			if (fCARRY==0)
 			{
@@ -2370,8 +2388,8 @@ unsigned int v;
 			}
 			break;
 		case BCS_RELATIVE:
-			databyte=ReadByte(mPC.word);
 			CHECK_BA;
+			databyte=ReadByte(mPC.word);
 			mPC.word++;
 			if (fCARRY==0)
 			{
@@ -2387,8 +2405,8 @@ unsigned int v;
 			}
 			break;
 		case C_BRANCH:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			addr.word=(bit16)((signed short)mPC.word + (signed short)(signed char)databyte);
 			mPC.byte.loByte+=databyte;
 			if (addr.byte.hiByte == mPC.byte.hiByte)
@@ -2404,8 +2422,8 @@ unsigned int v;
 			}
 			break;
 		case C_BRANCH_2:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word = addr.word;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2413,65 +2431,65 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_RTI:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_RTI_2:
-			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			mSP++;
 			m_cpu_sequence++;
 			break;
 		case C_RTI_3:
-			databyte = ReadByte(mSP + 0x0100);
 			CHECK_BA;
+			databyte = ReadByte(mSP + 0x0100);
 			SyncVFlag();
 			CPU6502_SET_PS(databyte);
 			mSP++;
 			m_cpu_sequence++;
 			break;
 		case C_RTI_4:
-			CPU6502_LOAD_PCL(ReadByte(mSP + 0x0100));
 			CHECK_BA;
+			CPU6502_LOAD_PCL(ReadByte(mSP + 0x0100));
 			mSP++;
 			m_cpu_sequence++;
 			break;
 		case C_RTI_5:
-			CPU6502_LOAD_PCH(ReadByte(mSP + 0x0100));
 			CHECK_BA;
+			CPU6502_LOAD_PCH(ReadByte(mSP + 0x0100));
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_RTS:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_RTS_2:
-			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			++mSP;
 			m_cpu_sequence++;
 			break;
 		case C_RTS_3:
-			CPU6502_LOAD_PCL(ReadByte(mSP + 0x0100));
 			CHECK_BA;
+			CPU6502_LOAD_PCL(ReadByte(mSP + 0x0100));
 			++mSP;
 			m_cpu_sequence++;
 			break;
 		case C_RTS_4:
-			CPU6502_LOAD_PCH(ReadByte(mSP + 0x0100));
 			CHECK_BA;
+			CPU6502_LOAD_PCH(ReadByte(mSP + 0x0100));
 			m_cpu_sequence++;
 			break;
 		case C_RTS_5:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word++;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2479,8 +2497,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case CLC_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			fCARRY=0;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2488,8 +2506,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case SEC_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			fCARRY=1;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2535,8 +2553,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_PHP_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_PHP_IMPLIED_2:
@@ -2548,19 +2566,19 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_PLP_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_PLP_IMPLIED_2:
-			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			CHECK_BA;
+			ReadByte(mSP + 0x0100);//Read from stack and throw away.
 			mSP++;
 			m_cpu_sequence++;
 			break;
 		case C_PLP_IMPLIED_3:
-			databyte = ReadByte(mSP + 0x0100);
 			CHECK_BA;
+			databyte = ReadByte(mSP + 0x0100);
 			check_interrupts1();
 			SyncVFlag();
 			CPU6502_SET_PS(databyte);
@@ -2569,8 +2587,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case CLD_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			fDECIMAL=0;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2578,8 +2596,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case SED_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			fDECIMAL=1;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2587,8 +2605,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case CLV_IMPLIED:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			SyncVFlag();
 			fOVERFLOW=0;
 			check_interrupts1();
@@ -2598,8 +2616,8 @@ unsigned int v;
 			break;
 		case BIT_ZEROPAGE:
 		case BIT_ABSOLUTE:
-			databyte=ReadByte(addr.word);
 			CHECK_BA;
+			databyte=ReadByte(addr.word);
 			fNEGATIVE=(databyte & 0x80) >> 7;
 			SyncVFlag();
 			fOVERFLOW=(databyte & 0x40) >> 6;
@@ -2732,8 +2750,8 @@ unsigned int v;
 		case LAX_ABSOLUTEY:
 		case LAX_INDIRECTX:
 		case LAX_INDIRECTY:
-			mX=mA=ReadByte(addr.word);
 			CHECK_BA;
+			mX=mA=ReadByte(addr.word);
 			fZERO = (mA == 0);
 			fNEGATIVE = (mA & 0x80) >>7;
 			check_interrupts1();
@@ -2778,8 +2796,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case ALR_IMMEDIATE:
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			mPC.word++;
 			mA &= databyte;
 			fCARRY=(mA & 0x1);
@@ -2792,8 +2810,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case ARR_IMMEDIATE:
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			mPC.word++;
 			mA = code_arr(mA, databyte);
 			check_interrupts1();
@@ -2802,20 +2820,10 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case XAA_IMMEDIATE://ANE
-			databyte = ReadByte(mPC.word);
+			// Believed to be unstable.
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			mPC.word++;
-			this->SyncChips();
-			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) > 1)
-				mA |= 0xEE;
-			else
-				mA |= 0xEE;//BA just gone high
-
-			////Made up rule to allow bit0 to transfer from X to A
-			////Needed for some burner loaders like Obitron, DarkStar and Spectipede
-			//if (databyte > 3 && (databyte & 0xf0) != 0)
-			//	mA |= 0x1;
-
 			mA &= mX & (bit8)databyte;
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
@@ -2825,8 +2833,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case OAL_IMMEDIATE://LXA
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			mPC.word++;
 			mA|=0xEE;
 			mA = mX = (mA & databyte);
@@ -2838,8 +2846,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case SBX_IMMEDIATE:
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			mPC.word++;
 			mX = code_cmp(mA & mX, databyte);
 			check_interrupts1();
@@ -2848,8 +2856,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_SKB_IMMEDIATE_2CLK:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word++;
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
@@ -2857,33 +2865,33 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_SKB_IMMEDIATE_3CLK:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_SKB_IMMEDIATE_3CLK_2:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case C_SKB_IMMEDIATE_4CLK:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			mPC.word++;
 			m_cpu_sequence++;
 			break;
 		case C_SKB_IMMEDIATE_4CLK_2:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			m_cpu_sequence++;
 			break;
 		case C_SKB_IMMEDIATE_4CLK_3:
-			ReadByte(mPC.word);
 			CHECK_BA;
+			ReadByte(mPC.word);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -2896,8 +2904,8 @@ unsigned int v;
 		case SKW_ABSOLUTEX_7C:
 		case SKW_ABSOLUTEX_DC:
 		case SKW_ABSOLUTEX_FC:
-			ReadByte(addr.word);
 			CHECK_BA;
+			ReadByte(addr.word);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;
@@ -3001,8 +3009,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
 		case ANC_IMMEDIATE:
-			databyte = ReadByte(mPC.word);
 			CHECK_BA;
+			databyte = ReadByte(mPC.word);
 			mPC.word++;
 			mA &= databyte;
 			fZERO= (mA==0);
@@ -3014,8 +3022,8 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;
 		case LAS_ABSOLUTEY:
-			databyte = ReadByte(addr.word);
 			CHECK_BA;
+			databyte = ReadByte(addr.word);
 			mSP = mX = mA = (mSP & databyte);
 			fZERO= (mA==0);
 			fNEGATIVE= (mA & 0x80) >> 7;

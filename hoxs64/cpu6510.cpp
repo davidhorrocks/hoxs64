@@ -127,26 +127,18 @@ bit8 *t;
 	t=m_ppMemory_map_read[address >> 12];
 	if (t)
 	{
-		if (address>1)
+		if (address > 1)
 		{
 			return t[address];
 		}
 		else 
 		{
-			if (m_bDebug && BA==0 && CurrentClock - FirstBALowClock >= 3)
-			{
-				return 0;
-			}
 			vic->ExecuteCycle(CurrentClock);
 			return ReadRegister(address, CurrentClock);
 		}
 	}
 	else
 	{
-		if (m_bDebug && BA==0 && CurrentClock - FirstBALowClock >= 3)
-		{
-			return 0;
-		}
 		switch (address >> 8)
 		{
 		case 0xD0:
@@ -183,6 +175,7 @@ bit8 *t;
 				return vic->ReadRegister(address, CurrentClock);
 			}
 		}
+
 		if (pCart->IsCartAttached())
 		{
 			switch(ram->GetCpuMmuReadMemoryType(address, -1))
@@ -266,6 +259,7 @@ bit8 *t;
 				{
 					pCart->WriteRegister(address, CurrentClock, data);
 				}
+
 				break;
 			default:
 				if (pCart->IsCartAttached())
@@ -288,6 +282,7 @@ bit8 *t;
 						break;
 					}
 				}
+
 				break;
 			}
 		}
@@ -303,15 +298,25 @@ bit8 CPU6510::MonReadByte(bit16 address, int memorymap)
 {
 bit8 *t;
 	if (memorymap < 0)//Use the MMU
-		t=m_ppMemory_map_read[address >> 12];
+	{
+		t =m_ppMemory_map_read[address >> 12];
+	}
 	else
-		t= ram->MMU_read[memorymap & 0x1f][address >> 12];
+	{
+		t = ram->MMU_read[memorymap & 0x1f][address >> 12];
+	}
 
 	if (t)
-		if (address>1)
+	{
+		if (address > 1)
+		{
 			return t[address];
+		}
 		else 
+		{
 			return ReadRegister_no_affect(address, CurrentClock);
+		}
+	}
 	else
 	{
 		switch (address >> 8)
@@ -361,7 +366,9 @@ bit8 *t;
 			}
 		}
 		else
+		{
 			return 0;
+		}
 	}
 }
 
@@ -372,12 +379,18 @@ bit8 *t;
 	if (address>1)
 	{
 		if (memorymap < 0)//Use the MMU
+		{
 			t=m_ppMemory_map_write[address >> 12];
+		}
 		else
+		{
 			t=ram->MMU_write[memorymap & 0x1f][address >> 12];
+		}
 
 		if (t)
+		{
 			t[address]=data;
+		}
 		else
 		{
 			switch (address >> 8)
@@ -454,10 +467,15 @@ void CPU6510::SyncChips()
 {
 	ICLK& curClock = CurrentClock;
 	vic->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <= 0)
+	{
 		cia1->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
+	}
+
+	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <= 0)
+	{
 		cia2->ExecuteCycle(curClock);
+	}
 }
 
 void CPU6510::AddClockDelay()
@@ -470,11 +488,16 @@ void CPU6510::check_interrupts1()
 {
 	ICLK& curClock = CurrentClock;
 	vic->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <=0)
+	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <= 0)
+	{
 		cia1->ExecuteCycle(curClock);
-	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <=0)
+	}
+
+	if ((ICLKS)(pCia2->ClockNextWakeUpClock - curClock) <= 0)
+	{
 		cia2->ExecuteCycle(curClock);
-	//cart->ExecuteCycle(curClock);
+	}
+
 	CPU6502::check_interrupts1();
 }
 
@@ -484,7 +507,6 @@ ICLK& curClock = CurrentClock;
 	vic->ExecuteCycle(curClock);
 	cia1->ExecuteCycle(curClock);
 	cia2->ExecuteCycle(curClock);
-	//cart->ExecuteCycle(curClock);
 	CPU6502::check_interrupts0();
 }
 
@@ -495,8 +517,10 @@ void CPU6510::CheckForCartFreeze()
 
 bit8 CPU6510::ReadRegister(bit16 address, ICLK sysclock)
 {
-	if (address==0)
+	if (address == 0)
+	{
 		return cpu_io_ddr;
+	}
 	else
 	{
 		CheckPortFade(sysclock);
@@ -520,7 +544,9 @@ void CPU6510::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 bit8 CPU6510::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
 	if (address==0)
+	{
 		return cpu_io_ddr;
+	}
 	else
 	{
 		CheckPortFade(sysclock);
