@@ -277,7 +277,7 @@ signed short xDiff;
 		/*		
 		if ((signed short)columnX < 0)
 		{
-			columnX = (signed short)0x1f8 - (signed short)columnX;
+			columnX = (signed short)0x1f8 + (signed short)columnX;
 		}
 		*/
 
@@ -591,7 +591,7 @@ ICLK vicCurrentClock;
 	8 pixels get entered into the pixel pipeline for each VIC cycle.
 	There will typically be 8 pixels left to draw in a column when we call in here.
 	If a sprite was started not at a column boundary then we would call here with less than 8 pixel left
-	for the initial part of the sprite. The true number of pixel left in the sprite data shifter buffer 
+	for the initial part of the sprite. The true number of pixels left in the sprite data shifter buffer 
 	is kept in shiftCounter.
 	*/
 	while (pixelsLeftToDrawInThisColumn > 0)
@@ -616,7 +616,7 @@ ICLK vicCurrentClock;
 			*****
 
 			Summary
-			Control X expansion by either repeating the last pixel or getting a new pixel.
+			Controls X expansion by either repeating the last pixel or getting a new pixel.
 
 			Values			
 			0: New pixel mode. This indicates to read a new pixel in to "currentPixel" from the front of the sprite data buffer.
@@ -649,7 +649,7 @@ ICLK vicCurrentClock;
 				}
 
 				multiColourThisPixel = multiColour;
-				// This number 6 represents where in the phase the change is seen.
+				// This number "6" represents where in the phase the change is seen.
 				if ((pixelsLeftToDrawInThisColumn > 6) && (clockMultiColorChange == vicCurrentClock))
 				{
 					// Multi-colour mode has just been changed in this column, but an VIC 8565 still needs to 
@@ -662,7 +662,7 @@ ICLK vicCurrentClock;
 				ff_MC : The MC Flip Flop
 				*****
 
-				Control multi-colour expansion by either repeating the last pixel or getting a new pixel.
+				Controls multi-colour expansion by either repeating the last pixel or getting a new pixel.
 
 				Summary				
 				0: New pixel mode. This indicates to read new pixel data from the front of the sprite data buffer.
@@ -706,7 +706,7 @@ ICLK vicCurrentClock;
 				else
 				{
 					// Draw this pixel using hi-res rules.
-					// Multi-colour mode checks only 1 bit at the front of the shifter.
+					// Hi-res mode checks only 1 bit at the front of the shifter.
 					if (dataBuffer & 0x800000)
 					{
 						// Sprite's own colour
@@ -720,10 +720,10 @@ ICLK vicCurrentClock;
 				}
 			}
 
-			// This number 6 represents where in the phase the change is seen.
+			// This number "6" represents where in the phase the change is seen.
 			if (pixelsLeftToDrawInThisColumn == 6 && (ff_XP == 1) && (clockMultiColorChange == vicCurrentClock))
 			{
-				// Edge case where multi-colour mode has just been changed in 
+				// An edge case occurs where multi-colour mode has just been changed in 
 				// this column with exactly 6 pixel left and 
 				// the expansion flip-flop is also in repeat pixel mode.
 				if (multiColourPrev == 0 && multiColour != 0)
@@ -778,8 +778,7 @@ ICLK vicCurrentClock;
 
 			// Mariusz Mlynski reported a difference with multi-colour that is observed when bit 7 of the sprite pointer is clear.
 			// If we are right at the start of the bleed position and the MC flip-flop is in repeat mode 
-			// and the X-Expand flip-flop is in new mode then we 
-			// get we transparent pixels instead of the sprites own colour.
+			// and the X-Expand flip-flop is in new mode then we get hi-res pixels.
 			if (ff_MC != 0 && ff_XP == 0 && vic->vicSpritePointer[spriteNumber] < 0x2000)
 			{
 				if (((dataBuffer & 0x800000)) == 0)
@@ -830,7 +829,7 @@ ICLK vicCurrentClock;
 			// Collisons that occur early enough with in the column are seen in the registers in this cycle.
 			// Both vicCurrSprite_sprite_collision and vicCurrSprite_data_collision
 			// get ORed into their repestive VIC collision registers after this function finishes.
-			// This number 4 represents where in the phase the collsion can be read in this cycle.
+			// This number "4" represents where in the phase the collsion can be read in this cycle.
 			if (pixelsLeftToDrawInThisColumn > 4)
 			{
 				vic->vicCurrSprite_sprite_collision |= sprite_sprite_collision;
@@ -846,7 +845,7 @@ ICLK vicCurrentClock;
 			if (sprite_sprite_collision != 0)
 			{
 				// Collisons with sprites that occur early enough with in this column will trigger an IRQ in this cycle.
-				// This number 4 represents where in the phase the IRQ can make this cycle.
+				// This number "4" represents where in the phase the IRQ can make this cycle.
 				if (pixelsLeftToDrawInThisColumn > 4)
 				{
 					// We are early in the column so we see the IRQ early.
@@ -862,7 +861,7 @@ ICLK vicCurrentClock;
 			if (sprite_data_collision != 0)
 			{
 				// Collisons with data that occur early enough with in this column will trigger an IRQ in this cycle.
-				// This number 4 represents where in the phase the IRQ can make this cycle.
+				// This number "4" represents where in the phase the IRQ can make this cycle.
 				if (pixelsLeftToDrawInThisColumn > 4)
 				{
 					// We are early in the column so we see the IRQ early.
@@ -909,8 +908,8 @@ ICLK vicCurrentClock;
 
 			if (ff_XP == 0)
 			{
-				// Count this pixel as shifted out of the sprite data buffer 
-				// if we find X-Expansion flip-flop in new pixel mode at the end of this run loop.
+				// if we find X-Expansion flip-flop in new pixel mode at the end of this run loop then
+				// count this pixel as shifted out of the sprite data buffer.
 				dataBuffer <<= 1;
 				shiftCounter--;
 			}
