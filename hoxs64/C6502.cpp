@@ -2825,6 +2825,7 @@ unsigned int v;
 			CHECK_BA;
 			databyte = ReadByte(mPC.word);
 			mPC.word++;
+			mA |= 0xEE;
 			mA &= mX & (bit8)databyte;
 			fNEGATIVE=(mA & 0x80) >> 7;
 			fZERO= (mA==0);
