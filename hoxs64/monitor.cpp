@@ -543,7 +543,7 @@ void Monitor::QuitCommands()
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		for(std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+		for(list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
 		{
 			(*it)->Quit();
 		}
@@ -551,7 +551,7 @@ void Monitor::QuitCommands()
 		{
 			if(rm == WAIT_OBJECT_0)
 			{
-				std::list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin();
+				list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin();
 				if (it == m_lstCommandResult.end())
 				{
 					ReleaseMutex(m_mux);

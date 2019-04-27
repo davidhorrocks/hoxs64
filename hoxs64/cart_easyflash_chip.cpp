@@ -3,10 +3,7 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include <assert.h>
-#include <vector>
-#include <list>
 #include <algorithm>
-
 #include "boost2005.h"
 #include "user_message.h"
 #include "defines.h"
@@ -521,7 +518,7 @@ int k;
 		if ((ICLKS)(clock - m_iLastCommandWriteClock) > 80)
 		{
 			m_iCommandCycle = 0;
-			for (std::vector<bit8>::iterator it = m_vecPendingSectorErase.begin(); it!=m_vecPendingSectorErase.end(); it++)
+			for (vector<bit8>::iterator it = m_vecPendingSectorErase.begin(); it!=m_vecPendingSectorErase.end(); it++)
 			{
 				for (int i = 0; i < 8; i++)
 				{

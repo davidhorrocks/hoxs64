@@ -110,7 +110,7 @@ void CMDIDebuggerFrame::Cleanup()
 		ImageList_Destroy(m_hImageListToolBarNormal);
 		m_hImageListToolBarNormal = NULL;
 	}
-	for (std::vector<HBITMAP>::iterator it = m_vec_hBmpRebarSized.begin(); it != m_vec_hBmpRebarSized.end(); it++)
+	for (vector<HBITMAP>::iterator it = m_vec_hBmpRebarSized.begin(); it != m_vec_hBmpRebarSized.end(); it++)
 	{
 		if (*it != NULL)
 		{

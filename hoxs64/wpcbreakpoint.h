@@ -61,7 +61,7 @@ class WpcBreakpoint_EventSink :
 class WpcBreakpoint : public CVirWindow, protected WpcBreakpoint_EventSink
 {
 public:
-	typedef std::vector<Sp_BreakpointItem> LstBrk;
+	typedef vector<Sp_BreakpointItem> LstBrk;
 	WpcBreakpoint(IC64 *c64, IAppCommand *pAppCommand);
 	virtual ~WpcBreakpoint();
 

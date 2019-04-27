@@ -125,7 +125,7 @@ void CommandResult::Cleanup()
 
 void CommandResult::CleanThreadAllocations()
 {
-	for (std::vector<LPTSTR>::iterator it = a_lines.begin(); it!=a_lines.end(); it++)
+	for (vector<LPTSTR>::iterator it = a_lines.begin(); it!=a_lines.end(); it++)
 	{
 		LPTSTR s = *it;
 		if(s)

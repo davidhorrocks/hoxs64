@@ -1,10 +1,10 @@
 #pragma once
 #include <functional>
 #include <memory>
-#include <vector>
-#include <list>
-#include <map>
 #if (_MSC_VER < 1600)
+#include <boost/container/vector.hpp>
+#include <boost/container/list.hpp>
+#include <boost/container/map.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/smart_ptr.hpp>
@@ -16,6 +16,9 @@
 #pragma warning (disable : 4244)
 #include <boost/random/mersenne_twister.hpp>
 #pragma warning (default : 4244)
+using boost::container::vector;
+using boost::container::list;
+using boost::container::map;
 using boost::shared_ptr;
 using boost::weak_ptr;
 using boost::enable_shared_from_this;
@@ -34,7 +37,13 @@ using boost::uint16_t;
 using boost::uint32_t;
 using boost::uint64_t;
 #else
+#include <vector>
+#include <list>
+#include <map>
 #include <random>
+using std::vector;
+using std::list;
+using std::map;
 using std::shared_ptr;
 using std::unique_ptr;
 using std::weak_ptr;

@@ -370,14 +370,14 @@ unsigned int datadeviceindex;
 	}
 
 	joyui.ButtonSelectionChanged(c64joybutton);
-	std::vector<DWORD> vecButtonOffsets;
+	vector<DWORD> vecButtonOffsets;
 	AddToVec<DWORD>(vecButtonOffsets, c64joybutton.pItemOffsets, c64joybutton.itemCount);
 	shared_ptr<CDiagButtonSelection> pDiagButtonSelection = make_shared<CDiagButtonSelection>(CDiagButtonSelection(pDX->pDI, spdev->deviceInstance.guidInstance, joyui.ID, c64joybutton.buttonnumber, vecButtonOffsets));
 	if (pDiagButtonSelection != 0)
 	{
 		if (IDOK == pDiagButtonSelection->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_JOYBUTTONSELECTION), this->m_hWnd))
 		{
-			std::vector<DWORD>::const_iterator iter;
+			vector<DWORD>::const_iterator iter;
 			unsigned int &i = c64joybutton.itemCount;
 			i = 0;
 			for (iter = pDiagButtonSelection->resultButtonOffsets.cbegin(); iter != pDiagButtonSelection->resultButtonOffsets.cend(); iter++)
@@ -395,7 +395,7 @@ unsigned int datadeviceindex;
 }
 
 template<class T>
-void CDiagJoystick::AddToVec(std::vector<T> &vec, const T *source, unsigned int count)
+void CDiagJoystick::AddToVec(vector<T> &vec, const T *source, unsigned int count)
 {
 	if (source != NULL)
 	{
@@ -583,7 +583,7 @@ LRESULT lr;
 	}
 }
 
-void CDiagJoystick::JoyUi::FillJoyButtonDropdown(int ctrlid, std::vector<ButtonItem> buttonAxisOptions)
+void CDiagJoystick::JoyUi::FillJoyButtonDropdown(int ctrlid, vector<ButtonItem> buttonAxisOptions)
 {
 unsigned int i;
 LRESULT lr;
@@ -625,7 +625,7 @@ void CDiagJoystick::JoyUi::SelectJoyButtonDropdownItem(C64JoyItem& c64joybutton,
 	SelectJoyButtonAxisDropdownItem(c64joybutton, this->buttonOptions, bSetConfig);
 }
 
-void CDiagJoystick::JoyUi::SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions, bool bSetConfig)
+void CDiagJoystick::JoyUi::SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, vector<ButtonItem> buttonAxisOptions, bool bSetConfig)
 {
 int selindex;
 unsigned int i;
@@ -853,7 +853,7 @@ void CDiagJoystick::JoyUi::AxisSelectionChanged(C64JoyItem& c64joybutton)
 	DeviceItemSelectionChanged(c64joybutton, this->axisOptions);
 }
 
-void CDiagJoystick::JoyUi::DeviceItemSelectionChanged(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions)
+void CDiagJoystick::JoyUi::DeviceItemSelectionChanged(C64JoyItem& c64joybutton, vector<ButtonItem> buttonAxisOptions)
 {
 LRESULT lr;
 unsigned int i;

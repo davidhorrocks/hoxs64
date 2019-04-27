@@ -137,7 +137,7 @@ private:
 	bool m_bMonitorEvents;
 	IC64Event *m_pIC64Event;
 
-	std::list<shared_ptr<ICommandResult>> m_lstCommandResult;
+	list<shared_ptr<ICommandResult>> m_lstCommandResult;
 	HANDLE m_mux;
 };
 #endif

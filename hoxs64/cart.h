@@ -109,9 +109,9 @@ typedef shared_ptr<CrtBank> Sp_CrtBank;
 //	bool operator()(const Sp_CrtChipAndData x, const Sp_CrtChipAndData y) const;
 //};
 
-typedef std::vector<Sp_CrtBank> CrtBankList;
-typedef std::vector<Sp_CrtBank>::iterator CrtBankListIter;
-typedef std::vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
+typedef vector<Sp_CrtBank> CrtBankList;
+typedef vector<Sp_CrtBank>::iterator CrtBankListIter;
+typedef vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
 
 class ICartInterface : public IRegister
 {

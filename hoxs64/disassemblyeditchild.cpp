@@ -1528,7 +1528,7 @@ bool isUndoc = false;
 	}
 }
 
-typedef std::vector<bit16> VecAddress;
+typedef vector<bit16> VecAddress;
 
 bit16 CDisassemblyEditChild::GetNthAddress(bit16 startaddress, int linenumber) throw(...)
 {

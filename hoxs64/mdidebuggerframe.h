@@ -82,7 +82,7 @@ private:
 	HWND m_hWndTooBar;
 	HIMAGELIST m_hImageListToolBarNormal;
 	HBITMAP m_hBmpRebarNotSized;
-	std::vector<HBITMAP> m_vec_hBmpRebarSized;
+	vector<HBITMAP> m_vec_hBmpRebarSized;
 	CDPI m_dpi;
 	WPanelManager m_WPanelManager;
 

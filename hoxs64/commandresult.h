@@ -41,7 +41,7 @@ protected:
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
 	bool PostFinished();
 	size_t line;
-	std::vector<LPTSTR> a_lines;
+	vector<LPTSTR> a_lines;
 	HWND m_hWnd;
 	HANDLE m_hThread;
 	HANDLE m_hevtQuit;

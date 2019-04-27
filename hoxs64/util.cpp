@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <tchar.h>
 #include <math.h>
-#include <vector>
 #include "defines.h"
 #include "bits.h"
 #include "util.h"

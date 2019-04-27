@@ -113,7 +113,7 @@ void CDisassemblyFrame::Cleanup()
 	}
 	m_hWndToolItemAddress = NULL;
 
-	for (std::vector<HBITMAP>::iterator it = m_vec_hBmpRebarSized.begin(); it != m_vec_hBmpRebarSized.end(); it++)
+	for (vector<HBITMAP>::iterator it = m_vec_hBmpRebarSized.begin(); it != m_vec_hBmpRebarSized.end(); it++)
 	{
 		if (*it != NULL)
 		{

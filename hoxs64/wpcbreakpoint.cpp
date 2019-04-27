@@ -1,17 +1,15 @@
 #include <windows.h>
 #include "dx_version.h"
+#include "boost2005.h"
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <tchar.h>
-#include <vector>
-#include <list>
 #include <assert.h>
 #include "CDPI.h"
 #include "utils.h"
 #include "hexconv.h"
 #include "IC64.h"
-
 #include "wpanel.h"
 #include "wpanelmanager.h"
 #include "wpcbreakpoint.h"
@@ -611,7 +609,7 @@ void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 	try
 	{
 		int selcount = ListView_GetSelectedCount(m_hLvBreak);
-		std::vector<Sp_BreakpointItem> vecDelete;
+		vector<Sp_BreakpointItem> vecDelete;
 		vecDelete.reserve(selcount);
 	
 		for (int c = 0, i = -1 ; c==0 || (i>=0 && c<selcount) ; c++)
@@ -626,7 +624,7 @@ void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 				}
 			}
 		}
-		for (std::vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
+		for (vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
 		{
 			c64->GetMon()->BM_DeleteBreakpoint(*it);
 		}

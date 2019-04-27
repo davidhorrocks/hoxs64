@@ -47,8 +47,8 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		CDiagJoystick *dialog;
 		CDX9 *pDX;
 		struct joyconfig jconfig;
-		std::vector<ButtonItem> buttonOptions;
-		std::vector<ButtonItem> axisOptions;
+		vector<ButtonItem> buttonOptions;
+		vector<ButtonItem> axisOptions;
 		int ID;
 		CDPI m_dpi;
 		const JoyControlNum& controlNum;
@@ -69,14 +69,14 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		void DeviceChanged(bool bSetConfig);
 		void ButtonSelectionChanged(C64JoyItem& c64joybutton);
 		void AxisSelectionChanged(C64JoyItem& c64joybutton);
-		void DeviceItemSelectionChanged(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions);
+		void DeviceItemSelectionChanged(C64JoyItem& c64joybutton, vector<ButtonItem> buttonAxisOptions);
 		void FillJoyAxis(bool bSetConfig);
 		void FillJoyAxisDropdown(int ctrlid);
 		void FillJoyButton(bool bSetConfig);
-		void FillJoyButtonDropdown(int ctrlid, std::vector<ButtonItem> buttonAxisOptions);
+		void FillJoyButtonDropdown(int ctrlid, vector<ButtonItem> buttonAxisOptions);
 		void SelectJoyButtonDropdownItem(C64JoyItem& c64joyaxis, bool bSetConfig);
 		void SelectJoyAxisDropdownItem(C64JoyItem& c64joyaxis, bool bSetConfig);
-		void SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, std::vector<ButtonItem> buttonAxisOptions, bool bSetConfig);
+		void SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, vector<ButtonItem> buttonAxisOptions, bool bSetConfig);
 		void loadconfig(const joyconfig& cfg);
 		void saveconfig(joyconfig* cfg);
 	private:
@@ -95,7 +95,7 @@ public:
 	virtual void saveconfig(CConfig *);
 private:
 	int m_bActive;
-	std::vector<shared_ptr<GameDeviceItem>> devices;
+	vector<shared_ptr<GameDeviceItem>> devices;
 	HFONT defaultFont;
 	
 	CDPI m_dpi;
@@ -108,7 +108,7 @@ private:
 	BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	template<class T>
-	static void AddToVec(std::vector<T> &vec, const T *source, unsigned int count);
+	static void AddToVec(vector<T> &vec, const T *source, unsigned int count);
 
 	friend BOOL CALLBACK ::EnumDlgJoyCallback(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef);
 	friend BOOL CALLBACK ::EnumDlgJoyAxisCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);

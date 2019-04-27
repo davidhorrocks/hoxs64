@@ -17,8 +17,6 @@
 #include <iostream>
 #include <malloc.h>
 #include <memory.h>
-#include <vector>
-#include <list>
 #include <assert.h>
 #include "servicerelease.h"
 #include "boost2005.h"

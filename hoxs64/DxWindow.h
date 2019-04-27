@@ -3,8 +3,8 @@
 class DxWindow;
 typedef shared_ptr<DxWindow> Sp_DxWindow;
 
-typedef std::list<Sp_DxWindow> ListDxWindow;
-typedef std::list<Sp_DxWindow>::iterator ListDxWindowIter;
+typedef list<Sp_DxWindow> ListDxWindow;
+typedef list<Sp_DxWindow>::iterator ListDxWindowIter;
 
 class DxObject
 {

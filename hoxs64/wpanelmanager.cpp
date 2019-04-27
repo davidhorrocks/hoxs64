@@ -163,7 +163,7 @@ RECT rcMdiClient;
 	int iMinHeightMdiClient = mins;
 	int iMinHeightPanel = mins;
 
-	for (std::list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; it++)
+	for (list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; it++)
 	{
 		Sp_WPanel pwp = *it;
 		if (pwp == NULL)
@@ -241,7 +241,7 @@ POINT pt;
 	pt.x = x;
 	pt.y = y;
 
-	for (std::list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; it++)
+	for (list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; it++)
 	{
 		Sp_WPanel pwp = *it;
 		if (pwp == NULL)
@@ -284,7 +284,7 @@ void WPanelManager::DrawXorBar(HDC hdc, int x1, int y1, int width, int height)
 
 void WPanelManager::OnDestroyWPanel(Sp_WPanel pwp)
 {
-	for (std::list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; )
+	for (list<Sp_WPanel>::iterator it = m_WpList.begin(); it != m_WpList.end() ; )
 	{
 		if (*it!=NULL && *it == pwp)
 		{

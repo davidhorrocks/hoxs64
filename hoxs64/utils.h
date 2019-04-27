@@ -532,7 +532,7 @@ public:
 		LPARAM lParam);
 	int m_current_page_index;
 protected:
-	std::vector<shared_ptr<CTabPageDialog>>	m_vecpages;
+	vector<shared_ptr<CTabPageDialog>>	m_vecpages;
 	//int m_pagecount;
     HWND m_hwndTab;       // tab control 
     HWND m_hwndDisplay;   // current child dialog box 

@@ -44,7 +44,7 @@ protected:
 		//bit16 m_iAddressWrite;
 		//bit8 m_iSectorWrite;
 		bit8 m_mode;
-		//std::vector<bit8> m_vecPendingSectorErase;
+		//vector<bit8> m_vecPendingSectorErase;
 		//CrtBankList *m_plstBank;
 		//int m_chipNumber;
 		//bit8 *m_pBlankData;
@@ -62,7 +62,7 @@ private:
 	//bit16 m_iAddressWrite;
 	//bit8 m_iSectorWrite;
 	EEasyFlashMode m_mode;
-	std::vector<bit8> m_vecPendingSectorErase;
+	vector<bit8> m_vecPendingSectorErase;
 	CrtBankList *m_plstBank;
 	int m_chipNumber;
 	bit8 *m_pBlankData;

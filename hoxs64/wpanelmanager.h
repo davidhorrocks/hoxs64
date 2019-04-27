@@ -49,7 +49,7 @@ private:
 	HWND m_hWndRebar;
 
 	HINSTANCE m_hInstance;
-	std::list<Sp_WPanel> m_WpList;
+	list<Sp_WPanel> m_WpList;
 	CDPI m_dpi;
 	int m_iSizerGap;
 };

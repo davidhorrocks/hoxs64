@@ -190,11 +190,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\besttextwidth.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\bits.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\break_point.cpp"
+				RelativePath="..\hoxs64\breakpoint.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\buttonitem.cpp"
 				>
 			</File>
 			<File
@@ -322,6 +330,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\gamecontrolleritem.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\gamedeviceitem.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\hconfig.cpp"
 				>
 			</File>
@@ -410,6 +426,10 @@
 				</File>
 				<File
 					RelativePath="..\hoxs64\bpenum.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\breakpointresult.cpp"
 					>
 				</File>
 				<File
@@ -624,6 +644,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\besttextwidth.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\bits.h"
 				>
 			</File>
@@ -633,6 +657,10 @@
 			</File>
 			<File
 				RelativePath="..\hoxs64\break_point.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\buttonitem.h"
 				>
 			</File>
 			<File
@@ -764,6 +792,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\gamedeviceitem.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\hconfig.h"
 				>
 			</File>
@@ -884,6 +916,10 @@
 				</File>
 				<File
 					RelativePath="..\hoxs64\bpenum.h"
+					>
+				</File>
+				<File
+					RelativePath="..\hoxs64\breakpointresult.h"
 					>
 				</File>
 				<File

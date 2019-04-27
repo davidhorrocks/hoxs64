@@ -1,9 +1,5 @@
 #ifndef __IC64_H__
 #define __IC64_H__
-
-#include <vector>
-#include <list>
-
 #include "boost2005.h"
 #include "user_message.h"
 #include "defines.h"

@@ -150,7 +150,7 @@ private:
 	HWND m_hWndTooBarStep;
 	HWND m_hWndTooBarAddress;
 	HBITMAP m_hBmpRebarNotSized;
-	std::vector<HBITMAP> m_vec_hBmpRebarSized;
+	vector<HBITMAP> m_vec_hBmpRebarSized;
 	HIMAGELIST m_hImageListToolBarNormal;
 	HFONT m_hFont;
 	shared_ptr<CDisassemblyChild> m_pWinDisassemblyChild;

@@ -29,11 +29,11 @@ CDiagButtonSelection::CDiagButtonSelection()
 	sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
 }
 
-CDiagButtonSelection::CDiagButtonSelection(LPDIRECTINPUT7 pDI, GUID deviceId, int c64JoystickNumber, C64JoystickButton::C64JoystickButtonNumber c64button, std::vector<DWORD> &buttonOffsets)
+CDiagButtonSelection::CDiagButtonSelection(LPDIRECTINPUT7 pDI, GUID deviceId, int c64JoystickNumber, C64JoystickButton::C64JoystickButtonNumber c64button, vector<DWORD> &buttonOffsets)
 	: deviceId(deviceId), c64JoystickNumber(c64JoystickNumber), pDI(pDI), pJoy(NULL), c64button(c64button)
 {
 	initvars();
-	std::vector<DWORD>::iterator iter;
+	vector<DWORD>::iterator iter;
 	for (iter = buttonOffsets.begin(); iter != buttonOffsets.end(); iter++)
 	{
 		DWORD d = *iter;
@@ -50,6 +50,13 @@ CDiagButtonSelection::~CDiagButtonSelection()
 	{
 		pJoy->Release();
 		pJoy = NULL;
+	}
+
+	if (pAnsiStringBuffer)
+	{
+		free(pAnsiStringBuffer);
+		pAnsiStringBuffer = NULL;
+		lenAnsiStringBuffer = 0;
 	}
 }
 
@@ -108,7 +115,7 @@ BOOL CDiagButtonSelection::DialogProc(HWND hWndDlg, UINT message, WPARAM wParam,
 void CDiagButtonSelection::UpdateResult()
 {
 	resultButtonOffsets.clear();
-	std::vector<shared_ptr<ButtonItemData>>::const_iterator iter;
+	vector<shared_ptr<ButtonItemData>>::const_iterator iter;
 	for (iter = currentButtonOffsets.cbegin(); iter != currentButtonOffsets.cend(); iter++)
 	{
 		resultButtonOffsets.push_back((*iter)->buttonOffset);
@@ -143,8 +150,8 @@ LRESULT lr;
 					lr = SendMessage(hwndListBox, LB_DELETESTRING, currentIndex, 0);
 					if (lr != LB_ERR)
 					{
-						std::vector<shared_ptr<ButtonItemData>> tempBuffer;
-						std::vector<shared_ptr<ButtonItemData>>::iterator iter;
+						vector<shared_ptr<ButtonItemData>> tempBuffer;
+						vector<shared_ptr<ButtonItemData>>::iterator iter;
 						for (iter = currentButtonOffsets.begin(); iter != currentButtonOffsets.end(); iter++)
 						{
 							if ((*iter)->buttonOffset != p->buttonOffset)
@@ -268,6 +275,8 @@ void CDiagButtonSelection::initvars()
 	hwndDeviceName = 0;
 	hwndMappedName = 0;
 	hwndListBox = 0;
+	pAnsiStringBuffer = NULL;
+	lenAnsiStringBuffer = 0;
 }
 
 HRESULT CDiagButtonSelection::init()
@@ -346,7 +355,7 @@ int len;
 				hr = pJoy->EnumObjects(::EnumDlgJoyButtonSelectionCallback, this, DIDFT_BUTTON);
 				if (hwndListBox)
 				{
-					std::vector<shared_ptr<ButtonItemData>>::iterator iter;
+					vector<shared_ptr<ButtonItemData>>::iterator iter;
 					for (iter = currentButtonOffsets.begin(); iter != currentButtonOffsets.end(); iter++)
 					{
 						deviceButtonName.clear();
@@ -370,7 +379,34 @@ int len;
 			{
 				if (hwndDeviceName)
 				{
+#ifdef UNICODE
 					Edit_SetText(hwndDeviceName, phName.wsz);
+#else
+
+					int maxallowedstringlen = _countof(phName.wsz);
+					int lenAnsiBuffer = 0;
+					bool stringOK = false;
+					if (SUCCEEDED(G::UcToAnsiRequiredBufferLength(phName.wsz, maxallowedstringlen - 1, lenAnsiBuffer)))
+					{
+						if (lenAnsiBuffer > 0)
+						{
+							char *p = this->AllocAnsiStringBuffer(lenAnsiBuffer);
+							if (p != NULL)
+							{
+								if (SUCCEEDED(G::UcToAnsi(phName.wsz, p, lenAnsiBuffer)))
+								{
+									stringOK = true;
+									Edit_SetText(hwndDeviceName, p);
+								}
+							}
+						}
+					}
+
+					if (!stringOK)
+					{
+						Edit_SetText(hwndDeviceName, TEXT(""));
+					}
+#endif
 				}
 			}
 
@@ -381,9 +417,29 @@ int len;
 	return hr;
 }
 
+char *CDiagButtonSelection::AllocAnsiStringBuffer(size_t size)
+{
+	if (this->lenAnsiStringBuffer < size)
+	{
+		if (this->pAnsiStringBuffer)
+		{
+			free(this->pAnsiStringBuffer);
+			this->pAnsiStringBuffer = 0;
+		}
+
+		this->pAnsiStringBuffer = (char *)malloc(size + 1);
+		if (this->pAnsiStringBuffer)
+		{
+			this->lenAnsiStringBuffer = size;
+		}
+	}
+
+	return this->pAnsiStringBuffer;
+}
+
 bool CDiagButtonSelection::GetButtonNameFromOffset(std::basic_string<TCHAR> &name, DWORD offset)
 {	
-	std::vector<GameControllerItem>::iterator iter;
+	vector<GameControllerItem>::iterator iter;
 	if (offset >= DIJOFS_BUTTON0 && offset < DIJOFS_BUTTON(joyconfig::MAXBUTTONS))
 	{
 		for (iter = buttons.begin(); iter != buttons.end(); iter++)

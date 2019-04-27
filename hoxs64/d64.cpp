@@ -882,7 +882,7 @@ const unsigned int SmallestTrackBits = 8;
 			trackNumber = HOST_MAX_TRACKS - 1;
 		}
 
-		byteIndex = byteIndex % (trackSize[trackNumber] / SmallestTrackBits);
+		byteIndex = (bit16)(byteIndex % (trackSize[trackNumber] / SmallestTrackBits));
 		if (byteIndex < trackAllocatedMemorySize[trackNumber])
 		{
 			t = speedZone[trackNumber][byteIndex/4];
@@ -900,7 +900,7 @@ bit8 t,s,mask;
 const unsigned int SmallestTrackBits = 8;
 	if (trackSize[trackNumber] >= SmallestTrackBits)
 	{
-		byteIndex = byteIndex % (trackSize[trackNumber] / SmallestTrackBits);
+		byteIndex = (bit16)(byteIndex % (trackSize[trackNumber] / SmallestTrackBits));
 		if (byteIndex < trackAllocatedMemorySize[trackNumber])
 		{
 			if (trackNumber < HOST_MAX_TRACKS)

@@ -247,8 +247,8 @@ public:
 	virtual void MemoryChanged()=0;
 };
 
-typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
-typedef std::map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterator BpIter;
+typedef map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
+typedef map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey>::iterator BpIter;
 
 class IMonitor;
 
