@@ -234,9 +234,9 @@ unsigned int cartstatesize, cartfullstatesize;
 				break;
 			}
 
-			if (cartfullstatesize > cartstatesize)
+			if (cartfullstatesize > cartstatesize + sizeof(bit32))
 			{
-				pos_in.QuadPart = cartfullstatesize - cartstatesize;
+				pos_in.QuadPart = cartfullstatesize - cartstatesize - sizeof(bit32);
 				hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
 				if (FAILED(hr))
 				{
