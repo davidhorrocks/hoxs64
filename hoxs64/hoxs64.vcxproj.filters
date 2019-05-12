@@ -220,9 +220,6 @@
     <ClCompile Include="wpccli.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="commandresult.cpp">
-      <Filter>Source Files\debugger</Filter>
-    </ClCompile>
     <ClCompile Include="runcommandassemble.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
@@ -369,6 +366,9 @@
     </ClCompile>
     <ClCompile Include="breakpoint.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="commandresult.cpp">
+      <Filter>Source Files\debugger</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

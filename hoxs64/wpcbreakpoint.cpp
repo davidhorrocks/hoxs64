@@ -27,31 +27,91 @@ HRESULT hr;
 	this->m_pAppCommand = pAppCommand;
 	hr = Init();
 	if (FAILED(hr))
+	{		
 		throw std::runtime_error("WpcBreakpoint::Init() failed");
-	m_bHexDisplay = true;
+	}
 }
 
 WpcBreakpoint::~WpcBreakpoint()
 {
+	this->Cleanup();
+}
+
+HRESULT WpcBreakpoint::Init()
+{
+HRESULT hr;
+	hr = S_OK;
+	do
+	{
+		m_hMenuBreakPoint = LoadMenu(this->GetHinstance(), TEXT("MENU_BREAKPOINT"));
+		if (!m_hMenuBreakPoint)
+		{
+			hr = E_FAIL;
+			break;
+		}
+
+		hr = this->AdviseEvents();
+		if (FAILED(hr))
+		{		
+			hr = E_FAIL;
+			break;
+		}
+
+	} while (false);
+
+	if (FAILED(hr))
+	{
+		this->Cleanup();
+	}
+
+	return S_OK;
+}
+
+HRESULT WpcBreakpoint::AdviseEvents()
+{
+	HRESULT hr;
+	HSink hs;
+	hr = S_OK;
+	do
+	{
+		hs = m_pAppCommand->EsBreakpointChanged.Advise(this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+
+		hs = m_pAppCommand->EsRadixChanged.Advise((WpcBreakpoint_EventSink_OnRadixChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+
+		hr = S_OK;
+	} while (false);
+
+	if (FAILED(hr))
+	{
+		UnadviseEvents();
+	}
+
+	return hr;
+}
+
+void WpcBreakpoint::UnadviseEvents()
+{
+	((WpcBreakpoint_EventSink_OnRadixChanged *)this)->UnadviseAll();
+}
+
+void WpcBreakpoint::Cleanup()
+{
+	this->UnadviseEvents();
 	if (m_hMenuBreakPoint)
 	{
 		DestroyMenu(m_hMenuBreakPoint);
 		m_hMenuBreakPoint = NULL;
 	}
-}
-
-HRESULT WpcBreakpoint::Init()
-{
-HSink hs;
-
-	m_hMenuBreakPoint = LoadMenu(this->GetHinstance(), TEXT("MENU_BREAKPOINT"));
-	if (!m_hMenuBreakPoint)
-		return E_FAIL;
-
-	hs = m_pAppCommand->EsBreakpointChanged.Advise(this);
-	if (!hs)
-		return E_FAIL;
-	return S_OK;
 }
 
 HRESULT WpcBreakpoint::RegisterClass(HINSTANCE hInstance)
@@ -72,7 +132,10 @@ WNDCLASSEX  wc;
     wc.lpszClassName = ClassName;
 	wc.hIconSm       = NULL;
 	if (RegisterClassEx(&wc)==0)
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;	
 }
 
@@ -83,17 +146,40 @@ HWND WpcBreakpoint::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR tit
 
 LRESULT WpcBreakpoint::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-HRESULT hr;
 	CREATESTRUCT *pcs = (CREATESTRUCT *)lParam;
 	if (pcs == NULL)
+	{
 		return -1;
+	}
+
 	m_hLvBreak = CreateListView(pcs, hWnd);
 	if (!m_hLvBreak)
+	{
 		return -1;
-	hr = FillListView(m_hLvBreak);
-	if (FAILED(hr))
-		return -1;
+	}
+
+	RefreshBreakpointListView();
 	return 0;
+}
+
+void WpcBreakpoint::SetMenuState()
+{
+	HMENU hBreakpointMenu = GetSubMenu(m_hMenuBreakPoint, 0);
+	DBGSYM::MonitorOption::Radix r = c64->GetMon()->Get_Radix();
+	if (r == DBGSYM::MonitorOption::Hex)
+	{
+		if (hBreakpointMenu)
+		{
+			::CheckMenuItem(hBreakpointMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
+		}
+	}
+	else
+	{
+		if (hBreakpointMenu)
+		{
+			::CheckMenuItem(hBreakpointMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
+		}
+	}
 }
 
 HWND WpcBreakpoint::CreateListView(CREATESTRUCT *pcs, HWND hWndParent)
@@ -117,19 +203,29 @@ bool ok = false;
 		GetClientRect(hWndParent, &rcWin);
 		hWnd = CreateWindowEx(0, WC_LISTVIEW, TEXT(""), WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_OWNERDATA, rcWin.left, rcWin.top, rcWin.right - rcWin.left, rcWin.bottom - rcWin.top, hWndParent, (HMENU)IDC_LVBREAKPOINT, pcs->hInstance, NULL);
 		if (!hWnd)
+		{
 			break;
+		}
 
 		ListView_SetExtendedListViewStyleEx(hWnd, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
 		ListView_SetCallbackMask(hWnd, LVIS_STATEIMAGEMASK);
 		hSmall = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), lvImageList, _countof(lvImageList));
 		if (!hSmall)
+		{
 			break;
+		}
+
 		hLarge = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), lvImageList, _countof(lvImageList));
 		if (!hLarge)
+		{
 			break;
+		}
+
 		hState = G::CreateImageListNormal(pcs->hInstance, hWndParent, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), lvImageList, _countof(lvImageList));
 		if (!hState)
+		{
 			break;
+		}
 
 		ListView_SetImageList(hWnd, hSmall, LVSIL_SMALL);
 		ListView_SetImageList(hWnd, hLarge, LVSIL_NORMAL);
@@ -137,11 +233,12 @@ bool ok = false;
 		hSmall = NULL;
 		hLarge = NULL;
 		hState = NULL;
-
 		hr = InitListViewColumns(hWnd);
 		if (FAILED(hr))
+		{
 			break;
-	
+		}
+
 		ok = true;
 	}  while (false);
 
@@ -149,21 +246,25 @@ bool ok = false;
 	{
 		hWnd = NULL;
 	}
+
 	if (hSmall)
 	{
 		ImageList_Destroy(hSmall);
 		hSmall = NULL;
 	}
+
 	if (hLarge)
 	{
 		ImageList_Destroy(hLarge);
 		hLarge = NULL;
 	}
+
 	if (hState)
 	{
 		ImageList_Destroy(hState);
 		hState = NULL;
 	}
+
 	return hWnd;
 }
 
@@ -172,9 +273,13 @@ int WpcBreakpoint::GetTextWidth(HWND hWnd, LPCTSTR szText, int fallbackWidthOnEr
 SIZE size;
 	HRESULT hr = G::GetTextSize(hWnd, szText, size);
 	if (SUCCEEDED(hr))
+	{
 		return size.cx;
+	}
 	else
+	{
 		return fallbackWidthOnError;
+	}
 }
 
 HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
@@ -191,7 +296,9 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, sDisk, sC64, NULL) + WidthPaddingItem + m_dpi.ScaleX((16+8) *2);
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cpu, &lvc);
 	if (r == -1)
+	{
 		return E_FAIL;
+	}
 
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
@@ -201,7 +308,9 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, sRasterCompare, NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Type, &lvc);
 	if (r == -1)
+	{
 		return E_FAIL;
+	}
 
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
@@ -211,7 +320,9 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$CCCCC"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Address, &lvc);
 	if (r == -1)
+	{
 		return E_FAIL;
+	}
 
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
@@ -221,7 +332,9 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$CCCC"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Line, &lvc);
 	if (r == -1)
+	{
 		return E_FAIL;
+	}
 
 	ZeroMemory(&lvc, sizeof(lvc));
 	lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
@@ -231,7 +344,10 @@ HRESULT WpcBreakpoint::InitListViewColumns(HWND hWndListView)
 	lvc.cx = G::CalcListViewMinWidth(hWndListView, lvc.pszText, TEXT("$CCCCC"), NULL) + WidthPaddingSubItem;
 	r = ListView_InsertColumn(hWndListView, (int)LvBreakColumnIndex::Cycle, &lvc);
 	if (r == -1)
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;
 }
 
@@ -241,10 +357,8 @@ HRESULT hr = E_FAIL;
 bool ok = false;
 	try
 	{
-		m_lstBreak.clear();
-	
-		Sp_BreakpointItem v;
-	
+		m_lstBreak.clear();	
+		Sp_BreakpointItem v;	
 		IEnumBreakpointItem *pEnumBpMain = c64->GetMon()->BM_CreateEnumBreakpointItem();
 		if (pEnumBpMain)
 		{
@@ -252,8 +366,10 @@ bool ok = false;
 			{
 				m_lstBreak.push_back(v);
 			}
+
 			delete pEnumBpMain;
 		}
+
 		ListView_SetItemCount(hWndListView, m_lstBreak.size());
 		ok = true;
 	}
@@ -269,7 +385,10 @@ LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 	int w = (short)LOWORD(lParam);  // horizontal position of cursor 
 	int h = (short)HIWORD(lParam);
 	if (wParam == SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
+	{
 		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+	}
+
 	MoveWindow(m_hLvBreak, 0, 0, w, h, TRUE);
 	return 0;
 }
@@ -280,6 +399,7 @@ HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& 
 	{
 		return E_FAIL;
 	}
+
 	bp = m_lstBreak[iRow];
 	return S_OK;
 }
@@ -301,73 +421,110 @@ TCHAR sAddressHexBuf[ADDRESS_DIGITS + 1];
 TCHAR sIntBuffer[20];
 
 	if (cch <= 0)
+	{
 		return E_FAIL;
+	}
+
 	*pText = _T('\0');
 	Sp_BreakpointItem bp;
 	hr = LvBreakPoint_RowCol_GetData(iRow, bp);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	switch(iCol)
 	{
 	case LvBreakColumnIndex::Cpu:
 		if (bp->machineident == DBGSYM::MachineIdent::MainCpu)
+		{
 			_tcsncpy_s(pText, cch, sC64, _TRUNCATE);
+		}
 		else if (bp->machineident == DBGSYM::MachineIdent::DiskCpu)
+		{
 			_tcsncpy_s(pText, cch, sDisk, _TRUNCATE);
+		}
 		else if (bp->machineident == DBGSYM::MachineIdent::Vic)
+		{
 			_tcsncpy_s(pText, cch, sVic, _TRUNCATE);
+		}
+
 		break;
 	case LvBreakColumnIndex::Type:
 		if (bp->bptype == DBGSYM::BreakpointType::Execute)
+		{
 			_tcsncpy_s(pText, cch, sExecute, _TRUNCATE);
+		}
 		else if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+		{
 			_tcsncpy_s(pText, cch, sRasterCompare, _TRUNCATE);
+		}
+
 		break;
 	case LvBreakColumnIndex::Address:
 		if (bp->bptype == DBGSYM::BreakpointType::Execute)
 		{
-			if (m_bHexDisplay)
+			switch (c64->GetMon()->Get_Radix())
 			{
+			case DBGSYM::MonitorOption::Hex:
 				HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
 				_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
 				_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
-			}
-			else
-			{
+				break;
+			case DBGSYM::MonitorOption::Dec:
 				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->address);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+				break;
+			default:
+				HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
+				_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
+				_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
+				break;
 			}
 		}
+
 		break;
 	case LvBreakColumnIndex::Line:
 		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
 		{
-			if (m_bHexDisplay)
+			switch (c64->GetMon()->Get_Radix())
 			{
+			case DBGSYM::MonitorOption::Hex:
 				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%03X"), bp->vic_line);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
-			}
-			else
-			{
+				break;
+			case DBGSYM::MonitorOption::Dec:
 				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_line);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+				break;
+			default:
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%03X"), bp->vic_line);
+				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+				break;
 			}
 		}
+
 		break;
 	case LvBreakColumnIndex::Cycle:
 		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
 		{
-			if (m_bHexDisplay)
+			switch (c64->GetMon()->Get_Radix())
 			{
+			case DBGSYM::MonitorOption::Hex:
 				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%02X"), bp->vic_cycle);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
-			}
-			else
-			{
+				break;
+			case DBGSYM::MonitorOption::Dec:
 				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_cycle);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+				break;
+			default:
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%02X"), bp->vic_cycle);
+				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
+				break;
 			}
 		}
+
 		break;
 	}
 	return S_OK;
@@ -378,11 +535,18 @@ int WpcBreakpoint::LvBreakPoint_RowCol_State(int iRow, int iCol)
 	Sp_BreakpointItem bp;
 	HRESULT hr = LvBreakPoint_RowCol_GetData(iRow, bp);
 	if (FAILED(hr))
+	{
 		return 0;
+	}
+
 	if (bp->enabled)
+	{
 		return 1;
+	}
 	else
+	{
 		return 2;
+	}
 }
 
 bool WpcBreakpoint::LvBreakPoint_OnDispInfo(NMLVDISPINFO *pnmh, LRESULT &lresult)
@@ -424,10 +588,15 @@ lresult = 0;
 			if (SUCCEEDED(hr))
 			{
 				if (bp->enabled)
+				{
 					this->DisableBreakpoint(bp);
+				}
 				else
+				{
 					this->EnableBreakpoint(bp);
+				}
 			}
+
 			m_bSuppressThisBreakpointEvent = false;
 			RECT rcState;
 			if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))
@@ -455,12 +624,18 @@ HMENU hMenu;
 	hMenu = GetSubMenu(m_hMenuBreakPoint, 0);
 	if (hMenu)
 	{
-		if (m_bHexDisplay)
-			CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
-		else
-			CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
+		//if (c64->GetMon()->Get_Radix() == DBGSYM::MonitorOption::Hex)
+		//{
+		//	CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
+		//}
+		//else
+		//{
+		//	CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
+		//}
+
 		TrackPopupMenuEx(hMenu, TPM_LEFTALIGN, rcWin.left, rcWin.top, m_hWnd, NULL);
 	}
+
 	return false;
 }
 
@@ -481,6 +656,7 @@ const USHORT ISDOWN = 0x8000;
 				OnEnableSelectedBreakpoint();
 				return true;
 			}
+
 			break;
 		case 'O':
 			nVirtKey = GetKeyState(VK_CONTROL); 
@@ -489,8 +665,10 @@ const USHORT ISDOWN = 0x8000;
 				OnDisableSelectedBreakpoint();
 				return true;
 			}
+
 			break;
 	}
+
 	return false;
 }
 
@@ -506,6 +684,7 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 			{
 				return LvBreakPoint_OnDispInfo((NMLVDISPINFO *)pnmh, lresult);
 			}
+
 			break;
 		case LVN_ODCACHEHINT:
 			lresult = 0;
@@ -521,6 +700,7 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 					return LvBreakPoint_OnRClick((NMITEMACTIVATE *)pnmh, lresult);
 				}
 			}
+
 			break;
 		case NM_CLICK: 
 			if (pnmh->hwndFrom == this->m_hLvBreak)
@@ -530,12 +710,15 @@ bool WpcBreakpoint::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresu
 					return LvBreakPoint_OnLClick((NMITEMACTIVATE *)pnmh, lresult);				
 				}
 			}
+
 			break;
 		case LVN_KEYDOWN:
 			return LvBreakPoint_OnKeyDown((NMLVKEYDOWN *)pnmh, lresult);
 		}
+
 		break;
 	}
+
 	return false;
 }
 
@@ -554,8 +737,16 @@ void WpcBreakpoint::OnBreakpointVicChanged(void *sender, BreakpointVicChangedEve
 void WpcBreakpoint::OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)
 {
 	if (m_bSuppressThisBreakpointEvent)
+	{
 		return;
-	FillListView(m_hLvBreak);
+	}	
+
+	RefreshBreakpointListView();
+}
+
+void WpcBreakpoint::OnRadixChanged(void *sender, RadixChangedEventArgs& e)
+{
+	this->RedrawBreakpointListItems();
 }
 
 void WpcBreakpoint::OnShowAssembly()
@@ -624,6 +815,7 @@ void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 				}
 			}
 		}
+
 		for (vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
 		{
 			c64->GetMon()->BM_DeleteBreakpoint(*it);
@@ -670,10 +862,25 @@ void WpcBreakpoint::OnDisableSelectedBreakpoint()
 
 void WpcBreakpoint::OnToggleHexadecimal()
 {
-	this->m_bHexDisplay = !this->m_bHexDisplay;
+	this->m_pAppCommand->ToggleHexadecimal();	
+}
+
+void WpcBreakpoint::RefreshBreakpointListView()
+{
+	this->FillListView(m_hLvBreak);
+	this->SetMenuState();
+}
+
+void WpcBreakpoint::RedrawBreakpointListItems()
+{
+
 	int i = ListView_GetItemCount(m_hLvBreak);
 	if (i > 0)
+	{
 		ListView_RedrawItems (this->m_hLvBreak, 0, i - 1);
+	}
+
+	SetMenuState();
 }
 
 LRESULT WpcBreakpoint::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -695,8 +902,11 @@ int wmId, wmEvent;
 		{
 			bHandled =  OnNotify(hWnd, (int)wParam, pnmh, lr);
 			if (bHandled)
+			{
 				return lr;
+			}
 		}
+
 		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam); // Remember, these are...
@@ -722,11 +932,13 @@ int wmId, wmEvent;
 			OnToggleHexadecimal();
 			return 0;
 		}
+
 		break;
 	case WM_INITMENU:
 		break;
 	case WM_INITMENUPOPUP:
 		break;
 	}
+
 	return DefWindowProc(m_hWnd, uMsg, wParam, lParam);;
 }

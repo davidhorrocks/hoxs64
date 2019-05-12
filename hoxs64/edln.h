@@ -3,29 +3,42 @@
 
 
 class EdLn;
-class EdLnTextChangedEventArgs : public EventArgs
+
+class EdLnControlEventArgs : public EventArgs
 {
 public:
-	EdLnTextChangedEventArgs(EdLn* pEdLnControl);
+	EdLnControlEventArgs(EdLn* pEdLnControl);		
 
 	EdLn* pEdLnControl;
 };
 
-class EdLnTabControlEventArgs : public EventArgs
+class EdLnTextChangedEventArgs : public EdLnControlEventArgs
+{
+public:
+	EdLnTextChangedEventArgs(EdLn* pEdLnControl);
+};
+
+class EdLnTabControlEventArgs : public EdLnControlEventArgs
 {
 public:
 	EdLnTabControlEventArgs(EdLn* pEdLnControl, bool isNext);
 
-	EdLn* pEdLnControl;
 	bool IsNext;
+	bool IsCancelled;
 };
 
-class EdLnEscControlEventArgs : public EventArgs
+class EdLnCancelControlEventArgs : public EdLnControlEventArgs
 {
 public:
-	EdLnEscControlEventArgs(EdLn* pEdLnControl);
+	EdLnCancelControlEventArgs(EdLn* pEdLnControl);
+};
 
-	EdLn* pEdLnControl;
+class EdLnSaveControlEventArgs : public EdLnControlEventArgs
+{
+public:
+	EdLnSaveControlEventArgs(EdLn* pEdLnControl);
+
+	bool IsCancelled;
 };
 
 class EdLn
@@ -33,45 +46,44 @@ class EdLn
 public:
 	enum EditStyle
 	{
-		HexAddress,
-		HexByte,
+		Address,
+		Byte,
 		CpuFlags,
-		Hex,
-		Dec,
-		DiskTrack
+		DiskTrack,
+		Number
 	};
-	EventSource<EdLnTextChangedEventArgs> EsOnTextChanged;
-	EventSource<EdLnTabControlEventArgs> EsOnTabControl;
-	EventSource<EdLnEscControlEventArgs> EsOnEscControl;
 
-	bool IsFocused;
 	EdLn();
 	virtual ~EdLn();	
 
-	HRESULT Init(HWND hWnd, int iControlID, int iTabIndex, HFONT hFont, LPCTSTR pszCaption, EditStyle style, bool isVisible, bool isEditable, int numChars);
-	void Cleanup();
+	EventSource<EdLnTextChangedEventArgs> EsOnTextChanged;
+	EventSource<EdLnTabControlEventArgs> EsOnTabControl;
+	EventSource<EdLnCancelControlEventArgs> EsOnCancelControl;
+	EventSource<EdLnSaveControlEventArgs> EsOnSaveControl;
+	bool IsChanged;
+	bool IsSelected;
+	int m_iTabIndex;	
 
-	HRESULT CreateDefaultHitRegion(HDC hdc);
-	
-	void Home();
-	void End();
+	HRESULT Init(HWND hWnd, int iControlID, int iTabIndex, HFONT hFont, LPCTSTR pszCaption);
+	void Cleanup();
+	HRESULT CreateDefaultHitRegion(HDC hdc);	
 	void Refresh();
 	HRESULT GetRects(HDC hdc, RECT *prcCaption, RECT *prcEdit, RECT *prcAll);
 	HRESULT SetPos(int x, int y);
-
 	int GetXPos();
 	int GetYPos();
-
-	void SetValue(int v);
-	HRESULT GetValue(int& v);
+	void SetEditValue(int v);
+	HRESULT GetEditValue(int& v);
 	void SetInsertionPoint(int v);
 	int GetInsertionPoint();
 	bool GetIsEditable();
 	bool GetIsVisible();
 	int GetControlID();
-	size_t GetString(TCHAR buffer[], int bufferSize);
-	void SetString(const TCHAR *data, int count);
+	size_t GetEditString(TCHAR buffer[], int bufferSize);
+	void SetEditString(const TCHAR *data, int count);
 	void CharEdit(TCHAR c);
+	bool CanCharEdit(TCHAR c);
+	bool OverwriteCharAndUpdateInsertionPoint(TCHAR c);
 	void KeyDown(int keycode);
 	void UpdateCaretPosition(HDC hdc);
 	void Draw(HDC hdc);
@@ -79,19 +91,17 @@ public:
 	bool IsHitEdit(int x, int y);
 	HRESULT GetCharIndex(HDC hdc, int x, int y, int *pOutCellIndex, POINT *pPos);
 	HRESULT GetCharPoint(HDC hdc, int cellIndex, int *pOutCellIndex, POINT *pPos);
-
-	int m_iTabIndex;
+	void SetStyle(EditStyle style, bool isVisible, bool isEditable, int numChars, bool isHex);
 protected:
 
-private:
-	//static const int PADDING_LEFT  = 0;
-	//static const int PADDING_RIGHT  = 0;
-	//static const int PADDING_TOP  = 0;
-	//static const int PADDING_BOTTOM  = 0;
-	//static const int MARGIN_TOP  = 0;
-	
+private:	
+	static const TCHAR m_szMeasureChar[];
+	static const int MaxChars = 256;
+	static const int LengthOfCharBuffer = MaxChars + 1;
+
 	bool m_bIsEditable;
 	bool m_bIsVisible;
+	bool m_bIsHex;
 	EditStyle m_style;
 	HFONT m_hFont;
 	int m_iControlID;
@@ -101,19 +111,10 @@ private:
 	int m_posY;
 	int m_MinSizeW;
 	int m_MinSizeH;
-	//bool m_MinSizeDone;
 	int m_iInsertionPoint;
 	int m_iShowCaretCount;
-
-	static const TCHAR m_szMeasureAddress[];
-	static const TCHAR m_szMeasureByte[];
-	static const TCHAR m_szMeasureCpuFlags[];
-	static const TCHAR m_szMeasureDigit[];
-	static const TCHAR m_szMeasureMaxTrack[];
-
 	int m_iValue;
-
-	TCHAR *m_szTextBuffer;
+	TCHAR *szEditTextBuffer;
 	INT * m_pTextExtents;
 	int m_iTextExtents;
 	TCHAR *m_pszCaption;
@@ -125,17 +126,20 @@ private:
 	void FreeTextBuffer();
 	HRESULT SetCaption(LPCTSTR pszCaption);
 	void FreeCaption();
-	void SetHexAddress(int v);
-	void SetHexByte(int v);
-	void SetFlags(int v);
-	void SetHex(int v);
-	void SetDec(int v);
-	void SetHalfTrackIndex(int v);
+	void SetHexAddress(TCHAR *pszBuffer, int v);
+	void SetHexByte(TCHAR *pszBuffer, int v);
+	void SetFlags(TCHAR *pszBuffer, int v);
+	void SetHex(TCHAR *pszBuffer, int v);
+	void SetDec(TCHAR *pszBuffer, int v);
+	void SetHalfTrackIndex(TCHAR *pszBuffer, int v);
 	HRESULT GetHalfTrackIndex(int& v);
 	HRESULT GetFlags(int& v);
 	HRESULT GetHex(int& v);
 	HRESULT GetDec(int& v);
+	void SetValue(TCHAR *pszBuffer, int v);
+	void SetString(TCHAR *pszBuffer, const TCHAR *data, int count);
 	void InitVars();
+	void SpacePadBuffer(TCHAR *pszBuffer, int bufferSize);
 };
 
 #endif

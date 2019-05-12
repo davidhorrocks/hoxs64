@@ -3880,11 +3880,17 @@ void C64::ExecuteRandomClocks(int minimumClocks, int maximumClocks)
 IMonitorCpu *C64::GetCpu(int cpuid)
 {
 	if (cpuid == CPUID_MAIN)
+	{
 		return &cpu;
+	}
 	else if (cpuid == CPUID_DISK)
+	{
 		return &diskdrive.cpu;
+	}
 	else
+	{
 		return NULL;
+	}
 }
 
 DefaultCpu::DefaultCpu(int cpuid, IC64 *c64)
@@ -3901,9 +3907,15 @@ int DefaultCpu::GetCpuId()
 IMonitorCpu *DefaultCpu::GetCpu()
 {
 	if (cpuid == CPUID_MAIN)
+	{
 		return c64->GetMon()->GetMainCpu();
+	}
 	else if (cpuid == CPUID_DISK)
+	{
 		return c64->GetMon()->GetDiskCpu();
+	}
 	else
+	{
 		return NULL;
+	}
 }

@@ -218,7 +218,7 @@ void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 RunCommandMapMemory *pRunCommandMapMemory;
 RunCommandDisassembly *pRunCommandDisassembly;
 RunCommandReadMemory *pRunCommandReadMemory;
-EventArgs argMemoryChanged;
+EventArgs argChanged;
 	if (m_bClosing)
 		return;
 	if (!m_pICommandResult)
@@ -247,6 +247,7 @@ EventArgs argMemoryChanged;
 					cpumode = pToken->cpumode;
 					this->m_cpumode = pToken->cpumode;
 				}
+
 				switch (cpumode)
 				{
 					case DBGSYM::CliCpuMode::C64:
@@ -256,6 +257,7 @@ EventArgs argMemoryChanged;
 						m_pICommandResult->AddLine(TEXT("Disk\r"));
 						break;
 				}
+
 				m_iDefaultAddress = GetDefaultCpuPcAddress();
 				break;
 			case DBGSYM::CliCommand::ClearScreen:
@@ -268,11 +270,16 @@ EventArgs argMemoryChanged;
 					if (!pRunCommandMapMemory->m_bViewDebuggerC64Mmu)
 					{
 						if (pRunCommandMapMemory->m_bSetDebuggerToFollowC64Mmu)
+						{
 							this->m_iDebuggerMmuIndex = -1;
+						}
 						else
+						{
 							this->m_iDebuggerMmuIndex = pRunCommandMapMemory->m_iMmuIndex;
+						}
 					}
 				}
+
 				break;
 			case DBGSYM::CliCommand::Disassemble:
 				pRunCommandDisassembly = (RunCommandDisassembly *)m_pICommandResult->GetRunCommand();
@@ -280,6 +287,7 @@ EventArgs argMemoryChanged;
 				{
 					this->m_iDefaultAddress = pRunCommandDisassembly->m_currentAddress;
 				}
+
 				break;
 			case DBGSYM::CliCommand::ReadMemory:
 				pRunCommandReadMemory = (RunCommandReadMemory *)m_pICommandResult->GetRunCommand();
@@ -287,18 +295,20 @@ EventArgs argMemoryChanged;
 				{
 					this->m_iDefaultAddress = pRunCommandReadMemory->m_currentAddress;
 				}
+
 				break;
 			case DBGSYM::CliCommand::Assemble:
-				argMemoryChanged = EventArgs();
-				this->m_pIAppCommand->EsMemoryChanged.Raise(this, argMemoryChanged);
+				argChanged = EventArgs();
+				this->m_pIAppCommand->EsMemoryChanged.Raise(this, argChanged);
 				break;
 			case DBGSYM::CliCommand::WriteMemory:
-				argMemoryChanged = EventArgs();
-				this->m_pIAppCommand->EsMemoryChanged.Raise(this, argMemoryChanged);
+				argChanged = EventArgs();
+				this->m_pIAppCommand->EsMemoryChanged.Raise(this, argChanged);
 				break;
 			}
 		}
 	}
+
 	if (m_pICommandResult)
 	{
 		m_pICommandResult->SetDataTaken();
@@ -309,11 +319,20 @@ void WpcCli::OnTimer(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HRESULT hr;
 	if (m_bClosing)
+	{
 		return;
+	}
+
 	if (!m_pICommandResult)
+	{
 		return;
+	}
+
 	if (m_pICommandResult->GetId() != (int)wParam)
+	{
 		return;
+	}
+
 	ITextSelection *pSel = 0;
 	if (m_pRange)
 	{
@@ -335,7 +354,10 @@ HRESULT hr;
 		WriteCommandResponse(m_pRange, TEXT("*break*\r"));
 		m_pRange->Collapse(tomEnd);
 		if (!isRangeInView(m_pRange))
+		{
 			m_pRange->ScrollIntoView(tomEnd);
+		}
+
 		m_pRange->Select();				
 		StopCommand();
 	}
@@ -349,10 +371,14 @@ HRESULT hr;
 				WriteCommandResponse(m_pRange, pline);
 				m_pRange->Collapse(tomEnd);
 				if (!isRangeInView(m_pRange))
+				{
 					m_pRange->ScrollIntoView(tomEnd);
+				}
+
 				m_pRange->Select();				
 			}
 		}
+
 		DBGSYM::CliCommandStatus::CliCommandStatus status = m_pICommandResult->GetStatus();
 		switch (status)
 		{
@@ -365,6 +391,7 @@ HRESULT hr;
 				break;
 		}
 	}
+
 	if (pSel)
 	{
 		pSel->Release();
@@ -375,7 +402,10 @@ HRESULT hr;
 bool WpcCli::isRangeInView(ITextRange *pIRange)
 {
 	if (m_nCliFontHeight <= 0 || pIRange == NULL)
+	{
 		return false;
+	}
+
 	long nCurrentLine;
 	long nTotalLines;
 	long nFirstLine;
@@ -391,9 +421,12 @@ bool WpcCli::isRangeInView(ITextRange *pIRange)
 		if (SUCCEEDED(m_pRange->GetIndex(tomLine, &nCurrentLine)))
 		{
 			if (nCurrentLine >= nFirstLine && nCurrentLine <= nLastLine)
+			{
 				return true;
+			}
 		}
 	}
+
 	return false;
 }
 
@@ -408,6 +441,7 @@ void WpcCli::OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		m_pICommandResult->SetHwnd(NULL);
 	}
+
 	StopCommand();
 	if (m_hWndEdit)
 	{
@@ -417,16 +451,19 @@ void WpcCli::OnDestory(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			m_wpOrigEditProc= NULL;
 		}
 	}
+
 	if (m_pRange)
 	{
 		m_pRange->Release();
 		m_pRange = 0;
 	}
+
 	if (m_pITextDocument)
 	{
 		m_pITextDocument->Release();
 		m_pITextDocument = 0;
 	}
+
 	if (m_pIRichEditOle)
 	{
 		m_pIRichEditOle->Release();
@@ -445,9 +482,14 @@ int wmId, wmEvent;
 	{
 	case WM_CREATE:
 		if (SUCCEEDED(OnCreate(hWnd, uMsg, wParam, lParam)))
+		{
 			return 0;
+		}
 		else
+		{
 			return -1;
+		}
+
 	case WM_SIZE:
 		OnSize(hWnd, uMsg, wParam, lParam);
 		return 0;
@@ -457,8 +499,11 @@ int wmId, wmEvent;
 		{
 			lr = OnNotify(hWnd, (int)wParam, pnmh, bHandled);
 			if (bHandled)
+			{
 				return lr;
+			}
 		}
+
 		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -560,9 +605,11 @@ void WpcCli::StopCommand()
 			KillTimer(GetHwnd(), m_pICommandResult->GetId());
 			m_bIsTimerActive = false;
 		}
+
 		m_pICommandResult->Quit();
 		m_pICommandResult->WaitFinished(INFINITE);
 	}
+
 	m_commandstate = Idle;
 }
 
@@ -574,9 +621,15 @@ long iStart = 0;
 long iEnd = 0;
 long iLen = 0;
 	if (m_commandstate == Busy)
+	{
 		return;
+	}
+
 	if (m_pIAppCommand->IsRunning())
+	{
 		return;
+	}
+
 	if (SUCCEEDED(GetCurrentParagraphText(NULL, &cb, NULL, NULL)))
 	{
 		ps = (LPTSTR)malloc(cb);
@@ -624,6 +677,7 @@ long iLen = 0;
 								}
 							}
 						}
+
 						pSel->Release();
 						pSel = 0;
 					}
@@ -644,13 +698,17 @@ ITextSelection *pSel = 0;
 		pSel->SetRange(iCharIndex, iCharIndex);
 		pSel->Release();
 	}
+
 	return S_OK;
 }
 
 HRESULT WpcCli::WriteCommandResponse(ITextRange *pRange, LPCTSTR pText)
 {
 	if (!pRange || !pText)
+	{
 		return E_POINTER;
+	}
+
 	BSTR bstr;
 	bstr = G::AllocBStr(pText);
 	if (bstr)
@@ -658,6 +716,7 @@ HRESULT WpcCli::WriteCommandResponse(ITextRange *pRange, LPCTSTR pText)
 		pRange->SetText(bstr);
 		SysFreeString(bstr);
 	}
+
 	return S_OK;
 }
 
@@ -672,6 +731,7 @@ HRESULT hr;
 		hr = WriteCommandResponse(pRange, pText);
 		pRange->Release();
 	}
+
 	return hr;
 }
 
@@ -692,10 +752,16 @@ long k;
 			for (ok = false; !ok ; ok = true)
 			{
 				if (FAILED(pRange->StartOf(tomParagraph, 0, &k)))
+				{
 					break;
+				}
+
 				if (FAILED(pRange->MoveEnd(tomParagraph, 1, &k)))
+				{
 					break;
+				}
 			}
+
 			if (ok)
 			{
 				if (SUCCEEDED(pRange->GetStart(&iStart)))
@@ -716,21 +782,31 @@ long k;
 							tr.lpstrText = psBuffer;
 							long c = (long)SendMessage(this->m_hWndEdit, EM_GETTEXTRANGE, 0, (LPARAM)&tr);
 							if (pcchBuffer)
+							{
 								*pcchBuffer = c;
+							}
+
 							if (c<=0)
+							{
 								psBuffer[0] = 0;
+							}
 						}
 						else
 						{
 							if (pcchBuffer)
+							{
 								*pcchBuffer = cb;
+							}
 						}
+
 						hrRet = S_OK;
 					}
 				}
 			}
+
 			pRange->Release();
 		}
+
 		pSel->Release();
 	}
 	return hrRet;

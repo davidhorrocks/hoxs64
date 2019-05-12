@@ -20,6 +20,11 @@
 #include "commandresult.h"
 #include "monitor.h"
 
+RadixChangedEventArgs::RadixChangedEventArgs(DBGSYM::MonitorOption::Radix radix)
+{
+	this->Radix = radix;
+}
+
 VicCursorMoveEventArgs::VicCursorMoveEventArgs(int cycle, int line)
 {
 	this->Cycle = cycle;
@@ -47,6 +52,7 @@ Monitor::Monitor()
 	m_pMonitorVic = NULL;
 	m_pMonitorDisk = NULL;
 	m_mux = NULL;
+	this->radix = DBGSYM::MonitorOption::Hex;
 }
 
 Monitor::~Monitor()
@@ -196,21 +202,22 @@ IMonitorDisk *Monitor::GetDisk()
 int Monitor::DisassembleOneInstruction(IMonitorCpu *pMonitorCpu, bit16 address, int memorymap, TCHAR *pAddressText, int cchAddressText, TCHAR *pBytesText, int cchBytesText, TCHAR *pMnemonicText, int cchMnemonicText, bool &isUndoc)
 {
 TCHAR szAddress[BUFSIZEADDRESSTEXT];
-TCHAR szHex[BUFSIZEADDRESSTEXT];
+TCHAR szNumber[BUFSIZEADDRESSTEXT];
 int instruction_size;
 TCHAR szAssembly[BUFSIZEMNEMONICTEXT];
-bit8 operand1;
+bit8 operandByte;
+bit16 operandWord;
+bit16 absAddress;
 
 	if (pMonitorCpu == NULL)
+	{
 		return 0;
+	}
 
 	szAssembly[0]=0;
 	bit8 opcode = pMonitorCpu->MonReadByte(address, memorymap);
-
 	const InstructionInfo& ii = CPU6502::AssemblyData[opcode];
-
 	lstrcpy(szAssembly, ii.mnemonic);
-
 	switch (ii.address_mode)
 	{
 	case amIMPLIED:
@@ -218,89 +225,199 @@ bit8 operand1;
 		break;
 	case amIMMEDIATE:
 		instruction_size=2;
-		lstrcat(szAssembly,TEXT(" #$"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
+		operandByte = pMonitorCpu->MonReadByte(address+1, memorymap);
+		lstrcat(szAssembly, TEXT(" #"));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+		}
+		else
+		{
+			lstrcat(szAssembly,TEXT("$"));
+			HexConv::long_to_hex(operandByte, szNumber, 2);
+		}
+
+		lstrcat(szAssembly, szNumber);
 		break;
 	case amZEROPAGE:
 		instruction_size=2;
-		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
+		operandByte = pMonitorCpu->MonReadByte(address+1, memorymap);
+		lstrcat(szAssembly, TEXT(" "));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+		}
+		else
+		{
+			lstrcat(szAssembly, TEXT("$"));
+			HexConv::long_to_hex(operandByte, szNumber, 2);
+		}
+
+		lstrcat(szAssembly, szNumber);
 		break;
 	case amZEROPAGEX:
 		instruction_size=2;
-		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		lstrcat(szAssembly,TEXT(",X"));
+		operandByte = pMonitorCpu->MonReadByte(address+1, memorymap);
+		lstrcat(szAssembly, TEXT(" "));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+		}
+		else
+		{
+			lstrcat(szAssembly, TEXT("$"));
+			HexConv::long_to_hex(operandByte, szNumber, 2);			
+		}
+
+		lstrcat(szAssembly, szNumber);
+		lstrcat(szAssembly, TEXT(",X"));
 		break;
 	case amZEROPAGEY:
 		instruction_size=2;
-		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		lstrcat(szAssembly,TEXT(",Y"));
+		operandByte = pMonitorCpu->MonReadByte(address+1, memorymap);
+		lstrcat(szAssembly,TEXT(" "));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+		}
+		else
+		{
+			lstrcat(szAssembly, TEXT("$"));
+			HexConv::long_to_hex(operandByte, szNumber, 2);
+		}
+
+		lstrcat(szAssembly, szNumber);
+		lstrcat(szAssembly, TEXT(",Y"));
 		break;
 	case amABSOLUTE:
 		instruction_size=3;
-		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
+		operandWord = pMonitorCpu->MonReadByte(address+1, memorymap);
+		lstrcat(szAssembly, TEXT(" "));
+		operandWord |= ((bit16)pMonitorCpu->MonReadByte(address+2, memorymap) << 8);
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+		}
+		else
+		{
+			lstrcat(szAssembly,TEXT("$"));
+			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+		}
+
+		lstrcat(szAssembly, szNumber);
 		break;
 	case amABSOLUTEX:
 		instruction_size=3;
-		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		lstrcat(szAssembly,TEXT(",X"));
+		operandWord = pMonitorCpu->MonReadByte(address+1, memorymap);
+		operandWord |= ((bit16)pMonitorCpu->MonReadByte(address+2, memorymap) << 8);
+		lstrcat(szAssembly,TEXT(" "));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+		}
+		else
+		{
+			lstrcat(szAssembly,TEXT("$"));
+			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+		}
+
+		lstrcat(szAssembly, szNumber);
+		lstrcat(szAssembly, TEXT(",X"));
 		break;
 	case amABSOLUTEY:
 		instruction_size=3;
-		lstrcat(szAssembly,TEXT(" $"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		lstrcat(szAssembly,TEXT(",Y"));
+		operandWord = pMonitorCpu->MonReadByte(address+1, memorymap);
+		operandWord |= ((bit16)pMonitorCpu->MonReadByte(address+2, memorymap) << 8);
+		lstrcat(szAssembly,TEXT(" "));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+		}
+		else
+		{
+			lstrcat(szAssembly,TEXT("$"));
+			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+		}
+
+		lstrcat(szAssembly, szNumber);
+		lstrcat(szAssembly, TEXT(",Y"));
 		break;
 	case amINDIRECT:
 		instruction_size=3;
-		lstrcat(szAssembly,TEXT(" ($"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+2, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		lstrcat(szAssembly,TEXT(")"));
+		operandWord = pMonitorCpu->MonReadByte(address+1, memorymap);
+		operandWord |= ((bit16)pMonitorCpu->MonReadByte(address+2, memorymap) << 8);
+		lstrcat(szAssembly,TEXT(" ("));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+		}
+		else
+		{
+			lstrcat(szAssembly,TEXT("$"));
+			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+		}
+
+		lstrcat(szAssembly, szNumber);
+		lstrcat(szAssembly, TEXT(")"));
 		break;
 	case amINDIRECTX:
 		instruction_size=2;
-		lstrcat(szAssembly,TEXT(" ($"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
-		lstrcat(szAssembly,TEXT(",X)"));
+		operandByte = pMonitorCpu->MonReadByte(address+1, memorymap);
+		lstrcat(szAssembly,TEXT(" ("));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+		}
+		else
+		{
+			lstrcat(szAssembly,TEXT("$"));
+			HexConv::long_to_hex(operandByte, szNumber, 2);
+		}
+
+		lstrcat(szAssembly, szNumber);
+		lstrcat(szAssembly, TEXT(",X)"));
 		break;
 	case amINDIRECTY:
 		instruction_size=2;
-		lstrcat(szAssembly,TEXT(" ($"));
-		HexConv::long_to_hex(pMonitorCpu->MonReadByte(address+1, memorymap), szHex, 2);
-		lstrcat(szAssembly,szHex);
+		operandByte = pMonitorCpu->MonReadByte(address+1, memorymap);
+		lstrcat(szAssembly,TEXT(" ("));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+		}
+		else
+		{
+			lstrcat(szAssembly,TEXT("$"));
+			HexConv::long_to_hex(operandByte, szNumber, 2);
+		}
+
+		lstrcat(szAssembly,szNumber);
 		lstrcat(szAssembly,TEXT("),Y"));
 		break;
 	case amRELATIVE:
 		instruction_size=2;
-		lstrcat(szAssembly,TEXT(" $"));
-		
-		operand1=pMonitorCpu->MonReadByte(address+1, memorymap);
-		if (operand1 & 0x80)
-			HexConv::long_to_hex(((bit16) address - (bit16) ((bit8)~(operand1) + (bit8)1) + (bit16) 2), szHex, 4);
+		operandByte = pMonitorCpu->MonReadByte(address+1, memorymap);
+		if (operandByte & 0x80)
+		{
+			absAddress = ((bit16) address - (bit16) ((bit8)~(operandByte) + (bit8)1) + (bit16) 2);
+		}
 		else
-			HexConv::long_to_hex(((bit16) address + (bit16) operand1 + (bit16) 2), szHex, 4);
-		lstrcat(szAssembly,szHex);
+		{
+			absAddress = ((bit16) address + (bit16) operandByte + (bit16) 2);
+		}
+
+		lstrcat(szAssembly, TEXT(" "));
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)absAddress);
+		}
+		else
+		{
+			lstrcat(szAssembly, TEXT("$"));
+			HexConv::long_to_hex((bit32)absAddress, szNumber, 4);
+		}
+
+		lstrcat(szAssembly,szNumber);
 		break;
 	default:		
 		instruction_size=1;
@@ -308,19 +425,28 @@ bit8 operand1;
 	}
 
 	isUndoc = ii.undoc!=0;
-
 	if (pMnemonicText != NULL && cchMnemonicText > 0)
+	{
 		_tcsncpy_s(pMnemonicText, cchMnemonicText, szAssembly, _TRUNCATE);
+	}
 
 	if (pBytesText != NULL && cchBytesText > 0)
 	{
-		DisassembleBytes(pMonitorCpu, address, memorymap, instruction_size, pBytesText, cchMnemonicText);
+		DisassembleBytes(pMonitorCpu, address, memorymap, instruction_size, pBytesText, cchBytesText);
 	}
 
 	if (pAddressText != NULL && cchAddressText > 0)
 	{
-		szAddress[0]=TEXT('$');
-		HexConv::long_to_hex(address, &szAddress[1], 4);
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			_sntprintf_s(szAddress, _countof(szNumber), _TRUNCATE, TEXT("%5d"), (unsigned int)address);
+		}
+		else
+		{
+			szAddress[0]=TEXT('$');
+			HexConv::long_to_hex(address, &szAddress[1], 4);
+		}
+
 		_tcsncpy_s(pAddressText, cchAddressText, szAddress, _TRUNCATE);
 	}
 	
@@ -331,40 +457,69 @@ int Monitor::DisassembleBytes(IMonitorCpu *pMonitorCpu, bit16 address, int memor
 {
 TCHAR *s;
 unsigned char b;
-const unsigned int DIGITS = 2;
+const unsigned int HEXDIGITS = 2;
+const unsigned int DECDIGITS = 3;
 
 	if (pMonitorCpu == NULL)
+	{
 		return 0;
+	}
+
 	if (pBuffer == NULL || cchBuffer <=0)
+	{
 		return 0;
+	}
+
 	s=pBuffer;
 	*s=0;
 	int charsRemaining = cchBuffer - 1;
 	int elementsFormatted = 0;
-	while (elementsFormatted < count){
+	int c;
+	while (elementsFormatted < count)
+	{
 		b = pMonitorCpu->MonReadByte(address, memorymap);
-
 		if (elementsFormatted > 0)
 		{
 			if (charsRemaining < 1)
+			{
 				break;
-			s[0]=TEXT(' ');
-			s=s+1;
+			}
+
+			s[0] = TEXT(' ');
+			s++;
+			charsRemaining--;
 		}
 
-		if (charsRemaining < DIGITS)
-			break;
+		if (this->radix == DBGSYM::MonitorOption::Dec)
+		{
+			if (charsRemaining < DECDIGITS)
+			{
+				break;
+			}
+				
+			c = _sntprintf_s(s, charsRemaining + 1, _TRUNCATE, TEXT("%3d"), (unsigned int)b);
+			s += c;
+			charsRemaining -= c;
+		}
+		else
+		{
+			if (charsRemaining < HEXDIGITS)
+			{
+				break;
+			}
 		
-		HexConv::long_to_hex(b, s, DIGITS);
-		s=s+DIGITS;
+			HexConv::long_to_hex(b, s, HEXDIGITS);
+			s += HEXDIGITS;
+			charsRemaining -= HEXDIGITS;
+		}
 
 		elementsFormatted++;
 		address++;
 	}
+
 	*s=0;
 	return elementsFormatted;
 }
-
 
 bool Monitor::BM_SetBreakpoint(Sp_BreakpointItem bp)
 {
@@ -395,6 +550,7 @@ bool Monitor::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp)
 		bp = it->second;
 		return true;
 	}
+
 	return false;
 }
 
@@ -402,7 +558,9 @@ void Monitor::BM_DeleteBreakpoint(Sp_BreakpointKey k)
 {
 Sp_BreakpointItem bp;
 	if (this->BM_GetBreakpoint(k, bp))
+	{
 		this->MapBpExecute.erase(k);
+	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
 	{
@@ -417,6 +575,7 @@ Sp_BreakpointItem bp;
 	{
 		bp->enabled = true;
 	}
+
 	if (m_pIC64Event && m_bMonitorEvents)
 	{
 		m_pIC64Event->BreakpointChanged();
@@ -430,6 +589,7 @@ Sp_BreakpointItem bp;
 	{
 		bp->enabled = false;
 	}
+
 	if (m_pIC64Event && m_bMonitorEvents)
 	{
 		m_pIC64Event->BreakpointChanged();
@@ -439,7 +599,9 @@ Sp_BreakpointItem bp;
 void Monitor::BM_EnableAllBreakpoints()
 {
 	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+	{
 		it->second->enabled = true;
+	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
 	{
@@ -450,7 +612,9 @@ void Monitor::BM_EnableAllBreakpoints()
 void Monitor::BM_DisableAllBreakpoints() 
 {
 	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+	{
 		it->second->enabled = false;
+	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
 	{
@@ -461,7 +625,6 @@ void Monitor::BM_DisableAllBreakpoints()
 void Monitor::BM_DeleteAllBreakpoints()
 {
 	MapBpExecute.clear();
-
 	if (m_pIC64Event && m_bMonitorEvents)
 	{
 		m_pIC64Event->BreakpointChanged();
@@ -485,7 +648,10 @@ HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int 
 		{
 			p = shared_ptr<ICommandResult>(new CommandResult(this, cpumode, iDebuggerMmuIndex, iDefaultAddress));
 			if (!p)
+			{
 				throw std::bad_alloc();
+			}
+
 			hr = E_FAIL;
 			m_lstCommandResult.push_back(p);
 			try
@@ -499,8 +665,11 @@ HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int 
 			catch(...)
 			{
 			}
+
 			if (FAILED(hr))
+			{
 				m_lstCommandResult.remove(p);
+			}
 		}
 		catch(...)
 		{
@@ -510,6 +679,7 @@ HRESULT Monitor::BeginExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int 
 				p.reset();
 			}
 		}
+
 		ReleaseMutex(m_mux);
 	}
 	return hr;
@@ -529,12 +699,15 @@ HRESULT Monitor::EndExecuteCommandLine(shared_ptr<ICommandResult> pICommandResul
 			this->RemoveCommand(pICommandResult);
 		}
 		else
+		{
 			hr = E_FAIL;
+		}
 	}
 	catch(...)
 	{
 		hr = E_FAIL;
 	}
+
 	return hr;	
 }
 
@@ -547,6 +720,7 @@ void Monitor::QuitCommands()
 		{
 			(*it)->Quit();
 		}
+
 		while (true)
 		{
 			if(rm == WAIT_OBJECT_0)
@@ -557,6 +731,7 @@ void Monitor::QuitCommands()
 					ReleaseMutex(m_mux);
 					break;
 				}
+
 				shared_ptr<ICommandResult> k = *it;
 				m_lstCommandResult.erase(it);
 				ReleaseMutex(m_mux);
@@ -565,7 +740,10 @@ void Monitor::QuitCommands()
 				k->Reset();
 			}
 			else
+			{
 				break;//should not happen
+			}
+
 			rm = WaitForSingleObject(m_mux, INFINITE);
 		}
 	}
@@ -595,7 +773,6 @@ void Monitor::RemoveCommand(shared_ptr<ICommandResult> pICommandResult)
 
 HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress, LPTSTR *ppszResults)
 {
-	Assembler as;
 	CommandToken *pcmdt = 0;
 	HRESULT hr = E_FAIL;
 	LPTSTR ps = 0;
@@ -617,9 +794,13 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 					while(SUCCEEDED(pcr->GetNextLine(&pline)))
 					{
 						if (!pline)
+						{
 							break;
+						}
+
 						s.append(pline);
 					}
+
 					ps = _tcsdup(s.c_str());
 				}
 			}
@@ -634,7 +815,10 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 		if (ppszResults)
 		{
 			if (ps)
+			{
 				hr = S_OK;
+			}
+
 			*ppszResults = ps;
 			ps = NULL;
 		}
@@ -650,10 +834,39 @@ HRESULT Monitor::ExecuteCommandLine(HWND hwnd, LPCTSTR pszCommandLine, int id, D
 		//pcr = 0;
 		pcr.reset();
 	}
+
 	if (pcmdt)
 	{
 		delete pcmdt;
 		pcmdt = 0;
 	}
 	return hr;
+}
+
+DBGSYM::MonitorOption::Radix Monitor::Get_Radix()
+{
+DBGSYM::MonitorOption::Radix r = DBGSYM::MonitorOption::Hex;
+	DWORD index = WaitForSingleObject(m_mux, INFINITE);
+	if (index == WAIT_OBJECT_0)
+	{
+		r = this->radix;
+		ReleaseMutex(m_mux);
+	}
+
+	return r;
+}
+
+void Monitor::Set_Radix(DBGSYM::MonitorOption::Radix radix)
+{
+	DWORD index = WaitForSingleObject(m_mux, INFINITE);
+	if (index == WAIT_OBJECT_0)
+	{
+		this->radix = radix;
+		ReleaseMutex(m_mux);
+	}
+
+	if (m_pIC64Event && m_bMonitorEvents)
+	{
+		m_pIC64Event->RadixChanged(radix);
+	}
 }

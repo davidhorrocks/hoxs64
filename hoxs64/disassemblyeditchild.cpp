@@ -253,7 +253,8 @@ bool CDisassemblyEditChild::IsEditing()
 {
 	if (this->m_hWndEditText!=NULL)
 	{
-		if (GetFocus() == m_hWndEditText)
+		if (::IsWindowVisible(m_hWndEditText))
+		//if (GetFocus() == m_hWndEditText)
 		{
 			return true;
 		}
@@ -264,19 +265,19 @@ bool CDisassemblyEditChild::IsEditing()
 
 void CDisassemblyEditChild::CancelAsmEditing()
 {
-	bool bHadFocus = IsEditing();
+	//bool bHadFocus = IsEditing();
 	this->HideEditMnemonic();
-	if (bHadFocus && m_hWnd != NULL)
-	{
-		SetFocus(m_hWnd);
-	}
+	//if (bHadFocus && m_hWnd != NULL)
+	//{
+	//	SetFocus(m_hWnd);
+	//}
 }
 
 HRESULT CDisassemblyEditChild::SaveAsmEditing()
 {
-Assembler as;
+
 TCHAR szText[MAX_EDIT_CHARS+1];
-int i;
+unsigned int i;
 HRESULT hr;
 bit8 acode[256];
 bit16 address;
@@ -291,13 +292,16 @@ bit16 address;
 		if (m_CurrentEditLineBuffer != NULL)
 		{
 			address = m_CurrentEditLineBuffer->Address;
+			Assembler as;
+			as.SetRadix(this->radix);
 			hr = as.AssembleText(address, szText, acode, _countof(acode), &i);
 			if (SUCCEEDED(hr))
 			{
-				for (int j = 0; j<i; j++)
+				for (unsigned int j = 0; j < i && j < _countof(acode); j++)
 				{
-					this->GetCpu()->MonWriteByte(address+j, acode[j], -1);
+					this->GetCpu()->MonWriteByte((bit16)(address + j), acode[j], -1);
 				}
+
 				this->UpdateBuffer(DBGSYM::SetDisassemblyAddress::None, 0);
 				this->InvalidateRectChanges();
 				::UpdateWindow(m_hWnd);
@@ -305,14 +309,25 @@ bit16 address;
 			}
 		}
 	}
-
+	
 	return E_FAIL;
+}
+
+void CDisassemblyEditChild::SetRadix(DBGSYM::MonitorOption::Radix radix)
+{
+	this->radix = radix;
 }
 
 HRESULT CDisassemblyEditChild::UpdateMetrics()
 {
+	return this->UpdateMetrics(this->radix);
+}
+
+HRESULT CDisassemblyEditChild::UpdateMetrics(DBGSYM::MonitorOption::Radix radix)
+{
 TEXTMETRIC tm;
 SIZE sz;
+	this->radix = radix;
 	HDC hdc = GetDC(m_hWnd);
 	if (!hdc)
 	{
@@ -335,7 +350,16 @@ SIZE sz;
 	int min_w = m_dpi.ScaleX(WIDTH_LEFTBAR_96);
 	int min_h = GetSystemMetrics(SM_CYVTHUMB) * 2 + GetSystemMetrics(SM_CYVTHUMB);
 	min_w += WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96) + m_dpi.ScaleX(PADDING_RIGHT_96);			
-	TCHAR s[]= TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
+	TCHAR *s;
+	if (radix == DBGSYM::MonitorOption::Hex)
+	{
+		s = TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
+	}
+	else
+	{
+		s = TEXT(".65535xx255x255x255xxLDA 65535,X");
+	}
+
 	int slen = lstrlen(s);
 	SIZE sizeText;
 	BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
@@ -349,21 +373,32 @@ SIZE sz;
 	m_MinSizeW = min_w;
 	m_MinSizeH = min_h;							
 	m_MinSizeDone = true;
-	LPCTSTR szSampleAddress = TEXT("$ABCDxx");
-	LPCTSTR szSampleBytes = TEXT("ABxABxABxx");
-	xcol_Address = m_dpi.ScaleX(WIDTH_LEFTBAR_96) + WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96);
+	LPCTSTR szSampleAddress;
+	LPCTSTR szSampleBytes;
+	if (radix == DBGSYM::MonitorOption::Hex)
+	{
+		szSampleAddress = TEXT("$ABCDxx");
+		szSampleBytes = TEXT("ABxABxABxx");	
+	}
+	else
+	{
+		szSampleAddress = TEXT(".65535xx");
+		szSampleBytes = TEXT("255x255x255xx");	
+	}
+
+	this->xcol_Address = m_dpi.ScaleX(WIDTH_LEFTBAR_96) + WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96);
 	if (!::GetTextExtentExPoint(hdc, szSampleAddress,lstrlen(szSampleAddress),0,NULL,NULL,&sz))
 	{
 		return E_FAIL;
 	}
 
-	xcol_Bytes = xcol_Address + sz.cx;
+	this->xcol_Bytes = this->xcol_Address + sz.cx;
 	if (!::GetTextExtentExPoint(hdc, szSampleBytes,lstrlen(szSampleBytes),0,NULL,NULL,&sz))
 	{
 		return E_FAIL;
 	}
 
-	xcol_Mnemonic = xcol_Bytes + sz.cx;
+	this->xcol_Mnemonic = this->xcol_Bytes + sz.cx;
 	return S_OK;
 }
 
@@ -374,10 +409,12 @@ DcHelper dch(hdc);
 HRESULT hr;
 	dch.UseMapMode(MM_TEXT);
 	m_hOldFont = dch.UseFont(m_hFont);
+	
 	//prevent dc restore
 	dch.m_hdc = NULL;
 	m_bIsFocused = false;
-	hr = UpdateMetrics();
+	this->SetRadix(this->c64->GetMon()->Get_Radix());
+	hr = this->UpdateMetrics();
 	if (FAILED(hr))
 	{
 		return hr;
@@ -401,6 +438,7 @@ void CDisassemblyEditChild::OnDestroy(HWND hWnd)
 		{
 			SelectObject(hdc, m_hOldFont);
 		}
+
 		m_hOldFont = 0;
 	}
 
@@ -545,6 +583,11 @@ HRESULT hr;
 			if (wParam == VK_ESCAPE)
 			{
 				CancelAsmEditing();
+				if (this->m_hWnd != NULL)
+				{
+					SetFocus(this->m_hWnd);
+				}
+
 				return 0;
 			}
 			else if (wParam == VK_RETURN)
@@ -587,8 +630,8 @@ HBRUSH bshWhite;
 		prevMapMode = SetMapMode(hdc, MM_TEXT);
 		if (prevMapMode)
 		{
-			//prevFont = (HFONT)SelectObject(hdc, m_hFont);		
-			//if (prevFont)
+			prevFont = (HFONT)SelectObject(hdc, m_hFont);		
+			if (prevFont)
 			{				
 				prevBrush = (HBRUSH)SelectObject(hdc, bshWhite);		
 				if (prevBrush)
@@ -1029,6 +1072,7 @@ bool CDisassemblyEditChild::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+HRESULT hr;
 	if (hWnd != m_hWnd)
 	{
 		return false;
@@ -1039,6 +1083,7 @@ bool CDisassemblyEditChild::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		switch (HIWORD(wParam))
 		{
 		case EN_KILLFOCUS:
+			hr = this->SaveAsmEditing();
 			this->HideEditMnemonic();
 			break;
 		}
@@ -1063,12 +1108,6 @@ LPNMHDR pn;
 	pn = (LPNMHDR)lParam;
 	if (pn->hwndFrom == this->m_hWndEditText)
 	{
-		//switch (pn->code)
-		//{
-		//case NM_KILLFOCUS:
-		//	this->HideEditMnemonic();
-		//	break;
-		//}
 	}
 	return 0;
 }
@@ -1617,6 +1656,10 @@ void CDisassemblyEditChild::OnBreakpointVicChanged(void *sender, BreakpointVicCh
 void CDisassemblyEditChild::OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)
 {
 	UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
+}
+
+void CDisassemblyEditChild::OnRadixChanged(void *sender, RadixChangedEventArgs& e)
+{
 }
 
 CDisassemblyEditChild::AssemblyLineBuffer::AssemblyLineBuffer()

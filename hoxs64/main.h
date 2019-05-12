@@ -75,11 +75,11 @@ public:
 	virtual void IAppCommand::DisplayVicRasterBreakpoints(bool bEnabled);
 	virtual void IAppCommand::SetVicCursorPos(int iCycle, int iLine);
 	virtual void IAppCommand::GetVicCursorPos(int *piCycle, int *piLine);
+	virtual void IAppCommand::ToggleHexadecimal();
 	// IAppCommand
 
 	
-	shared_ptr<CAppWindow> m_pWinAppWindow;
-	
+	shared_ptr<CAppWindow> m_pWinAppWindow;	
 
 	//IC64Event
 	virtual void BreakExecuteCpu64();
@@ -88,6 +88,7 @@ public:
 	virtual void BreakpointChanged();
 	virtual void Reset();
 	virtual void MemoryChanged();
+	virtual void RadixChanged(DBGSYM::MonitorOption::Radix radix);
 	virtual void SetBusy(bool bBusy);
 	virtual void DiskMotorLed(bool bOn);
 	virtual void DiskDriveLed(bool bOn);

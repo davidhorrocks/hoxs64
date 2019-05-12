@@ -39,10 +39,24 @@ void AssemblyToken::SetError(AssemblyToken* t)
 	t->TokenType =  AssemblyToken::Error;
 }
 
+Assembler::Assembler()
+{
+	this->radix = DBGSYM::MonitorOption::Hex;
+}
+
+void Assembler::SetRadix(DBGSYM::MonitorOption::Radix radix)
+{
+	this->radix = radix;
+}
+
+
 bool Assembler::AppendToIdentifierString(TCHAR ch)
 {
 	if (m_ibufPos + 1 >= _countof(m_bufIdentifierString))
+	{
 		return false;
+	}
+
 	m_bufIdentifierString[m_ibufPos] = ch;
 	m_ibufPos++;
 	m_bufIdentifierString[m_ibufPos] = 0;
@@ -52,7 +66,10 @@ bool Assembler::AppendToIdentifierString(TCHAR ch)
 HRESULT Assembler::InitParser(LPCTSTR pszText)
 {
 	if (!pszText)
+	{
 		return E_POINTER;
+	}
+
 	m_pos = 0;
 	m_bIsStartChar = true;
 	m_bIsStartToken = true;
@@ -61,7 +78,10 @@ HRESULT Assembler::InitParser(LPCTSTR pszText)
 
 	m_iLenText = lstrlen(pszText);
 	if (m_iLenText == 0)
+	{
 		return E_FAIL;
+	}
+
 	m_pszText = pszText;
 	GetNextChar();
 	GetNextChar();
@@ -72,91 +92,164 @@ HRESULT Assembler::InitParser(LPCTSTR pszText)
 	return S_OK;
 }
 
-HRESULT Assembler::TryParseAddress16(LPCTSTR pszText, bit16 *piAddress)
+HRESULT Assembler::TryParseAddress16(LPCTSTR pszText, DBGSYM::MonitorOption::Radix radix, bit16 *piAddress)
 {
-Assembler as;
+	Assembler as;
+	as.SetRadix(radix);
 	return as.ParseAddress16(pszText, piAddress);
 }
 
 HRESULT Assembler::ParseAddress16(LPCTSTR pszText, bit16 *piAddress)
 {
 	if (!piAddress)
+	{
 		return E_POINTER;
+	}
+
 	HRESULT hr = InitParser(pszText);
 	if (FAILED(hr))
+	{
 		return hr;
-
-	if (m_CurrentToken.TokenType == AssemblyToken::Number8)
-	{
-		*piAddress = m_CurrentToken.Value8;
-		GetNextToken();
-	}
-	else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
-	{
-		*piAddress = m_CurrentToken.Value16;
-		GetNextToken();
-	}
-	else
-	{
-		*piAddress = 0;
-		return E_FAIL;
 	}
 
+	hr = _ParseNumber16(piAddress);
+	if (SUCCEEDED(hr))
+	{
+		if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+		{
+			return E_FAIL;
+		}
+	}
 
-	if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
-		return E_FAIL;
-
-	return S_OK;
+	return hr;
 }
 
-HRESULT Assembler::AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleText(bit16 address, LPCTSTR pszText, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 HRESULT hr;
 
 	hr = InitParser(pszText);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	hr = AssembleOneInstruction(address, pCode, iBuffersize, piBytesWritten);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+	{
 		return E_FAIL;
+	}
 
 	return S_OK;
 }
 
-HRESULT Assembler::AssembleBytes(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleBytes(bit16 address, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 unsigned int iValue = 0;
-
-	if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+unsigned int i = 0;
+HRESULT hr = S_OK;	
+bit16 v;
+bit8 *p = pCode;
+bool is16bit = false;
+	if (p == NULL)
 	{
-		int i = 0;
-		bit8 *p = pCode;
-		for (i = 0; m_CurrentToken.TokenType == AssemblyToken::Number8; i++)
-		{
-			if (p != NULL)
-			{
-				if (i < iBuffersize)
-					p[i] = m_CurrentToken.Value8;
-				else
-					return E_FAIL;
-			}
-			GetNextToken();
-		}
-		if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
-			return E_FAIL;
-
-		if (piBytesWritten != NULL)
-			*piBytesWritten = i;
-		return S_OK;
+		iBuffersize = 0x10000;
 	}
-	return E_FAIL;
+
+	for (i = 0; i < iBuffersize && m_CurrentToken.TokenType != AssemblyToken::EndOfInput; i++)
+	{
+		hr = _ParseNumber16(&v, &is16bit);
+		if (SUCCEEDED(hr))
+		{
+			if (is16bit)
+			{
+				if (i + 1 < iBuffersize)
+				{
+					if (p)
+					{
+						p[i] = v & 0xff;
+					}
+
+					i++;
+
+					if (p)
+					{
+						p[i] = (v >> 8) & 0xff;
+					}
+				}
+				else
+				{
+					hr = E_FAIL;
+					break;
+				}
+			}
+			else
+			{
+				if (p)
+				{
+					p[i] = v & 0xff;
+				}
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+	{
+		return E_FAIL;
+	}
+
+	if (piBytesWritten != NULL)
+	{
+		*piBytesWritten = i;
+	}
+
+	return hr;
+	//if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+	//{
+	//	int i = 0;
+	//	for (i = 0; m_CurrentToken.TokenType == AssemblyToken::Number8; i++)
+	//	{
+	//		if (p != NULL)
+	//		{
+	//			if (i < iBuffersize)
+	//			{
+	//				p[i] = m_CurrentToken.Value8;
+	//			}
+	//			else
+	//			{
+	//				return E_FAIL;
+	//			}
+	//		}
+
+	//		GetNextToken();
+	//	}
+
+	//	if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
+	//	{
+	//		return E_FAIL;
+	//	}
+
+	//	if (piBytesWritten != NULL)
+	//	{
+	//		*piBytesWritten = i;
+	//	}
+
+	//	return S_OK;
+	//}
+
+	//return E_FAIL;
 }
 
-HRESULT Assembler::AssembleOneInstruction(bit16 address, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleOneInstruction(bit16 address, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 HRESULT hr;
 AssemblyToken tk;
@@ -167,37 +260,23 @@ unsigned int iValue = 0;
 	{
 		return E_FAIL;
 	}
-	else if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+	else if (m_CurrentToken.TokenType == AssemblyToken::Number8 || m_CurrentToken.TokenType == AssemblyToken::Number16 || (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && _tcsicmp(m_CurrentToken.IdentifierText, TEXT("m")) == 0))
 	{
 		int i = 0;
 		bit8 *p = pCode;
-		for (i=0; m_CurrentToken.TokenType == AssemblyToken::Number8; i++)
+		if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 		{
-			if (p != NULL && i < iBuffersize)
-				p[i] = m_CurrentToken.Value8;
 			GetNextToken();
 		}
-		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
-		{
-			if (piBytesWritten != NULL)
-				*piBytesWritten = i;
-			if (pCode != NULL && iBuffersize < i)
-				return E_FAIL;
-			return S_OK;
-		}
-		else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
-		{
-			return AssembleOneInstruction(address, pCode, iBuffersize, piBytesWritten);
-		}
-		else
-		{
-			return E_FAIL;
-		}
+
+		hr = AssembleBytes(address, pCode, iBuffersize, piBytesWritten);
+		return hr;
 	}
 	else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 	{
 		tk = m_CurrentToken;
 		GetNextToken();
+		TryConvertIdentifierTokenToHexNumber(m_CurrentToken);
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
 			//Implied addressing.
@@ -207,13 +286,16 @@ unsigned int iValue = 0;
 		else if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 		{
 			num8 = m_CurrentToken.Value8;
-			GetNextToken();
+			GetNextToken();			
 			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 			{
 				//$00
 				hr = AssembleZeroPage(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
 				if (SUCCEEDED(hr))
+				{
 					return S_OK;
+				}
+
 				hr = AssembleAbsolute(tk.IdentifierText, (bit16) num8, pCode, iBuffersize, piBytesWritten);
 				return hr;
 			}
@@ -230,7 +312,10 @@ unsigned int iValue = 0;
 							//$00,X
 							hr = AssembleZeroPageX(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
 							if (SUCCEEDED(hr))
+							{
 								return S_OK;
+							}
+
 							hr = AssembleAbsoluteX(tk.IdentifierText, (bit16) num8, pCode, iBuffersize, piBytesWritten);
 							return hr;
 						}
@@ -240,7 +325,10 @@ unsigned int iValue = 0;
 							//$00,Y
 							hr = AssembleZeroPageY(tk.IdentifierText, num8, pCode, iBuffersize, piBytesWritten);
 							if (SUCCEEDED(hr))
+							{
 								return S_OK;
+							}
+
 							hr = AssembleAbsoluteY(tk.IdentifierText, (bit16) num8, pCode, iBuffersize, piBytesWritten);
 							return hr;
 						}
@@ -257,19 +345,27 @@ unsigned int iValue = 0;
 				//$0000
 				hr = AssembleAbsolute(tk.IdentifierText, num16, pCode, iBuffersize, piBytesWritten);
 				if (SUCCEEDED(hr))
+				{
 					return hr;
+				}
+
 				if (num16 <= 0xff)
 				{
 					hr = AssembleZeroPage(tk.IdentifierText, (bit8)(num16 & 0xff), pCode, iBuffersize, piBytesWritten);
 					if (SUCCEEDED(hr))
+					{
 						return hr;
+					}
 				}
+
 				int diff = ((int)num16) - ((int)address+2);
 				if (diff <= 0x7f && diff >= -0x80)
 				{
 					hr = AssembleRelative(tk.IdentifierText, (bit8)(diff & 0xff), pCode, iBuffersize, piBytesWritten);
 					if (SUCCEEDED(hr))
+					{
 						return hr;
+					}
 				}
 			}
 			else if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
@@ -303,34 +399,51 @@ unsigned int iValue = 0;
 			{
 				//Immediate addressing.
 				GetNextToken();
+				TryConvertIdentifierTokenToHexNumber(m_CurrentToken);
 				if (m_CurrentToken.TokenType == AssemblyToken::Number8 || m_CurrentToken.TokenType == AssemblyToken::Number16)
 				{
 					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+					{
 						iValue = m_CurrentToken.Value8;
+					}
 					else
+					{
 						iValue = m_CurrentToken.Value16;
+					}
+
 					GetNextToken();
 					if (iValue <= 0xff)
 					{
 						//#$00
 						hr = AssembleImmediate(tk.IdentifierText, (bit8)(iValue & 0xff), pCode, iBuffersize, piBytesWritten);
 						if (SUCCEEDED(hr))
+						{
 							return S_OK;
+						}
+
 						hr = AssembleRelative(tk.IdentifierText, (bit8)(iValue & 0xff), pCode, iBuffersize, piBytesWritten);
 						if (SUCCEEDED(hr))
+						{
 							return S_OK;
+						}
 					}
 				}
 			}
 			else if (m_CurrentToken.SymbolChar == _T('('))
 			{
 				GetNextToken();
+				TryConvertIdentifierTokenToHexNumber(m_CurrentToken);
 				if (m_CurrentToken.TokenType == AssemblyToken::Number8 || (m_CurrentToken.TokenType == AssemblyToken::Number16))
 				{
 					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
+					{
 						iValue = m_CurrentToken.Value8;
+					}
 					else
+					{
 						iValue = m_CurrentToken.Value16;
+					}
+
 					GetNextToken();
 					if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 					{
@@ -391,31 +504,47 @@ unsigned int iValue = 0;
 	return E_FAIL;
 }
 
-HRESULT Assembler::instcopy(bit8 *pDest, int iSizeDest, bit8 *pSrc, int iSizeSrc, int *piBytesWritten)
+HRESULT Assembler::instcopy(bit8 *pDest, unsigned int iSizeDest, bit8 *pSrc, unsigned int iSizeSrc, unsigned int *piBytesWritten)
 {
-int i;
+unsigned int i;
 	if (pSrc==NULL)
+	{
 		return E_POINTER;
+	}
+
 	if (piBytesWritten)
+	{
 		*piBytesWritten = iSizeSrc;
+	}
+
 	if (pDest != NULL && iSizeDest < iSizeSrc)
+	{
 		return E_FAIL;
+	}
+
 	if (pDest==NULL)
+	{
 		return S_OK;
+	}
+
 	for (i = 0; i < iSizeSrc && i < iSizeDest; i++)
 	{
 		pDest[i] = pSrc[i];
 	}
+
 	if (piBytesWritten)
+	{
 		*piBytesWritten = i;
+	}
+
 	return S_OK;
 }
 
-HRESULT Assembler::AssembleImplied(LPCTSTR pszMnemonic, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleImplied(LPCTSTR pszMnemonic, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[1];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amIMPLIED && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0 && inf.undoc == 0)
@@ -424,6 +553,7 @@ bit8 v[1];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	for(int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
@@ -433,14 +563,15 @@ bit8 v[1];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleImmediate(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleImmediate(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[2];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amIMMEDIATE && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -450,14 +581,15 @@ bit8 v[2];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleZeroPage(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleZeroPage(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[2];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amZEROPAGE && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -467,14 +599,15 @@ bit8 v[2];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleZeroPageX(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleZeroPageX(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[2];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amZEROPAGEX && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -484,14 +617,15 @@ bit8 v[2];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleZeroPageY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleZeroPageY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[2];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amZEROPAGEY && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -501,14 +635,15 @@ bit8 v[2];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleAbsolute(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleAbsolute(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[3];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amABSOLUTE && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -519,14 +654,15 @@ bit8 v[3];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleAbsoluteX(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleAbsoluteX(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[3];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amABSOLUTEX && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -537,15 +673,16 @@ bit8 v[3];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 
 }
 
-HRESULT Assembler::AssembleAbsoluteY(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleAbsoluteY(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[3];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amABSOLUTEY && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -556,14 +693,15 @@ bit8 v[3];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleIndirect(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleIndirect(LPCTSTR pszMnemonic, bit16 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[3];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amINDIRECT && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -574,14 +712,15 @@ bit8 v[3];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleIndirectX(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleIndirectX(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[2];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amINDIRECTX && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -591,14 +730,15 @@ bit8 v[2];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleIndirectY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleIndirectY(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[2];
 
-	for(int i=0; i <= 0xff; i++)
+	for(unsigned int i=0; i <= 0xff; i++)
 	{
 		const InstructionInfo& inf = CPU6502::AssemblyData[i];
 		if (inf.address_mode == amINDIRECTY && _tcsicmp(pszMnemonic, CPU6502::AssemblyData[i].mnemonic) == 0)
@@ -608,10 +748,11 @@ bit8 v[2];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT Assembler::AssembleRelative(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, int iBuffersize, int *piBytesWritten)
+HRESULT Assembler::AssembleRelative(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten)
 {
 bit8 v[2];
 
@@ -625,6 +766,7 @@ bit8 v[2];
 			return instcopy(pCode, iBuffersize, v, _countof(v), piBytesWritten);
 		}
 	}
+
 	return E_FAIL;
 }
 
@@ -684,6 +826,7 @@ TCHAR ch;
 					AssemblyToken::SetError(&m_NextToken);
 					return;
 				}
+
 				m_LexState = LexState::IdentifierString;
 				GetNextChar();
 				break;
@@ -703,9 +846,24 @@ TCHAR ch;
 				GetNextChar();
 				return;
 			}
-			else if (IsDigit(ch))
+			else if (ch == _T('.') && IsDigit(m_NextCh))
 			{
 				m_LexState = LexState::Number;
+				GetNextChar();
+				break;
+			}
+			else if (IsDigit(ch))
+			{
+				if (this->radix == DBGSYM::MonitorOption::Dec)
+				{
+					m_LexState = LexState::Number;
+				}
+				else
+				{
+					iHexDigitCount = 0;
+					m_LexState = LexState::HexString;
+				}
+
 				break;
 			}
 			else
@@ -715,6 +873,7 @@ TCHAR ch;
 				GetNextChar();
 				return;
 			}
+
 			break;
 		case LexState::IdentifierString:
 			if (IsLetter(ch) || IsDigit(ch))
@@ -725,6 +884,7 @@ TCHAR ch;
 					AssemblyToken::SetError(&m_NextToken);
 					return;
 				}
+
 				m_LexState = LexState::IdentifierString;
 				GetNextChar();
 				break;
@@ -748,6 +908,7 @@ TCHAR ch;
 					AssemblyToken::SetError(&m_NextToken);
 					return;
 				}
+
 				m_LexState = LexState::Number;
 				GetNextChar();
 				break;
@@ -765,8 +926,10 @@ TCHAR ch;
 					m_NextToken.TokenType = AssemblyToken::Number8;
 					m_NextToken.Value8 = m_bufNumber;
 				}
+
 				return;
 			}
+
 			break;
 		case LexState::HexString:
 			if (IsHexDigit(ch))
@@ -774,17 +937,25 @@ TCHAR ch;
 				iHexDigitCount++;
 				m_bufNumber = m_bufNumber * 16;
 				if (IsDigit(ch))
+				{
 					m_bufNumber = m_bufNumber + (int)(ch - _T('0'));
+				}
 				else if (ch >= _T('A') && ch <= _T('F'))
+				{
 					m_bufNumber = m_bufNumber + (int)(ch - _T('A')) + 10;
+				}
 				else if (ch >= _T('a') && ch <= _T('f'))
+				{
 					m_bufNumber = m_bufNumber + (int)(ch - _T('a')) + 10;
+				}
+
 				if (m_bufNumber > 0xffff)
 				{
 					//Number too big
 					AssemblyToken::SetError(&m_NextToken);
 					return;
 				}
+
 				m_LexState = LexState::HexString;
 				GetNextChar();
 				break;
@@ -802,9 +973,11 @@ TCHAR ch;
 					m_NextToken.TokenType = AssemblyToken::Number8;
 					m_NextToken.Value8 = m_bufNumber;
 				}
+
 				_tcsncpy_s(m_NextToken.IdentifierText, _countof(m_NextToken.IdentifierText), m_bufIdentifierString, _countof(m_bufIdentifierString));
 				return;
 			}
+
 			break;
 		default:
 			//Unknown state. Should not happen.
@@ -857,25 +1030,147 @@ HRESULT Assembler::_ParseAddress(bit16 *piAddress)
 
 HRESULT Assembler::_ParseNumber16(bit16 *piNumber)
 {
+	bool is16bit;
+	return _ParseNumber16(piNumber, &is16bit);
+}
+
+HRESULT Assembler::_ParseNumber16(bit16 *piNumber, bool *pIs16bit)
+{
+	if (pIs16bit)
+	{
+		*pIs16bit = false;
+	}
+
 	if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 	{
 		if (piNumber)
+		{			
 			*piNumber = m_CurrentToken.Value8;
+		}
+
 		GetNextToken();
 		return S_OK;
 	}
 	else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
 	{
 		if (piNumber)
+		{			
 			*piNumber = m_CurrentToken.Value16;
+		}
+
+		if (pIs16bit)
+		{
+			*pIs16bit = true;
+		}
+
 		GetNextToken();
 		return S_OK;
 	}
-	else
+	else if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && this->radix == DBGSYM::MonitorOption::Hex)
+	{
+		bool ok = false;
+		int len = lstrlen(m_CurrentToken.IdentifierText);
+		
+		if (len > 2)
+		{
+			if (pIs16bit)
+			{
+				*pIs16bit = true;
+			}
+		}
+
+		bit16 v;
+		ok = TryParseHexWord(m_CurrentToken.IdentifierText, &v);
+		if (ok)
+		{
+			if (piNumber)
+			{
+				*piNumber = v;
+			}
+
+			GetNextToken();
+			return S_OK;
+		}
+	}
+
+	if (piNumber)
 	{
 		*piNumber = 0;
-		return E_FAIL;
 	}
+
+	return E_FAIL;
+}
+
+bool Assembler::TryParseHexWord(LPCTSTR str, bit16 *pvalue)
+{
+	bool ok = false;
+	unsigned int v = 0;
+	if (str != NULL)
+	{
+		unsigned int len = lstrlen(str);
+		if (len > 0 && len <= 4)
+		{
+			ok = true;
+			unsigned int i;
+			for (i = 0; i < len; i++)
+			{
+				TCHAR ch = str[i];
+				if (!IsHexDigit(ch))
+				{
+					ok = false;
+					break;
+				}
+
+				v <<= 4;
+				if (IsDigit(ch))
+				{
+					v = v + (unsigned int)(ch - _T('0'));
+				}
+				else if (ch >= _T('A') && ch <= _T('F'))
+				{
+					v = v + (unsigned int)(ch - _T('A')) + 10;
+				}
+				else if (ch >= _T('a') && ch <= _T('f'))
+				{
+					v = v + (unsigned int)(ch - _T('a')) + 10;
+				}
+			}
+		}
+	}
+
+	if (pvalue != NULL)
+	{
+		*pvalue = (bit16)(v & 0xffff);
+	}
+
+	return ok;
+}
+
+bool Assembler::TryConvertIdentifierTokenToHexNumber(AssemblyToken &token)
+{
+	if (this->radix == DBGSYM::MonitorOption::Hex && token.TokenType == AssemblyToken::IdentifierString)
+	{
+		bit16 v;
+		if (TryParseHexWord(token.IdentifierText, &v))
+		{
+			if (lstrlen(token.IdentifierText) > 2)
+			{
+				token.TokenType = AssemblyToken::Number16;
+				token.Value16 = v;
+				token.Value8 = 0;
+			}
+			else
+			{
+				token.TokenType = AssemblyToken::Number8;
+				token.Value16 = 0;
+				token.Value8 = (bit8)(v & 0xff);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 HRESULT Assembler::CreateCliCommandToken(LPCTSTR pszText, CommandToken **ppmdr)
@@ -886,13 +1181,18 @@ CommandToken *pcr = NULL;
 	{
 		hr = InitParser(pszText);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 
 		if ((m_CurrentToken.TokenType == AssemblyToken::Symbol && m_CurrentToken.SymbolChar==TEXT('?')) || (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("?")) == 0 || _tcsicmp(m_CurrentToken.IdentifierText, TEXT("help")) == 0 || _tcsicmp(m_CurrentToken.IdentifierText, TEXT("man")) == 0)))
 		{
 			pcr = new CommandToken();
 			if (pcr == 0)
+			{
 				throw std::bad_alloc();
+			}
+
 			GetNextToken();
 			if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString)
 			{
@@ -934,25 +1234,39 @@ CommandToken *pcr = NULL;
 				GetNextToken();
 				pcr = new CommandToken();
 				if (pcr == 0)
+				{
 					throw std::bad_alloc();
+				}
+
 				pcr->SetTokenClearScreen();
 			}
 		}
+
 		if (pcr==NULL)
 		{
 			pcr = new CommandToken();
 			if (pcr == 0)
+			{
 				throw std::bad_alloc();
+			}
+
 			pcr->SetTokenError(TEXT("Unrecognised command. Type 'help'\r"));
 		}
+
 		if (ppmdr)
+		{
 			*ppmdr = pcr;
+		}
+
 		return S_OK;
 	}
 	catch(std::exception&)
 	{
 		if (pcr)
+		{
 			delete pcr;
+		}
+
 		return E_FAIL;
 	}
 }
@@ -964,7 +1278,9 @@ CommandToken *Assembler::GetCommandTokenShowCpu()
 	{
 		pcr = new CommandToken();
 		if (pcr == 0)
+		{
 			throw std::bad_alloc();
+		}
 
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
@@ -989,7 +1305,9 @@ CommandToken *Assembler::GetCommandTokenCpu()
 	{
 		pcr = new CommandToken();
 		if (pcr == 0)
+		{
 			throw std::bad_alloc();
+		}
 
 		bool bViewCpu = true;
 		bool bOk = false;
@@ -1030,21 +1348,30 @@ CommandToken *Assembler::GetCommandTokenCpu()
 				}
 			}
 		}
+
 		if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
 		{
 			bOk = false;
 		}
+
 		if (bOk)
+		{
 			pcr->SetTokenSelectCpu(cpumode, bViewCpu);
+		}
 		else
+		{
 			pcr->SetTokenHelp(TEXT("cpu"));
+		}
 
 		return pcr;
 	}
 	catch(std::exception&)
 	{
 		if (pcr)
+		{
 			delete pcr;
+		}
+
 		throw;
 	}
 }
@@ -1052,13 +1379,19 @@ CommandToken *Assembler::GetCommandTokenCpu()
 CommandToken *Assembler::GetCommandTokenDisassembleLine()
 {
 HRESULT hr;
+bit16 startaddress;
+bit16 length;
+bit16 finishaddress;
 
 	CommandToken *pcr = NULL;
 	try
 	{
 		pcr = new CommandToken();
 		if (pcr == 0)
+		{
 			throw std::bad_alloc();
+		}
+
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
@@ -1066,7 +1399,6 @@ HRESULT hr;
 		}
 		else
 		{
-			bit16 startaddress, endaddress;
 			hr = _ParseNumber16(&startaddress);
 			if (SUCCEEDED(hr))
 			{
@@ -1076,21 +1408,46 @@ HRESULT hr;
 				}
 				else
 				{
-					hr = _ParseNumber16(&endaddress);
-					if (SUCCEEDED(hr))
+					if (m_CurrentToken.TokenType == AssemblyToken::Symbol && m_CurrentToken.SymbolChar == TEXT('-'))
 					{
-						if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+						GetNextToken();
+						hr = _ParseNumber16(&finishaddress);
+						if (FAILED(hr))
 						{
-							pcr->SetTokenDisassembly(startaddress, endaddress);
-						}
-						else
-						{
-							pcr->SetTokenError(TEXT("Disassemble memory failed.\r"));
+							pcr->SetTokenError(TEXT("Invalid finish-address.\r"));
 						}
 					}
 					else
 					{
-						pcr->SetTokenError(TEXT("Invalid end-address.\r"));
+						hr = _ParseNumber16(&length);
+						if (SUCCEEDED(hr))
+						{
+							if (length == 0)
+							{
+								length++;
+							}
+
+							finishaddress = startaddress + length - 1;
+						}
+						else
+						{
+							if (FAILED(hr))
+							{
+								pcr->SetTokenError(TEXT("Invalid length.\r"));
+							}
+						}
+					}
+
+					if (SUCCEEDED(hr))
+					{
+						if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+						{
+							pcr->SetTokenDisassembly(startaddress, finishaddress);
+						}
+						else
+						{
+							pcr->SetTokenError(TEXT("Too many parameters.\r"));
+						}
 					}
 				}
 			}
@@ -1099,12 +1456,16 @@ HRESULT hr;
 				pcr->SetTokenError(TEXT("Invalid start-address.\r"));
 			}
 		}
+
 		return pcr;
 	}
 	catch(std::exception&)
 	{
 		if (pcr)
+		{
 			delete pcr;
+		}
+
 		throw;
 	}
 }
@@ -1114,13 +1475,16 @@ CommandToken *Assembler::GetCommandTokenAssembleLine()
 HRESULT hr;
 bit16 address;
 bit8 v[256];
-int w;
+unsigned int w;
 	CommandToken *pcr = NULL;
 	try
 	{
 		pcr = new CommandToken();
 		if (pcr == 0)
+		{
 			throw std::bad_alloc();
+		}
+
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
@@ -1153,12 +1517,16 @@ int w;
 				pcr->SetTokenError(TEXT("Invalid address.\r"));
 			}
 		}
+
 		return pcr;
 	}
 	catch(std::exception&)
 	{
 		if (pcr)
+		{
 			delete pcr;
+		}
+
 		throw;
 	}
 }
@@ -1172,7 +1540,10 @@ CommandToken *Assembler::GetCommandTokenMapMemory()
 	{
 		pcr = new CommandToken();
 		if (pcr == 0)
+		{
 			throw std::bad_alloc();
+		}
+
 		DBGSYM::CliMapMemory::CliMapMemory map = DBGSYM::CliMapMemory::VIEWCURRENT;
 		while (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
 		{
@@ -1218,15 +1589,22 @@ CommandToken *Assembler::GetCommandTokenMapMemory()
 		if (pcr->cmd != DBGSYM::CliCommand::Error)
 		{
 			if(map & DBGSYM::CliMapMemory::SETCURRENT)
+			{
 				map = DBGSYM::CliMapMemory::SETCURRENT;
+			}
+
 			pcr->SetTokenMapMemory(map);
 		}
+
 		return pcr;
 	}
 	catch(std::exception&)
 	{
 		if (pcr)
+		{
 			delete pcr;
+		}
+
 		throw;
 	}
 }
@@ -1235,6 +1613,7 @@ CommandToken *Assembler::GetCommandTokenReadMemory()
 {
 HRESULT hr;
 bit16 startaddress;
+bit16 length;
 bit16 finishaddress;
 
 	CommandToken *pcr = NULL;
@@ -1242,7 +1621,10 @@ bit16 finishaddress;
 	{
 		pcr = new CommandToken();
 		if (pcr == 0)
+		{
 			throw std::bad_alloc();
+		}
+
 		GetNextToken();
 		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 		{
@@ -1257,9 +1639,38 @@ bit16 finishaddress;
 				{
 					pcr->SetTokenReadMemory(startaddress);
 				}
-				else
+				else 
 				{
-					hr = _ParseNumber16(&finishaddress);
+					if (m_CurrentToken.TokenType == AssemblyToken::Symbol && m_CurrentToken.SymbolChar == TEXT('-'))
+					{
+						GetNextToken();
+						hr = _ParseNumber16(&finishaddress);
+						if (FAILED(hr))
+						{
+							pcr->SetTokenError(TEXT("Invalid finish-address.\r"));
+						}
+					}
+					else
+					{
+						hr = _ParseNumber16(&length);
+						if (SUCCEEDED(hr))
+						{
+							if (length == 0)
+							{
+								length++;
+							}
+
+							finishaddress = startaddress + length - 1;
+						}
+						else
+						{
+							if (FAILED(hr))
+							{
+								pcr->SetTokenError(TEXT("Invalid length.\r"));
+							}
+						}
+					}
+
 					if (SUCCEEDED(hr))
 					{
 						if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
@@ -1268,12 +1679,8 @@ bit16 finishaddress;
 						}
 						else
 						{
-							pcr->SetTokenError(TEXT("Read memory failed.\r"));
+							pcr->SetTokenError(TEXT("Too many parameters.\r"));
 						}
-					}
-					else 
-					{
-						pcr->SetTokenError(TEXT("Invalid finish-address.\r"));
 					}
 				}
 			}
@@ -1282,12 +1689,16 @@ bit16 finishaddress;
 				pcr->SetTokenError(TEXT("Invalid start-address.\r"));
 			}
 		}
+
 		return pcr;
 	}
 	catch(std::exception&)
 	{
 		if (pcr)
+		{
 			delete pcr;
+		}
+
 		throw;
 	}
 }
@@ -1297,13 +1708,16 @@ CommandToken *Assembler::GetCommandTokenWriteMemory()
 HRESULT hr;
 bit16 address;
 bit8 v[256];
-int w;
+unsigned int w;
 	CommandToken *pcr = NULL;
 	try
 	{
 		pcr = new CommandToken();
 		if (pcr == 0)
+		{
 			throw std::bad_alloc();
+		}
+
 		GetNextToken();
 		hr = _ParseNumber16(&address);
 		if (SUCCEEDED(hr))
@@ -1329,12 +1743,16 @@ int w;
 		{
 			pcr->SetTokenError(TEXT("Invalid address.\r"));
 		}
+
 		return pcr;
 	}
 	catch(std::exception&)
 	{
 		if (pcr)
+		{
 			delete pcr;
+		}
+
 		throw;
 	}
 }
@@ -1352,9 +1770,13 @@ void CommandToken::SetTokenHelp(LPCTSTR name)
 {
 	cmd = DBGSYM::CliCommand::Help;
 	if (name != NULL)
+	{
 		this->text.assign(name);
+	}
 	else
+	{
 		this->text.clear();
+	}
 }
 
 void CommandToken::SetTokenDisassembly()
@@ -1479,7 +1901,7 @@ void CommandToken::SetTokenReadMemory(bit16 startaddress, bit16 finishaddress)
 	bHasFinishAddress = true;
 }
 
-void CommandToken::SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSize)
+void CommandToken::SetTokenWriteMemory(bit16 address, bit8 *pData, unsigned int bufferSize)
 {
 	cmd = DBGSYM::CliCommand::WriteMemory;
 	dataLength = bufferSize;
@@ -1489,11 +1911,12 @@ void CommandToken::SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSiz
 		//FIXME allow unlimited buffer.
 		dataLength = _countof(buffer);
 	}
+
 	finishaddress = address + dataLength - 1;
 	memcpy(buffer, pData, dataLength);
 }
 
-void CommandToken::SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize)
+void CommandToken::SetTokenAssemble(bit16 address, bit8 *pData, unsigned int bufferSize)
 {
 	cmd = DBGSYM::CliCommand::Assemble;
 	dataLength = bufferSize;
@@ -1503,6 +1926,7 @@ void CommandToken::SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize)
 		//FIXME allow unlimited buffer.
 		dataLength = _countof(buffer);
 	}
+
 	finishaddress = address + dataLength - 1;
 	memcpy(buffer, pData, dataLength);
 }

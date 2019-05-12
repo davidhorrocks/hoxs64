@@ -10,6 +10,7 @@ protected:
 		OnTrace(sender, e);
 		return 0;
 	}
+
 	virtual void OnTrace(void *sender, EventArgs& e)=0;
 };
 
@@ -21,12 +22,26 @@ protected:
 		OnShowDevelopment(sender, e);
 		return 0;
 	}
+
 	virtual void OnShowDevelopment(void *sender, EventArgs& e)=0;
+};
+
+class CMDIDebuggerFrame_EventSink_OnRadixChanged : public EventSink<RadixChangedEventArgs>
+{
+protected:
+	virtual int Sink(void *sender, RadixChangedEventArgs& e)
+	{
+		OnRadixChanged(sender, e);
+		return 0;
+	}
+
+	virtual void OnRadixChanged(void *sender, RadixChangedEventArgs& e)=0;
 };
 
 class CMDIDebuggerFrame_EventSink : 
 	public CMDIDebuggerFrame_EventSink_OnTrace,
-	public CMDIDebuggerFrame_EventSink_OnShowDevelopment
+	public CMDIDebuggerFrame_EventSink_OnShowDevelopment,
+	public CMDIDebuggerFrame_EventSink_OnRadixChanged
 {
 };
 
@@ -35,12 +50,10 @@ class CMDIDebuggerFrame : public CVirMdiFrameWindow, CMDIDebuggerFrame_EventSink
 public:
 	static const int ID_RERBAR = 2000;
 	static const int ID_TOOLBAR = 2001;
-
 	static const int TOOLBUTTON_PICTURE_INDEX = 0;
 	static const int TOOLBUTTON_MASK_INDEX = 1;
 	static const ButtonInfo TB_StepButtons[];
 	static const ImageInfo TB_ImageList[];
-
 	static const TCHAR ClassName[];
 	static const TCHAR MenuName[];
 
@@ -49,14 +62,14 @@ public:
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-	HWND Show(CVirWindow *pParentWindow);
+	virtual void GetMinWindowSize(int &w, int &h);
 
+	HWND Show(CVirWindow *pParentWindow);
 	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	bool IsWinDlgModelessBreakpointVicRaster();
 	void OpenNewCli();
 
-	virtual void GetMinWindowSize(int &w, int &h);
 	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuC64;
 	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuDisk;
 	Wp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
@@ -98,6 +111,7 @@ private:
 	void CloseFonts();
 	virtual void OnTrace(void *sender, EventArgs& e);
 	virtual void OnShowDevelopment(void *sender, EventArgs& e);
+	virtual void OnRadixChanged(void *sender, RadixChangedEventArgs& e);
 
 	void ShowDlgBreakpointVicRaster();
 	void ShowModelessDlgBreakpointVicRaster();

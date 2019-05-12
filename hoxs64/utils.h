@@ -113,6 +113,7 @@ class G
 {
 private:
 	G();
+	static const int MonitorFontPointsY = 12;
 	static bool s_bInitLateBindLibraryCallsDone;
 	static bool m_bHasCachedCommonControlsVersion;
 	static DWORD m_dwCachedCommonControlsVersion;	
@@ -184,6 +185,8 @@ public:
 	static int CalcListViewMinWidth(HWND hWnd, ...);
 	static HBITMAP CreateResizedBitmap(HDC hdc, HBITMAP hBmpSrc, int newwidth, int newheight, bool bAllowShrink, bool bAllowStretch);
 	static HRESULT SetRebarBandBitmap(HWND hWndRB, int iBandIndex, HBITMAP hBmpSrc);
+	static int GetMonitorFontPixelsY();
+	static bool GetCurrentFontLineBox(HDC hdc, LPSIZE size);
 	static HFONT CreateMonitorFont();
 	static bool IsStringBlank(LPCTSTR ps);
 	static bool IsWhiteSpace(TCHAR ch);

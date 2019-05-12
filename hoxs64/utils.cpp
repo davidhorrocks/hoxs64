@@ -1830,10 +1830,16 @@ TEXTMETRIC tm;
 	BOOL br = GetTextMetrics(hdc, &tm);
 	if (br)
 	{
-		if (nextx!=NULL)
+		if (nextx != NULL)
+		{
 			*nextx = x;
-		if (nexty!=NULL)
+		}
+
+		if (nexty != NULL)
+		{
 			*nexty = y;
+		}
+
 		if (len > 0)
 		{
 			SIZE sizeText;
@@ -1843,13 +1849,20 @@ TEXTMETRIC tm;
 			if (brTextExtent)
 			{
 				if (nextx!=NULL)
+				{
 					*nextx = x + sizeText.cx;
+				}
+
 				if (nexty!=NULL)
+				{
 					*nexty = y + sizeText.cy;
+				}
 			}
 		}
+
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -2427,8 +2440,12 @@ int c;
 		*((LPWORD)&buffer[0]) = cchBuffer;
 		c = (int)SendMessage(hEditControl, EM_GETLINE, linenumber, (LPARAM)buffer);
 	}	
+
 	if (c < 0)
+	{
 		c = 0;
+	}
+
 	return c;
 }
 
@@ -2441,13 +2458,23 @@ int c;
 		*((LPWORD)&buffer[0]) = cchBuffer;
 		c = (int)SendMessage(hEditControl, EM_GETLINE, linenumber, (LPARAM)buffer);
 		if (c >= cchBuffer)
+		{
 			c = cchBuffer - 1;
+		}
+
 		if (c < 0)
+		{
 			c = 0;
+		}
+
 		buffer[c] = 0;
 	}	
+
 	if (c < 0)
+	{
 		c = 0;
+	}
+
 	return c;
 }
 
@@ -2456,10 +2483,16 @@ LPTSTR G::GetMallocEditLineSzString(HWND hEditControl, int linenumber)
 int c;
 	c = (int)SendMessage(hEditControl, EM_LINELENGTH, linenumber, 0);
 	if (c < 0)
+	{
 		return NULL;
+	}
+
 	LPTSTR s = (LPTSTR)malloc(c + sizeof(TCHAR));
 	if (!s)
+	{
 		return NULL;
+	}
+
 	SendMessage(hEditControl, EM_GETLINE, linenumber, (LPARAM)s);
 	s[c] = 0;
 	return s;
@@ -2546,20 +2579,56 @@ int G::CalcListViewMinWidth(HWND hWnd, ...)
 	return k;
 }
 
+int G::GetMonitorFontPixelsY()
+{
+	CDPI dpi;
+	return dpi.ScaleY(dpi.PointsToPixels(G::MonitorFontPointsY));
+}
+
+bool G::GetCurrentFontLineBox(HDC hdc, LPSIZE lpSize)
+{
+TEXTMETRIC tm;
+OUTLINETEXTMETRIC otm;
+	
+	if (lpSize != NULL)
+	{
+		BOOL br = GetTextMetrics(hdc, &tm);
+		if (br)
+		{
+			if (tm.tmPitchAndFamily & TMPF_TRUETYPE)
+			{
+				br = GetOutlineTextMetrics(hdc, sizeof(otm), &otm);
+				if (br)
+				{				
+					lpSize->cy = otm.otmTextMetrics.tmHeight+ otm.otmTextMetrics.tmExternalLeading + otm.otmLineGap;
+					lpSize->cx = otm.otmTextMetrics.tmAveCharWidth;
+					return true;
+				}
+			}
+			else
+			{
+				lpSize->cy = tm.tmHeight + tm.tmExternalLeading + 1;
+				lpSize->cx = tm.tmAveCharWidth;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 HFONT G::CreateMonitorFont()
 {
 CDPI dpi;
 	HFONT f = 0;
-	LPTSTR lstFontName[] = { TEXT("Consolas"), TEXT("Lucida"), TEXT("Courier"), TEXT("")};
-	
+	LPTSTR lstFontName[] = { TEXT("Consolas"), TEXT("Lucida"), TEXT("Courier"), TEXT("")};	
 	DWORD fdwQuality  = 0;
-	//(_WIN32_WINNT >= _WIN32_WINNT_WINXP)
 	fdwQuality |= CLEARTYPE_QUALITY;
 
 	for (int i =0; f == 0 && i < _countof(lstFontName); i++)
 	{
 		f = CreateFont(
-			dpi.ScaleY(dpi.PointsToPixels(12)),
+			G::GetMonitorFontPixelsY(),
 			0,
 			0,
 			0,

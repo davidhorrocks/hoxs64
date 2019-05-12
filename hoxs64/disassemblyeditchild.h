@@ -10,6 +10,7 @@ protected:
 		OnBreakpointC64ExecuteChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)=0;
 };
 
@@ -22,6 +23,7 @@ protected:
 		OnBreakpointDiskExecuteChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)=0;
 };
 
@@ -34,6 +36,7 @@ protected:
 		OnBreakpointVicChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e)=0;
 };
 
@@ -46,14 +49,29 @@ protected:
 		OnBreakpointChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)=0;
+};
+
+class CDisassemblyEditChild_EventSink_OnRadixChanged : public EventSink<RadixChangedEventArgs>
+{
+protected:
+
+	virtual int Sink(void *sender, RadixChangedEventArgs& e)
+	{
+		OnRadixChanged(sender, e);
+		return 0;
+	}
+
+	virtual void OnRadixChanged(void *sender, RadixChangedEventArgs& e)=0;
 };
 
 class CDisassemblyEditChild_EventSink : 
 	public CDisassemblyEditChild_EventSink_OnBreakpointC64ExecuteChanged,
 	public CDisassemblyEditChild_EventSink_OnBreakpointDiskExecuteChanged,
 	public CDisassemblyEditChild_EventSink_OnBreakpointVicChanged,
-	public CDisassemblyEditChild_EventSink_OnBreakpointChanged
+	public CDisassemblyEditChild_EventSink_OnBreakpointChanged,
+	public CDisassemblyEditChild_EventSink_OnRadixChanged
 {
 };
 
@@ -65,11 +83,14 @@ public:
 	static const int TAB_ADDRESS = 0;
 	static const int TAB_BYTES = 6;
 	static const int TAB_MNEMONIC = 6+10;
-
 	static const int ID_EDITDISASSEMBLY = 2000;
+	static const int BUFFER_WIDTH = 50;
+	static const int MAX_BUFFER_HEIGHT = 200;
 
 	struct AssemblyLineBuffer
 	{
+		AssemblyLineBuffer();
+
 		bit16 Address;
 		bit8 InstructionSize;
 		TCHAR AddressText[Monitor::BUFSIZEADDRESSTEXT];
@@ -86,8 +107,6 @@ public:
 		int InstructionCycle;
 		bool IsInterrupt;
 		bool IsValid;
-
-		AssemblyLineBuffer();
 		bool GetIsReadOnly();
 		void Clear();
 		bool IsEqual(AssemblyLineBuffer& other);
@@ -98,7 +117,6 @@ public:
 	static TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-
 	void InvalidateBuffer();
 	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void UpdateBuffer(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
@@ -115,11 +133,12 @@ public:
 	void SetHome();
 	void CancelAsmEditing();
 	HRESULT SaveAsmEditing();
-
-	static const int BUFFER_WIDTH = 50;
-	static const int MAX_BUFFER_HEIGHT = 200;
+	HRESULT UpdateMetrics();
+	HRESULT UpdateMetrics(DBGSYM::MonitorOption::Radix radix);
+	void SetRadix(DBGSYM::MonitorOption::Radix radix);
 private:
 	IAppCommand *m_pAppCommand;
+	DBGSYM::MonitorOption::Radix radix;
 	CDPI m_dpi;
 	HFONT m_hFont;
 	HFONT m_hOldFont;
@@ -142,11 +161,9 @@ private:
 	int xcol_Address;
 	int xcol_Bytes;
 	int xcol_Mnemonic;
-
 	AssemblyLineBuffer *m_pFrontTextBuffer;
 	AssemblyLineBuffer *m_pBackTextBuffer;
-
-	HRESULT Init();
+	HRESULT Init();	
 	void Cleanup();
 	HWND CreateAsmEdit(HWND hWndParent);
 	HRESULT AllocTextBuffer();
@@ -172,7 +189,6 @@ private:
 	HRESULT ShowEditMnemonic(AssemblyLineBuffer *pAlb);
 	void HideEditMnemonic();
 	bool IsEditing();
-	HRESULT UpdateMetrics();
 	HRESULT OnCreate(HWND hWnd);
 	void OnDestroy(HWND hWnd);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -184,12 +200,11 @@ private:
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnEditFocusedMnemonic();
-
 	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
 	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);
 	void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e);
 	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e);
-
+	void OnRadixChanged(void *sender, RadixChangedEventArgs& e);
 	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

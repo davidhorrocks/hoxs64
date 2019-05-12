@@ -35,27 +35,27 @@ public:
 	int GetNumberOfLines();
 	void SetHome();
 	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void SetRadix(DBGSYM::MonitorOption::Radix radix);
+	HRESULT UpdateMetrics();
 	void InvalidateBuffer();
+	HRESULT SaveEditing();
 	void CancelEditing();
 private:
 	HWND m_hWndScroll;
 	IAppCommand *m_pAppCommand;
-
 	shared_ptr<CDisassemblyEditChild> m_pWinDisassemblyEditChild;
+	int m_MinSizeW;
+	int m_MinSizeH;
 
 	HRESULT Init();
 	virtual void OnCpuRegPCChanged(void *sender, EventArgs& e);
-
 	HRESULT AdviseEvents();
 	void UnadviseEvents();
-
 	HWND CreateScrollBar();
 	HWND CreateEditWindow(int x, int y, int w, int h);
-
 	HRESULT GetSizeRectEditWindow(RECT &rc);
 	HRESULT GetSizeRectScrollBar(RECT &rc);
 	void SetTopAddress(bit16 address, bool bSetScrollBarPage);
-
 	HRESULT OnCreate(HWND hWnd);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnSizeDisassembly(HWND hWnd, int widthParent, int heightParent);
@@ -66,7 +66,6 @@ private:
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void SetAddressScrollPos(int pos);	
-
 	void Cleanup();
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

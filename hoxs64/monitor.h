@@ -3,6 +3,14 @@
 
 #include "breakpointresult.h"
 
+class RadixChangedEventArgs : public EventArgs
+{
+public:
+	RadixChangedEventArgs(DBGSYM::MonitorOption::Radix radix);
+
+	DBGSYM::MonitorOption::Radix Radix;
+};
+
 class BreakpointC64ExecuteChangedEventArgs : public EventArgs
 {
 public:
@@ -63,6 +71,7 @@ public:
 	virtual void DisplayVicRasterBreakpoints(bool bEnabled) = 0;
 	virtual void SetVicCursorPos(int iCycle, int iLine) = 0;
 	virtual void GetVicCursorPos(int *piCycle, int *piLine) = 0;
+	virtual void ToggleHexadecimal() = 0;
 
 	EventSource<EventArgs> EsResume;
 	EventSource<EventArgs> EsTrace;
@@ -75,25 +84,33 @@ public:
 	EventSource<EventArgs> EsShowDevelopment;
 	EventSource<EventArgs> EsCpuC64RegPCChanged;
 	EventSource<EventArgs> EsCpuDiskRegPCChanged;
+	EventSource<EventArgs> EsCpuC64RegAChanged;
+	EventSource<EventArgs> EsCpuDiskRegAChanged;
+	EventSource<EventArgs> EsCpuC64RegXChanged;
+	EventSource<EventArgs> EsCpuDiskRegXChanged;
+	EventSource<EventArgs> EsCpuC64RegYChanged;
+	EventSource<EventArgs> EsCpuDiskRegYChanged;
+	EventSource<EventArgs> EsCpuC64RegSRChanged;
+	EventSource<EventArgs> EsCpuDiskRegSRChanged;
+	EventSource<EventArgs> EsCpuC64RegSPChanged;
+	EventSource<EventArgs> EsCpuDiskRegSPChanged;
+	EventSource<EventArgs> EsCpuC64RegDdrChanged;
+	EventSource<EventArgs> EsCpuC64RegDataChanged;
 	EventSource<BreakpointChangedEventArgs> EsBreakpointChanged;
 	EventSource<VicCursorMoveEventArgs> EsVicCursorMove;
 	EventSource<EventArgs> EsMemoryChanged;
+	EventSource<RadixChangedEventArgs> EsRadixChanged;	
 };
 
 class Monitor : public IMonitor
 {
 public:
-	static const int BUFSIZEADDRESSTEXT = 6;
-	static const int BUFSIZEINSTRUCTIONBYTESTEXT = 9;
-	static const int BUFSIZEMNEMONICTEXT = 12;
-
-	static const int BUFSIZEBITTEXT = 2;
-	static const int BUFSIZEBYTETEXT = 3;
-	static const int BUFSIZEWORDTEXT = 5;
-
-	static const int BUFSIZEBITBYTETEXT = 9;
-
-	static const int BUFSIZEMMUTEXT = 20;
+	typedef enum tagBuffSize
+	{
+		BUFSIZEADDRESSTEXT = 30,
+		BUFSIZEINSTRUCTIONBYTESTEXT = 30,
+		BUFSIZEMNEMONICTEXT = 50,
+	} BuffSize;
 
 	Monitor();
 	~Monitor();
@@ -125,6 +142,9 @@ public:
 	virtual void QuitCommands();
 	virtual void QuitCommand(shared_ptr<ICommandResult> pICommandResult);
 	virtual void RemoveCommand(shared_ptr<ICommandResult> pICommandResult);
+	virtual DBGSYM::MonitorOption::Radix Get_Radix();
+	virtual void Set_Radix(DBGSYM::MonitorOption::Radix value);
+	
 
 private:
 	IMonitorCpu *m_pMonitorMainCpu;
@@ -139,5 +159,7 @@ private:
 
 	list<shared_ptr<ICommandResult>> m_lstCommandResult;
 	HANDLE m_mux;
+
+	volatile DBGSYM::MonitorOption::Radix radix;
 };
 #endif

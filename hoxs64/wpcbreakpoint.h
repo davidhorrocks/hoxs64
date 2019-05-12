@@ -10,6 +10,7 @@ protected:
 		OnBreakpointC64ExecuteChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e)=0;
 };
 
@@ -22,6 +23,7 @@ protected:
 		OnBreakpointDiskExecuteChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e)=0;
 };
 
@@ -34,6 +36,7 @@ protected:
 		OnBreakpointVicChanged (sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointVicChanged (void *sender, BreakpointVicChangedEventArgs& e)=0;
 };
 
@@ -46,17 +49,31 @@ protected:
 		OnBreakpointChanged (sender, e);
 		return 0;
 	}
+
 	virtual void OnBreakpointChanged (void *sender, BreakpointChangedEventArgs& e)=0;
+};
+
+class WpcBreakpoint_EventSink_OnRadixChanged : public EventSink<RadixChangedEventArgs>
+{
+protected:
+
+	virtual int Sink(void *sender, RadixChangedEventArgs& e)
+	{
+		OnRadixChanged (sender, e);
+		return 0;
+	}
+
+	virtual void OnRadixChanged (void *sender, RadixChangedEventArgs& e)=0;
 };
 
 class WpcBreakpoint_EventSink : 
 	public WpcBreakpoint_EventSink_OnBreakpointC64ExecuteChanged,
 	public WpcBreakpoint_EventSink_OnBreakpointDiskExecuteChanged,
 	public WpcBreakpoint_EventSink_OnBreakpointVicChanged,
-	public WpcBreakpoint_EventSink_OnBreakpointChanged
+	public WpcBreakpoint_EventSink_OnBreakpointChanged,
+	public WpcBreakpoint_EventSink_OnRadixChanged
 {
 };
-
 
 class WpcBreakpoint : public CVirWindow, protected WpcBreakpoint_EventSink
 {
@@ -93,7 +110,7 @@ private:
 	static LPCTSTR sLine;
 	static LPCTSTR sCycle;
 	static LPCTSTR sAddress;
-class LvBreakColumnIndex
+	class LvBreakColumnIndex
 	{
 	public:
 		enum tagEnumBreakColumnIndex
@@ -112,11 +129,15 @@ class LvBreakColumnIndex
 	HRESULT InitListViewColumns(HWND hWndListView);
 	HRESULT FillListView(HWND hWndListView);
 	int GetTextWidth(HWND hWnd, LPCTSTR szText, int fallbackWidthOnError);
+	void SetMenuState();
+	void RefreshBreakpointListView();
+	void RedrawBreakpointListItems();
 
 	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
 	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);
 	void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e);
 	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e);
+	void OnRadixChanged(void *sender, RadixChangedEventArgs& e);
 
 	void OnShowAssembly();
 	void DeleteBreakpoint(Sp_BreakpointKey bp);
@@ -126,14 +147,16 @@ class LvBreakColumnIndex
 	void OnDeleteSelectedBreakpoint();
 	void OnEnableSelectedBreakpoint();
 	void OnDisableSelectedBreakpoint();
-	void OnToggleHexadecimal();
+	void OnToggleHexadecimal();	
+
+	HRESULT AdviseEvents();
+	void UnadviseEvents();
+	void Cleanup();
 
 	bool m_bSuppressThisBreakpointEvent;
 	CDPI m_dpi;
 	IC64 *c64;
 	IAppCommand *m_pAppCommand;
-
-	bool m_bHexDisplay;
 };
 
 #endif

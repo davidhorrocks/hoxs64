@@ -94,7 +94,9 @@ public:
 		{
 			EventSink<A> *p_es = p->m_data;
 			if (p_es != NULL)
+			{
 				p_es->Sink(sender, e);
+			}
 		}
 	}
 private:

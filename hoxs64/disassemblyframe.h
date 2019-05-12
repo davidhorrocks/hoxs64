@@ -97,7 +97,20 @@ protected:
 		OnMemoryChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnMemoryChanged(void *sender, EventArgs& e) =0;
+};
+
+class CDisassemblyFrame_EventSink_OnRadixChanged : public EventSink<RadixChangedEventArgs>
+{
+protected:
+	virtual int Sink(void *sender, RadixChangedEventArgs& e)
+	{
+		OnRadixChanged(sender, e);
+		return 0;
+	}
+
+	virtual void OnRadixChanged(void *sender, RadixChangedEventArgs& e) =0;
 };
 
 class CDisassemblyFrame_EventSink : 
@@ -109,7 +122,8 @@ class CDisassemblyFrame_EventSink :
 	public CDisassemblyFrame_EventSink_OnExecuteC64Instruction,
 	public CDisassemblyFrame_EventSink_OnExecuteDiskInstruction,
 	public CDisassemblyFrame_EventSink_OnShowDevelopment,
-	public CDisassemblyFrame_EventSink_OnMemoryChanged
+	public CDisassemblyFrame_EventSink_OnMemoryChanged,
+	public CDisassemblyFrame_EventSink_OnRadixChanged
 {
 };
 
@@ -137,12 +151,16 @@ public:
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
 	void GetMinWindowSize(int &w, int &h);
+	HRESULT UpdateMetrics();
 	void Refresh();
 	bool OnEnterGotoAddress();
 	virtual bool OnEnterGotoAddress(LPTSTR pszAddress);
 
 private:
 	CDPI m_dpi;
+	DBGSYM::MonitorOption::Radix radix;
+	int m_MinSizeW;
+	int m_MinSizeH;
 	int m_iCurrentControlIndex;
 	IAppCommand *m_pAppCommand;
 	LPCTSTR m_pszCaption;
@@ -166,15 +184,13 @@ private:
 	HWND CreateDisassemblyReg(int x, int y, int w, int h);
 	shared_ptr<CToolItemAddress> CreateToolItemAddress(HWND hWndParent);
 	HRESULT RebarAddAddressBar(HWND hWndRebar, HWND hWndToolbar);
-
+	void SetRadix(DBGSYM::MonitorOption::Radix radix);
 	HRESULT GetSizeRectReg(RECT &rc);
 	HRESULT GetSizeRectDisassembly(RECT &rc);
 	HRESULT GetSizeRectToolBar(RECT &rc);
 	void SetMenuState();
-
 	void SetHome();
 	void CancelEditing();
-
 	void OnResume(void *sender, EventArgs& e);
 	void OnTrace(void *sender, EventArgs& e);
 	void OnTraceFrame(void *sender, EventArgs& e);
@@ -184,10 +200,9 @@ private:
 	void OnExecuteDiskInstruction(void *sender, EventArgs& e);
 	void OnShowDevelopment(void *sender, EventArgs& e);
 	void OnMemoryChanged(void *sender, EventArgs& e);
-
+	void OnRadixChanged(void *sender, RadixChangedEventArgs& e);
 	HRESULT AdviseEvents();
 	void UnadviseEvents();
-
 	HRESULT OnCreate(HWND hWnd);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -201,7 +216,6 @@ private:
 	void OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnMouseWheel(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 	bool OnToolBarInfo(LPNMTBGETINFOTIP info);
 	bool OnReBarHeightChange(LPNMHDR notify);
 	void Cleanup();

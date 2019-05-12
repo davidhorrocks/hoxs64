@@ -42,26 +42,57 @@ HRESULT RunCommandDisassembly::Run()
 	IMonitor *pMon = m_pCommandResult->GetMonitor();
 	IMonitorCpu *pCpu;
 	if (m_cpumode == DBGSYM::CliCpuMode::C64)
+	{
 		pCpu = pMon->GetMainCpu();
+	}
 	else
+	{
 		pCpu = pMon->GetDiskCpu();
-	
+	}
+
 	m_currentAddress = m_startaddress;
 	bool done=false;
 	while (true)
 	{
 		if (m_pCommandResult->IsQuit())
+		{
 			break;
+		}
+
 		m_sLineBuffer.clear();
 		int instructionSize = pMon->DisassembleOneInstruction(pCpu, m_currentAddress, m_iDebuggerMmuIndex, AddressText, _countof(AddressText), BytesText, _countof(BytesText), MnemonicText, _countof(MnemonicText), bIsUndoc);
-		if (instructionSize<=0)
+		if (instructionSize <= 0)
+		{
 			break;
+		}
+
 		m_sLineBuffer.append(TEXT("A "));
 		m_sLineBuffer.append(AddressText);
 		m_sLineBuffer.append(TEXT(" "));
 		m_sLineBuffer.append(BytesText);
-		for (size_t k=0; k<(8-_tcslen(BytesText)); k++)
+		unsigned int spacepadding;
+		if (pMon->Get_Radix() == DBGSYM::MonitorOption::Dec)
+		{
+			spacepadding = 11;
+		}
+		else
+		{
+			spacepadding = 8;
+		}
+
+		if (_tcslen(BytesText) > spacepadding)
+		{
+			spacepadding = 0;
+		}
+		else
+		{
+			spacepadding = spacepadding - _tcslen(BytesText);
+		}
+
+		for (unsigned int k=0; k < spacepadding; k++)
+		{
 			m_sLineBuffer.append(TEXT(" "));
+		}
 		
 		m_sLineBuffer.append(TEXT(" "));
 		m_sLineBuffer.append(MnemonicText);
@@ -71,22 +102,33 @@ HRESULT RunCommandDisassembly::Run()
 		{
 			m_pCommandResult->WaitLinesTakenOrQuit(INFINITE);
 			if (m_pCommandResult->IsQuit())
+			{
 				break;
+			}
 		}
-		m_pCommandResult->AddLine(m_sLineBuffer.c_str());
-		
+
+		m_pCommandResult->AddLine(m_sLineBuffer.c_str());		
 		if (m_currentAddress == m_finishaddress)
+		{
 			done = true;
+		}
+
 		bit16 k = m_currentAddress;
 		m_currentAddress = (m_currentAddress + instructionSize) & 0xffff;
 		for (int i=1; i<instructionSize; i++)
 		{
 			k = (k + 1) & 0xffff;
 			if (k == m_finishaddress)
+			{
 				done = true;
+			}
 		}
+
 		if (done)
+		{
 			break;
+		}
 	}
+
 	return S_OK;
 }

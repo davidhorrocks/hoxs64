@@ -66,7 +66,9 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(IC64 *c64, IAppCommand *pAppCommand, CConfi
 
 	HRESULT hr = Init();
 	if (FAILED(hr))
+	{
 		throw new std::runtime_error("CMDIDebuggerFrame::Init() Failed");
+	}
 }
 
 CMDIDebuggerFrame::~CMDIDebuggerFrame()
@@ -82,11 +84,15 @@ HRESULT hr;
 	{
 		hr = InitFonts();
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		hr = AdviseEvents();
 		if (FAILED(hr))
+		{
 			break;
+		}
 
 		hr = S_OK;
 	} while (false);
@@ -110,6 +116,7 @@ void CMDIDebuggerFrame::Cleanup()
 		ImageList_Destroy(m_hImageListToolBarNormal);
 		m_hImageListToolBarNormal = NULL;
 	}
+
 	for (vector<HBITMAP>::iterator it = m_vec_hBmpRebarSized.begin(); it != m_vec_hBmpRebarSized.end(); it++)
 	{
 		if (*it != NULL)
@@ -118,13 +125,14 @@ void CMDIDebuggerFrame::Cleanup()
 			*it = NULL;
 		}
 	}
-	m_vec_hBmpRebarSized.clear();
 
+	m_vec_hBmpRebarSized.clear();
 	if (m_hBmpRebarNotSized != NULL)
 	{
 		DeleteObject(m_hBmpRebarNotSized);
 		m_hBmpRebarNotSized = NULL;
 	}
+
 	CloseFonts();
 }
 
@@ -146,9 +154,11 @@ WNDCLASSEX wc;
     wc.hbrBackground = (HBRUSH) (COLOR_APPWORKSPACE + 1); 
     wc.lpszMenuName  = MenuName; 
     wc.lpszClassName = ClassName; 
-    if (!RegisterClassEx(&wc) ) 
+    if (!RegisterClassEx(&wc))
+	{
         return E_FAIL; 
- 
+	}
+
     return S_OK; 
 
 };
@@ -169,15 +179,29 @@ void CMDIDebuggerFrame::OnShowDevelopment(void *sender, EventArgs& e)
 	SetMenuState();
 }
 
+void CMDIDebuggerFrame::OnRadixChanged(void *sender, RadixChangedEventArgs& e)
+{
+	SetMenuState();
+}
+
 void CMDIDebuggerFrame::SetMenuState()
 {
 	if (!m_pAppCommand)
+	{
 		return ;
+	}
+
 	if (!m_hWnd)
+	{
 		return ;
+	}
+
 	HMENU hMenu = GetMenu(m_hWnd);
 	if (!hMenu)
+	{
 		return ;
+	}
+
 	UINT state;
 	UINT stateOpp;
 	UINT stateTb;
@@ -196,18 +220,27 @@ void CMDIDebuggerFrame::SetMenuState()
 		stateTb = TBSTATE_ENABLED;
 		stateTbOpp = 0;
 	}
+
 	EnableMenuItem(hMenu, IDM_STEP_TRACE, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_TRACEFRAME, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_BREAKPOINT_VICRASTER, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_FILE_NEWCLI, MF_BYCOMMAND | state);
 	EnableMenuItem(hMenu, IDM_STEP_STOP, MF_BYCOMMAND | stateOpp);
-	
-
 	if (m_hWndTooBar!=NULL)
 	{
 		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACE, stateTb);
 		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_TRACEFRAME, stateTb);
 		SendMessage(m_hWndTooBar, TB_SETSTATE, IDM_STEP_STOP, stateTbOpp);
+	}
+
+	DBGSYM::MonitorOption::Radix r = this->c64->GetMon()->Get_Radix();
+	if (r == DBGSYM::MonitorOption::Hex)
+	{
+		::CheckMenuItem(hMenu, IDM_OPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
+	}
+	else
+	{
+		::CheckMenuItem(hMenu, IDM_OPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
 	}
 }
 
@@ -225,28 +258,41 @@ HRESULT hr = E_FAIL;
 	{
 		HDC hdc = GetDC(m_hWnd);
 		if (!hdc)
+		{
 			return E_FAIL;
+		}
+
 		DcHelper dch(hdc);
-
 		m_hBmpRebarNotSized = LoadBitmap(m_hInst, MAKEINTRESOURCE(IDB_REBARBKGND1));
-
 		hr = CreateMDIToolBars(hdc);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
+
 		HWND hWndMdiClient = CreateMDIClientWindow(IDC_MAIN_MDI, IDM_WINDOWCHILD, WINDOWMENU);
 		if (hWndMdiClient==NULL)
+		{
 			return E_FAIL;
+		}
 
 		hr = m_WPanelManager.Init(this->GetHinstance(), this->shared_from_this(), m_hWndRebar);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 
 		shared_ptr<WpcBreakpoint> pWin = shared_ptr<WpcBreakpoint>(new WpcBreakpoint(c64, m_pAppCommand));
 		if (!pWin)
+		{
 			throw std::bad_alloc();
+		}
+
 		hr = m_WPanelManager.CreateNewPanel(WPanel::InsertionStyle::Bottom, TEXT("Breakpoints"), pWin);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
 
 		m_bIsCreated = true;
 	}
@@ -254,13 +300,16 @@ HRESULT hr = E_FAIL;
 	{
 		 hr = E_FAIL;
 	}
+
 	return hr;
 }
 
 void CMDIDebuggerFrame::OnClose(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (m_pAppCommand)
+	{
 		m_pAppCommand->Resume();
+	}
 }
 
 void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -270,11 +319,15 @@ void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 		Sp_CDiagBreakpointVicRaster pdlg = m_pdlgModelessBreakpointVicRaster.lock();
 		DestroyWindow(pdlg->GetHwnd());
 	}
+
 	if (::IsWindow(m_hWnd))
 	{
 		if (m_bIsCreated)
+		{
 			CConfig::SaveMDIWindowSetting(m_hWnd);
+		}
 	}
+
 	m_bIsCreated = false;
 }
 
@@ -499,7 +552,10 @@ int wmId, wmEvent;
 	case IDM_FILE_MONITOR:
 	case IDM_STEP_STOP:
 		if (!m_pAppCommand)
+		{
 			return false;
+		}
+
 		this->m_pAppCommand->ShowDevelopment();
 		return true;
 	case IDM_BREAKPOINT_DELETEALLBREAKPOINTS:
@@ -514,6 +570,13 @@ int wmId, wmEvent;
 	case IDM_BREAKPOINT_VICRASTER:
 		ShowModelessDlgBreakpointVicRaster();
 		return TRUE;
+	case IDM_OPTIONS_HEXADECIMAL:
+		if (!m_pAppCommand)
+		{
+			return false;
+		}
+
+		m_pAppCommand->ToggleHexadecimal();
 	default:
 		return false;
 	}
@@ -610,27 +673,45 @@ HRESULT hr;
 	case WM_CREATE:
 		hr = OnCreate(uMsg, wParam, lParam);
 		if (FAILED(hr))
+		{
 			return -1;
+		}
+
 		return 0;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_SETCURSOR:
 		if (OnSetCursor(hWnd, uMsg, wParam, lParam))
+		{
 			return TRUE;
+		}
+
 		break;
 	case WM_LBUTTONDOWN:
 		if (OnLButtonDown(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_MOUSEMOVE:
 		if (OnMouseMove(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_LBUTTONUP:
 		if (OnLButtonUp(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
+
 		break;
 	case WM_MOVE:
 		OnMove(hWnd, uMsg, wParam, lParam);
@@ -666,6 +747,7 @@ HRESULT hr;
 		m_pAppCommand->SoundOn();
 		return 0;
 	}
+
 	return ::DefFrameProc(m_hWnd, hWndMDIClient, uMsg, wParam, lParam);
 }
 
@@ -705,6 +787,13 @@ HRESULT CMDIDebuggerFrame::AdviseEvents()
 			break;
 		}
 
+		hs = m_pAppCommand->EsRadixChanged.Advise((CMDIDebuggerFrame_EventSink_OnRadixChanged *)this);
+		if (hs == NULL)
+		{
+			hr = E_FAIL;
+			break;
+		}
+
 		hr = S_OK;
 	} while (false);
 	return hr;
@@ -714,6 +803,7 @@ void CMDIDebuggerFrame::UnadviseEvents()
 {
 	((CMDIDebuggerFrame_EventSink_OnShowDevelopment *)this)->UnadviseAll();
 	((CMDIDebuggerFrame_EventSink_OnTrace *)this)->UnadviseAll();
+	((CMDIDebuggerFrame_EventSink_OnRadixChanged *)this)->UnadviseAll();
 }
 
 

@@ -85,18 +85,26 @@ HRESULT CToolItemAddress::GetDefaultTextBoxSize(HWND hWnd, SIZE& sizeText)
 RECT rcEdit;
 	HDC hdc = GetDC(hWnd);
 	if (!hdc)
+	{
 		return E_FAIL;
+	}
+
 	DcHelper dch(hdc);
 	dch.UseMapMode(MM_TEXT);
 	if (m_hFont)
+	{
 		dch.UseFont(m_hFont);
+	}
 
-	TCHAR s[]= TEXT("$ABCDx");
+	TCHAR s[]= TEXT("X");
 	int slen = lstrlen(s);
 	BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
 	if (!br)
+	{
 		return E_FAIL;
-	SetRect(&rcEdit, 0, 0, sizeText.cx, sizeText.cy);
+	}
+
+	SetRect(&rcEdit, 0, 0, sizeText.cx * 8, sizeText.cy);
 	InflateRect(&rcEdit, 2 * ::GetSystemMetrics(SM_CYBORDER), 2 * ::GetSystemMetrics(SM_CXBORDER));
 	OffsetRect(&rcEdit, -rcEdit.left, -rcEdit.top);
 	sizeText.cx = rcEdit.right;
@@ -110,15 +118,23 @@ HRESULT CToolItemAddress::OnCreate(HWND hWnd)
 	SIZE sizeText;
 	hr = GetDefaultTextBoxSize(hWnd, sizeText);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	m_hWndTxtAddress = CreateTextBox(hWnd, IDC_TXT_GOTOADDRESS, 0, 0, sizeText.cx, sizeText.cy);
 	if (!m_hWndTxtAddress)
+	{
 		return E_FAIL;
-	SendMessage(m_hWndTxtAddress, EM_SETLIMITTEXT, 5, 0);
-	if (m_hFont)
-		SendMessage(m_hWndTxtAddress, WM_SETFONT, (WPARAM)m_hFont, FALSE);
-	m_wpOrigEditProc = SubclassChildWindow(m_hWndTxtAddress);
+	}
 
+	SendMessage(m_hWndTxtAddress, EM_SETLIMITTEXT, 7, 0);
+	if (m_hFont)
+	{
+		SendMessage(m_hWndTxtAddress, WM_SETFONT, (WPARAM)m_hFont, FALSE);
+	}
+
+	m_wpOrigEditProc = SubclassChildWindow(m_hWndTxtAddress);
 	return S_OK;
 }
 
@@ -134,7 +150,10 @@ void CToolItemAddress::OnDestroy(HWND hWnd)
 LRESULT CToolItemAddress::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (hWnd == NULL)
+	{
 		return 0;
+	}
+
 	if (hWnd == this->m_hWndTxtAddress)
 	{
 		switch(uMsg)
@@ -152,6 +171,7 @@ LRESULT CToolItemAddress::SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam
 			break;
 		}
 	}
+
 	if (m_wpOrigEditProc)
 	{
 		return ::CallWindowProc(m_wpOrigEditProc, hWnd, uMsg, wParam, lParam);
@@ -168,6 +188,7 @@ int c;
 		m_tempAddressTextBuffer[c] = 0;
 		return m_pIEnterGotoAddress->OnEnterGotoAddress(&m_tempAddressTextBuffer[0]);
 	}
+
 	return false;
 }
 
@@ -184,7 +205,10 @@ HRESULT hr;
 	case WM_CREATE:
 		hr = OnCreate(hWnd);
 		if (FAILED(hr))
+		{
 			return -1;
+		}
+
 		return 0;
 	case WM_DESTROY:
 		OnDestroy(hWnd);
@@ -193,5 +217,6 @@ HRESULT hr;
 		OnSize(hWnd, uMsg, wParam, lParam);
 		break;
 	}
+
 	return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
 }

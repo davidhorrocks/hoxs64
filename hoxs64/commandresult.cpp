@@ -46,23 +46,40 @@ CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode
 	{
 		m_hevtQuit = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtQuit==NULL)
+		{
 			throw std::runtime_error(S_EVENTCREATEERROR);
+		}
+
 		m_hevtLineTaken = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (m_hevtLineTaken==NULL)
+		{
 			throw std::runtime_error(S_EVENTCREATEERROR);
+		}
+
 		m_hevtAllLinesTaken = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (m_hevtAllLinesTaken==NULL)
+		{
 			throw std::runtime_error(S_EVENTCREATEERROR);
+		}
+
 		m_hevtResultDataReady = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtResultDataReady==NULL)
+		{
 			throw std::runtime_error(S_EVENTCREATEERROR);
+		}
+
 		m_hevtResultDataTaken = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtResultDataTaken==NULL)
+		{
 			throw std::runtime_error(S_EVENTCREATEERROR);
-		//
+		}
+
 		m_mux = CreateMutex(NULL, FALSE, NULL);
 		if (m_mux==NULL)
+		{
 			throw std::runtime_error(S_EVENTCREATEERROR);
+		}
+
 		m_pIMonitor = pIMonitor;
 		m_cpumode = cpumode;
 		m_iDebuggerMmuIndex = iDebuggerMmuIndex;
@@ -147,6 +164,7 @@ void CommandResult::CleanThreadAllocations()
 HRESULT CommandResult::Run()
 {
 	Assembler as;
+	as.SetRadix(this->m_pIMonitor->Get_Radix());
 	HRESULT hr = E_FAIL;
 	CleanThreadAllocations();
 	SetStatus(DBGSYM::CliCommandStatus::Running);
@@ -208,19 +226,33 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 			break;
 		case DBGSYM::CliCommand::Disassemble:
 			if (pCommandToken->bHasStartAddress && pCommandToken->bHasFinishAddress)
+			{
 				pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
+			}
 			else if (pCommandToken->bHasStartAddress)
+			{
 				pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, (pCommandToken->startaddress + DEFAULTDISASSEMBLEBYTES) & 0xffff);
+			}
 			else
+			{
 				pcr = new RunCommandDisassembly(this, m_cpumode, m_iDebuggerMmuIndex, m_iDefaultAddress, (m_iDefaultAddress + DEFAULTDISASSEMBLEBYTES) & 0xffff);
+			}
+
 			break;
 		case DBGSYM::CliCommand::ReadMemory:
 			if (pCommandToken->bHasStartAddress && pCommandToken->bHasFinishAddress)
+			{
 				pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->finishaddress);
+			}
 			else if (pCommandToken->bHasStartAddress)
+			{
 				pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, (pCommandToken->startaddress + DEFAULTMEMORYBYTES) & 0xffff);
+			}
 			else
+			{
 				pcr = new RunCommandReadMemory(this, m_cpumode, m_iDebuggerMmuIndex, m_iDefaultAddress, (m_iDefaultAddress + DEFAULTMEMORYBYTES) & 0xffff);
+			}
+
 			break;
 		case DBGSYM::CliCommand::Assemble:
 			pcr = new RunCommandAssemble(this, m_cpumode, m_iDebuggerMmuIndex, pCommandToken->startaddress, pCommandToken->buffer, pCommandToken->dataLength);
@@ -241,6 +273,7 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 				pcr = new RunCommandText(this, NULL);
 				break;
 			}
+
 			pcr = new RunCommandText(this, pCommandToken->text.c_str());
 			break;
 		case DBGSYM::CliCommand::ClearScreen:
@@ -250,11 +283,15 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 			pcr = new RunCommandText(this, TEXT("Unknown command.\r"));
 			break;
 		}
+
 		hr = E_FAIL;
 		if (ppRunCommand)
 		{
 			if (pcr)
+			{
 				hr = S_OK;
+			}
+
 			*ppRunCommand = pcr;
 			pcr = NULL;
 		}
@@ -263,14 +300,15 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 	{
 		hr = E_FAIL;
 	}
+
 	if (pcr)
 	{
 		delete pcr;
 		pcr = 0;
 	}
+
 	return hr;
 }
-
 
 size_t CommandResult::CountUnreadLines()
 {
@@ -282,6 +320,7 @@ DWORD rm;
 		i = a_lines.size() - line; 
 		ReleaseMutex(m_mux);
 	}
+
 	return i;
 }
 
@@ -295,7 +334,10 @@ DWORD r;
 		{
 			LPTSTR s = 0;
 			if (pszLine)
+			{
 				s = _tcsdup(pszLine);
+			}
+
 			if (s)
 			{
 				a_lines.push_back(s);
@@ -305,6 +347,7 @@ DWORD r;
 		catch(...)
 		{
 		}
+
 		ReleaseMutex(m_mux);
 	}
 }
@@ -321,7 +364,10 @@ HRESULT hr = E_FAIL;
 			if (line < a_lines.size())
 			{
 				if (ppszLine)
+				{
 					*ppszLine = a_lines[line];
+				}
+
 				line++;
 				if (line < a_lines.size())
 				{
@@ -337,15 +383,20 @@ HRESULT hr = E_FAIL;
 			{
 				SetEvent(m_hevtLineTaken);
 				if (ppszLine)
+				{
 					*ppszLine = NULL;
+				}
+
 				hr = E_FAIL;
 			}
 		}
 		catch(...)
 		{
 		}
+
 		ReleaseMutex(m_mux);
 	}
+
 	return hr;
 }
 
@@ -362,6 +413,7 @@ DWORD r;
 		catch(...)
 		{
 		}
+
 		ReleaseMutex(m_mux);
 	}
 }
@@ -401,8 +453,10 @@ HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString, int id)
 		{
 			r = E_FAIL;
 		}
+
 		ReleaseMutex(m_mux);
 	}
+
 	return r;
 }
 
@@ -435,6 +489,7 @@ DBGSYM::CliCommandStatus::CliCommandStatus CommandResult::GetStatus()
 		s =  m_status;
 		ReleaseMutex(m_mux);
 	}
+
 	return s;
 }
 
@@ -447,6 +502,7 @@ int CommandResult::GetId()
 		s =  m_id;
 		ReleaseMutex(m_mux);
 	}
+
 	return s;
 }
 
@@ -459,6 +515,7 @@ IMonitor *CommandResult::GetMonitor()
 		s =  m_pIMonitor;
 		ReleaseMutex(m_mux);
 	}
+
 	return s;
 }
 
@@ -471,6 +528,7 @@ CommandToken *CommandResult::GetToken()
 		s =  this->m_pCommandToken;
 		ReleaseMutex(m_mux);
 	}
+
 	return s;
 }
 
@@ -483,6 +541,7 @@ IRunCommand *CommandResult::GetRunCommand()
 		s = this->m_pIRunCommand;
 		ReleaseMutex(m_mux);
 	}
+
 	return s;
 }
 
@@ -509,6 +568,7 @@ DWORD r = 0;
 	{
 		r = WAIT_OBJECT_0;
 	}
+
 	return r;
 }
 
@@ -516,9 +576,14 @@ DWORD CommandResult::WaitDataReady(DWORD timeout)
 {
 DWORD r = 0;
 	if (m_hevtResultDataReady)
+	{
 		r = WaitForSingleObject(m_hevtResultDataReady, timeout);
+	}
 	else
+	{
 		r = WAIT_OBJECT_0;
+	}
+
 	return r;
 }
 
@@ -567,8 +632,9 @@ HANDLE hThread = 0;
 		m_bIsQuit = true;
 		SetEvent(m_hevtQuit);
 		ReleaseMutex(m_mux);
-		hr = S_OK;	
+		hr = S_OK;
 	}
+
 	return hr;
 }
 
@@ -579,16 +645,19 @@ BOOL br = FALSE;
 	if (rm == WAIT_OBJECT_0)
 	{
 		if (m_hWnd)
+		{
 			br = PostMessage(m_hWnd, WM_COMMANDRESULT_COMPLETED, m_id, (LPARAM)this);
+		}
+
 		ReleaseMutex(m_mux);
 	}
+
 	return br != FALSE;
 }
 
 DWORD WINAPI CommandResult::ThreadProc(LPVOID lpThreadParameter)
 {
 	CommandResult *p = (CommandResult *)lpThreadParameter;
-
 	HRESULT hr;
 	hr = p->Run();
 	return 0;

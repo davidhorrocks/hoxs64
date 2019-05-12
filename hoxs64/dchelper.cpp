@@ -27,7 +27,10 @@ DcHelper::~DcHelper()
 HFONT DcHelper::UseFont(HFONT hFont)
 {
 	if (m_hdc==NULL)
+	{
 		return NULL;
+	}
+
 	HFONT v = (HFONT)::SelectObject(m_hdc, hFont);
 	return v;
 }
@@ -35,14 +38,17 @@ HFONT DcHelper::UseFont(HFONT hFont)
 int DcHelper::UseMapMode(int mode)
 {
 	if (m_hdc==NULL)
+	{
 		return NULL;
+	}
+
 	int v = SetMapMode(m_hdc, mode);
 	return v;
 }
 
 void DcHelper::Restore()
 {
-	if (m_hdc !=0 && iSavedDC!=0)
+	if (m_hdc != 0 && iSavedDC != 0)
 	{
 		::RestoreDC(m_hdc, iSavedDC);
 		iSavedDC = 0;

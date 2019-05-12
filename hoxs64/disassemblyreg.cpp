@@ -53,7 +53,10 @@ WNDCLASSEX  wc;
     wc.lpszClassName = ClassName;
 	wc.hIconSm       = NULL;
 	if (RegisterClassEx(&wc)==0)
+	{
 		return E_FAIL;
+	}
+
 	return S_OK;	
 }
 
@@ -62,72 +65,259 @@ HWND CDisassemblyReg::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR t
 	return CVirWindow::CreateVirWindow(0L, ClassName, title, WS_CHILD | WS_VISIBLE, x, y, w, h, hWndParent, hMenu, hInstance);
 }
 
-void CDisassemblyReg::GetMinWindowSize(int &w, int &h)
+HRESULT CDisassemblyReg::UpdateMetrics()
 {
-BOOL br;
-	if (m_MinSizeDone)
-	{
-		w = m_MinSizeW;
-		h = m_MinSizeH;
-		return;
-	}
-	else
-	{
-		w = PADDING_LEFT + PADDING_RIGHT + GetSystemMetrics(SM_CXFRAME) * 2;
-		h = MARGIN_TOP + PADDING_TOP + PADDING_BOTTOM;
-		int cpuid = this->GetCpuId();
-		if (m_hWnd != NULL && m_hFont != NULL)
-		{
-			HDC hdc = GetDC(m_hWnd);
-			if (hdc)
-			{
-				int prevMapMode = SetMapMode(hdc, MM_TEXT);
-				if (prevMapMode)
-				{
-					HFONT hFontPrev = (HFONT)SelectObject(hdc, m_hFont);
-					if (hFontPrev)
-					{
-						TEXTMETRIC tm;
-						br = GetTextMetrics(hdc, &tm);
-						if (br)
-						{							
+	m_MinSizeDone = false;
+	DBGSYM::MonitorOption::Radix radix = this->c64->GetMon()->Get_Radix();
+	return this->UpdateMetrics(radix);
+}
 
-							if (cpuid==CPUID_MAIN)
-							{
-								TCHAR s[]= TEXT("ABCDXABXABXABXNV-BDIZCXABXABXABXLINEXCYC");
-								int slen = lstrlen(s);
-								SIZE sizeText;
-								BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
-								if (br)
-								{
-									w += sizeText.cx;
-								}
-							}
-							else
-							{
-								TCHAR s[]= TEXT("ABCDXABXABXABXNV-BDIZCXAB");
-								int slen = lstrlen(s);
-								SIZE sizeText;
-								BOOL br = GetTextExtentExPoint(hdc, s, slen, 0, NULL, NULL, &sizeText);
-								if (br)
-								{
-									w += sizeText.cx;
-								}
-							}
-							h += tm.tmHeight * 2;
-							m_MinSizeW = w;
-							m_MinSizeH = h;
-							m_MinSizeDone = true;
+HRESULT CDisassemblyReg::UpdateMetrics(DBGSYM::MonitorOption::Radix radix)
+{
+HRESULT hr = E_FAIL;
+	BOOL br;
+	int w = PADDING_LEFT + PADDING_RIGHT + GetSystemMetrics(SM_CXFRAME) * 2;
+	int h = MARGIN_TOP + PADDING_TOP + PADDING_BOTTOM;
+	int cpuid = this->GetCpuId();
+	if (m_hWnd != NULL && m_hFont != NULL)
+	{
+		int prevMapMode = SetMapMode(this->m_hdc, MM_TEXT);
+		if (prevMapMode)
+		{
+			HFONT hFontPrev = (HFONT)SelectObject(this->m_hdc, m_hFont);
+			if (hFontPrev)
+			{
+				TEXTMETRIC tm;
+				br = GetTextMetrics(this->m_hdc, &tm);
+				if (br)
+				{							
+
+					if (cpuid==CPUID_MAIN)
+					{
+						TCHAR *s;
+						//if (radix == DBGSYM::MonitorOption::Hex)
+						//{
+						//	s = TEXT("ABCD AB AB AB NV-BDIZC AB AB AB LINE CYC");
+						//}
+						//else
+						{
+							s = TEXT("65535 255 255 255 NV-BDIZC 255 255 255 LINExCYC");
 						}
 
-						SelectObject(hdc, hFontPrev);
+						int slen = lstrlen(s);
+						SIZE sizeText;
+						BOOL br = GetTextExtentExPoint(this->m_hdc, s, slen, 0, NULL, NULL, &sizeText);
+						if (br)
+						{
+							w += sizeText.cx;
+						}
 					}
-					SetMapMode(hdc, prevMapMode);
+					else
+					{
+						TCHAR *s;
+						//if (radix == DBGSYM::MonitorOption::Hex)
+						//{
+						//	s = TEXT("ABCD AB AB AB NV-BDIZC 42.5");
+						//}
+						//else
+						{
+							s = TEXT("65535 255 255 255 NV-BDIZC 42.5");
+						}
+
+						int slen = lstrlen(s);
+						SIZE sizeText;
+						BOOL br = GetTextExtentExPoint(this->m_hdc, s, slen, 0, NULL, NULL, &sizeText);
+						if (br)
+						{
+							w += sizeText.cx;
+						}
+					}
+
+					h += tm.tmHeight * 2;
+					m_MinSizeW = w;
+					m_MinSizeH = h;
+					m_MinSizeDone = true;
+					this->UpdateLayout();
+					hr = S_OK;
 				}
-				ReleaseDC(m_hWnd, hdc);
+
+				SelectObject(this->m_hdc, hFontPrev);
 			}
+
+			SetMapMode(this->m_hdc, prevMapMode);
 		}
 	}
+
+	return hr;
+}
+
+void CDisassemblyReg::GetMinWindowSize(int &w, int &h)
+{
+	if (!m_MinSizeDone)
+	{
+		this->UpdateMetrics();
+	}
+
+	w = m_MinSizeW;
+	h = m_MinSizeH;
+}
+
+void CDisassemblyReg::SetRadix(DBGSYM::MonitorOption::Radix radix)
+{
+	this->radix = radix;
+	this->m_MinSizeDone = false;
+}
+
+HRESULT CDisassemblyReg::UpdateLayout()
+{
+	bool isHex = (this->radix == DBGSYM::MonitorOption::Hex);
+	this->PC.SetStyle(EdLn::Address, true, true, 0, isHex);
+	this->A.SetStyle(EdLn::Byte, true, true, 0, isHex);
+	this->X.SetStyle(EdLn::Byte, true, true, 0, isHex);
+	this->Y.SetStyle(EdLn::Byte, true, true, 0, isHex);
+	this->SR.SetStyle(EdLn::CpuFlags, true, true, 0, isHex);
+	this->SP.SetStyle(EdLn::Byte, true, true, 0, isHex);
+	this->Ddr.SetStyle(EdLn::Byte, this->cpuid == CPUID_MAIN, true, 0, isHex);
+	this->Data.SetStyle(EdLn::Byte, this->cpuid == CPUID_MAIN, true, 0, isHex);
+	this->VicLine.SetStyle(EdLn::Number, this->cpuid == CPUID_MAIN, false, 3, isHex);
+	this->VicCycle.SetStyle(EdLn::Number, this->cpuid == CPUID_MAIN, false, 2, isHex);
+	this->DiskTrack.SetStyle(EdLn::DiskTrack, this->cpuid == CPUID_DISK, false, 0, isHex);
+	this->ArrangeControls();
+	return S_OK;
+}
+
+HRESULT CDisassemblyReg::ArrangeControls()
+{
+int w=0;
+int h=0;
+TEXTMETRIC tm;	
+RECT rcAll;
+HRESULT hr;
+
+	SetRectEmpty(&rcAll);
+	BOOL br = GetTextMetrics(this->m_hdc, &tm);
+	if (!br)
+	{
+		return E_FAIL;
+	}
+
+	int x = this->xpos;
+	int y = this->ypos;
+
+	// PC
+	this->PC.SetPos(x, y);
+	hr = this->PC.GetRects(m_hdc, NULL, NULL, &rcAll);
+	if (FAILED(hr))
+	{
+		return E_FAIL;
+	}
+
+	// A
+	x = rcAll.right + 2*tm.tmAveCharWidth;
+	this->A.SetPos(x, y);
+	hr = this->A.GetRects(m_hdc, NULL, NULL, &rcAll);
+	if (FAILED(hr))
+	{
+		return E_FAIL;
+	}
+
+	// X
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->X.SetPos(x, y);
+	hr = this->X.GetRects(m_hdc, NULL, NULL, &rcAll);
+	if (FAILED(hr))
+	{
+		return E_FAIL;
+	}
+
+	// Y
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->Y.SetPos(x, y);
+	hr = this->Y.GetRects(m_hdc, NULL, NULL, &rcAll);
+	if (FAILED(hr))
+	{
+		return E_FAIL;
+	}
+
+	// SR
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->SR.SetPos(x, y);
+	hr = this->SR.GetRects(m_hdc, NULL, NULL, &rcAll);
+	if (FAILED(hr))
+	{
+		return E_FAIL;
+	}
+
+	// SP
+	x = rcAll.right + tm.tmAveCharWidth;
+	this->SP.SetPos(x, y);
+	hr = this->SP.GetRects(m_hdc, NULL, NULL, &rcAll);
+	if (FAILED(hr))
+	{
+		return E_FAIL;
+	}
+
+	if (cpuid == CPUID_MAIN)
+	{
+		// DDR
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->Ddr.SetPos(x, y);
+		hr = this->Ddr.GetRects(m_hdc, NULL, NULL, &rcAll);
+		if (FAILED(hr))
+		{
+			return E_FAIL;
+		}
+
+		// Data
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->Data.SetPos(x, y);
+		hr = this->Data.GetRects(m_hdc, NULL, NULL, &rcAll);
+		if (FAILED(hr))
+		{
+			return E_FAIL;
+		}
+
+		// VIC Line
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->VicLine.SetPos(x, y);
+		hr = this->VicLine.GetRects(m_hdc, NULL, NULL, &rcAll);
+		if (FAILED(hr))
+		{
+			return E_FAIL;
+		}
+
+		// VIC Cycle
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->VicCycle.SetPos(x, y);
+		hr = this->VicCycle.GetRects(m_hdc, NULL, NULL, &rcAll);
+		if (FAILED(hr))
+		{
+			return E_FAIL;
+		}
+	}
+	else if (cpuid == CPUID_DISK)
+	{
+		// Disk Track
+		x = rcAll.right + tm.tmAveCharWidth;
+		this->DiskTrack.SetPos(x, y);
+		hr = this->DiskTrack.GetRects(m_hdc, NULL, NULL, &rcAll);
+		if (FAILED(hr))
+		{
+			return E_FAIL;
+		}
+	}
+
+	for(unsigned int i = 0; i < this->Controls.Count(); i++)
+	{
+		EdLn* p = this->Controls[i];
+		hr = p->CreateDefaultHitRegion(m_hdc);
+		if (FAILED(hr))
+		{
+			return E_FAIL;
+		}
+	}
+
+	return S_OK;
 }
 
 HRESULT CDisassemblyReg::OnCreate(HWND hWnd)
@@ -135,17 +325,35 @@ HRESULT CDisassemblyReg::OnCreate(HWND hWnd)
 HRESULT hr;
 	m_hdc = GetDC(hWnd);
 	if (m_hdc == 0)
+	{
 		return E_FAIL;
+	}
+
+	if (SetMapMode(m_hdc, MM_TEXT) == 0)
+	{
+		return E_FAIL;
+	}
+
+	if (SelectObject(m_hdc, m_hFont) == NULL)
+	{
+		return E_FAIL;
+	}
+
 	int x = PADDING_LEFT;
 	int y = MARGIN_TOP + PADDING_TOP;
-
-	hr = m_RegBuffer.Init(hWnd, m_hdc, m_hFont, x, y, this->GetCpu()->GetCpuId());
+	DBGSYM::MonitorOption::Radix radix = this->c64->GetMon()->Get_Radix();
+	int cpuid = this->GetCpu()->GetCpuId();
+	hr = this->Init(x, y, cpuid, radix);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	hr = AdviseEvents();
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	return S_OK;
 }
@@ -153,41 +361,49 @@ HRESULT hr;
 bool CDisassemblyReg::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (m_pAppCommand->IsRunning())
+	{
 		return true;
-	m_RegBuffer.ProcessLButtonDown(wParam, lParam);
+	}
+
+	this->ProcessLButtonDown(wParam, lParam);
 	if (hWnd != ::GetFocus())
 	{
 		::SetFocus(hWnd);
 	}
+
 	return true;
 }
 
 bool CDisassemblyReg::OnChar(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (m_pAppCommand->IsRunning())
+	{
 		return true;
-	return m_RegBuffer.ProcessChar(wParam, lParam);
+	}
+
+	return this->ProcessChar(wParam, lParam);
 }
 
 bool CDisassemblyReg::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (m_pAppCommand->IsRunning())
+	{
 		return true;
-	EdLn *p = m_RegBuffer.GetFocusedControl();
+	}
+
+	EdLn *p = this->GetSelectedControl();
 	if (p != NULL)
 	{
-		return m_RegBuffer.ProcessKeyDown(wParam, lParam);
+		return this->ProcessKeyDown(wParam, lParam);
 	}
 	else if (wParam == VK_TAB)
 	{
-		int i = m_RegBuffer.GetTabFirstControlIndex();
-		if (i >= 0)
+		p = this->GetTabFirstControl();
+		if (p != NULL)
 		{
-			EdLn *p = this->m_RegBuffer.Controls[i];
-			p->Home();
-			this->m_RegBuffer.SelectControl(i);
-			this->m_RegBuffer.UpdateCaret(m_hWnd, m_hdc);
+			this->StartEditing(p, 0);
 		}
+
 		return true;
 	}
 	else
@@ -204,6 +420,7 @@ bool CDisassemblyReg::OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		SendMessage(::GetParent(hWnd), WM_COMMAND, wParam, lParam);
 		return true;
 	}
+
 	return false;
 }
 
@@ -226,54 +443,88 @@ BOOL br;
 	case WM_CREATE:
 		hr = OnCreate(hWnd);
 		if (FAILED(hr))
+		{
 			return -1;
+		}
+
 		return 0;
 	case WM_PAINT:
 		br = GetUpdateRect(hWnd, NULL, FALSE);
 		if (!br)
+		{
 			break;
+		}
+
 		hdc = BeginPaint (hWnd, &ps);
 		if (hdc != NULL)
 		{
 			DrawDisplay(hWnd, hdc);
 		}
+
 		EndPaint (hWnd, &ps);
 		break;
 	case WM_SIZE:
 		if (wParam == SIZE_MAXHIDE || wParam == SIZE_MAXSHOW)
+		{
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
+
 		if (wParam == SIZE_MINIMIZED)
+		{
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
+
 		UpdateDisplay();
 		return 0;
 	case WM_LBUTTONDOWN:
 		if (!OnLButtonDown(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
 		else
+		{
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
 	case WM_CHAR:
 		if (!OnChar(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
 		else
+		{
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
 	case WM_KEYDOWN:
 		if (!OnKeyDown(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
 		else
+		{
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
 	case WM_SETFOCUS:
-		CreateCaret(hWnd, NULL, this->m_RegBuffer.TextMetric.tmAveCharWidth, this->m_RegBuffer.TextMetric.tmHeight);
-		m_RegBuffer.UpdateCaret(hWnd, m_hdc);
+		CreateCaret(hWnd, NULL, this->TextMetric.tmAveCharWidth, this->TextMetric.tmHeight);
+		this->StartCaretCount();
+		this->UpdateCaret();
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_KILLFOCUS:
-		m_RegBuffer.ClearCaret(hWnd);
-		DestroyCaret();
+		::HideCaret(hWnd);
+		::DestroyCaret();
+		this->ClearCaretCount();
+		this->SaveEditing();
+		this->CancelEditing();
+		this->UpdateDisplay();
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_COMMAND:
 		if (OnCommand(hWnd, uMsg, wParam, lParam))
+		{
 			return 0;
+		}
 		else
+		{
 			return ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+		}
 	case WM_HSCROLL:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	case WM_VSCROLL:
@@ -293,6 +544,9 @@ int prevMapMode = 0;
 HFONT prevFont = NULL;
 HBRUSH prevBrush = NULL;
 HBRUSH bshWhite;
+UINT textAlign;
+
+	textAlign = GetTextAlign(hdc);
 	bshWhite = (HBRUSH)GetStockObject(WHITE_BRUSH);
 	if (bshWhite)
 	{
@@ -311,12 +565,25 @@ HBRUSH bshWhite;
 		}
 	}
 
+	if (textAlign != GDI_ERROR)
+	{
+		SetTextAlign(hdc, textAlign);
+	}
+
 	if (prevBrush)
+	{
 		SelectObject(hdc, prevBrush);
+	}
+
 	if (prevFont)
+	{
 		SelectObject(hdc, prevFont);
+	}
+
 	if (prevMapMode)
+	{
 		SetMapMode(hdc, prevMapMode);
+	}
 }
 
 void CDisassemblyReg::DrawDisplay2(HWND hWnd, HDC hdc)
@@ -335,7 +602,9 @@ int slen;
 
 	br = GetClientRect(hWnd, &rc);
 	if (!br)
+	{
 		return;
+	}
 
 	br = GetTextMetrics(hdc, &tm);
 	if (br)
@@ -345,30 +614,30 @@ int slen;
 			if (!m_pAppCommand->IsRunning())
 			{
 				::HideCaret(hWnd);
-				UpdateBuffer(m_RegBuffer);
+				UpdateBuffer();
 
 				int w=0;
 				int h=0;
 				x = PADDING_LEFT;
 				y = MARGIN_TOP + PADDING_TOP;
 				
-				this->m_RegBuffer.PC.Draw(hdc);				
-				this->m_RegBuffer.A.Draw(hdc);
-				this->m_RegBuffer.X.Draw(hdc);
-				this->m_RegBuffer.Y.Draw(hdc);
-				this->m_RegBuffer.SR.Draw(hdc);
-				this->m_RegBuffer.SP.Draw(hdc);
+				this->PC.Draw(hdc);				
+				this->A.Draw(hdc);
+				this->X.Draw(hdc);
+				this->Y.Draw(hdc);
+				this->SR.Draw(hdc);
+				this->SP.Draw(hdc);
 
 				if (this->GetCpuId()==CPUID_MAIN)
 				{
-					this->m_RegBuffer.Ddr.Draw(hdc);
-					this->m_RegBuffer.Data.Draw(hdc);
-					this->m_RegBuffer.VicLine.Draw(hdc);
-					this->m_RegBuffer.VicCycle.Draw(hdc);
+					this->Ddr.Draw(hdc);
+					this->Data.Draw(hdc);
+					this->VicLine.Draw(hdc);
+					this->VicCycle.Draw(hdc);
 				}
 				else if (this->GetCpuId()==CPUID_DISK)
 				{
-					this->m_RegBuffer.DiskTrack.Draw(hdc);
+					this->DiskTrack.Draw(hdc);
 				}
 
 				::ShowCaret(hWnd);
@@ -400,252 +669,326 @@ int slen;
 
 void CDisassemblyReg::InvalidateBuffer()
 {
-	m_RegBuffer.ClearBuffer();
 	if (!m_hWnd)
+	{
 		InvalidateRect(m_hWnd, NULL, TRUE);
+	}
 }
 
 void CDisassemblyReg::UpdateDisplay()
 {
-	UpdateBuffer(m_RegBuffer);
+	UpdateBuffer();
 	InvalidateRect(m_hWnd, NULL, TRUE);
 	UpdateWindow(m_hWnd);
-
 }
 
-void CDisassemblyReg::UpdateBuffer(RegLineBuffer& b)
+void CDisassemblyReg::UpdateBuffer()
 {
-	b.ClearBuffer();
-
 	CPUState state;
 	this->GetCpu()->GetCpuState(state);
+	if (!this->PC.IsChanged)
+	{
+		this->PC.SetEditValue(state.PC_CurrentOpcode);
+	}
 
-	b.PC.SetValue(state.PC_CurrentOpcode);
-	b.A.SetValue(state.A);
-	b.X.SetValue(state.X);
-	b.Y.SetValue(state.Y);
-	b.SR.SetValue(state.Flags);
-	b.SP.SetValue(state.SP);
+	if (!this->A.IsChanged)
+	{
+		this->A.SetEditValue(state.A);
+	}
+
+	if (!this->X.IsChanged)
+	{
+		this->X.SetEditValue(state.X);
+	}
+
+	if (!this->Y.IsChanged)
+	{
+		this->Y.SetEditValue(state.Y);
+	}
+
+	if (!this->SR.IsChanged)
+	{
+		this->SR.SetEditValue(state.Flags);
+	}
+
+	if (!this->SP.IsChanged)
+	{
+		this->SP.SetEditValue(state.SP);
+	}
+
 	if (this->GetCpuId() == CPUID_MAIN)
 	{
-		b.Ddr.SetValue(state.PortDdr);
-		b.Data.SetValue(state.PortDataStored);
+		if (!this->Ddr.IsChanged)
+		{
+			this->Ddr.SetEditValue(state.PortDdr);
+		}
+
+		if (!this->Data.IsChanged)
+		{
+			this->Data.SetEditValue(state.PortDataStored);
+		}
 
 		bit16 line = this->c64->GetMon()->GetVic()->GetNextRasterLine();
 		bit8 cycle = this->c64->GetMon()->GetVic()->GetNextRasterCycle();
-		
-		b.VicLine.SetValue(line);
-		b.VicCycle.SetValue(cycle);
+		this->VicLine.SetEditValue(line);
+		this->VicCycle.SetEditValue(cycle);
 	}
 	else if (this->GetCpuId() == CPUID_DISK)
 	{
-		b.DiskTrack.SetValue(this->c64->GetMon()->GetDisk()->GetHalfTrackIndex());
+		this->DiskTrack.SetEditValue(this->c64->GetMon()->GetDisk()->GetHalfTrackIndex());
 	}
 }
 
-void CDisassemblyReg::RegLineBuffer::ClearBuffer()
+void CDisassemblyReg::SelectControl(EdLn *control)
 {
-	PC.SetValue(0);
-	A.SetValue(0);
-	X.SetValue(0);
-	Y.SetValue(0);
-	SR.SetValue(0);
-	SP.SetValue(0);
-	Ddr.SetValue(0);
-	Data.SetValue(0);
-	VicLine.SetValue(0);
-	VicCycle.SetValue(0);
-	DiskTrack.SetValue(0);
-}
-
-void CDisassemblyReg::RegLineBuffer::SelectControl(int i)
-{
-	DeSelectControl(CurrentControlIndex);
-	if (i >= 0 && i < (int)this->Controls.Count())
+	EdLn *p = this->GetSelectedControl();
+	if (p != NULL)
 	{
-		EdLn *p = this->Controls[i];
-		p->IsFocused = true;
-		this->CurrentControlIndex = i;
-	}
-}
-
-void CDisassemblyReg::RegLineBuffer::DeSelectControl(int i)
-{
-	if (i >= 0 && i < (int)this->Controls.Count())
-		this->Controls[i]->IsFocused = false;
-}
-
-EdLn *CDisassemblyReg::RegLineBuffer::GetFocusedControl()
-{
-	if (CurrentControlIndex < 0 || (unsigned int)CurrentControlIndex >= Controls.Count())
-		return NULL;
-	EdLn *p = Controls[CurrentControlIndex];
-	if (!p->IsFocused)
-		return NULL;
-	return p;
-}
-
-int CDisassemblyReg::RegLineBuffer::GetTabFirstControlIndex()
-{
-int i;
-	if (Controls.Count()<=0)
-	{
-		return -1;
-	}
-	bool bFound1st = false;
-	int tabNextIndex;
-	int controlIndex = -1;
-	for (i = 0; i < (int)Controls.Count() ; i++)
-	{
-		EdLn *p = this->Controls[i];
-		if (p->GetIsEditable() && p->GetIsVisible())
+		if (p != control)
 		{
-			if (!bFound1st)
+			this->SaveEditing();
+			this->CancelEditing();
+			this->UpdateCaret();
+			this->UpdateDisplay();
+		}
+
+		p->IsSelected = false;
+	}
+
+	if (control != NULL)
+	{
+		control->IsSelected = true;
+		this->CurrentControlID = control->GetControlID();
+	}
+	else
+	{
+		this->CurrentControlID = 0;
+	}
+}
+
+EdLn *CDisassemblyReg::GetSelectedControl()
+{
+	return this->GetControlByID(this->CurrentControlID);
+}
+
+EdLn *CDisassemblyReg::GetControlByID(int id)
+{
+	unsigned int i;
+	if (id > 0)
+	{
+		for (i = 0; i < (int)Controls.Count() ; i++)
+		{
+			EdLn *p = this->Controls[i];
+			if (p != NULL)
 			{
-				bFound1st = true;
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
-			}
-			else if (p->m_iTabIndex < tabNextIndex)
-			{
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
+				if (p->GetControlID() == id)
+				{
+					return p;
+				}
 			}
 		}
 	}
-	return controlIndex;
+
+	return NULL;
 }
 
-int CDisassemblyReg::RegLineBuffer::GetTabLastControlIndex()
+EdLn *CDisassemblyReg::GetTabFirstControl()
 {
-int i;
-	if (Controls.Count()<=0)
-	{
-		return -1;
-	}
-	bool bFound1st = false;
-	int tabNextIndex;
-	int controlIndex = -1;
-	for (i = 0; i < (int)Controls.Count() ; i++)
+unsigned int i;
+
+	int firstTabNumber = -1;
+	int firstIndex = 0;
+	for (i = 0; i < Controls.Count() ; i++)
 	{
 		EdLn *p = this->Controls[i];
-		if (p->GetIsEditable() && p->GetIsVisible())
+		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex >= 0)
 		{
-			if (!bFound1st)
+			if (firstTabNumber > p->m_iTabIndex || firstTabNumber < 0)
 			{
-				bFound1st = true;
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
-			}
-			else if (p->m_iTabIndex > tabNextIndex)
-			{
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
+				firstTabNumber = p->m_iTabIndex;
+				firstIndex = i;
 			}
 		}
 	}
-	return controlIndex;
+
+	if (firstTabNumber >=0 && firstTabNumber < (int)this->Controls.Count())
+	{
+		return this->Controls[firstIndex];
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
-int CDisassemblyReg::RegLineBuffer::GetTabNextControlIndex()
+EdLn *CDisassemblyReg::GetTabLastControl()
 {
-int i;
-	if (Controls.Count()<=0)
-	{
-		return -1;
-	}
-	if (CurrentControlIndex < 0 || (unsigned int)CurrentControlIndex >= Controls.Count())
-		return GetTabFirstControlIndex();
+unsigned int i;
 
-	i = CurrentControlIndex;
-	EdLn *p = this->Controls[i];
-	int tabCurrentIndex = p->m_iTabIndex;
-	int tabNextIndex = tabCurrentIndex;
-	int controlIndex = -1;
-	bool bFound1st = false;
+	int lastTabNumber = -1;
+	int lastIndex = 0;
 	for (i = 0; i < (int)Controls.Count() ; i++)
+	{
+		EdLn *p = this->Controls[i];
+		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex >= 0)
+		{
+			if (lastTabNumber < p->m_iTabIndex || lastTabNumber < 0)
+			{
+				lastTabNumber = p->m_iTabIndex;
+				lastIndex = i;
+			}
+		}
+	}
+
+	if (lastTabNumber >=0 && lastTabNumber < (int)this->Controls.Count())
+	{
+		return this->Controls[lastIndex];
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+EdLn * CDisassemblyReg::GetTabNextControl()
+{
+unsigned int i;
+
+	EdLn *p = this->GetControlByID(this->CurrentControlID);
+	if (p == NULL)
+	{
+		return this->GetTabFirstControl();
+	}
+
+	int tabCurrentNumber = p->m_iTabIndex;
+	int firstTabNumber = -1;
+	int lastTabNumber = -1;
+	int nextTabNumber = -1;
+	int firstIndex = 0;
+	int lastIndex = 0;
+	int nextIndex = 0;
+	for (i = 0; i < this->Controls.Count(); i++)
 	{
 		p = this->Controls[i];
-		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex > tabCurrentIndex)
+		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex >= 0)
 		{
-			if (!bFound1st)
+			if (firstTabNumber < 0 || (firstTabNumber >= 0 && firstTabNumber > p->m_iTabIndex))
 			{
-				bFound1st = true;
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
+				firstTabNumber = p->m_iTabIndex;
+				firstIndex = i;
 			}
-			else if (p->m_iTabIndex < tabNextIndex)
+
+			if (lastTabNumber < 0 || (lastTabNumber >= 0 && lastTabNumber < p->m_iTabIndex))
 			{
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
+				lastTabNumber = p->m_iTabIndex;
+				lastIndex = i;
+			}
+
+			if ((nextTabNumber < 0 && p->m_iTabIndex > tabCurrentNumber) || (nextTabNumber >= 0 && p->m_iTabIndex > tabCurrentNumber && p->m_iTabIndex < nextTabNumber))
+			{
+				nextTabNumber = p->m_iTabIndex;
+				nextIndex = i;
 			}
 		}
 	}
-	return controlIndex;
+
+	if (tabCurrentNumber >= lastTabNumber || nextTabNumber < 0)
+	{
+		nextTabNumber = firstTabNumber;
+		nextIndex = firstIndex;
+	}
+
+	if (nextIndex >= 0 && nextIndex < (int)this->Controls.Count())
+	{
+		return this->Controls[nextIndex];
+	}
+	else
+	{
+		return this->GetTabFirstControl();
+	}
 }
 
-int CDisassemblyReg::RegLineBuffer::GetTabPreviousControlIndex()
+EdLn *CDisassemblyReg::GetTabPreviousControl()
 {
-int i;
-	if (Controls.Count()<=0)
-	{
-		return -1;
-	}
-	if (CurrentControlIndex < 0 || CurrentControlIndex >= (int)Controls.Count())
-		return GetTabLastControlIndex();
+unsigned int i;
 
-	i = CurrentControlIndex;
-	EdLn *p = this->Controls[i];
-	int tabCurrentIndex = p->m_iTabIndex;
-	int tabNextIndex = tabCurrentIndex;
-	int controlIndex = -1;
-	bool bFound1st = false;
-	for (i = 0; i < (int)Controls.Count() ; i++)
+	EdLn *p = this->GetControlByID(this->CurrentControlID);
+	if (p == NULL)
+	{
+		return this->GetTabFirstControl();
+	}
+
+	int tabCurrentNumber = p->m_iTabIndex;
+	int firstTabNumber = -1;
+	int lastTabNumber = -1;
+	int nextTabNumber = -1;
+	int firstIndex = 0;
+	int lastIndex = 0;
+	int nextIndex = 0;
+	for (i = 0; i < (int)this->Controls.Count() ; i++)
 	{
 		p = this->Controls[i];
-		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex < tabCurrentIndex)
+		if (p->GetIsEditable() && p->GetIsVisible() && p->m_iTabIndex >= 0)
 		{
-			if (!bFound1st)
+			if (firstTabNumber < 0 || (firstTabNumber >= 0 && firstTabNumber > p->m_iTabIndex))
 			{
-				bFound1st = true;
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
+				firstTabNumber = p->m_iTabIndex;
+				firstIndex = i;
 			}
-			else if (p->m_iTabIndex > tabNextIndex)
+
+			if (lastTabNumber < 0 || (lastTabNumber >= 0 && lastTabNumber < p->m_iTabIndex))
 			{
-				tabNextIndex = p->m_iTabIndex;
-				controlIndex = i;
+				lastTabNumber = p->m_iTabIndex;
+				lastIndex = i;
+			}
+
+			if ((nextTabNumber < 0 && p->m_iTabIndex < tabCurrentNumber) || (nextTabNumber >= 0 && p->m_iTabIndex < tabCurrentNumber && p->m_iTabIndex > nextTabNumber))
+			{
+				nextTabNumber = p->m_iTabIndex;
+				nextIndex = i;
 			}
 		}
 	}
-	return controlIndex;
+
+	if (tabCurrentNumber <= firstTabNumber || nextTabNumber < 0)
+	{
+		nextTabNumber = lastTabNumber;
+		nextIndex = lastIndex;
+	}
+
+	if (nextIndex >= 0 && nextIndex < (int)this->Controls.Count())
+	{
+		return this->Controls[nextIndex];
+	}
+	else
+	{
+		return this->GetTabLastControl();
+	}
 }
 
-void CDisassemblyReg::RegLineBuffer::UpdateCaret(HWND hWnd, HDC hdc)
+void CDisassemblyReg::UpdateCaret()
 {
-bool bFound = false;
-
-	if (hWnd != GetFocus())
-		return;
-	if (hdc == NULL)
-		return;
-
-	for (int i=0; i < (int)this->Controls.Count(); i++)
+	if (m_iShowCaretCount < 0)
 	{
-		EdLn *t = this->Controls[i];
-		if (t->IsFocused)
+		return;
+	}
+
+	EdLn *p = NULL;
+	if (this->IsEditing)
+	{
+		p = this->GetSelectedControl();;
+		if (p != NULL)
 		{
-			t->UpdateCaretPosition(hdc);
-			bFound = true;
-			break;
+			p->UpdateCaretPosition(this->m_hdc);
 		}
 	}
-	if (bFound)
+
+	if (p != NULL && this->m_hWnd == GetFocus())
 	{
-		if (m_iShowCaretCount <= 0)
+		if (m_iShowCaretCount == 0)
 		{
 			m_iShowCaretCount++;
-			::ShowCaret(hWnd);
+			::ShowCaret(this->m_hWnd);
 		}
 	}
 	else
@@ -653,250 +996,366 @@ bool bFound = false;
 		if (m_iShowCaretCount > 0)
 		{
 			m_iShowCaretCount--;
-			::HideCaret(hWnd);
+			::HideCaret(this->m_hWnd);
 		}
 	}
 }
 
-void CDisassemblyReg::RegLineBuffer::ClearCaret(HWND hWnd)
+void CDisassemblyReg::ClearCaretCount()
+{
+	m_iShowCaretCount = -1;
+}
+
+void CDisassemblyReg::StartCaretCount()
 {
 	m_iShowCaretCount = 0;
 }
 
-bool CDisassemblyReg::RegLineBuffer::ProcessChar(WPARAM wParam, LPARAM lParam)
+bool CDisassemblyReg::ProcessChar(WPARAM wParam, LPARAM lParam)
 {
-	if (CurrentControlIndex < 0 || CurrentControlIndex > (int)Controls.Count() - 1)
-		return false;
-	EdLn *t = Controls[CurrentControlIndex];
-	
-	if (t->IsFocused && t->GetIsEditable())
+	if (this->CurrentControlID <= 0)
 	{
-		t->CharEdit((TCHAR)wParam);
+		return false;
 	}
+
+	EdLn *p = this->GetSelectedControl();
+	if (p != NULL)
+	{
+		if (p->GetIsEditable() && p->CanCharEdit((TCHAR)wParam))
+		{
+			if (!this->IsEditing)
+			{
+				this->StartEditing(p, 0);
+			}
+
+			p->CharEdit((TCHAR)wParam);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CDisassemblyReg::ProcessKeyDown(WPARAM wParam, LPARAM lParam)
+{
+	EdLn *p = this->GetSelectedControl();
+	if (p != NULL)
+	{
+		if (p->GetIsEditable())
+		{
+			p->KeyDown((int)wParam);
+		}
+	}
+
 	return true;
 }
 
-bool CDisassemblyReg::RegLineBuffer::ProcessKeyDown(WPARAM wParam, LPARAM lParam)
-{
-	if (CurrentControlIndex < 0 || CurrentControlIndex > (int)Controls.Count() - 1)
-		return false;
-	EdLn *t = Controls[CurrentControlIndex];
-	
-	if (t->IsFocused && t->GetIsEditable())
-	{
-		t->KeyDown((int)wParam);
-	}
-	
-	return true;
-}
-
-bool CDisassemblyReg::RegLineBuffer::ProcessLButtonDown(WPARAM wParam, LPARAM lParam)
+bool CDisassemblyReg::ProcessLButtonDown(WPARAM wParam, LPARAM lParam)
 {
 int x;
 int y;
 HRESULT hr;
 	x = GET_X_LPARAM(lParam);
 	y = GET_Y_LPARAM(lParam);
-	int c = (int)this->Controls.Count();
 	bool bFound = false;
-	int iCellIndex = 0;
-	HWND hWnd = m_hWndParent;
-	HDC hdc = GetDC(hWnd);
-	if (hdc==NULL)
-		return false;
-	for(int i = 0; i < c; i++)
+	int charIndex = 0;
+	HWND hWnd = this->GetHwnd();
+	for(unsigned int i = 0; i < this->Controls.Count(); i++)
 	{
 		EdLn *p = this->Controls[i];
 		if (p->IsHitEdit(x, y) && p->GetIsEditable() && p->GetIsVisible())
 		{
 			bFound = true;
-			hr = p->GetCharIndex(hdc, x, y, &iCellIndex, NULL);
+			hr = p->GetCharIndex(this->m_hdc, x, y, &charIndex, NULL);
 			if (FAILED(hr))
+			{
 				break;
-			this->SelectControl(i);
-			p->SetInsertionPoint(iCellIndex);
-			this->UpdateCaret(hWnd, hdc);
+			}
+
+			this->StartEditing(p, charIndex);
 			break;
 		}
 	}
+
 	if (!bFound)
 	{
-		CancelEditing();
+		this->CancelEditing();
+		this->UpdateCaret();
+		this->UpdateDisplay();
 	}
+
 	return true;
 }
 
-void CDisassemblyReg::RegLineBuffer::CancelEditing()
+void CDisassemblyReg::StartEditing(EdLn *control, int insertionPoint)
 {
-	HWND hWnd = m_hWndParent;
-	HDC hdc = GetDC(hWnd);
-	this->DeSelectControl(this->CurrentControlIndex);
-	if (hdc==NULL)
-		return;
-	this->UpdateCaret(hWnd, hdc);
+	if (control != NULL)
+	{
+		this->SelectControl(control);
+		if (insertionPoint >= 0)
+		{
+			control->SetInsertionPoint(insertionPoint);
+		}
+
+		this->IsEditing = true;
+		this->UpdateCaret();
+	}
 }
 
-HRESULT CDisassemblyReg::RegLineBuffer::Init(HWND hWnd, HDC hdc, HFONT hFont, int x, int y, int cpuid)
+bool CDisassemblyReg::IsChanged()
+{
+unsigned int i;
+	for (i = 0; i < this->Controls.Count(); i++)
+	{
+		if (this->Controls[i]->IsChanged)
+		{
+			return true;
+		}		
+	}
+
+	return false;
+}
+
+HRESULT CDisassemblyReg::Init(int x, int y, int cpuid, DBGSYM::MonitorOption::Radix radix)
 {
 HRESULT hr;
-int prevMapMode = 0;
-HFONT prevFont = NULL;
 
-	this->m_hWndParent = hWnd;
-	ZeroMemory(&TextMetric, sizeof(TextMetric));
-	prevMapMode = SetMapMode(hdc, MM_TEXT);
-	if (prevMapMode)
+	this->cpuid = cpuid;
+	this->xpos = x;
+	this->ypos = y;
+	this->radix = radix;
+	ZeroMemory(&this->TextMetric, sizeof(this->TextMetric));
+	::GetTextMetrics(m_hdc, &this->TextMetric);    
+	hr = PC.Init(m_hWnd, CTRLID_PC, 1, m_hFont, TEXT("PC"));
+	if (FAILED(hr))
 	{
-		prevFont = (HFONT)SelectObject(hdc, hFont);		
-		if (prevFont)
-		{				
-			::GetTextMetrics(hdc, &TextMetric);
-		}
+		return hr;
 	}
-	if (prevFont)
-		SelectObject(hdc, prevFont);
-	if (prevMapMode)
-		SetMapMode(hdc, prevMapMode);
-    m_iShowCaretCount = 0;
-	hr = PC.Init(hWnd, CTRLID_PC, 1, hFont, TEXT("PC"), EdLn::HexAddress, true, true, 4);
-	if (FAILED(hr))
-		return hr;
-	hr = A.Init(hWnd, CTRLID_A, 2, hFont, TEXT("A"), EdLn::HexByte, true, true, 2);
-	if (FAILED(hr))
-		return hr;
-	hr = X.Init(hWnd, CTRLID_X, 3, hFont, TEXT("X"), EdLn::HexByte, true, true, 2);
-	if (FAILED(hr))
-		return hr;
-	hr = Y.Init(hWnd, CTRLID_Y, 4, hFont, TEXT("Y"), EdLn::HexByte, true, true, 2);
-	if (FAILED(hr))
-		return hr;
-	hr = SR.Init(hWnd, CTRLID_SR, 5, hFont, TEXT("NV-BDIZC"), EdLn::CpuFlags, true, true, 8);
-	if (FAILED(hr))
-		return hr;
-	hr = SP.Init(hWnd, CTRLID_SP, 6, hFont, TEXT("SP"), EdLn::HexByte, true, true, 2);
-	if (FAILED(hr))
-		return hr;
-	hr = Ddr.Init(hWnd, CTRLID_DDR, 7, hFont, TEXT("00"), EdLn::HexByte, cpuid == CPUID_MAIN, true, 2);
-	if (FAILED(hr))
-		return hr;
-	hr = Data.Init(hWnd, CTRLID_DATA, 8, hFont, TEXT("01"), EdLn::HexByte, cpuid == CPUID_MAIN, true, 2);
-	if (FAILED(hr))
-		return hr;
-	hr = VicLine.Init(hWnd, CTRLID_VICLINE, 9, hFont, TEXT("LINE"), EdLn::Hex, cpuid == CPUID_MAIN, false, 3);
-	if (FAILED(hr))
-		return hr;
-	hr = VicCycle.Init(hWnd, CTRLID_VICCYCLE, 10, hFont, TEXT("CYC"), EdLn::Dec, cpuid == CPUID_MAIN, false, 2);
-	if (FAILED(hr))
-		return hr;
-	hr = DiskTrack.Init(hWnd, CTRLID_DISKTRACK, 11, hFont, TEXT("TRACK"), EdLn::DiskTrack, cpuid == CPUID_DISK, false, 2);
-	if (FAILED(hr))
-		return hr;	
-	
-	CurrentControlIndex = 0;
 
-	hr = ArrangeControls(hdc, x, y, cpuid);
+	hr = A.Init(m_hWnd, CTRLID_A, 2, m_hFont, TEXT("A"));
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
+	hr = X.Init(m_hWnd, CTRLID_X, 3, m_hFont, TEXT("X"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = Y.Init(m_hWnd, CTRLID_Y, 4, m_hFont, TEXT("Y"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = SR.Init(m_hWnd, CTRLID_SR, 5, m_hFont, TEXT("NV-BDIZC"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = SP.Init(m_hWnd, CTRLID_SP, 6, m_hFont, TEXT("SP"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = Ddr.Init(m_hWnd, CTRLID_DDR, 7, m_hFont, TEXT("00"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = Data.Init(m_hWnd, CTRLID_DATA, 8, m_hFont, TEXT("01"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = VicLine.Init(m_hWnd, CTRLID_VICLINE, 9, m_hFont, TEXT("LINE"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = VicCycle.Init(m_hWnd, CTRLID_VICCYCLE, 10, m_hFont, TEXT("CYC"));
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = DiskTrack.Init(m_hWnd, CTRLID_DISKTRACK, 11, m_hFont, TEXT("TRACK"));
+	if (FAILED(hr))
+	{
+		return hr;	
+	}
 
 	EdLn* ctrls[] = {&PC, &A, &X, &Y, &SR, &SP, &Ddr, &Data, &VicLine, &VicCycle, &DiskTrack};
 	Controls.Clear();
 	hr = Controls.Resize(_countof(ctrls));
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	for(int i = 0; i < _countof(ctrls); i++)
 	{
 		EdLn* p = ctrls[i];
-		hr = p->CreateDefaultHitRegion(hdc);
-		if (FAILED(hr))
-			return hr;
 		Controls.Append(p);
 	}
+
+	this->CurrentControlID = 0;
+	this->IsEditing = false;
+	this->SetRadix(radix);
+	//this->UpdateMetrics(radix);
 	return S_OK;
 }
 
-HRESULT CDisassemblyReg::RegLineBuffer::ArrangeControls(HDC hdc, int x, int y, int cpuid)
-{
-int w=0;
-int h=0;
-TEXTMETRIC tm;	
-RECT rcAll;
-	SetRectEmpty(&rcAll);
+HRESULT CDisassemblyReg::UpdateDisplay(EdLn *control, int value)
+{	
+	RECT rcEdit;
+	HRESULT hr;
 
-	BOOL br = GetTextMetrics(hdc, &tm);
-	if (!br)
-		return E_FAIL;
-	this->PC.SetPos(x, y);
-	this->PC.GetRects(hdc, NULL, NULL, &rcAll);				
-	x = rcAll.right + 2*tm.tmAveCharWidth;
-	this->A.SetPos(x, y);
-	this->A.GetRects(hdc, NULL, NULL, &rcAll);
-
-	x = rcAll.right + tm.tmAveCharWidth;
-	this->X.SetPos(x, y);
-	this->X.GetRects(hdc, NULL, NULL, &rcAll);
-
-	x = rcAll.right + tm.tmAveCharWidth;
-	this->Y.SetPos(x, y);
-	this->Y.GetRects(hdc, NULL, NULL, &rcAll);
-
-	x = rcAll.right + tm.tmAveCharWidth;
-	this->SR.SetPos(x, y);
-	this->SR.GetRects(hdc, NULL, NULL, &rcAll);
-
-	x = rcAll.right + tm.tmAveCharWidth;
-	this->SP.SetPos(x, y);
-	this->SP.GetRects(hdc, NULL, NULL, &rcAll);
-
-	if (cpuid==CPUID_MAIN)
+	control->IsChanged = false;
+	hr = control->GetRects(this->m_hdc, NULL, &rcEdit, NULL);
+	if (SUCCEEDED(hr))
 	{
-		x = rcAll.right + tm.tmAveCharWidth;
-		this->Ddr.SetPos(x, y);
-		this->Ddr.GetRects(hdc, NULL, NULL, &rcAll);
-
-		x = rcAll.right + tm.tmAveCharWidth;
-		this->Data.SetPos(x, y);
-		this->Data.GetRects(hdc, NULL, NULL, &rcAll);
-
-		x = rcAll.right + tm.tmAveCharWidth;
-		this->VicLine.SetPos(x, y);
-		this->VicLine.GetRects(hdc, NULL, NULL, &rcAll);
-
-		x = rcAll.right + tm.tmAveCharWidth;
-		this->VicCycle.SetPos(x, y);
-		this->VicCycle.GetRects(hdc, NULL, NULL, &rcAll);
+		control->SetEditValue(value);
+		InvalidateRect(this->m_hWnd, &rcEdit, TRUE);
+		UpdateWindow(this->m_hWnd);
 	}
-	else if (cpuid==CPUID_DISK)
-	{
-		x = rcAll.right + tm.tmAveCharWidth;
-		this->DiskTrack.SetPos(x, y);
-		this->DiskTrack.GetRects(hdc, NULL, NULL, &rcAll);
-	}
-	return S_OK;
+
+	return hr;
 }
 
 HRESULT CDisassemblyReg::AdviseEvents()
 {
 	HSink hs;
-	for (int i=0; i<(int)m_RegBuffer.Controls.Count(); i++)
+	for (unsigned int i=0; i < this->Controls.Count(); i++)
 	{
-		EdLn *p = m_RegBuffer.Controls[i];
+		EdLn *p = this->Controls[i];
 		hs = p->EsOnTextChanged.Advise((CDisassemblyReg_EventSink_OnTextChanged *)this);
 		if (hs == NULL)
 		{
 			return E_FAIL;
 		}
+
 		hs = p->EsOnTabControl.Advise((CDisassemblyReg_EventSink_OnTabControl *)this);
 		if (hs == NULL)
 		{
 			return E_FAIL;
 		}
-		hs = p->EsOnEscControl.Advise((CDisassemblyReg_EventSink_OnEscControl *)this);
+
+		hs = p->EsOnSaveControl.Advise((CDisassemblyReg_EventSink_OnSaveControl *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = p->EsOnCancelControl.Advise((CDisassemblyReg_EventSink_OnCancelControl *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = p->EsOnCancelControl.Advise((CDisassemblyReg_EventSink_OnCancelControl *)this);
 		if (hs == NULL)
 		{
 			return E_FAIL;
 		}
 	}
+	
+	if (this->cpuid == CPUID_MAIN)
+	{
+		hs = this->m_pAppCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegPCChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuC64RegAChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegAChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuC64RegXChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegXChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuC64RegYChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegYChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuC64RegSRChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegSRChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuC64RegSPChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegSPChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuC64RegDdrChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegDdrChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuC64RegDataChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegDataChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+	}
+	else
+	{
+		hs = this->m_pAppCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegPCChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuDiskRegAChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegAChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuDiskRegXChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegXChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuDiskRegYChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegYChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuDiskRegSRChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegSRChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+
+		hs = this->m_pAppCommand->EsCpuDiskRegSPChanged.Advise((CDisassemblyReg_EventSink_OnCpuRegSPChanged *)this);
+		if (hs == NULL)
+		{
+			return E_FAIL;
+		}
+	}
+
 	return S_OK;
 }
 
@@ -904,167 +1363,361 @@ void CDisassemblyReg::UnadviseEvents()
 {
 	((CDisassemblyReg_EventSink_OnTextChanged *)this)->UnadviseAll();
 	((CDisassemblyReg_EventSink_OnTabControl *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCancelControl *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnSaveControl *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegPCChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegAChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegXChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegYChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegSRChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegSPChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegDdrChanged *)this)->UnadviseAll();
+	((CDisassemblyReg_EventSink_OnCpuRegDataChanged *)this)->UnadviseAll();
 }
 
-void CDisassemblyReg::CancelEditing()
+void CDisassemblyReg::OnCancelControl(void *sender, EdLnCancelControlEventArgs& e)
 {
-	this->m_RegBuffer.CancelEditing();
+	this->CancelEditing();
+	this->UpdateCaret();
+	this->UpdateDisplay();
 }
 
-void CDisassemblyReg::OnTextChanged(void *sender, EdLnTextChangedEventArgs& e)
+void CDisassemblyReg::OnSaveControl(void *sender, EdLnSaveControlEventArgs& e)
 {
-int v = 0;
-HRESULT hr;
-EdLn *ped = e.pEdLnControl;
-bit16 address;
-bit8 dataByte;
-
-	if (ped == NULL)
-		return ;
-
-	int id = ped->GetControlID();
-	if (id == m_RegBuffer.CTRLID_PC)
+	if (this->SaveEditing(e.pEdLnControl))
 	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			EventArgs regPCChangedEventArgs;
-			address = (bit16)v;
-			this->GetCpu()->SetPC(address);
-			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
-			{
-				this->m_pAppCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
-			}
-			else
-			{
-				this->m_pAppCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
-			}
-		}
+		this->MoveTab(true);
+		e.IsCancelled = false;
 	}
-	else if (id == m_RegBuffer.CTRLID_A)
+	else
 	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			dataByte = (bit8)v;
-			this->GetCpu()->SetA(dataByte);
-		}
-	}
-	else if (id == m_RegBuffer.CTRLID_X)
-	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			dataByte = (bit8)v;
-			this->GetCpu()->SetX(dataByte);
-		}
-	}
-	else if (id == m_RegBuffer.CTRLID_Y)
-	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			dataByte = (bit8)v;
-			this->GetCpu()->SetY(dataByte);
-		}
-	}
-	else if (id == m_RegBuffer.CTRLID_SR)
-	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			dataByte = (bit8)v;
-			this->GetCpu()->SetSR(dataByte);
-		}
-	}
-	else if (id == m_RegBuffer.CTRLID_SP)
-	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			dataByte = (bit8)v;
-			this->GetCpu()->SetSP(dataByte);
-		}
-	}
-	else if (id == m_RegBuffer.CTRLID_DDR)
-	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			dataByte = (bit8)v;
-			this->GetCpu()->SetDdr(dataByte);
-			EventArgs regPCChangedEventArgs;
-			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
-			{
-				this->m_pAppCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
-			}
-			else
-			{
-				this->m_pAppCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
-			}
-		}
-	}
-	else if (id == m_RegBuffer.CTRLID_DATA)
-	{
-		hr = ped->GetValue(v);
-		if (SUCCEEDED(hr))
-		{
-			dataByte = (bit8)v;
-			this->GetCpu()->SetData(dataByte);
-			EventArgs regPCChangedEventArgs;
-			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
-			{
-				this->m_pAppCommand->EsCpuC64RegPCChanged.Raise(this, regPCChangedEventArgs);
-			}
-			else
-			{
-				this->m_pAppCommand->EsCpuDiskRegPCChanged.Raise(this, regPCChangedEventArgs);
-			}
-		}
+		e.IsCancelled = true;
 	}
 }
 
 void CDisassemblyReg::OnTabControl(void *sender, EdLnTabControlEventArgs& e)
 {
-int i;
-	if (e.IsNext)
-		i = this->m_RegBuffer.GetTabNextControlIndex();
-	else
-		i = this->m_RegBuffer.GetTabPreviousControlIndex();
-	if (i >= 0)
+	if (!this->SaveEditing(e.pEdLnControl))
 	{
-		HDC hdc = GetDC(m_hWnd);
-		if (hdc != NULL)
-		{
-			EdLn *p = this->m_RegBuffer.Controls[i];
-			p->Home();
-			this->m_RegBuffer.SelectControl(i);
-			this->m_RegBuffer.UpdateCaret(m_hWnd, hdc);
-		}
+		this->CancelEditing();
+		this->UpdateCaret();
+		this->UpdateDisplay();
 	}
-	else
+
+	this->MoveTab(e.IsNext);
+	e.IsCancelled = false;
+}
+
+void CDisassemblyReg::OnTextChanged(void *sender, EdLnTextChangedEventArgs& e)
+{
+}
+
+void CDisassemblyReg::OnCpuRegPCChanged(void *sender, EventArgs& e)
+{
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->PC, state.PC);
+	if (FAILED(hr))
 	{
-		if (e.IsNext)
-			i = this->m_RegBuffer.GetTabFirstControlIndex();
-		else
-			i = this->m_RegBuffer.GetTabLastControlIndex();
-		if (i >= 0)
-		{
-			HDC hdc = GetDC(m_hWnd);
-			if (hdc != NULL)
-			{
-				EdLn *p = this->m_RegBuffer.Controls[i];
-				p->Home();
-				this->m_RegBuffer.SelectControl(i);
-				this->m_RegBuffer.UpdateCaret(m_hWnd, hdc);
-			}
-		}
+		this->UpdateDisplay();
 	}
 }
 
-void CDisassemblyReg::OnEscControl(void *sender, EdLnEscControlEventArgs& e)
+void CDisassemblyReg::OnCpuRegAChanged(void *sender, EventArgs& e)
 {
-	EdLn *p = e.pEdLnControl;
-	p->IsFocused  = false;
-	m_RegBuffer.UpdateCaret(m_hWnd, m_hdc);
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->A, state.A);
+	if (FAILED(hr))
+	{
+		this->UpdateDisplay();
+	}
+}
+
+void CDisassemblyReg::OnCpuRegXChanged(void *sender, EventArgs& e)
+{
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->X, state.X);
+	if (FAILED(hr))
+	{
+		this->UpdateDisplay();
+	}
+}
+
+void CDisassemblyReg::OnCpuRegYChanged(void *sender, EventArgs& e)
+{
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->Y, state.Y);
+	if (FAILED(hr))
+	{
+		this->UpdateDisplay();
+	}
+}
+
+void CDisassemblyReg::OnCpuRegSRChanged(void *sender, EventArgs& e)
+{
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->SR, state.Flags);
+	if (FAILED(hr))
+	{
+		this->UpdateDisplay();
+	}
+}
+
+void CDisassemblyReg::OnCpuRegSPChanged(void *sender, EventArgs& e)
+{
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->SP, state.SP);
+	if (FAILED(hr))
+	{
+		this->UpdateDisplay();
+	}
+}
+
+void CDisassemblyReg::OnCpuRegDdrChanged(void *sender, EventArgs& e)
+{
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->Ddr, state.PortDdr);
+	if (FAILED(hr))
+	{
+		this->UpdateDisplay();
+	}
+}
+
+void CDisassemblyReg::OnCpuRegDataChanged(void *sender, EventArgs& e)
+{
+	CPUState state;
+	this->GetCpu()->GetCpuState(state);
+	HRESULT hr = this->UpdateDisplay(&this->Data, state.PortDataStored);
+	if (FAILED(hr))
+	{
+		this->UpdateDisplay();
+	}
+}
+
+void CDisassemblyReg::CancelEditing()
+{
+	unsigned int i;
+	for (i = 0; i < (int)Controls.Count() ; i++)
+	{
+		this->Controls[i]->IsChanged = false;	
+	}
+
+	this->IsEditing = false;
+	//this->UpdateCaret();
+	//this->UpdateDisplay();
+}
+
+void CDisassemblyReg::SaveEditing()
+{
+	for(unsigned int i = 0; i < this->Controls.Count(); i++)
+	{
+		EdLn *p = this->Controls[i];
+		if (p->IsChanged)
+		{
+			if (this->SaveEditing(p))
+			{
+				p->IsChanged = false;
+			}
+		}		
+	}
+}
+
+bool CDisassemblyReg::SaveEditing(EdLn *pEdLnControl)
+{
+int v = 0;
+HRESULT hr = E_FAIL;
+bit16 address;
+bit8 dataByte;
+CPUState cpustate;
+EventArgs args;
+
+	if (pEdLnControl == NULL)
+	{
+		return false;
+	}
+
+	int id = pEdLnControl->GetControlID();
+	if (id == this->CTRLID_PC)
+	{
+		hr = pEdLnControl->GetEditValue(v);
+		if (SUCCEEDED(hr))
+		{
+			address = (bit16)v;
+			this->GetCpu()->GetCpuState(cpustate);
+			if (cpustate.PC_CurrentOpcode != address)
+			{
+				this->GetCpu()->SetPC(address);
+				if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+				{
+					this->m_pAppCommand->EsCpuC64RegPCChanged.Raise(this, args);
+				}
+				else
+				{
+					this->m_pAppCommand->EsCpuDiskRegPCChanged.Raise(this, args);
+				}
+			}
+		}
+	}
+	else if (id == this->CTRLID_A)
+	{
+		hr = pEdLnControl->GetEditValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->GetCpu()->SetA(dataByte);
+			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+			{
+				this->m_pAppCommand->EsCpuC64RegAChanged.Raise(this, args);
+			}
+			else
+			{
+				this->m_pAppCommand->EsCpuDiskRegAChanged.Raise(this, args);
+			}
+		}
+	}
+	else if (id == this->CTRLID_X)
+	{
+		hr = pEdLnControl->GetEditValue(v);		
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->GetCpu()->SetX(dataByte);
+			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+			{
+				this->m_pAppCommand->EsCpuC64RegXChanged.Raise(this, args);
+			}
+			else
+			{
+				this->m_pAppCommand->EsCpuDiskRegXChanged.Raise(this, args);
+			}
+		}
+	}
+	else if (id == this->CTRLID_Y)
+	{
+		hr = pEdLnControl->GetEditValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->GetCpu()->SetY(dataByte);
+			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+			{
+				this->m_pAppCommand->EsCpuC64RegYChanged.Raise(this, args);
+			}
+			else
+			{
+				this->m_pAppCommand->EsCpuDiskRegYChanged.Raise(this, args);
+			}
+		}
+	}
+	else if (id == this->CTRLID_SR)
+	{
+		hr = pEdLnControl->GetEditValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->GetCpu()->SetSR(dataByte);
+			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+			{
+				this->m_pAppCommand->EsCpuC64RegSRChanged.Raise(this, args);
+			}
+			else
+			{
+				this->m_pAppCommand->EsCpuDiskRegSRChanged.Raise(this, args);
+			}
+		}
+	}
+	else if (id == this->CTRLID_SP)
+	{
+		hr = pEdLnControl->GetEditValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->GetCpu()->SetSP(dataByte);
+			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+			{
+				this->m_pAppCommand->EsCpuC64RegSPChanged.Raise(this, args);
+			}
+			else
+			{
+				this->m_pAppCommand->EsCpuDiskRegSPChanged.Raise(this, args);
+			}
+		}
+	}
+	else if (id == this->CTRLID_DDR)
+	{
+		hr = pEdLnControl->GetEditValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->GetCpu()->SetDdr(dataByte);
+			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+			{
+				this->m_pAppCommand->EsCpuC64RegDdrChanged.Raise(this, args);
+			}
+		}
+	}
+	else if (id == this->CTRLID_DATA)
+	{
+		hr = pEdLnControl->GetEditValue(v);
+		if (SUCCEEDED(hr))
+		{
+			dataByte = (bit8)v;
+			this->GetCpu()->SetData(dataByte);
+			if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+			{
+				this->m_pAppCommand->EsCpuC64RegDataChanged.Raise(this, args);
+			}
+		}
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		pEdLnControl->IsChanged = false;
+		return true;
+	}
+	else
+	{
+		return false;
+	}	
+}
+
+
+void CDisassemblyReg::MoveTab(bool isNext)
+{
+EdLn *p;
+	if (isNext)
+	{
+		p = this->GetTabNextControl();
+	}
+	else
+	{
+		p = this->GetTabPreviousControl();
+	}
+
+	if (p != NULL)
+	{
+		this->StartEditing(p, 0);
+	}
+	else
+	{
+		if (isNext)
+		{
+			p = this->GetTabFirstControl();
+		}
+		else
+		{
+			p = this->GetTabLastControl();
+		}
+
+		if (p != NULL)
+		{
+			this->StartEditing(p, 0);
+		}
+	}
 }

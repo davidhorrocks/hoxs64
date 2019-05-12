@@ -32,7 +32,9 @@ HRESULT RunCommandHelp::Run()
 	{
 		this->m_pCommandResult->AddLine(TEXT("Assemble.\r"));
 		this->m_pCommandResult->AddLine(TEXT("Usage: a address assembly-code\r"));
-		this->m_pCommandResult->AddLine(TEXT("Example: a $C000 lda #$ff\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: a $c000 lda #$ff\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: a .49152 lda #.255\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: a .49152 m .169 .255\r"));
 	}
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("cls")) == 0)
 	{
@@ -53,22 +55,26 @@ HRESULT RunCommandHelp::Run()
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("d")) == 0)
 	{
 		this->m_pCommandResult->AddLine(TEXT("Disassemble memory.\r"));
-		this->m_pCommandResult->AddLine(TEXT("Usage: d start-address [end-address]\r"));
-		this->m_pCommandResult->AddLine(TEXT("Example: d $C000 $C010\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: d start-address [- end-address]\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: d start-address [length]\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: d $C000 - $C010\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: d $C000 $10\r"));
 	}
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("m")) == 0)
 	{
 		this->m_pCommandResult->AddLine(TEXT("Read memory.\r"));
-		this->m_pCommandResult->AddLine(TEXT("Usage: m start-address [end-address]\r"));
-		this->m_pCommandResult->AddLine(TEXT("Example: m $C000 $C010\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: m start-address [- end-address]\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: m start-address [length]\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: m $C000 - $C010\r"));
+		this->m_pCommandResult->AddLine(TEXT("Example: m $C000 $10\r"));
 	}
 	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("map")) == 0)
 	{
 		this->m_pCommandResult->AddLine(TEXT("Map memory.\r"));
-		this->m_pCommandResult->AddLine(TEXT("Usage: map [C64] [KERNAL] [BASIC] [IO | CHARGEN] [RAM] [ROML] [ROMH]\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: map [c64] [kernal] [basic] [io | chargen] [ram] [roml] [romh]\r"));
 		this->m_pCommandResult->AddLine(TEXT("Examples\r"));
-		this->m_pCommandResult->AddLine(TEXT("Tie to C64 map: map C64\r"));
-		this->m_pCommandResult->AddLine(TEXT("Select RAM: map RAM\r"));
+		this->m_pCommandResult->AddLine(TEXT("Tie to C64 map: map c64\r"));
+		this->m_pCommandResult->AddLine(TEXT("Select RAM: map ram\r"));
 	}
 	else
 	{	

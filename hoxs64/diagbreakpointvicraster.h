@@ -29,6 +29,7 @@ private:
 	int m_iLine;
 	int m_iCycle;
 	bool m_bInOnVicCursorChange;
+	bool m_bInOnTextChange;
 	IAppCommand *m_pIAppCommand;
 	IC64 *c64;
 
@@ -37,6 +38,8 @@ private:
 	bool TryGetCycle(int& v);
 	bool TryGetLine(int& v);
 	void SetVicCursor();
+	void UpdateHexText(int textDecId, int textHexId);
+	void UpdateDecText(int textHexId, int textDecId);
 	virtual void OnVicCursorChange(void *sender, VicCursorMoveEventArgs& e);
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

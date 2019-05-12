@@ -24,7 +24,9 @@ RunCommandText::RunCommandText(ICommandResult *pCommandResult, LPCTSTR pText)
 {
 	this->m_pCommandResult  = pCommandResult;	
 	if (pText)
+	{
 		this->m_pCommandResult->AddLine(pText);
+	}
 }
 
 HRESULT RunCommandText::Run()

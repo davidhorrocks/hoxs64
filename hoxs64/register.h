@@ -175,10 +175,18 @@ class IMonitorCpu
 {
 public:
 	virtual int GetCpuId()=0;
+
+
 	/*
-	address: The 16 bit address as seen by the Cpu
-	memorymap: The memory map.
-	A negative numbers means use the current memory map.
+	Function 
+	MonReadByte(bit16 address, int memorymap)
+
+	Parameters
+	[address]
+	The 16 bit address as seen by the CPU
+
+	[memorymap]
+	The memory map.	A negative number means use the current memory map as seen by the CPU.
 	*/
 	virtual bit8 MonReadByte(bit16 address, int memorymap)=0;
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap)=0;
@@ -245,6 +253,7 @@ public:
 	virtual void BreakpointChanged()=0;
 	virtual void Reset()=0;
 	virtual void MemoryChanged()=0;
+	virtual void RadixChanged(DBGSYM::MonitorOption::Radix value)=0;
 };
 
 typedef map<Sp_BreakpointKey, Sp_BreakpointItem, LessBreakpointKey> BpMap;
@@ -266,11 +275,11 @@ public:
 	void SetTokenDisassembly(bit16 startaddress);
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);
-	void SetTokenAssemble(bit16 address, bit8 *pData, int bufferSize);
+	void SetTokenAssemble(bit16 address, bit8 *pData, unsigned int bufferSize);
 	void SetTokenReadMemory();
 	void SetTokenReadMemory(bit16 startaddress);
 	void SetTokenReadMemory(bit16 startaddress, bit16 finishaddress);
-	void SetTokenWriteMemory(bit16 address, bit8 *pData, int bufferSize);
+	void SetTokenWriteMemory(bit16 address, bit8 *pData, unsigned int bufferSize);
 	void SetTokenMapMemory(DBGSYM::CliMapMemory::CliMapMemory);
 	void SetTokenShowCpuRegisters();
 	void SetTokenShowCpu64Registers();
@@ -352,6 +361,8 @@ public:
 	virtual void QuitCommands() = 0;
 	virtual void QuitCommand(shared_ptr<ICommandResult> pICommandResult) = 0;
 	virtual void RemoveCommand(shared_ptr<ICommandResult> pICommandResult) = 0;
+	virtual DBGSYM::MonitorOption::Radix Get_Radix()=0;
+	virtual void Set_Radix(DBGSYM::MonitorOption::Radix value)=0;
 };
 
 class IC64Event : public IC64BreakEvent
@@ -410,7 +421,6 @@ public:
 class DefaultCpu : IDefaultCpu
 {
 public:
-	//DefaultCpu();
 	DefaultCpu(int cpuid, IC64 *c64);
 	int GetCpuId();
 	IMonitorCpu *GetCpu();

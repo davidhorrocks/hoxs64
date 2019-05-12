@@ -213,6 +213,7 @@ namespace DBGSYM
 			Unknown,
 		};
 	};
+
 	namespace CliCommandStatus
 	{
 		enum CliCommandStatus
@@ -224,6 +225,7 @@ namespace DBGSYM
 			Finished
 		};
 	};
+
 	namespace CliCpuMode
 	{
 		enum CliCpuMode
@@ -232,6 +234,7 @@ namespace DBGSYM
 			Disk,
 		};
 	};
+
 	namespace CliMapMemory
 	{
 		enum CliMapMemory : int
@@ -247,6 +250,15 @@ namespace DBGSYM
 			SETCURRENT = 128,
 			_ALL = -1,
 		};
+	};
+
+	namespace MonitorOption
+	{
+		typedef enum tagRadix
+		{
+			Hex,
+			Dec
+		} Radix; 
 	};
 };
 

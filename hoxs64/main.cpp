@@ -1852,6 +1852,12 @@ EventArgs e;
 	this->EsMemoryChanged.Raise(NULL, e);
 }
 
+void CApp::RadixChanged(DBGSYM::MonitorOption::Radix radix)
+{
+RadixChangedEventArgs e(radix);
+	this->EsRadixChanged.Raise(NULL, e);
+}
+
 void CApp::DiskMotorLed(bool bOn)
 {
 	m_bDiskLedMotor = bOn;
@@ -2185,6 +2191,21 @@ void CApp::GetVicCursorPos(int *piCycle, int *piLine)
 	}
 
 	m_pWinAppWindow->m_pWinEmuWin->GetVicCursorPos(piCycle, piLine);
+}
+
+void CApp::ToggleHexadecimal()
+{
+	DBGSYM::MonitorOption::Radix r = this->c64.GetMon()->Get_Radix();
+	if (r != DBGSYM::MonitorOption::Hex)
+	{
+		r = DBGSYM::MonitorOption::Hex;
+	}
+	else
+	{
+		r = DBGSYM::MonitorOption::Dec;
+	}
+
+	this->c64.GetMon()->Set_Radix(r);
 }
 
 void CApp::TogglePause()

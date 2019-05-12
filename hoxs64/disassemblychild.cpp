@@ -26,10 +26,15 @@ HRESULT hr;
 	m_pAppCommand = pAppCommand;
 	m_pWinDisassemblyEditChild = shared_ptr<CDisassemblyEditChild>(new CDisassemblyEditChild(cpuid, c64, pAppCommand, hFont));
 	if (m_pWinDisassemblyEditChild == NULL)
+	{
 		throw std::bad_alloc();
+	}
+
 	hr = Init();
 	if (FAILED(hr))
+	{
 		throw std::runtime_error("CDisassemblyChild::Init() failed");
+	}
 }
 
 CDisassemblyChild::~CDisassemblyChild()
@@ -340,6 +345,11 @@ void CDisassemblyChild::InvalidateBuffer()
 	m_pWinDisassemblyEditChild->InvalidateBuffer();
 }
 
+HRESULT CDisassemblyChild::SaveEditing()
+{
+	return m_pWinDisassemblyEditChild->SaveAsmEditing();
+}
+
 void CDisassemblyChild::CancelEditing()
 {
 	m_pWinDisassemblyEditChild->CancelAsmEditing();
@@ -362,14 +372,16 @@ int pos;
 			address = 0;
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
 			SetTopAddress(nearestAdress, true);
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);		
 			break;
 		case SB_BOTTOM:
 			address=0xffc0;
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
 			SetTopAddress(nearestAdress, true);
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 			break;
 		case SB_PAGEUP:
@@ -384,25 +396,29 @@ int pos;
 			address = this->GetNthAddress(address, - page);
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
 			SetTopAddress(nearestAdress, true);
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 			break;
 		case SB_PAGEDOWN:
 			bottomAddress = m_pWinDisassemblyEditChild->GetBottomAddress(-1);
 			SetTopAddress(bottomAddress, true);		
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 			break;
 		case SB_LINEUP:
 			address = m_pWinDisassemblyEditChild->GetPrevAddress();
 			SetTopAddress(address, true);
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 			break;
 		case SB_LINEDOWN:
 			address = m_pWinDisassemblyEditChild->GetNextAddress();
 			SetTopAddress(address, true);
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 			break;
 		case SB_THUMBPOSITION:
@@ -419,7 +435,8 @@ int pos;
 			address = (bit16)((unsigned int)pos & 0xffff);
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
 			SetTopAddress(nearestAdress, true);
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 			break;
 		case SB_THUMBTRACK:
@@ -436,7 +453,8 @@ int pos;
 			address = (bit16)((unsigned int)pos & 0xffff);
 			nearestAdress = m_pWinDisassemblyEditChild->GetNearestTopAddress(address);
 			SetTopAddress(nearestAdress, false);
-			CancelEditing();
+			this->SaveEditing();
+			this->CancelEditing();
 			m_pWinDisassemblyEditChild->UpdateDisplay(DBGSYM::SetDisassemblyAddress::None, 0);
 			break;
 		default:
@@ -480,6 +498,7 @@ bool CDisassemblyChild::OnKeyDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	catch(std::exception&)
 	{
 	}
+
 	return false;
 }
 
@@ -544,23 +563,35 @@ HRESULT hr;
 		{
 			return 0;
 		}
-
 	}
 
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-void CDisassemblyChild::GetMinWindowSize(int &w, int &h)
+HRESULT CDisassemblyChild::UpdateMetrics()
 {
+HRESULT hr;
+	hr = m_pWinDisassemblyEditChild->UpdateMetrics();
 	int w2,h2;
-
-	w = GetSystemMetrics(SM_CXVSCROLL);
-	h = 0;
-
+	int w = GetSystemMetrics(SM_CXVSCROLL);
+	int h = 0;
 	m_pWinDisassemblyEditChild->GetMinWindowSize(w2, h2);
-
 	w += w2;
 	h += h2;
+	m_MinSizeW = w;
+	m_MinSizeH = h;
+	return hr;
+}
+
+void CDisassemblyChild::SetRadix(DBGSYM::MonitorOption::Radix radix)
+{
+	m_pWinDisassemblyEditChild->SetRadix(radix);
+}
+
+void CDisassemblyChild::GetMinWindowSize(int &w, int &h)
+{
+	w = m_MinSizeW;
+	h = m_MinSizeH;
 }
 
 void CDisassemblyChild::OnCpuRegPCChanged(void *sender, EventArgs& e)
@@ -575,11 +606,12 @@ HRESULT CDisassemblyChild::AdviseEvents()
 	hr = S_OK;
 	do
 	{
-		if (this->GetCpu()->GetCpuId() == CPUID_MAIN)
+		int cpuid = this->GetCpu()->GetCpuId();
+		if (cpuid == CPUID_MAIN)
 		{
 			hs = this->m_pAppCommand->EsCpuC64RegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
 		}
-		else
+		else if (cpuid == CPUID_DISK)
 		{
 			hs = this->m_pAppCommand->EsCpuDiskRegPCChanged.Advise((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this);
 		}
@@ -592,6 +624,7 @@ HRESULT CDisassemblyChild::AdviseEvents()
 
 		hr = S_OK;
 	} while (false);
+
 	return hr;
 }
 
