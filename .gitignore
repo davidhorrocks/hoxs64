@@ -14,6 +14,7 @@ x64
 *.sdf
 *.o65
 *.ncb
+.vs/
 Win32_DLL_Release
 Win32_DLL_Debug
 Win32_DLL_VB
