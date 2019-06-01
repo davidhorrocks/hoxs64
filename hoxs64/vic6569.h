@@ -249,6 +249,8 @@ public:
 	ICLK GetCurrentClock();
 	void SetCurrentClock(ICLK sysclock);
 
+	void WriteAccessToDebugger(bit16 line, bit8 cycle, bit16 pc, bit8 dataByte);
+
 	//ILightPen
 	virtual void SetLPLine(bit8 lineState);
 	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState);

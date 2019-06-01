@@ -3623,8 +3623,17 @@ bit8 data8;
 	}
 }
 
-
 //pragma optimize( "g", on )
+
+void VIC6569::WriteAccessToDebugger(bit16 line, bit8 cycle, bit16 pc, bit8 dataByte)
+{
+#ifdef DEBUG
+	TCHAR sDebug[50];
+	_stprintf_s(sDebug, _countof(sDebug), TEXT("%08X %04X %02X %04X %02X"), this->FrameNumber, line, cycle, pc, dataByte);
+	OutputDebugString(sDebug);
+	OutputDebugString(TEXT("\n"));
+#endif
+}
 
 bit8 VIC6569::ReadRegister(bit16 address, ICLK sysclock)
 {
@@ -3736,7 +3745,8 @@ bit8 data;
 		vicSpriteSpriteInt = 1;
 		SpriteCollisionUpdateArmedOrActive();
 		clockReadSpriteSpriteCollision = cpu->CurrentClock + 1;
-		data = t;
+		data = t;		
+		//WriteAccessToDebugger((bit16)this->vic_raster_line, this->vic_raster_cycle, cpu->m_CurrentOpcodeAddress.word, data);
 		break;
 	case 0x1f:	//sprite-data collision
 		t = (bit8)vicSpriteDataCollision;
