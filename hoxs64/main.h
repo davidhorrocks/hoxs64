@@ -75,7 +75,8 @@ public:
 	virtual void IAppCommand::DisplayVicRasterBreakpoints(bool bEnabled);
 	virtual void IAppCommand::SetVicCursorPos(int iCycle, int iLine);
 	virtual void IAppCommand::GetVicCursorPos(int *piCycle, int *piLine);
-	virtual void IAppCommand::ToggleHexadecimal();
+	virtual void IAppCommand::SetRadixHexadecimal();
+	virtual void IAppCommand::SetRadixDecimal();
 	// IAppCommand
 
 	

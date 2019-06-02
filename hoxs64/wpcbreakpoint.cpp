@@ -171,6 +171,7 @@ void WpcBreakpoint::SetMenuState()
 		if (hBreakpointMenu)
 		{
 			::CheckMenuItem(hBreakpointMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
+			::CheckMenuItem(hBreakpointMenu, IDM_BREAKPOINTOPTIONS_DECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
 		}
 	}
 	else
@@ -178,6 +179,7 @@ void WpcBreakpoint::SetMenuState()
 		if (hBreakpointMenu)
 		{
 			::CheckMenuItem(hBreakpointMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
+			::CheckMenuItem(hBreakpointMenu, IDM_BREAKPOINTOPTIONS_DECIMAL, MF_BYCOMMAND | MF_CHECKED);
 		}
 	}
 }
@@ -624,15 +626,6 @@ HMENU hMenu;
 	hMenu = GetSubMenu(m_hMenuBreakPoint, 0);
 	if (hMenu)
 	{
-		//if (c64->GetMon()->Get_Radix() == DBGSYM::MonitorOption::Hex)
-		//{
-		//	CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
-		//}
-		//else
-		//{
-		//	CheckMenuItem (hMenu, IDM_BREAKPOINTOPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
-		//}
-
 		TrackPopupMenuEx(hMenu, TPM_LEFTALIGN, rcWin.left, rcWin.top, m_hWnd, NULL);
 	}
 
@@ -860,11 +853,6 @@ void WpcBreakpoint::OnDisableSelectedBreakpoint()
 	}
 }
 
-void WpcBreakpoint::OnToggleHexadecimal()
-{
-	this->m_pAppCommand->ToggleHexadecimal();	
-}
-
 void WpcBreakpoint::RefreshBreakpointListView()
 {
 	this->FillListView(m_hLvBreak);
@@ -881,6 +869,16 @@ void WpcBreakpoint::RedrawBreakpointListItems()
 	}
 
 	SetMenuState();
+}
+
+void WpcBreakpoint::OnSetRadixHexadecimal()
+{
+	this->m_pAppCommand->SetRadixHexadecimal();
+}
+
+void WpcBreakpoint::OnSetRadixDecimal()
+{
+	this->m_pAppCommand->SetRadixDecimal();
 }
 
 LRESULT WpcBreakpoint::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -929,7 +927,10 @@ int wmId, wmEvent;
 			OnDisableSelectedBreakpoint();
 			return 0;
 		case IDM_BREAKPOINTOPTIONS_HEXADECIMAL:
-			OnToggleHexadecimal();
+			OnSetRadixHexadecimal();
+			return 0;
+		case IDM_BREAKPOINTOPTIONS_DECIMAL:
+			OnSetRadixDecimal();
 			return 0;
 		}
 

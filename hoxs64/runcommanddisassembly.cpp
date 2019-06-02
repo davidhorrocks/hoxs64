@@ -80,13 +80,13 @@ HRESULT RunCommandDisassembly::Run()
 			spacepadding = 8;
 		}
 
-		if (_tcslen(BytesText) > spacepadding)
+		if ((unsigned int)_tcslen(BytesText) > spacepadding)
 		{
 			spacepadding = 0;
 		}
 		else
 		{
-			spacepadding = spacepadding - _tcslen(BytesText);
+			spacepadding = spacepadding - (unsigned int)_tcslen(BytesText);
 		}
 
 		for (unsigned int k=0; k < spacepadding; k++)

@@ -147,7 +147,8 @@ private:
 	void OnDeleteSelectedBreakpoint();
 	void OnEnableSelectedBreakpoint();
 	void OnDisableSelectedBreakpoint();
-	void OnToggleHexadecimal();	
+	void OnSetRadixHexadecimal();
+	void OnSetRadixDecimal();
 
 	HRESULT AdviseEvents();
 	void UnadviseEvents();

@@ -2193,19 +2193,14 @@ void CApp::GetVicCursorPos(int *piCycle, int *piLine)
 	m_pWinAppWindow->m_pWinEmuWin->GetVicCursorPos(piCycle, piLine);
 }
 
-void CApp::ToggleHexadecimal()
+void CApp::SetRadixHexadecimal()
 {
-	DBGSYM::MonitorOption::Radix r = this->c64.GetMon()->Get_Radix();
-	if (r != DBGSYM::MonitorOption::Hex)
-	{
-		r = DBGSYM::MonitorOption::Hex;
-	}
-	else
-	{
-		r = DBGSYM::MonitorOption::Dec;
-	}
+	this->c64.GetMon()->Set_Radix(DBGSYM::MonitorOption::Hex);
+}
 
-	this->c64.GetMon()->Set_Radix(r);
+void CApp::SetRadixDecimal()
+{
+	this->c64.GetMon()->Set_Radix(DBGSYM::MonitorOption::Dec);
 }
 
 void CApp::TogglePause()

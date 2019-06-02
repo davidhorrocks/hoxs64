@@ -71,7 +71,8 @@ public:
 	virtual void DisplayVicRasterBreakpoints(bool bEnabled) = 0;
 	virtual void SetVicCursorPos(int iCycle, int iLine) = 0;
 	virtual void GetVicCursorPos(int *piCycle, int *piLine) = 0;
-	virtual void ToggleHexadecimal() = 0;
+	virtual void SetRadixHexadecimal() = 0;
+	virtual void SetRadixDecimal() = 0;
 
 	EventSource<EventArgs> EsResume;
 	EventSource<EventArgs> EsTrace;

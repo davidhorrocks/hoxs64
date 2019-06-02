@@ -237,10 +237,12 @@ void CMDIDebuggerFrame::SetMenuState()
 	if (r == DBGSYM::MonitorOption::Hex)
 	{
 		::CheckMenuItem(hMenu, IDM_OPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_CHECKED);
+		::CheckMenuItem(hMenu, IDM_OPTIONS_DECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
 	}
 	else
 	{
 		::CheckMenuItem(hMenu, IDM_OPTIONS_HEXADECIMAL, MF_BYCOMMAND | MF_UNCHECKED);
+		::CheckMenuItem(hMenu, IDM_OPTIONS_DECIMAL, MF_BYCOMMAND | MF_CHECKED);
 	}
 }
 
@@ -569,14 +571,23 @@ int wmId, wmEvent;
 		return true;
 	case IDM_BREAKPOINT_VICRASTER:
 		ShowModelessDlgBreakpointVicRaster();
-		return TRUE;
+		return true;
 	case IDM_OPTIONS_HEXADECIMAL:
 		if (!m_pAppCommand)
 		{
 			return false;
 		}
 
-		m_pAppCommand->ToggleHexadecimal();
+		m_pAppCommand->SetRadixHexadecimal();
+		return true;
+	case IDM_OPTIONS_DECIMAL:
+		if (!m_pAppCommand)
+		{
+			return false;
+		}
+
+		m_pAppCommand->SetRadixDecimal();
+		return true;
 	default:
 		return false;
 	}

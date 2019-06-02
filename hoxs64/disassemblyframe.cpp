@@ -1275,6 +1275,14 @@ int wmId, wmEvent;
 	case IDM_VIEW_ADDRESS:
 		OnEnterGotoAddress();
 		break;
+	case IDM_OPTIONS_HEXADECIMAL:
+		CancelEditing();
+		m_pAppCommand->SetRadixHexadecimal();
+		break;
+	case IDM_OPTIONS_DECIMAL:
+		CancelEditing();
+		m_pAppCommand->SetRadixDecimal();
+		break;
 	}
 
 	return true;

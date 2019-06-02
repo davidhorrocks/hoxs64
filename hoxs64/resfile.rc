@@ -68,6 +68,8 @@ BEGIN
     VK_F5,          IDM_STEP_TRACE,         VIRTKEY, NOINVERT
     VK_F6,          IDM_STEP_TRACEFRAME,    VIRTKEY, NOINVERT
     VK_RETURN,      IDM_TOGGLEFULLSCREEN,   VIRTKEY, ALT, NOINVERT
+    "1",            IDM_OPTIONS_HEXADECIMAL, VIRTKEY, ALT, NOINVERT
+    "2",            IDM_OPTIONS_DECIMAL,    VIRTKEY, ALT, NOINVERT
 END
 
 
@@ -190,7 +192,8 @@ BEGIN
     END
     POPUP "Options"
     BEGIN
-        MENUITEM "Hexadecimal",                 IDM_OPTIONS_HEXADECIMAL, CHECKED
+        MENUITEM "Hexadecimal\tAlt 1",          IDM_OPTIONS_HEXADECIMAL, CHECKED
+        MENUITEM "Decimal\tAlt 2",              IDM_OPTIONS_DECIMAL
     END
     POPUP "Window"
     BEGIN
@@ -223,7 +226,8 @@ BEGIN
     POPUP "Breakpoint Options"
     BEGIN
         MENUITEM "Show Assembly",               IDM_BREAKPOINTOPTIONS_SHOWASSEMBLY
-        MENUITEM "Hexadecimal",                 IDM_BREAKPOINTOPTIONS_HEXADECIMAL, CHECKED
+        MENUITEM "Hexadecimal\tAlt 1",          IDM_BREAKPOINTOPTIONS_HEXADECIMAL, CHECKED
+        MENUITEM "Decimal\tAlt 2",              IDM_BREAKPOINTOPTIONS_DECIMAL
         MENUITEM "Enable Breakpoint\tCtrl-P",   IDM_BREAKPOINTOPTIONS_ENABLEBREAKPOINT
         MENUITEM "Disable Breakpoint\tCtrl-O",  IDM_BREAKPOINTOPTIONS_DISABLEBREAKPOINT
         MENUITEM SEPARATOR
