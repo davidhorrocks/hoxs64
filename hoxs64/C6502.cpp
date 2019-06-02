@@ -682,7 +682,8 @@ void CPU6502::GetCpuState(CPUState& state)
 	state.Y = mY;
 	state.PC = mPC.word;
 	state.PC_CurrentOpcode = m_CurrentOpcodeAddress.word;
-	state.Flags = (fNEGATIVE <<7) | (fOVERFLOW <<6) | (1<<5) | (fBREAK <<4) | (fDECIMAL <<3) | (fINTERRUPT <<2) | (fZERO <<1) | (fCARRY);
+	unsigned int altBreakFlag = (PROCESSOR_INTERRUPT & (INT_IRQ | INT_NMI)) ? 0 : 1;
+	state.Flags = (fNEGATIVE <<7) | (fOVERFLOW <<6) | (1<<5) | (altBreakFlag <<4) | (fDECIMAL <<3) | (fINTERRUPT <<2) | (fZERO <<1) | (fCARRY);
 	state.SP = mSP;
 	state.processor_interrupt = PROCESSOR_INTERRUPT;
 	state.cpu_sequence = m_cpu_sequence;
@@ -1093,12 +1094,10 @@ unsigned int v;
 			}
 			else if(PROCESSOR_INTERRUPT & INT_NMI)
 			{
-				PROCESSOR_INTERRUPT=0;
 				m_cpu_sequence=C_NMI;
 			}
 			else if((PROCESSOR_INTERRUPT & INT_IRQ))
 			{
-				PROCESSOR_INTERRUPT=0;
 				m_cpu_sequence=C_IRQ;
 			}
 			break;
