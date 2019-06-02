@@ -16,7 +16,7 @@ class CIA1 : public CIA, public ICia1, public ErrorMsg
 {
 public:
 	CIA1();
-	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, ISid *sid, Tape64 *tape64, CDX9 *dx);
+	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad);
 	void InitReset(ICLK sysclock, bool poweronreset);
 	virtual void Reset(ICLK sysclock, bool poweronreset);
 	virtual bit8 ReadPortA();
@@ -43,10 +43,11 @@ public:
 	bit8 out4066PotX;
 	bit8 out4066PotY;
 
+	void WriteDebuggerReadKeyboard();
 	void ReadKeyboard();
 	void ResetKeyboard();
 	void SetKeyMatrixDown(bit8 row, bit8 col);
-	unsigned int NextScanDelta();
+	ICLK NextScanDelta();
 	void GetState(SsCia1V2 &state);
 	void SetState(const SsCia1V2 &state);
 	static void UpgradeStateV0ToV1(const SsCia1V0 &in, SsCia1V1 &out);
@@ -61,6 +62,7 @@ public:
 	ISid *sid;
 	Tape64 *tape64;
 	IC64 *pIC64;
+	IAutoLoad* pIAutoLoad;
 	uniform_int_distribution<int> dist_pal_frame;
 protected:
 	bool m_bAltLatch;

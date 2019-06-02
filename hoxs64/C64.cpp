@@ -67,7 +67,7 @@ HRESULT C64::Init(CAppStatus *appStatus, IC64Event *pIC64Event, CDX9 *dx, TCHAR 
 	}
 
 	cart.Init(&cpu, ram.mMemory);
-	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &sid, &tape64, dx)!=S_OK)
+	if (cia1.Init(appStatus, static_cast<IC64 *>(this), &cpu, &vic, &sid, &tape64, dx, static_cast<IAutoLoad*>(this))!=S_OK)
 	{
 		return SetError(cia1);
 	}
@@ -525,11 +525,6 @@ int result = 0;
 
 		bool bWasC64CpuOpCodeFetch = cpu.IsOpcodeFetch();
 		bool bWasC64CpuOnInt = cpu.IsInterruptInstruction();
-		if (appStatus->m_bAutoload)
-		{
-			this->AutoLoadHandler(sysclock);
-		}
-
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
@@ -684,11 +679,6 @@ int result = 0;
 		diskdrive.ExecuteAllPendingDiskCpuClocks();
 	}
 
-	if (appStatus->m_bAutoload)
-	{
-		this->AutoLoadHandler(sysclock);
-	}
-
 	cpu.ExecuteCycle(sysclock);	
 	vic.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
@@ -777,6 +767,7 @@ const char szSysCall[] = {19,25,19,32,0};
 const int LOADPREFIXLENGTH = 5;
 const int LOADPOSTFIXINDEX = 6;
 const int LOADPOSTFIXLENGTH = 5;
+const int KEYTIME = 3;
 HRESULT hr;
 ICLK period;
 bit16 loadSize;

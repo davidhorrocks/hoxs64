@@ -31,7 +31,7 @@
 #include "c64keys.h"
 #include "cia1.h"
 
-#define KEYBOARDMINSCANINTERVAL (3000)
+#define KEYBOARDMINSCANINTERVAL (PAL_CLOCKS_PER_FRAME / 2)
 #define DEVICEACQUIRECLOCKS (500 * PALCLOCKSPERSECOND / 1000)
 
 #define KEYMATRIX_DOWN(row,col) keyboard_matrix[row] = \
@@ -59,7 +59,7 @@ CIA1::CIA1()
 	ZeroMemory(&this->js, sizeof(this->js));
 }
 
-HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, ISid *sid, Tape64 *tape64, CDX9 *dx)
+HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad)
 {
 	ClearError();
 	this->ID = 1;
@@ -70,15 +70,19 @@ HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vi
 	this->sid = sid;
 	this->tape64 = tape64;
 	this->pIC64 = pIC64;
+	this->pIAutoLoad = pAutoLoad;
 	return S_OK;
 }
 
-unsigned int CIA1::NextScanDelta()
+ICLK CIA1::NextScanDelta()
 {
-	int desiredVideoPosition = dist_pal_frame(randengine);
-	int currentVideoPosition = vic->vic_raster_line * PAL_CLOCKS_PER_LINE + vic->vic_raster_cycle - 1;	
+	ICLK desiredVideoPosition = (ICLK)dist_pal_frame(randengine);
+	ICLK currentVideoPosition = vic->vic_raster_line * PAL_CLOCKS_PER_LINE + vic->vic_raster_cycle - 1;
+	ICLK vicdiff = vic->CurrentClock - this->CurrentClock;
+	currentVideoPosition = (currentVideoPosition + PAL_CLOCKS_PER_FRAME - vicdiff)  % PAL_CLOCKS_PER_FRAME;
+
 	int delta;
-	if (desiredVideoPosition > currentVideoPosition)
+	if ((ICLKS)(desiredVideoPosition - currentVideoPosition) > 0)
 	{
 		delta = desiredVideoPosition - currentVideoPosition;
 	}
@@ -97,8 +101,17 @@ unsigned int CIA1::NextScanDelta()
 
 void CIA1::ExecuteDevices(ICLK sysclock)
 {
-	if ((ICLKS)(sysclock -  nextKeyboardScanClock) > 0)
+	if ((ICLKS)(sysclock - this->ClockNextWakeUpClock) > 0)
 	{
+		this->ExecuteCycle(this->ClockNextWakeUpClock);
+	}
+	else
+	{ 
+		this->ExecuteCycle(sysclock);
+	}
+
+	if ((ICLKS)(sysclock -  nextKeyboardScanClock) > 0)
+	{		
 		nextKeyboardScanClock = sysclock + NextScanDelta();
 		ReadKeyboard();
 	}
@@ -660,6 +673,16 @@ bit8 CIA1::Get_PotBY()
 	return this->potBy;
 }
 
+void CIA1::WriteDebuggerReadKeyboard()
+{
+#ifdef DEBUG
+	TCHAR sDebug[50];
+	_stprintf_s(sDebug, _countof(sDebug), TEXT("%08X %08X %08X %d %03X %02X"), vic->FrameNumber, vic->CurrentClock, this->CurrentClock, (int)(ICLKS)(vic->CurrentClock - this->CurrentClock), vic->vic_raster_line, vic->vic_raster_cycle);
+	OutputDebugString(sDebug);
+	OutputDebugString(TEXT("\n"));
+#endif
+}
+
 void CIA1::ReadKeyboard()
 {
 char     buffer[256]; 
@@ -691,6 +714,7 @@ bit8 localpotBy = 0xff;
 	hr = DIERR_INPUTLOST;
 	if (appStatus->m_bAutoload)
 	{
+		pIAutoLoad->AutoLoadHandler(CurrentClock);
 		joyport1 = 0xff;
 		joyport2 = 0xff;
 		LightPen();
@@ -806,8 +830,10 @@ bit8 localpotBy = 0xff;
 	}
 
 	if (keyboardok)
-	{
-		if (RAWKEYDOWN(buffer, DIK_LALT) || GetAsyncKeyState(VK_MENU) < 0 || m_bAltLatch)	 
+	{		
+		//WriteDebuggerReadKeyboard();
+
+		if (RAWKEYDOWN(buffer, DIK_LALT) || GetAsyncKeyState(VK_MENU) < 0 || m_bAltLatch)
 		{
 			//Make sure all emulated c64 keys are released before recognising an emulated c64 key.
 			m_bAltLatch = true;

@@ -230,7 +230,6 @@ ICLKS todclocks;
 	}
 
 	clocks = (ICLKS)(sysclock - CurrentClock);
-
 	fastTODClocks = (ICLKS)(ClockNextTODWakeUpClock - CurrentClock);
 	fastClocks = (ICLKS)(ClockNextWakeUpClock - CurrentClock);
 	if (fastClocks > 0 && fastTODClocks > 0 && clocks > 0)
@@ -288,8 +287,8 @@ ICLKS todclocks;
 			}
 			continue;
 		}
-		ClockNextWakeUpClock = sysclock;
 
+		ClockNextWakeUpClock = sysclock;
 		old_delay = delay;
 		old_feed = feed;
 		new_icr=0;
