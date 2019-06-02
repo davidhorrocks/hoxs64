@@ -825,12 +825,13 @@ ICLK vicCurrentClock;
 				sprite_data_collision=spriteBit;
 			}
 
+#define SPRITEPIXELOFFSET 4
 			// Sprite collision latency.
 			// Collisons that occur early enough with in the column are seen in the registers in this cycle.
 			// Both vicCurrSprite_sprite_collision and vicCurrSprite_data_collision
 			// get ORed into their repestive VIC collision registers after this function finishes.
-			// This number "4" represents where in the phase the collsion can be read in this cycle.
-			if (pixelsLeftToDrawInThisColumn > 4)
+			// This number "SPRITEPIXELOFFSET" represents where in the phase the collsion can be read in this cycle.
+			if (pixelsLeftToDrawInThisColumn > SPRITEPIXELOFFSET)
 			{
 				vic->vicCurrSprite_sprite_collision |= sprite_sprite_collision;
 				vic->vicCurrSprite_data_collision |= sprite_data_collision;
@@ -845,8 +846,8 @@ ICLK vicCurrentClock;
 			if (sprite_sprite_collision != 0)
 			{
 				// Collisons with sprites that occur early enough with in this column will trigger an IRQ in this cycle.
-				// This number "4" represents where in the phase the IRQ can make this cycle.
-				if (pixelsLeftToDrawInThisColumn > 4)
+				// This number "SPRITEPIXELOFFSET" represents where in the phase the IRQ can make this cycle.
+				if (pixelsLeftToDrawInThisColumn > SPRITEPIXELOFFSET)
 				{
 					// We are early in the column so we see the IRQ early.
 					vic->vicSpriteSpriteInt|=1;
@@ -861,8 +862,8 @@ ICLK vicCurrentClock;
 			if (sprite_data_collision != 0)
 			{
 				// Collisons with data that occur early enough with in this column will trigger an IRQ in this cycle.
-				// This number "4" represents where in the phase the IRQ can make this cycle.
-				if (pixelsLeftToDrawInThisColumn > 4)
+				// This number "SPRITEPIXELOFFSET" represents where in the phase the IRQ can make this cycle.
+				if (pixelsLeftToDrawInThisColumn > SPRITEPIXELOFFSET)
 				{
 					// We are early in the column so we see the IRQ early.
 					vic->vicSpriteDataInt|=1;
