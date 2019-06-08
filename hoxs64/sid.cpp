@@ -736,7 +736,7 @@ bit32 t, c;
 		}
 		else
 		{
-			// There is a one cycle extra delay if the exponential counter period more than one.
+			// There is a one cycle extra delay if the exponential counter period is more than one.
 			exponential_count_delay = exponential_counter_period == 1 ? 1 : 2;
 
 			// The ADSR may remain in decay / release mode even if attack mode is selected in the next clock.
