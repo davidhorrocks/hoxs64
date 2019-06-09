@@ -3841,7 +3841,7 @@ void VIC6569::CheckRasterCompare(bit8 cycle)
 				if ((vicINTERRUPT_STATUS & vicINTERRUPT_ENABLE & 0x1)!=0)
 				{
 					//SetSystemInterrupt();
-                    //vandalismnews64 wants a 1 clock deplay.
+                    //vandalismnews64 wants a 1 clock delay.
                     //passes the rastercompareirq beta test.
                     cpu->Set_VIC_IRQ(CurrentClock + 1);
 				}
@@ -3864,7 +3864,7 @@ void VIC6569::CheckRasterCompare(bit8 cycle)
 				if ((vicINTERRUPT_STATUS & vicINTERRUPT_ENABLE & 0x1)!=0)
 				{
 					//SetSystemInterrupt();
-                    //vandalismnews64 wants a 1 clock deplay.
+                    //vandalismnews64 wants a 1 clock delay.
                     cpu->Set_VIC_IRQ(CurrentClock + 1);
 				}
 			}
