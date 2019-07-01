@@ -759,7 +759,7 @@ const char szSysCall[] = {19,25,19,32,0};
 
 void C64::AutoLoadHandler(ICLK sysclock)
 {
-const int resettime=120;
+const int resettime=135;
 const unsigned int maxtime = 10 * PAL50FRAMESPERSECOND;
 const char szRun[] = {18,21,14,0};
 const char szLoadDisk[] = {12,15,1,4,34,42,34,44,56,44,49,0};
