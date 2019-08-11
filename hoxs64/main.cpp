@@ -1033,6 +1033,7 @@ RECT rcMain;
 		{
 			bit8* pC64filename = NULL;
 			bit8 c64filename[C64DISKFILENAMELENGTH];
+			bool indexPrgsOnly = false;
 			if (caAutoLoad->ParamCount >= 2)
 			{
 				TCHAR lead = caAutoLoad->pParam[1][0];
@@ -1046,8 +1047,14 @@ RECT rcMain;
 				else
 				{
 					TCHAR *p = &caAutoLoad->pParam[1][0];
-					if (*p = TEXT('#'))
+					if (*p == TEXT('#'))
 					{
+						indexPrgsOnly = true;
+						p++;
+					}
+					else if (*p == TEXT('@'))
+					{
+						indexPrgsOnly = false;
 						p++;
 					}
 
@@ -1064,7 +1071,7 @@ RECT rcMain;
 				}
 			}
 			
-			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, true, pC64filename, caQuickLoad != NULL, alignD64);
+			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, indexPrgsOnly, pC64filename, caQuickLoad != NULL, alignD64);
 		}
 	}
 
