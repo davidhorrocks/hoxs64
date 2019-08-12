@@ -1201,8 +1201,9 @@ HRESULT hr = E_FAIL;
 			char *p = pAnsiFilename;
 			for (i = 0; i < C64DISKFILENAMELENGTH && *p != 0; i++, p++)
 			{
-				c64filename[i] = *p;
+				c64filename[i] = C64File::ConvertAnsiToPetAscii(*p);
 			}
+
 			if (pAnsiFilename)
 			{
 				free(pAnsiFilename);

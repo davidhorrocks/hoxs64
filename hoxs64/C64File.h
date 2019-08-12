@@ -93,6 +93,7 @@ public:
 	static const bit8 FTN_REL[3];
 	static const bit8 FTN_CLR[3];
 	static bit8 ConvertPetAsciiToScreenCode(bit8 petascii);
+	static bit8 ConvertAnsiToPetAscii(unsigned char ch);
 private:
 	static bit8 blankname[C64DISKFILENAMELENGTH];
 	bit8 mDirectoryItemNameBuffer[C64DISKFILENAMELENGTH];

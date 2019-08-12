@@ -1055,6 +1055,29 @@ bit8 addition=0;
 	return (petascii + addition) & 0xff;
 }
 
+bit8 C64File::ConvertAnsiToPetAscii(unsigned char ch)
+{
+	if (ch >= 'A' && ch <= 'Z')
+	{
+		return (ch + 32) & 0xff;
+	}
+	else if (ch >= 'a' && ch <= 'z')
+	{
+		return (ch - 32) & 0xff;
+	}
+	
+	switch (ch)
+	{
+	case 0xa3:// £ Pound
+		return 0x5c;
+	case '`':
+	case '\\':
+		return 0x5f;
+	}
+
+	return ch;
+}
+
 HRESULT C64Directory::Init()
 {
 HRESULT hr;
