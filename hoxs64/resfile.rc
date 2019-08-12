@@ -81,15 +81,10 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON_BIG            ICON                    "img\\icon1.ico"
-
 IDI_ICON_SMALL          ICON                    "img\\icon_sma.ico"
-
 IDI_BREAK               ICON                    "img\\break.ico"
-
 IDI_CHIP1               ICON                    "img\\chip1.ico"
-
 IDI_GREENFIND           ICON                    "img\\greenfind.ico"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -248,8 +243,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,21,1
- PRODUCTVERSION 1,0,21,1
+ FILEVERSION 1,0,21,2
+ PRODUCTVERSION 1,0,21,2
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -267,12 +262,12 @@ BEGIN
             VALUE "Comments", "A Commodore 64 cycle based emulation."
             VALUE "CompanyName", "David Horrocks Enterprises"
             VALUE "FileDescription", "Hoxs64 C64 Emulator"
-            VALUE "FileVersion", "1.0.21.1"
+            VALUE "FileVersion", "1.0.21.2"
             VALUE "InternalName", "Hoxs64"
             VALUE "LegalCopyright", "Copyright © 2001"
             VALUE "OriginalFilename", "hoxs64.exe"
             VALUE "ProductName", "Hoxs64"
-            VALUE "ProductVersion", "1.0.21.1"
+            VALUE "ProductVersion", "1.0.21.2"
         END
     END
     BLOCK "VarFileInfo"
@@ -946,64 +941,37 @@ END
 
 IDR_SIDDRIVER           BINARY                  "siddrv.o65"
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
 IDB_LEDREDON            BITMAP                  "img\\ledredon.bmp"
-
 IDB_LEDBLUEOFF          BITMAP                  "img\\ledblueoff.bmp"
-
 IDB_LEDBLUEON           BITMAP                  "img\\ledblueon.bmp"
-
 IDB_LEDGREENOFF         BITMAP                  "img\\ledgreenoff.bmp"
-
 IDB_LEDGREENON          BITMAP                  "img\\ledgreenon.bmp"
-
 IDB_LEDREDOFF           BITMAP                  "img\\ledredoff.bmp"
-
 IDB_REBARBKGND1         BITMAP                  "img\\rebarbackground.bmp"
-
 IDB_DEBUGGERSTEPINMASK  BITMAP                  "img\\debugger step in mask.bmp"
-
 IDB_DEBUGGERSTEPIN      BITMAP                  "img\\debugger step in.bmp"
-
 IDB_DEBUGGERSTEPOUTMASK BITMAP                  "img\\debugger step out mask.bmp"
-
 IDB_DEBUGGERSTEPOUT     BITMAP                  "img\\debugger step out.bmp"
-
 IDB_DEBUGGERSTEPOVERMASK BITMAP                  "img\\debugger step over mask.bmp"
-
 IDB_DEBUGGERSTEPOVER    BITMAP                  "img\\debugger step over.bmp"
-
 IDB_BREAK               BITMAP                  "img\\break.bmp"
-
 IDB_DEBUGGERSTEPONECLOCK BITMAP                  "img\\debugger step one clock.bmp"
-
 IDB_DEBUGGERSTEPONECLOCKMASK BITMAP                  "img\\debugger step one clock mask.bmp"
-
 IDB_DEBUGGERTRACE       BITMAP                  "img\\debugger trace.bmp"
-
 IDB_DEBUGGERTRACEMASK   BITMAP                  "img\\debugger trace mask.bmp"
-
 IDB_DEBUGGERSTOP        BITMAP                  "img\\debugger stop.bmp"
-
 IDB_DEBUGGERSTOPMASK    BITMAP                  "img\\debugger stop mask.bmp"
-
 IDB_DEBUGGERTRACEFRAME  BITMAP                  "img\\debugger trace frame.bmp"
-
 IDB_DEBUGGERTRACEFRAMEMASK BITMAP                  "img\\debugger trace frame mask.bmp"
-
 IDB_DEBUGGERTRACEINT    BITMAP                  "img\\candy_clock.bmp"
-
 IDB_DEBUGGERTRACEINTMASK BITMAP                  "img\\candy clock mask.bmp"
-
 IDB_DEBUGGERTRACEINT_64 BITMAP                  "img\\candy_clock_64.bmp"
-
 IDB_BREAKDISABLE        BITMAP                  "img\\break_disable.bmp"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1011,7 +979,6 @@ IDB_BREAKDISABLE        BITMAP                  "img\\break_disable.bmp"
 //
 
 IDB_PNG_WINDOWFULLSCREEN PNG                     "img\\window_fullscreen.png"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
