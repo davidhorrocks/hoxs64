@@ -1602,6 +1602,7 @@ void SIDVoice::GetState(SsSidVoiceV3 &state)
 	state.exponential_counter = exponential_counter;
 	state.control = control;
 	state.shifterTestCounter = shifterTestCounter;
+	state.phaseOfShiftRegister = phaseOfShiftRegister;
 	state.nextvolume = nextvolume;
 	state.samplevolume = samplevolume;
 	state.next_envmode = next_envmode;
@@ -1656,8 +1657,6 @@ void SIDVoice::SetState(const SsSidVoiceV3 &state)
 	control = state.control;
 	shifterTestCounter = state.shifterTestCounter;
 	phaseOfShiftRegister = state.phaseOfShiftRegister;
-	noiseFeedbackSample1 = state.noiseFeedbackSample1;
-	noiseFeedbackSample2 = state.noiseFeedbackSample2;
 	nextvolume = state.nextvolume;
 	samplevolume = state.samplevolume;
 	next_envmode = (eEnvelopeMode)state.next_envmode;
