@@ -2179,6 +2179,7 @@ void SID64::SetState(const SsSidV3 &state)
 	sidBlock_Voice3 = state.sidBlock_Voice3 != 0;
 	sidInternalBusByte = state.sidInternalBusByte;
 	sidReadDelay = state.sidReadDelay;
+	SetFilter();
 }
 
 void SID64::UpgradeStateV0ToV1(const SsSid &in, SsSidV1 &out)
