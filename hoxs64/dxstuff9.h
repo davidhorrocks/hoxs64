@@ -83,14 +83,14 @@ public:
 	void CalcClearingRects(const D3DDISPLAYMODE& mode, const C64WindowDimensions &dims, const DWORD scale, bool bShowFloppyLed, RECT& rcTargetRect, D3DRECT drcEraseRects[], D3DRECT& drcStatusBar);
 	int GetDisplayRect(LPRECT pDisplayRect);
 	HRESULT RestoreSoundBuffers();
-	void SoundHalt(short value);
+	void SoundHalt(bit32 value);
 	void SoundResume();
 	HRESULT OpenDirectInput(HINSTANCE hInstance, HWND hWnd);
 	HRESULT OpenDirectSound(HWND hWnd, HCFG::EMUFPS fps);
 	void CloseDirectInput();
 	void CloseDirectSound();
-	void ClearSoundBuffer(LPDIRECTSOUNDBUFFER pSoundBuffer, short value);
-	void ClearSoundBuffer(short value);
+	void ClearSoundBuffer(LPDIRECTSOUNDBUFFER pSoundBuffer, bit32 value);
+	void ClearSoundBuffer(bit32 value);
 	DWORD ConvertColour2(D3DFORMAT format, COLORREF rgb);
 
 	static DWORD DDColorMatch(IDirect3DSurface9 *pdds, COLORREF rgb);
@@ -112,9 +112,7 @@ public:
 	static int GetToolBarHeight(BOOL bShowFloppyLed);	
 
 	WAVEFORMATEX m_wfx;
-	DWORD BufferLockSize;
-	DWORD SoundBufferSize;
-	DWORD SoundBytesPerFrame;
+	DWORD SoundBufferByteSize;
 	DWORD SoundBytesPerSecond;
 	
 	CAppStatus *m_appStatus;

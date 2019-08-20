@@ -382,7 +382,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\sidchip.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\sidfile.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\sidvoice.cpp"
 				>
 			</File>
 			<File
@@ -856,7 +864,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\sidchip.h"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\sidfile.h"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\sidvoice.h"
 				>
 			</File>
 			<File

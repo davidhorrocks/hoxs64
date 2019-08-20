@@ -9,3 +9,13 @@ bit32 dwordswap(bit32 v)
 {
 	return ((v & 0xff000000)>>24) | ((v & 0x000000ff) << 24) | ((v & 0x00ff0000) >> 8) | ((v & 0x0000ff00) << 8);
 }
+
+bit16 makeWordLittleEndian(bit16 v)
+{
+	return v;
+}
+
+bit16 makeWordBigEndian(bit16 v)
+{
+	return wordswap(v);
+}

@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>
+#include <tchar.h>
 #include <winuser.h>
 #include "dx_version.h"
 #include <d3d9.h>
@@ -841,6 +842,144 @@ bool bShowFloppyLed;
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETCURSEL, 0, 0);
 }
 
+void CDiagEmulationSettingsTab::FillSidCount()
+{
+HWND hWndPage;
+HWND hWndCbo;
+LRESULT lr;
+LRESULT currentSelection = -1;
+const int MaxExtraSids = 3;
+TCHAR str[10];
+const int CBO_CONTROL_ID = IDC_CBO_EXTRA_SID;
+
+	shared_ptr<CTabPageDialog> page = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP);
+	if (!page)
+	{
+		return;
+	}
+
+	hWndPage = page->GetHwnd();
+	hWndCbo = GetDlgItem(hWndPage, CBO_CONTROL_ID);
+	if (hWndCbo == NULL)
+	{
+		return;
+	}
+
+	HDC hdcControl = GetDC(hWndCbo);
+	BestTextWidthDC tw(hdcControl);
+	tw.SetFont(this->defaultFont);
+
+	SendDlgItemMessage(hWndPage, CBO_CONTROL_ID, CB_RESETCONTENT, 0, 0);	
+	for (int sidExtraCount = 0; sidExtraCount <= MaxExtraSids; sidExtraCount++)
+	{
+		_sntprintf_s(str, _countof(str), _TRUNCATE, TEXT("%d"), sidExtraCount);
+		tw.GetWidth(str);
+		lr = SendDlgItemMessage(hWndPage, CBO_CONTROL_ID, CB_ADDSTRING, 0, (LPARAM) str);
+		if (lr >= 0)
+		{
+			SendDlgItemMessage(hWndPage, CBO_CONTROL_ID, CB_SETITEMDATA, lr, (LPARAM) sidExtraCount);
+			if (NewCfg.m_numberOfExtraSIDs == sidExtraCount)
+			{
+				currentSelection = lr;
+			}
+		}
+	}
+
+	if (currentSelection >= 0)
+	{
+		SendDlgItemMessage(hWndPage, CBO_CONTROL_ID, CB_SETCURSEL, currentSelection, 0);
+	}
+	else
+	{
+		SendDlgItemMessage(hWndPage, CBO_CONTROL_ID, CB_SETCURSEL, 0, 0);
+	}
+
+	if (tw.maxWidth > 0)
+	{
+		SendDlgItemMessage(hWndPage, CBO_CONTROL_ID, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hWndPage), 0);
+	}
+
+	if (hdcControl != NULL)
+	{
+		ReleaseDC(hWndCbo, hdcControl);
+		hdcControl = NULL;
+	}
+}
+
+void CDiagEmulationSettingsTab::FillSidAddress()
+{
+HWND hWndPage;
+HWND hWndCbo;
+LRESULT lr;
+LRESULT currentSelection = -1;
+const int MaxExtraSids = 3;
+TCHAR str[10];
+const int CBO_CONTROL_ID[] = { IDC_CBO_SID2_ADDRESS, IDC_CBO_SID3_ADDRESS, IDC_CBO_SID4_ADDRESS };
+const int LBL_CONTROL_ID[] = { IDC_LBL_SID2_ADDRESS, IDC_LBL_SID3_ADDRESS, IDC_LBL_SID4_ADDRESS };
+bit16* cfgaddress[]  = { &NewCfg.m_Sid2Address, &NewCfg.m_Sid3Address, &NewCfg.m_Sid4Address };
+
+	shared_ptr<CTabPageDialog> page = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP);
+	if (!page)
+	{
+		return;
+	}
+
+	hWndPage = page->GetHwnd();
+	for (int k=0; k < _countof(CBO_CONTROL_ID); k++)
+	{
+		currentSelection = -1;
+		hWndCbo = GetDlgItem(hWndPage, CBO_CONTROL_ID[k]);
+		if (hWndCbo == NULL)
+		{
+			continue;
+		}
+
+		HDC hdcControl = GetDC(hWndCbo);
+		BestTextWidthDC tw(hdcControl);
+		tw.SetFont(this->defaultFont);
+
+		SendDlgItemMessage(hWndPage, CBO_CONTROL_ID[k], CB_RESETCONTENT, 0, 0);	
+		for (int sidAddress = 0xD420; sidAddress <= 0xDFE0; sidAddress += 0x20)
+		{
+			if (sidAddress == 0xD800)
+			{
+				sidAddress = 0xDE00;
+			}			
+
+			_sntprintf_s(str, _countof(str), _TRUNCATE, TEXT("%4X"), sidAddress);
+			tw.GetWidth(str);
+			lr = SendDlgItemMessage(hWndPage, CBO_CONTROL_ID[k], CB_ADDSTRING, 0, (LPARAM) str);
+			if (lr >= 0)
+			{
+				SendDlgItemMessage(hWndPage, CBO_CONTROL_ID[k], CB_SETITEMDATA, lr, (LPARAM) sidAddress);
+				if (*cfgaddress[k] == sidAddress)
+				{
+					currentSelection = lr;
+				}
+			}
+		}
+
+		if (currentSelection >= 0)
+		{
+			SendDlgItemMessage(hWndPage, CBO_CONTROL_ID[k], CB_SETCURSEL, currentSelection, 0);
+		}
+		else
+		{
+			SendDlgItemMessage(hWndPage, CBO_CONTROL_ID[k], CB_SETCURSEL, 0, 0);
+		}
+
+		if (tw.maxWidth > 0)
+		{
+			SendDlgItemMessage(hWndPage, CBO_CONTROL_ID[k], CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hWndPage), 0);
+		}
+
+		if (hdcControl != NULL)
+		{
+			ReleaseDC(hWndCbo, hdcControl);
+			hdcControl = NULL;
+		}
+	}
+}
 
 void CDiagEmulationSettingsTab::FillBorder()
 {
@@ -1395,6 +1534,85 @@ LRESULT index;
 	}
 }
 
+bool CDiagEmulationSettingsTab::ReadComboItemDataInt(int page, int control_id, int *data)
+{
+HWND hWnd;
+shared_ptr<CTabPageDialog> pPage;
+LRESULT lr;
+LRESULT index;
+
+	*data = 0;
+	pPage = GetPage(page);
+	if (pPage)
+	{
+		hWnd = pPage->GetHwnd();
+		lr = SendDlgItemMessage(hWnd, control_id, CB_GETCURSEL, 0, 0);
+		if (lr != CB_ERR && lr >= 0)
+		{
+			index = lr;
+			lr = SendDlgItemMessage(hWnd, control_id, CB_GETITEMDATA, index, 0);
+			if (lr != CB_ERR)
+			{
+				*data  = (int)lr;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool CDiagEmulationSettingsTab::ReadExtraSidCount(int *extraSidCount)
+{
+	return ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_EXTRA_SID, extraSidCount);
+}
+
+bool CDiagEmulationSettingsTab::ReadSidAddress2(bit16 *sidAddress)
+{
+	int v;
+	if (ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_SID2_ADDRESS, &v))
+	{
+		*sidAddress = (bit16)v;
+		return true;
+	}
+	else
+	{
+		*sidAddress=0;
+		return false;
+	}
+}
+
+bool CDiagEmulationSettingsTab::ReadSidAddress3(bit16 *sidAddress)
+{
+	int v;
+	if (ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_SID3_ADDRESS, &v))
+	{
+		*sidAddress = (bit16)v;
+		return true;
+	}
+	else
+	{
+		*sidAddress=0;
+		return false;
+	}
+}
+
+bool CDiagEmulationSettingsTab::ReadSidAddress4(bit16 *sidAddress)
+{
+	int v;
+	if (ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_SID4_ADDRESS, &v))
+	{
+		*sidAddress = (bit16)v;
+		return true;
+	}
+	else
+	{
+		*sidAddress=0;
+		return false;
+	}
+
+}
+
 void CDiagEmulationSettingsTab::ReadTrackZeroSensor(HCFG::ETRACKZEROSENSORSTYLE *v)
 {
 HWND hWnd;
@@ -1533,22 +1751,49 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (cfg->m_bSID_Emulation_Enable)
+		{
 			CheckDlgButton(hWnd, IDC_SID_EMULATION, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_SID_EMULATION, BST_UNCHECKED);
+		}
+
 		if (cfg->m_bSIDResampleMode)
+		{
 			CheckRadioButton(hWnd, IDC_SID_RESAMPLE, IDC_SID_DOWNSAMPLE, IDC_SID_RESAMPLE);
+		}
 		else
+		{
 			CheckRadioButton(hWnd, IDC_SID_RESAMPLE, IDC_SID_DOWNSAMPLE, IDC_SID_DOWNSAMPLE);
-		if (cfg->m_bAudioClockSync)
-			CheckDlgButton(hWnd, IDC_AUDIOCLOCKSYNC, BST_CHECKED);
+		}
+
+		if (cfg->m_bSIDStereo)
+		{
+			CheckRadioButton(hWnd, IDC_SID_STEREO, IDC_SID_MONO, IDC_SID_STEREO);
+		}
 		else
+		{
+			CheckRadioButton(hWnd, IDC_SID_STEREO, IDC_SID_MONO, IDC_SID_MONO);
+		}
+
+		if (cfg->m_bAudioClockSync)
+		{
+			CheckDlgButton(hWnd, IDC_AUDIOCLOCKSYNC, BST_CHECKED);
+		}
+		else
+		{
 			CheckDlgButton(hWnd, IDC_AUDIOCLOCKSYNC, BST_UNCHECKED);
+		}
 
 		if (cfg->m_bSidDigiBoost)
+		{
 			CheckDlgButton(hWnd, IDC_SIDDIGIBOOT, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_SIDDIGIBOOT, BST_UNCHECKED);
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
@@ -1569,17 +1814,40 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (cfg->m_bTimerBbug)
+		{
 			CheckDlgButton(hWnd, IDC_CHK_TIMERBBUG, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_CHK_TIMERBBUG, BST_UNCHECKED);
+		}
 
 		if (cfg->m_CIAMode == HCFG::CM_CIA6526)
+		{
 			CheckDlgButton(hWnd, IDC_RAD_CIA6526, BST_CHECKED);
+		}
 		else if (cfg->m_CIAMode == HCFG::CM_CIA6526A)
+		{
 			CheckDlgButton(hWnd, IDC_RAD_CIA6526A, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_RAD_CIA6526A, BST_CHECKED);
+		}
 	}
+
+	FillFps();
+	FillBorder();
+	FillDevices();
+	FillModes();
+	FillFormats();
+	FillSizes();
+	FillFilters();
+	FillDiskTrackZero();
+	FillSidCount();
+	FillSidAddress();
+	SettingsOnLimitSpeedChange();
+	SettingsOnPixelDoublerChange();
 }
 
 void CDiagEmulationSettingsTab::saveconfig(CConfig *cfg)
@@ -1774,6 +2042,15 @@ shared_ptr<CTabPageDialog> pPage;
 		{
 			cfg->m_bSIDResampleMode = false;
 		}
+
+		if (IsDlgButtonChecked(hWnd, IDC_SID_STEREO))
+		{
+			cfg->m_bSIDStereo = true;
+		}
+		else
+		{
+			cfg->m_bSIDStereo = false;
+		}		
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)) != NULL)
@@ -1823,6 +2100,35 @@ shared_ptr<CTabPageDialog> pPage;
 		else
 		{
 			cfg->m_bTimerBbug = false;
+		}
+
+		int v;
+		cfg->m_numberOfExtraSIDs = 0;
+		if (this->ReadExtraSidCount(&v))
+		{
+			cfg->m_numberOfExtraSIDs = v;
+		}
+
+		bit16 sidAddress;
+		cfg->m_Sid2Address = 0;
+		cfg->m_Sid3Address = 0;
+		cfg->m_Sid4Address = 0;
+		cfg->m_Sid5Address = 0;
+		cfg->m_Sid6Address = 0;
+		cfg->m_Sid7Address = 0;
+		if (this->ReadSidAddress2(&sidAddress))
+		{
+			cfg->m_Sid2Address = sidAddress;
+		}
+
+		if (this->ReadSidAddress3(&sidAddress))
+		{
+			cfg->m_Sid3Address = sidAddress;
+		}
+
+		if (this->ReadSidAddress4(&sidAddress))
+		{
+			cfg->m_Sid4Address = sidAddress;
 		}
 	}
 
@@ -1879,16 +2185,6 @@ HRESULT hr;
 		}
 		InitFonts();
 		loadconfig(&CurrentCfg);
-		FillFps();
-		FillBorder();
-		FillDevices();
-		FillModes();
-		FillFormats();
-		FillSizes();
-		FillFilters();
-		FillDiskTrackZero();
-		SettingsOnLimitSpeedChange();
-		SettingsOnPixelDoublerChange();
 		VideoPageSizeComboBoxes();
 		DiskPageSizeComboBoxes();
 		OnSelChanged(hWndDlg);
@@ -2052,8 +2348,6 @@ void CDiagEmulationSettingsTab::UpdatePageAudio(HWND hWndDlg)
 void CDiagEmulationSettingsTab::UpdatePageDisk(HWND hWndDlg)
 {
 }
-
-
 
 CDisplayInfo::CDisplayInfo()
 {

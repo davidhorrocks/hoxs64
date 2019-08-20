@@ -164,6 +164,7 @@ public:
 	bool m_bSidDigiBoost;
 
 	bool m_bSIDResampleMode;
+	bool m_bSIDStereo;
 	bool m_bD1541_Emulation_Enable;
 	bool m_bD1541_Thread_Enable;
 	bool m_bAllowOpposingJoystick;
@@ -190,6 +191,14 @@ public:
 	HCFG::EMUWINDOWSTRETCH m_fullscreenStretch;
 	HCFG::EMUWINDOWFILTER m_blitFilter;
 	HCFG::EMUBORDERSIZE m_borderSize;
+	int m_numberOfExtraSIDs;
+	bit16 m_Sid2Address;
+	bit16 m_Sid3Address;
+	bit16 m_Sid4Address;
+	bit16 m_Sid5Address;
+	bit16 m_Sid6Address;
+	bit16 m_Sid7Address;
+	bit16 m_Sid8Address;
 	bool m_bShowFloppyLed;
 	HCFG::EMUFPS m_fps;
 	HCFG::ETRACKZEROSENSORSTYLE m_TrackZeroSensorStyle;

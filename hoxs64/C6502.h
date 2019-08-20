@@ -583,7 +583,7 @@ public:
 	bit16u m_CurrentOpcodeAddress;
 	bool SOTrigger;
 	ICLK SOTriggerClock;
-
+	bit16 jumpAddress;
 	int CheckExecute(bit16 address, bool bHitIt);
 	void StartDebug();
 	void StopDebug();

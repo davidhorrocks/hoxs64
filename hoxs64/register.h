@@ -94,6 +94,17 @@ public:
 	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState)=0;
 };
 
+
+class ISid64 : public IRegister
+{
+public:
+	int NumberOfExtraSidChips;
+	bit16 AddressOfSecondSID;
+	bit16 AddressOfThirdSID;
+	bit16 AddressOfFourthSID;
+	bool SidAtDE00toDF00;
+};
+
 class ISid : public IRegister
 {
 public:

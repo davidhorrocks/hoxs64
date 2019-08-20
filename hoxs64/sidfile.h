@@ -18,24 +18,17 @@ struct SIDFileHeader1
 	char copyright[32];
 };
 
-struct SIDFileHeader2
+struct SIDFileHeader2 : SIDFileHeader1
 {
-	char magicID[4];
-	WORD version;
-	WORD dataOffset;
-	WORD loadAddress;
-	WORD initAddress;
-	WORD playAddress;
-	WORD songs;
-	WORD startSong;
-	DWORD speed;
-	char name[32];
-	char author[32];
-	char copyright[32];
 	WORD flags;
 	BYTE startPage;
 	BYTE pageLength;
-	WORD reserved;
+	BYTE secondSIDAddress;
+};
+
+struct SIDFileHeader3 : SIDFileHeader2
+{
+	BYTE thirdSIDAddress;
 };
 
 struct fixedheader16
@@ -84,21 +77,22 @@ public:
 
 	void cleanup();
 	HRESULT LoadSIDFile(TCHAR *filename);
-	HRESULT LoadSIDDriverResource(WORD loadAddress,BYTE *pMemory);
+	HRESULT LoadSIDDriverResource(bit16 loadAddress, bit8 *pMemory);
+	HRESULT LoadSID(bit8 *ramMemory, TCHAR *filename, bool bUseDefaultStartSong, bit16 startSong);
+	HRESULT LoadSID(bit8 *ramMemory, bool bUseDefaultStartSong, bit16 startSong);
 
-	HRESULT LoadSID(bit8 *ramMemory, TCHAR *filename, bool bUseDefaultStartSong, WORD startSong);
-	HRESULT LoadSID(bit8 *ramMemory, bool bUseDefaultStartSong, WORD startSong);
+	static bit16 MakeSidAddressFromByte(bit8 rsidByte);
 
-	BYTE *pSIDFile;
-	BYTE *pDriver;
-	SIDFileHeader2 sfh;
-	BOOL RSID,RSID_BASIC;
-	DWORD lenSID;
-	WORD startSID;
-	DWORD driverSize;
-	WORD codeSize;
-
-	WORD driverLoadAddress;
+	bit8 *pSIDFile;
+	bit8 *pDriver;
+	SIDFileHeader3 sfh;
+	bool IsRSID;
+	bool IsRSID_BASIC;
+	bit32 lenSID;
+	bit16 startSID;
+	bit32 driverSize;
+	bit16 codeSize;
+	bit16 driverLoadAddress;
 
 private:
 	BOOL eof;
@@ -111,6 +105,8 @@ private:
 	DWORD readSizetWord();
 	DWORD readSizetDWord();
 	BOOL driverspace(DWORD len);
+	HRESULT SetErrorCouldNotLoadDriverDueToData(bit16 address, bit16 codeSize);
+	HRESULT SetErrorCouldNotLoadDriverDueToFreePages(bit32 startPage, bit32 pageLength);	
 };
 
 #endif

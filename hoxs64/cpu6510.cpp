@@ -87,7 +87,7 @@ void CPU6510::Reset(ICLK sysclock, bool poweronreset)
 	write_cpu_io_data(0);
 }
 
-HRESULT CPU6510::Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
+HRESULT CPU6510::Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, ISid64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager)
 {
 HRESULT hr;
 	ClearError();
@@ -169,6 +169,10 @@ bit8 *t;
 			{
 				vic->ExecuteCycle(CurrentClock);
 				return pCart->ReadRegister(address, CurrentClock);
+			}
+			else if (sid->SidAtDE00toDF00)
+			{
+				return sid->ReadRegister(address, CurrentClock);
 			}
 			else
 			{
@@ -259,6 +263,10 @@ bit8 *t;
 				{
 					pCart->WriteRegister(address, CurrentClock, data);
 				}
+				else if (sid->SidAtDE00toDF00)
+				{
+					sid->WriteRegister(address, CurrentClock, data);
+				}
 
 				break;
 			default:
@@ -343,10 +351,19 @@ bit8 *t;
 		case 0xDE:
 		case 0xDF:
 			if (pCart->IsCartIOActive())
+			{
 				return pCart->ReadRegister_no_affect(address, CurrentClock);
+			}
+			else if (sid->SidAtDE00toDF00)
+			{
+				return sid->ReadRegister(address, CurrentClock);
+			}
 			else
+			{
 				return vic->ReadRegister_no_affect(address, CurrentClock);
+			}
 		}
+
 		if (pCart->IsCartAttached())
 		{
 			switch(ram->GetCpuMmuReadMemoryType(address, -1))
@@ -424,7 +441,14 @@ bit8 *t;
 			case 0xDE:
 			case 0xDF:
 				if (pCart->IsCartIOActive())
+				{
 					pCart->WriteRegister(address, CurrentClock, data);
+				}
+				else if (sid->SidAtDE00toDF00)
+				{
+					sid->WriteRegister(address, CurrentClock, data);
+				}
+
 				break;
 			default:
 				if (pCart->IsCartAttached())

@@ -266,6 +266,7 @@
 #define IDC_RADIO2                      1353
 #define IDC_LINESYNC_WND                1353
 #define IDC_BTN_CFG_JOY1LEFT            1353
+#define IDC_SID_MONO                    1353
 #define IDC_GROUP_WINDOWED              1354
 #define IDC_BTN_CFG_JOY1RIGHT           1354
 #define IDC_GROUP_FULLSCREEN            1355
@@ -303,7 +304,15 @@
 #define IDC_LBL_BREAKPOINTRASTERLINE_HEX 1376
 #define IDC_LBL_JOY2RIGHT               1377
 #define IDC_LBL_BREAKPOINTRASTERCYCLE_HEX 1377
+#define IDC_CBO_EXTRA_SID               1378
+#define IDC_CBO_SID2_ADDRESS            1379
+#define IDC_CBO_SID3_ADDRESS            1380
+#define IDC_CBO_SID4_ADDRESS            1381
 #define IDC_LBL_JOY2FIRE2               1382
+#define IDC_LBL_SID2_ADDRESS            1382
+#define IDC_LBL_SID3_ADDRESS            1383
+#define IDC_LBL_SID4_ADDRESS            1384
+#define IDC_SID_STEREO                  1385
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -391,14 +400,16 @@
 #define IDM_OPTIONS_DECIMAL             40200
 #define ID_BREAKPOINTOPTIONS_DECIMAL    40201
 #define IDM_BREAKPOINTOPTIONS_DECIMAL   40202
+#define ID_SETTINGS_SIDSTEREO           40205
+#define IDM_SETTINGS_SIDSTEREO          40206
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
-#define _APS_NEXT_COMMAND_VALUE         40205
-#define _APS_NEXT_CONTROL_VALUE         1378
+#define _APS_NEXT_COMMAND_VALUE         40209
+#define _APS_NEXT_CONTROL_VALUE         1386
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif

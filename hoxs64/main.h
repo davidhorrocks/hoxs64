@@ -49,6 +49,9 @@ public:
 	virtual void CAppStatus::GetUserConfig(CConfig& cfg);
 	virtual void CAppStatus::SetUserConfig(const CConfig& newcfg);
 	virtual void CAppStatus::ApplyConfig(const CConfig& newcfg);
+	virtual void CAppStatus::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID);
+	virtual void CAppStatus::ResetSidChipAddressMap();
+
 	// CAppStatus
 
 	// IAppCommand
@@ -99,6 +102,8 @@ public:
 
 	//CEmuWindow::INotify
 	virtual void CEmuWindow::INotify::VicCursorMove(int cycle, int line);
+
+	void UpdateConfigFromSid(CConfig& cfg);
 
 	C64 c64;
 

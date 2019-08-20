@@ -161,6 +161,14 @@ CConfig::CConfig()
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
 	SetPalettePepto();
+	m_numberOfExtraSIDs = 0;
+	m_Sid2Address = 0;
+	m_Sid3Address = 0;
+	m_Sid4Address = 0;
+	m_Sid5Address = 0;
+	m_Sid6Address = 0;
+	m_Sid7Address = 0;
+	m_Sid8Address = 0;
 }
 
 void CConfig::SetCiaNewOldMode(bool isNew)
@@ -206,6 +214,7 @@ HKEY  hKey1;
 LONG   lRetCode; 
 ULONG tempLenValue;
 DWORD type;
+DWORD dwValue;
 int i;
 	
 	LoadDefaultSetting();
@@ -373,6 +382,14 @@ int i;
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bSIDResampleMode = _ttol(szValue) != 0;
+		}
+
+		tempLenValue = lenValue;
+		tempLenValue = lenValue;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SIDStereo"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_bSIDStereo = dwValue != 0;
 		}
 
 		tempLenValue = lenValue;
@@ -601,6 +618,63 @@ int i;
 		else
 		{
 			this->m_bTimerBbug = false;
+		}
+
+		tempLenValue = lenValue;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("NumberOfExtraSidChips"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			this->m_numberOfExtraSIDs = dwValue;
+			if (this->m_numberOfExtraSIDs <  0 || this->m_numberOfExtraSIDs > 7)
+			{
+				this->m_numberOfExtraSIDs = 0;
+			}
+		}
+		else
+		{
+			this->m_numberOfExtraSIDs = 0;
+		}
+
+		LPCTSTR sidAddressName[] = { 
+			TEXT("Sid2Address"), 
+			TEXT("Sid3Address"), 
+			TEXT("Sid4Address"), 
+			TEXT("Sid5Address"), 
+			TEXT("Sid6Address"), 
+			TEXT("Sid7Address"), 
+			TEXT("Sid8Address") 
+		};
+
+		bit16* sidAddressValue[] = { 
+			&this->m_Sid2Address,
+			&this->m_Sid3Address,
+			&this->m_Sid4Address,
+			&this->m_Sid5Address,
+			&this->m_Sid6Address,
+			&this->m_Sid7Address,
+			&this->m_Sid8Address
+		};
+
+		for (int i=0; i < _countof(sidAddressName); i++)
+		{
+			tempLenValue = lenValue;
+			lRetCode = RegReadDWordOrStr(hKey1, sidAddressName[i], &dwValue);
+			bit16 sidAddress = 0;
+			if (lRetCode == ERROR_SUCCESS)
+			{
+				sidAddress = (bit16)dwValue;
+			}
+			else
+			{
+				sidAddress = 0;
+			}
+
+			if (!((sidAddress >= 0xD420 && sidAddress <= 0xD7E0) || (sidAddress >= 0xDE00 && sidAddress <= 0xDFE0)))
+			{
+				sidAddress = 0;
+			}			
+
+			*sidAddressValue[i] = sidAddress;
 		}
 
 		tempLenValue = lenValue;
@@ -1431,6 +1505,43 @@ int i;
 
 	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bTimerBbug ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("CIATimerBbug"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+
+	DWORD dwValue = (DWORD)this->m_numberOfExtraSIDs;
+	if (dwValue >= 8)
+	{
+		dwValue = 0;
+	}
+
+	RegSetValueEx(hKey1, TEXT("NumberOfExtraSidChips"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+
+	dwValue = m_bSIDStereo ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("SIDStereo"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+
+	LPCTSTR sidAddressName[] = { 
+		TEXT("Sid2Address"), 
+		TEXT("Sid3Address"), 
+		TEXT("Sid4Address"), 
+		TEXT("Sid5Address"), 
+		TEXT("Sid6Address"), 
+		TEXT("Sid7Address"), 
+		TEXT("Sid8Address") 
+	};
+
+	bit16* sidAddressValue[] = { 
+		&this->m_Sid2Address,
+		&this->m_Sid3Address,
+		&this->m_Sid4Address,
+		&this->m_Sid5Address,
+		&this->m_Sid6Address,
+		&this->m_Sid7Address,
+		&this->m_Sid8Address
+	};
+
+	for (int i=0; i < _countof(sidAddressName); i++)
+	{
+		DWORD dwValue = *sidAddressValue[i];
+		RegSetValueEx(hKey1, sidAddressName[i], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+	}
 	
 	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bD1541_Thread_Enable ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("DiskThreadEnable"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
@@ -1699,6 +1810,15 @@ void CConfig::LoadDefaultSetting()
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
 	SetCiaNewOldMode(true);
+	m_numberOfExtraSIDs = 0;
+	m_Sid2Address = 0;
+	m_Sid3Address = 0;
+	m_Sid4Address = 0;
+	m_Sid5Address = 0;
+	m_Sid6Address = 0;
+	m_Sid7Address = 0;
+	m_Sid8Address = 0;
+	m_bSIDStereo = true;
 }
 
 int CConfig::GetKeyScanCode(UINT ch)

@@ -65,6 +65,8 @@ public:
 	virtual void GetUserConfig(CConfig& cfg) = 0;
 	virtual void SetUserConfig(const CConfig& newcfg) = 0;
 	virtual void ApplyConfig(const CConfig& newcfg) = 0;
+	virtual void SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID) = 0;
+	virtual void ResetSidChipAddressMap() = 0;
 
 	void SaveSpeedSettings();
 	void RestoreSpeedSettings();

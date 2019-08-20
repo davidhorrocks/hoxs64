@@ -22,7 +22,7 @@ public:
 	bool m_bIsWriteCycle;
 	bool bExitOnHltInstruction;
 
-	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, SID64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
+	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, ISid64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
 	void SetCassetteSense(bit8 sense);
 	void CheckPortFade(ICLK sysclock);	
 
@@ -84,7 +84,7 @@ private:
 	IRegister *cia1;
 	IRegister *cia2;
 	IRegister *vic;
-	IRegister *sid;
+	ISid64 *sid;
 	IRegister *cart;
 
 	bit8 **m_ppMemory_map_read;

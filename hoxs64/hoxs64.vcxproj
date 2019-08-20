@@ -589,6 +589,8 @@
     <ClCompile Include="runcommandmapmemory.cpp" />
     <ClCompile Include="cart_simons_basic.cpp" />
     <ClCompile Include="savestate.cpp" />
+    <ClCompile Include="sidchip.cpp" />
+    <ClCompile Include="sidvoice.cpp" />
     <ClCompile Include="toolitemaddress.cpp" />
     <ClCompile Include="viciipalette.cpp" />
     <ClCompile Include="wpcbreakpoint.cpp" />
@@ -934,6 +936,8 @@
     <ClInclude Include="runcommand.h" />
     <ClInclude Include="cart_simons_basic.h" />
     <ClInclude Include="savestate.h" />
+    <ClInclude Include="sidchip.h" />
+    <ClInclude Include="sidvoice.h" />
     <ClInclude Include="sidWave_PS.h" />
     <ClInclude Include="sidWave_PST.h" />
     <ClInclude Include="sidWave_PT.h" />

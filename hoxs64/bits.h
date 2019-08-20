@@ -45,5 +45,7 @@ typedef unsigned __int64 bit64;
 
 bit16 wordswap(bit16);
 bit32 dwordswap(bit32 v);
+bit16 makeWordLittleEndian(bit16);
+bit16 makeWordBigEndian(bit16);
 
 #endif

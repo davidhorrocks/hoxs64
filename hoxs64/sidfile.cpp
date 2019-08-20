@@ -41,11 +41,17 @@ SIDLoader::~SIDLoader()
 void SIDLoader::cleanup()
 {
 	if(pSIDFile)
+	{
 		GlobalFree(pSIDFile);
+	}
 
 	pSIDFile = NULL;
 }
 
+bit16 SIDLoader::MakeSidAddressFromByte(bit8 rsidByte)
+{
+	return ((bit16)0xD000 | (((bit16)rsidByte & 0xfe) << 4));
+}
 
 HRESULT SIDLoader::LoadSIDFile(TCHAR *filename)
 {
@@ -56,13 +62,16 @@ DWORD bytes_read,file_size,bytesToRead;
 DWORD maxcodesize;
 const int sizeheader = 2;
 
-	if(pSIDFile)
+	if (pSIDFile)
+	{
 		GlobalFree(pSIDFile);
+	}
+
 	pSIDFile = NULL;
 	startSID = 0;
 	lenSID = 0;
-	RSID=FALSE;
-	RSID_BASIC=FALSE;
+	IsRSID=false;
+	IsRSID_BASIC=false;
 
 	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
 	if (hfile==INVALID_HANDLE_VALUE)
@@ -70,12 +79,14 @@ const int sizeheader = 2;
 		hr = SetError(E_FAIL,TEXT("Could not open %s."),filename);
 		goto cleanup;
 	}
+
 	file_size = GetFileSize(hfile, 0);
 	if (INVALID_FILE_SIZE == file_size)
 	{
 		hr = SetError(E_FAIL,TEXT("Could not open %s."),filename);
 		goto cleanup;
 	}
+
 	if (file_size < sizeof(sfh))
 	{ 
 		hr = SetError(E_FAIL,TEXT("%s is not a supported SID file."),filename);
@@ -89,6 +100,7 @@ const int sizeheader = 2;
 		return SetError(E_FAIL,TEXT("Could not read from %s."),filename);
 		goto cleanup;
 	}
+
 	if (bytes_read!=bytesToRead)
 	{
 		hr = SetError(E_FAIL,TEXT("Could not read from %s."),filename);
@@ -102,7 +114,7 @@ const int sizeheader = 2;
 	}
 	if (memcmp(sfh.magicID ,"RSID", 4)==0)
 	{
-		RSID=TRUE;
+		IsRSID=true;
 	}
 
 	sfh.version = wordswap(sfh.version);
@@ -110,44 +122,53 @@ const int sizeheader = 2;
 	sfh.loadAddress = wordswap(sfh.loadAddress);
 	sfh.dataOffset = wordswap(sfh.dataOffset);
 	sfh.playAddress = wordswap(sfh.playAddress);
-
 	sfh.songs = wordswap(sfh.songs);
 	sfh.startSong = wordswap(sfh.startSong);
-
 	sfh.speed = dwordswap(sfh.speed);
-
-	if (sfh.version == 1)
+	if (sfh.version <= 1)
 	{
-		if (RSID)
+		if (IsRSID)
 		{
-			hr = SetError(E_FAIL,TEXT("Unsupported RSID file version %d. Supported RSID version is 2."), (int)sfh.version);
+			hr = SetError(E_FAIL,TEXT("Unsupported RSID file version %d. Supported RSID version is 2 or higher."), (int)sfh.version);
 			goto cleanup;
 		}
+
 		sfh.flags=0;
 		sfh.startPage=0;
 		sfh.pageLength=0;
-		sfh.reserved=0;
+		sfh.secondSIDAddress=0;
+		sfh.thirdSIDAddress=0;
 	}
-	else if (sfh.version == 2)
+	else if (sfh.version >= 2 && sfh.version <= 4)
 	{
-		bytesToRead = sizeof(struct SIDFileHeader2) - sizeof(struct SIDFileHeader1);
+		bytesToRead = sizeof(struct SIDFileHeader3) - sizeof(struct SIDFileHeader1);
 		r = ReadFile(hfile,&sfh.flags,bytesToRead ,&bytes_read,NULL);
 		if (r==0)
 		{
 			return SetError(E_FAIL,TEXT("Could not read from %s."),filename);
 			goto cleanup;
 		}
+
 		if (bytes_read!=bytesToRead)
 		{
 			hr = SetError(E_FAIL,TEXT("Could not read from %s."),filename);
 			goto cleanup;
 		}
+
 		sfh.flags = wordswap(sfh.flags);
-		sfh.reserved = wordswap(sfh.reserved);
+		if (sfh.version < 3)
+		{
+			sfh.secondSIDAddress=0;
+		}
+
+		if (sfh.version < 4)
+		{
+			sfh.thirdSIDAddress=0;
+		}
 	}
 	else
 	{
-		hr = SetError(E_FAIL,TEXT("Unsupported file version %d. Supported versions are 1 and 2."), (int)sfh.version);
+		hr = SetError(E_FAIL,TEXT("Unsupported file version %d. Supported versions are 1 to 4."), (int)sfh.version);
 		goto cleanup;
 	}
 
@@ -175,13 +196,17 @@ const int sizeheader = 2;
 	maxcodesize = 0x10000 - startSID;
 	lenSID = file_size - sfh.dataOffset - sizeheader;
 	if (lenSID > maxcodesize)
+	{
 		lenSID = maxcodesize;
-	pSIDFile = (BYTE *)GlobalAlloc(GMEM_FIXED, lenSID);
+	}
+
+	pSIDFile = (bit8 *)GlobalAlloc(GMEM_FIXED, lenSID);
 	if (pSIDFile==0)
 	{
 		return SetError(E_FAIL,TEXT("Out of memory."));
 		goto cleanup;
 	}
+
 	r = ReadFile(hfile,pSIDFile,lenSID,&bytes_read,NULL);
 	if (r==0)
 	{
@@ -190,12 +215,10 @@ const int sizeheader = 2;
 	}
 
 	CloseHandle(hfile);
-
-	if (RSID && (sfh.flags & 2) && sfh.initAddress ==0)
+	if (IsRSID && (sfh.flags & 2) && sfh.initAddress ==0)
 	{
-		RSID_BASIC = TRUE;
+		IsRSID_BASIC = true;
 	}
-
 
 	return S_OK;
 cleanup:
@@ -204,14 +227,17 @@ cleanup:
 		CloseHandle(hfile);
 		hfile=0;
 	}
+
 	if(pSIDFile)
+	{
 		GlobalFree(pSIDFile);
+	}
+
 	pSIDFile = NULL;
 	return hr;
 }
 
-
-HRESULT SIDLoader::LoadSIDDriverResource(WORD loadAddress,BYTE *pMemory)
+HRESULT SIDLoader::LoadSIDDriverResource(bit16 loadAddress, bit8 *pMemory)
 {
 HRSRC v=0;
 HGLOBAL hv=NULL;
@@ -235,7 +261,7 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 				hv=LoadResource(NULL,v);
 				if (hv)
 				{
-					pDriver = (BYTE *)LockResource(hv);
+					pDriver = (bit8 *)LockResource(hv);
 					if (!pDriver)
 					{
 						return E_FAIL;
@@ -246,23 +272,36 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 	}
 
 	if (driverSize <= sizeof(fixedheader16))
+	{
 		return E_FAIL;
+	}
 
 	src = pDriver;
 	eof=FALSE;
 	CopyMemory(&fh, src, FIELD_OFFSET(struct fixedheader32,tbase));
 	if(fh.non64marker != 0x0001)
+	{
 		return E_FAIL;
+	}
+
 	if(fh.non64marker != 0x0001)
+	{
 		return E_FAIL;
-	
+	}
+
 	if (memcmp(magicid, fh.magicnumber, sizeof(fh.magicnumber))!=0)
+	{
 		return E_FAIL;
+	}
 
 	if (fh.mode & 0x2000)
+	{
 		sizetlen=2;
+	}
 	else
+	{
 		sizetlen=1;
+	}
 
 	src = &pDriver[FIELD_OFFSET(struct fixedheader32,tbase)];
 	fh.tbase = readSizetDWord();
@@ -276,76 +315,122 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 	fh.stack = readSizetDWord();
 
 	if (eof)
+	{
 		return E_FAIL;
+	}
 
 	if (fh.tbase>0xffff)
+	{
 		return E_FAIL;
+	}
+
 	if (fh.dbase>0xffff)
+	{
 		return E_FAIL;
+	}
+
 	if (fh.bbase>0xffff)
+	{
 		return E_FAIL;
+	}
 
 	if (fh.tlen>0xffff)
+	{
 		return E_FAIL;
+	}
+
 	if (fh.dlen>0xffff)
+	{
 		return E_FAIL;
+	}
+
 	if (fh.blen>0xffff)
+	{
 		return E_FAIL;
+	}
 
 	if (fh.tbase + fh.tlen + fh.dlen + fh.blen -1 > 0xffff)
+	{
 		return E_FAIL;
+	}
 
 	if (loadAddress + fh.tlen + fh.dlen + fh.blen -1 > 0xffff)
+	{
 		return E_FAIL;
-
+	}
 
 	do
 	{
 		b1 = (BYTE)readByte();
 		if (eof)
+		{
 			return E_FAIL;
+		}
 
 		if (b1==0)
+		{
 			break;
+		}
 
 		if (!driverspace(b1))
+		{
 			return E_FAIL;
-		src += b1;
+		}
 
+		src += b1;
 	} while (1);
 
 	if (fh.tlen > 0)
 	{
 		if (!driverspace(fh.tlen))
+		{		
 			return E_FAIL;
+		}
 
 		if (loadAddress + fh.tlen -1 > 0xffff)
+		{
 			return E_FAIL;
+		}
+
 		if (pMemory)
+		{
 			CopyMemory(&pMemory[loadAddress], src, fh.tlen);
+		}
+
 		src += fh.tlen;
 	}
 
 	if (fh.dlen > 0)
 	{
 		if (!driverspace(fh.dlen))
+		{
 			return E_FAIL;
+		}
 
 		if (loadAddress + fh.tlen + fh.dlen -1 > 0xffff)
+		{
 			return E_FAIL;
+		}
+
 		if (pMemory)
+		{
 			CopyMemory(&pMemory[loadAddress + fh.tlen], src, fh.dlen);
+		}
+
 		src += fh.dlen;
 	}
 
 	codeSize = (WORD)(fh.tlen + fh.dlen + fh.blen);
-
 	if (!pMemory)
+	{
 		return 0;
+	}
 
 	d = readSizetDWord();
 	if (eof)
+	{
 		return E_FAIL;
+	}
 
 	for (a = 0 ; a < d ; a++)
 	{
@@ -353,14 +438,15 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 		{
 			b = readByte();
 			if (eof)
+			{
 				return E_FAIL;
+			}
 		} while (b != 0);
 	}
 
 	newText = loadAddress;
 	newData = newText + (WORD)fh.tlen;
 	newBss = newData + (WORD)fh.dlen ;
-
 	rtext = newText - 1;
 	rdata = newData -1;
 	rbss = newBss - 1;
@@ -368,26 +454,39 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 	do
 	{
 		reloc = 0;
-
 		do
 		{
 			b1 = (BYTE)readByte();
 			if (eof)
+			{
 				return E_FAIL;
+			}
+
 			if (b1 == 0)
+			{
 				break;
+			}
+
 			if (b1 == 0xff)
+			{
 				reloc += 0xfe;
+			}
 			else
+			{
 				reloc += b1;
+			}
 		} while (b1 == 0xff);
+
 		if (reloc == 0 && b1 == 0)
+		{
 			break;
+		}
 		
 		b1 = (BYTE)readByte();
 		if (eof)
+		{
 			return E_FAIL;
-
+		}
 		
 		switch (b1 & 0x0f)
 		{
@@ -403,11 +502,19 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 		}
 		
 		if (rtext > 0xffff)
+		{
 			return E_FAIL;
+		}
+
 		if (rdata > 0xffff)
+		{
 			return E_FAIL;
+		}
+
 		if (rbss > 0xffff)
+		{
 			return E_FAIL;
+		}
 
 		switch (b1 & 0xf0)
 		{
@@ -417,30 +524,45 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 0://undefined
 				d = readSizetDWord();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				break;
 			case 1://absolute value
 				d = readSizetDWord();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				break;
 			case 2://text segment
 				if (rtext + 1 > 0xffff)
+				{
 					return E_FAIL;
+				}
+
 				addr = *((WORD *)(((BYTE *)pMemory) + rtext));
 				addr = addr - (WORD)fh.tbase + newText;
 				*((WORD *)(((BYTE *)pMemory) + rtext)) = addr;
 				break;
 			case 3://data segment
 				if (rdata + 1 > 0xffff)
+				{
 					return E_FAIL;
+				}
+
 				addr = *((WORD *)(((BYTE *)pMemory) + rdata));
 				addr = addr - (WORD)fh.dbase + newData;
 				*((WORD *)(((BYTE *)pMemory) + rdata)) = addr;
 				break;
 			case 4://bss segment
 				if (rbss + 1 > 0xffff)
+				{
 					return E_FAIL;
+				}
+
 				addr = *((WORD *)(((BYTE *)pMemory) + rbss));
 				addr = addr - (WORD)fh.bbase + newBss;
 				*((WORD *)(((BYTE *)pMemory) + rbss)) = addr;
@@ -448,6 +570,7 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 5://zero segment
 				break;
 			}
+
 			break;
 		case 0x40:// hi byte address
 			switch (b1 & 0x0f)
@@ -455,23 +578,38 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 0://undefined
 				d = readSizetDWord();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				d = readByte();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				break;
 			case 1://absolute value
 				d = readSizetDWord();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				d = readByte();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				break;
 			case 2://text segment
 				b2 = (BYTE)readByte();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				addr = *(((BYTE *)pMemory) + rtext);
 				addr = (addr << 8) | (b2 & 0xff);
 				addr = addr - (WORD)fh.tbase + newText;
@@ -481,7 +619,10 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 3://data segment
 				b2 = (BYTE)readByte();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				addr = *(((BYTE *)pMemory) + rdata);
 				addr = (addr << 8) | (b2 & 0xff);
 				addr = addr - (WORD)fh.dbase + newData;
@@ -491,7 +632,10 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 4://bss segment
 				b2 = (BYTE)readByte();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				addr = *(((BYTE *)pMemory) + rbss);
 				addr = (addr << 8) | (b2 & 0xff);
 				addr = addr - (WORD)fh.bbase + newBss;
@@ -501,9 +645,13 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 5://zero segment
 				b2 = (BYTE)readByte();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				break;
 			}
+
 			break;
 		case 0x20:// lo byte address
 			switch (b1 & 0x0f)
@@ -511,12 +659,18 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 0://undefined
 				d = readSizetDWord();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				break;
 			case 1://absolute value
 				d = readSizetDWord();
 				if (eof)
+				{
 					return E_FAIL;
+				}
+
 				break;
 			case 2://text segment
 				addr = *(((BYTE *)pMemory) + rtext);
@@ -542,6 +696,7 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 			case 5://zero segment
 				break;
 			}
+
 			break;
 		case 0xc0:// 3 byte segment address
 		case 0xa0:// segment byte
@@ -552,6 +707,16 @@ const BYTE magicid[3] =  {0x6f, 0x36, 0x35};
 	return 0;
 }
 
+HRESULT SIDLoader::SetErrorCouldNotLoadDriverDueToData(bit16 address, bit16 codeSize)
+{
+	return SetError(E_FAIL, TEXT("Could not load the SID driver around the SID file's code at $%04x - $04x"), (unsigned int)address, (unsigned int)(address + codeSize - 1));
+}
+
+HRESULT SIDLoader::SetErrorCouldNotLoadDriverDueToFreePages(bit32 startPage, bit32 pageLength)
+{
+	return SetError(E_FAIL, TEXT("Could not load the SID driver around SID file's data pages at $%04x - $%04x"), (unsigned int)(bit32)startPage * 0x100, (unsigned int)((startPage + pageLength * 0x100) - 1));
+}
+
 HRESULT SIDLoader::LoadSID(bit8 *ramMemory, TCHAR *filename, bool bUseDefaultStartSong, WORD startSong)
 {
 HRESULT hr;
@@ -559,76 +724,109 @@ HRESULT hr;
 	ClearError();
 	hr = LoadSIDFile(filename);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	hr = LoadSID(ramMemory, bUseDefaultStartSong, startSong);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
+
 	return S_OK;
 }
 
 HRESULT SIDLoader::LoadSID(bit8 *ramMemory, bool bUseDefaultStartSong, WORD startSong)
 {
 HRESULT hr;
-BYTE requiredPages,s;
-
+bit16 defaultDriverAddress = 0x0834;
 	ClearError();
 	if (pSIDFile==NULL)
+	{
 		return E_POINTER;
+	}
 
 	CopyMemory(&ramMemory[startSID], pSIDFile, lenSID);
-
 	hr = LoadSIDDriverResource(0x0000, 0L);
 	if (FAILED(hr))
 	{
-		return SetError(E_FAIL,TEXT("Could not load SID driver."));
+		return SetError(E_FAIL,TEXT("Could not load SID driver resource."));
 	}
 
-	if ((sfh.version == 1) || (sfh.startPage == 0 && sfh.pageLength == 0))
+	if ((sfh.version == 1) || (sfh.startPage == 0))
 	{
-		if (startSID > (0x0834 + codeSize))
+		if ((unsigned int)startSID > ((unsigned int)defaultDriverAddress + codeSize))
 		{
-			driverLoadAddress = 0x0834;
+			driverLoadAddress = defaultDriverAddress;
 		}
-		else if ((startSID + (WORD)lenSID - 1) < ((WORD)0xd000 - codeSize))
+		else if (((unsigned int)startSID + lenSID - 1) < ((unsigned int)0xA000 - codeSize))
 		{
-			driverLoadAddress = (WORD)0xd000 - (WORD)codeSize;
+			driverLoadAddress = 0xA000 - codeSize;
 		}
-		else
-			return SetError(E_FAIL,TEXT("Could not load SID driver."));
-
+		else if (((unsigned int)startSID + lenSID - 1) < ((unsigned int)0xD000 - codeSize))
+		{
+			driverLoadAddress = 0xD000 - codeSize;
+		}
+		else if ((unsigned int)startSID >= (unsigned int)0x400 + codeSize)
+		{
+			driverLoadAddress = startSID - codeSize;
+		}
+		else 
+		{
+			return SetErrorCouldNotLoadDriverDueToData(startSID, codeSize);
+		}
 	}
 	else
 	{
-		s=sfh.startPage;
-		if ((s < 4) 
-			|| ((s >= 0xa0) && (s < 0xc0))
-			|| (s >= 0xd0))
-			return SetError(E_FAIL,TEXT("Could not load SID driver."));
+		if ((bit32)sfh.pageLength < 4)
+		{
+			return SetErrorCouldNotLoadDriverDueToFreePages((bit32)sfh.startPage, (bit32)sfh.pageLength);
+		}
 
-		if (s>=4 && s<=7)
-			s=8;
-		if ((WORD)s + (WORD)sfh.pageLength - 1 > 0xff)
-			return SetError(E_FAIL,TEXT("Could not load SID driver."));
+		bit32 nextFreeAddress = (bit16)((bit32)sfh.startPage * 0x100);
+		if (nextFreeAddress >= 0xD000)
+		{
+			return SetErrorCouldNotLoadDriverDueToFreePages((bit32)sfh.startPage, (bit32)sfh.pageLength);
+		}
+		else if (nextFreeAddress + (bit32)codeSize > 0xD000)
+		{
+			return SetErrorCouldNotLoadDriverDueToFreePages((bit32)sfh.startPage, (bit32)sfh.pageLength);
+		}
+		else if (nextFreeAddress >= 0xA000 && nextFreeAddress < 0xC000)
+		{
+			if (nextFreeAddress + (bit32)sfh.pageLength * 0x100 >= 0xC000 + (bit32)codeSize)
+			{
+				nextFreeAddress = 0xC000;
+			}
+			else
+			{
+				return SetErrorCouldNotLoadDriverDueToFreePages((bit32)sfh.startPage, (bit32)sfh.pageLength);
+			}
+		}
+		else if (nextFreeAddress + (bit32)codeSize > 0xA000)
+		{
+			return SetErrorCouldNotLoadDriverDueToFreePages((bit32)sfh.startPage, (bit32)sfh.pageLength);
+		}
 
-		requiredPages = codeSize >> 8;
-		if (codeSize & 0x00ff)
-			requiredPages++;
-		if (sfh.pageLength < requiredPages)
-			return SetError(E_FAIL,TEXT("Could not load SID driver."));
-		driverLoadAddress = (WORD)s << 8;
+		driverLoadAddress = (bit16)(nextFreeAddress + (bit32)sfh.pageLength * 0x100 - codeSize);
 	}
-
 
 	hr = LoadSIDDriverResource(driverLoadAddress, ramMemory);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
-
-
-	CopyMemory(&ramMemory[driverLoadAddress + 3], &sfh, sizeof(sfh));
-
+	const bit16 offsetToSidInfo = 6;
+	const bit16 offsetToDriverAddress = 4;
+	CopyMemory(&ramMemory[driverLoadAddress + offsetToSidInfo], &sfh, sizeof(sfh));
 	if (!bUseDefaultStartSong)
-		((SIDFileHeader2 *)(&ramMemory[driverLoadAddress + 3]))->startSong=startSong;
+	{
+		((SIDFileHeader2 *)(&ramMemory[driverLoadAddress + offsetToSidInfo]))->startSong=startSong;
+	}
+
+	((bit16 *)(&ramMemory[driverLoadAddress + offsetToDriverAddress]))[0] = makeWordLittleEndian(driverLoadAddress);
 
 	return S_OK;
 }
@@ -681,17 +879,25 @@ DWORD l;
 DWORD SIDLoader::readSizetWord()
 {
 	if (sizetlen==1)
+	{
 		return readByte();
+	}
 	else
+	{
 		return readWord();
+	}
 }
 
 DWORD SIDLoader::readSizetDWord()
 {
 	if (sizetlen==1)
+	{
 		return readWord();
+	}
 	else
+	{
 		return readDWord();
+	}
 }
 
 BOOL SIDLoader::driverspace(DWORD len)

@@ -937,6 +937,7 @@ void CPU6502::InitReset(ICLK sysclock, bool poweronreset)
 	PROCESSOR_INTERRUPT=0;	
 	m_CurrentOpcodeAddress = mPC;
 	m_CurrentOpcodeClock = sysclock;
+	jumpAddress = 0;
 }
 
 void CPU6502::Reset(ICLK sysclock, bool poweronreset)
@@ -1122,7 +1123,16 @@ unsigned int v;
 				SyncVFlag();
 				CPU6502_PUSH_PS_NO_B;
 				fINTERRUPT=1;
-				addr.word=0xFFFA;
+				if (jumpAddress)
+				{
+					addr.word = jumpAddress;
+					jumpAddress = 0;
+				}
+				else
+				{
+					addr.word=0xFFFA;
+				}
+
 				m_cpu_sequence=C_LOAD_PC;
 			}
 			else
@@ -1154,9 +1164,19 @@ unsigned int v;
 			CPU6502_PUSH_PS_NO_B;
 			fINTERRUPT=1;
 			PROCESSOR_INTERRUPT=0;
-			addr.word=0xFFFA;
-			m_cpu_sequence=C_LOAD_PC;
-			CheckForCartFreeze();
+			if (jumpAddress)
+			{
+				mPC.word = jumpAddress;
+				jumpAddress = 0;
+				m_cpu_sequence=C_FETCH_OPCODE;
+			}
+			else
+			{
+				addr.word=0xFFFA;
+				m_cpu_sequence=C_LOAD_PC;
+				CheckForCartFreeze();
+			}
+
 			break;
 		case C_BRK_IMPLIED:
 			CHECK_BA;

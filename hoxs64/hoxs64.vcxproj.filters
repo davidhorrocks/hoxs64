@@ -370,6 +370,12 @@
     <ClCompile Include="commandresult.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
+    <ClCompile Include="sidvoice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sidchip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -724,6 +730,12 @@
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
     <ClInclude Include="breakpoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidvoice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sidchip.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

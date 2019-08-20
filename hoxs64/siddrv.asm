@@ -3,7 +3,10 @@
 	.text
 	;*=$2000
 start
+	cli
 	jmp initapp
+
+driverStartAddress .dsb 2
 
 	; SID file header
 sfID			.dsb 4
@@ -52,11 +55,9 @@ autoplay
 	jmp loop4ever
 
 customplay .(
-	jsr removekernal
 	jsr initsid
 	jsr initsong
-	jsr removekernal	
-
+	sei
 	lda sfFlags
 	and #$0c
 	cmp #$08
@@ -89,18 +90,40 @@ speedCIA
 speedVBL
 	jsr initvbl
 entermainloop
+	jsr setio
 	cli
 	jmp loop4ever
 	.)
 	
-
-removekernal
+	; The value in .A is the high bye of the required address.
+	; The required address controls which memory map to set.
+	; if   address < $A000  -> 0x37 // I/O, Kernal-ROM, Basic-ROM  
+	; else address < $D000  -> 0x36 // I/O, Kernal-ROM 
+	; else address >= $E000 -> 0x35 // I/O only 
+	; else                  -> 0x34 // RAM only 
+setmemorymap
+	.(
+	ldx #$37 ; I/O, Kernal-ROM, Basic-ROM 
+	cmp #$A0
+	bcc setmap
+	ldx #$36 ; // I/O, Kernal-ROM
+	cmp #$D0
+	bcc setmap
+	ldx #$35 ; // I/O only
+	cmp #$E0
+	bcs setmap
+	ldx #$34 ; 0x34 // RAM only
+setmap
 	sei
 	lda #$2f
 	sta $00
-	lda #%00000101 ; select just RAM and i/o
-	sta $01
+	stx $01
 	rts
+	.)
+
+setio
+	lda #$E0
+	jmp setmemorymap
 
 loop4ever 
 	.(
@@ -125,6 +148,7 @@ j3
 
 initsid
 	.(
+	jsr setio
 	lda #0
 	ldx #SID_2SUSREL
 j1
@@ -229,6 +253,8 @@ initsong .(
 	pha	
 	lda #<initsong_return
 	pha
+	lda sfInitAddress + 1
+	jsr setmemorymap
 	lda songnumber
 	jmp (sfInitAddress)
 initsong_return
@@ -238,6 +264,7 @@ initsong_return
 
 initvbl 
 	sei
+	jsr setio
 	lda #<nmistart
 	sta $FFFA
 	lda #>nmistart
@@ -270,6 +297,7 @@ initvbl
 
 initcia
 	sei
+	jsr setio
 	lda #<nmistart
 	sta $FFFA
 	lda #>nmistart
@@ -315,10 +343,12 @@ irqstart .(
 	lda #<j1
 	pha
 
+	lda sfPlayAddress + 1
+	jsr setmemorymap
 	jmp (sfPlayAddress)
 j1
 	nop
-	jsr removekernal	
+	jsr setio
 	pla
 	tay
 	pla
@@ -348,10 +378,12 @@ cirqstart .(
 	lda #<j1
 	pha
 
+	lda sfPlayAddress + 1
+	jsr setmemorymap
 	jmp (sfPlayAddress)
 j1
 	nop
-	jsr removekernal	
+	jsr setio
 	pla
 	tay
 	pla
@@ -368,12 +400,16 @@ nmistart
 
 
 initdisplay .(
+	lda driverStartAddress + 1
+	cmp #8
+	bcc j1
 	jsr clearscreen
 	lda #1
 	jsr clearcolormap
 	jsr setdisplay
 	jsr printtitle1
 	jsr printtitle2
+j1
 	rts
 	.)
 
@@ -416,7 +452,7 @@ printtitle1 .(
 j2
 	lda title1,x
 	beq j1
-	sta $0400+7,x
+	sta $0400+8,x
 	inx
 	jmp j2
 j1
@@ -438,4 +474,4 @@ j1
 	;title	 "HOXS64 SID PLAYER V0.00"
 	;title	 "PRESS SPACE , AND . TO CHANGE SONG"
 title2	.byt 16,18,5,19,19,32,19,16,1,3,5,32,44,32,1,14,4,32,46,32,20,15,32,3,8,1,14,7,5,32,20,18,1,3,11,0
-title1	.byt 8,15,24,19,54,52,32,19,9,4,32,16,12,1,25,5,18,32,22,48,46,48,53,0
+title1	.byt 8,15,24,19,54,52,32,19,9,4,32,16,12,1,25,5,18,32,22,48,46,48,54,0

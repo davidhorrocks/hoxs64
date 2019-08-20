@@ -652,6 +652,12 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			MessageBeep(MB_ICONASTERISK);
 			appStatus->SoundResume();
 			return 0;
+		case IDM_SETTINGS_SIDSTEREO:
+			appStatus->GetUserConfig(tCfg);
+			tCfg.m_bSIDStereo = !tCfg.m_bSIDStereo;
+			appStatus->SetUserConfig(tCfg);
+			appStatus->ApplyConfig(tCfg);
+			return 0;
 		case IDM_SETTING_MAXSPEED:
 			appStatus->SoundHalt();
 			appStatus->ToggleMaxSpeed();
@@ -947,6 +953,15 @@ HMENU hMenu;
 		else
 		{
 			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_UNCHECKED);
+		}
+
+		if (appStatus->m_bSIDStereo)
+		{
+			CheckMenuItem (hMenu, IDM_SETTINGS_SIDSTEREO, MF_BYCOMMAND | MF_CHECKED);
+		}
+		else
+		{
+			CheckMenuItem (hMenu, IDM_SETTINGS_SIDSTEREO, MF_BYCOMMAND | MF_UNCHECKED);
 		}
 
 		if (appStatus->m_bMaxSpeed)

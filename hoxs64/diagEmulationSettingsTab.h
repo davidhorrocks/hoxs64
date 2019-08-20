@@ -73,6 +73,8 @@ private:
 	void FillFormats(UINT adapterOrdinal, D3DDISPLAYMODE &mode);
 	void FillSizes();
 	void FillFilters();
+	void FillSidCount();
+	void FillSidAddress();
 	void FillBorder();
 	void FillDiskTrackZero();
 	void FillFps();
@@ -94,6 +96,11 @@ private:
 	void ReadTrackZeroSensor(HCFG::ETRACKZEROSENSORSTYLE *v);
 	void ReadBorder(HCFG::EMUBORDERSIZE *pBorder);
 	void ReadFps(HCFG::EMUFPS *pFps);
+	bool ReadExtraSidCount(int *extraSidCount);
+	bool ReadSidAddress2(bit16 *sidAddress);
+	bool ReadSidAddress3(bit16 *sidAddress);
+	bool ReadSidAddress4(bit16 *sidAddress);
+	bool ReadComboItemDataInt(int page, int control_id, int *data);
 
 	static const int TABPAGE_GENERAL = 0;
 	static const int TABPAGE_VIDEO = 1;

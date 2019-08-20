@@ -1654,6 +1654,29 @@ void CApp::SoundResume()
 void CApp::GetUserConfig(CConfig& cfg)
 {
 	cfg = this->mainCfg;
+	UpdateConfigFromSid(cfg);
+}
+
+void CApp::UpdateConfigFromSid(CConfig& cfg)
+{
+	cfg.m_numberOfExtraSIDs = c64.sid.NumberOfExtraSidChips;
+	cfg.m_Sid2Address = c64.sid.AddressOfSecondSID;
+	cfg.m_Sid3Address = c64.sid.AddressOfThirdSID;
+	cfg.m_Sid4Address = c64.sid.AddressOfFourthSID;
+}
+
+void CApp::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID)
+{
+	this->m_numberOfExtraSIDs = numberOfExtraSidChips;
+	this->m_Sid2Address = addressOfSecondSID;
+	this->m_Sid3Address = addressOfThirdSID;
+	this->m_Sid4Address = addressOfFourthSID;
+	this->c64.sid.SetSidChipAddressMap(numberOfExtraSidChips, addressOfSecondSID, addressOfThirdSID, addressOfFourthSID);
+}
+
+void CApp::ResetSidChipAddressMap()
+{
+	this->c64.sid.SetSidChipAddressMap(m_numberOfExtraSIDs, m_Sid2Address, m_Sid3Address, m_Sid4Address);
 }
 
 void CApp::SetUserConfig(const CConfig& newcfg)
@@ -1709,8 +1732,7 @@ int i;
 		}
 	}
 
-	if (newcfg.m_fps != this->m_fps
-		|| newcfg.m_bSIDResampleMode != this->m_bSIDResampleMode)
+	if (newcfg.m_fps != this->m_fps	|| newcfg.m_bSIDResampleMode != this->m_bSIDResampleMode)
 	{
 		bNeedSoundFilterInit = true;
 	}
@@ -1766,6 +1788,7 @@ int i;
 	this->m_fskip = -1;	
 	m_bUseKeymap = false;
 	dx.InitJoys(hWnd, this->m_joy1config, this->m_joy2config);
+	this->SetSidChipAddressMap(newcfg.m_numberOfExtraSIDs, newcfg.m_Sid2Address, newcfg.m_Sid3Address, newcfg.m_Sid4Address);
 	if (this->m_bSoundOK)
 	{
 		c64.sid.UpdateSoundBufferLockSize(this->m_fps);

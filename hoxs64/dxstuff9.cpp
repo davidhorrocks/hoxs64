@@ -71,7 +71,6 @@ int i;
 	pPrimarySoundBuffer=NULL;
 	pSecondarySoundBuffer=NULL;
 	m_diplaymodes_count=0;
-	BufferLockSize=0;
 	m_iEraseCount = 0;
 	m_psprLedDrive = NULL;
 	m_ptxLedGreenOn = NULL;
@@ -2500,9 +2499,9 @@ DSBUFFERDESC dsbdesc;
 
     ZeroMemory(&m_wfx, sizeof(WAVEFORMATEX)); 
     m_wfx.wFormatTag = WAVE_FORMAT_PCM; 
-    m_wfx.nChannels = 1; 
-    m_wfx.nSamplesPerSec = SAMPLES_PER_SEC; 
-    m_wfx.wBitsPerSample = 16; 
+    m_wfx.nChannels = SID_SOUND_BYTES_PER_SAMPLE; 
+    m_wfx.nSamplesPerSec = SID_SOUND_SAMPLES_PER_SEC; 
+    m_wfx.wBitsPerSample = SID_SOUND_BYTES_PER_SAMPLE * 8; // 16 bits per sample.
     m_wfx.nBlockAlign = m_wfx.wBitsPerSample / 8 * m_wfx.nChannels;
     m_wfx.nAvgBytesPerSec = m_wfx.nSamplesPerSec * m_wfx.nBlockAlign;
  
@@ -2516,18 +2515,16 @@ DSBUFFERDESC dsbdesc;
 	pPrimarySoundBuffer->Release();
 	pPrimarySoundBuffer = NULL;
 	
-	SoundBufferSize = m_wfx.nSamplesPerSec * m_wfx.nBlockAlign;// / 50  * 6;
+	SoundBufferByteSize = m_wfx.nSamplesPerSec * m_wfx.nBlockAlign;// / 50  * 6;
 
 	ZeroMemory(&dsbdesc, sizeof(DSBUFFERDESC));
 	dsbdesc.dwSize = sizeof(DSBUFFERDESC);
 	dsbdesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_LOCSOFTWARE | DSBCAPS_GLOBALFOCUS;// | DSBCAPS_CTRLVOLUME;
-	dsbdesc.dwBufferBytes = SoundBufferSize; 
+	dsbdesc.dwBufferBytes = SoundBufferByteSize; 
 
 	dsbdesc.lpwfxFormat = &m_wfx;
 
 	SoundBytesPerSecond = (m_wfx.nSamplesPerSec * m_wfx.nBlockAlign);
-
-	BufferLockSize = SoundBytesPerFrame;
 	
 	hr = lpDirectSound->CreateSoundBuffer(&dsbdesc, &pSecondarySoundBuffer, NULL);
 	if (FAILED(hr))
@@ -2554,33 +2551,35 @@ DSBUFFERDESC dsbdesc;
 	return S_OK;
 }
 
-void CDX9::ClearSoundBuffer(short value)
+void CDX9::ClearSoundBuffer(bit32 value)
 {
 	ClearSoundBuffer(pSecondarySoundBuffer, value);
 }
 
-void CDX9::ClearSoundBuffer(LPDIRECTSOUNDBUFFER pSoundBuffer, short value)
+void CDX9::ClearSoundBuffer(LPDIRECTSOUNDBUFFER pSoundBuffer, bit32 value)
 {
 LPVOID p1= NULL;
 LPVOID p2= NULL;
 DWORD i1 =0;
 DWORD i2 =0;
+
 	if (!pSoundBuffer)
+	{
 		return;
+	}
+
 	if (SUCCEEDED(pSoundBuffer->Lock(0, 0, &p1, &i1, &p2, &i2, DSBLOCK_ENTIREBUFFER)))
 	{
-		//if (p1!=0 && i1!=0)
-		//	ZeroMemory(p1, i1);
-		//if (p2!=0 && i2!=0)
-		//	ZeroMemory(p2, i2);
-		for (DWORD i = 0 ; i < i1/2 ; i++)
+		for (DWORD i = 0 ; i < i1 / (DWORD)sizeof(bit32) ; i++)
 		{
-			((WORD *)p1)[i] = value;
+			((bit32 *)p1)[i] = value;
 		}
-		for (DWORD i = 0 ; i < i2/2 ; i++)
+
+		for (DWORD i = 0 ; i < i2 / (DWORD)sizeof(bit32) ; i++)
 		{
-			((WORD *)p2)[i] = value;
+			((bit32 *)p2)[i] = value;
 		}
+
 		pSoundBuffer->Unlock(p1, i1, p2, i2);
 	}
 }
@@ -2592,10 +2591,14 @@ DWORD dwStatus;
 int i;
 	ClearError();
     if( NULL == pSecondarySoundBuffer)
+	{
         return E_POINTER;
+	}
 
     if( FAILED( hr = pSecondarySoundBuffer->GetStatus( &dwStatus ) ) )
+	{
         return hr;
+	}
 
     if( dwStatus & DSBSTATUS_BUFFERLOST )
     {
@@ -2612,13 +2615,15 @@ int i;
 			if (++i > 1000)
 				return hr;
         }
+
         while( hr = pSecondarySoundBuffer->Restore() );
     }
+
 	ClearSoundBuffer(0);
     return S_OK;
 }
 
-void CDX9::SoundHalt(short value)
+void CDX9::SoundHalt(bit32 value)
 {
 	m_soundResumeDelay = 0;
 	if (pSecondarySoundBuffer)

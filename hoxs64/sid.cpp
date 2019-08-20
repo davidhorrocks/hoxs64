@@ -21,20 +21,6 @@
 #include "dxstuff9.h"
 #include "filter.h"
 #include "sid.h"
-#include "sidwavetable.h"
-
-#define SIDBOOST_8580 2.6
-#define SIDBOOST_6581 2.0
-#define SIDVOLMUL (1730)
-#define SHIFTERTESTDELAY (0x49300)
-#define SAMPLEHOLDRESETTIME  0x001D0000
-
-//define SIDREADDELAY (2000000)
-//define SIDREADDELAYFREQ (65000)
-#define SIDREADDELAY (110000)
-#define SIDREADDELAYFREQ (65000)
-
-#define SIDINTERPOLATE2XFIRLENGTH (50)
 
 //Resample from 982800 to 44100L
 #define SIDRESAMPLEFIRLENGTH_50 (428 +1)
@@ -54,45 +40,29 @@
 #define DSGAP3 (1L+8L+8L+8L)
 #define DSGAP4 (8L+8L+8L+8L+8L)
 
-#define NOISE_ZERO_FEED ((~((1U << 20) | (1 << 18) | (1 << 14) | (1 << 11) | (1 << 9) | (1 << 5) | (1 << 2) | (1 << 0))) & 0x7fffff)
-#define ENVELOPE_LFSR_RESET (0x7fff)
-
 const double Max16BitSample = 32767.0;
 const double Min16BitSample = -32768.0;
 
 SID64::SID64()
+	: sid1(0), sid2(1), sid3(2), sid4(3)
 {
+	SetSidChipAddressMap(0, 0, 0, 0);
 	appStatus = NULL;
 	MasterVolume = 1.0;
-	voice1.sid = this;
-	voice2.sid = this;
-	voice3.sid = this;
-	bufferLockSize=0;
+	bufferLockByteSize=0;
 	bufferSplit=0;
 	pBuffer1=NULL;
 	pBuffer2=NULL;
 	pOverflowBuffer=NULL;
 	
-	bufferLen1=0;
-	bufferLen2=0;
-	bufferSampleLen1=0;
-	bufferSampleLen2=0;
+	bufferByteLen1=0;
+	bufferByteLen2=0;
+	bufferSampleBlockLen1=0;
+	bufferSampleBlockLen2=0;
 	overflowBufferSampleLen=0;
-	bufferIndex=0;
-	overflowBufferIndex = 0;
-
-	sidVolume=0;
-	sidFilter=0;
-	sidVoice_though_filter=0;
-	sidResonance=0;
-	sidFilterFrequency=0;
-	sidPotX=255;
-	sidPotY=255;
-	sidBlock_Voice3=false;
-	sidInternalBusByte=0;
-	sidReadDelay=0;
+	bufferSampleBlockIndex=0;
+	overflowBufferBlockIndex = 0;
 	sidSampler=0;
-
 	m_last_dxsample = 0;
 }
 
@@ -116,6 +86,41 @@ void SID64::CleanUp()
 	}
 }
 
+void SID64::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID)
+{
+	sid1.sidAddress = 0xD400;
+	if (numberOfExtraSidChips < 3)
+	{
+		addressOfFourthSID = 0;
+	}
+
+	if (numberOfExtraSidChips < 2)
+	{
+		addressOfThirdSID = 0;
+	}
+
+	if (numberOfExtraSidChips < 1)
+	{
+		addressOfSecondSID = 0;
+	}
+
+	this->NumberOfExtraSidChips = numberOfExtraSidChips;
+	this->AddressOfSecondSID = addressOfSecondSID;
+	sid2.sidAddress = addressOfSecondSID;
+	this->AddressOfThirdSID = addressOfThirdSID;
+	sid3.sidAddress = addressOfThirdSID;
+	this->AddressOfFourthSID = addressOfFourthSID;
+	sid4.sidAddress = addressOfFourthSID;
+	if (addressOfSecondSID >= 0xDE00 || addressOfThirdSID >= 0xDE00 || addressOfFourthSID >= 0xDE00 )
+	{
+		this->SidAtDE00toDF00 = true;
+	}
+	else
+	{
+		this->SidAtDE00toDF00 = false;
+	}
+}
+
 HRESULT SID64::LockSoundBuffer()
 {
 HRESULT hRet;
@@ -134,38 +139,38 @@ DWORD soundwrite_pos;
 		return hRet;
 	}
 
-	if (soundwrite_pos > bufferLockPoint) 
+	if (soundwrite_pos > bufferByteLockPoint) 
 	{
-		gap = soundBufferSize - soundwrite_pos + bufferLockPoint;		
+		gap = soundBufferByteSize - soundwrite_pos + bufferByteLockPoint;		
 	}
 	else
 	{
-		gap = bufferLockPoint - soundwrite_pos;
+		gap = bufferByteLockPoint - soundwrite_pos;
 	}
 
-	if (gap < (DSGAP1 * bufferLockSize/8))
+	if (gap < (DSGAP1 * bufferLockByteSize/8))
 	{
 		/*audio is getting ahead of us*/
-		bufferLockPoint =  (soundwrite_pos + 3 * bufferLockSize) % soundBufferSize;
+		bufferByteLockPoint =  (soundwrite_pos + 3 * bufferLockByteSize) % soundBufferByteSize;
 		//return E_FAIL;
-		//bufferLockPoint =  (soundplay_pos + 4 * bufferLockSize) % soundBufferSize;
+		//bufferByteLockPoint =  (soundplay_pos + 4 * bufferLockByteSize) % soundBufferByteSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
 		currentAudioSyncState = 0;
 	}
-	else if (gap <= (DSGAP2 * bufferLockSize/8))
+	else if (gap <= (DSGAP2 * bufferLockByteSize/8))
 	{
 		//AUDIO_QUICK means to apply a correction using the audio clock sync function to speed up the emulation to catch up with the audio.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_QUICK;
 		currentAudioSyncState = 1;
 	}
-	else if (gap <= (DSGAP3 * bufferLockSize/8))
+	else if (gap <= (DSGAP3 * bufferLockByteSize/8))
 	{
 		/*ideal condition where sound pointer is in the comfort zone*/
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
 		currentAudioSyncState = 2;
 	}
-	else if (gap <= (DSGAP4 * bufferLockSize/8))
+	else if (gap <= (DSGAP4 * bufferLockByteSize/8))
 	{
 		//AUDIO_SLOW means to apply a correction using the audio clock sync function to slow down the emulation to catch up with the audio.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_SLOW;
@@ -174,7 +179,7 @@ DWORD soundwrite_pos;
 	else
 	{
 		/*audio is getting behind of us*/
-		bufferLockPoint =  (soundwrite_pos + 4 * bufferLockSize) % soundBufferSize;
+		bufferByteLockPoint =  (soundwrite_pos + 4 * bufferLockByteSize) % soundBufferByteSize;
 		//This is OK because we are makeing a large correction to the buffer read point.
 		appStatus->m_audioSpeedStatus = HCFG::AUDIO_OK;
 		currentAudioSyncState = 4;
@@ -205,52 +210,52 @@ DWORD soundwrite_pos;
 	}
 #endif
 
-	hRet = dx->pSecondarySoundBuffer->Lock(bufferLockPoint, bufferLockSize ,(LPVOID *)&pBuffer1 ,&bufferLen1 ,(LPVOID *)&pBuffer2 ,&bufferLen2 ,0);
+	hRet = dx->pSecondarySoundBuffer->Lock(bufferByteLockPoint, bufferLockByteSize ,(LPVOID *)&pBuffer1 ,&bufferByteLen1 ,(LPVOID *)&pBuffer2 ,&bufferByteLen2 ,0);
 	if (FAILED(hRet))
 	{
 		pBuffer1=NULL;
 	}
 	else
 	{
-		bufferSampleLen1 = bufferLen1 / 2;
-		bufferSampleLen2 = bufferLen2 / 2;
-		bufferIndex=0;
+		bufferSampleBlockLen1 = bufferByteLen1 / (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS);
+		bufferSampleBlockLen2 = bufferByteLen2 / (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS);
+		bufferSampleBlockIndex=0;
 		bufferSplit=0;
 		DWORD bytesWritten = 0;
 		DWORD bytesToWrite;
-		if (overflowBufferIndex > 0)
+		if (overflowBufferBlockIndex > 0)
 		{
-			if (overflowBufferIndex >= bufferSampleLen1)
+			if (overflowBufferBlockIndex >= bufferSampleBlockLen1)
 			{
-				memcpy_s(pBuffer1, bufferLen1, pOverflowBuffer, bufferLen1);
-				bytesWritten += bufferLen1;
-				if (overflowBufferIndex >= (bufferSampleLen1 + bufferSampleLen2))
+				memcpy_s(pBuffer1, bufferByteLen1, pOverflowBuffer, bufferByteLen1);
+				bytesWritten += bufferByteLen1;
+				if (overflowBufferBlockIndex >= (bufferSampleBlockLen1 + bufferSampleBlockLen2))
 				{
-					memcpy_s(pBuffer2, bufferLen2, &pOverflowBuffer[bufferSampleLen1], bufferLen2);
+					memcpy_s(pBuffer2, bufferByteLen2, &pOverflowBuffer[bufferSampleBlockLen1], bufferByteLen2);
 					bufferSplit = 2;
-					bytesWritten += bufferLen2;
+					bytesWritten += bufferByteLen2;
 				}
 				else
 				{
-					bytesToWrite = (overflowBufferIndex - bufferSampleLen1) * BYTES_PER_SAMPLE;
-					memcpy_s(pBuffer2, bufferLen2, &pOverflowBuffer[bufferSampleLen1], bytesToWrite);
+					bytesToWrite = (overflowBufferBlockIndex - bufferSampleBlockLen1) * (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS);
+					memcpy_s(pBuffer2, bufferByteLen2, &pOverflowBuffer[bufferSampleBlockLen1], bytesToWrite);
 					bufferSplit = 1;
 					bytesWritten += bytesToWrite;
 				}
 
-				bufferIndex = bytesWritten / BYTES_PER_SAMPLE;
+				bufferSampleBlockIndex = bytesWritten / (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS);
 			}
 			else
 			{
-				bytesToWrite = overflowBufferIndex * BYTES_PER_SAMPLE;
-				memcpy_s(pBuffer1, bufferLen1, pOverflowBuffer, bytesToWrite);
-				bufferIndex = overflowBufferIndex;
+				bytesToWrite = overflowBufferBlockIndex * (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS);
+				memcpy_s(pBuffer1, bufferByteLen1, pOverflowBuffer, bytesToWrite);
+				bufferSampleBlockIndex = overflowBufferBlockIndex;
 				bytesWritten += bytesToWrite;
 			}
 		}
 
-		overflowBufferIndex = 0;
-		bufferLockPoint = (bufferLockPoint + bytesWritten) % (soundBufferSize);
+		overflowBufferBlockIndex = 0;
+		bufferByteLockPoint = (bufferByteLockPoint + bytesWritten) % (soundBufferByteSize);
 	}
 	return hRet;
 }
@@ -259,83 +264,83 @@ void SID64::UnLockSoundBuffer()
 {
 	if (pBuffer1)
 	{
-		dx->pSecondarySoundBuffer->Unlock(pBuffer1, bufferLen1, pBuffer2, bufferLen2);
+		dx->pSecondarySoundBuffer->Unlock(pBuffer1, bufferByteLen1, pBuffer2, bufferByteLen2);
 		pBuffer1 = NULL;
 	}
 }
 
-const bit16 SID64::AdsrTable[16] = {
- 0x7F00,
- 0x0006,
- 0x003C,
- 0x0330,
- 0x20C0,
- 0x6755,
- 0x3800,
- 0x500E,
- 0x1212,
- 0x0222,
- 0x1848,
- 0x59B8,
- 0x3840,
- 0x77E2,
- 0x7625,
- 0x0A93
-};
 
 HRESULT SID64::Init(CAppStatus *appStatus, CDX9 *dx, HCFG::EMUFPS fps, ICia1 *cia1)
 {
 HRESULT hr;
-	this->cia1 = cia1;
 	this->appStatus = appStatus;
-	this->dx = dx;			
+	this->dx = dx;
 	appStatus->m_bFilterOK = false;
 	CleanUp();
+	if (trig.init(131072L) != 0)
+	{
+		return SetError(E_OUTOFMEMORY, TEXT("Out of memory."));
+	}
+
 	if (appStatus->m_bSoundOK)
 	{		
-		bufferLockSize = GetSoundBufferLockSize(fps);
-		soundBufferSize = dx->SoundBufferSize;
+		bufferLockByteSize = GetSoundBufferLockSize(fps);
+		soundBufferByteSize = dx->SoundBufferByteSize;
 
 		//Allocate largest buffer to accommodate both EMUFPS_50 and EMUFPS_50_12
-		overflowBufferSampleLen =  GetSoundBufferLockSize(HCFG::EMUFPS_50) / BYTES_PER_SAMPLE;
+		overflowBufferSampleLen =  GetSoundBufferLockSize(HCFG::EMUFPS_50) / (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS);
 	}
 	else
 	{
-		bufferLockSize = 0;
-		soundBufferSize = 0;
+		bufferLockByteSize = 0;
+		soundBufferByteSize = 0;
 		overflowBufferSampleLen = 0;
 	}
 
 	if (overflowBufferSampleLen != 0)
 	{
-		pOverflowBuffer = (LPWORD)VirtualAlloc(NULL, overflowBufferSampleLen * BYTES_PER_SAMPLE, MEM_COMMIT, PAGE_READWRITE);
+		DWORD numberOfBytes = overflowBufferSampleLen * (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS);
+		pOverflowBuffer = (bit32 *)VirtualAlloc(NULL, numberOfBytes, MEM_COMMIT, PAGE_READWRITE);
 		if (!pOverflowBuffer)
+		{
 			return E_OUTOFMEMORY;
-		ZeroMemory(pOverflowBuffer, overflowBufferSampleLen * BYTES_PER_SAMPLE);
+		}
+
+		ZeroMemory(pOverflowBuffer, numberOfBytes);
 	}
 
-	voice1.Init(appStatus);
-	voice2.Init(appStatus);
-	voice3.Init(appStatus);
+	hr = this->sid1.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 1 init failed."));
+	}
 
-	if (trig.init(131072L ) !=0)
-		return SetError(E_OUTOFMEMORY, TEXT("Out of memory."));
+	hr = this->sid2.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 2 init failed."));
+	}
+
+	hr = this->sid3.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 3 init failed."));
+	}
+
+	hr = this->sid4.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 4 init failed."));
+	}
 
 	sidSampler=-1;
-	bufferLockPoint = 0;
-
+	bufferByteLockPoint = 0;
 	hr = InitResamplingFilters(fps);
 	if (FAILED(hr))
+	{
 		return SetError(hr, TEXT("InitResamplingFilters Failed."));
+	}
 
-
-	voice1.modulator_voice = &voice3;
-	voice2.modulator_voice = &voice1;
-	voice3.modulator_voice = &voice2;
-
-	voice3.affected_voice = &voice1;
-	voice2.affected_voice = &voice3;
-	voice1.affected_voice = &voice2;
 	Reset(CurrentClock, true);
 	return S_OK;
 }
@@ -354,8 +359,8 @@ DWORD SID64::GetSoundBufferLockSize(HCFG::EMUFPS fps)
 
 DWORD SID64::UpdateSoundBufferLockSize(HCFG::EMUFPS fps)
 {
-	bufferLockSize = GetSoundBufferLockSize(fps);
-	return bufferLockSize;
+	bufferLockByteSize = GetSoundBufferLockSize(fps);
+	return bufferLockByteSize;
 }
 
 
@@ -366,8 +371,10 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 
 	appStatus->m_bFilterOK = false;
 	long interpolatedSamplesPerSecond;
-	filterPreFilterResample.CleanSync();
-	filterPreFilterStage2.CleanSync();
+	filterPreFilterResampleChannel1.CleanSync();
+	filterPreFilterResampleChannel2.CleanSync();
+	filterPreFilterStage2Channel1.CleanSync();
+	filterPreFilterStage2Channel2.CleanSync();
 
 	if (fps == HCFG::EMUFPS_50)
 	{
@@ -377,12 +384,18 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 
 		interpolatedSamplesPerSecond = PAL50CLOCKSPERSECOND * filterInterpolationFactor;
 
-		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
+		if (filterPreFilterResampleChannel1.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
 		{
 			return E_OUTOFMEMORY;
 		}
 
-		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
+		if (filterPreFilterResampleChannel2.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
+		{
+			return E_OUTOFMEMORY;
+		}
+
+		filterPreFilterResampleChannel1.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
+		filterPreFilterResampleChannel2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
 	}
 #ifdef ALLOW_EMUFPS_50_12_MULTI
 	else if (fps == HCFG::EMUFPS_50_12_MULTI)
@@ -390,11 +403,17 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		filterInterpolationFactor = INTERPOLATION_FACTOR_50_12;
 		filterDecimationFactor = DECIMATION_FACTOR_50_12;
 
-		filterPreFilterResample.AllocSync(1528, STAGE1X);
-		filterPreFilterStage2.AllocSync(392, STAGE2X);
+		const int stage1Len = 1528;
+		const int stage2Len = 392;
+		filterPreFilterResampleChannel1.AllocSync(stage1Len, STAGE1X);
+		filterPreFilterResampleChannel2.AllocSync(stage1Len, STAGE1X);
+		filterPreFilterStage2Channel1.AllocSync(stage2Len, STAGE2X);
+		filterPreFilterStage2Channel2.AllocSync(stage2Len, STAGE2X);
 
-		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X);
-		filterPreFilterStage2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X * STAGE2X);
+		filterPreFilterResampleChannel1.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X);
+		filterPreFilterResampleChannel2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X);
+		filterPreFilterStage2Channel1.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X * STAGE2X);
+		filterPreFilterStage2Channel2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X * STAGE2X);
 	}
 #endif
 	else
@@ -403,20 +422,19 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		filterInterpolationFactor = INTERPOLATION_FACTOR_50_12;
 		filterDecimationFactor = DECIMATION_FACTOR_50_12;
 		interpolatedSamplesPerSecond = PALCLOCKSPERSECOND * filterInterpolationFactor;
-		if (filterPreFilterResample.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
+		if (filterPreFilterResampleChannel1.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
 		{
 			return E_OUTOFMEMORY;
 		}
 
-		filterPreFilterResample.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
-	}
+		if (filterPreFilterResampleChannel2.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
+		{
+			return E_OUTOFMEMORY;
+		}
 
-	if (filterUpSample2xSample.AllocSync(SIDINTERPOLATE2XFIRLENGTH, 2) !=0)
-	{
-		return E_OUTOFMEMORY;
+		filterPreFilterResampleChannel1.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
+		filterPreFilterResampleChannel2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, interpolatedSamplesPerSecond);
 	}
-
-	filterUpSample2xSample.CreateFIRKernel(INTERPOLATOR2X_CUTOFF_FREQUENCY, SAMPLES_PER_SEC * 2);// Twice the sampling frequency.	
 
 	if (sidSampler >= filterInterpolationFactor)
 	{
@@ -427,777 +445,89 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		sidSampler = -filterDecimationFactor;
 	}
 
-	svfilterForResample.lp = 0.0;
-	svfilterForResample.hp = 0.0;
-	svfilterForResample.bp = 0.0;
-	svfilterForResample.np = 0.0;
-	svfilterForResample.peek = 0.0;
-
-	svfilterForDownSample.lp = 0.0;
-	svfilterForDownSample.hp = 0.0;
-	svfilterForDownSample.bp = 0.0;
-	svfilterForDownSample.np = 0.0;
-	svfilterForDownSample.peek = 0.0;
-
-	SetFilter();
 	sidSampler=-1;
 	appStatus->m_bFilterOK = true;
 	return S_OK;
 }
 
-void SIDVoice::Reset(bool poweronreset)
-{
-	if (poweronreset)
-	{
-		counter=0x555555;
-	}
-
-	shifterTestCounter=0;
-	zeroTheShiftRegister = false;
-	gotNextVolume = false;
-	nextvolume = 0;
-	volume=0;
-	sampleHoldDelay = 0;
-	exponential_counter_period=1;
-	next_exponential_counter_period = 0;
-	frequency=0;
-	sustain_level=0;
-	attack_value=0;
-	decay_value=0;
-	release_value=0;
-	ring_mod=0;
-	sync=0;
-	zeroTheCounter=0;
-	wavetype=sidWAVNONE;
-	envmode=sidRELEASE;
-	next_envmode = sidRELEASE;
-	latched_envmode = sidRELEASE;
-	want_latched_envmode = false;
-	envmode_changing_delay = 0;
-	envelope_count_delay = 0;
-	exponential_count_delay = 0;
-	reset_envelope_counter = false;
-	reset_exponential_counter = false;
-	envelope_tick = false;	
-	pulse_width_reg=0;
-	pulse_width_counter=0;
-	gate=0;
-	test=0;
-	sidShiftRegister=0x7fffff;
-	sidShiftRegisterFill = 1;
-	phaseOfShiftRegister = 0;
-	keep_zero_volume=1;
-	envelope_counter=ENVELOPE_LFSR_RESET;
-	envelope_compare=SID64::AdsrTable[0];
-	exponential_counter=0;
-	control=0;
-	noiseFeedbackMask1 = 0x000;
-	noiseFeedbackMask0 = 0xfff;
-	noiseFeedbackSample1 = 0;
-	noiseFeedbackSample2 = 0;
-	lastSample = CalcWaveOutput(wavetype, this->noiseFeedbackSample1, this->noiseFeedbackMask0, this->noiseFeedbackMask1);
-}
-
 void SID64::InitReset(ICLK sysclock, bool poweronreset)
 {
 	CurrentClock = sysclock;
-	sidVolume=0;
-	sidFilter=0;
-	sidVoice_though_filter=0;
-	sidResonance=0;
-	sidFilterFrequency=0;
-	sidPotX=255;
-	sidPotY=255;
-	sidBlock_Voice3=false;
-	sidInternalBusByte = 0;
-	sidReadDelay = 0;
+	sid1.InitReset(sysclock, poweronreset);
+	sid2.InitReset(sysclock, poweronreset);
+	sid3.InitReset(sysclock, poweronreset);
+	sid4.InitReset(sysclock, poweronreset);
 }
 
 void SID64::Reset(ICLK sysclock, bool poweronreset)
 {
 	InitReset(sysclock, poweronreset);
-
-	voice1.Reset(poweronreset);
-	voice2.Reset(poweronreset);
-	voice3.Reset(poweronreset);
-
-	SetFilter();
-}
-
-SIDVoice::~SIDVoice()
-{
-}
-
-HRESULT SIDVoice::Init(CAppStatus *appStatus)
-{
-	this->appStatus = appStatus;
-	return S_OK;
-}
-
-void __forceinline SIDVoice::ClockShiftRegister()
-{
-bit32 t;
-	if (test)
-	{
-		t = ((sidShiftRegister >> 17) & 0x1) ^ 0x1;
-	}
-	else
-	{
-		t = ((sidShiftRegister >> 22) ^ (sidShiftRegister >> 17)) & 0x1;
-		if (zeroTheShiftRegister)
-		{
-			t = 0;
-		}
-	}	
-
-	sidShiftRegister = ((sidShiftRegister << 1) | t) & 0x7fffff;
-}
-
-void SIDVoice::SyncRecheck()
-{
-	if (zeroTheCounter!=0 && modulator_voice->zeroTheCounter==0)
-	{
-		counter = 0;
-	}	
-}
-
-void SIDVoice::Envelope()
-{
-bit32 t, c;
-	samplevolume = volume;
-
-	if (test)
-	{
-		phaseOfShiftRegister = 0;
-		shifterTestCounter--;
-		if (shifterTestCounter<0)
-		{
-			shifterTestCounter=SHIFTERTESTDELAY;
-			sidShiftRegister |= sidShiftRegisterFill;
-			sidShiftRegisterFill = sidShiftRegisterFill <<= 1;
-			zeroTheShiftRegister = false;
-		}
-
-		affected_voice->zeroTheCounter = 0;
-	}
-	else
-	{
-		if (phaseOfShiftRegister)
-		{
-			switch(phaseOfShiftRegister)
-			{
-			case 1:
-				NoiseWriteback(this->control, this->noiseFeedbackSample1, this->noiseFeedbackMask0, 0);
-				ClockShiftRegister();
-				phaseOfShiftRegister++;
-				break;
-			case 2:
-				phaseOfShiftRegister = 0;
-				break;
-			}
-		}
-		else
-		{
-			NoiseWriteback(this->control, this->noiseFeedbackSample1, this->noiseFeedbackMask0, 0);
-		}
-
-		t = counter;
-		c = (t + frequency) & 0x00ffffff;
-		if ((c & 0x080000) && (!(t & 0x080000))) 
-		{
-			phaseOfShiftRegister = 1;
-		}
-
-		affected_voice->zeroTheCounter = (affected_voice->sync !=0 && !(t & 0x0800000) && (c & 0x0800000)) != 0;
-		counter = c;
-	}
-
-	if (envmode_changing_delay)
-	{
-		envmode_changing_delay--;
-		UpdateNextEnvMode();
-	}
-
-	if (reset_exponential_counter)
-	{
-		reset_exponential_counter = false;
-		exponential_counter = 0;
-		envelope_tick = true;
-	}
-
-	exponential_counter_period = next_exponential_counter_period;
-	
-	if (envelope_count_delay)
-	{
-		envelope_count_delay--;
-		if (envelope_count_delay == 0)
-		{
-			if (envmode == sidATTACK || exponential_counter == exponential_counter_period)
-			{
-				// Sustain is checked one cycle before the volume is decremented.
-				if (envmode == sidDECAY && volume == sustain_level)
-				{
-					nextvolume = volume;
-					gotNextVolume = true;
-				}
-
-				reset_exponential_counter = true;
-			}
-		}
-	}
-
-	if (exponential_count_delay)
-	{
-		exponential_count_delay--;
-		if (exponential_count_delay == 0)
-		{
-			if (exponential_counter == exponential_counter_period)
-			{
-				if (envmode == sidATTACK)
-				{
-					if (!want_latched_envmode)
-					{
-						// Release to attack one cycle before the volume is decremented will freeze the volume for one rate period.
-						nextvolume = volume;
-						gotNextVolume = true;
-					}
-				}
-
-				// Sustain is checked one cycle before the volume is decremented.
-				if (envmode == sidDECAY && volume == sustain_level)
-				{
-					nextvolume = volume;
-					gotNextVolume = true;
-				}
-
-				reset_exponential_counter = true;
-			}
-		}
-		else if (exponential_count_delay == 1)
-		{
-			// The ADSR may remain in decay / release mode even if attack mode is selected in the next clock.
-			if (exponential_counter == exponential_counter_period)
-			{
-				latched_envmode = envmode;
-				want_latched_envmode = true;
-			}
-		}
-	}
-
-	if (envelope_tick)
-	{
-		envelope_tick = false;
-		if (gotNextVolume)
-		{
-			gotNextVolume = false;
-			volume = nextvolume;
-		}
-		else
-		{
-			volume = GetNextVolume();
-		}
-
-		switch (volume)
-		{
-		case 0x00:
-			next_exponential_counter_period = 0x01;
-			break;
-		case 0x06:
-			next_exponential_counter_period = 0x1e;
-			break;
-		case 0x0e:
-			next_exponential_counter_period = 0x10;
-			break;
-		case 0x1a:
-			next_exponential_counter_period = 0x08;
-			break;
-		case 0x36:
-			next_exponential_counter_period = 0x04;
-			break;
-		case 0x5d:
-			next_exponential_counter_period = 0x02;
-			break;
-		case 0xff:
-			next_exponential_counter_period = 0x01;
-			break;
-		}
-
-		exponential_counter = 0;		
-	}
-	
-	if (reset_envelope_counter)
-	{
-		reset_envelope_counter = false;
-		envelope_counter = ENVELOPE_LFSR_RESET;			
-		exponential_counter++;
-		if (envmode == sidATTACK)
-		{
-			envelope_count_delay = 1;
-		}
-		else
-		{
-			// There is a one cycle extra delay if the exponential counter period is more than one.
-			exponential_count_delay = exponential_counter_period == 1 ? 1 : 2;
-
-			// The ADSR may remain in decay / release mode even if attack mode is selected in the next clock.
-			if (exponential_counter == exponential_counter_period && exponential_counter_period == 1)
-			{
-				latched_envmode = envmode;
-				want_latched_envmode = true;
-			}
-		}
-	}
-
-	if (envelope_counter == envelope_compare)
-	{
-		reset_envelope_counter = true;
-		want_latched_envmode = false;
-		latched_envmode = envmode;
-	}
-	else
-	{
-		bit16 feedback = ((envelope_counter >> 14) ^ (envelope_counter >> 13)) & 1;
-		envelope_counter = ((envelope_counter << 1) & 0x7ffe) | feedback;
-	}
-}
-
-bit8 SIDVoice::GetNextVolume()
-{
-bit8 nextvol = volume;
-	if (!keep_zero_volume)
-	{
-		switch (want_latched_envmode ? latched_envmode : envmode)
-		{
-		case sidATTACK:
-			nextvol = (volume + 1) & 255;
-			if (nextvol == 255)
-			{
-				envelope_compare = SID64::AdsrTable[decay_value];
-				envmode = sidDECAY;
-			}
-
-			break;
-		case sidDECAY:
-		case sidRELEASE:
-			nextvol = (volume - 1) & 255;
-			break;
-		}
-
-		if (nextvol == 0)
-		{
-			keep_zero_volume = 1;
-		}
-	}
-
-	return nextvol;
-}
-
-void SIDVoice::UpdateNextEnvMode()
-{
-	switch(next_envmode)
-	{
-	case sidATTACK:
-		if (envmode_changing_delay == 2)
-		{
-			// In a post titled "Understanding the Sid" drfiemost said, "One funny fact is that in the first cycle of the attack and decay phases the wrong rate is used, as the R0 line reacts with one cycle delay."
-			// The assumption is that the decay rate is selected for one clock before selecting the attack rate.
-			// http://forum.6502.org/viewtopic.php?f=8&t=4150&start=105
-			if (this->reset_envelope_counter && this->exponential_counter_period != 1)
-			{
-				// Hack required for attack during release where one extra delay cycle may be required.
-				envmode = sidDECAY;
-			}
-			else
-			{
-				envmode = sidATTACK;
-			}
-
-			envelope_compare = SID64::AdsrTable[decay_value];
-		}
-		else if (envmode_changing_delay == 1)
-		{
-			// Two clocks later, select the attack rate.
-			envmode = sidATTACK;
-			envelope_compare = SID64::AdsrTable[attack_value];
-		}
-		else if (envmode_changing_delay == 0)
-		{
-			keep_zero_volume = 0;
-		}
-
-		break;
-	case sidDECAY:
-		if (envmode_changing_delay == 0)
-		{
-			envmode = sidDECAY;
-			envelope_compare = SID64::AdsrTable[decay_value];
-		}
-
-		break;
-	case sidRELEASE:
-		if (envmode_changing_delay == 1)
-		{
-			if (envmode == sidDECAY)
-			{
-				envmode = sidRELEASE;
-				envelope_compare = SID64::AdsrTable[release_value];
-			}
-		}
-		else if (envmode_changing_delay == 0)
-		{
-			envmode = sidRELEASE;
-			envelope_compare = SID64::AdsrTable[release_value];			
-		}
-
-		break;
-	}
-}
-
-void SIDVoice::SetWave(bit8 new_control)
-{
-bit8 prev_control = control;
-	control = new_control;
-	wavetype = (eWaveType)((new_control >> 4) & 0xf);
-	sync=(new_control & 2);
-	ring_mod=(new_control & 4);
-	if ((new_control ^ prev_control) & 0xf0)//control changing
-	{				
-		if (wavetype == sidWAVNONE)
-		{
-			sampleHoldDelay = SAMPLEHOLDRESETTIME;
-			sampleHold = lastSample;
-			wavetype = sidWAVNONE;
-		}
-	}
-
-	if (new_control & 8)
-	{
-		if (test == 0) // test bit going on
-		{
-			sidShiftRegisterFill = 1;
-			phaseOfShiftRegister = 0;
-			shifterTestCounter = SHIFTERTESTDELAY;
-			if ((prev_control & 0xF0) == 0x80 && (new_control & 0xF0) == 0xA0)
-			{
-				// check_A_to_8_new.prg:
-				// No noise writeback
-			}
-			else if ((prev_control & 0xF0) == 0x80 && (new_control & 0xF0) == 0x90)
-			{
-				// Test 9a ?
-				// No noise writeback
-			}
-			else if ((prev_control & 0xF0) == 0x80 && (new_control & 0xF0) == 0xB0)
-			{
-				// Test 11a ?
-				// No noise writeback
-			}
-			else if ((prev_control & 0xF0) == 0x80 && (new_control & 0xC0) == 0xC0 && (new_control & 0x30) != 0)
-			{
-				// wf12nsr-8580.prg test 8
-				NoiseWriteback(new_control, 0, 0xfff, 0x03C0);
-			}
-			else if ((prev_control & 0xF0) == 0xC0 && (new_control & 0xC0) == 0xC0 && (new_control & 0x30) != 0)
-			{
-				// wf12nsr-8580.prg test 12
-				NoiseWriteback(new_control, 0, 0xfff, 0x0180);
-			}
-			else if ((prev_control & 0xC0) == 0xC0 && (prev_control & 0x30) != 0)
-			{
-				// wf12nsr-8580.prg test 15
-				NoiseWriteback(prev_control, 0, 0xfff, 0x0000);
-			}
-
-			test=1;
-			counter=0;
-		}			
-	}
-	else
-	{
-		if (test) // test bit going off.
-		{
-			if ((prev_control & 0xF0) == 0xA0 && (new_control & 0xF0) == 0x80)
-			{
-				// check_A_to_8_new.prg:
-				// No noise writeback
-			}
-			else if ((prev_control & 0xF0) == 0x90 && (new_control & 0xF0) == 0x80)
-			{
-				// Test 9a ?
-				// No noise writeback
-			}
-			else if ((prev_control & 0xF0) == 0xB0 && (new_control & 0xF0) == 0x80)
-			{
-				// Test 11a ?
-				// No noise writeback
-			}
-			else if ((prev_control & 0xC0) == 0xC0 && (prev_control & 0x30) != 0 && (new_control & 0xF0) == 0x80)
-			{
-				// wf12nsr-8580.prg tests 8, 12
-				NoiseWriteback(prev_control, 0, 0xfff, 0x03c0);
-			}
-			else if (((new_control & 0x80) != 0 && (new_control & 0x70) != 0) || ((prev_control & 0x80) != 0 && (prev_control & 0x70) != 0 && (new_control & 0x80) != 0))
-			{				
-				NoiseWriteback(prev_control, this->noiseFeedbackSample1, this->noiseFeedbackMask0, this->noiseFeedbackMask1);
-			}
-
-			ClockShiftRegister();
-			phaseOfShiftRegister = 2;
-			test=0;
-		}
-	}
-
-	if ((new_control & 0xC0) == 0xC0)
-	{
-		zeroTheShiftRegister = true;
-	}
-	else
-	{
-		zeroTheShiftRegister = false;
-	}
-
-	if (new_control & 1)
-	{
-		if (gate == 0)
-		{
-			gate = 1;
-			next_envmode = sidATTACK;
-			envmode_changing_delay = 3;
-		}
-	}
-	else
-	{
-		if (gate != 0)
-		{
-			gate = 0;
-			next_envmode = sidRELEASE;
-			
-			// Release during attack appears require to 3 cycles to take effect.
-			envmode_changing_delay = 3;
-		}
-	}
-}
-
-bit16 SIDVoice::CalcWaveOutput(bit8 waveType, bit16 &noiseFeedbackWave, bit16 &mask0, bit16 &mask1)
-{
-bool msb;
-DWORD dwMsb;
-bit16 wave;
-	
-	mask0 = 0xfff;
-	mask1 = 0;
-	switch (waveType)
-	{
-	case sidTRIANGLE:
-		if (ring_mod)
-		{
-			msb = ((modulator_voice->counter ^ counter) & 0x00800000) == 0;
-		}
-		else
-		{
-			msb = (counter & 0x00800000) != 0;
-		}
-
-		if (msb)
-		{
-			wave = (unsigned short)  (((~counter) & 0x007fffff) >> 11);
-		}
-		else
-		{
-			wave = (unsigned short)  ((counter & 0x007fffff) >> 11);
-		}
-
-		noiseFeedbackWave = wave;
-		return wave;
-	case sidSAWTOOTH:
-		wave = noiseFeedbackWave = (unsigned short) (counter >> 12);
-		noiseFeedbackWave = wave;
-		return wave;
-	case sidPULSE:
-		if(test)
-		{
-			wave =  0x0fff;
-		}
-		else
-		{
-			if ((counter>>12) >= pulse_width_reg)
-			{
-				wave =  0x0fff;
-			}
-			else
-			{
-				wave = 0x0000;
-			}
-		}
-
-		noiseFeedbackWave = wave;
-		return wave;
-	case sidNOISE:
-		noiseFeedbackWave = 0xfff;
-		return ShiftRegisterOutput();
-	case sidTRIANGLEPULSE:
-		if (ring_mod)
-		{
-			dwMsb = ((~modulator_voice->counter ^ counter) & 0x00800000);
-		}
-		else
-		{
-			dwMsb = (counter & 0x00800000);
-		}
-
-		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PT[(unsigned short)  ((dwMsb | (counter & 0x007fffff)) >> 12)] << 4;
-		noiseFeedbackWave = wave;
-		return wave;
-	case sidSAWTOOTHPULSE:
-		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & sidWave_PS[counter >> 12] << 4;
-		noiseFeedbackWave = wave;
-		return wave;
-	case sidTRIANGLESAWTOOTHPULSE:
-		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1) & (unsigned short)sidWave_PST[counter >> 12] << 4;
-		noiseFeedbackWave = wave;
-		return wave;
-	case sidTRIANGLESAWTOOTH:
-		wave = (unsigned short)sidWave_ST[counter >> 12] << 4;
-		noiseFeedbackWave = wave;
-		return wave;
-	case sidWAVNONE:
-		if (sampleHoldDelay > 0)
-		{
-			noiseFeedbackWave = 0;
-			mask0 = 0x000;
-			mask1 = 0x000;
-			return sampleHold;
-		}
-		else
-		{
-			noiseFeedbackWave = 0;
-			mask0 = 0x000;
-			mask1 = 0x000;
-			return 0;
-		}
-	case sidNOISETRIANGLE:
-		wave = CalcWaveOutput(sidTRIANGLE, noiseFeedbackWave, mask0, mask1);
-		wave &= ShiftRegisterOutput();
-		return wave;
-	case sidNOISESAWTOOTH:
-		wave = CalcWaveOutput(sidSAWTOOTH, noiseFeedbackWave, mask0, mask1);
-		wave &= ShiftRegisterOutput();
-		return wave;
-	case sidNOISEPULSE:
-		wave = CalcWaveOutput(sidPULSE, noiseFeedbackWave, mask0, mask1);
-		noiseFeedbackWave = wave;
-		if (test)
-		{
-			wave &= 0xfe0;
-		}
-		else
-		{
-			wave &= 0xfc0;
-		}
-
-		mask0 = 0x0fff;
-		mask1 = 0x0180;
-		wave &= ShiftRegisterOutput();
-		return wave;
-	default:
-		noiseFeedbackWave = 0;
-		mask0 = 0x000;
-		mask1 = 0x000;
-		return 0;
-	}
-}
-
-bit16 SIDVoice::ShiftRegisterOutput()
-{
-	// Noise: the lower four bits are grounded while the others are connected respectively to the bits 0, 2, 5, 9, 11, 14, 18 and 20 of the LFSR register;
-	return ((unsigned short)(
-	((sidShiftRegister & 0x100000) >> 9) |
-	((sidShiftRegister & 0x040000) >> 8) |
-	((sidShiftRegister & 0x004000) >> 5) |
-	((sidShiftRegister & 0x000800) >> 3) |
-	((sidShiftRegister & 0x000200) >> 2) |
-	((sidShiftRegister & 0x000020) << 1) |
-	((sidShiftRegister & 0x000004) << 3) |
-	((sidShiftRegister & 0x000001) << 4)
-	));
-}
-
-void SIDVoice::Modulate()
-{
-short sample;
-	if (sampleHoldDelay>0)
-	{
-		sampleHoldDelay--;
-	}
-
-	lastSample = CalcWaveOutput(wavetype, noiseFeedbackSample1, noiseFeedbackMask0, noiseFeedbackMask1);
-	sample = ((short)(lastSample & 0xfff) - 0x800);
-	fVolSample = ((double)((long)sample * (long)volume) / (255.0));
+	sid1.Reset(sysclock, poweronreset);
+	sid2.Reset(sysclock, poweronreset);
+	sid3.Reset(sysclock, poweronreset);
+	sid4.Reset(sysclock, poweronreset);
+	appStatus->ResetSidChipAddressMap();
 }
 
 void SID64::ExecuteCycle(ICLK sysclock)
 {
 	if (appStatus->m_bSIDResampleMode)
-		ClockSidResample(sysclock);
-	else
-		ClockSidDownSample(sysclock);
-}
-
-void SID64::ClockSid(BOOL bResample, ICLK sysclock)
-{
-	if (bResample)
 	{
-		ClockSidResample(sysclock);
+		if (appStatus->m_bSIDStereo)
+		{
+			ClockSidResampleStereo(sysclock, this->NumberOfExtraSidChips);
+		}
+		else
+		{
+			ClockSidResampleMono(sysclock, this->NumberOfExtraSidChips);
+		}
 	}
 	else
 	{
-		ClockSidDownSample(sysclock);
+		if (appStatus->m_bSIDStereo)
+		{
+			ClockSidDownSampleStereo(sysclock, this->NumberOfExtraSidChips);
+		}
+		else
+		{
+			ClockSidDownSampleMono(sysclock, this->NumberOfExtraSidChips);
+		}
 	}
 }
 
-void SID64::ClockSidResample(ICLK sysclock)
+void SID64::ClockSidResampleStereo(ICLK sysclock, int numberOfExtraSidChips)
 {
 ICLKS clocks;
-double prefilter;
-double nofilter;
-double voice3nofilter;
-double fsample;
-double hp_out;
-double bp_out;
-double lp_out;
-short dxsample;
+double fsampleChannel1;
+double fsampleChannel2;
 long sampleOffset;
 
 	clocks = (ICLKS)(sysclock - CurrentClock);
-
-	// Update the SID register fade delay.
-	if (clocks >= (ICLKS)sidReadDelay)
-	{
-		sidReadDelay = 0;
-	}
-	else
-	{
-		sidReadDelay -=clocks;
-	}
 
 	for( ; clocks > 0 ; clocks--)
 	{
 		CurrentClock++;
 
-		// Update the SID waveform.
-		voice1.Modulate();
-		voice2.Modulate();
-		voice3.Modulate();
+		// Update SID1 chip state.
+		sid1.ExecuteCycle(CurrentClock);
+		if (numberOfExtraSidChips > 0)
+		{
+			// Update SID2 chip state.
+			if (sid2.sidAddress)
+			{
+				sid2.ExecuteCycle(CurrentClock);
+			}
 
-		// Update the SID envelope volume.
-		voice1.Envelope();
-		voice2.Envelope();
-		voice3.Envelope();
+			if (sid3.sidAddress)
+			{
+				sid3.ExecuteCycle(CurrentClock);
+			}
 
-		// Handle SID Sync
-		voice1.SyncRecheck();
-		voice2.SyncRecheck();
-		voice3.SyncRecheck();
+			if (sid4.sidAddress)
+			{
+				sid4.ExecuteCycle(CurrentClock);
+			}
+		}
 
 		if (appStatus->m_bMaxSpeed)
 		{
@@ -1205,96 +535,57 @@ long sampleOffset;
 			continue;
 		}
 
-		if (sidBlock_Voice3)
+		int channel1SidCount = 1;
+		int channel2SidCount = 0;
+		fsampleChannel1 = sid1.GetResample();
+		if (numberOfExtraSidChips == 0)
 		{
-			// Block unfiltered voice 3.
-			// Voice 3 is still allowed through the SID filters.
-			voice3nofilter = 0;
+			fsampleChannel2 = fsampleChannel1;
 		}
 		else
 		{
-			// Enable unfiltered voice 3.
-			// Voice 3 may either be filtered or unfilered.
-			voice3nofilter = voice3.fVolSample;
-		}
+			fsampleChannel2 = 0.0;
+			if (sid2.sidAddress)
+			{
+				fsampleChannel2 += sid2.GetResample();
+				channel2SidCount++;
+			}
 
-		switch (sidVoice_though_filter)
-		{
-		case 0:
-			prefilter = 0;
-			nofilter = voice1.fVolSample + voice2.fVolSample + voice3nofilter;
-			break;
-		case 1:
-			prefilter = voice1.fVolSample;
-			nofilter = voice2.fVolSample + voice3nofilter;
-			break;
-		case 2:
-			prefilter = voice2.fVolSample;
-			nofilter =voice1.fVolSample + voice3nofilter;
-			break;
-		case 3:
-			prefilter = voice1.fVolSample + voice2.fVolSample;
-			nofilter = voice3nofilter;
-			break;
-		case 4:
-			prefilter = voice3.fVolSample;
-			nofilter = voice1.fVolSample + voice2.fVolSample;
-			break;
-		case 5:
-			prefilter = voice1.fVolSample + voice3.fVolSample;
-			nofilter = voice2.fVolSample;
-			break;
-		case 6:
-			prefilter = voice2.fVolSample + voice3.fVolSample;
-			nofilter = voice1.fVolSample;
-			break;
-		case 7:
-			prefilter = voice1.fVolSample + voice2.fVolSample + voice3.fVolSample;
-			nofilter = 0;
-			break;
-		}
+			if (sid3.sidAddress)
+			{
+				if (numberOfExtraSidChips == 2)
+				{
+					double fsid3 = sid3.GetResample();
+					fsampleChannel1 += fsid3;
+					fsampleChannel2 += fsid3;
+					channel1SidCount++;
+					channel2SidCount++;
+				}
+				else
+				{
+					fsampleChannel1 += sid3.GetResample();
+					channel1SidCount++;
+				}
+			}
 
-		// Process a sample through the SID filters.
-		fsample = nofilter;
-		svfilterForResample.SVF_ProcessNextSample(prefilter);
-		lp_out = svfilterForResample.lp;
-		bp_out = svfilterForResample.bp;
-		hp_out = svfilterForResample.hp;
+			if (sid4.sidAddress)
+			{
+				fsampleChannel2 += sid4.GetResample();
+				channel2SidCount++;
+			}
 
-		// SID low pass filter
-		if (sidFilter & 0x10)
-		{
-			fsample = fsample - lp_out; 
-		}
+			if (channel2SidCount == 0)
+			{
+				channel2SidCount = 1;
+			}
 
-		// SID band pass filter
-		if (sidFilter & 0x20)
-		{
-			fsample = fsample - bp_out;
-		}
-
-		// SID high pass filter
-		if (sidFilter & 0x40)
-		{
-			fsample = fsample - hp_out;
-		}
-
-		if (appStatus->m_bSidDigiBoost)
-		{
-			// Fake a DC offset for 3 voices
-			fsample += (double)(SIDVOLMUL * 3);
-
-			// Scale the sample with the SID volume.
-			fsample = SIDBOOST_6581 * ((fsample * (double)this->sidVolume) / (15.0));
-		}
-		else
-		{
-			// Scale the sample with the SID volume.
-			fsample = SIDBOOST_8580 * ((double)(fsample * (double)this->sidVolume) / (15.0));
+			fsampleChannel1 = fsampleChannel1 / (double)(channel1SidCount);
+			fsampleChannel2 = fsampleChannel2 / (double)(channel2SidCount);
 		}
 
 		sidSampler = sidSampler + filterInterpolationFactor;
-		filterPreFilterResample.QueueNextSample(fsample);
+		filterPreFilterResampleChannel1.QueueNextSample(fsampleChannel1);
+		filterPreFilterResampleChannel2.QueueNextSample(fsampleChannel2);
 		if (sidSampler >= 0)
 		{
 			sampleOffset = (filterInterpolationFactor-1)-sidSampler;
@@ -1305,15 +596,18 @@ long sampleOffset;
 			{
 				int offset1;
 				offset1 = sampleOffset % STAGE1X;
-				filterPreFilterResample.FIR_ProcessSampleNx_IndexTo8(offset1, filterPreFilterStage2.buf);
+				filterPreFilterResampleChannel1.FIR_ProcessSampleNx_IndexTo8(offset1, filterPreFilterStage2Channel1.buf);
+				filterPreFilterResampleChannel2.FIR_ProcessSampleNx_IndexTo8(offset1, filterPreFilterStage2Channel2.buf);
 
 				offset1 = sampleOffset % STAGE2X;
-				fsample = filterPreFilterStage2.InterpolateQueuedSamples(offset1);
+				fsampleChannel1 = filterPreFilterStage2Channel1.InterpolateQueuedSamples(offset1);
+				fsampleChannel2 = filterPreFilterStage2Channel2.InterpolateQueuedSamples(offset1);
 			}
 			else
 			{
 #endif
-				fsample = filterPreFilterResample.InterpolateQueuedSamples(sampleOffset);
+				fsampleChannel1 = filterPreFilterResampleChannel1.InterpolateQueuedSamples(sampleOffset);
+				fsampleChannel2 = filterPreFilterResampleChannel2.InterpolateQueuedSamples(sampleOffset);
 #ifdef ALLOW_EMUFPS_50_12_MULTI
 			}
 #endif
@@ -1322,62 +616,176 @@ long sampleOffset;
 				return;				
 			}
 
-			fsample = fsample * (double)filterInterpolationFactor * MasterVolume;
-			if (fsample > Max16BitSample)
+			fsampleChannel1 = fsampleChannel1 * (double)filterInterpolationFactor * MasterVolume;
+			fsampleChannel2 = fsampleChannel2 * (double)filterInterpolationFactor * MasterVolume;
+			if (fsampleChannel1 > Max16BitSample)
 			{
-				fsample = Max16BitSample;
+				fsampleChannel1 = Max16BitSample;
 			}
-			else if (fsample < Min16BitSample)
+			else if (fsampleChannel1 < Min16BitSample)
 			{
-				fsample = Min16BitSample;
+				fsampleChannel1 = Min16BitSample;
 			}
 
-			dxsample = (short)(fsample);
+			if (fsampleChannel2 > Max16BitSample)
+			{
+				fsampleChannel2 = Max16BitSample;
+			}
+			else if (fsampleChannel2 < Min16BitSample)
+			{
+				fsampleChannel2 = Min16BitSample;
+			}
+
 			if (pBuffer1!=0)
 			{
-				WriteSample(dxsample);
+				WriteSample((bit16)fsampleChannel1, (bit16)fsampleChannel2);
 			}
 		}
 	}
 }
 
-void SID64::ClockSidDownSample(ICLK sysclock)
+void SID64::ClockSidResampleMono(ICLK sysclock, int numberOfExtraSidChips)
 {
 ICLKS clocks;
-double prefilter;
-double nofilter;
-double voice3nofilter;
-double fsample,fsample2;
-double hp_out;
-double bp_out;
-double lp_out;
-short dxsample;
+double fsampleMono;
+long sampleOffset;
 
 	clocks = (ICLKS)(sysclock - CurrentClock);
-
-	// Update the SID register fade delay.
-	if (clocks >= (ICLKS)sidReadDelay)
-	{
-		sidReadDelay = 0;
-	}
-	else
-	{
-		sidReadDelay -=clocks;
-	}
 
 	for( ; clocks > 0 ; clocks--)
 	{
 		CurrentClock++;
 
-		// Update the SID waveform.
-		voice1.Envelope();
-		voice2.Envelope();
-		voice3.Envelope();
+		// Update SID1 chip state.
+		sid1.ExecuteCycle(CurrentClock);
+		if (numberOfExtraSidChips > 0)
+		{
+			// Update SID2 chip state.
+			if (sid2.sidAddress)
+			{
+				sid2.ExecuteCycle(CurrentClock);
+			}
 
-		// Handle SID Sync
-		voice1.SyncRecheck();
-		voice2.SyncRecheck();
-		voice3.SyncRecheck();
+			if (sid3.sidAddress)
+			{
+				sid3.ExecuteCycle(CurrentClock);
+			}
+
+			if (sid4.sidAddress)
+			{
+				sid4.ExecuteCycle(CurrentClock);
+			}
+		}
+
+		if (appStatus->m_bMaxSpeed)
+		{
+			// Host PC sound processing is not needed when sound is turned off during "Max Speed".
+			continue;
+		}
+
+		int channelSidCount = 1;
+		fsampleMono = sid1.GetResample();
+		if (numberOfExtraSidChips > 0)
+		{
+			if (sid2.sidAddress)
+			{
+				fsampleMono += sid2.GetResample();
+				channelSidCount++;
+			}
+
+			if (sid3.sidAddress)
+			{
+				fsampleMono += sid3.GetResample();
+				channelSidCount++;
+			}
+
+			if (sid4.sidAddress)
+			{
+				fsampleMono += sid4.GetResample();
+				channelSidCount++;
+			}
+		}
+
+		fsampleMono = fsampleMono / (double)(channelSidCount);
+
+		// Resample filter
+		sidSampler = sidSampler + filterInterpolationFactor;
+		filterPreFilterResampleChannel1.QueueNextSample(fsampleMono);
+		if (sidSampler >= 0)
+		{
+			sampleOffset = (filterInterpolationFactor-1)-sidSampler;
+			sidSampler = sidSampler - filterDecimationFactor;
+
+#ifdef ALLOW_EMUFPS_50_12_MULTI
+			if (appStatus->m_fps == HCFG::EMUFPS_50_12_MULTI)
+			{
+				int offset1;
+				offset1 = sampleOffset % STAGE1X;
+				filterPreFilterResampleChannel1.FIR_ProcessSampleNx_IndexTo8(offset1, filterPreFilterStage2Channel1.buf);
+
+				offset1 = sampleOffset % STAGE2X;
+				fsampleMono = filterPreFilterStage2Channel1.InterpolateQueuedSamples(offset1);
+			}
+			else
+			{
+#endif
+				fsampleMono = filterPreFilterResampleChannel1.InterpolateQueuedSamples(sampleOffset);
+#ifdef ALLOW_EMUFPS_50_12_MULTI
+			}
+#endif
+			if (pBuffer1==NULL)
+			{
+				return;				
+			}
+
+			fsampleMono = fsampleMono * (double)filterInterpolationFactor * MasterVolume;
+			if (fsampleMono > Max16BitSample)
+			{
+				fsampleMono = Max16BitSample;
+			}
+			else if (fsampleMono < Min16BitSample)
+			{
+				fsampleMono = Min16BitSample;
+			}
+
+			if (pBuffer1!=0)
+			{
+				WriteSample((bit16)fsampleMono, (bit16)fsampleMono);
+			}
+		}
+	}
+}
+
+void SID64::ClockSidDownSampleStereo(ICLK sysclock, int numberOfExtraSidChips)
+{
+ICLKS clocks;
+double fsampleChannel1;
+double fsampleChannel2;
+
+	clocks = (ICLKS)(sysclock - CurrentClock);
+
+	for( ; clocks > 0 ; clocks--)
+	{
+		CurrentClock++;
+
+		sid1.Envelope();
+		if (numberOfExtraSidChips > 0)
+		{
+			if (sid2.sidAddress)
+			{
+				sid2.Envelope();
+			}
+
+			if (sid3.sidAddress)
+			{
+				sid3.Envelope();
+			}
+
+			if (sid4.sidAddress)
+			{
+				sid4.Envelope();
+			}
+		}
 
 		if (appStatus->m_bMaxSpeed)
 		{
@@ -1390,104 +798,191 @@ short dxsample;
 		{
 			sidSampler = sidSampler - filterDecimationFactor;
 
-			voice1.Modulate();
-			voice2.Modulate();
-			voice3.Modulate();
+			sid1.Modulate(CurrentClock);
+			if (numberOfExtraSidChips > 0)
+			{
+				if (sid2.sidAddress)
+				{
+					sid2.Modulate(CurrentClock);
+				}
+
+				if (sid3.sidAddress)
+				{
+					sid3.Modulate(CurrentClock);
+				}
+
+				if (sid4.sidAddress)
+				{
+					sid4.Modulate(CurrentClock);
+				}
+			}
 
 			if (pBuffer1==NULL)
 			{
 				return;
 			}
 
-			if (sidBlock_Voice3)
+			int channel1SidCount = 1;
+			int channel2SidCount = 0;
+			fsampleChannel1 = sid1.GetDownsample();
+			if (numberOfExtraSidChips == 0)
 			{
-				// Block unfiltered voice 3.
-				// Voice 3 is still allowed through the SID filters.
-				voice3nofilter = 0;
+				fsampleChannel2 = fsampleChannel1;
 			}
 			else
 			{
-				// Enable unfiltered voice 3.
-				// Voice 3 may either be filtered or unfilered.
-				voice3nofilter = voice3.fVolSample;
+				fsampleChannel2 = 0.0;
+				if (sid2.sidAddress)
+				{
+					fsampleChannel2 += sid2.GetDownsample();
+					channel2SidCount++;
+				}
+
+				if (sid3.sidAddress)
+				{
+					if (numberOfExtraSidChips == 2)
+					{
+						double fsid3 = sid3.GetDownsample();
+						fsampleChannel1 += fsid3;
+						fsampleChannel2 += fsid3;
+						channel1SidCount++;
+						channel2SidCount++;
+					}
+					else
+					{
+						fsampleChannel1 += sid3.GetDownsample();
+						channel1SidCount++;
+					}
+				}
+
+				if (sid4.sidAddress)
+				{
+					fsampleChannel2 += sid4.GetResample();
+					channel2SidCount++;
+				}
+
+				if (channel2SidCount == 0)
+				{
+					channel2SidCount = 1;
+				}
+
+				fsampleChannel1 = fsampleChannel1 / (double)(channel1SidCount);
+				fsampleChannel2 = fsampleChannel2 / (double)(channel2SidCount);
 			}
 
-			switch (sidVoice_though_filter)
+			if (fsampleChannel1 > Max16BitSample)
 			{
-			case 0:
-				prefilter = 0;
-				nofilter = voice1.fVolSample + voice2.fVolSample + voice3nofilter;
-				break;
-			case 1:
-				prefilter = voice1.fVolSample;
-				nofilter = voice2.fVolSample + voice3nofilter;
-				break;
-			case 2:
-				prefilter = voice2.fVolSample;
-				nofilter =voice1.fVolSample + voice3nofilter;
-				break;
-			case 3:
-				prefilter = voice1.fVolSample + voice2.fVolSample;
-				nofilter = voice3nofilter;
-				break;
-			case 4:
-				prefilter = voice3.fVolSample;
-				nofilter = voice1.fVolSample + voice2.fVolSample;
-				break;
-			case 5:
-				prefilter = voice1.fVolSample + voice3.fVolSample;
-				nofilter = voice2.fVolSample;
-				break;
-			case 6:
-				prefilter = voice2.fVolSample + voice3.fVolSample;
-				nofilter = voice1.fVolSample;
-				break;
-			case 7:
-				prefilter = voice1.fVolSample + voice2.fVolSample + voice3.fVolSample;
-				nofilter = 0;
-				break;
+				fsampleChannel1 = Max16BitSample;
+			}
+			else if (fsampleChannel1 < Min16BitSample)
+			{
+				fsampleChannel1 = Min16BitSample;
 			}
 
-			// Process a sample through the SID filters.
-			svfilterForDownSample.SVF_ProcessNextSample(filterUpSample2xSample.InterpolateNextSample2x(2.0 * prefilter, &fsample2));
-			svfilterForDownSample.SVF_ProcessNextSample(fsample2);
-
-			fsample = 0.0;
-			lp_out = svfilterForDownSample.lp;
-			bp_out = svfilterForDownSample.bp;
-			hp_out = svfilterForDownSample.hp;
-
-			// SID low pass filter
-			if (sidFilter & 0x10)
+			if (fsampleChannel2 > Max16BitSample)
 			{
-				fsample = fsample - lp_out;
+				fsampleChannel2 = Max16BitSample;
+			}
+			else if (fsampleChannel2 < Min16BitSample)
+			{
+				fsampleChannel2 = Min16BitSample;
 			}
 
-			// SID band pass filter
-			if (sidFilter & 0x20)
+			if (pBuffer1!=0)
 			{
-				fsample = fsample - bp_out;
+				WriteSample((bit16)fsampleChannel1, (bit16)fsampleChannel2);
+			}
+		}
+	}
+}
+
+void SID64::ClockSidDownSampleMono(ICLK sysclock, int numberOfExtraSidChips)
+{
+ICLKS clocks;
+double fsampleSid;
+double fsample;
+short dxsample;
+
+	clocks = (ICLKS)(sysclock - CurrentClock);
+
+	for( ; clocks > 0 ; clocks--)
+	{
+		CurrentClock++;
+
+		sid1.Envelope();
+		if (numberOfExtraSidChips > 0)
+		{
+			if (sid2.sidAddress)
+			{
+				sid2.Envelope();
 			}
 
-			// SID high pass filter
-			if (sidFilter & 0x40)
+			if (sid3.sidAddress)
 			{
-				fsample = fsample - hp_out;
+				sid3.Envelope();
 			}
 
-			fsample = fsample + nofilter;
-			if (appStatus->m_bSidDigiBoost)
+			if (sid4.sidAddress)
 			{
-				// Fake a DC offset for 3 voices
-				fsample += (double)(SIDVOLMUL * 3);
-
-				// Scale the sample with the SID volume.
-				fsample = SIDBOOST_6581 * ((fsample * (double)this->sidVolume) / (15.0));
+				sid4.Envelope();
 			}
-			else
+		}
+
+		if (appStatus->m_bMaxSpeed)
+		{
+			// Host PC sound processing is not needed when sound is turned off during "Max Speed".
+			continue;
+		}
+
+		sidSampler = sidSampler + filterInterpolationFactor;
+		if (sidSampler >= 0)
+		{
+			sidSampler = sidSampler - filterDecimationFactor;
+
+			sid1.Modulate(CurrentClock);
+			if (numberOfExtraSidChips > 0)
 			{
-				// Scale the sample with the SID volume.
-				fsample = SIDBOOST_8580 * ((double)(fsample * (double)this->sidVolume) / (15.0));
+				if (sid2.sidAddress)
+				{
+					sid2.Modulate(CurrentClock);
+				}
+
+				if (sid3.sidAddress)
+				{
+					sid3.Modulate(CurrentClock);
+				}
+
+				if (sid4.sidAddress)
+				{
+					sid4.Modulate(CurrentClock);
+				}
+			}
+
+			if (pBuffer1==NULL)
+			{
+				return;
+			}
+
+			fsample = sid1.GetDownsample();
+			if (numberOfExtraSidChips > 0)
+			{
+				fsampleSid = fsample;
+				if (sid2.sidAddress)
+				{
+					fsampleSid += sid2.GetDownsample();
+				}
+
+				if (sid3.sidAddress)
+				{
+					fsampleSid += sid3.GetDownsample();
+				}
+
+				if (sid4.sidAddress)
+				{
+					fsampleSid += sid4.GetDownsample();
+				}
+
+				fsample = fsampleSid / (double)(numberOfExtraSidChips + 1);
 			}
 
 			fsample = fsample * MasterVolume;
@@ -1503,20 +998,21 @@ short dxsample;
 			dxsample = (WORD)(fsample);
 			if (pBuffer1!=0)
 			{
-				WriteSample(dxsample);
+				WriteSample((bit16)dxsample, (bit16)dxsample);
 			}
 		}
 	}
 }
 
-void SID64::WriteSample(short dxsample)
+void SID64::WriteSample(bit16 dxsampleLeft, bit16 dxsampleRight)
 {
+	bit32 dxsample = ((bit32)dxsampleRight << 16) | (bit32)dxsampleLeft;
 	m_last_dxsample = dxsample;
 	if (bufferSplit == 0)
 	{
-		pBuffer1[bufferIndex] = dxsample;
-		bufferIndex++;
-		if (bufferIndex >= bufferSampleLen1)
+		pBuffer1[bufferSampleBlockIndex] = dxsample;
+		bufferSampleBlockIndex++;
+		if (bufferSampleBlockIndex >= bufferSampleBlockLen1)
 		{
 			if (pBuffer2)
 			{
@@ -1527,593 +1023,40 @@ void SID64::WriteSample(short dxsample)
 				bufferSplit = 2;
 			}
 
-			bufferIndex = 0;
+			bufferSampleBlockIndex = 0;
 		}
 
-		bufferLockPoint = (bufferLockPoint + BYTES_PER_SAMPLE) % (soundBufferSize);
+		bufferByteLockPoint = (bufferByteLockPoint + (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS)) % (soundBufferByteSize);
 	}
 	else if (bufferSplit == 1)
 	{
-		pBuffer2[bufferIndex] = dxsample;
-		bufferIndex++;
-		if (bufferIndex >= bufferSampleLen2)
+		pBuffer2[bufferSampleBlockIndex] = dxsample;
+		bufferSampleBlockIndex++;
+		if (bufferSampleBlockIndex >= bufferSampleBlockLen2)
 		{
 			bufferSplit = 2;
-			bufferIndex = 0;
+			bufferSampleBlockIndex = 0;
 		}
 
-		bufferLockPoint = (bufferLockPoint + BYTES_PER_SAMPLE) % (soundBufferSize);
+		bufferByteLockPoint = (bufferByteLockPoint + (SID_SOUND_BYTES_PER_SAMPLE * SID_SOUND_NUMBER_OF_CHANNELS)) % (soundBufferByteSize);
 	}
 	else if (bufferSplit == 2)
 	{
-		if (overflowBufferIndex < overflowBufferSampleLen)
+		if (overflowBufferBlockIndex < overflowBufferSampleLen)
 		{
-			pOverflowBuffer[overflowBufferIndex] = dxsample;
-			overflowBufferIndex++;
+			pOverflowBuffer[overflowBufferBlockIndex] = dxsample;
+			overflowBufferBlockIndex++;
 		}
 	}
 }
 
-void SIDVoice::NoiseWriteback(bit8 control, bit16 sample, bit16 mask0, bit16 mask1)
-{
-	if ((control & 0x80) != 0 && (control & 0x70) != 0)
-	{	
-		bit32 t;	
-		t = (bit32)(sample & mask0) | mask1;
-		t = ((t & 0x010) >> 4) | 
-			((t & 0x020) >> 3) |
-			((t & 0x040) >> 1) |
-			((t & 0x080) << 2) |
-			((t & 0x100) << 3) |
-			((t & 0x200) << 5) |
-			((t & 0x400) << 8) |
-			((t & 0x800) << 9);
-		sidShiftRegister = (sidShiftRegister & (t | NOISE_ZERO_FEED));
-	}
-}
-
-void SIDVoice::GetState(SsSidVoiceV3 &state)
-{
-	state.counter = counter;
-	state.frequency = frequency;
-	state.volume = volume;
-	state.sampleHoldDelay = sampleHoldDelay;
-	state.envmode = envmode;
-	state.wavetype = wavetype;
-	state.sync = sync;
-	state.ring_mod = ring_mod;
-	state.sustain_level = sustain_level;
-	state.zeroTheCounter = zeroTheCounter;
-	state.exponential_counter_period = exponential_counter_period;
-	state.attack_value = attack_value;
-	state.decay_value = decay_value;
-	state.release_value = release_value;
-	state.pulse_width_counter = pulse_width_counter;
-	state.pulse_width_reg = pulse_width_reg;
-	state.sampleHold = sampleHold;
-	state.lastSample = lastSample;
-	state.fVolSample = fVolSample;
-	state.gate = gate;
-	state.test = test;
-	state.sidShiftRegister = sidShiftRegister;
-	state.keep_zero_volume = keep_zero_volume;
-	state.envelope_counter = envelope_counter;
-	state.envelope_compare = envelope_compare;
-	state.exponential_counter = exponential_counter;
-	state.control = control;
-	state.shifterTestCounter = shifterTestCounter;
-	state.phaseOfShiftRegister = phaseOfShiftRegister;
-	state.nextvolume = nextvolume;
-	state.samplevolume = samplevolume;
-	state.next_envmode = next_envmode;
-	state.envmode_changing_delay = envmode_changing_delay;
-	state.envelope_count_delay = envelope_count_delay;
-	state.exponential_count_delay = exponential_count_delay;
-	state.next_exponential_counter_period = next_exponential_counter_period;
-	state.gotNextVolume = gotNextVolume ? 1 : 0;
-	state.reset_envelope_counter = reset_envelope_counter ? 1 : 0;
-	state.reset_exponential_counter = reset_exponential_counter ? 1 : 0;
-	state.envelope_tick = envelope_tick ? 1 : 0;
-
-	// Fields added to the new version 3.
-	state.want_latched_envmode = want_latched_envmode ? 1 : 0;
-	state.latched_envmode = latched_envmode;
-	state.sidShiftRegisterFill = sidShiftRegisterFill;
-	state.noiseFeedbackSample1 = noiseFeedbackSample1;
-	state.noiseFeedbackSample2 = noiseFeedbackSample2;
-	state.noiseFeedbackMask0 = noiseFeedbackMask0;
-	state.noiseFeedbackMask1 = noiseFeedbackMask1;
-	state.zeroTheShiftRegister = zeroTheShiftRegister ? 1 : 0;
-}
-
-void SIDVoice::SetState(const SsSidVoiceV3 &state)
-{
-	counter = state.counter;
-	frequency = state.frequency;
-	volume = (bit8)state.volume;
-	sampleHoldDelay = state.sampleHoldDelay;
-	envmode = (eEnvelopeMode) state.envmode;
-	wavetype = (eWaveType) state.wavetype;
-	sync = state.sync;
-	ring_mod = state.ring_mod;
-	sustain_level = state.sustain_level;
-	zeroTheCounter = state.zeroTheCounter;
-	exponential_counter_period = state.exponential_counter_period;
-	attack_value = state.attack_value;
-	decay_value = state.decay_value;
-	release_value = state.release_value;
-	pulse_width_counter = state.pulse_width_counter;
-	pulse_width_reg = state.pulse_width_reg;
-	sampleHold = state.sampleHold;
-	lastSample = state.lastSample;
-	fVolSample = state.fVolSample;
-	gate = state.gate;
-	test = state.test;
-	sidShiftRegister = state.sidShiftRegister;
-	keep_zero_volume = state.keep_zero_volume;
-	envelope_counter = state.envelope_counter;
-	envelope_compare = state.envelope_compare;
-	exponential_counter = state.exponential_counter;
-	control = state.control;
-	shifterTestCounter = state.shifterTestCounter;
-	phaseOfShiftRegister = state.phaseOfShiftRegister;
-	nextvolume = state.nextvolume;
-	samplevolume = state.samplevolume;
-	next_envmode = (eEnvelopeMode)state.next_envmode;
-	envmode_changing_delay = state.envmode_changing_delay;
-	envelope_count_delay = state.envelope_count_delay;
-	exponential_count_delay = state.exponential_count_delay;
-	next_exponential_counter_period = state.next_exponential_counter_period;
-	gotNextVolume = state.gotNextVolume != 0;
-	reset_envelope_counter = state.reset_envelope_counter != 0;
-	reset_exponential_counter = state.reset_exponential_counter != 0;
-	envelope_tick = state.envelope_tick != 0;
-
-	// Fields added to the new version 3.
-	want_latched_envmode = state.want_latched_envmode != 0;	
-	latched_envmode = (eEnvelopeMode)state.latched_envmode;
-	sidShiftRegisterFill = state.sidShiftRegisterFill;
-	noiseFeedbackSample1 = state.noiseFeedbackSample1;
-	noiseFeedbackSample2 = state.noiseFeedbackSample2;
-	noiseFeedbackMask0 = state.noiseFeedbackMask0;
-	noiseFeedbackMask1 = state.noiseFeedbackMask1;
-	zeroTheShiftRegister  = state.zeroTheShiftRegister != 0;
-}
-
-void SIDVoice::UpgradeStateV0ToV1(const SsSidVoice &in, SsSidVoiceV1 &out)
-{
-	ZeroMemory(&out, sizeof(out));
-	out.counter = in.counter;
-	out.frequency = in.frequency;
-	out.volume = in.volume;
-	out.sampleHoldDelay = in.sampleHoldDelay;
-	out.envmode = (eEnvelopeMode) in.envmode;
-	out.wavetype = (eWaveType)((in.control) >> 4) & 0xf;
-	out.sync = in.sync;
-	out.ring_mod = in.ring_mod;
-	out.sustain_level = in.sustain_level;
-	out.zeroTheCounter = in.zeroTheCounter;
-	out.exponential_counter_period = in.exponential_counter_period;
-	out.attack_value = in.attack_value;
-	out.decay_value = in.decay_value;
-	out.release_value = in.release_value;
-	out.pulse_width_counter = in.pulse_width_counter;
-	out.pulse_width_reg = in.pulse_width_reg;
-	out.sampleHold = in.sampleHold;
-	out.lastSample = in.lastSample;
-	out.fVolSample = in.fVolSample;
-	out.gate = in.gate;
-	out.test = in.test;
-	out.sidShiftRegister = in.sidShiftRegister;
-	out.keep_zero_volume = in.keep_zero_volume;
-	out.envelope_counter = in.envelope_counter;
-	out.envelope_compare = in.envelope_compare;
-	out.exponential_counter = in.exponential_counter;
-	out.control = in.control;
-	out.shifterTestCounter = in.shifterTestCounter;
-	out.phaseOfShiftRegister = 0;
-	out.noiseFeedbackSample1 = in.lastSample;
-}
-
-void SIDVoice::UpgradeStateV1ToV2(const SsSidVoiceV1 &in, SsSidVoiceV2 &out)
-{
-	ZeroMemory(&out, sizeof(out));
-	out.counter = in.counter;
-	out.frequency = in.frequency;
-	out.volume = in.volume;
-	out.sampleHoldDelay = in.sampleHoldDelay;
-	out.envmode = (eEnvelopeMode) in.envmode;
-	out.wavetype = (eWaveType)((in.control) >> 4) & 0xf;
-	out.sync = in.sync;
-	out.ring_mod = in.ring_mod;
-	out.sustain_level = in.sustain_level;
-	out.zeroTheCounter = in.zeroTheCounter;
-	out.exponential_counter_period = in.exponential_counter_period;
-	out.attack_value = in.attack_value;
-	out.decay_value = in.decay_value;
-	out.release_value = in.release_value;
-	out.pulse_width_counter = in.pulse_width_counter;
-	out.pulse_width_reg = in.pulse_width_reg;
-	out.sampleHold = in.sampleHold;
-	out.lastSample = in.lastSample;
-	out.fVolSample = in.fVolSample;
-	out.gate = in.gate;
-	out.test = in.test;
-	out.sidShiftRegister = in.sidShiftRegister;
-	out.keep_zero_volume = in.keep_zero_volume;
-	out.envelope_counter = in.envelope_counter;
-	out.envelope_compare = in.envelope_compare;
-	out.exponential_counter = in.exponential_counter;
-	out.control = in.control;
-	out.shifterTestCounter = in.shifterTestCounter;
-	out.phaseOfShiftRegister = 0;
-	out.noiseFeedbackSample1 = in.lastSample;
-
-	// Fields added to the new version 2.
-	out.nextvolume = (bit8)in.volume;
-	out.samplevolume = (bit8)in.volume;
-	out.next_envmode = (eEnvelopeMode)in.envmode;
-	out.envmode_changing_delay = 0;
-	out.envelope_count_delay = 0;
-	out.exponential_count_delay = 0;
-	out.next_exponential_counter_period = in.exponential_counter_period;
-	out.gotNextVolume = 0;
-	out.reset_envelope_counter = 0;
-	out.reset_exponential_counter = 0;
-	out.envelope_tick = 0;		
-}
-
-void SIDVoice::UpgradeStateV2ToV3(const SsSidVoiceV2 &in, SsSidVoiceV3 &out)
-{
-	ZeroMemory(&out, sizeof(out));
-	out.counter = in.counter;
-	out.frequency = in.frequency;
-	out.volume = in.volume;
-	out.sampleHoldDelay = in.sampleHoldDelay;
-	out.envmode = (eEnvelopeMode) in.envmode;
-	out.wavetype = (eWaveType)((in.control) >> 4) & 0xf;
-	out.sync = in.sync;
-	out.ring_mod = in.ring_mod;
-	out.sustain_level = in.sustain_level;
-	out.zeroTheCounter = in.zeroTheCounter;
-	out.exponential_counter_period = in.exponential_counter_period;
-	out.attack_value = in.attack_value;
-	out.decay_value = in.decay_value;
-	out.release_value = in.release_value;
-	out.pulse_width_counter = in.pulse_width_counter;
-	out.pulse_width_reg = in.pulse_width_reg;
-	out.sampleHold = in.sampleHold;
-	out.lastSample = in.lastSample;
-	out.fVolSample = in.fVolSample;
-	out.gate = in.gate;
-	out.test = in.test;
-	out.sidShiftRegister = in.sidShiftRegister;
-	out.keep_zero_volume = in.keep_zero_volume;
-	out.envelope_counter = in.envelope_counter;
-	out.envelope_compare = in.envelope_compare;
-	out.exponential_counter = in.exponential_counter;
-	out.control = in.control;
-	out.shifterTestCounter = in.shifterTestCounter;
-	out.phaseOfShiftRegister = 0;
-	out.noiseFeedbackSample1 = in.lastSample;
-
-	// Fields added to the new version 2.
-	out.nextvolume = (bit8)in.volume;
-	out.samplevolume = (bit8)in.volume;
-	out.next_envmode = (eEnvelopeMode)in.envmode;
-	out.envmode_changing_delay = 0;
-	out.envelope_count_delay = 0;
-	out.exponential_count_delay = 0;
-	out.next_exponential_counter_period = in.exponential_counter_period;
-	out.gotNextVolume = 0;
-	out.reset_envelope_counter = 0;
-	out.reset_exponential_counter = 0;
-	out.envelope_tick = 0;
-
-	// Fields added to the new version 3.
-	out.want_latched_envmode = 0;
-	out.latched_envmode = (eEnvelopeMode)in.envmode;
-	out.sidShiftRegisterFill = 0;
-	out.noiseFeedbackSample1 = 0;
-	out.noiseFeedbackSample2 = 0;
-	out.noiseFeedbackMask0 = 0xfff;
-	out.noiseFeedbackMask1 = 0x000;
-	out.zeroTheShiftRegister = false;
-}
-
-double SID64::GetCutOff(bit16 sidfreq)
-{
-	return (double)sidfreq * (5.8) + 30.0;
-}
-
-void SID64::SetFilter()
-{
-double cutoff;
-
-	cutoff = GetCutOff(sidFilterFrequency);
-	if (appStatus->m_bSIDResampleMode)
-	{
-		if (appStatus->m_fps == HCFG::EMUFPS_50)
-		{
-			svfilterForResample.Set_SVF(cutoff, PAL50CLOCKSPERSECOND, sidResonance);
-		}
-		else
-		{
-			svfilterForResample.Set_SVF(cutoff, PALCLOCKSPERSECOND, sidResonance);
-		}
-	}
-	else
-	{
-		//The down sample version is feed a doubled sample rate to keep the filter stable below the stable PI/3 cutoff frequency.
-		svfilterForDownSample.Set_SVF(cutoff, 2 * SAMPLES_PER_SEC, sidResonance);
-	}
-
-}
-
-void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
-{	
-	if (appStatus->m_bSID_Emulation_Enable)
-	{
-		ExecuteCycle(sysclock);
-	}
-
-	sidInternalBusByte = data;
-	switch (address & 0x1f)
-	{
-	case 0x0:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice1.frequency = (voice1.frequency & 0xff00) | data;
-		break;
-	case 0x1:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice1.frequency = (voice1.frequency & 0x00ff) | (data<<8);
-		break;
-	case 0x2:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice1.pulse_width_reg = (voice1.pulse_width_reg & 0x0f00) | data;
-		voice1.pulse_width_counter = voice1.pulse_width_reg << 12;
-		break;
-	case 0x3:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice1.pulse_width_reg = (voice1.pulse_width_reg & 0xff) | ((data & 0xf) <<8);
-		voice1.pulse_width_counter = voice1.pulse_width_reg << 12;
-		break;
-	case 0x4:
-		sidReadDelay = SIDREADDELAY;
-		voice1.SetWave(data);
-		break;
-	case 0x5:
-		sidReadDelay = SIDREADDELAY;
-		voice1.attack_value = data >> 4;
-		voice1.decay_value = data & 0xf;
-		if (voice1.envmode == sidATTACK)
-		{
-			voice1.envelope_compare = AdsrTable[voice1.attack_value];
-		}
-		else if (voice1.envmode == sidDECAY)
-		{
-			voice1.envelope_compare = AdsrTable[voice1.decay_value];
-		}
-		break;
-	case 0x6:
-		sidReadDelay = SIDREADDELAY;
-		voice1.sustain_level = (((data & 0xf0) >> 4) * 17);
-		voice1.release_value = data & 0xf;
-		if (voice1.envmode == sidRELEASE)
-		{
-			voice1.envelope_compare = AdsrTable[voice1.release_value];
-		}
-		break;
-	case 0x7:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice2.frequency = (voice2.frequency & 0xff00) | data;
-		break;
-	case 0x8:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice2.frequency = (voice2.frequency & 0x00ff) | (data<<8);
-		break;
-	case 0x9:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice2.pulse_width_reg = (voice2.pulse_width_reg & 0x0f00) | data;
-		voice2.pulse_width_counter = voice2.pulse_width_reg << 12;
-		break;
-	case 0xa:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice2.pulse_width_reg = (voice2.pulse_width_reg & 0xff) | ((data & 0xf)<<8);
-		voice2.pulse_width_counter = voice2.pulse_width_reg << 12;
-		break;
-	case 0xb:
-		sidReadDelay = SIDREADDELAY;
-		voice2.SetWave(data);
-		break;
-	case 0xc:
-		sidReadDelay = SIDREADDELAY;
-		voice2.attack_value = data >> 4;
-		voice2.decay_value = data & 0xf;
-		if (voice2.envmode == sidATTACK)
-		{
-			voice2.envelope_compare = AdsrTable[voice2.attack_value];
-		}
-		else if (voice2.envmode == sidDECAY)
-		{
-			voice2.envelope_compare = AdsrTable[voice2.decay_value];
-		}
-		break;
-	case 0xd:
-		sidReadDelay = SIDREADDELAY;
-		voice2.sustain_level = (((data & 0xf0) >> 4) * 17);
-		voice2.release_value = data & 0xf;
-		if (voice2.envmode == sidRELEASE)
-		{
-			voice2.envelope_compare = AdsrTable[voice2.release_value];
-		}
-		break;
-	case 0xe:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice3.frequency = (voice3.frequency & 0xff00) | data;
-		break;
-	case 0xf:
-		sidReadDelay = SIDREADDELAYFREQ;
-		voice3.frequency = (voice3.frequency & 0x00ff) | (((bit32)data)<<8);
-		break;
-	case 0x10:
-		sidReadDelay = SIDREADDELAY;
-		voice3.pulse_width_reg = (voice3.pulse_width_reg & 0x0f00) | data;
-		voice3.pulse_width_counter = voice3.pulse_width_reg << 12;
-		break;
-	case 0x11:
-		sidReadDelay = SIDREADDELAY;
-		voice3.pulse_width_reg = (voice3.pulse_width_reg & 0xff) | (((bit32)(data & 0xf))<<8);
-		voice3.pulse_width_counter = voice3.pulse_width_reg << 12;
-		break;
-	case 0x12:
-		sidReadDelay = SIDREADDELAY;
-		voice3.SetWave(data);
-		break;
-	case 0x13:
-		sidReadDelay = SIDREADDELAY;
-		voice3.attack_value = data >> 4;
-		voice3.decay_value = data & 0xf;
-		if (voice3.envmode == sidATTACK)
-		{
-			voice3.envelope_compare = AdsrTable[voice3.attack_value];
-		}
-		else if (voice3.envmode == sidDECAY)
-		{
-			voice3.envelope_compare = AdsrTable[voice3.decay_value];
-		}
-		break;
-	case 0x14:
-		sidReadDelay = SIDREADDELAY;
-		voice3.sustain_level = (((data & 0xf0) >> 4) * 17);
-		voice3.release_value = data & 0xf;
-		if (voice3.envmode == sidRELEASE)
-		{
-			voice3.envelope_compare = AdsrTable[voice3.release_value];
-		}
-		break;
-	case 0x15:
-		sidReadDelay = SIDREADDELAY;
-		sidFilterFrequency = (sidFilterFrequency & 0x7f8) | (data & 7);
-		SetFilter();
-		break;
-	case 0x16:
-		sidReadDelay = SIDREADDELAY;
-		sidFilterFrequency = (sidFilterFrequency & 7) | (((bit16)data << 3) & 0x7f8);
-		SetFilter();
-		break;
-	case 0x17:
-		sidReadDelay = SIDREADDELAY;
-		sidVoice_though_filter = data & 0x7;
-		sidResonance = (data & 0xf0) >> 4;
-		SetFilter();
-		break;
-	case 0x18:
-		sidReadDelay = SIDREADDELAY;
-		sidVolume = data & 0xf;
-		sidFilter = (data & 0x70);
-		if ((data & 0x80) !=0)
-		{
-			sidBlock_Voice3 = true;
-		}
-		else
-		{
-			sidBlock_Voice3 = false;
-		}
-		break;
-	}
-}
-
-bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
-{
-bit8 data;
-	//if ((address & 0x1f) == 0x1b)
-	//{
-	//	sysclock--;
-	//}
-
-	if (appStatus->m_bSID_Emulation_Enable)
-	{
-		ExecuteCycle(sysclock);
-	}
-
-	switch (address & 0x1f)
-	{
-	case 0x19:
-		data = this->Get_PotX();
-		sidReadDelay = SIDREADDELAYFREQ;
-		break;
-	case 0x1a:
-		data = this->Get_PotY();
-		sidReadDelay = SIDREADDELAYFREQ;
-		break;
-	case 0x1b:
-		data = (bit8)(voice3.lastSample >> 4);
-		sidReadDelay = SIDREADDELAYFREQ;
-		break;
-	case 0x1c:
-		data = (bit8) voice3.samplevolume;
-		sidReadDelay = SIDREADDELAYFREQ;
-		break;
-	default:
-		if (sidReadDelay==0)
-		{
-			data = 0;
-		}
-		else
-		{
-			data = sidInternalBusByte;
-		}
-		break;
-	}
-
-	sidInternalBusByte = data;
-	return data;
-}
-
-bit8 SID64::ReadRegister_no_affect(bit16 address, ICLK sysclock)
-{
-bit8 data;
-	if (appStatus->m_bSID_Emulation_Enable)
-	{
-		ExecuteCycle(sysclock);
-	}
-
-	switch (address & 0x1f)
-	{
-	case 0x19:
-		data = this->Get_PotX();
-		break;
-	case 0x1a:
-		data = this->Get_PotY();
-		break;
-	case 0x1b:
-		data = (bit8)(voice3.lastSample >> 4);
-		break;
-	case 0x1c:
-		data = (bit8) voice3.samplevolume;
-		break;
-	default:
-		if (sidReadDelay==0)
-		{
-			data = 0;
-		}
-		else
-		{
-			data = sidInternalBusByte;
-		}
-		break;
-	}
-	return data;
-}
-
-void SID64::SoundHalt(short value)
+void SID64::SoundHalt(bit32 value)
 {
 	if (pOverflowBuffer)
 	{
 		for (DWORD i = 0 ; i < overflowBufferSampleLen ; i++)
 		{
-			((WORD *)pOverflowBuffer)[i] = value;
+			((bit32 *)pOverflowBuffer)[i] = value;
 		}
 	}
 }
@@ -2126,109 +1069,123 @@ ICLK SID64::GetCurrentClock()
 void SID64::SetCurrentClock(ICLK sysclock)
 {
 	CurrentClock = sysclock;
+	sid1.SetCurrentClock(sysclock);
+	sid2.SetCurrentClock(sysclock);
+	sid3.SetCurrentClock(sysclock);
+	sid4.SetCurrentClock(sysclock);
 }
 
-bit8 SID64::Get_PotX()
+void SID64::PreventClockOverflow()
 {
-	return this->sidPotX;
+	sid1.PreventClockOverflow(CurrentClock);
+	sid2.PreventClockOverflow(CurrentClock);
+	sid3.PreventClockOverflow(CurrentClock);
+	sid4.PreventClockOverflow(CurrentClock);
 }
 
-void SID64::Set_PotX(ICLK sysclock, bit8 data)
+bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
 {
-	this->sidPotX=data;
+	if (appStatus->m_bSID_Emulation_Enable)
+	{
+		ExecuteCycle(sysclock);
+	}
+
+	if (this->NumberOfExtraSidChips == 0)
+	{
+		return sid1.ReadRegister(address, sysclock);
+	}
+	else
+	{
+		bit16 maskaddress = address & 0xDFE0;
+		if (maskaddress == 0xD400)
+		{
+			return sid1.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfSecondSID)
+		{
+			return sid2.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfThirdSID)
+		{
+			return sid3.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfFourthSID)
+		{
+			return sid4.ReadRegister(address, sysclock);
+		}
+		else
+		{
+			return 0;
+		}
+	}
 }
 
-bit8 SID64::Get_PotY()
+bit8 SID64::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
-	return this->sidPotY;
+	if (appStatus->m_bSID_Emulation_Enable)
+	{
+		ExecuteCycle(sysclock);
+	}
+
+	if (this->NumberOfExtraSidChips == 0)
+	{
+		return sid1.ReadRegister_no_affect(address, sysclock);
+	}
+	else
+	{
+		bit16 maskaddress = address & 0xDFE0;
+		if (maskaddress == 0xD400)
+		{
+			return sid1.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfSecondSID)
+		{
+			return sid2.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfThirdSID)
+		{
+			return sid3.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfFourthSID)
+		{
+			return sid4.ReadRegister(address, sysclock);
+		}
+		else
+		{
+			return 0;
+		}
+	}
 }
 
-void SID64::Set_PotY(ICLK sysclock, bit8 data)
+void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
-	this->sidPotY=data;
-}
+	if (appStatus->m_bSID_Emulation_Enable)
+	{
+		ExecuteCycle(sysclock);
+	}
 
-void SID64::GetState(SsSidV3 &state)
-{
-	ZeroMemory(&state, sizeof(state));
-	voice1.GetState(state.voice1);
-	voice2.GetState(state.voice2);
-	voice3.GetState(state.voice3);
-	state.CurrentClock = CurrentClock;
-	state.sidVolume = sidVolume;
-	state.sidFilter = sidFilter;
-	state.sidVoice_though_filter = sidVoice_though_filter;
-	state.sidResonance = sidResonance;
-	state.sidFilterFrequency = sidFilterFrequency;
-	state.sidBlock_Voice3 = sidBlock_Voice3 ? 1 : 0;
-	state.sidInternalBusByte = sidInternalBusByte;
-	state.sidReadDelay = sidReadDelay;
-}
-
-void SID64::SetState(const SsSidV3 &state)
-{
-	voice1.SetState(state.voice1);
-	voice2.SetState(state.voice2);
-	voice3.SetState(state.voice3);
-	CurrentClock = state.CurrentClock;
-	sidVolume = state.sidVolume;
-	sidFilter = state.sidFilter;
-	sidVoice_though_filter = state.sidVoice_though_filter;
-	sidResonance = state.sidResonance;
-	sidFilterFrequency = state.sidFilterFrequency;
-	sidBlock_Voice3 = state.sidBlock_Voice3 != 0;
-	sidInternalBusByte = state.sidInternalBusByte;
-	sidReadDelay = state.sidReadDelay;
-	SetFilter();
-}
-
-void SID64::UpgradeStateV0ToV1(const SsSid &in, SsSidV1 &out)
-{
-	ZeroMemory(&out, sizeof(out));	
-	SIDVoice::UpgradeStateV0ToV1(in.voice1, out.voice1);
-	SIDVoice::UpgradeStateV0ToV1(in.voice2, out.voice2);
-	SIDVoice::UpgradeStateV0ToV1(in.voice3, out.voice3);
-	out.CurrentClock = in.CurrentClock;
-	out.sidVolume = in.sidVolume;
-	out.sidFilter = in.sidFilter;
-	out.sidVoice_though_filter = in.sidVoice_though_filter;
-	out.sidResonance = in.sidResonance;
-	out.sidFilterFrequency = in.sidFilterFrequency;
-	out.sidBlock_Voice3 = in.sidBlock_Voice3;
-	out.sidInternalBusByte = in.sidInternalBusByte;
-	out.sidReadDelay = in.sidReadDelay;
-}
-
-void SID64::UpgradeStateV1ToV2(const SsSidV1 &in, SsSidV2 &out)
-{
-	ZeroMemory(&out, sizeof(out));	
-	SIDVoice::UpgradeStateV1ToV2(in.voice1, out.voice1);
-	SIDVoice::UpgradeStateV1ToV2(in.voice2, out.voice2);
-	SIDVoice::UpgradeStateV1ToV2(in.voice3, out.voice3);
-	out.CurrentClock = in.CurrentClock;
-	out.sidVolume = in.sidVolume;
-	out.sidFilter = in.sidFilter;
-	out.sidVoice_though_filter = in.sidVoice_though_filter;
-	out.sidResonance = in.sidResonance;
-	out.sidFilterFrequency = in.sidFilterFrequency;
-	out.sidBlock_Voice3 = in.sidBlock_Voice3;
-	out.sidInternalBusByte = in.sidInternalBusByte;
-	out.sidReadDelay = in.sidReadDelay;
-}
-
-void SID64::UpgradeStateV2ToV3(const SsSidV2 &in, SsSidV3 &out)
-{
-	ZeroMemory(&out, sizeof(out));	
-	SIDVoice::UpgradeStateV2ToV3(in.voice1, out.voice1);
-	SIDVoice::UpgradeStateV2ToV3(in.voice2, out.voice2);
-	SIDVoice::UpgradeStateV2ToV3(in.voice3, out.voice3);
-	out.CurrentClock = in.CurrentClock;
-	out.sidVolume = in.sidVolume;
-	out.sidFilter = in.sidFilter;
-	out.sidVoice_though_filter = in.sidVoice_though_filter;
-	out.sidResonance = in.sidResonance;
-	out.sidFilterFrequency = in.sidFilterFrequency;
-	out.sidBlock_Voice3 = in.sidBlock_Voice3;
-	out.sidInternalBusByte = in.sidInternalBusByte;
-	out.sidReadDelay = in.sidReadDelay;
+	if (this->NumberOfExtraSidChips == 0)
+	{
+		return sid1.WriteRegister(address, sysclock, data);
+	}
+	else
+	{
+		bit16 maskaddress = address & 0xDFE0;
+		if (maskaddress == 0xD400)
+		{
+			return sid1.WriteRegister(address, sysclock, data);
+		}
+		else if (maskaddress == this->AddressOfSecondSID)
+		{
+			return sid2.WriteRegister(address, sysclock, data);
+		}
+		else if (maskaddress == this->AddressOfThirdSID)
+		{
+			return sid3.WriteRegister(address, sysclock, data);
+		}
+		else if (maskaddress == this->AddressOfFourthSID)
+		{
+			return sid4.WriteRegister(address, sysclock, data);
+		}
+	}
 }

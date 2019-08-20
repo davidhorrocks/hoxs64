@@ -40,7 +40,15 @@ namespace SsLib
 			C64Cia1V2 = 27,
 			C64Cia2V2 = 28,
 			C64SidV2 = 29,
-			C64SidV3 = 30
+			C64SidV3 = 30,
+			C64SidChip1 = 31,
+			C64SidChip2 = 32,
+			C64SidChip3 = 33,
+			C64SidChip4 = 34,
+			C64SidChip5 = 35,
+			C64SidChip6 = 36,
+			C64SidChip7 = 37,
+			C64SidChip8 = 38
 		};
 	}
 };
@@ -491,7 +499,7 @@ struct SsSidVoice
 	bit32 counter;
 	bit32 frequency;
 	bit16 volume;
-	bit32 sampleHoldDelay;
+	ICLK sampleHoldDelayClock;
 	bit8 envmode;
 	bit8 wavetype;
 	bit8 sync;
@@ -558,13 +566,11 @@ struct SsSid
 	SsSidVoice voice1;
 	SsSidVoice voice2;
 	SsSidVoice voice3;
-
 	bit8 sidVolume;
 	bit8 sidFilter;
 	bit8 sidVoice_though_filter;
 	bit8 sidResonance;
 	bit16 sidFilterFrequency;
-
 	bit8 sidBlock_Voice3;
 	bit8 sidInternalBusByte;
 	bit32 sidReadDelay;
@@ -576,13 +582,11 @@ struct SsSidV1
 	SsSidVoiceV1 voice1;
 	SsSidVoiceV1 voice2;
 	SsSidVoiceV1 voice3;
-
 	bit8 sidVolume;
 	bit8 sidFilter;
 	bit8 sidVoice_though_filter;
 	bit8 sidResonance;
 	bit16 sidFilterFrequency;
-
 	bit8 sidBlock_Voice3;
 	bit8 sidInternalBusByte;
 	bit32 sidReadDelay;
@@ -594,13 +598,11 @@ struct SsSidV2
 	SsSidVoiceV2 voice1;
 	SsSidVoiceV2 voice2;
 	SsSidVoiceV2 voice3;
-
 	bit8 sidVolume;
 	bit8 sidFilter;
 	bit8 sidVoice_though_filter;
 	bit8 sidResonance;
 	bit16 sidFilterFrequency;
-
 	bit8 sidBlock_Voice3;
 	bit8 sidInternalBusByte;
 	bit32 sidReadDelay;
@@ -612,16 +614,32 @@ struct SsSidV3
 	SsSidVoiceV3 voice1;
 	SsSidVoiceV3 voice2;
 	SsSidVoiceV3 voice3;
-
 	bit8 sidVolume;
 	bit8 sidFilter;
 	bit8 sidVoice_though_filter;
 	bit8 sidResonance;
 	bit16 sidFilterFrequency;
-
 	bit8 sidBlock_Voice3;
 	bit8 sidInternalBusByte;
 	bit32 sidReadDelay;
+};
+
+struct SsSidV4
+{
+	bit32 CurrentClock;
+	bit16 SidNumber;
+	bit16 SidAddress;
+	SsSidVoiceV3 voice1;
+	SsSidVoiceV3 voice2;
+	SsSidVoiceV3 voice3;
+	bit8 sidVolume;
+	bit8 sidFilter;
+	bit8 sidVoice_though_filter;
+	bit8 sidResonance;
+	bit16 sidFilterFrequency;
+	bit8 sidBlock_Voice3;
+	bit8 sidInternalBusByte;
+	bit32 sidReadDelayClock;
 };
 
 struct SsDiskInterfaceV0
