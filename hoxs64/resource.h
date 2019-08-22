@@ -242,31 +242,25 @@
 #define IDC_EDITRGBCOLORGREEN           1343
 #define IDC_SLIDERRGBCOLORGREEN         1344
 #define IDC_EDITRGBCOLORBLUE            1345
-#define IDC_SLIDER3                     1346
 #define IDC_SLIDERRGBCOLORBLUE          1346
-#define IDC_BUTTON1                     1347
 #define IDC_BUTTON_LOADPEPTO            1347
 #define IDC_BTN_DETECT                  1347
 #define IDC_BTN_CFG_JOY1FIRE1           1347
 #define IDC_BUTTON_LOADPEPTO2           1348
-#define IDC_BUTTON2                     1348
 #define IDC_BUTTON_LOADPREVIOUSCOLOURS  1348
 #define IDC_BTN_CFG_JOY2FIRE1           1348
 #define IDC_BTN_REMOVE                  1348
 #define IDC_STATIC_ABOUT_AUTHOR_WEB     1349
 #define IDC_BTN_CFG_JOY2FIRE2           1349
 #define IDC_BTN_CLEARALL                1349
-#define IDC_STATIC_ABOUT_LIBPNG         1350
 #define IDC_STATIC_ABOUT_LIBPNG_TITLE   1350
 #define IDC_BTN_CFG_JOY1FIRE2           1350
 #define IDC_STATIC_ABOUT_LIBPNG_AUTHOR  1351
 #define IDC_BTN_CFG_JOY1UP              1351
 #define IDC_VBLSYNC_WND                 1352
 #define IDC_BTN_CFG_JOY1DOWN            1352
-#define IDC_RADIO2                      1353
 #define IDC_LINESYNC_WND                1353
 #define IDC_BTN_CFG_JOY1LEFT            1353
-#define IDC_SID_MONO                    1353
 #define IDC_GROUP_WINDOWED              1354
 #define IDC_BTN_CFG_JOY1RIGHT           1354
 #define IDC_GROUP_FULLSCREEN            1355
@@ -294,7 +288,6 @@
 #define IDC_CBO_JOY2DOWN                1371
 #define IDC_TXT_MAPPED_NAME             1371
 #define IDC_LBL_JOY2UP                  1372
-#define IDC_EDIT1                       1372
 #define IDC_TXT_BREAKPOINTRASTERLINE_HEX 1372
 #define IDC_LBL_JOY2DOWN                1373
 #define IDC_CBO_JOY2LEFT                1374
@@ -313,6 +306,7 @@
 #define IDC_LBL_SID3_ADDRESS            1383
 #define IDC_LBL_SID4_ADDRESS            1384
 #define IDC_SID_STEREO                  1385
+#define IDC_SID_MONO                    1386
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -367,40 +361,25 @@
 #define IDM_BREAKPOINT_ENABLEALLBREAKPOINTS 40149
 #define IDM_BREAKPOINTOPTIONS_ENABLEBREAKPOINT 40152
 #define IDM_BREAKPOINT_DISABLEALLBREAKPOINTS 40155
-#define ID_BREAKPOINTOPTIONS_HEXADECIMAL 40156
 #define IDM_BREAKPOINTOPTIONS_HEXADECIMAL 40157
-#define ID_FILE_NEWCLI                  40158
 #define IDM_FILE_NEWCLI                 40159
-#define ID_CART_ATTACHCRT               40160
 #define IDM_CONTEXT_HELP                40161
 #define IDM_ATTACHCRT                   40162
 #define IDM_CART_ATTACHCRT              40163
-#define ID_CART_RESET                   40164
-#define ID_CART_FREEZE                  40165
 #define IDM_CART_RESET                  40166
 #define IDM_CART_FREEZE                 40167
-#define ID_CART_DETACHCART              40170
 #define IDM_CART_DETACHCART             40171
-#define ID_FILE_LOADSTATE               40174
-#define ID_FILE_SAVESTATE               40175
 #define IDM_FILE_LOADSTATE              40176
 #define IDM_FILE_SAVESTATE              40177
-#define ID_DEBUG_HOMETOPC               40178
 #define IDM_DEBUG_HOMETOPC              40179
 #define IDM_DISK_SAVEDISK_P64           40183
-#define ID_SETTING_COLOUR               40184
 #define IDM_SETTING_COLOUR              40185
-#define ID_DEBUG_STEPOVERINSTRUCTION    40186
 #define IDM_STEP_OVER_INSTRUCTION       40187
 #define IDM_STEP_OUT_INSTRUCTION        40191
 #define IDM_STEP_OUT_RTS_RTI            40194
-#define ID_OPTIONS_HEXADECIMAL          40197
 #define IDM_OPTIONS_HEXADECIMAL         40198
-#define ID_OPTIONS_IDM                  40199
 #define IDM_OPTIONS_DECIMAL             40200
-#define ID_BREAKPOINTOPTIONS_DECIMAL    40201
 #define IDM_BREAKPOINTOPTIONS_DECIMAL   40202
-#define ID_SETTINGS_SIDSTEREO           40205
 #define IDM_SETTINGS_SIDSTEREO          40206
 
 // Next default values for new objects
@@ -409,7 +388,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40209
-#define _APS_NEXT_CONTROL_VALUE         1386
+#define _APS_NEXT_CONTROL_VALUE         1387
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif
