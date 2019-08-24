@@ -1127,13 +1127,13 @@ unsigned int v;
 				{
 					addr.word = jumpAddress;
 					jumpAddress = 0;
+					m_cpu_sequence=C_FETCH_OPCODE;
 				}
 				else
 				{
 					addr.word=0xFFFA;
+					m_cpu_sequence=C_LOAD_PC;
 				}
-
-				m_cpu_sequence=C_LOAD_PC;
 			}
 			else
 			{
@@ -1144,6 +1144,7 @@ unsigned int v;
 				addr.word=0xFFFE;
 				m_cpu_sequence=C_LOAD_PC;
 			}
+
 			CheckForCartFreeze();
 			break;
 		case C_NMI:
