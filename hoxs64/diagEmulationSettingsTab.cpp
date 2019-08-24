@@ -848,7 +848,7 @@ HWND hWndPage;
 HWND hWndCbo;
 LRESULT lr;
 LRESULT currentSelection = -1;
-const int MaxExtraSids = 3;
+const int MaxExtraSids = 7;
 TCHAR str[10];
 const int CBO_CONTROL_ID = IDC_CBO_EXTRA_SID;
 
@@ -912,11 +912,11 @@ HWND hWndPage;
 HWND hWndCbo;
 LRESULT lr;
 LRESULT currentSelection = -1;
-const int MaxExtraSids = 3;
+const int MaxExtraSids = 7;
 TCHAR str[10];
-const int CBO_CONTROL_ID[] = { IDC_CBO_SID2_ADDRESS, IDC_CBO_SID3_ADDRESS, IDC_CBO_SID4_ADDRESS };
-const int LBL_CONTROL_ID[] = { IDC_LBL_SID2_ADDRESS, IDC_LBL_SID3_ADDRESS, IDC_LBL_SID4_ADDRESS };
-bit16* cfgaddress[]  = { &NewCfg.m_Sid2Address, &NewCfg.m_Sid3Address, &NewCfg.m_Sid4Address };
+const int CBO_CONTROL_ID[] = { IDC_CBO_SID2_ADDRESS, IDC_CBO_SID3_ADDRESS, IDC_CBO_SID4_ADDRESS, IDC_CBO_SID5_ADDRESS, IDC_CBO_SID6_ADDRESS, IDC_CBO_SID7_ADDRESS, IDC_CBO_SID8_ADDRESS };
+const int LBL_CONTROL_ID[] = { IDC_LBL_SID2_ADDRESS, IDC_LBL_SID3_ADDRESS, IDC_LBL_SID4_ADDRESS, IDC_LBL_SID5_ADDRESS, IDC_LBL_SID6_ADDRESS, IDC_LBL_SID7_ADDRESS, IDC_LBL_SID8_ADDRESS };
+bit16* cfgaddress[]  = { &NewCfg.m_Sid2Address, &NewCfg.m_Sid3Address, &NewCfg.m_Sid4Address, &NewCfg.m_Sid5Address, &NewCfg.m_Sid6Address, &NewCfg.m_Sid7Address, &NewCfg.m_Sid8Address };
 
 	shared_ptr<CTabPageDialog> page = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP);
 	if (!page)
@@ -1610,7 +1610,66 @@ bool CDiagEmulationSettingsTab::ReadSidAddress4(bit16 *sidAddress)
 		*sidAddress=0;
 		return false;
 	}
+}
 
+bool CDiagEmulationSettingsTab::ReadSidAddress5(bit16 *sidAddress)
+{
+	int v;
+	if (ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_SID5_ADDRESS, &v))
+	{
+		*sidAddress = (bit16)v;
+		return true;
+	}
+	else
+	{
+		*sidAddress=0;
+		return false;
+	}
+}
+
+bool CDiagEmulationSettingsTab::ReadSidAddress6(bit16 *sidAddress)
+{
+	int v;
+	if (ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_SID6_ADDRESS, &v))
+	{
+		*sidAddress = (bit16)v;
+		return true;
+	}
+	else
+	{
+		*sidAddress=0;
+		return false;
+	}
+}
+
+bool CDiagEmulationSettingsTab::ReadSidAddress7(bit16 *sidAddress)
+{
+	int v;
+	if (ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_SID7_ADDRESS, &v))
+	{
+		*sidAddress = (bit16)v;
+		return true;
+	}
+	else
+	{
+		*sidAddress=0;
+		return false;
+	}
+}
+
+bool CDiagEmulationSettingsTab::ReadSidAddress8(bit16 *sidAddress)
+{
+	int v;
+	if (ReadComboItemDataInt(CDiagEmulationSettingsTab::TABPAGE_CHIP, IDC_CBO_SID8_ADDRESS, &v))
+	{
+		*sidAddress = (bit16)v;
+		return true;
+	}
+	else
+	{
+		*sidAddress=0;
+		return false;
+	}
 }
 
 void CDiagEmulationSettingsTab::ReadTrackZeroSensor(HCFG::ETRACKZEROSENSORSTYLE *v)
@@ -2116,6 +2175,7 @@ shared_ptr<CTabPageDialog> pPage;
 		cfg->m_Sid5Address = 0;
 		cfg->m_Sid6Address = 0;
 		cfg->m_Sid7Address = 0;
+		cfg->m_Sid8Address = 0;
 		if (this->ReadSidAddress2(&sidAddress))
 		{
 			cfg->m_Sid2Address = sidAddress;
@@ -2129,6 +2189,26 @@ shared_ptr<CTabPageDialog> pPage;
 		if (this->ReadSidAddress4(&sidAddress))
 		{
 			cfg->m_Sid4Address = sidAddress;
+		}
+
+		if (this->ReadSidAddress5(&sidAddress))
+		{
+			cfg->m_Sid5Address = sidAddress;
+		}
+
+		if (this->ReadSidAddress6(&sidAddress))
+		{
+			cfg->m_Sid6Address = sidAddress;
+		}
+
+		if (this->ReadSidAddress7(&sidAddress))
+		{
+			cfg->m_Sid7Address = sidAddress;
+		}
+
+		if (this->ReadSidAddress8(&sidAddress))
+		{
+			cfg->m_Sid8Address = sidAddress;
 		}
 	}
 

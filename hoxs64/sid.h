@@ -19,10 +19,14 @@ public:
 	SidChip sid2;
 	SidChip sid3;
 	SidChip sid4;
+	SidChip sid5;
+	SidChip sid6;
+	SidChip sid7;
+	SidChip sid8;
 
 	HRESULT Init(CAppStatus *, CDX9 *, HCFG::EMUFPS fps, ICia1 *cia1);
 	HRESULT InitResamplingFilters(HCFG::EMUFPS fps);
-	void SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID);
+	void SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID, bit16 addressOfFifthSID, bit16 addressOfSixthSID, bit16 addressOfSeventhSID, bit16 addressOfEighthSID);
 	DWORD UpdateSoundBufferLockSize(HCFG::EMUFPS fps);
 	HRESULT LockSoundBuffer();
 	void UnLockSoundBuffer();

@@ -41,6 +41,7 @@ public:
 private:
 	int id;
 	bit16 sidAddress;
+	bool forceMono;
 	CAppStatus *appStatus;
 	bit8 sidVolume;
 	bit8 sidFilter;

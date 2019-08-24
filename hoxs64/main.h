@@ -49,7 +49,7 @@ public:
 	virtual void CAppStatus::GetUserConfig(CConfig& cfg);
 	virtual void CAppStatus::SetUserConfig(const CConfig& newcfg);
 	virtual void CAppStatus::ApplyConfig(const CConfig& newcfg);
-	virtual void CAppStatus::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID);
+	virtual void CAppStatus::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID, bit16 addressOfFifthSID, bit16 addressOfSixthSID, bit16 addressOfSeventhSID, bit16 addressOfEighthSID);
 	virtual void CAppStatus::ResetSidChipAddressMap();
 
 	// CAppStatus

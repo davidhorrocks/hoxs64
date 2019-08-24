@@ -940,7 +940,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 					bit16 sidAddress[4] = {0, 0, 0, 0};
 					int extraSidCount = 0;
 					SIDFileHeader3 &sidheader = autoLoadCommand.pSidFile->sfh;
-					this->sid.SetSidChipAddressMap(0, 0, 0, 0);
+					this->sid.SetSidChipAddressMap(0, 0, 0, 0, 0, 0, 0, 0);
 					if (sidheader.version >= 3)
 					{						
 						if (sidheader.secondSIDAddress >= 0x42 && sidheader.secondSIDAddress <= 0xFE)
@@ -958,7 +958,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 
 					if (extraSidCount > 0)
 					{
-						this->sid.SetSidChipAddressMap(extraSidCount, sidAddress[0], sidAddress[1], 0);
+						this->sid.SetSidChipAddressMap(extraSidCount, sidAddress[0], sidAddress[1], 0, 0, 0, 0, 0);
 					}
 
 					if (autoLoadCommand.pSidFile->IsRSID_BASIC)
@@ -2227,6 +2227,50 @@ bit32 dwordCount;
 					break;
 				}
 			}
+
+			if (sid.AddressOfFifthSID)
+			{
+				SsSidV4 sbSid5;
+				this->sid.sid5.GetState(sbSid5);
+				hr = SaveState::SaveSection(pfs, sbSid5, SsLib::SectionType::C64SidChip5);
+				if (FAILED(hr))
+				{
+					break;
+				}
+			}
+
+			if (sid.AddressOfSixthSID)
+			{
+				SsSidV4 sbSid6;
+				this->sid.sid6.GetState(sbSid6);
+				hr = SaveState::SaveSection(pfs, sbSid6, SsLib::SectionType::C64SidChip6);
+				if (FAILED(hr))
+				{
+					break;
+				}
+			}
+
+			if (sid.AddressOfSeventhSID)
+			{
+				SsSidV4 sbSid7;
+				this->sid.sid7.GetState(sbSid7);
+				hr = SaveState::SaveSection(pfs, sbSid7, SsLib::SectionType::C64SidChip7);
+				if (FAILED(hr))
+				{
+					break;
+				}
+			}
+
+			if (sid.AddressOfEighthSID)
+			{
+				SsSidV4 sbSid8;
+				this->sid.sid8.GetState(sbSid8);
+				hr = SaveState::SaveSection(pfs, sbSid8, SsLib::SectionType::C64SidChip8);
+				if (FAILED(hr))
+				{
+					break;
+				}
+			}
 		}
 
 		ZeroMemory(&sh, sizeof(sh));
@@ -2702,6 +2746,10 @@ SsSidV4 sbSidV4Number1;
 SsSidV4 sbSidV4Number2;
 SsSidV4 sbSidV4Number3;
 SsSidV4 sbSidV4Number4;
+SsSidV4 sbSidV4Number5;
+SsSidV4 sbSidV4Number6;
+SsSidV4 sbSidV4Number7;
+SsSidV4 sbSidV4Number8;
 SsTape sbTapePlayer;
 SsTapeData sbTapeDataHeader;
 SsDiskInterfaceV0 sbDriveControllerV0;
@@ -2737,6 +2785,10 @@ bool bC64SidNumber1 = false;
 bool bC64SidNumber2 = false;
 bool bC64SidNumber3 = false;
 bool bC64SidNumber4 = false;
+bool bC64SidNumber5 = false;
+bool bC64SidNumber6 = false;
+bool bC64SidNumber7 = false;
+bool bC64SidNumber8 = false;
 bool bC64KernelRom = false;
 bool bC64BasicRom = false;
 bool bC64CharRom = false;
@@ -3196,6 +3248,82 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 
 				bC64SidNumber4 = true;
+				break;
+			case SsLib::SectionType::C64SidChip5:
+				bytesToRead = sizeof(sbSidV4Number5);
+				hr = pfs->Read(&sbSidV4Number5, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					break;
+				}
+
+				bC64SidNumber5 = true;
+				break;
+			case SsLib::SectionType::C64SidChip6:
+				bytesToRead = sizeof(sbSidV4Number6);
+				hr = pfs->Read(&sbSidV4Number6, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					break;
+				}
+
+				bC64SidNumber6 = true;
+				break;
+			case SsLib::SectionType::C64SidChip7:
+				bytesToRead = sizeof(sbSidV4Number7);
+				hr = pfs->Read(&sbSidV4Number7, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					break;
+				}
+
+				bC64SidNumber7 = true;
+				break;
+			case SsLib::SectionType::C64SidChip8:
+				bytesToRead = sizeof(sbSidV4Number8);
+				hr = pfs->Read(&sbSidV4Number8, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+				if (FAILED(hr))
+				{
+					break;
+				}
+
+				bC64SidNumber8 = true;
 				break;
 			case SsLib::SectionType::C64KernelRom:
 				pC64KernelRom = (bit8 *)malloc(SaveState::SIZEC64KERNEL);
@@ -3767,7 +3895,7 @@ ULARGE_INTEGER pos_next_track_header;
 		appStatus->SetUserConfig(*appStatus);
 		vic.SetState(sbVic6569);
 		sid.sid1.SetState(sbSidV4Number1);
-		bit16 sidAddress[4] = {0, 0, 0, 0};
+		bit16 sidAddress[7] = {0, 0, 0, 0, 0, 0, 0};
 		int extraSidCount = 0;
 		if (bC64SidNumber2)
 		{
@@ -3787,8 +3915,32 @@ ULARGE_INTEGER pos_next_track_header;
 			sidAddress[extraSidCount++] = sbSidV4Number4.SidAddress;
 		}
 
+		if (bC64SidNumber5)
+		{
+			sid.sid5.SetState(sbSidV4Number5);
+			sidAddress[extraSidCount++] = sbSidV4Number5.SidAddress;
+		}
+
+		if (bC64SidNumber6)
+		{
+			sid.sid6.SetState(sbSidV4Number6);
+			sidAddress[extraSidCount++] = sbSidV4Number6.SidAddress;
+		}
+
+		if (bC64SidNumber7)
+		{
+			sid.sid7.SetState(sbSidV4Number7);
+			sidAddress[extraSidCount++] = sbSidV4Number7.SidAddress;
+		}
+
+		if (bC64SidNumber8)
+		{
+			sid.sid8.SetState(sbSidV4Number8);
+			sidAddress[extraSidCount++] = sbSidV4Number8.SidAddress;
+		}
+
 		sid.SetCurrentClock(sid.sid1.CurrentClock);
-		sid.SetSidChipAddressMap(extraSidCount, sidAddress[0], sidAddress[1], sidAddress[2]);
+		sid.SetSidChipAddressMap(extraSidCount, sidAddress[0], sidAddress[1], sidAddress[2], sidAddress[3], sidAddress[4], sidAddress[5], sidAddress[6]);
 		tape64.UnloadTAP();
 		if (bTapePlayer && bTapeData && sbTapeDataHeader.tape_max_counter > 0)
 		{

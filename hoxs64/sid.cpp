@@ -44,9 +44,9 @@ const double Max16BitSample = 32767.0;
 const double Min16BitSample = -32768.0;
 
 SID64::SID64()
-	: sid1(0), sid2(1), sid3(2), sid4(3)
+	: sid1(0), sid2(1), sid3(2), sid4(3), sid5(4), sid6(5), sid7(6), sid8(7)
 {
-	SetSidChipAddressMap(0, 0, 0, 0);
+	SetSidChipAddressMap(0, 0, 0, 0, 0, 0, 0, 0);
 	appStatus = NULL;
 	MasterVolume = 1.0;
 	bufferLockByteSize=0;
@@ -86,9 +86,30 @@ void SID64::CleanUp()
 	}
 }
 
-void SID64::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID)
+void SID64::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID, bit16 addressOfFifthSID, bit16 addressOfSixthSID, bit16 addressOfSeventhSID, bit16 addressOfEighthSID)
 {
+	SidChip *sids[8] = {&this->sid1, &this->sid2, &this->sid3, &this->sid4, &this->sid5, &this->sid6, &this->sid7, &this->sid8};
 	sid1.sidAddress = 0xD400;
+	if (numberOfExtraSidChips < 7)
+	{
+		addressOfEighthSID = 0;
+	}
+
+	if (numberOfExtraSidChips < 6)
+	{
+		addressOfSeventhSID = 0;
+	}
+
+	if (numberOfExtraSidChips < 5)
+	{
+		addressOfSixthSID = 0;
+	}
+
+	if (numberOfExtraSidChips < 4)
+	{
+		addressOfFifthSID = 0;
+	}
+
 	if (numberOfExtraSidChips < 3)
 	{
 		addressOfFourthSID = 0;
@@ -111,13 +132,27 @@ void SID64::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecon
 	sid3.sidAddress = addressOfThirdSID;
 	this->AddressOfFourthSID = addressOfFourthSID;
 	sid4.sidAddress = addressOfFourthSID;
-	if (addressOfSecondSID >= 0xDE00 || addressOfThirdSID >= 0xDE00 || addressOfFourthSID >= 0xDE00 )
+	this->AddressOfFifthSID = addressOfFifthSID;
+	sid5.sidAddress = addressOfFifthSID;
+	this->AddressOfSixthSID = addressOfSixthSID;
+	sid6.sidAddress = addressOfSixthSID;
+	this->AddressOfSeventhSID = addressOfSeventhSID;
+	sid7.sidAddress = addressOfSeventhSID;
+	this->AddressOfEighthSID = addressOfEighthSID;
+	sid8.sidAddress = addressOfEighthSID;
+	if (addressOfSecondSID >= 0xDE00 || addressOfThirdSID >= 0xDE00 || addressOfFourthSID >= 0xDE00 || addressOfFifthSID >= 0xDE00 || addressOfSixthSID >= 0xDE00 || addressOfSeventhSID >= 0xDE00 || addressOfEighthSID >= 0xDE00)
 	{
 		this->SidAtDE00toDF00 = true;
 	}
 	else
 	{
 		this->SidAtDE00toDF00 = false;
+	}
+
+	for (int i = 0; i < _countof(sids); i++)
+	{
+		// Make the last odd sid output to both channels.
+		sids[numberOfExtraSidChips]->forceMono = (i == numberOfExtraSidChips);
 	}
 }
 
@@ -333,6 +368,30 @@ HRESULT hr;
 		return SetError(hr, TEXT("SID 4 init failed."));
 	}
 
+	hr = this->sid5.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 5 init failed."));
+	}
+
+	hr = this->sid6.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 6 init failed."));
+	}
+
+	hr = this->sid7.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 7 init failed."));
+	}
+
+	hr = this->sid8.Init(appStatus, cia1);
+	if (FAILED(hr))
+	{
+		return SetError(hr, TEXT("SID 8 init failed."));
+	}
+
 	sidSampler=-1;
 	bufferByteLockPoint = 0;
 	hr = InitResamplingFilters(fps);
@@ -457,6 +516,10 @@ void SID64::InitReset(ICLK sysclock, bool poweronreset)
 	sid2.InitReset(sysclock, poweronreset);
 	sid3.InitReset(sysclock, poweronreset);
 	sid4.InitReset(sysclock, poweronreset);
+	sid5.InitReset(sysclock, poweronreset);
+	sid6.InitReset(sysclock, poweronreset);
+	sid7.InitReset(sysclock, poweronreset);
+	sid8.InitReset(sysclock, poweronreset);
 }
 
 void SID64::Reset(ICLK sysclock, bool poweronreset)
@@ -466,6 +529,10 @@ void SID64::Reset(ICLK sysclock, bool poweronreset)
 	sid2.Reset(sysclock, poweronreset);
 	sid3.Reset(sysclock, poweronreset);
 	sid4.Reset(sysclock, poweronreset);
+	sid5.Reset(sysclock, poweronreset);
+	sid6.Reset(sysclock, poweronreset);
+	sid7.Reset(sysclock, poweronreset);
+	sid8.Reset(sysclock, poweronreset);
 	appStatus->ResetSidChipAddressMap();
 }
 
@@ -527,6 +594,26 @@ long sampleOffset;
 			{
 				sid4.ExecuteCycle(CurrentClock);
 			}
+
+			if (sid5.sidAddress)
+			{
+				sid5.ExecuteCycle(CurrentClock);
+			}
+
+			if (sid6.sidAddress)
+			{
+				sid6.ExecuteCycle(CurrentClock);
+			}
+
+			if (sid7.sidAddress)
+			{
+				sid7.ExecuteCycle(CurrentClock);
+			}
+
+			if (sid8.sidAddress)
+			{
+				sid8.ExecuteCycle(CurrentClock);
+			}
 		}
 
 		if (appStatus->m_bMaxSpeed)
@@ -553,7 +640,7 @@ long sampleOffset;
 
 			if (sid3.sidAddress)
 			{
-				if (numberOfExtraSidChips == 2)
+				if (sid3.forceMono)
 				{
 					double fsid3 = sid3.GetResample();
 					fsampleChannel1 += fsid3;
@@ -571,6 +658,53 @@ long sampleOffset;
 			if (sid4.sidAddress)
 			{
 				fsampleChannel2 += sid4.GetResample();
+				channel2SidCount++;
+			}
+
+
+			if (sid5.sidAddress)
+			{
+				if (sid5.forceMono)
+				{
+					double fsid5 = sid5.GetResample();
+					fsampleChannel1 += fsid5;
+					fsampleChannel2 += fsid5;
+					channel1SidCount++;
+					channel2SidCount++;
+				}
+				else
+				{
+					fsampleChannel1 += sid5.GetResample();
+					channel1SidCount++;
+				}
+			}
+
+			if (sid6.sidAddress)
+			{
+				fsampleChannel2 += sid6.GetResample();
+				channel2SidCount++;
+			}
+
+			if (sid7.sidAddress)
+			{
+				if (sid7.forceMono)
+				{
+					double fsid7 = sid7.GetResample();
+					fsampleChannel1 += fsid7;
+					fsampleChannel2 += fsid7;
+					channel1SidCount++;
+					channel2SidCount++;
+				}
+				else
+				{
+					fsampleChannel1 += sid7.GetResample();
+					channel1SidCount++;
+				}
+			}
+
+			if (sid8.sidAddress)
+			{
+				fsampleChannel2 += sid8.GetResample();
 				channel2SidCount++;
 			}
 
@@ -675,6 +809,26 @@ long sampleOffset;
 			{
 				sid4.ExecuteCycle(CurrentClock);
 			}
+
+			if (sid5.sidAddress)
+			{
+				sid5.ExecuteCycle(CurrentClock);
+			}
+
+			if (sid6.sidAddress)
+			{
+				sid6.ExecuteCycle(CurrentClock);
+			}
+
+			if (sid7.sidAddress)
+			{
+				sid7.ExecuteCycle(CurrentClock);
+			}
+
+			if (sid8.sidAddress)
+			{
+				sid8.ExecuteCycle(CurrentClock);
+			}
 		}
 
 		if (appStatus->m_bMaxSpeed)
@@ -702,6 +856,30 @@ long sampleOffset;
 			if (sid4.sidAddress)
 			{
 				fsampleMono += sid4.GetResample();
+				channelSidCount++;
+			}
+
+			if (sid5.sidAddress)
+			{
+				fsampleMono += sid5.GetResample();
+				channelSidCount++;
+			}
+
+			if (sid6.sidAddress)
+			{
+				fsampleMono += sid6.GetResample();
+				channelSidCount++;
+			}
+
+			if (sid7.sidAddress)
+			{
+				fsampleMono += sid7.GetResample();
+				channelSidCount++;
+			}
+
+			if (sid8.sidAddress)
+			{
+				fsampleMono += sid8.GetResample();
 				channelSidCount++;
 			}
 		}
@@ -785,6 +963,26 @@ double fsampleChannel2;
 			{
 				sid4.Envelope();
 			}
+
+			if (sid5.sidAddress)
+			{
+				sid5.Envelope();
+			}
+
+			if (sid6.sidAddress)
+			{
+				sid6.Envelope();
+			}
+
+			if (sid7.sidAddress)
+			{
+				sid7.Envelope();
+			}
+
+			if (sid8.sidAddress)
+			{
+				sid8.Envelope();
+			}
 		}
 
 		if (appStatus->m_bMaxSpeed)
@@ -815,6 +1013,26 @@ double fsampleChannel2;
 				{
 					sid4.Modulate(CurrentClock);
 				}
+
+				if (sid5.sidAddress)
+				{
+					sid5.Modulate(CurrentClock);
+				}
+
+				if (sid6.sidAddress)
+				{
+					sid6.Modulate(CurrentClock);
+				}
+
+				if (sid7.sidAddress)
+				{
+					sid7.Modulate(CurrentClock);
+				}
+
+				if (sid8.sidAddress)
+				{
+					sid8.Modulate(CurrentClock);
+				}
 			}
 
 			if (pBuffer1==NULL)
@@ -840,7 +1058,7 @@ double fsampleChannel2;
 
 				if (sid3.sidAddress)
 				{
-					if (numberOfExtraSidChips == 2)
+					if (sid3.forceMono)
 					{
 						double fsid3 = sid3.GetDownsample();
 						fsampleChannel1 += fsid3;
@@ -857,7 +1075,53 @@ double fsampleChannel2;
 
 				if (sid4.sidAddress)
 				{
-					fsampleChannel2 += sid4.GetResample();
+					fsampleChannel2 += sid4.GetDownsample();
+					channel2SidCount++;
+				}
+
+				if (sid5.sidAddress)
+				{
+					if (sid5.forceMono)
+					{
+						double fsid5 = sid5.GetDownsample();
+						fsampleChannel1 += fsid5;
+						fsampleChannel2 += fsid5;
+						channel1SidCount++;
+						channel2SidCount++;
+					}
+					else
+					{
+						fsampleChannel1 += sid5.GetDownsample();
+						channel1SidCount++;
+					}
+				}
+
+				if (sid6.sidAddress)
+				{
+					fsampleChannel2 += sid6.GetDownsample();
+					channel2SidCount++;
+				}
+
+				if (sid7.sidAddress)
+				{
+					if (sid7.forceMono)
+					{
+						double fsid7 = sid7.GetDownsample();
+						fsampleChannel1 += fsid7;
+						fsampleChannel2 += fsid7;
+						channel1SidCount++;
+						channel2SidCount++;
+					}
+					else
+					{
+						fsampleChannel1 += sid7.GetDownsample();
+						channel1SidCount++;
+					}
+				}
+
+				if (sid8.sidAddress)
+				{
+					fsampleChannel2 += sid8.GetResample();
 					channel2SidCount++;
 				}
 
@@ -926,6 +1190,26 @@ short dxsample;
 			{
 				sid4.Envelope();
 			}
+
+			if (sid5.sidAddress)
+			{
+				sid5.Envelope();
+			}
+
+			if (sid6.sidAddress)
+			{
+				sid6.Envelope();
+			}
+
+			if (sid7.sidAddress)
+			{
+				sid7.Envelope();
+			}
+
+			if (sid8.sidAddress)
+			{
+				sid8.Envelope();
+			}
 		}
 
 		if (appStatus->m_bMaxSpeed)
@@ -956,6 +1240,26 @@ short dxsample;
 				{
 					sid4.Modulate(CurrentClock);
 				}
+
+				if (sid5.sidAddress)
+				{
+					sid5.Modulate(CurrentClock);
+				}
+
+				if (sid6.sidAddress)
+				{
+					sid6.Modulate(CurrentClock);
+				}
+
+				if (sid7.sidAddress)
+				{
+					sid7.Modulate(CurrentClock);
+				}
+
+				if (sid8.sidAddress)
+				{
+					sid8.Modulate(CurrentClock);
+				}
 			}
 
 			if (pBuffer1==NULL)
@@ -980,6 +1284,26 @@ short dxsample;
 				if (sid4.sidAddress)
 				{
 					fsampleSid += sid4.GetDownsample();
+				}
+
+				if (sid5.sidAddress)
+				{
+					fsampleSid += sid5.GetDownsample();
+				}
+
+				if (sid6.sidAddress)
+				{
+					fsampleSid += sid6.GetDownsample();
+				}
+
+				if (sid7.sidAddress)
+				{
+					fsampleSid += sid7.GetDownsample();
+				}
+
+				if (sid8.sidAddress)
+				{
+					fsampleSid += sid8.GetDownsample();
 				}
 
 				fsample = fsampleSid / (double)(numberOfExtraSidChips + 1);
@@ -1073,6 +1397,10 @@ void SID64::SetCurrentClock(ICLK sysclock)
 	sid2.SetCurrentClock(sysclock);
 	sid3.SetCurrentClock(sysclock);
 	sid4.SetCurrentClock(sysclock);
+	sid5.SetCurrentClock(sysclock);
+	sid6.SetCurrentClock(sysclock);
+	sid7.SetCurrentClock(sysclock);
+	sid8.SetCurrentClock(sysclock);
 }
 
 void SID64::PreventClockOverflow()
@@ -1081,6 +1409,10 @@ void SID64::PreventClockOverflow()
 	sid2.PreventClockOverflow(CurrentClock);
 	sid3.PreventClockOverflow(CurrentClock);
 	sid4.PreventClockOverflow(CurrentClock);
+	sid5.PreventClockOverflow(CurrentClock);
+	sid6.PreventClockOverflow(CurrentClock);
+	sid7.PreventClockOverflow(CurrentClock);
+	sid8.PreventClockOverflow(CurrentClock);
 }
 
 bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
@@ -1112,6 +1444,22 @@ bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
 		else if (maskaddress == this->AddressOfFourthSID)
 		{
 			return sid4.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfFifthSID)
+		{
+			return sid5.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfSixthSID)
+		{
+			return sid6.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfSeventhSID)
+		{
+			return sid7.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfEighthSID)
+		{
+			return sid8.ReadRegister(address, sysclock);
 		}
 		else
 		{
@@ -1150,6 +1498,22 @@ bit8 SID64::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 		{
 			return sid4.ReadRegister(address, sysclock);
 		}
+		else if (maskaddress == this->AddressOfFifthSID)
+		{
+			return sid5.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfSixthSID)
+		{
+			return sid6.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfSeventhSID)
+		{
+			return sid7.ReadRegister(address, sysclock);
+		}
+		else if (maskaddress == this->AddressOfEighthSID)
+		{
+			return sid8.ReadRegister(address, sysclock);
+		}
 		else
 		{
 			return 0;
@@ -1166,26 +1530,42 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 
 	if (this->NumberOfExtraSidChips == 0)
 	{
-		return sid1.WriteRegister(address, sysclock, data);
+		sid1.WriteRegister(address, sysclock, data);
 	}
 	else
 	{
 		bit16 maskaddress = address & 0xDFE0;
 		if (maskaddress == 0xD400)
 		{
-			return sid1.WriteRegister(address, sysclock, data);
+			sid1.WriteRegister(address, sysclock, data);
 		}
 		else if (maskaddress == this->AddressOfSecondSID)
 		{
-			return sid2.WriteRegister(address, sysclock, data);
+			sid2.WriteRegister(address, sysclock, data);
 		}
 		else if (maskaddress == this->AddressOfThirdSID)
 		{
-			return sid3.WriteRegister(address, sysclock, data);
+			sid3.WriteRegister(address, sysclock, data);
 		}
 		else if (maskaddress == this->AddressOfFourthSID)
 		{
-			return sid4.WriteRegister(address, sysclock, data);
+			sid4.WriteRegister(address, sysclock, data);
+		}
+		else if (maskaddress == this->AddressOfFifthSID)
+		{
+			sid5.WriteRegister(address, sysclock, data);
+		}
+		else if (maskaddress == this->AddressOfSixthSID)
+		{
+			sid6.WriteRegister(address, sysclock, data);
+		}
+		else if (maskaddress == this->AddressOfSeventhSID)
+		{
+			sid7.WriteRegister(address, sysclock, data);
+		}
+		else if (maskaddress == this->AddressOfEighthSID)
+		{
+			sid8.WriteRegister(address, sysclock, data);
 		}
 	}
 }

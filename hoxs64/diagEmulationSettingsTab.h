@@ -100,6 +100,10 @@ private:
 	bool ReadSidAddress2(bit16 *sidAddress);
 	bool ReadSidAddress3(bit16 *sidAddress);
 	bool ReadSidAddress4(bit16 *sidAddress);
+	bool ReadSidAddress5(bit16 *sidAddress);
+	bool ReadSidAddress6(bit16 *sidAddress);
+	bool ReadSidAddress7(bit16 *sidAddress);
+	bool ReadSidAddress8(bit16 *sidAddress);
 	bool ReadComboItemDataInt(int page, int control_id, int *data);
 
 	static const int TABPAGE_GENERAL = 0;

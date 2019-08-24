@@ -20,6 +20,7 @@ SidChip::SidChip(int id)
 {
 	this->id = id;
 	sidAddress = 0xD400 + id * 0x20;
+	forceMono = false;
 	appStatus = NULL;
 	sidVolume=0;
 	sidFilter=0;

@@ -102,6 +102,10 @@ public:
 	bit16 AddressOfSecondSID;
 	bit16 AddressOfThirdSID;
 	bit16 AddressOfFourthSID;
+	bit16 AddressOfFifthSID;
+	bit16 AddressOfSixthSID;
+	bit16 AddressOfSeventhSID;
+	bit16 AddressOfEighthSID;
 	bool SidAtDE00toDF00;
 };
 

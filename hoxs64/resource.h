@@ -307,6 +307,14 @@
 #define IDC_LBL_SID4_ADDRESS            1384
 #define IDC_SID_STEREO                  1385
 #define IDC_SID_MONO                    1386
+#define IDC_CBO_SID5_ADDRESS            1388
+#define IDC_CBO_SID6_ADDRESS            1389
+#define IDC_CBO_SID7_ADDRESS            1390
+#define IDC_CBO_SID8_ADDRESS            1391
+#define IDC_LBL_SID5_ADDRESS            1392
+#define IDC_LBL_SID6_ADDRESS            1393
+#define IDC_LBL_SID7_ADDRESS            1394
+#define IDC_LBL_SID8_ADDRESS            1395
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -388,7 +396,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40209
-#define _APS_NEXT_CONTROL_VALUE         1387
+#define _APS_NEXT_CONTROL_VALUE         1396
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif
