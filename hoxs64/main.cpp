@@ -1663,6 +1663,10 @@ void CApp::UpdateConfigFromSid(CConfig& cfg)
 	cfg.m_Sid2Address = c64.sid.AddressOfSecondSID;
 	cfg.m_Sid3Address = c64.sid.AddressOfThirdSID;
 	cfg.m_Sid4Address = c64.sid.AddressOfFourthSID;
+	cfg.m_Sid5Address = c64.sid.AddressOfFifthSID;
+	cfg.m_Sid6Address = c64.sid.AddressOfSixthSID;
+	cfg.m_Sid7Address = c64.sid.AddressOfSeventhSID;
+	cfg.m_Sid8Address = c64.sid.AddressOfEighthSID;
 }
 
 void CApp::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID, bit16 addressOfFifthSID, bit16 addressOfSixthSID, bit16 addressOfSeventhSID, bit16 addressOfEighthSID)
