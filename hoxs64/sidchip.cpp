@@ -19,6 +19,7 @@
 SidChip::SidChip(int id)
 {
 	this->id = id;
+	active = (id == 0);
 	sidAddress = 0xD400 + id * 0x20;
 	forceMono = false;
 	appStatus = NULL;

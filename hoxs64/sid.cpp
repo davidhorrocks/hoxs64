@@ -90,39 +90,10 @@ void SID64::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecon
 {
 	SidChip *sids[8] = {&this->sid1, &this->sid2, &this->sid3, &this->sid4, &this->sid5, &this->sid6, &this->sid7, &this->sid8};
 	sid1.sidAddress = 0xD400;
-	if (numberOfExtraSidChips < 7)
+	sid1.active = true;
+	for (int i = 1; i < _countof(sids); i++)
 	{
-		addressOfEighthSID = 0;
-	}
-
-	if (numberOfExtraSidChips < 6)
-	{
-		addressOfSeventhSID = 0;
-	}
-
-	if (numberOfExtraSidChips < 5)
-	{
-		addressOfSixthSID = 0;
-	}
-
-	if (numberOfExtraSidChips < 4)
-	{
-		addressOfFifthSID = 0;
-	}
-
-	if (numberOfExtraSidChips < 3)
-	{
-		addressOfFourthSID = 0;
-	}
-
-	if (numberOfExtraSidChips < 2)
-	{
-		addressOfThirdSID = 0;
-	}
-
-	if (numberOfExtraSidChips < 1)
-	{
-		addressOfSecondSID = 0;
+		sids[i]->active = numberOfExtraSidChips >= i;
 	}
 
 	this->NumberOfExtraSidChips = numberOfExtraSidChips;
@@ -152,7 +123,7 @@ void SID64::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecon
 	for (int i = 0; i < _countof(sids); i++)
 	{
 		// Make the last odd sid output to both channels.
-		sids[numberOfExtraSidChips]->forceMono = (i == numberOfExtraSidChips);
+		sids[i]->forceMono = (i == numberOfExtraSidChips);
 	}
 }
 
@@ -580,37 +551,37 @@ long sampleOffset;
 		if (numberOfExtraSidChips > 0)
 		{
 			// Update SID2 chip state.
-			if (sid2.sidAddress)
+			if (sid2.active)
 			{
 				sid2.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid3.sidAddress)
+			if (sid3.active)
 			{
 				sid3.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid4.sidAddress)
+			if (sid4.active)
 			{
 				sid4.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid5.sidAddress)
+			if (sid5.active)
 			{
 				sid5.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid6.sidAddress)
+			if (sid6.active)
 			{
 				sid6.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid7.sidAddress)
+			if (sid7.active)
 			{
 				sid7.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid8.sidAddress)
+			if (sid8.active)
 			{
 				sid8.ExecuteCycle(CurrentClock);
 			}
@@ -632,13 +603,13 @@ long sampleOffset;
 		else
 		{
 			fsampleChannel2 = 0.0;
-			if (sid2.sidAddress)
+			if (sid2.active)
 			{
 				fsampleChannel2 += sid2.GetResample();
 				channel2SidCount++;
 			}
 
-			if (sid3.sidAddress)
+			if (sid3.active)
 			{
 				if (sid3.forceMono)
 				{
@@ -655,14 +626,14 @@ long sampleOffset;
 				}
 			}
 
-			if (sid4.sidAddress)
+			if (sid4.active)
 			{
 				fsampleChannel2 += sid4.GetResample();
 				channel2SidCount++;
 			}
 
 
-			if (sid5.sidAddress)
+			if (sid5.active)
 			{
 				if (sid5.forceMono)
 				{
@@ -679,13 +650,13 @@ long sampleOffset;
 				}
 			}
 
-			if (sid6.sidAddress)
+			if (sid6.active)
 			{
 				fsampleChannel2 += sid6.GetResample();
 				channel2SidCount++;
 			}
 
-			if (sid7.sidAddress)
+			if (sid7.active)
 			{
 				if (sid7.forceMono)
 				{
@@ -702,7 +673,7 @@ long sampleOffset;
 				}
 			}
 
-			if (sid8.sidAddress)
+			if (sid8.active)
 			{
 				fsampleChannel2 += sid8.GetResample();
 				channel2SidCount++;
@@ -795,37 +766,37 @@ long sampleOffset;
 		if (numberOfExtraSidChips > 0)
 		{
 			// Update SID2 chip state.
-			if (sid2.sidAddress)
+			if (sid2.active)
 			{
 				sid2.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid3.sidAddress)
+			if (sid3.active)
 			{
 				sid3.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid4.sidAddress)
+			if (sid4.active)
 			{
 				sid4.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid5.sidAddress)
+			if (sid5.active)
 			{
 				sid5.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid6.sidAddress)
+			if (sid6.active)
 			{
 				sid6.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid7.sidAddress)
+			if (sid7.active)
 			{
 				sid7.ExecuteCycle(CurrentClock);
 			}
 
-			if (sid8.sidAddress)
+			if (sid8.active)
 			{
 				sid8.ExecuteCycle(CurrentClock);
 			}
@@ -841,43 +812,43 @@ long sampleOffset;
 		fsampleMono = sid1.GetResample();
 		if (numberOfExtraSidChips > 0)
 		{
-			if (sid2.sidAddress)
+			if (sid2.active)
 			{
 				fsampleMono += sid2.GetResample();
 				channelSidCount++;
 			}
 
-			if (sid3.sidAddress)
+			if (sid3.active)
 			{
 				fsampleMono += sid3.GetResample();
 				channelSidCount++;
 			}
 
-			if (sid4.sidAddress)
+			if (sid4.active)
 			{
 				fsampleMono += sid4.GetResample();
 				channelSidCount++;
 			}
 
-			if (sid5.sidAddress)
+			if (sid5.active)
 			{
 				fsampleMono += sid5.GetResample();
 				channelSidCount++;
 			}
 
-			if (sid6.sidAddress)
+			if (sid6.active)
 			{
 				fsampleMono += sid6.GetResample();
 				channelSidCount++;
 			}
 
-			if (sid7.sidAddress)
+			if (sid7.active)
 			{
 				fsampleMono += sid7.GetResample();
 				channelSidCount++;
 			}
 
-			if (sid8.sidAddress)
+			if (sid8.active)
 			{
 				fsampleMono += sid8.GetResample();
 				channelSidCount++;
@@ -949,37 +920,37 @@ double fsampleChannel2;
 		sid1.Envelope();
 		if (numberOfExtraSidChips > 0)
 		{
-			if (sid2.sidAddress)
+			if (sid2.active)
 			{
 				sid2.Envelope();
 			}
 
-			if (sid3.sidAddress)
+			if (sid3.active)
 			{
 				sid3.Envelope();
 			}
 
-			if (sid4.sidAddress)
+			if (sid4.active)
 			{
 				sid4.Envelope();
 			}
 
-			if (sid5.sidAddress)
+			if (sid5.active)
 			{
 				sid5.Envelope();
 			}
 
-			if (sid6.sidAddress)
+			if (sid6.active)
 			{
 				sid6.Envelope();
 			}
 
-			if (sid7.sidAddress)
+			if (sid7.active)
 			{
 				sid7.Envelope();
 			}
 
-			if (sid8.sidAddress)
+			if (sid8.active)
 			{
 				sid8.Envelope();
 			}
@@ -999,37 +970,37 @@ double fsampleChannel2;
 			sid1.Modulate(CurrentClock);
 			if (numberOfExtraSidChips > 0)
 			{
-				if (sid2.sidAddress)
+				if (sid2.active)
 				{
 					sid2.Modulate(CurrentClock);
 				}
 
-				if (sid3.sidAddress)
+				if (sid3.active)
 				{
 					sid3.Modulate(CurrentClock);
 				}
 
-				if (sid4.sidAddress)
+				if (sid4.active)
 				{
 					sid4.Modulate(CurrentClock);
 				}
 
-				if (sid5.sidAddress)
+				if (sid5.active)
 				{
 					sid5.Modulate(CurrentClock);
 				}
 
-				if (sid6.sidAddress)
+				if (sid6.active)
 				{
 					sid6.Modulate(CurrentClock);
 				}
 
-				if (sid7.sidAddress)
+				if (sid7.active)
 				{
 					sid7.Modulate(CurrentClock);
 				}
 
-				if (sid8.sidAddress)
+				if (sid8.active)
 				{
 					sid8.Modulate(CurrentClock);
 				}
@@ -1050,13 +1021,13 @@ double fsampleChannel2;
 			else
 			{
 				fsampleChannel2 = 0.0;
-				if (sid2.sidAddress)
+				if (sid2.active)
 				{
 					fsampleChannel2 += sid2.GetDownsample();
 					channel2SidCount++;
 				}
 
-				if (sid3.sidAddress)
+				if (sid3.active)
 				{
 					if (sid3.forceMono)
 					{
@@ -1073,13 +1044,13 @@ double fsampleChannel2;
 					}
 				}
 
-				if (sid4.sidAddress)
+				if (sid4.active)
 				{
 					fsampleChannel2 += sid4.GetDownsample();
 					channel2SidCount++;
 				}
 
-				if (sid5.sidAddress)
+				if (sid5.active)
 				{
 					if (sid5.forceMono)
 					{
@@ -1096,13 +1067,13 @@ double fsampleChannel2;
 					}
 				}
 
-				if (sid6.sidAddress)
+				if (sid6.active)
 				{
 					fsampleChannel2 += sid6.GetDownsample();
 					channel2SidCount++;
 				}
 
-				if (sid7.sidAddress)
+				if (sid7.active)
 				{
 					if (sid7.forceMono)
 					{
@@ -1119,7 +1090,7 @@ double fsampleChannel2;
 					}
 				}
 
-				if (sid8.sidAddress)
+				if (sid8.active)
 				{
 					fsampleChannel2 += sid8.GetResample();
 					channel2SidCount++;
@@ -1176,37 +1147,37 @@ short dxsample;
 		sid1.Envelope();
 		if (numberOfExtraSidChips > 0)
 		{
-			if (sid2.sidAddress)
+			if (sid2.active)
 			{
 				sid2.Envelope();
 			}
 
-			if (sid3.sidAddress)
+			if (sid3.active)
 			{
 				sid3.Envelope();
 			}
 
-			if (sid4.sidAddress)
+			if (sid4.active)
 			{
 				sid4.Envelope();
 			}
 
-			if (sid5.sidAddress)
+			if (sid5.active)
 			{
 				sid5.Envelope();
 			}
 
-			if (sid6.sidAddress)
+			if (sid6.active)
 			{
 				sid6.Envelope();
 			}
 
-			if (sid7.sidAddress)
+			if (sid7.active)
 			{
 				sid7.Envelope();
 			}
 
-			if (sid8.sidAddress)
+			if (sid8.active)
 			{
 				sid8.Envelope();
 			}
@@ -1226,37 +1197,37 @@ short dxsample;
 			sid1.Modulate(CurrentClock);
 			if (numberOfExtraSidChips > 0)
 			{
-				if (sid2.sidAddress)
+				if (sid2.active)
 				{
 					sid2.Modulate(CurrentClock);
 				}
 
-				if (sid3.sidAddress)
+				if (sid3.active)
 				{
 					sid3.Modulate(CurrentClock);
 				}
 
-				if (sid4.sidAddress)
+				if (sid4.active)
 				{
 					sid4.Modulate(CurrentClock);
 				}
 
-				if (sid5.sidAddress)
+				if (sid5.active)
 				{
 					sid5.Modulate(CurrentClock);
 				}
 
-				if (sid6.sidAddress)
+				if (sid6.active)
 				{
 					sid6.Modulate(CurrentClock);
 				}
 
-				if (sid7.sidAddress)
+				if (sid7.active)
 				{
 					sid7.Modulate(CurrentClock);
 				}
 
-				if (sid8.sidAddress)
+				if (sid8.active)
 				{
 					sid8.Modulate(CurrentClock);
 				}
@@ -1271,37 +1242,37 @@ short dxsample;
 			if (numberOfExtraSidChips > 0)
 			{
 				fsampleSid = fsample;
-				if (sid2.sidAddress)
+				if (sid2.active)
 				{
 					fsampleSid += sid2.GetDownsample();
 				}
 
-				if (sid3.sidAddress)
+				if (sid3.active)
 				{
 					fsampleSid += sid3.GetDownsample();
 				}
 
-				if (sid4.sidAddress)
+				if (sid4.active)
 				{
 					fsampleSid += sid4.GetDownsample();
 				}
 
-				if (sid5.sidAddress)
+				if (sid5.active)
 				{
 					fsampleSid += sid5.GetDownsample();
 				}
 
-				if (sid6.sidAddress)
+				if (sid6.active)
 				{
 					fsampleSid += sid6.GetDownsample();
 				}
 
-				if (sid7.sidAddress)
+				if (sid7.active)
 				{
 					fsampleSid += sid7.GetDownsample();
 				}
 
-				if (sid8.sidAddress)
+				if (sid8.active)
 				{
 					fsampleSid += sid8.GetDownsample();
 				}
@@ -1433,31 +1404,31 @@ bit8 SID64::ReadRegister(bit16 address, ICLK sysclock)
 		{
 			return sid1.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfSecondSID)
+		else if (maskaddress == this->AddressOfSecondSID && sid2.active)
 		{
 			return sid2.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfThirdSID)
+		else if (maskaddress == this->AddressOfThirdSID && sid3.active)
 		{
 			return sid3.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfFourthSID)
+		else if (maskaddress == this->AddressOfFourthSID && sid4.active)
 		{
 			return sid4.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfFifthSID)
+		else if (maskaddress == this->AddressOfFifthSID && sid5.active)
 		{
 			return sid5.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfSixthSID)
+		else if (maskaddress == this->AddressOfSixthSID && sid6.active)
 		{
 			return sid6.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfSeventhSID)
+		else if (maskaddress == this->AddressOfSeventhSID && sid7.active)
 		{
 			return sid7.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfEighthSID)
+		else if (maskaddress == this->AddressOfEighthSID && sid8.active)
 		{
 			return sid8.ReadRegister(address, sysclock);
 		}
@@ -1486,31 +1457,31 @@ bit8 SID64::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 		{
 			return sid1.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfSecondSID)
+		else if (maskaddress == this->AddressOfSecondSID && sid2.active)
 		{
 			return sid2.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfThirdSID)
+		else if (maskaddress == this->AddressOfThirdSID && sid3.active)
 		{
 			return sid3.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfFourthSID)
+		else if (maskaddress == this->AddressOfFourthSID && sid4.active)
 		{
 			return sid4.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfFifthSID)
+		else if (maskaddress == this->AddressOfFifthSID && sid5.active)
 		{
 			return sid5.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfSixthSID)
+		else if (maskaddress == this->AddressOfSixthSID && sid6.active)
 		{
 			return sid6.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfSeventhSID)
+		else if (maskaddress == this->AddressOfSeventhSID && sid7.active)
 		{
 			return sid7.ReadRegister(address, sysclock);
 		}
-		else if (maskaddress == this->AddressOfEighthSID)
+		else if (maskaddress == this->AddressOfEighthSID && sid8.active)
 		{
 			return sid8.ReadRegister(address, sysclock);
 		}
@@ -1539,31 +1510,31 @@ void SID64::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 		{
 			sid1.WriteRegister(address, sysclock, data);
 		}
-		else if (maskaddress == this->AddressOfSecondSID)
+		else if (maskaddress == this->AddressOfSecondSID && sid2.active)
 		{
 			sid2.WriteRegister(address, sysclock, data);
 		}
-		else if (maskaddress == this->AddressOfThirdSID)
+		else if (maskaddress == this->AddressOfThirdSID && sid3.active)
 		{
 			sid3.WriteRegister(address, sysclock, data);
 		}
-		else if (maskaddress == this->AddressOfFourthSID)
+		else if (maskaddress == this->AddressOfFourthSID && sid4.active)
 		{
 			sid4.WriteRegister(address, sysclock, data);
 		}
-		else if (maskaddress == this->AddressOfFifthSID)
+		else if (maskaddress == this->AddressOfFifthSID && sid5.active)
 		{
 			sid5.WriteRegister(address, sysclock, data);
 		}
-		else if (maskaddress == this->AddressOfSixthSID)
+		else if (maskaddress == this->AddressOfSixthSID && sid6.active)
 		{
 			sid6.WriteRegister(address, sysclock, data);
 		}
-		else if (maskaddress == this->AddressOfSeventhSID)
+		else if (maskaddress == this->AddressOfSeventhSID && sid7.active)
 		{
 			sid7.WriteRegister(address, sysclock, data);
 		}
-		else if (maskaddress == this->AddressOfEighthSID)
+		else if (maskaddress == this->AddressOfEighthSID && sid8.active)
 		{
 			sid8.WriteRegister(address, sysclock, data);
 		}
