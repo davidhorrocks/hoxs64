@@ -1657,6 +1657,11 @@ void CApp::GetUserConfig(CConfig& cfg)
 	UpdateConfigFromSid(cfg);
 }
 
+void CApp::UpdateUserConfigFromSid()
+{
+	UpdateConfigFromSid(this->mainCfg);
+}
+
 void CApp::UpdateConfigFromSid(CConfig& cfg)
 {
 	cfg.m_numberOfExtraSIDs = c64.sid.NumberOfExtraSidChips;

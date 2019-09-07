@@ -506,6 +506,7 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			return 0;
 		case IDM_SETTING_SAVE:
 			appStatus->SoundHalt();
+			appStatus->UpdateUserConfigFromSid();
 			appStatus->SaveCurrentSetting();
 			G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 			appStatus->SoundResume();

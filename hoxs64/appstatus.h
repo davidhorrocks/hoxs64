@@ -67,6 +67,7 @@ public:
 	virtual void ApplyConfig(const CConfig& newcfg) = 0;
 	virtual void SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID, bit16 addressOfFifthSID, bit16 addressOfSixthSID, bit16 addressOfSeventhSID, bit16 addressOfEighthSID) = 0;
 	virtual void ResetSidChipAddressMap() = 0;
+	virtual void UpdateUserConfigFromSid() = 0;
 
 	void SaveSpeedSettings();
 	void RestoreSpeedSettings();
