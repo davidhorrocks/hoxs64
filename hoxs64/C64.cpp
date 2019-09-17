@@ -34,6 +34,7 @@ C64::C64()
 	bWantExitScreenShot = false;
 	exitCode = 0;
 	bExitCodeWritten = false;
+	C64Keys::Init();
 }
 
 C64::~C64()

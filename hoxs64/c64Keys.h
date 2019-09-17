@@ -1,92 +1,115 @@
-#ifndef __C64KEYS_H__
-#define __C64KEYS_H__
+#pragma once
+#include "windows.h"
+#include "tchar.h"
 
-#define C64K_0	0
-#define C64K_1	1
-#define C64K_2	2
-#define C64K_3	3
-#define C64K_4	4
-#define C64K_5	5
-#define C64K_6	6
-#define C64K_7	7
-#define C64K_8	8
-#define C64K_9	9
-#define C64K_A	10
-#define C64K_B	11
-#define C64K_C	12
-#define C64K_D	13
-#define C64K_E	14
-#define C64K_F	15
-#define C64K_G	16
-#define C64K_H	17
-#define C64K_I	18
-#define C64K_J	19
-#define C64K_K	20
-#define C64K_L	21
-#define C64K_M	22
-#define C64K_N	23
-#define C64K_O	24
-#define C64K_P	25
-#define C64K_Q	26
-#define C64K_R	27
-#define C64K_S	28
-#define C64K_T	29
-#define C64K_U	30
-#define C64K_V	31
-#define C64K_W	32
-#define C64K_X	33
-#define C64K_Y	34
-#define C64K_Z	35
-#define C64K_PLUS	36
-#define C64K_MINUS	37
-#define C64K_ASTERISK	38
-#define C64K_SLASH	39
-#define C64K_COMMA	40
-#define C64K_DOT	41
-#define C64K_ARROWLEFT	42
-#define C64K_COLON	43
-#define C64K_SEMICOLON	44
-#define C64K_CONTROL	45
-#define C64K_STOP	46
-#define C64K_COMMODORE	47
-#define C64K_LEFTSHIFT	48
-#define C64K_RIGHTSHIFT	49
-#define C64K_RESTORE	50
-#define C64K_HOME	51
-#define C64K_DEL	52
-#define C64K_RETURN	53
-#define C64K_ARROWUP	54
-#define C64K_POUND	55
-#define C64K_EQUAL	56
-#define C64K_CURSORDOWN	57
-#define C64K_CURSORRIGHT	58
-#define C64K_SPACE	59
-#define C64K_AT	60
-#define C64K_F1	61
-#define C64K_F2	62
-#define C64K_F3	63
-#define C64K_F4	64
-#define C64K_F5	65	
-#define C64K_F6	66
-#define C64K_F7	67
-#define C64K_F8	68
+class C64Keys
+{
+public:
+	typedef enum tagC64Key : unsigned char
+	{
+		C64K_NONE = 0,
+		C64K_0 = 1,
+		C64K_1 = 2,
+		C64K_2 = 3,
+		C64K_3 = 4,
+		C64K_4 = 5,
+		C64K_5 = 6,
+		C64K_6 = 7,
+		C64K_7 = 8,
+		C64K_8 = 9,
+		C64K_9 = 10,
+		C64K_A = 11,
+		C64K_B = 12,
+		C64K_C = 13,
+		C64K_D = 14,
+		C64K_E = 15,
+		C64K_F = 16,
+		C64K_G = 17,
+		C64K_H = 18,
+		C64K_I = 19,
+		C64K_J = 20,
+		C64K_K = 21,
+		C64K_L = 22,
+		C64K_M = 23,
+		C64K_N = 24,
+		C64K_O = 25,
+		C64K_P = 26,
+		C64K_Q = 27,
+		C64K_R = 28,
+		C64K_S = 29,
+		C64K_T = 30,
+		C64K_U = 31,
+		C64K_V = 32,
+		C64K_W = 33,
+		C64K_X = 34,
+		C64K_Y = 35,
+		C64K_Z = 36,
+		C64K_PLUS = 37,
+		C64K_MINUS = 38,
+		C64K_ASTERISK = 39,
+		C64K_SLASH = 40,
+		C64K_COMMA = 41,
+		C64K_DOT = 42,
+		C64K_ARROWLEFT = 43,
+		C64K_COLON = 44,
+		C64K_SEMICOLON = 45,
+		C64K_CONTROL = 46,
+		C64K_STOP = 47,
+		C64K_COMMODORE = 48,
+		C64K_LEFTSHIFT = 49,
+		C64K_RIGHTSHIFT = 50,
+		C64K_RESTORE = 51,
+		C64K_HOME = 52,
+		C64K_DEL = 53,
+		C64K_RETURN = 54,
+		C64K_ARROWUP = 55,
+		C64K_POUND = 56,
+		C64K_EQUAL = 57,
+		C64K_CURSORDOWN = 58,
+		C64K_CURSORRIGHT = 59,
+		C64K_SPACE = 60,
+		C64K_AT = 61,
+		C64K_F1 = 62,
+		C64K_F2 = 63,
+		C64K_F3 = 64,
+		C64K_F4 = 65,
+		C64K_F5 = 66,
+		C64K_F6 = 67,
+		C64K_F7 = 68,
+		C64K_F8 = 69,
 
-#define C64K_CURSORUP 69
-#define C64K_CURSORLEFT	70
+		C64K_CURSORUP = 70,
+		C64K_CURSORLEFT = 71,
 
-#define C64K_JOY1FIRE 71
-#define C64K_JOY1UP 72
-#define C64K_JOY1DOWN 73
-#define C64K_JOY1LEFT 74
-#define C64K_JOY1RIGHT 75
+		C64K_JOY1FIRE = 72,
+		C64K_JOY1UP = 73,
+		C64K_JOY1DOWN = 74,
+		C64K_JOY1LEFT = 75,
+		C64K_JOY1RIGHT = 76,
 
-#define C64K_JOY2FIRE 76
-#define C64K_JOY2UP 77
-#define C64K_JOY2DOWN 78
-#define C64K_JOY2LEFT 79
-#define C64K_JOY2RIGHT 80
+		C64K_JOY2FIRE = 77,
+		C64K_JOY2UP = 78,
+		C64K_JOY2DOWN = 79,
+		C64K_JOY2LEFT = 80,
+		C64K_JOY2RIGHT = 81,
 
-#define C64K_PAUSE 81
-#define C64K_MAX 81
+		C64K_JOY1FIRE2 = 82,
+		C64K_JOY2FIRE2 = 83,
 
-#endif
+		C64K_MAX = 83
+	} C64Key;
+
+	struct KeyRC
+	{
+		unsigned char row;
+		unsigned char col;
+		unsigned char rowmask;
+		unsigned char colmask;
+	};
+
+	static KeyRC KeyRowCol[C64K_MAX];
+	static LPCTSTR GetName(C64Key c64keynumber);
+	static void Init();
+private:
+	static  void setkeyrc(C64Key key, unsigned char row, unsigned char col);
+};

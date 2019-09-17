@@ -64,7 +64,6 @@ public:
 	HRESULT InitJoy(HWND hWnd, int joyindex, struct joyconfig& joycfg);
 	HRESULT InitJoys(HWND hWnd, struct joyconfig&, struct joyconfig&);
 	void ReleaseJoy();
-	HRESULT EnumObjectsJoy(int, LPDIENUMDEVICEOBJECTSCALLBACK, LPVOID, DWORD);
 	HRESULT CreateDeviceJoy(int, REFGUID refguid);
 	HRESULT AcquireJoy(int);
 	HRESULT UnacquireJoy(int);

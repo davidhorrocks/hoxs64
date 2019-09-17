@@ -53,7 +53,7 @@ public:
 	static void UpgradeStateV0ToV1(const SsCia1V0 &in, SsCia1V1 &out);
 	static void UpgradeStateV1ToV2(const SsCia1V1 &in, SsCia1V2 &out);
 
-	unsigned char c64KeyMap[256];
+	unsigned char c64KeyMap[256];// array of windows keyboard scan codes indexed by the C64Keys::C64Key enumeration
 	ICLK nextKeyboardScanClock;
 	virtual void SetWakeUpClock();
 
@@ -67,7 +67,7 @@ public:
 protected:
 	bool m_bAltLatch;
 private:
-	bool ReadJoyAxis(int joyindex, struct joyconfig& joycfg, unsigned int& axis, bool& fire1, bool& fire2);
+	bool ReadJoyAxis(int joyindex, struct joyconfig& joycfg, unsigned int& axis, bool& fire1, bool& fire2, unsigned char c64keyboard[]);
 	static const unsigned int JOYDIR_UP = 8;
 	static const unsigned int JOYDIR_DOWN = 4;
 	static const unsigned int JOYDIR_LEFT = 2;

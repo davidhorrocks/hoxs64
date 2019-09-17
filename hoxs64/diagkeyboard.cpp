@@ -226,16 +226,16 @@ HWND hWnd = 0;
 	switch (pageno)
 	{
 	case 0:
-		hWnd = keycontrol[C64K_ARROWLEFT].hwnd;
+		hWnd = keycontrol[C64Keys::C64K_ARROWLEFT].hwnd;
 		break;
 	case 1:
-		hWnd = keycontrol[C64K_A].hwnd;
+		hWnd = keycontrol[C64Keys::C64K_A].hwnd;
 		break;
 	case 2:
-		hWnd = keycontrol[C64K_1].hwnd;
+		hWnd = keycontrol[C64Keys::C64K_1].hwnd;
 		break;
 	case 3:
-		hWnd = keycontrol[C64K_JOY1FIRE].hwnd;
+		hWnd = keycontrol[C64Keys::C64K_JOY1FIRE].hwnd;
 		break;
 	}
 
@@ -271,75 +271,78 @@ void CDiagKeyboard::UpdatePage1(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
 
-	GetKeyName(keymap[C64K_HOME], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_HOME], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_HOME, szBuffer);	
 
-	GetKeyName(keymap[C64K_ASTERISK], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_ASTERISK], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_ASTERISK, szBuffer);
 
-	GetKeyName(keymap[C64K_SLASH], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_SLASH], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_SLASH, szBuffer);
 	
-	GetKeyName(keymap[C64K_ARROWUP], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_ARROWUP], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_ARROWUP, szBuffer);
 	
-	GetKeyName(keymap[C64K_ARROWLEFT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_ARROWLEFT], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_ARROWLEFT, szBuffer);
 	
-	GetKeyName(keymap[C64K_CONTROL], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_CONTROL], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_CONTROL, szBuffer);
 	
-	GetKeyName(keymap[C64K_STOP], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_STOP], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_STOP, szBuffer);
 	
-	GetKeyName(keymap[C64K_COMMODORE], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_COMMODORE], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_COMMODORE, szBuffer);
 
-	GetKeyName(keymap[C64K_DEL], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_DEL], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_DEL, szBuffer);
 
-	GetKeyName(keymap[C64K_PLUS], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_PLUS], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_PLUS, szBuffer);
 
-	GetKeyName(keymap[C64K_MINUS], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_MINUS], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_MINUS, szBuffer);
 
-	GetKeyName(keymap[C64K_EQUAL], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_EQUAL], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_EQUAL, szBuffer);
 
-	GetKeyName(keymap[C64K_POUND], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_POUND], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_POUND, szBuffer);
 
-	GetKeyName(keymap[C64K_AT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_AT], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_AT, szBuffer);
 
-	GetKeyName(keymap[C64K_COLON], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_COLON], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_COLON, szBuffer);
 
-	GetKeyName(keymap[C64K_SEMICOLON], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_SEMICOLON], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_SEMICOLON, szBuffer);
 
-	GetKeyName(keymap[C64K_CURSORRIGHT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_CURSORRIGHT], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_CURSORRIGHT, szBuffer);
 
-	GetKeyName(keymap[C64K_CURSORDOWN], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_CURSORDOWN], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_CURSORDOWN, szBuffer);
 
-	GetKeyName(keymap[C64K_LEFTSHIFT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_LEFTSHIFT], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_LEFTSHIFT, szBuffer);
 
-	GetKeyName(keymap[C64K_RIGHTSHIFT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_RIGHTSHIFT], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_RIGHTSHIFT, szBuffer);
 
-	GetKeyName(keymap[C64K_RESTORE], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_RESTORE], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_RESTORE, szBuffer);
 
-	GetKeyName(keymap[C64K_SPACE], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_SPACE], szBuffer, sizeof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_SPACE, szBuffer);
+
+	GetKeyName(keymap[C64Keys::C64K_RETURN], szBuffer, sizeof(szBuffer));
+	SetDlgItemText(hwndDlg, IDC_TXT_RETURN, szBuffer);
 }
 
 
-#define _updatekeypage(n) GetKeyName(keymap[C64K_##n], szBuffer, sizeof(szBuffer));\
+#define _updatekeypage(n) GetKeyName(keymap[C64Keys::C64K_##n], szBuffer, sizeof(szBuffer));\
 	SetDlgItemText(hwndDlg, IDC_TXT_##n, szBuffer);
 
 void CDiagKeyboard::UpdatePage2(HWND hwndDlg)
@@ -388,12 +391,14 @@ TCHAR szBuffer[30];
 	_updatekeypage(8);
 	_updatekeypage(9);
 	_updatekeypage(0);
-
 	_updatekeypage(F1);
+	_updatekeypage(F2);
 	_updatekeypage(F3);
+	_updatekeypage(F4);
 	_updatekeypage(F5);
+	_updatekeypage(F6);
 	_updatekeypage(F7);
-
+	_updatekeypage(F8);
 	_updatekeypage(CURSORUP);
 	_updatekeypage(CURSORLEFT);
 }
@@ -403,11 +408,13 @@ void CDiagKeyboard::UpdatePage4(HWND hwndDlg)
 TCHAR szBuffer[30];
 
 	_updatekeypage(JOY1FIRE);
+	_updatekeypage(JOY1FIRE2);
 	_updatekeypage(JOY1UP);
 	_updatekeypage(JOY1DOWN);
 	_updatekeypage(JOY1LEFT);
 	_updatekeypage(JOY1RIGHT);
 	_updatekeypage(JOY2FIRE);
+	_updatekeypage(JOY2FIRE2);
 	_updatekeypage(JOY2UP);
 	_updatekeypage(JOY2DOWN);
 	_updatekeypage(JOY2LEFT);
@@ -420,7 +427,7 @@ int i;
 
 	m_current_c64key=0;
 	m_bKeyCapture=false;
-	for(i=0 ; i<=C64K_MAX ; i++)
+	for(i=0 ; i < _countof(keycontrol) ; i++)
 	{
 		keycontrol[i].control_id=0;
 		keycontrol[i].hwnd=0;
@@ -518,7 +525,7 @@ COLORREF textcolor_old,backcolor_old;
 		return DefWindowProc(hwnd,uMsg,wParam,lParam);
 	}
 
-	for (i=0 ; i <= C64K_MAX ; i++)
+	for (i=0 ; i < _countof(keycontrol) ; i++)
 	{
 		if (id == keycontrol[i].control_id)
 		{
@@ -706,7 +713,7 @@ int i;
 	m_current_c64key = c64key;
 	m_bKeyCapture = true;
 	m_bBeginKeyScan = true;
-	for (i=0 ; i < C64K_MAX ; i++)
+	for (i=0 ; i < _countof(keycontrol) ; i++)
 	{
 		if (m_current_c64key!=i && keycontrol[i].state!=kcs_display)
 		{
@@ -726,7 +733,7 @@ void CDiagKeyboard::ResetKeyCapture()
 {
 int i;
 	m_bKeyCapture=false;
-	for (i=0 ; i < C64K_MAX ; i++)
+	for (i=0 ; i < _countof(keycontrol) ; i++)
 	{
 		if (keycontrol[i].state!=kcs_display)
 		{
@@ -741,8 +748,8 @@ int i;
 
 #define _initcapturectrls(n) hWnd = GetDlgItem(hwndDlg, IDC_TXT_##n);\
 	if (hWnd==NULL) return E_FAIL;\
-	keycontrol[C64K_##n].hwnd=hWnd;\
-	keycontrol[C64K_##n].control_id=IDC_TXT_##n;
+	keycontrol[C64Keys::C64K_##n].hwnd=hWnd;\
+	keycontrol[C64Keys::C64K_##n].control_id=IDC_TXT_##n;
 
 HRESULT CDiagKeyboard::initkeycapturecontrols1(HWND hwndDlg)
 {
@@ -769,6 +776,7 @@ HWND hWnd;
 	_initcapturectrls(RIGHTSHIFT);
 	_initcapturectrls(RESTORE);
 	_initcapturectrls(SPACE);
+	_initcapturectrls(RETURN);
 	return S_OK;
 }
 
@@ -820,12 +828,14 @@ HWND hWnd;
 	_initcapturectrls(8);
 	_initcapturectrls(9);
 	_initcapturectrls(0);
-
 	_initcapturectrls(F1);
+	_initcapturectrls(F2);
 	_initcapturectrls(F3);
+	_initcapturectrls(F4);
 	_initcapturectrls(F5);
+	_initcapturectrls(F6);
 	_initcapturectrls(F7);
-
+	_initcapturectrls(F8);
 	_initcapturectrls(CURSORUP);
 	_initcapturectrls(CURSORLEFT);
 	return S_OK;
@@ -835,11 +845,13 @@ HRESULT CDiagKeyboard::initkeycapturecontrols4(HWND hwndDlg)
 {
 HWND hWnd;
 	_initcapturectrls(JOY1FIRE);
+	_initcapturectrls(JOY1FIRE2);
 	_initcapturectrls(JOY1UP);
 	_initcapturectrls(JOY1DOWN);
 	_initcapturectrls(JOY1LEFT);
 	_initcapturectrls(JOY1RIGHT);
 	_initcapturectrls(JOY2FIRE);
+	_initcapturectrls(JOY2FIRE2);
 	_initcapturectrls(JOY2UP);
 	_initcapturectrls(JOY2DOWN);
 	_initcapturectrls(JOY2LEFT);

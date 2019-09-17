@@ -1704,7 +1704,7 @@ CConfig &cfg= *(static_cast<CConfig *>(this));
 bool bNeedDisplayReset = false;
 bool bNeedSoundFilterInit = false;
 bool bPaletteChanged = false;
-int i;
+unsigned int i;
 
 	if (m_pWinAppWindow!=0 && m_pWinAppWindow->GetHwnd() != 0 && IsWindow(m_pWinAppWindow->GetHwnd()))
 	{

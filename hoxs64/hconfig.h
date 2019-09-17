@@ -4,7 +4,9 @@
 #include <windows.h>
 #include "dx_version.h"
 #include "bits.h"
+#include "C64Keys.h"
 #include "viciipalette.h"
+#include "gamecontrolleritem.h"
 
 namespace C64JoystickButton
 {
@@ -18,7 +20,12 @@ namespace C64JoystickButton
 		Left,
 		Right,
 		AxisHorizontal,
-		AxisVertical
+		AxisVertical,
+		ButtonAndAxisKey1,
+		ButtonAndAxisKey2,
+		ButtonAndAxisKey3,
+		ButtonAndAxisKey4,
+		ButtonAndAxisKey5,
 	} C64JoystickButtonNumber;
 };
 
@@ -27,7 +34,8 @@ class JoyKeyName
 public:
 	typedef enum tagJoystickKey
 	{
-		JoynEnabled = 0,
+		JoynBlank = 0,
+		JoynEnabled,
 		JoynValid,
 		JoynGUID,
 		JoynIsValidAxisX,
@@ -61,6 +69,58 @@ public:
 		JoynButtonRightMask,
 		JoynButtonRightCount,
 		JoynButtonRightList,
+		JoynButtonKeyNoAssign,
+		JoynButtonKeyNoAssignIsValid,
+		JoynButtonKey1,
+		JoynButtonKey1Mask,
+		JoynButtonKey1Count,
+		JoynButtonKey1List,
+		JoynButtonKey2,
+		JoynButtonKey2Mask,
+		JoynButtonKey2Count,
+		JoynButtonKey2List,
+		JoynButtonKey3,
+		JoynButtonKey3Mask,
+		JoynButtonKey3Count,
+		JoynButtonKey3List,
+		JoynButtonKey4,
+		JoynButtonKey4Mask,
+		JoynButtonKey4Count,
+		JoynButtonKey4List,
+		JoynButtonKey5,
+		JoynButtonKey5Mask,
+		JoynButtonKey5Count,
+		JoynButtonKey5List,
+		JoynAxisKey1List,
+		JoynAxisKey1ListDirection,
+		JoynAxisKey1Count,
+		JoynAxisKey2List,
+		JoynAxisKey2ListDirection,
+		JoynAxisKey2Count,
+		JoynAxisKey3List,
+		JoynAxisKey3ListDirection,
+		JoynAxisKey3Count,
+		JoynAxisKey4List,
+		JoynAxisKey4ListDirection,
+		JoynAxisKey4Count,
+		JoynAxisKey5List,
+		JoynAxisKey5ListDirection,
+		JoynAxisKey5Count,
+		JoynPovKey1List,
+		JoynPovKey1ListDirection,
+		JoynPovKey1Count,
+		JoynPovKey2List,
+		JoynPovKey2ListDirection,
+		JoynPovKey2Count,
+		JoynPovKey3List,
+		JoynPovKey3ListDirection,
+		JoynPovKey3Count,
+		JoynPovKey4List,
+		JoynPovKey4ListDirection,
+		JoynPovKey4Count,
+		JoynPovKey5List,
+		JoynPovKey5ListDirection,
+		JoynPovKey5Count,
 		JoynLast
 	} JOYSTICKKEY;
 
@@ -79,14 +139,33 @@ public:
 	static ButtonKeySet Down;
 	static ButtonKeySet Left;
 	static ButtonKeySet Right;
+	static ButtonKeySet ButtonKey1;
+	static ButtonKeySet ButtonKey2;
+	static ButtonKeySet ButtonKey3;
+	static ButtonKeySet ButtonKey4;
+	static ButtonKeySet ButtonKey5;
+	static ButtonKeySet AxisKey1;
+	static ButtonKeySet AxisKey2;
+	static ButtonKeySet AxisKey3;
+	static ButtonKeySet AxisKey4;
+	static ButtonKeySet AxisKey5;
+	static ButtonKeySet PovKey1;
+	static ButtonKeySet PovKey2;
+	static ButtonKeySet PovKey3;
+	static ButtonKeySet PovKey4;
+	static ButtonKeySet PovKey5;
 };
-
 
 struct joyconfig
 {
+	static const unsigned int MAXKEYMAPS = 5;
+	static const unsigned int MAXV1BUTTONS = 32;
 	static const unsigned int MAXBUTTONS = 128;
 	static const unsigned int MAXBUTTONS32 = 32;
 	static const unsigned int MAXAXIS = 32;
+	static const unsigned int MAXPOV = 4;
+	static const unsigned int MAXDIRECTINPUTPOVNUMBER = 3;
+	static const int MaxUserKeyAssignCount = 256;
 	joyconfig();
 	GUID joystickID;
 	bool IsValidId;
@@ -109,25 +188,76 @@ struct joyconfig
 	LONG yUp;
 	LONG yDown;
 	unsigned int fire1ButtonCount;
+	unsigned int fire1AxisCount;
+	unsigned int fire1PovCount;
 	unsigned int fire2ButtonCount;
+	unsigned int fire2AxisCount;
+	unsigned int fire2PovCount;
 	unsigned int upButtonCount;
+	unsigned int upAxisCount;
+	unsigned int upPovCount;
 	unsigned int downButtonCount;
+	unsigned int downAxisCount;
+	unsigned int downPovCount;
 	unsigned int leftButtonCount;
+	unsigned int leftAxisCount;
+	unsigned int leftPovCount;
 	unsigned int rightButtonCount;
-	unsigned int horizontalAxisCount;
-	unsigned int verticalAxisCount;
+	unsigned int rightAxisCount;
+	unsigned int rightPovCount;
+	unsigned int horizontalAxisButtonCount;
+	unsigned int horizontalAxisAxisCount;
+	unsigned int horizontalAxisPovCount;
+	unsigned int verticalAxisButtonCount;
+	unsigned int verticalAxisAxisCount;
+	unsigned int verticalAxisPovCount;
 	DWORD fire1ButtonOffsets[MAXBUTTONS];
 	DWORD fire2ButtonOffsets[MAXBUTTONS];
 	DWORD upButtonOffsets[MAXBUTTONS];
 	DWORD downButtonOffsets[MAXBUTTONS];
 	DWORD leftButtonOffsets[MAXBUTTONS];
 	DWORD rightButtonOffsets[MAXBUTTONS];
-	DWORD povAvailable[4];
-	int povIndex[4];
+	DWORD povAvailable[MAXDIRECTINPUTPOVNUMBER + 1];
+	int povIndex[MAXDIRECTINPUTPOVNUMBER + 1];
+	bool enableKeyAssign;
+	C64Keys::C64Key keyNoAssign[MaxUserKeyAssignCount];
+	bool isValidKeyNoAssign[MaxUserKeyAssignCount];
+
+	// Counts of assigned buttons
+	unsigned int keyNButtonCount[MAXKEYMAPS];
+
+	// Buttons offsets
+	DWORD keyNButtonOffsets[MAXKEYMAPS][MAXBUTTONS];
+
+	// Counts of assigned axes
+	unsigned int keyNAxisCount[MAXKEYMAPS];
+
+	// Axes offsets
+	DWORD keyNAxisOffsets[MAXKEYMAPS][MAXAXIS];
+
+	// Axes directions
+	GameControllerItem::ControllerAxisDirection keyNAxisDirection[MAXKEYMAPS][MAXAXIS];
+
+	// Counts of assigned pov controls
+	unsigned int keyNPovCount[MAXKEYMAPS];
+
+	// Pov controls offsets
+	DWORD keyNPovOffsets[MAXKEYMAPS][MAXAXIS];
+
+	// Pov directions
+	GameControllerItem::ControllerAxisDirection keyNPovDirection[MAXKEYMAPS][MAXAXIS];
+
 	LPCDIDATAFORMAT inputDeviceFormat;
 	DWORD sizeOfInputDeviceFormat;
-	void LoadDefault();
 	ICLK joyNotAcquiredClock;
+
+	// Axes with additional info.
+	ButtonItemData axes[MAXKEYMAPS][MAXAXIS];
+
+	// Pov with additional info.
+	ButtonItemData pov[MAXKEYMAPS][MAXPOV];
+	void LoadDefault();
+	static void defaultClearAxisDirection(GameControllerItem::ControllerAxisDirection offsets[], GameControllerItem::ControllerAxisDirection axisDirection, unsigned int count);
 };
 
 class CConfig
@@ -143,8 +273,12 @@ public:
 	static int GetKeyScanCode(UINT ch);
 	HRESULT LoadCurrentSetting();
 	HRESULT LoadCurrentJoystickSetting(int joystickNumber, struct joyconfig& jconfig);
-	HRESULT WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pItemOffsets, const unsigned int &buttonCount);
-	HRESULT ReadJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pItemOffsets, unsigned int &buttonCount);
+	HRESULT WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pButtonOffsets, const unsigned int &buttonCount);
+	HRESULT ReadJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pButtonOffsets, unsigned int &buttonCount);
+	HRESULT WriteJoystickAxisList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pAxisOffsets, const GameControllerItem::ControllerAxisDirection *pAxisDirection, unsigned int axisCount);
+	HRESULT WriteJoystickPovList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pPovOffsets, const GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int povCount);
+	HRESULT ReadJoystickAxisList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pAxisOffsets, GameControllerItem::ControllerAxisDirection *pAxisDirection, unsigned int maxAxisBufferCount, unsigned int* pAxisCount);
+	HRESULT ReadJoystickPovList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pPovOffsets, GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int maxPovBufferCount, unsigned int* pPovCount);
 	HRESULT SaveCurrentSetting();
 	HRESULT SaveCurrentJoystickSetting(int joystickNumber, const struct joyconfig& jconfig);
 	void LoadDefaultSetting();

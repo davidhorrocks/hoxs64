@@ -20,6 +20,23 @@
 #include "diagbuttonselection.h"
 #include "resource.h"
 
-GameControllerItem::GameControllerItem()
+GameControllerItem::GameControllerItem(ControllerItemOption option)
+	: option(option)
+	, direction(DirectionAny)
+{
+	ZeroMemory(&objectInfo, sizeof(objectInfo));
+}
+
+GameControllerItem::GameControllerItem(ControllerItemOption option, ControllerAxisDirection direction)
+	: option(option)
+	, direction(direction)
+{
+	ZeroMemory(&objectInfo, sizeof(objectInfo));
+}
+
+GameControllerItem::GameControllerItem(ControllerItemOption option, ControllerAxisDirection direction, const DIDEVICEOBJECTINSTANCE& objectInfo)
+	: option(option)
+	, direction(direction)
+	, objectInfo(objectInfo)
 {
 }

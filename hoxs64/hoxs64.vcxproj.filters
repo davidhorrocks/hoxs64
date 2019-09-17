@@ -44,6 +44,12 @@
     <Filter Include="Source Files\p64">
       <UniqueIdentifier>{6d935b69-a79b-4764-a2e4-79887c74bcc3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\gamecontroller">
+      <UniqueIdentifier>{c31fe615-71c2-49f5-aaa1-31966cf43a86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\gamecontroller">
+      <UniqueIdentifier>{dbd93224-35c3-4e8c-a5ab-6575199a5c39}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="appstatus.cpp">
@@ -352,15 +358,6 @@
     <ClCompile Include="diagbuttonselection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gamecontrolleritem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="buttonitem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gamedeviceitem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="breakpointresult.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
@@ -375,6 +372,18 @@
     </ClCompile>
     <ClCompile Include="sidchip.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="c64keys.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gamedeviceitem.cpp">
+      <Filter>Source Files\gamecontroller</Filter>
+    </ClCompile>
+    <ClCompile Include="gamecontrolleritem.cpp">
+      <Filter>Source Files\gamecontroller</Filter>
+    </ClCompile>
+    <ClCompile Include="buttonitemdata.cpp">
+      <Filter>Source Files\gamecontroller</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -717,15 +726,6 @@
     <ClInclude Include="diagbuttonselection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gamecontrolleritem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="buttonitem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gamedeviceitem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="breakpointresult.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
@@ -737,6 +737,15 @@
     </ClInclude>
     <ClInclude Include="sidchip.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gamedeviceitem.h">
+      <Filter>Header Files\gamecontroller</Filter>
+    </ClInclude>
+    <ClInclude Include="gamecontrolleritem.h">
+      <Filter>Header Files\gamecontroller</Filter>
+    </ClInclude>
+    <ClInclude Include="buttonitemdata.h">
+      <Filter>Header Files\gamecontroller</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

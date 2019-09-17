@@ -2,13 +2,13 @@
 #define __DIAGJOYSTICK_H__
 
 #include "CDPI.h"
-#include "gamedeviceitem.h"
-#include "buttonitem.h"
+#include "gamecontrolleritem.h"
+
 
 extern BOOL CALLBACK EnumDlgJoyCallback(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef);
 extern BOOL CALLBACK EnumDlgJoyAxisCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
 extern BOOL CALLBACK EnumDlgJoyButtonCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
-
+extern BOOL CALLBACK EnumDlgJoyPovCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
 class CDiagJoystick : public CVirDialog , public ErrorMsg
 {
 	struct JoyControlNum
@@ -18,23 +18,66 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		int cbo_joyfire2;
 		int cbo_joyv;
 		int cbo_joyh;
-		int cbo_joyvrev;
-		int cbo_joyhrev;
+		int chk_joyvrev;
+		int chk_joyhrev;
 		int cbo_joyup;
 		int cbo_joydown;
 		int cbo_joyleft;
 		int cbo_joyright;
-		int cbo_joyenable;
-		int cbo_joyenablepov;
+		int chk_joyenable;
+		int chk_joyenablepov;
+		int cbo_joykey1button;
+		int cbo_joykey2button;
+		int cbo_joykey3button;
+		int cbo_joykey4button;
+		int cbo_joykey5button;
+		int cbo_joykey1;
+		int cbo_joykey2;
+		int cbo_joykey3;
+		int cbo_joykey4;
+		int cbo_joykey5;
 	};
 
 	struct C64JoyItem
 	{
-		C64JoyItem(int ctrlid, C64JoystickButton::C64JoystickButtonNumber buttonnumber, DWORD * const pItemOffsets, unsigned int &itemCount);
+		C64JoyItem(int ctrlid, C64JoystickButton::C64JoystickButtonNumber buttonnumber
+			, DWORD * const pButtonOffsets, unsigned int &buttonCount
+			, DWORD * const pAxisOffsets, GameControllerItem::ControllerAxisDirection * const pAxisDirection, unsigned int &axisCount
+			, DWORD * const pPovOffsets, GameControllerItem::ControllerAxisDirection * const pPovDirection, unsigned int &povCount
+			);
+
+		// Targeted UI control type
 		const C64JoystickButton::C64JoystickButtonNumber buttonnumber;
-		DWORD * const pItemOffsets;
-		unsigned int &itemCount;
+
+		// Number of buttons
+		unsigned int &buttonCount;
+
+		// Pointer to array of button offsets.
+		DWORD * const pButtonOffsets;
+
+		// Number axes
+		unsigned int &axisCount;
+
+		// Pointer to array of axis offsets.
+		DWORD * const pAxisOffsets;
+
+		// Pointer to array of axis directions.
+		GameControllerItem::ControllerAxisDirection * const pAxisDirection;
+
+		// Number of pov items
+		unsigned int &povCount;
+
+		// Pointer to array of pov offsets.
+		DWORD * const pPovOffsets;
+
+		// Pointer to array of pov directions.
+		GameControllerItem::ControllerAxisDirection * const pPovDirection;
+
+		// Dropdown list control ID
 		const int ctrlid;
+
+		// pointer a list of game device items
+		vector<GameControllerItem> *pListItems;
 	};
 
 	static JoyControlNum joy1ControlNum;
@@ -47,13 +90,18 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		CDiagJoystick *dialog;
 		CDX9 *pDX;
 		struct joyconfig jconfig;
-		vector<ButtonItem> buttonOptions;
-		vector<ButtonItem> axisOptions;
+		vector<GameControllerItem> listButton;
+		vector<GameControllerItem> listAxis;
+		vector<GameControllerItem> listPov;
+		vector<GameControllerItem> buttonOptions;
+		vector<GameControllerItem> axisOptions;
+		vector<GameControllerItem> buttonAndAxisOptions;
 		int ID;
 		CDPI m_dpi;
 		const JoyControlNum& controlNum;
 		unsigned int numButtons;
 		unsigned int numAxis;
+		unsigned int numPov;
 		BestTextWidthDC tw;
 		C64JoyItem c64buttonFire1;
 		C64JoyItem c64buttonFire2;
@@ -63,20 +111,34 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		C64JoyItem c64buttonRight;
 		C64JoyItem c64AxisHorizontal;
 		C64JoyItem c64AxisVertical;
+		C64JoyItem c64buttonKey1;
+		C64JoyItem c64buttonKey2;
+		C64JoyItem c64buttonKey3;
+		C64JoyItem c64buttonKey4;
+		C64JoyItem c64buttonKey5;
 		BOOL EnumJoyAxis(LPCDIDEVICEOBJECTINSTANCE);
 		BOOL EnumJoyButton(LPCDIDEVICEOBJECTINSTANCE);
+		BOOL EnumJoyPov(LPCDIDEVICEOBJECTINSTANCE);
 		void FillDeviceSelection();
 		void DeviceChanged(bool bSetConfig);
-		void ButtonSelectionChanged(C64JoyItem& c64joybutton);
-		void AxisSelectionChanged(C64JoyItem& c64joybutton);
-		void DeviceItemSelectionChanged(C64JoyItem& c64joybutton, vector<ButtonItem> buttonAxisOptions);
-		void FillJoyAxis(bool bSetConfig);
-		void FillJoyAxisDropdown(int ctrlid);
+		void ButtonSelectionChanged(C64JoyItem& c64joyitem);
+		void AxisSelectionChanged(C64JoyItem& c64joyitem);
+		void ButtonAndAxisSelectionChanged(C64JoyItem& c64joyitem);
+		void DropdownAutoSelectionChanged(C64JoyItem& c64joyitem);
+		void DeviceItemSelectionChanged(C64JoyItem& c64joybutton, vector<GameControllerItem> &items, GameControllerItem::ObjectTypeFilter filter);
+		HRESULT GetJoyAxisList(shared_ptr<GameDeviceItem> spDevice);
+		HRESULT GetJoyButtonList(shared_ptr<GameDeviceItem> spDevice);
+		HRESULT GetJoyPovList(shared_ptr<GameDeviceItem> spDevice);
+		void FillJoyAxis(C64JoyItem& horizontal, C64JoyItem& vertical, bool bSetConfig);
+		void FillJoyAxisDropdown(C64JoyItem& c64joybutton, vector<GameControllerItem> &items);
 		void FillJoyButton(bool bSetConfig);
-		void FillJoyButtonDropdown(int ctrlid, vector<ButtonItem> buttonAxisOptions);
-		void SelectJoyButtonDropdownItem(C64JoyItem& c64joyaxis, bool bSetConfig);
-		void SelectJoyAxisDropdownItem(C64JoyItem& c64joyaxis, bool bSetConfig);
-		void SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, vector<ButtonItem> buttonAxisOptions, bool bSetConfig);
+		void FillJoyButtonDropdown(C64JoyItem& c64joybutton, vector<GameControllerItem> &items);
+		void FillJoyButtonAndAxis(bool bSetConfig);//
+		void FillJoyButtonAndAxisDropdown(int ctrlid, vector<GameControllerItem> &items);//
+		void FillJoyButtonKeys(const joyconfig& cfg);
+		void FillJoyButtonKeyDropdown(int ctrlid, bool isValid, bit8 keyValue);
+		void SelectJoyButtonKeyDropdown(int ctrlid, bool isValid, bit8 keyValue);
+		void SelectJoyButtonAxisDropdownItem(C64JoyItem& c64joybutton, bool bSetConfig);
 		void loadconfig(const joyconfig& cfg);
 		void saveconfig(joyconfig* cfg);
 	private:
@@ -113,6 +175,7 @@ private:
 	friend BOOL CALLBACK ::EnumDlgJoyCallback(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef);
 	friend BOOL CALLBACK ::EnumDlgJoyAxisCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
 	friend BOOL CALLBACK ::EnumDlgJoyButtonCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
+	friend BOOL CALLBACK ::EnumDlgJoyPovCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
 	friend JoyUi;
 
 	CDX9 *pDX;

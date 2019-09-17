@@ -11,6 +11,7 @@
 #include "bits.h"
 #include "util.h"
 #include "register.h"
+#include "c64keys.h"
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"

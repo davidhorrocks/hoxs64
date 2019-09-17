@@ -543,7 +543,8 @@
     <ClCompile Include="bits.cpp" />
     <ClCompile Include="bpenum.cpp" />
     <ClCompile Include="breakpointresult.cpp" />
-    <ClCompile Include="buttonitem.cpp" />
+    <ClCompile Include="buttonitemdata.cpp" />
+    <ClCompile Include="c64keys.cpp" />
     <ClCompile Include="cart.cpp" />
     <ClCompile Include="cart_action_replay.cpp" />
     <ClCompile Include="cart_action_replay_mk2.cpp" />
@@ -897,7 +898,7 @@
     <ClInclude Include="bits.h" />
     <ClInclude Include="bpenum.h" />
     <ClInclude Include="breakpointresult.h" />
-    <ClInclude Include="buttonitem.h" />
+    <ClInclude Include="buttonitemdata.h" />
     <ClInclude Include="cart.h" />
     <ClInclude Include="cart_dinamic.h" />
     <ClInclude Include="cart_epyx_fastload.h" />

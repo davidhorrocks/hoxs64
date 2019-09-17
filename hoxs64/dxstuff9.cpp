@@ -2707,17 +2707,6 @@ HRESULT CDX9::EnumDevices(DWORD dwDevType, 	LPDIENUMDEVICESCALLBACK lpCallback, 
 	return pDI->EnumDevices(dwDevType, lpCallback, pvRef, dwFlags);
 }
 
-
-HRESULT CDX9::EnumObjectsJoy(int joyindex, LPDIENUMDEVICEOBJECTSCALLBACK lpCallback, LPVOID pvRef, DWORD dwFlags)
-{
-	if (joy[joyindex] == NULL)
-	{
-		return E_POINTER;
-	}
-
-	return joy[joyindex]->EnumObjects(lpCallback, pvRef, dwFlags);
-}
-
 HRESULT CDX9::AcquireJoy(int joyindex)
 {
 	if (joy[joyindex] == NULL)
@@ -2756,10 +2745,10 @@ unsigned int j;
 
 	joycfg.joyObjectKindX = HCFG::JoyKindNone;
 	joycfg.joyObjectKindY = HCFG::JoyKindNone;
-	joycfg.xMax= +1000;
-	joycfg.xMin= -1000;
-	joycfg.yMax= +1000;
-	joycfg.yMin= -1000;
+	joycfg.xMax= ButtonItemData::DefaultMax;
+	joycfg.xMin= ButtonItemData::DefaultMin;
+	joycfg.yMax= ButtonItemData::DefaultMax;
+	joycfg.yMin= ButtonItemData::DefaultMin;;
 	for(i = 0; i < _countof(joycfg.povAvailable); i++)
 	{
 		joycfg.povAvailable[0] = 0;
@@ -2836,8 +2825,8 @@ unsigned int j;
 										}
 									}
 
-									joycfg.xLeft = joycfg.xMin + 60L * (joycfg.xMax - joycfg.xMin)/200L;
-									joycfg.xRight = joycfg.xMax - 60L * (joycfg.xMax - joycfg.xMin)/200L;
+									joycfg.xLeft = (LONG)((double)joycfg.xMin + ButtonItemData::SensitivityGame * (double)(joycfg.xMax - joycfg.xMin) / 2.0);
+									joycfg.xRight = (LONG)((double)joycfg.xMax - ButtonItemData::SensitivityGame * (double)(joycfg.xMax - joycfg.xMin) / 2.0);
 								}
 								else if ((didoi.dwType & DIDFT_POV) != 0)
 								{
@@ -2879,8 +2868,8 @@ unsigned int j;
 										}
 									}
 
-									joycfg.yUp = joycfg.yMin + 60L * (joycfg.yMax - joycfg.yMin)/200L;
-									joycfg.yDown = joycfg.yMax - 60L * (joycfg.yMax - joycfg.yMin)/200L;
+									joycfg.yUp = (LONG)((double)joycfg.yMin + (double)ButtonItemData::SensitivityGame * (double)(joycfg.yMax - joycfg.yMin) / 2.0);
+									joycfg.yDown = (LONG)((double)joycfg.yMax - (double)ButtonItemData::SensitivityGame * (double)(joycfg.yMax - joycfg.yMin) / 2.0);
 								}
 								else if ((didoi.dwType & DIDFT_POV) != 0)
 								{
@@ -2910,6 +2899,17 @@ unsigned int j;
 								joycfg.povAvailable[j] = DIJOFS_POV(i);
 								joycfg.povIndex[j] = i;
 								j++;
+							}
+						}
+
+						//Other axes
+						for (j = 0; j < joycfg.MAXKEYMAPS; j++)
+						{
+							for (i = 0; i < joycfg.keyNAxisCount[j]; i++)
+							{
+								ButtonItemData axis(GameControllerItem::Axis, joycfg.keyNAxisOffsets[j][i], joycfg.keyNAxisDirection[j][i]);
+								joycfg.axes[j][i] = axis;
+								joycfg.axes[j][i].InitAxis(pJoy);
 							}
 						}
 					}

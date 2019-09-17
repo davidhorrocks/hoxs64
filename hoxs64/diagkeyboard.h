@@ -1,12 +1,11 @@
 #ifndef __DIAGKEYBOARD_H__
 #define __DIAGKEYBOARD_H__
 
+#include "c64Keys.h"
+
 void GetKeyName(BYTE scancode,TCHAR *buffer,int buffersize);
 
-
-
 #define C_PAGES 1
-#define C64K_MAX 81
 
 #define WM_KEYCAPTURE (WM_USER)
 
@@ -58,7 +57,7 @@ private:
 	void ResetKeyCapture();
 	void SetKeyCapture(int c64key);
 	unsigned char keymap[256];
-	struct keycontrolstate keycontrol[C64K_MAX+1];
+	struct keycontrolstate keycontrol[C64Keys::C64K_MAX+1];
 	int m_current_c64key;
 	bool m_bKeyCapture;
 	int	m_c64key;

@@ -214,6 +214,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\hoxs64\c64keys.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\hoxs64\C6502.cpp"
 				>
 			</File>
@@ -1114,19 +1118,19 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
-				RelativePath="..\hoxs64\img\break.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\break.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\break.ico"
+				RelativePath="..\hoxs64\img\break.bmp"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\img\break.ico"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\break.ico"
 				>
 			</File>
 			<File
@@ -1142,11 +1146,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\candy_clock.bmp"
+				RelativePath="..\hoxs64\candy_clock.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\candy_clock.bmp"
+				RelativePath="..\hoxs64\img\candy_clock.bmp"
 				>
 			</File>
 			<File
@@ -1158,11 +1162,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\debugger step in mask.bmp"
+				RelativePath="..\hoxs64\debugger step in mask.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\debugger step in mask.bmp"
+				RelativePath="..\hoxs64\img\debugger step in mask.bmp"
 				>
 			</File>
 			<File
@@ -1174,15 +1178,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\debugger step one clock mask.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\img\debugger step one clock mask.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\debugger step one clock.bmp"
+				RelativePath="..\hoxs64\debugger step one clock mask.bmp"
 				>
 			</File>
 			<File
@@ -1190,11 +1190,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\debugger step out mask.bmp"
+				RelativePath="..\hoxs64\debugger step one clock.bmp"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\debugger step out mask.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\img\debugger step out mask.bmp"
 				>
 			</File>
 			<File
@@ -1206,15 +1210,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\debugger step over mask.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\debugger step over mask.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\debugger step over.bmp"
+				RelativePath="..\hoxs64\img\debugger step over mask.bmp"
 				>
 			</File>
 			<File
@@ -1222,11 +1222,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\debugger stop mask.bmp"
+				RelativePath="..\hoxs64\debugger step over.bmp"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\debugger stop mask.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\img\debugger stop mask.bmp"
 				>
 			</File>
 			<File
@@ -1238,15 +1242,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\debugger trace frame mask.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\img\debugger trace frame mask.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\debugger trace frame.bmp"
+				RelativePath="..\hoxs64\debugger trace frame mask.bmp"
 				>
 			</File>
 			<File
@@ -1254,11 +1254,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\debugger trace mask.bmp"
+				RelativePath="..\hoxs64\debugger trace frame.bmp"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\img\debugger trace mask.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\debugger trace mask.bmp"
 				>
 			</File>
 			<File
@@ -1274,19 +1278,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\icon1.ico"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\icon1.ico"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\icon_sma.ico"
+				RelativePath="..\hoxs64\img\icon1.ico"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\img\icon_sma.ico"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\icon_sma.ico"
 				>
 			</File>
 			<File
@@ -1298,15 +1302,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\ledblueon.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\ledblueon.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\ledgreenoff.bmp"
+				RelativePath="..\hoxs64\img\ledblueon.bmp"
 				>
 			</File>
 			<File
@@ -1314,11 +1314,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\ledgreenon.bmp"
+				RelativePath="..\hoxs64\ledgreenoff.bmp"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\img\ledgreenon.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\ledgreenon.bmp"
 				>
 			</File>
 			<File
@@ -1330,19 +1334,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\ledredon.bmp"
-				>
-			</File>
-			<File
 				RelativePath="..\hoxs64\img\ledredon.bmp"
 				>
 			</File>
 			<File
-				RelativePath="..\hoxs64\img\rebarbackground.bmp"
+				RelativePath="..\hoxs64\ledredon.bmp"
 				>
 			</File>
 			<File
 				RelativePath="..\hoxs64\rebarbackground.bmp"
+				>
+			</File>
+			<File
+				RelativePath="..\hoxs64\img\rebarbackground.bmp"
 				>
 			</File>
 			<File
