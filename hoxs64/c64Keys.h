@@ -96,7 +96,7 @@ public:
 		C64K_JOY1FIRE2 = 82,
 		C64K_JOY2FIRE2 = 83,
 
-		C64K_MAX = 83
+		C64K_COUNTOFKEYS = 84
 	} C64Key;
 
 	struct KeyRC
@@ -107,7 +107,7 @@ public:
 		unsigned char colmask;
 	};
 
-	static KeyRC KeyRowCol[C64K_MAX];
+	static KeyRC KeyRowCol[C64K_COUNTOFKEYS];
 	static LPCTSTR GetName(C64Key c64keynumber);
 	static void Init();
 private:

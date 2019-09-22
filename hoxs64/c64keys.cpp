@@ -3,7 +3,7 @@
 #include "c64Keys.h"
 
 
-C64Keys::KeyRC C64Keys::KeyRowCol[C64K_MAX];
+C64Keys::KeyRC C64Keys::KeyRowCol[C64K_COUNTOFKEYS];
 
 LPCTSTR C64Keys::GetName(C64Key c64keynumber)
 {

@@ -57,7 +57,7 @@ private:
 	void ResetKeyCapture();
 	void SetKeyCapture(int c64key);
 	unsigned char keymap[256];
-	struct keycontrolstate keycontrol[C64Keys::C64K_MAX+1];
+	struct keycontrolstate keycontrol[C64Keys::C64K_COUNTOFKEYS];
 	int m_current_c64key;
 	bool m_bKeyCapture;
 	int	m_c64key;

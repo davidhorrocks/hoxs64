@@ -769,18 +769,18 @@ void CDiagJoystick::JoyUi::FillJoyButton(bool bSetConfig)
 		GameControllerItem buttonsCustom(GameControllerItem::MultipleButton, GameControllerItem::DirectionAny);
 		buttonOptions.push_back(buttonsNone);
 		buttonOptions.push_back(buttonsAll);
-		buttonOptions.push_back(buttonsCustom);
 		vector<GameControllerItem>::const_iterator iter;
 		for (iter = listButton.cbegin(); iter != listButton.cend(); iter++)
 		{
 			buttonOptions.push_back(*iter);
 		}
 
+		buttonOptions.push_back(buttonsCustom);
+
 		std::basic_string<TCHAR> buttonname;
 		buttonAndAxisOptions.clear();
 		buttonAndAxisOptions.push_back(buttonsNone);
 		buttonAndAxisOptions.push_back(buttonsAll);
-		buttonAndAxisOptions.push_back(buttonsCustom);
 		for (iter = listButton.cbegin(); iter != listButton.cend(); iter++)
 		{
 			buttonAndAxisOptions.push_back(*iter);
@@ -805,6 +805,8 @@ void CDiagJoystick::JoyUi::FillJoyButton(bool bSetConfig)
 			buttonAndAxisOptions.push_back(povleft);
 			buttonAndAxisOptions.push_back(povright);
 		}
+
+		buttonAndAxisOptions.push_back(buttonsCustom);
 
 		// Fill dropdowns
 		FillJoyButtonDropdown(this->c64buttonFire1, buttonOptions);
