@@ -1338,22 +1338,29 @@ bool CDX9::CanMode2X(const D3DDISPLAYMODE &displayMode, const C64WindowDimension
 		return true;
 }
 
-UINT CDX9::GetDisplayResolutionText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, UINT charBufferLen)
+UINT CDX9::GetDisplayResolutionText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, unsigned int charBufferLen)
 {
 TCHAR sMode[20];
 
 	UINT r = _sntprintf_s(sMode, _countof(sMode), _TRUNCATE, TEXT("%d x %d"), (int)displayMode.Width, (int)displayMode.Height);
 	if (charBufferLen == 0)
+	{
 		charBufferLen = r + 1;
+	}
 	else if ((r + 1) > charBufferLen)
+	{
 		charBufferLen = r + 1;
+	}
 
 	if (buffer!=NULL)
+	{
 		_tcscpy_s(buffer, charBufferLen, &sMode[0]);
+	}
+
 	return charBufferLen;
 }
 
-UINT CDX9::GetDisplayFormatText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, UINT charBufferLen)
+UINT CDX9::GetDisplayFormatText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, unsigned int charBufferLen)
 {
 TCHAR sMode[20];
 
@@ -1411,15 +1418,45 @@ TCHAR sMode[20];
 			_tcscpy_s(sMode, _countof(sMode), TEXT("?"));
 			break;
 	}
-	UINT r = lstrlen(sMode);
 
+	unsigned int r = lstrlen(sMode);
 	if (charBufferLen == 0)
+	{
 		charBufferLen = r + 1;
+	}
 	else if ((r + 1) > charBufferLen)
+	{
 		charBufferLen = r + 1;
+	}
+
+	if (buffer != NULL)
+	{
+		_tcscpy_s(buffer, charBufferLen, &sMode[0]);
+	}
+
+	return charBufferLen;
+}
+
+unsigned int CDX9::GetDisplayRefreshText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, unsigned int charBufferLen)
+{
+TCHAR sMode[20];
+
+	unsigned int r = _sntprintf_s(sMode, _countof(sMode), _TRUNCATE, TEXT("%d Hz"), (int)displayMode.RefreshRate);
+	r = lstrlen(sMode);
+	if (charBufferLen == 0)
+	{
+		charBufferLen = r + 1;
+	}
+	else if ((r + 1) > charBufferLen)
+	{
+		charBufferLen = r + 1;
+	}
 
 	if (buffer!=NULL)
+	{
 		_tcscpy_s(buffer, charBufferLen, &sMode[0]);
+	}
+
 	return charBufferLen;
 }
 

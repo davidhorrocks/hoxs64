@@ -179,7 +179,7 @@ public:
 		m_count=0;
 	}
 
-	typedef int (*CompareFunc)(T &v1, T &v2);
+	typedef int (*CompareFunc)(const T &v1, const T &v2);
 
 	void MergeSort(CompareFunc fn)
 	{
@@ -192,15 +192,21 @@ public:
 	}
 
 
-	MListElement<T> *FindElement(CompareFunc fn, T &item)
+	MListElement<T> *FindElement(CompareFunc fn, const T &item)
 	{
 		if (m_count == 0)
+		{
 			return NULL;
+		}
+
 		for (MListElement<T> *p = m_head ; p!=NULL ; p=p->next)
 		{
 			if (fn(p->m_data, item) == 0)
+			{
 				return p;
+			}
 		}
+
 		return NULL;
 	}
 

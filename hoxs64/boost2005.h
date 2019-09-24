@@ -41,6 +41,7 @@ using boost::uint64_t;
 #include <list>
 #include <map>
 #include <random>
+#include <algorithm>
 using std::vector;
 using std::list;
 using std::map;
@@ -54,4 +55,5 @@ using std::random_device;
 using std::mt19937;
 using std::uniform_int_distribution;
 using std::make_shared;
+using std::sort;
 #endif

@@ -82,8 +82,8 @@ public:
 private:
 	T64DirectoryItemList dirList;
 
-	static int T64::CompareT64DirItemOffset(WrappedT64DirectoryItem *&a, WrappedT64DirectoryItem *&b);
-	static int T64::CompareT64DirItemOriginalIndex(WrappedT64DirectoryItem *&a, WrappedT64DirectoryItem *&b);
+	static int T64::CompareT64DirItemOffset(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b);
+	static int T64::CompareT64DirItemOriginalIndex(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b);
 };
 
 #endif

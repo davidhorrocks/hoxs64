@@ -7,7 +7,7 @@
 #include "util.h"
 #include "huff.h"
 
-int MyCompare(HuffNode *&a,HuffNode *&b)
+int MyCompare(HuffNode * const &a,HuffNode * const &b)
 {
 	if (a==NULL || b==NULL)
 	{

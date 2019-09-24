@@ -105,8 +105,9 @@ public:
 	static HRESULT GetFileVersion( TCHAR* szPath, ULARGE_INTEGER* pllFileVersion );
 	static ULARGE_INTEGER MakeInt64( WORD a, WORD b, WORD c, WORD d );
 	static int CompareLargeInts( ULARGE_INTEGER ullParam1, ULARGE_INTEGER ullParam2 );
-	static UINT GetDisplayResolutionText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, UINT charBufferLen);
-	static UINT GetDisplayFormatText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, UINT charBufferLen);
+	static UINT GetDisplayResolutionText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, unsigned int charBufferLen);
+	static UINT GetDisplayFormatText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, unsigned int charBufferLen);
+	static UINT GetDisplayRefreshText(const D3DDISPLAYMODE &displayMode, LPTSTR buffer, unsigned int charBufferLen);
 	static D3DTEXTUREFILTERTYPE GetDxFilterFromEmuFilter(HCFG::EMUWINDOWFILTER emuFilter);
 	static int GetToolBarHeight(BOOL bShowFloppyLed);	
 

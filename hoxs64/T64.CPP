@@ -33,14 +33,14 @@ WrappedT64DirectoryItem::WrappedT64DirectoryItem(int orginalIndex, T64DirectoryI
 	this->item = item;
 }
 
-int T64::CompareT64DirItemOffset(WrappedT64DirectoryItem *&a, WrappedT64DirectoryItem *&b)
+int T64::CompareT64DirItemOffset(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b)
 {
 	//-ve means a is before b;
 	//+ve means b is before a;
 	return (int)(a->item->offset - b->item->offset);
 }
 
-int T64::CompareT64DirItemOriginalIndex(WrappedT64DirectoryItem *&a, WrappedT64DirectoryItem *&b)
+int T64::CompareT64DirItemOriginalIndex(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b)
 {
 	//-ve means a is before b;
 	//+ve means b is before a;

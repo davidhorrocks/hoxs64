@@ -18,8 +18,6 @@
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
-#include "carray.h"
-#include "MList.h"
 #include "besttextwidth.h"
 #include "diagemulationsettingstab.h"
 #include "resource.h"
@@ -59,7 +57,7 @@ void CDiagEmulationSettingsTab::VideoPageSizeComboBoxes()
 	HWND hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	if (!hVideoPage)
 		return;
-	static int ctls[] = {IDC_CBO_ADAPTER, IDC_CBO_MODE, IDC_CBO_FORMAT, IDC_CBO_FILTER, IDC_CBO_STRETCH, IDC_CBO_BORDER, IDC_CBO_FPS};
+	static int ctls[] = {IDC_CBO_ADAPTER, IDC_CBO_MODE, IDC_CBO_FORMAT, IDC_CBO_ADAPTER_REFRESH, IDC_CBO_FILTER, IDC_CBO_STRETCH, IDC_CBO_BORDER, IDC_CBO_FPS};
 	G::AutoSetComboBoxHeight(hVideoPage, ctls, _countof(ctls), 0);
 }
 
@@ -75,129 +73,116 @@ void CDiagEmulationSettingsTab::DiskPageSizeComboBoxes()
 void CDiagEmulationSettingsTab::FillDevices()
 {
 UINT i;
-HRESULT hr;
 LRESULT lr;
 CDisplayInfo displayInfo;
-unsigned int j;
 HWND hWndCboAdapter;
 HWND hVideoPage;
 HMONITOR hMonitor;
 GUID emptyGuid;
 LRESULT currentSelection = -1;
 
-	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	try
 	{
-		return;
-	}
-
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
-	if (!hVideoPage)
-	{
-		return;
-	}
-
-	hWndCboAdapter = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER);
-	if (hWndCboAdapter == NULL)
-	{
-		return;
-	}
-
-	SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_RESETCONTENT, 0, 0);
-	m_AdapterArray.Clear();
-	UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();
-	hr = m_AdapterArray.Resize(iAdapterCount);
-	if (FAILED(hr))
-	{
-		return;
-	}
-
-	ZeroMemory(&emptyGuid, sizeof(emptyGuid));
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Auto"));
-	if (lr >= 0)
-	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM) 0);
-		if (NewCfg.m_fullscreenAdapterId == emptyGuid)
+		if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 		{
-			currentSelection = lr;
-		}
-	}
-
-	HDC hdcControl = GetDC(hWndCboAdapter);
-	BestTextWidthDC tw(hdcControl);
-	tw.SetFont(this->defaultFont);
-	for (i=0 ; i < iAdapterCount ; i++)
-	{
-		ZeroMemory(&displayInfo, sizeof(displayInfo));
-		displayInfo.bRequireClean = true;
-		displayInfo.adapterOrdinal = i;
-		m_pDx->m_pD3D->GetAdapterIdentifier(i, 0, &displayInfo.adapter);
-		hMonitor = m_pDx->m_pD3D->GetAdapterMonitor(i);
-		if (hMonitor!=0)
-		{
-			displayInfo.monitor.cbSize = sizeof(MONITORINFOEX);
-			m_pDx->DXUTGetMonitorInfo(hMonitor, &displayInfo.monitor);
+			return;
 		}
 
-		if (SUCCEEDED(displayInfo.MakeName()))
+		hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+		if (!hVideoPage)
 		{
-			//appends a shallow copy of displayInfo
-			hr = m_AdapterArray.Append(displayInfo, &j);
-			if (FAILED(hr))
+			return;
+		}
+
+		hWndCboAdapter = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER);
+		if (hWndCboAdapter == NULL)
+		{
+			return;
+		}
+
+		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_RESETCONTENT, 0, 0);
+		m_AdapterArray.clear();
+		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();
+		if (m_AdapterArray.capacity() < iAdapterCount)
+		{
+			m_AdapterArray.reserve(iAdapterCount);
+		}
+
+		ZeroMemory(&emptyGuid, sizeof(emptyGuid));
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Auto"));
+		if (lr >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM) 0);
+			if (NewCfg.m_fullscreenAdapterId == emptyGuid)
 			{
-				return;
+				currentSelection = lr;
+			}
+		}
+
+		HDC hdcControl = GetDC(hWndCboAdapter);
+		BestTextWidthDC tw(hdcControl);
+		tw.SetFont(this->defaultFont);
+		for (i=0 ; i < iAdapterCount ; i++)
+		{
+			ZeroMemory(&displayInfo, sizeof(displayInfo));
+			displayInfo.bRequireClean = true;
+			displayInfo.adapterOrdinal = i;
+			m_pDx->m_pD3D->GetAdapterIdentifier(i, 0, &displayInfo.adapter);
+			hMonitor = m_pDx->m_pD3D->GetAdapterMonitor(i);
+			if (hMonitor!=0)
+			{
+				displayInfo.monitor.cbSize = sizeof(MONITORINFOEX);
+				m_pDx->DXUTGetMonitorInfo(hMonitor, &displayInfo.monitor);
 			}
 
-			tw.GetWidth(displayInfo.name);
-			//m_AdapterArray now controls the life time of displayInfo allocated memory
-			//prevent clean of local displayInfo. 
-			displayInfo.bRequireClean = false;
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) displayInfo.name);
-			if (lr >= 0)
-			{				
-				SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM) j);
-				//if (NewCfg.m_fullscreenAdapterId == displayInfo.adapter.DeviceIdentifier)
-				if ((NewCfg.m_fullscreenAdapterNumber == i) && (NewCfg.m_fullscreenAdapterId != emptyGuid))
-				{
-					currentSelection = lr;
+			if (SUCCEEDED(displayInfo.MakeName()))
+			{
+				// appends a shallow copy of displayInfo
+				m_AdapterArray.push_back(displayInfo);
+
+				// m_AdapterArray now controls the life time of displayInfo allocated memory
+				// prevent clean of local displayInfo. 
+				displayInfo.bRequireClean = false;
+				tw.GetWidth(displayInfo.name);
+				lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) displayInfo.name);
+				if (lr >= 0)
+				{				
+					SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM) (m_AdapterArray.size() - 1));
+					if ((NewCfg.m_fullscreenAdapterNumber == i) && (NewCfg.m_fullscreenAdapterId != emptyGuid))
+					{
+						currentSelection = lr;
+					}
 				}
 			}
 		}
-	}
 
-	if (tw.maxWidth > 0)
-	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hVideoPage), 0);
-	}
+		if (tw.maxWidth > 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETDROPPEDWIDTH, tw.GetSuggestedDlgComboBoxWidth(hVideoPage), 0);
+		}
 
-	if (currentSelection >= 0)
-	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETCURSEL, currentSelection, 0);
-	}
-	else
-	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETCURSEL, 0, 0);
-	}
+		if (currentSelection >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETCURSEL, currentSelection, 0);
+		}
+		else
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETCURSEL, 0, 0);
+		}
 
-	if (hdcControl)
+		if (hdcControl)
+		{
+			ReleaseDC(hWndCboAdapter, hdcControl);
+			hdcControl = NULL;
+		}
+	}
+	catch (std::exception&)
 	{
-		ReleaseDC(hWndCboAdapter, hdcControl);
-		hdcControl = NULL;
+		return;
 	}
 }
 
-int CDiagEmulationSettingsTab::fnFindMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
-{
-	if (mode1.mode.Height == mode2.mode.Height && mode1.mode.Width == mode2.mode.Width)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-
-int CDiagEmulationSettingsTab::fnFindModeFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
+int CDiagEmulationSettingsTab::fnFindModeFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
 {
 	if (mode1.mode.Format == mode2.mode.Format)
 	{
@@ -209,22 +194,22 @@ int CDiagEmulationSettingsTab::fnFindModeFormat(CDisplayModeInfo &mode1, CDispla
 	}
 }
 
-int CDiagEmulationSettingsTab::fnCompareMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
+int CDiagEmulationSettingsTab::fnCompareMode(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
 {
-	if (mode1.mode.Width>mode2.mode.Width)
+	if (mode1.mode.Width > mode2.mode.Width)
 	{
 		return 1;
 	}
-	else if (mode1.mode.Width<mode2.mode.Width)
+	else if (mode1.mode.Width < mode2.mode.Width)
 	{
 		return -1;
 	}
 
-	if (mode1.mode.Height>mode2.mode.Height)
+	if (mode1.mode.Height > mode2.mode.Height)
 	{
 		return 1;
 	}
-	else if (mode1.mode.Height<mode2.mode.Height)
+	else if (mode1.mode.Height < mode2.mode.Height)
 	{
 		return -1;
 	}
@@ -232,13 +217,27 @@ int CDiagEmulationSettingsTab::fnCompareMode(CDisplayModeInfo &mode1, CDisplayMo
 	return 0;
 }
 
-int CDiagEmulationSettingsTab::fnCompareFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2)
+bool CDiagEmulationSettingsTab::fnForListCompareMode(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
+{
+	return fnCompareMode(mode1, mode2) < 0;
+}
+
+int CDiagEmulationSettingsTab::fnCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
 {
 	if (CDX9::GetBitsPerPixel(mode1.mode.Format) > CDX9::GetBitsPerPixel(mode2.mode.Format))
 	{
 		return 1;
 	}
-	else if (CDX9::GetBitsPerPixel(mode1.mode.Format)<CDX9::GetBitsPerPixel(mode2.mode.Format))
+	else if (CDX9::GetBitsPerPixel(mode1.mode.Format) < CDX9::GetBitsPerPixel(mode2.mode.Format))
+	{
+		return -1;
+	}
+
+	if (mode1.mode.Format > mode2.mode.Format)
+	{
+		return 1;
+	}
+	else if (mode1.mode.Format < mode2.mode.Format)
 	{
 		return -1;
 	}
@@ -246,6 +245,10 @@ int CDiagEmulationSettingsTab::fnCompareFormat(CDisplayModeInfo &mode1, CDisplay
 	return 0;
 }
 
+bool CDiagEmulationSettingsTab::fnForListCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
+{
+	return fnCompareFormat(mode1, mode2) < 0;
+}
 
 void CDiagEmulationSettingsTab::FillModes()
 {
@@ -254,17 +257,21 @@ LRESULT lr;
 LRESULT index;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
 		return;
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+	}
 
+	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	hWndCboAdapter = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER);
 	if (hWndCboAdapter == NULL)
+	{
 		return;
+	}
 
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
 	if (lr < 0)
 	{
-		FillModes((UINT)-1);
+		FillModes(-1);
 		return;
 	}
 	else if (lr == 0)
@@ -275,134 +282,153 @@ LRESULT index;
 
 	index = lr;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-	if (lr == CB_ERR || lr < 0 || lr >= MAXLONG)
+	if (lr == CB_ERR || lr < 0)
 	{
-		FillModes((UINT)-1);
+		FillModes(-1);
+		return;
+	}
+
+	if ((size_t)lr >= m_AdapterArray.size())
+	{
+		FillModes(-1);
 		return;
 	} 
 
-	if ((unsigned)lr >= m_AdapterArray.Count())
-	{
-		FillModes((UINT)-1);
-		return;
-	} 
-
-	
-	FillModes((UINT)m_AdapterArray[(ULONG)lr].adapterOrdinal);
+	FillModes((int)m_AdapterArray[(ULONG)lr].adapterOrdinal);
 }
 
-void CDiagEmulationSettingsTab::FillModes(UINT adapterOrdinal)
+void CDiagEmulationSettingsTab::FillModes(int adapterOrdinal)
 {
 HWND hVideoPage, hWndCboMode;
 LRESULT currentSelection = -1;
 CDisplayModeInfo  modeInfo;
 UINT i;
-HRESULT hr;
 LRESULT lr;
 
-
-	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
-		return;
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
-
-	hWndCboMode = GetDlgItem(hVideoPage, IDC_CBO_MODE);
-	if (hWndCboMode == NULL)
-		return;
-
-	SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_RESETCONTENT, 0, 0);
-	m_ModeList.Clear();
-
-	UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
-	if (adapterOrdinal >= iAdapterCount)
-		return;
-
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_ADDSTRING, 0, (LPARAM) szAuto);
-	if (lr >= 0)
+	try
 	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETITEMDATA, lr, (LPARAM) 0);
-		if (NewCfg.m_fullscreenWidth == 0)
+		if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 		{
-			currentSelection = lr;
+			return;
 		}
-	}
 
-	for (UINT iFormatToTest = 0; (signed int)CDX9::Formats[iFormatToTest] > 0 ; iFormatToTest++)
-	{
-		UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount(adapterOrdinal, CDX9::Formats[iFormatToTest]);
-
-		for (i=0 ; i < iModeCount ; i++)
+		hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+		hWndCboMode = GetDlgItem(hVideoPage, IDC_CBO_MODE);
+		if (hWndCboMode == NULL)
 		{
-			ZeroMemory(&modeInfo, sizeof(modeInfo));
-			modeInfo.bRequireClean = true;
-			m_pDx->m_pD3D->EnumAdapterModes(adapterOrdinal, CDX9::Formats[iFormatToTest], i, &modeInfo.mode);
-			if (m_pDx->IsAcceptableMode(modeInfo.mode))
-			{
-				if (m_ModeList.FindElement(CDiagEmulationSettingsTab::fnFindMode, modeInfo) != NULL)
-					continue;
-				if (SUCCEEDED(modeInfo.MakeName(m_pDx)))
-				{
-					//appends a shallow copy of modeInfo
-					hr = m_ModeList.Append(modeInfo);
-					if (FAILED(hr))
-					{
-						return;
-					}
-					//m_ModeList will clean modeInfo allocated memory
-					//prevent clean of local modeInfo.
-					modeInfo.bRequireClean = false;
-				}
-			}		
+			return;
 		}
-	}
 
-	m_ModeList.MergeSort(&fnCompareMode);
-	for (CDisplayModeElement *p = m_ModeList.Head() ; p != NULL ; p=p->Next())
-	{
-		
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_ADDSTRING, 0, (LPARAM) p->m_data.name);
+		SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_RESETCONTENT, 0, 0);
+		m_ModeList.clear();
+		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
+		if (adapterOrdinal < 0 || (UINT)adapterOrdinal >= iAdapterCount)
+		{
+			return;
+		}
+
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_ADDSTRING, 0, (LPARAM) szAuto);
 		if (lr >= 0)
 		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETITEMDATA, lr, (LPARAM) &p->m_data);
-			if (NewCfg.m_fullscreenWidth == p->m_data.mode.Width && NewCfg.m_fullscreenHeight == p->m_data.mode.Height)
+			SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETITEMDATA, lr, (LPARAM) 0);
+			if (NewCfg.m_fullscreenWidth == 0)
 			{
 				currentSelection = lr;
 			}
 		}
+
+		for (UINT iFormatToTest = 0; (signed int)CDX9::Formats[iFormatToTest] > 0 ; iFormatToTest++)
+		{
+			UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount((UINT)adapterOrdinal, CDX9::Formats[iFormatToTest]);
+			for (i=0 ; i < iModeCount ; i++)
+			{
+				ZeroMemory(&modeInfo, sizeof(modeInfo));
+				modeInfo.bRequireClean = true;
+				m_pDx->m_pD3D->EnumAdapterModes((UINT)adapterOrdinal, CDX9::Formats[iFormatToTest], i, &modeInfo.mode);
+				if (m_pDx->IsAcceptableMode(modeInfo.mode))
+				{
+					CDisplayModeInfo_WxH_is_equal mode_equal_WxH(modeInfo);
+					if (std::find_if(m_ModeList.cbegin(), m_ModeList.cend(), mode_equal_WxH) != m_ModeList.cend())
+					{
+						continue;
+					}
+				
+					if (SUCCEEDED(modeInfo.MakeName(m_pDx)))
+					{
+						//appends a shallow copy of modeInfo
+						m_ModeList.push_back(modeInfo);
+
+						//m_ModeList will clean modeInfo allocated memory
+						//prevent clean of local modeInfo.
+						modeInfo.bRequireClean = false;
+					}
+				}		
+			}
+		}
+
+		CDisplayModeInfo_WxH_is_less mode_is_less;
+		m_ModeList.sort(mode_is_less);
+		list<CDisplayModeInfo>::const_iterator cit;
+		for (cit = m_ModeList.cbegin(); cit != m_ModeList.cend(); cit++)
+		{
+		
+			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_ADDSTRING, 0, (LPARAM) cit->name);
+			if (lr >= 0)
+			{
+				SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETITEMDATA, lr, (LPARAM) &*cit);
+				if (NewCfg.m_fullscreenWidth == cit->mode.Width && NewCfg.m_fullscreenHeight == cit->mode.Height)
+				{
+					currentSelection = lr;
+				}
+			}
+		}
+
+		if (currentSelection >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETCURSEL, currentSelection, 0);
+		}
+		else
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETCURSEL, 0, 0);
+		}
 	}
-
-	if (currentSelection >= 0)
-		SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETCURSEL, currentSelection, 0);
-	else
-		SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETCURSEL, 0, 0);
+	catch (std::exception&)
+	{
+		return;
+	}
 }
-
 
 void CDiagEmulationSettingsTab::FillFormats()
 {
 HWND hVideoPage, hWndCboAdapter, hWndCboMode;
 LRESULT lr;
 UINT iAdapterOrdinal;
-D3DDISPLAYMODE mode;
 LRESULT index;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
 		return;
+	}
+
 	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 
 	hWndCboAdapter = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER);
 	if (hWndCboAdapter == NULL)
+	{
 		return;
+	}
 
 	hWndCboMode = GetDlgItem(hVideoPage, IDC_CBO_MODE);
 	if (hWndCboAdapter == NULL)
+	{
 		return;
+	}
 
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
-	if (lr < 0 || lr >= MAXLONG)
+	if (lr == CB_ERR || lr < 0)
 	{
 		//clear formats list
-		ZeroMemory(&mode, sizeof(mode));
-		FillFormats((UINT)-1, mode);
+		FillFormats(-1, 0, 0);
 		return;
 	}
 	else if (lr == 0)
@@ -413,27 +439,26 @@ LRESULT index;
 	{
 		index = lr;
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr < 0 || lr >= MAXLONG)
+		if (lr == CB_ERR || lr < 0)
 		{
 			//clear formats list
-			ZeroMemory(&mode, sizeof(mode));
-			FillFormats((UINT)-1, mode);
+			FillFormats(-1, 0, 0);
 			return;
 		}
+
 		iAdapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
 	}
+
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
-	if (lr < 0 || lr >= MAXLONG)
+	if (lr == CB_ERR || lr < 0)
 	{
 		//clear formats list
-		ZeroMemory(&mode, sizeof(mode));
-		FillFormats((UINT)-1, mode);
+		FillFormats(-1, 0, 0);
 		return;
 	}
 	else if (lr == 0)
 	{
-		ZeroMemory(&mode, sizeof(mode));
-		FillFormats(iAdapterOrdinal, mode);
+		FillFormats(iAdapterOrdinal, 0, 0);
 		return;
 	}
 
@@ -441,71 +466,283 @@ LRESULT index;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
 	if (lr == CB_ERR || lr == NULL)
 	{
-		ZeroMemory(&mode, sizeof(mode));
-		FillFormats((UINT)-1, mode);
+		FillFormats(-1, 0, 0);
 		return;
 	} 
 
-	FillFormats(iAdapterOrdinal, ((CDisplayModeInfo *)lr)->mode);
+	D3DDISPLAYMODE &mode = ((CDisplayModeInfo *)lr)->mode;
+	FillFormats(iAdapterOrdinal, mode.Width, mode.Height);
 }
 
-
-void CDiagEmulationSettingsTab::FillFormats(UINT adapterOrdinal, D3DDISPLAYMODE &mode)
+void CDiagEmulationSettingsTab::FillFormats(int adapterOrdinal, UINT width, UINT height)
 {
 HWND hVideoPage, hWndCboFormat;
 LRESULT currentSelection = -1;
-CDisplayModeInfo  modeInfo;
+CDisplayModeInfo modeInfo;
 UINT i;
-HRESULT hr;
 LRESULT lr;
 
-	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
-		return;
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
-
-	hWndCboFormat = GetDlgItem(hVideoPage, IDC_CBO_FORMAT);
-	if (hWndCboFormat == NULL)
-		return;
-
-	SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_RESETCONTENT, 0, 0);
-	m_ModeFormatList.Clear();
-
-	UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
-	if (adapterOrdinal >= iAdapterCount)
-		return;
-
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_ADDSTRING, 0, (LPARAM) szAuto);
-	if (lr >= 0)
+	try
 	{
-		SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETITEMDATA, lr, (LPARAM) 0);
-		if (NewCfg.m_fullscreenFormat == 0)
+		if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 		{
-			currentSelection = lr;
+			return;
+		}
+
+		hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+		hWndCboFormat = GetDlgItem(hVideoPage, IDC_CBO_FORMAT);
+		if (hWndCboFormat == NULL)
+		{
+			return;
+		}
+
+		SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_RESETCONTENT, 0, 0);
+		m_ModeFormatList.clear();
+
+		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
+		if (adapterOrdinal < 0 || (UINT)adapterOrdinal >= iAdapterCount)
+		{
+			return;
+		}
+
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_ADDSTRING, 0, (LPARAM) szAuto);
+		if (lr >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETITEMDATA, lr, (LPARAM) 0);
+			if (NewCfg.m_fullscreenFormat == 0)
+			{
+				currentSelection = lr;
+			}
+		}
+	
+		if (height != 0 && width != 0)
+		{
+			for (UINT iFormatToTest = 0; (signed int)CDX9::Formats[iFormatToTest] > 0 ; iFormatToTest++)
+			{
+				D3DFORMAT format = CDX9::Formats[iFormatToTest];
+				UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount(adapterOrdinal, format);
+				for (i=0 ; i < iModeCount ; i++)
+				{
+					ZeroMemory(&modeInfo, sizeof(modeInfo));
+					modeInfo.bRequireClean = true;
+					m_pDx->m_pD3D->EnumAdapterModes(adapterOrdinal, format, i, &modeInfo.mode);
+					if (m_pDx->IsAcceptableMode(modeInfo.mode))
+					{
+						if (modeInfo.mode.Height != height || modeInfo.mode.Height != height)
+						{
+							continue;
+						}
+
+						CDisplayModeInfo_format_is_equal mode_equal_format(modeInfo.mode.Format);
+						if (std::find_if(m_ModeFormatList.cbegin(), m_ModeFormatList.cend(), mode_equal_format) != m_ModeFormatList.cend())
+						{
+							continue;
+						}
+
+						if (SUCCEEDED(modeInfo.MakeNameFormat(m_pDx)))
+						{
+							//appends a shallow copy of modeInfo
+							m_ModeFormatList.push_back(modeInfo);
+
+							//m_ModeFormatList will clean modeInfo allocated memory
+							//prevent clean of local modeInfo.
+							modeInfo.bRequireClean = false;
+						}
+					}		
+				}
+			}
+		}
+
+		CDisplayModeInfo_format_is_less mode_is_less;
+		m_ModeFormatList.sort(mode_is_less);
+		list<CDisplayModeInfo>::const_iterator cit;
+		for (cit = m_ModeFormatList.cbegin(); cit != m_ModeFormatList.cend(); cit++)
+		{
+			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_ADDSTRING, 0, (LPARAM) cit->name);
+			if (lr >= 0)
+			{
+				SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETITEMDATA, lr, (LPARAM) &*cit);
+				if (NewCfg.m_fullscreenFormat == cit->mode.Format)
+				{
+					currentSelection = lr;
+				}
+			}
+		}
+
+		if (currentSelection >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETCURSEL, currentSelection, 0);
+		}
+		else
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETCURSEL, 0, 0);
 		}
 	}
-	
-	if (mode.Height != 0 && mode.Width != 0)
+	catch (std::exception&)
 	{
-		for (UINT iFormatToTest = 0; (signed int)CDX9::Formats[iFormatToTest] > 0 ; iFormatToTest++)
+		return;
+	}
+}
+
+void CDiagEmulationSettingsTab::FillRefresh()
+{
+HWND hVideoPage, hWndCboAdapter, hWndCboMode;
+LRESULT lr;
+UINT iAdapterOrdinal;
+LRESULT index;
+
+	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
+		return;
+	}
+
+	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+	hWndCboAdapter = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER);
+	if (hWndCboAdapter == NULL)
+	{
+		return;
+	}
+
+	hWndCboMode = GetDlgItem(hVideoPage, IDC_CBO_MODE);
+	if (hWndCboAdapter == NULL)
+	{
+		return;
+	}
+
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
+	if (lr == CB_ERR || lr < 0)
+	{
+		FillRefresh(-1, 0, 0, D3DFMT_UNKNOWN);
+		return;
+	}
+	else if (lr == 0)
+	{
+		iAdapterOrdinal = D3DADAPTER_DEFAULT;
+	}
+	else
+	{
+		index = lr;
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
+		if (lr == CB_ERR || lr < 0)
 		{
-			UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount(adapterOrdinal, CDX9::Formats[iFormatToTest]);
+			FillRefresh(-1, 0, 0, D3DFMT_UNKNOWN);
+			return;
+		}
+
+		iAdapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
+	}
+
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
+	if (lr == CB_ERR || lr < 0)
+	{
+		FillRefresh(iAdapterOrdinal, 0, 0, D3DFMT_UNKNOWN);
+		return;
+	}
+	else if (lr == 0)
+	{
+		FillRefresh(iAdapterOrdinal, 0, 0, D3DFMT_UNKNOWN);
+		return;
+	}
+
+	index = lr;
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
+	if (lr == CB_ERR || lr == NULL)
+	{
+		FillRefresh(iAdapterOrdinal, 0, 0, D3DFMT_UNKNOWN);
+		return;
+	} 
+
+	D3DDISPLAYMODE &modeWH = ((CDisplayModeInfo *)lr)->mode;
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_GETCURSEL, 0, 0);
+	if (lr == CB_ERR || lr < 0)
+	{
+		FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, D3DFMT_UNKNOWN);
+		return;
+	}
+	else if (lr == 0)
+	{
+		FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, D3DFMT_UNKNOWN);
+		return;
+	}
+
+	index = lr;
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_GETITEMDATA, index, 0);
+	if (lr == CB_ERR || lr == NULL)
+	{
+		FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, D3DFMT_UNKNOWN);
+		return;
+	} 
+	
+	D3DDISPLAYMODE &modeFormat = ((CDisplayModeInfo *)lr)->mode;
+	FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, modeFormat.Format);
+}
+
+void CDiagEmulationSettingsTab::FillRefresh(int adapterOrdinal, UINT width, UINT height, D3DFORMAT format)
+{
+HWND hVideoPage, hWndCboRefresh;
+LRESULT currentSelection = -1;
+CDisplayModeInfo  modeInfo;
+UINT i;
+LRESULT lr;
+
+	try
+	{
+		if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+		{
+			return;
+		}
+
+		hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+		hWndCboRefresh = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER_REFRESH);
+		if (hWndCboRefresh == NULL)
+		{
+			return;
+		}
+
+		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_RESETCONTENT, 0, 0);
+		m_ModeRefreshList.clear();
+		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
+		if (adapterOrdinal < 0 || (UINT)adapterOrdinal >= iAdapterCount)
+		{
+			return;
+		}
+
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_ADDSTRING, 0, (LPARAM) szAuto);
+		if (lr >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_SETITEMDATA, lr, (LPARAM) 0);
+			if (NewCfg.m_fullscreenRefresh == 0)
+			{
+				currentSelection = lr;
+			}
+		}
+	
+		if (height != 0 && width != 0 && format != D3DFMT_UNKNOWN)
+		{
+			UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount(adapterOrdinal, format);
 			for (i=0 ; i < iModeCount ; i++)
 			{
 				ZeroMemory(&modeInfo, sizeof(modeInfo));
 				modeInfo.bRequireClean = true;
-				m_pDx->m_pD3D->EnumAdapterModes(adapterOrdinal, CDX9::Formats[iFormatToTest], i, &modeInfo.mode);
+				m_pDx->m_pD3D->EnumAdapterModes(adapterOrdinal, format, i, &modeInfo.mode);
 				if (m_pDx->IsAcceptableMode(modeInfo.mode))
 				{
-					if (m_ModeFormatList.FindElement(CDiagEmulationSettingsTab::fnFindModeFormat, modeInfo) != NULL)
+					if (modeInfo.mode.Height != height || modeInfo.mode.Height != height || modeInfo.mode.Format != format)
+					{
 						continue;
-					if (SUCCEEDED(modeInfo.MakeNameFormat(m_pDx)))
+					}
+
+					CDisplayModeInfo_refresh_is_equal mode_equal_refresh(modeInfo.mode.RefreshRate);
+					if (std::find_if(m_ModeRefreshList.cbegin(), m_ModeRefreshList.cend(), mode_equal_refresh) != m_ModeRefreshList.cend())
+					{
+						continue;
+					}
+
+					if (SUCCEEDED(modeInfo.MakeNameRefresh(m_pDx)))
 					{
 						//appends a shallow copy of modeInfo
-						hr = m_ModeFormatList.Append(modeInfo);
-						if (FAILED(hr))
-						{
-							return;
-						}
+						m_ModeRefreshList.push_back(modeInfo);
+
 						//m_ModeFormatList will clean modeInfo allocated memory
 						//prevent clean of local modeInfo.
 						modeInfo.bRequireClean = false;
@@ -513,26 +750,36 @@ LRESULT lr;
 				}		
 			}
 		}
-	}
 
-	m_ModeFormatList.MergeSort(&fnCompareFormat);
-	for (CDisplayModeElement *p = m_ModeFormatList.Head(); p != NULL; p=p->Next())
-	{
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_ADDSTRING, 0, (LPARAM) p->m_data.name);
-		if (lr >= 0)
+		CDisplayModeInfo_refresh_is_less refresh_is_less;
+		m_ModeRefreshList.sort(refresh_is_less);
+		list<CDisplayModeInfo>::const_iterator cit;
+		for (cit = m_ModeRefreshList.cbegin(); cit != m_ModeRefreshList.cend(); cit++)
 		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETITEMDATA, lr, (LPARAM) &p->m_data);
-			if (NewCfg.m_fullscreenFormat == p->m_data.mode.Format)
+			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_ADDSTRING, 0, (LPARAM) cit->name);
+			if (lr >= 0)
 			{
-				currentSelection = lr;
+				SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_SETITEMDATA, lr, (LPARAM) &*cit);
+				if (NewCfg.m_fullscreenRefresh == (unsigned int)cit->mode.RefreshRate)
+				{
+					currentSelection = lr;
+				}
 			}
 		}
-	}
 
-	if (currentSelection >= 0)
-		SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETCURSEL, currentSelection, 0);
-	else
-		SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETCURSEL, 0, 0);
+		if (currentSelection >= 0)
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_SETCURSEL, currentSelection, 0);
+		}
+		else
+		{
+			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_SETCURSEL, 0, 0);
+		}
+	}
+	catch (std::exception&)
+	{
+		return;
+	}
 }
 
 void CDiagEmulationSettingsTab::FillSizes()
@@ -1381,12 +1628,16 @@ LRESULT index;
 				if (lr != CB_ERR && lr != NULL)
 				{
 					if (pMode != NULL)
+					{
 						*pMode  = ((CDisplayModeInfo *)lr)->mode;
+					}
+
 					return S_OK;
 				}
 			}
 		}
 	}
+
 	return E_FAIL;
 }
 
@@ -1415,12 +1666,57 @@ LRESULT index;
 				if (lr != CB_ERR && lr != NULL)
 				{
 					if (pFormat != NULL)
+					{
 						*pFormat  = ((CDisplayModeInfo *)lr)->mode.Format;
+					}
+
 					return S_OK;
 				}
 			}
 		}
 	}
+	return E_FAIL;
+}
+
+HRESULT CDiagEmulationSettingsTab::ReadAdapterRefresh(UINT *pRefreshRate)
+{
+HWND hWnd;
+shared_ptr<CTabPageDialog> pPage;
+LRESULT lr;
+LRESULT index;
+
+	if (pRefreshRate != NULL)
+	{
+		*pRefreshRate = 0;
+	}
+
+	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
+	{
+		hWnd = pPage->GetHwnd();
+		lr = SendDlgItemMessage(hWnd, IDC_CBO_ADAPTER_REFRESH, CB_GETCURSEL, 0, 0);
+		if (lr != CB_ERR && lr >= 0)
+		{
+			if (lr == 0)
+			{
+				return S_OK;
+			}
+			else
+			{
+				index = lr;
+				lr = SendDlgItemMessage(hWnd, IDC_CBO_ADAPTER_REFRESH, CB_GETITEMDATA, index, 0);
+				if (lr != CB_ERR && lr != NULL)
+				{
+					if (pRefreshRate != NULL)
+					{
+						*pRefreshRate  = ((CDisplayModeInfo *)lr)->mode.RefreshRate;
+					}
+
+					return S_OK;
+				}
+			}
+		}
+	}
+
 	return E_FAIL;
 }
 
@@ -1900,6 +2196,7 @@ shared_ptr<CTabPageDialog> pPage;
 	FillDevices();
 	FillModes();
 	FillFormats();
+	FillRefresh();
 	FillSizes();
 	FillFilters();
 	FillDiskTrackZero();
@@ -2041,6 +2338,12 @@ shared_ptr<CTabPageDialog> pPage;
 		if (SUCCEEDED(ReadAdapterFormat(&adapterFormat)))
 		{
 			cfg->m_fullscreenFormat = adapterFormat;
+		}
+
+		UINT adapterRefresh;
+		if (SUCCEEDED(ReadAdapterRefresh(&adapterRefresh)))
+		{
+			cfg->m_fullscreenRefresh = adapterRefresh;
 		}
 
 		HCFG::EMUWINDOWSTRETCH adapterStretch;
@@ -2329,6 +2632,7 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			case CBN_SELCHANGE:
 				FillModes();
 				FillFormats();
+				FillRefresh();
 				FillSizes();
 				FillFilters();
 				VideoPageSizeComboBoxes();
@@ -2340,6 +2644,18 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			{
 			case CBN_SELCHANGE:
 				FillFormats();
+				FillRefresh();
+				FillSizes();
+				FillFilters();
+				VideoPageSizeComboBoxes();
+				return TRUE;
+			}
+			break;
+		case IDC_CBO_FORMAT:
+			switch (HIWORD(wParam))
+			{
+			case CBN_SELCHANGE:
+				FillRefresh();
 				FillSizes();
 				FillFilters();
 				VideoPageSizeComboBoxes();
@@ -2429,6 +2745,52 @@ void CDiagEmulationSettingsTab::UpdatePageDisk(HWND hWndDlg)
 {
 }
 
+
+CDiagEmulationSettingsTab::CDisplayModeInfo_WxH_is_equal::CDisplayModeInfo_WxH_is_equal(const CDisplayModeInfo& mode)
+	: mode(mode)
+{
+}
+
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_WxH_is_equal::operator()(const CDisplayModeInfo& mode) const
+{
+	return CDiagEmulationSettingsTab::fnCompareMode(this->mode, mode) == 0;
+}
+
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_WxH_is_less::operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const
+{
+	return CDiagEmulationSettingsTab::fnCompareMode(a, b) < 0;
+}
+
+CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_equal::CDisplayModeInfo_format_is_equal(D3DFORMAT format)
+	: format(format)
+{
+}
+
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_equal::operator()(const CDisplayModeInfo& mode) const
+{
+	return this->format == mode.mode.Format;
+}
+
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_less::operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const
+{
+	return CDiagEmulationSettingsTab::fnCompareFormat(a, b) < 0;
+}
+
+CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_equal::CDisplayModeInfo_refresh_is_equal(UINT refresh)
+	: refresh(refresh)
+{
+}
+
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_equal::operator()(const CDisplayModeInfo& mode) const
+{
+	return this->refresh == mode.mode.RefreshRate;
+}
+
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_less::operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const
+{
+	return a.mode.RefreshRate < b.mode.RefreshRate;
+}
+
 CDisplayInfo::CDisplayInfo()
 {
 	bRequireClean = true;
@@ -2444,7 +2806,10 @@ CDisplayInfo::~CDisplayInfo()
 	if (bRequireClean)
 	{
 		if (name)
+		{
 			GlobalFree(name);
+		}
+
 		name = NULL;
 	}
 }
@@ -2458,11 +2823,13 @@ int lenName;
 		GlobalFree(name);
 		name = NULL;
 	}
+
 	lenName = sizeof(adapter.Description) + lstrlen(TEXT(" ")) + sizeof(monitor.szDevice) + 1;
 	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
 	if (name == NULL)
+	{
 		return E_OUTOFMEMORY;
-
+	}
 #ifdef UNICODE
 
 	int lenUcBuffer = 0;
@@ -2518,7 +2885,10 @@ CDisplayModeInfo::~CDisplayModeInfo()
 	if (bRequireClean)
 	{
 		if (name)
+		{
 			GlobalFree(name);
+		}
+
 		name = NULL;
 	}
 }
@@ -2535,7 +2905,9 @@ int lenName;
 	lenName = dx->GetDisplayResolutionText(mode, NULL, 0);
 	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
 	if (name == NULL)
+	{
 		return E_OUTOFMEMORY;
+	}
 
 	dx->GetDisplayResolutionText(mode, name, lenName);
 	return S_OK;
@@ -2554,8 +2926,30 @@ int lenName;
 	lenName = dx->GetDisplayFormatText(mode, NULL, 0);
 	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
 	if (name == NULL)
+	{
 		return E_OUTOFMEMORY;
+	}
 
 	dx->GetDisplayFormatText(mode, name, lenName);
+	return S_OK;
+}
+
+HRESULT CDisplayModeInfo::MakeNameRefresh(CDX9 *dx)
+{
+int lenName;
+	if (name)
+	{
+		GlobalFree(name);
+		name = NULL;
+	}
+
+	lenName = dx->GetDisplayRefreshText(mode, NULL, 0);
+	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
+	if (name == NULL)
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	dx->GetDisplayRefreshText(mode, name, lenName);
 	return S_OK;
 }

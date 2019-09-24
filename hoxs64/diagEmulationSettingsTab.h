@@ -1,7 +1,6 @@
 #ifndef __DIAGEMULATION_SETTINGS_TAB_H__
 #define __DIAGEMULATION_SETTINGS_TAB_H__
 
-
 struct CDisplayInfo
 {
 	CDisplayInfo();
@@ -25,14 +24,8 @@ struct CDisplayModeInfo
 	bool bRequireClean;
 	HRESULT MakeName(CDX9 *dx);
 	HRESULT MakeNameFormat(CDX9 *dx);
+	HRESULT MakeNameRefresh(CDX9 *dx);
 };
-
-typedef class CArrayElement<CDisplayInfo> CAdapterElement;
-typedef class CArray<CDisplayInfo> CAdapterArray;
-
-
-typedef class MListElement<CDisplayModeInfo> CDisplayModeElement;
-typedef class MList<CDisplayModeInfo> CDisplayModeList;
 
 class CDiagEmulationSettingsTab : public CTabDialog, public ErrorMsg
 {
@@ -62,15 +55,18 @@ private:
 	virtual BOOL OnPageEvent(CTabPageDialog *page, HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
 
 	CDX9 *m_pDx;
-	CAdapterArray m_AdapterArray;
-	CDisplayModeList m_ModeList;
-	CDisplayModeList m_ModeFormatList;
+	vector<CDisplayInfo> m_AdapterArray;
+	list<CDisplayModeInfo> m_ModeList;
+	list<CDisplayModeInfo> m_ModeFormatList;
+	list<CDisplayModeInfo> m_ModeRefreshList;
 
 	void FillDevices();
 	void FillModes();
-	void FillModes(UINT adapterOrdinal);
+	void FillModes(int adapterOrdinal);
 	void FillFormats();
-	void FillFormats(UINT adapterOrdinal, D3DDISPLAYMODE &mode);
+	void FillFormats(int adapterOrdinal, UINT width, UINT height);
+	void FillRefresh();
+	void FillRefresh(int adapterOrdinal, UINT width, UINT height, D3DFORMAT format);
 	void FillSizes();
 	void FillFilters();
 	void FillSidCount();
@@ -83,14 +79,17 @@ private:
 	void InitFonts();
 	void CloseFonts();
 
-	static int fnFindMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);
-	static int fnFindModeFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);
-	static int fnCompareMode(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);
-	static int fnCompareFormat(CDisplayModeInfo &mode1, CDisplayModeInfo &mode2);
-
+public:
+	static int fnFindModeFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
+	static int fnCompareMode(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
+	static bool fnForListCompareMode(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
+	static int fnCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
+	static bool fnForListCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
+private:
 	HRESULT ReadAdapterOrdinal(DWORD *adapterOrdinal, GUID *adapterId);
 	HRESULT ReadAdapterMode(D3DDISPLAYMODE *pMode);
 	HRESULT ReadAdapterFormat(D3DFORMAT *pFormat);
+	HRESULT ReadAdapterRefresh(UINT *pRefreshRate);
 	HRESULT ReadAdapterStretch(HCFG::EMUWINDOWSTRETCH *pFormat);
 	HRESULT ReadAdapterFilter(HCFG::EMUWINDOWFILTER *pFilter);
 	void ReadTrackZeroSensor(HCFG::ETRACKZEROSENSORSTYLE *v);
@@ -117,6 +116,54 @@ private:
 	static const TCHAR szVideoFilter_2X[];
 	static const TCHAR szVideoFilter_StretchToFit[];
 	static const TCHAR szVideoFilter_StretchWithBorderClip[];
+
+	class CDisplayModeInfo_WxH_is_equal
+	{
+	public:
+		CDisplayModeInfo_WxH_is_equal(const CDisplayModeInfo& mode);
+		bool operator()(const CDisplayModeInfo& mode) const;
+	private:
+		const CDisplayModeInfo &mode;
+	};
+
+	class CDisplayModeInfo_WxH_is_less
+	{
+	public:
+		bool operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const;
+	private:
+	};
+
+	class CDisplayModeInfo_format_is_equal
+	{
+	public:
+		CDisplayModeInfo_format_is_equal(D3DFORMAT format);
+		bool operator()(const CDisplayModeInfo& mode) const;
+	private:
+		const D3DFORMAT format;
+	};
+
+	class CDisplayModeInfo_format_is_less
+	{
+	public:
+		bool operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const;
+	private:
+	};
+
+	class CDisplayModeInfo_refresh_is_equal
+	{
+	public:
+		CDisplayModeInfo_refresh_is_equal(UINT refresh);
+		bool operator()(const CDisplayModeInfo& mode) const;
+	private:
+		const UINT refresh;
+	};
+
+	class CDisplayModeInfo_refresh_is_less
+	{
+	public:
+		bool operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const;
+	private:
+	};
 };
 
 
