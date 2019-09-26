@@ -26,6 +26,7 @@ namespace C64JoystickButton
 		ButtonAndAxisKey3,
 		ButtonAndAxisKey4,
 		ButtonAndAxisKey5,
+		ButtonAndAxisKey6,
 	} C64JoystickButtonNumber;
 };
 
@@ -91,6 +92,10 @@ public:
 		JoynButtonKey5Mask,
 		JoynButtonKey5Count,
 		JoynButtonKey5List,
+		JoynButtonKey6,
+		JoynButtonKey6Mask,
+		JoynButtonKey6Count,
+		JoynButtonKey6List,
 		JoynAxisKey1List,
 		JoynAxisKey1ListDirection,
 		JoynAxisKey1Count,
@@ -106,6 +111,9 @@ public:
 		JoynAxisKey5List,
 		JoynAxisKey5ListDirection,
 		JoynAxisKey5Count,
+		JoynAxisKey6List,
+		JoynAxisKey6ListDirection,
+		JoynAxisKey6Count,
 		JoynPovKey1List,
 		JoynPovKey1ListDirection,
 		JoynPovKey1Count,
@@ -121,6 +129,9 @@ public:
 		JoynPovKey5List,
 		JoynPovKey5ListDirection,
 		JoynPovKey5Count,
+		JoynPovKey6List,
+		JoynPovKey6ListDirection,
+		JoynPovKey6Count,
 		JoynLast
 	} JOYSTICKKEY;
 
@@ -144,21 +155,24 @@ public:
 	static ButtonKeySet ButtonKey3;
 	static ButtonKeySet ButtonKey4;
 	static ButtonKeySet ButtonKey5;
+	static ButtonKeySet ButtonKey6;
 	static ButtonKeySet AxisKey1;
 	static ButtonKeySet AxisKey2;
 	static ButtonKeySet AxisKey3;
 	static ButtonKeySet AxisKey4;
 	static ButtonKeySet AxisKey5;
+	static ButtonKeySet AxisKey6;
 	static ButtonKeySet PovKey1;
 	static ButtonKeySet PovKey2;
 	static ButtonKeySet PovKey3;
 	static ButtonKeySet PovKey4;
 	static ButtonKeySet PovKey5;
+	static ButtonKeySet PovKey6;
 };
 
 struct joyconfig
 {
-	static const unsigned int MAXKEYMAPS = 5;
+	static const unsigned int MAXKEYMAPS = 6;
 	static const unsigned int MAXV1BUTTONS = 32;
 	static const unsigned int MAXBUTTONS = 128;
 	static const unsigned int MAXBUTTONS32 = 32;

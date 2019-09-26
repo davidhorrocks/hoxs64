@@ -76,6 +76,10 @@ LPCTSTR JoyKeyName::Name[2][JoynLast] =
 		TEXT("Joy1ButtonKey5Mask"),
 		TEXT("Joy1ButtonKey5Count"),
 		TEXT("Joy1ButtonKey5List"),
+		TEXT("Joy1ButtonKey6"),
+		TEXT("Joy1ButtonKey6Mask"),
+		TEXT("Joy1ButtonKey6Count"),
+		TEXT("Joy1ButtonKey6List"),
 		TEXT("Joy1AxisKey1List"),
 		TEXT("Joy1AxisKey1ListDirection"),
 		TEXT("Joy1AxisKey1Count"),
@@ -91,6 +95,9 @@ LPCTSTR JoyKeyName::Name[2][JoynLast] =
 		TEXT("Joy1AxisKey5List"),
 		TEXT("Joy1AxisKey5ListDirection"),
 		TEXT("Joy1AxisKey5Count"),
+		TEXT("Joy1AxisKey6List"),
+		TEXT("Joy1AxisKey6ListDirection"),
+		TEXT("Joy1AxisKey6Count"),
 		TEXT("Joy1PovKey1List"),
 		TEXT("Joy1PovKey1ListDirection"),
 		TEXT("Joy1PovKey1Count"),
@@ -106,6 +113,9 @@ LPCTSTR JoyKeyName::Name[2][JoynLast] =
 		TEXT("Joy1PovKey5List"),
 		TEXT("Joy1PovKey5ListDirection"),
 		TEXT("Joy1PovKey5Count"),		
+		TEXT("Joy1PovKey6List"),
+		TEXT("Joy1PovKey6ListDirection"),
+		TEXT("Joy1PovKey6Count"),		
 	}
 	,
 	{
@@ -166,6 +176,10 @@ LPCTSTR JoyKeyName::Name[2][JoynLast] =
 		TEXT("Joy2ButtonKey5Mask"),
 		TEXT("Joy2ButtonKey5Count"),
 		TEXT("Joy2ButtonKey5List"),
+		TEXT("Joy2ButtonKey6"),
+		TEXT("Joy2ButtonKey6Mask"),
+		TEXT("Joy2ButtonKey6Count"),
+		TEXT("Joy2ButtonKey6List"),
 		TEXT("Joy2AxisKey1List"),
 		TEXT("Joy2AxisKey1ListDirection"),
 		TEXT("Joy2AxisKey1Count"),
@@ -181,6 +195,9 @@ LPCTSTR JoyKeyName::Name[2][JoynLast] =
 		TEXT("Joy2AxisKey5List"),
 		TEXT("Joy2AxisKey5ListDirection"),
 		TEXT("Joy2AxisKey5Count"),
+		TEXT("Joy2AxisKey6List"),
+		TEXT("Joy2AxisKey6ListDirection"),
+		TEXT("Joy2AxisKey6Count"),
 		TEXT("Joy2PovKey1List"),
 		TEXT("Joy2PovKey1ListDirection"),
 		TEXT("Joy2PovKey1Count"),
@@ -196,6 +213,9 @@ LPCTSTR JoyKeyName::Name[2][JoynLast] =
 		TEXT("Joy2PovKey5List"),
 		TEXT("Joy2PovKey5ListDirection"),
 		TEXT("Joy2PovKey5Count"),
+		TEXT("Joy2PovKey6List"),
+		TEXT("Joy2PovKey6ListDirection"),
+		TEXT("Joy2PovKey6Count"),
 	}
 };
 
@@ -287,6 +307,14 @@ JoyKeyName::ButtonKeySet JoyKeyName::ButtonKey5 =
 	JoyKeyName::JoynButtonKey5List
 };
 
+JoyKeyName::ButtonKeySet JoyKeyName::ButtonKey6 = 
+{
+	JoyKeyName::JoynButtonKey6,
+	JoyKeyName::JoynButtonKey6Mask,
+	JoyKeyName::JoynButtonKey6Count,
+	JoyKeyName::JoynButtonKey6List
+};
+
 JoyKeyName::ButtonKeySet JoyKeyName::AxisKey1 = 
 {
 	JoyKeyName::JoynBlank,
@@ -327,6 +355,14 @@ JoyKeyName::ButtonKeySet JoyKeyName::AxisKey5 =
 	JoyKeyName::JoynAxisKey5List
 };
 
+JoyKeyName::ButtonKeySet JoyKeyName::AxisKey6 = 
+{
+	JoyKeyName::JoynBlank,
+	JoyKeyName::JoynAxisKey6ListDirection,
+	JoyKeyName::JoynAxisKey6Count,
+	JoyKeyName::JoynAxisKey6List
+};
+
 JoyKeyName::ButtonKeySet JoyKeyName::PovKey1 = 
 {
 	JoyKeyName::JoynBlank,
@@ -365,6 +401,14 @@ JoyKeyName::ButtonKeySet JoyKeyName::PovKey5 =
 	JoyKeyName::JoynPovKey5ListDirection,
 	JoyKeyName::JoynPovKey5Count,
 	JoyKeyName::JoynPovKey5List
+};
+
+JoyKeyName::ButtonKeySet JoyKeyName::PovKey6 = 
+{
+	JoyKeyName::JoynBlank,
+	JoyKeyName::JoynPovKey6ListDirection,
+	JoyKeyName::JoynPovKey6Count,
+	JoyKeyName::JoynPovKey6List
 };
 
 CConfig::CConfig()
@@ -1123,6 +1167,7 @@ DWORD dw;
 			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey3, jconfig.keyNButtonOffsets[2], jconfig.keyNButtonCount[2]);
 			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey4, jconfig.keyNButtonOffsets[3], jconfig.keyNButtonCount[3]);
 			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey5, jconfig.keyNButtonOffsets[4], jconfig.keyNButtonCount[4]);
+			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey6, jconfig.keyNButtonOffsets[5], jconfig.keyNButtonCount[5]);
 
 			// Read map of game axes to C64 keys.
 			ReadJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey1, jconfig.keyNAxisOffsets[0], jconfig.keyNAxisDirection[0], jconfig.MAXAXIS, &jconfig.keyNAxisCount[0]);
@@ -1130,6 +1175,7 @@ DWORD dw;
 			ReadJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey3, jconfig.keyNAxisOffsets[2], jconfig.keyNAxisDirection[2], jconfig.MAXAXIS, &jconfig.keyNAxisCount[2]);
 			ReadJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey4, jconfig.keyNAxisOffsets[3], jconfig.keyNAxisDirection[3], jconfig.MAXAXIS, &jconfig.keyNAxisCount[3]);
 			ReadJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey5, jconfig.keyNAxisOffsets[4], jconfig.keyNAxisDirection[4], jconfig.MAXAXIS, &jconfig.keyNAxisCount[4]);
+			ReadJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey6, jconfig.keyNAxisOffsets[5], jconfig.keyNAxisDirection[5], jconfig.MAXAXIS, &jconfig.keyNAxisCount[5]);
 
 			// Read map of game pov to C64 keys.
 			ReadJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey1, jconfig.keyNPovOffsets[0], jconfig.keyNPovDirection[0], jconfig.MAXPOV, &jconfig.keyNPovCount[0]);
@@ -1137,6 +1183,7 @@ DWORD dw;
 			ReadJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey3, jconfig.keyNPovOffsets[2], jconfig.keyNPovDirection[2], jconfig.MAXPOV, &jconfig.keyNPovCount[2]);
 			ReadJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey4, jconfig.keyNPovOffsets[3], jconfig.keyNPovDirection[3], jconfig.MAXPOV, &jconfig.keyNPovCount[3]);
 			ReadJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey5, jconfig.keyNPovOffsets[4], jconfig.keyNPovDirection[4], jconfig.MAXPOV, &jconfig.keyNPovCount[4]);
+			ReadJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey6, jconfig.keyNPovOffsets[5], jconfig.keyNPovDirection[5], jconfig.MAXPOV, &jconfig.keyNPovCount[5]);
 
 			unsigned int i;
 			DWORD numberOfKeysAssigned = 0;
@@ -2251,6 +2298,7 @@ unsigned int i;
 	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey3, &jconfig.keyNButtonOffsets[2][0], jconfig.keyNButtonCount[2]);
 	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey4, &jconfig.keyNButtonOffsets[3][0], jconfig.keyNButtonCount[3]);
 	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey5, &jconfig.keyNButtonOffsets[4][0], jconfig.keyNButtonCount[4]);
+	WriteJoystickButtonList(hKey1, joystickNumber, JoyKeyName::ButtonKey6, &jconfig.keyNButtonOffsets[5][0], jconfig.keyNButtonCount[5]);
 
 	// Save map of game axes to C64 keys.
 	WriteJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey1, &jconfig.keyNAxisOffsets[0][0], &jconfig.keyNAxisDirection[0][0], jconfig.keyNAxisCount[0]);
@@ -2258,6 +2306,7 @@ unsigned int i;
 	WriteJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey3, &jconfig.keyNAxisOffsets[2][0], &jconfig.keyNAxisDirection[2][0], jconfig.keyNAxisCount[2]);
 	WriteJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey4, &jconfig.keyNAxisOffsets[3][0], &jconfig.keyNAxisDirection[3][0], jconfig.keyNAxisCount[3]);
 	WriteJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey5, &jconfig.keyNAxisOffsets[4][0], &jconfig.keyNAxisDirection[4][0], jconfig.keyNAxisCount[4]);
+	WriteJoystickAxisList(hKey1, joystickNumber, JoyKeyName::AxisKey6, &jconfig.keyNAxisOffsets[5][0], &jconfig.keyNAxisDirection[5][0], jconfig.keyNAxisCount[5]);
 
 	// Save map of game pov to C64 keys.
 	WriteJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey1, &jconfig.keyNPovOffsets[0][0], &jconfig.keyNPovDirection[0][0], jconfig.keyNPovCount[0]);
@@ -2265,6 +2314,7 @@ unsigned int i;
 	WriteJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey3, &jconfig.keyNPovOffsets[2][0], &jconfig.keyNPovDirection[2][0], jconfig.keyNPovCount[2]);
 	WriteJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey4, &jconfig.keyNPovOffsets[3][0], &jconfig.keyNPovDirection[3][0], jconfig.keyNPovCount[3]);
 	WriteJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey5, &jconfig.keyNPovOffsets[4][0], &jconfig.keyNPovDirection[4][0], jconfig.keyNPovCount[4]);
+	WriteJoystickPovList(hKey1, joystickNumber, JoyKeyName::PovKey6, &jconfig.keyNPovOffsets[5][0], &jconfig.keyNPovDirection[5][0], jconfig.keyNPovCount[5]);
 
 	//Save the key assignment array length.
 	unsigned int numberOfKeys = joyconfig::MaxUserKeyAssignCount;

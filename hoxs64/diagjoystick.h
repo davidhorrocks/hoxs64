@@ -31,11 +31,13 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		int cbo_joykey3button;
 		int cbo_joykey4button;
 		int cbo_joykey5button;
+		int cbo_joykey6button;
 		int cbo_joykey1;
 		int cbo_joykey2;
 		int cbo_joykey3;
 		int cbo_joykey4;
 		int cbo_joykey5;
+		int cbo_joykey6;
 	};
 
 	struct C64JoyItem
@@ -116,6 +118,7 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		C64JoyItem c64buttonKey3;
 		C64JoyItem c64buttonKey4;
 		C64JoyItem c64buttonKey5;
+		C64JoyItem c64buttonKey6;
 		BOOL EnumJoyAxis(LPCDIDEVICEOBJECTINSTANCE);
 		BOOL EnumJoyButton(LPCDIDEVICEOBJECTINSTANCE);
 		BOOL EnumJoyPov(LPCDIDEVICEOBJECTINSTANCE);

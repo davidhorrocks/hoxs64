@@ -50,11 +50,13 @@ CDiagJoystick::JoyControlNum CDiagJoystick::joy1ControlNum =
 	IDC_CBO_JOY1BUTTONKEY3,
 	IDC_CBO_JOY1BUTTONKEY4,
 	IDC_CBO_JOY1BUTTONKEY5,
+	IDC_CBO_JOY1BUTTONKEY6,
 	IDC_CBO_JOY1KEY1,
 	IDC_CBO_JOY1KEY2,
 	IDC_CBO_JOY1KEY3,
 	IDC_CBO_JOY1KEY4,
 	IDC_CBO_JOY1KEY5,
+	IDC_CBO_JOY1KEY6,
 };
 
 CDiagJoystick::JoyControlNum CDiagJoystick::joy2ControlNum =
@@ -77,11 +79,13 @@ CDiagJoystick::JoyControlNum CDiagJoystick::joy2ControlNum =
 	IDC_CBO_JOY2BUTTONKEY3,
 	IDC_CBO_JOY2BUTTONKEY4,
 	IDC_CBO_JOY2BUTTONKEY5,
+	IDC_CBO_JOY2BUTTONKEY6,
 	IDC_CBO_JOY2KEY1,
 	IDC_CBO_JOY2KEY2,
 	IDC_CBO_JOY2KEY3,
 	IDC_CBO_JOY2KEY4,
 	IDC_CBO_JOY2KEY5,
+	IDC_CBO_JOY2KEY6,
 };
 
 CDiagJoystick::JoyUi::JoyUi(CDX9 *pDX, const struct joyconfig& outerjconfig, int ID, const JoyControlNum& controlNum)
@@ -99,6 +103,7 @@ CDiagJoystick::JoyUi::JoyUi(CDX9 *pDX, const struct joyconfig& outerjconfig, int
 	, c64buttonKey3(controlNum.cbo_joykey3button, C64JoystickButton::ButtonAndAxisKey3, &jconfig.keyNButtonOffsets[2][0], jconfig.keyNButtonCount[2], &jconfig.keyNAxisOffsets[2][0], &jconfig.keyNAxisDirection[2][0], jconfig.keyNAxisCount[2], &jconfig.keyNPovOffsets[2][0], &jconfig.keyNPovDirection[2][0], jconfig.keyNPovCount[2])
 	, c64buttonKey4(controlNum.cbo_joykey4button, C64JoystickButton::ButtonAndAxisKey4, &jconfig.keyNButtonOffsets[3][0], jconfig.keyNButtonCount[3], &jconfig.keyNAxisOffsets[3][0], &jconfig.keyNAxisDirection[3][0], jconfig.keyNAxisCount[3], &jconfig.keyNPovOffsets[3][0], &jconfig.keyNPovDirection[3][0], jconfig.keyNPovCount[3])
 	, c64buttonKey5(controlNum.cbo_joykey5button, C64JoystickButton::ButtonAndAxisKey5, &jconfig.keyNButtonOffsets[4][0], jconfig.keyNButtonCount[4], &jconfig.keyNAxisOffsets[4][0], &jconfig.keyNAxisDirection[4][0], jconfig.keyNAxisCount[4], &jconfig.keyNPovOffsets[4][0], &jconfig.keyNPovDirection[4][0], jconfig.keyNPovCount[4])
+	, c64buttonKey6(controlNum.cbo_joykey6button, C64JoystickButton::ButtonAndAxisKey6, &jconfig.keyNButtonOffsets[5][0], jconfig.keyNButtonCount[5], &jconfig.keyNAxisOffsets[5][0], &jconfig.keyNAxisDirection[5][0], jconfig.keyNAxisCount[5], &jconfig.keyNPovOffsets[5][0], &jconfig.keyNPovDirection[5][0], jconfig.keyNPovCount[5])
 {
 	const int InitialAxisSize = 10;
 	axisOptions.reserve(InitialAxisSize);
@@ -351,6 +356,13 @@ BOOL CDiagJoystick::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lP
 			}
 
 			break;
+		case IDC_BTN_CFG_JOY1KEY6:
+			if (HIWORD(wParam) == BN_CLICKED)
+			{
+				ShowButtonConfig(this->joy1, this->joy1.c64buttonKey6);
+			}
+
+			break;
 		case IDC_BTN_CFG_JOY2FIRE1:
 			if (HIWORD(wParam) == BN_CLICKED)
 			{
@@ -426,6 +438,13 @@ BOOL CDiagJoystick::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lP
 			if (HIWORD(wParam) == BN_CLICKED)
 			{
 				ShowButtonConfig(this->joy2, this->joy2.c64buttonKey5);
+			}
+
+			break;
+		case IDC_BTN_CFG_JOY2KEY6:
+			if (HIWORD(wParam) == BN_CLICKED)
+			{
+				ShowButtonConfig(this->joy2, this->joy2.c64buttonKey6);
 			}
 
 			break;
@@ -820,6 +839,7 @@ void CDiagJoystick::JoyUi::FillJoyButton(bool bSetConfig)
 		FillJoyButtonDropdown(this->c64buttonKey3, buttonAndAxisOptions);
 		FillJoyButtonDropdown(this->c64buttonKey4, buttonAndAxisOptions);
 		FillJoyButtonDropdown(this->c64buttonKey5, buttonAndAxisOptions);
+		FillJoyButtonDropdown(this->c64buttonKey6, buttonAndAxisOptions);
 
 		// Search the dropdowns and set the current selection.
 		SelectJoyButtonAxisDropdownItem(this->c64buttonFire1, bSetConfig);
@@ -833,6 +853,7 @@ void CDiagJoystick::JoyUi::FillJoyButton(bool bSetConfig)
 		SelectJoyButtonAxisDropdownItem(this->c64buttonKey3, bSetConfig);
 		SelectJoyButtonAxisDropdownItem(this->c64buttonKey4, bSetConfig);
 		SelectJoyButtonAxisDropdownItem(this->c64buttonKey5, bSetConfig);
+		SelectJoyButtonAxisDropdownItem(this->c64buttonKey6, bSetConfig);
 	}
 	catch(std::exception &)
 	{
@@ -1141,6 +1162,7 @@ void CDiagJoystick::JoyUi::FillJoyButtonKeys(const joyconfig& cfg)
 	FillJoyButtonKeyDropdown(controlNum.cbo_joykey3, cfg.isValidKeyNoAssign[2], cfg.keyNoAssign[2]);
 	FillJoyButtonKeyDropdown(controlNum.cbo_joykey4, cfg.isValidKeyNoAssign[3], cfg.keyNoAssign[3]);
 	FillJoyButtonKeyDropdown(controlNum.cbo_joykey5, cfg.isValidKeyNoAssign[4], cfg.keyNoAssign[4]);
+	FillJoyButtonKeyDropdown(controlNum.cbo_joykey6, cfg.isValidKeyNoAssign[5], cfg.keyNoAssign[5]);
 }
 
 void CDiagJoystick::JoyUi::FillJoyButtonKeyDropdown(int ctrlid, bool isValid, bit8 keyValue)
@@ -1648,7 +1670,7 @@ unsigned int datadeviceindex;
 	}
 
 	// Save button and axis sources for keys.
-	C64JoyItem* keybuttoncontrols[] = { &this->c64buttonKey1, &this->c64buttonKey2, &this->c64buttonKey3, &this->c64buttonKey4, &this->c64buttonKey5 };
+	C64JoyItem* keybuttoncontrols[] = { &this->c64buttonKey1, &this->c64buttonKey2, &this->c64buttonKey3, &this->c64buttonKey4, &this->c64buttonKey5, &this->c64buttonKey6 };
 	for(j = 0; j < cfg->MAXKEYMAPS; j++)
 	{
 		C64JoyItem &item = *keybuttoncontrols[j];
@@ -1734,7 +1756,7 @@ unsigned int datadeviceindex;
 	}
 
 	// Save target C64 key assignments.
-	int c64keycontrols[] = { controlNum.cbo_joykey1, controlNum.cbo_joykey2, controlNum.cbo_joykey3, controlNum.cbo_joykey4, controlNum.cbo_joykey5};
+	int c64keycontrols[] = { controlNum.cbo_joykey1, controlNum.cbo_joykey2, controlNum.cbo_joykey3, controlNum.cbo_joykey4, controlNum.cbo_joykey5, controlNum.cbo_joykey6};
 	cfg->enableKeyAssign = false;
 	for(i = 0; i < _countof(c64keycontrols); i++)
 	{
