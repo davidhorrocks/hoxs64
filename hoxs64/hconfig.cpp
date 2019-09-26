@@ -558,6 +558,9 @@ int i;
 		readregkeyboarditem(C64Keys::C64K_JOY2LEFT);
 		readregkeyboarditem(C64Keys::C64K_JOY2RIGHT);
 
+		readregkeyboarditem(C64Keys::C64K_JOY1FIRE2);
+		readregkeyboarditem(C64Keys::C64K_JOY2FIRE2);
+
 		RegCloseKey(hKey1);
 	}
 
@@ -1977,6 +1980,9 @@ int i;
 	writeregkeyboarditem(C64Keys::C64K_JOY2DOWN);
 	writeregkeyboarditem(C64Keys::C64K_JOY2LEFT);
 	writeregkeyboarditem(C64Keys::C64K_JOY2RIGHT);	
+
+	writeregkeyboarditem(C64Keys::C64K_JOY1FIRE2);
+	writeregkeyboarditem(C64Keys::C64K_JOY2FIRE2);
 	RegCloseKey(hKey1);
 	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"), 
