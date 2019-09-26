@@ -369,6 +369,14 @@
 #define IDC_TXT_F6                      1478
 #define IDC_TXT_F8                      1479
 #define IDC_CBO_ADAPTER_REFRESH         1480
+#define IDC_CBO_JOY1KEY6                1481
+#define IDC_LBL_JOY1KEY6LINK            1482
+#define IDC_CBO_JOY1BUTTONKEY6          1483
+#define IDC_BTN_CFG_JOY1KEY6            1484
+#define IDC_CBO_JOY2KEY6                1485
+#define IDC_LBL_JOY2KEY6LINK            1486
+#define IDC_CBO_JOY2BUTTONKEY6          1487
+#define IDC_BTN_CFG_JOY2KEY6            1488
 #define IDM_EXIT                        40002
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -450,7 +458,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40209
-#define _APS_NEXT_CONTROL_VALUE         1481
+#define _APS_NEXT_CONTROL_VALUE         1489
 #define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif
