@@ -451,13 +451,14 @@
 #define IDM_OPTIONS_DECIMAL             40200
 #define IDM_BREAKPOINTOPTIONS_DECIMAL   40202
 #define IDM_SETTINGS_SIDSTEREO          40206
+#define IDM_SETTINGS_LOCKASPECTRATIO    40210
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
-#define _APS_NEXT_COMMAND_VALUE         40209
+#define _APS_NEXT_COMMAND_VALUE         40211
 #define _APS_NEXT_CONTROL_VALUE         1489
 #define _APS_NEXT_SYMED_VALUE           117
 #endif

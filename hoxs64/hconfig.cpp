@@ -420,6 +420,7 @@ CConfig::CConfig()
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
 	m_bWindowedCustomSize = false;
+	m_bWindowedLockAspectRatio = false;
 	m_bUseBlitStretch = true;
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
@@ -430,6 +431,8 @@ CConfig::CConfig()
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
+	m_bWindowedLockAspectRatio = false;
+	m_bSIDStereo = true;
 	SetPalettePepto();
 	m_numberOfExtraSIDs = 0;
 	m_Sid2Address = 0;
@@ -658,6 +661,16 @@ int i;
 		}
 
 		tempLenValue = lenValue;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("WindowedLockAspectRatio"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			this->m_bWindowedLockAspectRatio = dwValue != 0;
+		}
+		else
+		{
+			this->m_bWindowedLockAspectRatio = false;
+		}
+
 		tempLenValue = lenValue;
 		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SIDStereo"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
@@ -1641,6 +1654,7 @@ HKEY  hKey1;
 DWORD  dwDisposition; 
 LONG   lRetCode; 
 WINDOWPLACEMENT wp;
+DWORD dwValue;
 
 	ZeroMemory(&wp, sizeof(wp));
 	wp.length = sizeof(wp);
@@ -1671,15 +1685,15 @@ WINDOWPLACEMENT wp;
 	wsprintf(szValue, TEXT("%d"), (int) (pt_winpos.y));
 	RegSetValueEx(hKey1, TEXT("MainWinPosY"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	DWORD dwWindowedCustomSize = this->m_bWindowedCustomSize ? 1 : 0;
-	RegSetValueEx(hKey1, TEXT("WindowedCustomSize"), 0, REG_DWORD, (LPBYTE) &dwWindowedCustomSize, sizeof(dwWindowedCustomSize));
+	dwValue = this->m_bWindowedCustomSize ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("WindowedCustomSize"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(dwValue));
 
 	int w = max(0, wp.rcNormalPosition.right - wp.rcNormalPosition.left);
 	int h = max(0, wp.rcNormalPosition.bottom - wp.rcNormalPosition.top);		
 
 	//Warning
 	//VS2005 does not have an templated overload for fixed size arrays which then does not expect the count pararmter to be passed in.
-	//In other words, would be passing in too many arguments. 
+	//In other words, we would be passing in too many arguments. 
 	//The count (_TRUNCATE) would be seen as an additional argument for formatting would cause a buffer overrun in szValue.
 	//The cast of buffer to (TCHAR *) and the passing of count as _TRUNCATE ensures that VS2005 will compile correctly
 	_sntprintf_s((TCHAR *)(&szValue[0]), _countof(szValue), _TRUNCATE, TEXT("%d"), w);
@@ -1692,7 +1706,6 @@ WINDOWPLACEMENT wp;
 	RegSetValueEx(hKey1, TEXT("DoubleSizedWindow"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 	
 	RegCloseKey(hKey1);
-
 	return S_OK;
 }
 
@@ -1752,9 +1765,9 @@ HRESULT CConfig::LoadWindowSetting(POINT& pos, bool& bWindowedCustomSize, int& w
 TCHAR szValue[20];
 HKEY  hKey1; 
 LONG   lRetCode; 
-ULONG tempLenValue,lenValue;
+DWORD tempLenValue,lenValue;
 
-	DWORD _WindowedCustomSize = 0;
+	DWORD windowedCustomSize = 0;
 	POINT _pos = {0, 0};
 	int w = 0;
 	int h = 0;
@@ -1802,14 +1815,16 @@ ULONG tempLenValue,lenValue;
 		{
 			break;
 		}
+
 		ok = true;
-
-		tempLenValue = sizeof(_WindowedCustomSize);
-		lRetCode = RegQueryValueEx(hKey1, TEXT("WindowedCustomSize"), NULL, NULL, (PBYTE) &_WindowedCustomSize, &tempLenValue);
+		tempLenValue = sizeof(windowedCustomSize);
+		lRetCode = RegQueryValueEx(hKey1, TEXT("WindowedCustomSize"), NULL, NULL, (PBYTE) &windowedCustomSize, &tempLenValue);
 		if (lRetCode != ERROR_SUCCESS)
+		{
 			break;
+		}
 
-		if (_WindowedCustomSize)
+		if (windowedCustomSize)
 		{
 			tempLenValue = lenValue;
 			lRetCode = RegReadStr(hKey1, TEXT("MainWinWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
@@ -1847,16 +1862,18 @@ ULONG tempLenValue,lenValue;
 	{
 		if (!customok)
 		{
-			_WindowedCustomSize = false;
+			windowedCustomSize = false;
 			w = 0;
 			h = 0;
 		}
+
 		pos = _pos;
 		winWidth = w;
 		winHeight = h;
-		bWindowedCustomSize = _WindowedCustomSize != 0;
+		bWindowedCustomSize = windowedCustomSize != 0;
 		m_bWindowedCustomSize = bWindowedCustomSize;
 	}
+
 	return ok ? S_OK : E_FAIL;
 }
 
@@ -1929,7 +1946,8 @@ HRESULT CConfig::SaveCurrentSetting()
 {
 TCHAR szValue[50];
 HKEY  hKey1; 
-DWORD  dwDisposition; 
+DWORD  dwDisposition;
+DWORD  dwValue;
 LONG   lRetCode; 
 int i;
 
@@ -2128,13 +2146,16 @@ int i;
 	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bTimerBbug ? 1 : 0));
 	RegSetValueEx(hKey1, TEXT("CIATimerBbug"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	DWORD dwValue = (DWORD)this->m_numberOfExtraSIDs;
+	dwValue = (DWORD)this->m_numberOfExtraSIDs;
 	if (dwValue >= 8)
 	{
 		dwValue = 0;
 	}
 
 	RegSetValueEx(hKey1, TEXT("NumberOfExtraSidChips"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+
+	dwValue = this->m_bWindowedLockAspectRatio ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("WindowedLockAspectRatio"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(dwValue));
 
 	dwValue = m_bSIDStereo ? 1 : 0;
 	RegSetValueEx(hKey1, TEXT("SIDStereo"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
@@ -2456,7 +2477,6 @@ void CConfig::LoadDefaultSetting()
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
 	m_bSidDigiBoost = false;
-
 	if (G::IsMultiCore())
 	{
 		m_bD1541_Thread_Enable = true;
@@ -2490,6 +2510,7 @@ void CConfig::LoadDefaultSetting()
 	m_Sid6Address = 0;
 	m_Sid7Address = 0;
 	m_Sid8Address = 0;
+	m_bWindowedLockAspectRatio = false;
 	m_bSIDStereo = true;
 }
 

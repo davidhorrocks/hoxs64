@@ -855,7 +855,7 @@ RECT rcMain;
 	}
 
 	m_pWinAppWindow->m_pWinEmuWin->SetNotify(this);
-	m_pWinAppWindow->GetMinimumWindowedSize(&minWidth, &minHeight);
+	m_pWinAppWindow->GetMinimumWindowedSize(m_borderSize, m_bShowFloppyLed, &minWidth, &minHeight);
 	POINT winpos = {0,0};
 	bool bWindowedCustomSize = false;
 	m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &mainWinFixedWidth, &mainWinFixedHeight);
@@ -1750,6 +1750,7 @@ unsigned int i;
 		bNeedSoundFilterInit = true;
 	}
 
+	// Use the new config.
 	cfg = newcfg;
 
 	if (bPaletteChanged)
@@ -1773,8 +1774,11 @@ unsigned int i;
 				RECT rc;
 				if (GetWindowRect(hWnd, &rc))
 				{
-					w = max(0, rc.right - rc.left);
-					h = max(0, rc.bottom - rc.top);
+					int minw;
+					int minh;
+					m_pWinAppWindow->GetMinimumWindowedSize(cfg.m_borderSize, cfg.m_bShowFloppyLed, &minw, &minh);
+					w = max(minw, rc.right - rc.left);
+					h = max(minh, rc.bottom - rc.top);
 				}
 			}
 

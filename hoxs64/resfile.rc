@@ -153,6 +153,7 @@ BEGIN
         MENUITEM "&Keyboard",                   IDM_SETTING_KEYBOARD
         MENUITEM "&Joystick",                   IDM_SETTING_JOYSTICK
         MENUITEM "Double Sized Window",         IDM_SETTING_DOUBLESIZEDWINDOW, CHECKED
+        MENUITEM "Lock Aspect Ratio",           IDM_SETTINGS_LOCKASPECTRATIO, CHECKED
         MENUITEM "Swap Joysticks\tAlt J",       IDM_SETTING_SWAPJOYSTICKS, CHECKED
         MENUITEM "Toggle Max Speed\tAlt Q",     IDM_SETTING_MAXSPEED, CHECKED
         MENUITEM "Mute Sound\tAlt M",           IDM_SETTING_MUTESOUND, CHECKED

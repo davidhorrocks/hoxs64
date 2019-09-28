@@ -20,9 +20,10 @@ public:
 	void SetDriveMotorLed(bool bOn);
 	void UpdateMenu();
 	void GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h);
-	void GetMinimumWindowedSize(int *w, int *h);
+	void GetMinimumWindowedSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, int *w, int *h);
 	bool CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h);
 	void SaveMainWindowSize();
+	void AspectSizing(HWND hWnd, int edge, RECT &rcDrag);
 	HRESULT ResetDirect3D();
 	HRESULT SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch);
 	HRESULT InitSurfaces(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch);

@@ -130,29 +130,22 @@ C64WindowDimensions dims;
 	}
 }
 
-void CAppWindow::GetMinimumWindowedSize(int *w, int *h)
+void CAppWindow::GetMinimumWindowedSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, int *w, int *h)
 {
-	RECT rcClient;
-	RECT rcFrame;
-	const int MINPIXELS = 64;
-	int width = MINPIXELS + GetSystemMetrics(SM_CXSIZEFRAME)*2;
-	int height = MINPIXELS + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU);
-	HWND hWnd = this->m_hWnd;
-	if (IsWindow(hWnd))
-	{
-		if (GetClientRect(hWnd, &rcClient))
-		{
-			if (GetWindowRect(hWnd, &rcFrame))
-			{
-				width = max(width, (rcFrame.right - rcFrame.left) - (rcClient.right - rcClient.left - MINPIXELS));
-				height = max(height, (rcFrame.bottom - rcFrame.top) - (rcClient.bottom - rcClient.top - MINPIXELS));
-			}
-		}
-	}
+	C64WindowDimensions dims;
+	dims.SetBorder(borderSize);
+	int width = dims.Width / 2 + GetSystemMetrics(SM_CXSIZEFRAME)*2;
+	int height = dims.Height / 2 + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
+
 	if (w)
+	{
 		*w = width;
+	}
+
 	if (h)
+	{
 		*h = height;
+	}
 }
 
 bool CAppWindow::CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h)
@@ -175,6 +168,134 @@ HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[
 	this->m_hInst = hInstance;
 	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX  | WS_MINIMIZEBOX | WS_SIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
 	return hWnd;
+}
+
+void CAppWindow::AspectSizing(HWND hWnd, int edge, RECT &rect)
+{
+int w,h;
+int x, y;
+int minw, minh;
+RECT rcMain;
+
+	minw = 0x80;
+	minh = 0x80;
+	HCFG::EMUBORDERSIZE borderSize = this->appStatus->m_borderSize;
+	C64WindowDimensions dims;
+	dims.SetBorder(borderSize);
+	int window_ratio_x = dims.Width;
+	int window_ratio_y = dims.Height;	
+	if (GetWindowRect(hWnd, &rcMain))
+	{
+		CalcEmuWindowSize(rcMain, &w, &h);
+
+		h = h - CDX9::GetToolBarHeight(this->appStatus->m_bShowFloppyLed);
+		y = rcMain.top;
+		x = rcMain.left;
+		int window_adjust_x = rcMain.right - rcMain.left - w;
+		int window_adjust_y = rcMain.bottom - rcMain.top - h;
+		int size_x_desired = (rect.right - rect.left) - window_adjust_x;
+		int size_y_desired = (rect.bottom - rect.top) - window_adjust_y;
+		switch (edge)
+		{
+			case WMSZ_BOTTOM:
+			case WMSZ_TOP:
+				{
+					int size_x = window_adjust_x + (size_y_desired * window_ratio_x) / window_ratio_y;
+
+					rect.left = (rect.left + rect.right) / 2 - size_x / 2;
+					rect.right = rect.left + size_x;
+				}
+
+				break;
+			case WMSZ_BOTTOMLEFT:
+				{
+					int size_x, size_y;
+
+					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
+					{
+						size_x = rect.right - rect.left;
+						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
+					}
+					else
+					{
+						size_y = rect.bottom - rect.top;
+						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
+					}
+
+					rect.left = rect.right - size_x;
+					rect.bottom = rect.top + size_y;
+				}
+				break;
+			case WMSZ_BOTTOMRIGHT:
+				{
+					int size_x, size_y;
+
+					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
+					{
+						size_x = rect.right - rect.left;
+						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
+
+						rect.right = rect.left + size_x;
+						rect.bottom = rect.top + size_y;
+					}
+					else
+					{
+						size_y = rect.bottom - rect.top;
+						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
+					}
+
+					rect.right = rect.left + size_x;
+					rect.bottom = rect.top + size_y;
+				}
+				break;
+			case WMSZ_LEFT:
+			case WMSZ_RIGHT:
+				{
+					int size_y = window_adjust_y + (size_x_desired * window_ratio_y) / window_ratio_x;
+					rect.top = (rect.top + rect.bottom) / 2 - size_y / 2;
+					rect.bottom = rect.top + size_y;
+				}
+				break;
+			case WMSZ_TOPLEFT:
+				{
+					int size_x, size_y;
+
+					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
+					{
+						size_x = rect.right - rect.left;
+						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
+					}
+					else
+					{
+						size_y = rect.bottom - rect.top;
+						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
+					}
+
+					rect.left = rect.right - size_x;
+					rect.top = rect.bottom - size_y;
+				}
+				break;
+			case WMSZ_TOPRIGHT:
+				{
+					int size_x, size_y;
+
+					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
+					{
+						size_x = rect.right - rect.left;
+						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
+					}
+					else
+					{
+						size_y = rect.bottom - rect.top;
+						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
+					}
+
+					rect.right = rect.left + size_x;
+					rect.top = rect.bottom - size_y;
+				}
+				break;
+		}
+	}
 }
 
 LRESULT CAppWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -371,19 +492,37 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			}
 		}
 		return 0;
+	case WM_SIZING:
+		if (lParam!=NULL)
+		{
+			if (appStatus != NULL && appStatus->m_bWindowed && appStatus->m_bWindowedLockAspectRatio)
+			{
+				if (appStatus->m_bReady && !appStatus->m_bClosing)
+				{
+					AspectSizing(hWnd, (int)wParam, *((LPRECT)lParam));
+					return TRUE;
+				}
+			}
+		}
+
 	case WM_MOVE:
 		return 0;
 	case WM_GETMINMAXINFO:
-		if (appStatus->m_bWindowed)
+		if (appStatus != NULL)
 		{
-			int w;
-			int h;
-			GetMinimumWindowedSize(&w, &h);
-			pMinMax = (MINMAXINFO *)lParam;
-			pMinMax->ptMinTrackSize.x = w;
-			pMinMax->ptMinTrackSize.y = h;
+			if (appStatus->m_bWindowed)
+			{
+				int w;
+				int h;
+				GetMinimumWindowedSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, &w, &h);
+				pMinMax = (MINMAXINFO *)lParam;
+				pMinMax->ptMinTrackSize.x = w;
+				pMinMax->ptMinTrackSize.y = h;
+				return 0;
+			}
 		}
-		return 0;
+
+		break;
 	case WM_DISPLAYCHANGE:
 		if (G::IsHideWindow)
 		{
@@ -652,6 +791,12 @@ shared_ptr<CDiagAbout> pDiagAbout;
 			appStatus->ApplyConfig(tCfg);
 			MessageBeep(MB_ICONASTERISK);
 			appStatus->SoundResume();
+			return 0;
+		case IDM_SETTINGS_LOCKASPECTRATIO:
+			appStatus->GetUserConfig(tCfg);
+			tCfg.m_bWindowedLockAspectRatio = !tCfg.m_bWindowedLockAspectRatio;
+			appStatus->SetUserConfig(tCfg);
+			appStatus->ApplyConfig(tCfg);
 			return 0;
 		case IDM_SETTINGS_SIDSTEREO:
 			appStatus->GetUserConfig(tCfg);
@@ -954,6 +1099,15 @@ HMENU hMenu;
 		else
 		{
 			CheckMenuItem (hMenu, IDM_SETTING_SWAPJOYSTICKS, MF_BYCOMMAND | MF_UNCHECKED);
+		}
+
+		if (appStatus->m_bWindowedLockAspectRatio)
+		{
+			CheckMenuItem (hMenu, IDM_SETTINGS_LOCKASPECTRATIO, MF_BYCOMMAND | MF_CHECKED);
+		}
+		else
+		{
+			CheckMenuItem (hMenu, IDM_SETTINGS_LOCKASPECTRATIO, MF_BYCOMMAND | MF_UNCHECKED);
 		}
 
 		if (appStatus->m_bSIDStereo)

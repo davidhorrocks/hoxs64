@@ -326,6 +326,7 @@ public:
 	bool m_bSkipFrames;
 	bool m_bDoubleSizedWindow;
 	bool m_bWindowedCustomSize;
+	bool m_bWindowedLockAspectRatio;
 	bool m_bUseBlitStretch;
 	//POINT m_winpos;
 	//POINT m_mdidebuggerwinpos;
