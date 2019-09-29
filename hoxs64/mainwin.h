@@ -55,7 +55,17 @@ private:
 	static const DWORD StylesWindowed = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX  | WS_MINIMIZEBOX | WS_SIZEBOX;
 	static const DWORD StylesNonWindowed = WS_POPUP | WS_SYSMENU;
 
-
+	bool OnCreate(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);
+	void OnActivate(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	void OnPaletteChanged(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	void OnDisplayChange(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	bool OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);
+	bool OnSetCursor(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);	
+	bool OnSize(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	bool OnSizing(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	bool OnGetMinMaxInfo(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	bool OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);
+	bool OnSysCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);
 	void OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
