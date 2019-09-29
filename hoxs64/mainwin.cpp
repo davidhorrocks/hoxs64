@@ -136,7 +136,8 @@ void CAppWindow::GetMinimumWindowedSize(HCFG::EMUBORDERSIZE borderSize, bool bSh
 	dims.SetBorder(borderSize);
 	int width = dims.Width / 2 + GetSystemMetrics(SM_CXSIZEFRAME)*2;
 	int height = dims.Height / 2 + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
-
+	width = max(GetSystemMetrics(SM_CXMINTRACK), width);
+	height = max(GetSystemMetrics(SM_CYMINTRACK), height);
 	if (w)
 	{
 		*w = width;
@@ -148,153 +149,211 @@ void CAppWindow::GetMinimumWindowedSize(HCFG::EMUBORDERSIZE borderSize, bool bSh
 	}
 }
 
-bool CAppWindow::CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h)
+void CAppWindow::CalcEmuWindowPadding(int *padw, int *padh)
 {
-	int padw = GetSystemMetrics(SM_CXSIZEFRAME)*2;
-	int padh = GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + m_iStatusBarHeight;
+	if (padw)
+	{
+		*padw = GetSystemMetrics(SM_CXSIZEFRAME) * 2;
+	}
+
+	if (padh)
+	{
+		*padh= GetSystemMetrics(SM_CYSIZEFRAME) * 2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + m_iStatusBarHeight;
+	}
+}
+
+void CAppWindow::CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h)
+{
+	int padw;
+	int padh;
+	CalcEmuWindowPadding(&padw, &padh);
 	if (w)
 	{
 		*w = max(0, rcMainWindow.right - rcMainWindow.left - padw);
 	}
+
 	if (h)
 	{
 		*h = max(0, rcMainWindow.bottom - rcMainWindow.top - padh);
 	}
-	return true;
 }
 
 HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu)
 {
 	this->m_hInst = hInstance;
+	this->m_rcMainWindow.left = x;
+	this->m_rcMainWindow.top = y;
+	this->m_rcMainWindow.right = x + w;
+	this->m_rcMainWindow.bottom = y + h;
 	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX  | WS_MINIMIZEBOX | WS_SIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
 	return hWnd;
 }
 
-void CAppWindow::AspectSizing(HWND hWnd, int edge, RECT &rect)
+void CAppWindow::AspectMaxSizing(HWND hWnd, int edge, RECT &rect)
 {
-int w,h;
-int x, y;
-int minw, minh;
-RECT rcMain;
+	RECT rcWorkArea;
+	CopyRect(&rcWorkArea, &rect);
 
-	minw = 0x80;
-	minh = 0x80;
+	if (G::s_pFnMonitorFromWindow != NULL)
+	{
+		HMONITOR hMonitorInUse = G::s_pFnMonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+		MONITORINFOEX miMonitorInUse;
+		ZeroMemory(&miMonitorInUse, sizeof(miMonitorInUse));
+		miMonitorInUse.cbSize = sizeof(miMonitorInUse);
+		if (CDX9::DXUTGetMonitorInfo(hMonitorInUse, &miMonitorInUse))
+		{			
+			CopyRect(&rcWorkArea, &miMonitorInUse.rcWork);
+			if (rect.top < miMonitorInUse.rcMonitor.top)
+			{
+				rcWorkArea.top -= (miMonitorInUse.rcMonitor.top - rect.top);
+			}
+
+			if (rect.bottom > miMonitorInUse.rcMonitor.bottom)
+			{				
+				rcWorkArea.bottom += (rect.bottom - miMonitorInUse.rcMonitor.bottom);
+			}
+
+			if (rect.left < miMonitorInUse.rcMonitor.left)
+			{
+				rcWorkArea.left -= (miMonitorInUse.rcMonitor.left - rect.left);
+			}
+
+			if (rect.right > miMonitorInUse.rcMonitor.right)
+			{
+				rcWorkArea.right += (rect.right - miMonitorInUse.rcMonitor.right);
+			}
+		}
+	}
+
+	RECT rcMaxAspect;
+	CopyRect(&rcMaxAspect, &rcWorkArea);
+	this->AspectSizing(WMSZ_BOTTOM, rcMaxAspect);
+	if (rcMaxAspect.right - rcMaxAspect.left > rcWorkArea.right - rcWorkArea.left)
+	{
+		CopyRect(&rcMaxAspect, &rcWorkArea);
+		this->AspectSizing(WMSZ_RIGHT, rcMaxAspect);
+	}
+
+	this->AspectSizing(WMSZ_BOTTOMRIGHT, rect);
+	if (rect.right - rect.left > rcMaxAspect.right - rcMaxAspect.left || rect.bottom - rect.top > rcMaxAspect.bottom - rcMaxAspect.top)
+	{
+		CopyRect(&rect, &rcMaxAspect);
+	}
+}
+
+void CAppWindow::AspectSizing(int edge, RECT &rect)
+{
 	HCFG::EMUBORDERSIZE borderSize = this->appStatus->m_borderSize;
 	C64WindowDimensions dims;
 	dims.SetBorder(borderSize);
 	int window_ratio_x = dims.Width;
-	int window_ratio_y = dims.Height;	
-	if (GetWindowRect(hWnd, &rcMain))
+	int window_ratio_y = dims.Height;
+	int padw;
+	int padh;
+	CalcEmuWindowPadding(&padw, &padh);
+	int window_adjust_x = padw;
+	int window_adjust_y = padh + CDX9::GetToolBarHeight(this->appStatus->m_bShowFloppyLed);
+	int size_x_desired = (rect.right - rect.left) - window_adjust_x;
+	int size_y_desired = (rect.bottom - rect.top) - window_adjust_y;
+	switch (edge)
 	{
-		CalcEmuWindowSize(rcMain, &w, &h);
+		case WMSZ_BOTTOM:
+		case WMSZ_TOP:
+			{
+				int size_x = window_adjust_x + (size_y_desired * window_ratio_x) / window_ratio_y;
 
-		h = h - CDX9::GetToolBarHeight(this->appStatus->m_bShowFloppyLed);
-		y = rcMain.top;
-		x = rcMain.left;
-		int window_adjust_x = rcMain.right - rcMain.left - w;
-		int window_adjust_y = rcMain.bottom - rcMain.top - h;
-		int size_x_desired = (rect.right - rect.left) - window_adjust_x;
-		int size_y_desired = (rect.bottom - rect.top) - window_adjust_y;
-		switch (edge)
-		{
-			case WMSZ_BOTTOM:
-			case WMSZ_TOP:
+				rect.left = (rect.left + rect.right) / 2 - size_x / 2;
+				rect.right = rect.left + size_x;
+			}
+
+			break;
+		case WMSZ_BOTTOMLEFT:
+			{
+				int size_x, size_y;
+
+				if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
 				{
-					int size_x = window_adjust_x + (size_y_desired * window_ratio_x) / window_ratio_y;
-
-					rect.left = (rect.left + rect.right) / 2 - size_x / 2;
-					rect.right = rect.left + size_x;
+					size_x = rect.right - rect.left;
+					size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
+				}
+				else
+				{
+					size_y = rect.bottom - rect.top;
+					size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
 				}
 
-				break;
-			case WMSZ_BOTTOMLEFT:
+				rect.left = rect.right - size_x;
+				rect.bottom = rect.top + size_y;
+			}
+			break;
+		case WMSZ_BOTTOMRIGHT:
+			{
+				int size_x, size_y;
+
+				if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
 				{
-					int size_x, size_y;
-
-					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
-					{
-						size_x = rect.right - rect.left;
-						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
-					}
-					else
-					{
-						size_y = rect.bottom - rect.top;
-						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
-					}
-
-					rect.left = rect.right - size_x;
-					rect.bottom = rect.top + size_y;
-				}
-				break;
-			case WMSZ_BOTTOMRIGHT:
-				{
-					int size_x, size_y;
-
-					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
-					{
-						size_x = rect.right - rect.left;
-						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
-
-						rect.right = rect.left + size_x;
-						rect.bottom = rect.top + size_y;
-					}
-					else
-					{
-						size_y = rect.bottom - rect.top;
-						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
-					}
+					size_x = rect.right - rect.left;
+					size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
 
 					rect.right = rect.left + size_x;
 					rect.bottom = rect.top + size_y;
 				}
-				break;
-			case WMSZ_LEFT:
-			case WMSZ_RIGHT:
+				else
 				{
-					int size_y = window_adjust_y + (size_x_desired * window_ratio_y) / window_ratio_x;
-					rect.top = (rect.top + rect.bottom) / 2 - size_y / 2;
-					rect.bottom = rect.top + size_y;
+					size_y = rect.bottom - rect.top;
+					size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
 				}
-				break;
-			case WMSZ_TOPLEFT:
+
+				rect.right = rect.left + size_x;
+				rect.bottom = rect.top + size_y;
+			}
+			break;
+		case WMSZ_LEFT:
+		case WMSZ_RIGHT:
+			{
+				int size_y = window_adjust_y + (size_x_desired * window_ratio_y) / window_ratio_x;
+				rect.top = (rect.top + rect.bottom) / 2 - size_y / 2;
+				rect.bottom = rect.top + size_y;
+			}
+			break;
+		case WMSZ_TOPLEFT:
+			{
+				int size_x, size_y;
+
+				if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
 				{
-					int size_x, size_y;
-
-					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
-					{
-						size_x = rect.right - rect.left;
-						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
-					}
-					else
-					{
-						size_y = rect.bottom - rect.top;
-						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
-					}
-
-					rect.left = rect.right - size_x;
-					rect.top = rect.bottom - size_y;
+					size_x = rect.right - rect.left;
+					size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
 				}
-				break;
-			case WMSZ_TOPRIGHT:
+				else
 				{
-					int size_x, size_y;
-
-					if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
-					{
-						size_x = rect.right - rect.left;
-						size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
-					}
-					else
-					{
-						size_y = rect.bottom - rect.top;
-						size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
-					}
-
-					rect.right = rect.left + size_x;
-					rect.top = rect.bottom - size_y;
+					size_y = rect.bottom - rect.top;
+					size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
 				}
-				break;
-		}
+
+				rect.left = rect.right - size_x;
+				rect.top = rect.bottom - size_y;
+			}
+			break;
+		case WMSZ_TOPRIGHT:
+			{
+				int size_x, size_y;
+
+				if (size_x_desired * window_ratio_y > size_y_desired * window_ratio_x)
+				{
+					size_x = rect.right - rect.left;
+					size_y = window_adjust_y + ((size_x - window_adjust_x) * window_ratio_y) / window_ratio_x;
+				}
+				else
+				{
+					size_y = rect.bottom - rect.top;
+					size_x = window_adjust_x + ((size_y - window_adjust_y) * window_ratio_x) / window_ratio_y;
+				}
+
+				rect.right = rect.left + size_x;
+				rect.top = rect.bottom - size_y;
+			}
+			break;
 	}
 }
 
@@ -403,7 +462,7 @@ bool CAppWindow::OnSizing(HWND hWnd, WPARAM wParam, LPARAM lParam)
 		{
 			if (appStatus->m_bReady && !appStatus->m_bClosing)
 			{
-				AspectSizing(hWnd, (int)wParam, *((LPRECT)lParam));
+				AspectSizing((int)wParam, *((LPRECT)lParam));
 				return true;
 			}
 		}
@@ -720,6 +779,7 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 	case IDM_SETTINGS_LOCKASPECTRATIO:
 		appStatus->GetUserConfig(tCfg);
 		tCfg.m_bWindowedLockAspectRatio = !tCfg.m_bWindowedLockAspectRatio;
+		tCfg.m_bWindowedCustomSize = true;
 		appStatus->SetUserConfig(tCfg);
 		appStatus->ApplyConfig(tCfg);
 		lresult = 0;
@@ -1023,7 +1083,40 @@ MINMAXINFO *pMinMax;
 			GetMinimumWindowedSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, &w, &h);
 			pMinMax = (MINMAXINFO *)lParam;
 			pMinMax->ptMinTrackSize.x = w;
-			pMinMax->ptMinTrackSize.y = h;
+			pMinMax->ptMinTrackSize.y = h;			
+			if (appStatus->m_bWindowedLockAspectRatio)
+			{
+				// Apply aspect ratio to the normal window dimensions.
+				RECT rcWorkArea;
+				rcWorkArea.left = 0;
+				rcWorkArea.top = 0;
+				rcWorkArea.right = pMinMax->ptMaxTrackSize.x;
+				rcWorkArea.bottom = pMinMax->ptMaxTrackSize.y;
+				RECT rcAspect;
+				CopyRect(&rcAspect, &rcWorkArea);
+				this->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rcAspect);
+				if (rcAspect.right - rcAspect.left <= rcWorkArea.right - rcWorkArea.left)
+				{
+					pMinMax->ptMaxTrackSize.x = rcAspect.right - rcAspect.left;
+				}
+				
+				if (rcAspect.bottom - rcAspect.top <= rcWorkArea.bottom - rcWorkArea.top)
+				{
+					pMinMax->ptMaxTrackSize.y = rcAspect.bottom - rcAspect.top;
+				}
+
+				// Apply aspect ratio to the maximized window dimensions.
+				rcWorkArea.left = pMinMax->ptMaxPosition.x;
+				rcWorkArea.top = pMinMax->ptMaxPosition.y;
+				rcWorkArea.right = pMinMax->ptMaxPosition.x + pMinMax->ptMaxSize.x;
+				rcWorkArea.bottom = pMinMax->ptMaxPosition.y + pMinMax->ptMaxSize.y;
+				rcAspect;
+				CopyRect(&rcAspect, &rcWorkArea);
+				this->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rcAspect);
+				pMinMax->ptMaxSize.x = rcAspect.right - rcAspect.left;
+				pMinMax->ptMaxSize.y = rcAspect.bottom - rcAspect.top;
+			}
+
 			return true;
 		}
 	}
@@ -1319,7 +1412,6 @@ HMENU hMenu;
 	}
 }
 
-
 void CAppWindow::SaveMainWindowSize()
 {
 WINDOWPLACEMENT wp;
@@ -1334,13 +1426,13 @@ WINDOWPLACEMENT wp;
 
 HRESULT CAppWindow::ResetDirect3D()
 {
-	return SetWindowedMode(true, true, false, 0, 0, appStatus->m_bUseBlitStretch);
+	return SetWindowedMode(true, true, true, false, 0, 0, appStatus->m_bUseBlitStretch);
 }
 
 
 HRESULT CAppWindow::ToggleFullScreen()
 {
-	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, this->m_rcMainWindow.right - this->m_rcMainWindow.left, this->m_rcMainWindow.bottom - this->m_rcMainWindow.top, appStatus->m_bUseBlitStretch);
+	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, false, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, this->m_rcMainWindow.right - this->m_rcMainWindow.left, this->m_rcMainWindow.bottom - this->m_rcMainWindow.top, appStatus->m_bUseBlitStretch);
 
 	if (G::IsWin98OrLater())
 	{
@@ -1356,28 +1448,87 @@ HRESULT CAppWindow::ToggleFullScreen()
 	return r;
 }
 
-HRESULT CAppWindow::SetWindowedMode(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
+HRESULT CAppWindow::SetWindowedMode(bool wantWindowed, bool useCurrentWindowPlacement, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
 {
 HRESULT hr;
+UINT showFlags = 0;
+int xpos = 0;
+int ypos = 0;
+bool wasWindowed = appStatus->m_bWindowed;
 
 	ClearError();
 	appStatus->m_bReady = false;
 	appStatus->m_fskip = -1;
-    if (appStatus->m_bWindowed)
+
+    if (wasWindowed)
 	{
+		// Currently in Windowed mode.
 		SaveMainWindowSize();
-		if (!bWindowed)
+		if (!wantWindowed)
 		{
 			SetWindowedStyle(false);
 		}
+
+		WINDOWPLACEMENT wp;
+		ZeroMemory(&wp, sizeof(wp));
+		wp.flags = sizeof(wp);
+		if (!GetWindowPlacement(this->m_hWnd, &wp))
+		{
+			return E_FAIL;
+		}
+		
+		xpos = wp.rcNormalPosition.left;
+		ypos = wp.rcNormalPosition.top;	
+		if (wantWindowed)
+		{
+			// Staying in Windowed mode.
+			showFlags = wp.showCmd;
+			if (useCurrentWindowPlacement)
+			{				
+				if (showFlags == SW_SHOWMAXIMIZED)
+				{
+					RECT rc;
+					xpos = wp.ptMaxPosition.x;
+					ypos = wp.ptMaxPosition.y;
+					if (!GetWindowRect(this->m_hWnd, &rc))
+					{
+						return E_FAIL;
+					}
+
+					width = rc.right - rc.left;
+					height = rc.bottom - rc.top;
+					bWindowedCustomSize = true;
+				}
+				else
+				{
+					if (showFlags == SW_SHOWMINIMIZED)
+					{
+						ShowWindow(m_hWnd, SW_RESTORE);
+					}
+
+					xpos = wp.rcNormalPosition.left;
+					ypos = wp.rcNormalPosition.top;							
+					width = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
+					height = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
+					bWindowedCustomSize = true;
+				}
+			}
+			else
+			{
+				if (showFlags != SW_SHOWNORMAL)
+				{
+					ShowWindow(m_hWnd, SW_RESTORE);
+				}
+			}
+		}
 	}
 
-	hr = SetCoopLevel(bWindowed, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
+	hr = SetCoopLevel(wantWindowed, useCurrentWindowPlacement, bDoubleSizedWindow, bWindowedCustomSize, xpos, ypos, width, height, bUseBlitStretch);
 	if (FAILED(hr))
 	{
 		TCHAR errorTextSave[300];
 		_tcscpy_s(errorTextSave, _countof(errorText), errorText);
-		SetCoopLevel(TRUE, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
+		SetCoopLevel(true, useCurrentWindowPlacement, bDoubleSizedWindow, bWindowedCustomSize, xpos, ypos, width, height, bUseBlitStretch);
 		_tcscpy_s(errorText, _countof(errorText), errorTextSave);
 	}
 
@@ -1392,13 +1543,17 @@ HRESULT hr;
 		else
 		{
 			showWindowFlags = SWP_NOZORDER | SWP_FRAMECHANGED;
-			if (width <= 0 || height <= 0)
+			if (useCurrentWindowPlacement || width <= 0 || height <= 0)			
 			{
 				showWindowFlags = SWP_NOSIZE;
 			}
 		}
 
-		SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, width, height, showWindowFlags);
+		if (wantWindowed && !wasWindowed)
+		{
+			SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, SWP_SHOWWINDOW);
+		}
+
 		G::EnsureWindowPosition(m_hWnd);
 		SaveMainWindowSize();
 		if (appStatus->m_syncModeWindowed == HCFG::FSSM_VBL && !appStatus->m_bDebug)
@@ -1463,7 +1618,7 @@ LONG_PTR lp;
 	}
 }
 
-HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
+HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool useCurrentWindowPlacement, bool bDoubleSizedWindow, bool bWindowedCustomSize, int xpos, int ypos, int width, int height, bool bUseBlitStretch)
 {
 HRESULT hRet;
 	BOOL bIsDwmOn = FALSE;
@@ -1487,7 +1642,7 @@ HRESULT hRet;
 		}
 	}
 
-	hRet = InitSurfaces(bWindowed, bDoubleSizedWindow, bWindowedCustomSize, width, height, bUseBlitStretch);
+	hRet = InitSurfaces(bWindowed, useCurrentWindowPlacement, bDoubleSizedWindow, bWindowedCustomSize, xpos, ypos, width, height, bUseBlitStretch);
 	if (SUCCEEDED(hRet))
 	{
 		appStatus->m_bWindowed = bWindowed;
@@ -1507,7 +1662,7 @@ HRESULT hRet;
     return hRet;
 }
 
-HRESULT CAppWindow::InitSurfaces(bool bWindowed, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
+HRESULT CAppWindow::InitSurfaces(bool bWindowed, bool useCurrentWindowPlacement, bool bDoubleSizedWindow, bool bWindowedCustomSize, int xpos, int ypos, int width, int height, bool bUseBlitStretch)
 {
 HRESULT		        hRet;
 int w,h;
@@ -1519,9 +1674,16 @@ RECT rc;
 	filter = CDX9::GetDxFilterFromEmuFilter(appStatus->m_blitFilter);
 	if (bWindowed)
 	{
-  		if (bWindowedCustomSize)
+  		if (useCurrentWindowPlacement)
+		{			
+			SetWindowPos(m_hWnd, HWND_NOTOPMOST, xpos, ypos, width, height, SWP_NOMOVE | SWP_NOSIZE);
+			SetRect(&rc, 0, 0, width, height);
+			CalcEmuWindowSize(rc, &w, &h);
+			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+		}
+  		else if (bWindowedCustomSize)
 		{
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST, m_rcMainWindow.left, m_rcMainWindow.top, width, height, SWP_NOMOVE);
+			SetWindowPos(m_hWnd, HWND_NOTOPMOST, xpos, ypos, width, height, SWP_NOMOVE);
 			SetRect(&rc, 0, 0, width, height);
 			CalcEmuWindowSize(rc, &w, &h);
 			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
@@ -1529,7 +1691,7 @@ RECT rc;
 		else
 		{
 			GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST, m_rcMainWindow.left, m_rcMainWindow.top, w, h,  SWP_NOMOVE);
+			SetWindowPos(m_hWnd, HWND_NOTOPMOST, xpos, ypos, w, h,  SWP_NOMOVE);
 			m_pWinEmuWin->GetRequiredWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
 			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
 		}

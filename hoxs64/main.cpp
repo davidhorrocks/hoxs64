@@ -911,6 +911,8 @@ RECT rcMain;
 		G::EnsureWindowPosition(hWndMain);
 	}
 
+	m_pWinAppWindow->SaveMainWindowSize();
+
 	//Initialise directx
 	hr = dx.Init(thisAppStatus);
 	if (FAILED(hr))
@@ -950,7 +952,7 @@ RECT rcMain;
 		return E_FAIL;
 	}
 
-	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, m_bDoubleSizedWindow, m_bWindowedCustomSize, mainWinWidth, mainWinHeight, m_bUseBlitStretch);
+	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, false, m_bDoubleSizedWindow, m_bWindowedCustomSize, mainWinWidth, mainWinHeight, m_bUseBlitStretch);
 	if (FAILED(hr))
 	{
 		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
@@ -1725,8 +1727,9 @@ unsigned int i;
 	}
 
 	if (newcfg.m_bUseBlitStretch != this->m_bUseBlitStretch 
-		|| newcfg.m_bWindowedCustomSize != this->m_bWindowedCustomSize 
+		|| newcfg.m_bWindowedCustomSize != this->m_bWindowedCustomSize
 		|| newcfg.m_bDoubleSizedWindow != this->m_bDoubleSizedWindow 
+		|| (newcfg.m_bWindowedLockAspectRatio && !this->m_bWindowedLockAspectRatio)
 		|| newcfg.m_blitFilter != this->m_blitFilter
 		|| newcfg.m_borderSize != this->m_borderSize
 		|| newcfg.m_bShowFloppyLed != this->m_bShowFloppyLed
@@ -1735,6 +1738,17 @@ unsigned int i;
 		|| newcfg.m_fullscreenAdapterNumber != this->m_fullscreenAdapterNumber)
 	{
 		bNeedDisplayReset = true;
+	}
+
+	bool keepWindowPlacement = true;
+	if (newcfg.m_bWindowedCustomSize != this->m_bWindowedCustomSize 
+		|| newcfg.m_bDoubleSizedWindow != this->m_bDoubleSizedWindow 
+		|| (newcfg.m_bWindowedLockAspectRatio && !this->m_bWindowedLockAspectRatio)
+		|| newcfg.m_syncModeFullscreen != this->m_syncModeFullscreen
+		|| newcfg.m_syncModeWindowed != this->m_syncModeWindowed
+		|| newcfg.m_fullscreenAdapterNumber != this->m_fullscreenAdapterNumber)
+	{
+		keepWindowPlacement = false;
 	}
 
 	for (i = 0; i < VicIIPalette::NumColours; i++)
@@ -1761,28 +1775,40 @@ unsigned int i;
 		 }
 	}
 
-	bool bWindowedCustomSize = newcfg.m_bWindowedCustomSize;
 	if (bNeedDisplayReset)
 	{
 		if (hWnd)
-		{
+		{			
+			int minw;
+			int minh;
+			m_pWinAppWindow->GetMinimumWindowedSize(newcfg.m_borderSize, newcfg.m_bShowFloppyLed, &minw, &minh);
+
+			// Get a default window size.
 			int w = 0;
 			int h = 0;
-			if (m_bWindowed && bWindowedCustomSize)
+			m_pWinAppWindow->GetRequiredMainWindowSize(newcfg.m_borderSize, newcfg.m_bShowFloppyLed, newcfg.m_bDoubleSizedWindow, &w, &h);
+			
+			if (newcfg.m_bWindowedCustomSize)
 			{
-				bWindowedCustomSize = true;
-				RECT rc;
-				if (GetWindowRect(hWnd, &rc))
+				RECT rc;					
+				if (CopyRect(&rc, &m_pWinAppWindow->m_rcMainWindow))
 				{
-					int minw;
-					int minh;
-					m_pWinAppWindow->GetMinimumWindowedSize(cfg.m_borderSize, cfg.m_bShowFloppyLed, &minw, &minh);
-					w = max(minw, rc.right - rc.left);
-					h = max(minh, rc.bottom - rc.top);
+					if (newcfg.m_bWindowedLockAspectRatio)
+					{
+						m_pWinAppWindow->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rc);
+					}
+				}
+
+				w = rc.right - rc.left;
+				h = rc.bottom - rc.top;
+				if (w < minw || h < minh)
+				{
+					w = minw;
+					h = minh;
 				}
 			}
 
-			m_pWinAppWindow->SetWindowedMode(m_bWindowed, newcfg.m_bDoubleSizedWindow, bWindowedCustomSize, w, h, newcfg.m_bUseBlitStretch);
+			m_pWinAppWindow->SetWindowedMode(m_bWindowed, keepWindowPlacement, newcfg.m_bDoubleSizedWindow, newcfg.m_bWindowedCustomSize, w, h, newcfg.m_bUseBlitStretch);
 		}
 	}
 

@@ -1014,12 +1014,6 @@ D3DRECT drcStatusBar;
 		}
 		else if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCH)// Aspect stretch 
 		{
-			//dims.SetBorder(currentDisplayMode.Width, currentDisplayMode.Height, heightToolbar);
-			//m_displayFirstVicRaster = dims.FirstRasterLine;
-			//m_displayLastVicRaster = dims.LastRasterLine;
-			//m_displayWidth = dims.Width;
-			//m_displayHeight = dims.Height;
-			//m_displayStart = dims.Start;
 			hr = CreateSmallSurface(dims.Width, dims.Height, currentDisplayMode.Format);
 			if (SUCCEEDED(hr))
 			{
