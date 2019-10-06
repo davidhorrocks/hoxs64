@@ -1114,7 +1114,7 @@ TCHAR* G::MallocFormattedString(LPCTSTR pszFormatString, ...)
     va_list         vl;
 	va_start(vl, pszFormatString);
 	int size = 1024;
-	TCHAR *s = (TCHAR *)malloc(size);
+	TCHAR *s = (TCHAR *)malloc(size * sizeof(TCHAR));
 	if (s != NULL)
 	{
 		_vsntprintf_s(s, size, _TRUNCATE, pszFormatString, vl);
