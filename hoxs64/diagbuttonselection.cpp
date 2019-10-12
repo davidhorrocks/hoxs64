@@ -20,18 +20,6 @@
 #define IDT_TIMER1 1001
 #define TIMER1_DELAY 80
 
-CDiagButtonSelection::CDiagButtonSelection()
-	: c64JoystickNumber(0), pDI(NULL), pJoy(NULL), c64button(C64JoystickButton::None)
-{
-	ZeroMemory(&deviceId, sizeof(deviceId));	
-	initvars();
-	inputDeviceFormat = &c_dfDIJoystick;
-	sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
-	allowButtons = false;
-	allowAxes = false;
-	allowPov = false;
-}
-
 CDiagButtonSelection::CDiagButtonSelection(LPDIRECTINPUT7 pDI, GUID deviceId, int c64JoystickNumber, C64JoystickButton::C64JoystickButtonNumber c64button, vector<ButtonItemData> &controllerItemOffsets)
 	: deviceId(deviceId), c64JoystickNumber(c64JoystickNumber), pDI(pDI), pJoy(NULL), c64button(c64button)
 {
@@ -465,7 +453,9 @@ LRESULT lr;
 }
 
 void CDiagButtonSelection::initvars()
-{
+{	
+	inputDeviceFormat = &c_dfDIJoystick;
+	sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
 	hwndDeviceName = 0;
 	hwndMappedName = 0;
 	hwndListBox = 0;
@@ -473,6 +463,7 @@ void CDiagButtonSelection::initvars()
 	lenAnsiStringBuffer = 0;
 	allowButtons = false;
 	allowAxes = false;
+	allowPov = false;
 }
 
 HRESULT CDiagButtonSelection::init()
@@ -551,6 +542,12 @@ int len;
 			break;
 		case C64JoystickButton::ButtonAndAxisKey5:
 			mappedName.append(TEXT("Key 5"));
+			allowButtons = true;
+			allowAxes = true;
+			allowPov = true;
+			break;
+		case C64JoystickButton::ButtonAndAxisKey6:
+			mappedName.append(TEXT("Key 6"));
 			allowButtons = true;
 			allowAxes = true;
 			allowPov = true;

@@ -31,7 +31,6 @@ class CDiagButtonSelection : public CVirDialog, public ErrorMsg
 	};
 
 public:
-	CDiagButtonSelection();
 	CDiagButtonSelection(LPDIRECTINPUT7 pDI, GUID deviceId, int c64JoystickNumber, C64JoystickButton::C64JoystickButtonNumber c64button, vector<ButtonItemData> &controllerItemOffsets);
 	~CDiagButtonSelection();
 

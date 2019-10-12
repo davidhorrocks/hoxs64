@@ -989,11 +989,28 @@ vector<GameControllerItem> *buttonAxisOptions = c64joybutton.pListItems;
 		defaultTriggerOption = GameControllerItem::None;
 		defaultTriggerOffset = 0;
 		break;
+	case C64JoystickButton::Up:
+		defaultTriggerOption = GameControllerItem::None;
+		defaultTriggerOffset = 0;
+		break;
+	case C64JoystickButton::Down:
+		defaultTriggerOption = GameControllerItem::None;
+		defaultTriggerOffset = 0;
+		break;
+	case C64JoystickButton::Left:
+		defaultTriggerOption = GameControllerItem::None;
+		defaultTriggerOffset = 0;
+		break;
+	case C64JoystickButton::Right:
+		defaultTriggerOption = GameControllerItem::None;
+		defaultTriggerOffset = 0;
+		break;
 	case C64JoystickButton::ButtonAndAxisKey1:
 	case C64JoystickButton::ButtonAndAxisKey2:
 	case C64JoystickButton::ButtonAndAxisKey3:
 	case C64JoystickButton::ButtonAndAxisKey4:
 	case C64JoystickButton::ButtonAndAxisKey5:
+	case C64JoystickButton::ButtonAndAxisKey6:
 		defaultTriggerOption = GameControllerItem::None;
 		defaultTriggerOffset = 0;
 		break;
@@ -1391,6 +1408,7 @@ void CDiagJoystick::JoyUi::DropdownAutoSelectionChanged(C64JoyItem& c64joyitem)
 		case C64JoystickButton::ButtonAndAxisKey3:
 		case C64JoystickButton::ButtonAndAxisKey4:
 		case C64JoystickButton::ButtonAndAxisKey5:
+		case C64JoystickButton::ButtonAndAxisKey6:
 			ButtonAndAxisSelectionChanged(c64joyitem);
 			break;
 	}
@@ -1621,7 +1639,6 @@ unsigned int datadeviceindex;
 	cfg->horizontalAxisAxisCount = this->jconfig.horizontalAxisAxisCount;
 
 	// Save button sources for joystick fire1.
-	C64JoyItem& item = c64buttonFire1;
 	this->ButtonSelectionChanged(this->c64buttonFire1);
 	cfg->fire1ButtonCount = this->jconfig.fire1ButtonCount;
 	for(i = 0; i < this->jconfig.fire1ButtonCount; i++)
