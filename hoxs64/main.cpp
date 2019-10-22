@@ -277,7 +277,7 @@ msgloop:
 					{
 						if (m_audioSpeedStatus == HCFG::AUDIO_QUICK)
 						{						
-							last_counter.QuadPart = last_counter.QuadPart - frequency.QuadPart/4;
+							last_counter.QuadPart = last_counter.QuadPart - frequency.QuadPart/8;
 							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 						}
 						else if (m_audioSpeedStatus == HCFG::AUDIO_SLOW)
@@ -304,7 +304,7 @@ msgloop:
 							}
 							else
 							{
-								if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+								if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD))
 								{
 									goto msgloop;
 								}
