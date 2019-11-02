@@ -596,7 +596,7 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 	case IDM_SETTING_RESTOREDEFAULT:
 		appStatus->SoundHalt();
 		appStatus->RestoreDefaultSettings();
-		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window(true)))
 		{
 			this->m_pWinEmuWin->Present(0);
 		}
@@ -608,10 +608,11 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 	case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
 		appStatus->SoundHalt();
 		appStatus->RestoreUserSettings();
-		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window(true)))
 		{
 			this->m_pWinEmuWin->Present(0);
 		}
+
 		G::DebugMessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
 		appStatus->SoundResume();
 		lresult = 0;
@@ -1563,7 +1564,7 @@ bool wasWindowed = appStatus->m_bWindowed;
 
 		if (!G::IsHideWindow)
 		{
-			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window()))
+			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window(true)))
 			{
 				this->m_pWinEmuWin->Present(0);
 			}

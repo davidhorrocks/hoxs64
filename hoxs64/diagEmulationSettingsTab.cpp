@@ -2076,11 +2076,19 @@ shared_ptr<CTabPageDialog> pPage;
 
 		if (cfg->m_syncModeFullscreen == HCFG::FSSM_VBL)
 		{
-			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_FSC, IDC_VBLSYNC_FSC);
+			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_DOUBLERATE_FSC, IDC_VBLSYNC_FSC);
+		}
+		else if (cfg->m_syncModeFullscreen == HCFG::FSSM_LINE)
+		{
+			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_DOUBLERATE_FSC, IDC_LINESYNC_FSC);
+		}
+		else if (cfg->m_syncModeFullscreen == HCFG::FSSM_FRAME_DOUBLER)
+		{
+			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_DOUBLERATE_FSC, IDC_LINESYNC_DOUBLERATE_FSC);
 		}
 		else
 		{
-			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_FSC, IDC_LINESYNC_FSC);
+			CheckRadioButton(hWnd, IDC_VBLSYNC_FSC, IDC_LINESYNC_DOUBLERATE_FSC, IDC_LINESYNC_DOUBLERATE_FSC);
 		}
 
 		if (cfg->m_syncModeWindowed == HCFG::FSSM_VBL)
@@ -2285,10 +2293,18 @@ shared_ptr<CTabPageDialog> pPage;
 		{
 			cfg->m_syncModeFullscreen = HCFG::FSSM_VBL;
 		}
-		else
+		else if (IsDlgButtonChecked(hWnd, IDC_LINESYNC_FSC))
 		{
 			cfg->m_syncModeFullscreen = HCFG::FSSM_LINE;
 		}
+		else if (IsDlgButtonChecked(hWnd, IDC_LINESYNC_DOUBLERATE_FSC))
+		{
+			cfg->m_syncModeFullscreen = HCFG::FSSM_FRAME_DOUBLER;
+		}		
+		else
+		{
+			cfg->m_syncModeFullscreen = HCFG::FSSM_LINE;
+		}		
 
 		if (IsDlgButtonChecked(hWnd, IDC_VBLSYNC_WND))
 		{

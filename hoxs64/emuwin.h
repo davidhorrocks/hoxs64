@@ -18,7 +18,7 @@ public:
 	static void GetRequiredWindowSize(HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, BOOL bDoubleSizedWindow, int *w, int *h);
 	void SetColours();
 	void ClearSurfaces();
-	HRESULT UpdateC64Window();
+	HRESULT UpdateC64Window(bool refreshVicData);
 	void UpdateC64WindowWithObjects();
 	HRESULT Present(DWORD dwFlags);
 

@@ -33,6 +33,7 @@ namespace HCFG
 	{
 		FSSM_VBL=0,
 		FSSM_LINE=1,
+		FSSM_FRAME_DOUBLER=2,
 	} FULLSCREENSYNCMODE;
 
 	typedef enum tagEMUWINDOWSTRETCH {

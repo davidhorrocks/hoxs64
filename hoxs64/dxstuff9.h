@@ -38,6 +38,7 @@ public:
 	HRESULT Reset();
 	void SetDefaultPalette();
 	void SetDefaultPalette(const DWORD pallet[], int numentries);
+	void SetDxColours();
 	void CheckFilterCap(bool bIsMagnifying, D3DTEXTUREFILTERTYPE filter);
 	void CleanupD3D();
 	void CleanupD3D_Devices();
@@ -202,6 +203,7 @@ private:
 	bool m_bUseBlitStretch;
 	D3DTEXTUREFILTERTYPE m_filter;
 	HCFG::EMUWINDOWSTRETCH m_stretch;
+	D3DCOLOR m_dwColourGreen;
 	static const int SOUNDRESUMEDELAY = 25;
 	static const int SOUNDVOLUMEDELAY = 25;
 	static const int m_iToolbarHeight = 10;

@@ -679,7 +679,7 @@ int i;
 		}
 
 		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SyncMode1"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadStr(hKey1, TEXT("SyncMode1"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);	
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_syncModeFullscreen = (HCFG::FULLSCREENSYNCMODE) _ttol(szValue);

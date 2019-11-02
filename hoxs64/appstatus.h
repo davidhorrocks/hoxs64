@@ -29,6 +29,7 @@ public:
 	HCFG::AUDIOSPEED		m_audioSpeedStatus;
 	ULARGE_INTEGER			m_systemfrequency;
 	ULARGE_INTEGER			m_framefrequency;
+	ULARGE_INTEGER			m_framefrequencyDoubler;
 
 	bool                    m_bAutoload;
 	bool					m_bInitDone;

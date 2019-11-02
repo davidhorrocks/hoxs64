@@ -107,6 +107,7 @@ void CEmuWindow::SetColours()
 
 	D3DDISPLAYMODE currentDisplayMode;
 	dx->SetDefaultPalette();
+	dx->SetDxColours();
 	HRESULT hr = dx->m_pd3dDevice->GetDisplayMode(0, &currentDisplayMode);
 	if (SUCCEEDED(hr))
 	{
@@ -319,7 +320,7 @@ void CEmuWindow::UpdateC64WindowWithObjects()
 		return;
 	}
 
-	HRESULT hr = this->UpdateC64Window();
+	HRESULT hr = this->UpdateC64Window(true);
 	if (SUCCEEDED(hr))
 	{
 		this->Present(0);
@@ -454,9 +455,9 @@ Pixels from the top of the display to the current VIC output cursor position are
 the current C64 frame. Pixels from beyond the current VIC output cursor position to 
 the bottom of the display are from the previous C64 frame.
 */
-HRESULT CEmuWindow::UpdateC64Window()
+HRESULT CEmuWindow::UpdateC64Window(bool refreshVicData)
 {
-HRESULT hr = E_FAIL;
+HRESULT hr = S_OK;
 
 	if (G::IsHideWindow)
 	{
@@ -473,13 +474,17 @@ HRESULT hr = E_FAIL;
 		return E_FAIL;
 	}
 
-	//VIC6569::UpdateBackBuffer() draws pixels that have been buffered by the VIC class to the dx small surface.
-	hr = this->c64->UpdateBackBuffer();
+	if (refreshVicData)
+	{
+		hr = this->c64->UpdateBackBuffer();
+	}
+
 	if (SUCCEEDED(hr))
 	{
 		//CEmuWindow::RenderWindow Stretch-blits from the dx small surface to the dx backbuffer.
 		hr = RenderWindow();
 	}
+
 	return hr;
 }
 

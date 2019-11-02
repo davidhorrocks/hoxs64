@@ -352,6 +352,17 @@ void CDX9::SetDefaultPalette(const DWORD pallet[], int numentries)
 	}
 }
 
+void CDX9::SetDxColours()
+{
+	D3DDISPLAYMODE currentDisplayMode;
+	ZeroMemory(&currentDisplayMode, sizeof(currentDisplayMode));
+	HRESULT hr = this->m_pd3dDevice->GetDisplayMode(0, &currentDisplayMode);
+	if (SUCCEEDED(hr))
+	{
+		m_dwColourGreen = this->ConvertColour2(currentDisplayMode.Format, RGB(0, 120, 0));
+	}
+}
+
 BOOL CDX9::DXUTGetMonitorInfo(HMONITOR hMonitor, LPMONITORINFO lpMonitorInfo)
 {
 	G::InitLateBindLibraryCalls();
@@ -452,27 +463,35 @@ HRESULT CDX9::GetPresentationParams(HWND hWndDevice, HWND hWndFocus, bool bWindo
 		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
 		d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
 		d3dpp.hDeviceWindow = hWndDevice;
-		d3dpp.Flags = 0;//D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+		d3dpp.Flags = 0;
 		if (syncMode == HCFG::FSSM_VBL)
+		{
 			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+		}
 		else
+		{
 			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+		}
 	}
 	else
 	{
 		ZeroMemory( &d3dpp, sizeof(d3dpp) );
 		d3dpp.Windowed = FALSE;
 		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-		d3dpp.Flags = 0;//D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+		d3dpp.Flags = 0;
 		d3dpp.BackBufferCount = 1;
 		d3dpp.BackBufferHeight = displayMode.Height;
 		d3dpp.BackBufferWidth = displayMode.Width;
 		d3dpp.BackBufferFormat = displayMode.Format;
 		d3dpp.FullScreen_RefreshRateInHz = displayMode.RefreshRate;
 		if (syncMode == HCFG::FSSM_VBL)
+		{
 			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+		}
 		else
+		{
 			d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+		}
 	}
 	return S_OK;
 }

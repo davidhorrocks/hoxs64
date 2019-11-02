@@ -128,6 +128,7 @@ int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, in
 MSG msg;
 HRESULT hRet;
 ULARGE_INTEGER frequency, last_counter, new_counter, tSlice;
+ULARGE_INTEGER frequencyDoubler;
 DWORD emulationSpeed = FRAMEUPDATEFREQ * 100;
 ULARGE_INTEGER start_counter,end_counter;
 short captionUpdateCounter = 0;
@@ -148,6 +149,7 @@ BOOL bRet;
 		}
 	}
 	frequency.QuadPart = m_framefrequency.QuadPart;
+	frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
 	QueryPerformanceCounter((PLARGE_INTEGER)&last_counter);
 	QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
 	start_counter.QuadPart = end_counter.QuadPart - frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ;
@@ -248,6 +250,7 @@ msgloop:
 			}
 		}
 		frequency.QuadPart = m_framefrequency.QuadPart;
+		frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
 
 		if (((m_bActive && m_bReady) || G::IsHideWindow) && m_bRunning && !m_bPaused)
 		{
@@ -263,7 +266,7 @@ msgloop:
 					QueryPerformanceCounter((PLARGE_INTEGER)&start_counter);
 					c64.PreventClockOverflow();
 				}
-				QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
+				QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
 				tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 				if ((LONGLONG)tSlice.QuadPart <= 0)
 				{
@@ -310,7 +313,7 @@ msgloop:
 								}
 							}
 
-							QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);				
+							QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
 							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 						}
 					}
@@ -401,12 +404,38 @@ msgloop:
 			bool bDrawThisFrame = ((m_fskip < 0) || m_bIsDebugCart || m_bDebug);
 			if (bDrawThisFrame)
 			{
-				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window();
-				if (!m_bIsDebugCart)
+				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window(true);
+				if (SUCCEEDED(hRet))
 				{
-					if (SUCCEEDED(hRet))
+					if (!m_bIsDebugCart)
 					{
-						dx.Present(D3DPRESENT_DONOTWAIT);
+						if (SUCCEEDED(hRet))
+						{
+							hRet = dx.Present(D3DPRESENT_DONOTWAIT);
+							if (SUCCEEDED(hRet))
+							{
+								if (this->m_syncModeFullscreen == HCFG::FSSM_FRAME_DOUBLER && !this->m_bWindowed)
+								{
+									ULARGE_INTEGER last_present_counter;
+									QueryPerformanceCounter((PLARGE_INTEGER)&last_present_counter);
+									tSlice.QuadPart = 0;
+									hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window(false);
+									if (SUCCEEDED(hRet))
+									{
+										if (((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart))
+										{
+											while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequencyDoubler.QuadPart)
+											{
+												QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
+												tSlice.QuadPart = new_counter.QuadPart - last_present_counter.QuadPart;
+											}
+
+											dx.Present(D3DPRESENT_DONOTWAIT);
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 
@@ -1825,6 +1854,7 @@ unsigned int i;
 			this->m_framefrequency.QuadPart = (ULONGLONG)(((double)frequency.QuadPart / ((double)PALCLOCKSPERSECOND/((double)PAL_LINES_PER_FRAME * (double)PAL_CLOCKS_PER_LINE))));
 		}
 
+		this->m_framefrequencyDoubler.QuadPart = this->m_framefrequency.QuadPart / 2;
 	}
 
 	CopyMemory(&c64.cia1.c64KeyMap[0], &newcfg.m_KeyMap[0], sizeof(c64.cia1.c64KeyMap));
