@@ -246,8 +246,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,24,0
- PRODUCTVERSION 1,0,24,0
+ FILEVERSION 1,0,25,0
+ PRODUCTVERSION 1,0,25,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -265,12 +265,12 @@ BEGIN
             VALUE "Comments", "A Commodore 64 cycle based emulation."
             VALUE "CompanyName", "David Horrocks Enterprises"
             VALUE "FileDescription", "Hoxs64 C64 Emulator"
-            VALUE "FileVersion", "1.0.24.0"
+            VALUE "FileVersion", "1.0.25.0"
             VALUE "InternalName", "Hoxs64"
             VALUE "LegalCopyright", "Copyright © 2001"
             VALUE "OriginalFilename", "hoxs64.exe"
             VALUE "ProductName", "Hoxs64"
-            VALUE "ProductVersion", "1.0.24.0"
+            VALUE "ProductVersion", "1.0.25.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -688,7 +688,7 @@ BEGIN
     CONTROL         "Aggressive",IDC_HOSTCPU_AGGRESSIVE,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,75,92,53,8
 END
 
-IDD_SETTINGTABVIDEO DIALOGEX 0, 0, 272, 204
+IDD_SETTINGTABVIDEO DIALOGEX 0, 0, 272, 215
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
@@ -713,10 +713,11 @@ BEGIN
     COMBOBOX        IDC_CBO_BORDER,173,115,82,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "FPS",IDC_STATIC,141,134,25,8
     COMBOBOX        IDC_CBO_FPS,173,134,82,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "Fullscreen Mode Sync",IDC_GROUP_FULLSCREEN,7,159,122,30
+    GROUPBOX        "Fullscreen Mode Sync",IDC_GROUP_FULLSCREEN,7,159,122,48
     CONTROL         "VBL Sync",IDC_VBLSYNC_FSC,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,172,47,10
     CONTROL         "Line Sync",IDC_LINESYNC_FSC,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,72,172,47,10
-    GROUPBOX        "Windowed Mode Sync",IDC_GROUP_WINDOWED,141,159,122,30
+    CONTROL         "100Hz Line Sync",IDC_LINESYNC_DOUBLERATE_FSC,"Button",BS_AUTORADIOBUTTON,15,188,84,10
+    GROUPBOX        "Windowed Mode Sync",IDC_GROUP_WINDOWED,141,159,122,48
     CONTROL         "VBL Sync",IDC_VBLSYNC_WND,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,148,172,47,10
     CONTROL         "Line Sync",IDC_LINESYNC_WND,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,208,172,47,10
 END
@@ -948,7 +949,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 263
         TOPMARGIN, 7
-        BOTTOMMARGIN, 196
+        BOTTOMMARGIN, 207
     END
 
     IDD_SETTINGTABAUDIO, DIALOG
