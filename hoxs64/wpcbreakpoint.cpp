@@ -357,19 +357,20 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 {
 HRESULT hr = E_FAIL;
 bool ok = false;
+	
 	try
 	{
 		m_lstBreak.clear();	
 		Sp_BreakpointItem v;	
-		IEnumBreakpointItem *pEnumBpMain = c64->GetMon()->BM_CreateEnumBreakpointItem();
-		if (pEnumBpMain)
+		IEnumBreakpointItem *p = c64->GetMon()->BM_CreateEnumBreakpointItem();
+		if (p)
 		{
-			while (pEnumBpMain->GetNext(v))
+			while (p->GetNext(v))
 			{
 				m_lstBreak.push_back(v);
 			}
 
-			delete pEnumBpMain;
+			delete p;
 		}
 
 		ListView_SetItemCount(hWndListView, m_lstBreak.size());
@@ -379,6 +380,8 @@ bool ok = false;
 	{
 		ok = false;
 	}
+
+
 	return ok ? S_OK : E_FAIL;
 }
 

@@ -178,6 +178,8 @@ BOOL bRet;
 	m_bInitDone = true;
 	bool bExecuteFrameDone = false;
 	int framesSkipped = 0;
+	G::EnsureWindowPosition(m_pWinAppWindow->GetHwnd());
+
     //-------------------------------------------------------------------------
     //                          The Message Pump
     //-------------------------------------------------------------------------
@@ -1121,6 +1123,7 @@ RECT rcMain;
 	{
 		UpdateWindow(hWndMain);
 	}
+
 	return (S_OK);
 }
 

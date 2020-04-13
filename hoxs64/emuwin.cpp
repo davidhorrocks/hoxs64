@@ -168,23 +168,23 @@ void CEmuWindow::GetVicCycleRectFromClientPosition(int x, int y, RECT& rcVicCycl
 
 void CEmuWindow::GetDisplayRectFromVicRect(const RECT rcVicCycle, RECT& rcDisplay)
 {
-	int s = dx->m_displayStart + DISPLAY_START;
+	int s = dx->m_displayStart + DISPLAY_START ;
 	int st = dx->m_displayFirstVicRaster;
 	int sb = dx->m_displayLastVicRaster;
 	int wc = dx->m_displayWidth;
-	int hc = dx->m_displayHeight;
+	int hc = dx->m_displayHeight - dx->GetToolBarHeight(this->appStatus->m_bShowFloppyLed);
 	int wp = dx->m_rcTargetRect.right - dx->m_rcTargetRect.left;
 	int hp = dx->m_rcTargetRect.bottom - dx->m_rcTargetRect.top;
 		
-	double left = ::ceil((double)(rcVicCycle.left - s) * (double)wp / (double)wc);
-	double right = ::floor((double)(rcVicCycle.right - s) * (double)wp / (double)wc);
+	double left = ::floor((double)(rcVicCycle.left - s) * (double)wp / (double)wc + 0.5);
+	double right = ::floor((double)(rcVicCycle.right - s) * (double)wp / (double)wc + 0.5);
 	rcDisplay.left = (LONG)left;
 	rcDisplay.right = (LONG)right;
 	if (right <= left)
 		right = left + 1;
 
-	double top = ::ceil((double)(rcVicCycle.top - st) * (double)hp / (double)hc);
-	double bottom = ::floor((double)(rcVicCycle.bottom - st) * (double)hp / (double)hc);
+	double top = ::floor((double)(rcVicCycle.top - st) * (double)hp / (double)hc + 0.5);
+	double bottom = ::floor((double)(rcVicCycle.bottom - st) * (double)hp / (double)hc + 0.5);
 	if (bottom <= top)
 		bottom = top + 1;
 	rcDisplay.top = (LONG)top;
@@ -369,7 +369,9 @@ void CEmuWindow::DrawAllCursors(HDC hdc)
 	{
 		DrawCursorAtVicPosition(hdc, m_iVicCycleCursor, m_iVicLineCursor);
 	}
-	IEnumBreakpointItem *p = c64->GetMon()->BM_CreateEnumBreakpointItem();
+
+	IEnumBreakpointItem *p = NULL;
+	p = c64->GetMon()->BM_CreateEnumBreakpointItem();
 	if (p)
 	{
 		Sp_BreakpointItem v;
@@ -380,6 +382,9 @@ void CEmuWindow::DrawAllCursors(HDC hdc)
 				DrawCursorAtVicPosition(hdc, v->vic_cycle, v->vic_line);
 			}
 		}
+
+		delete p;
+		p = NULL;
 	}
 }
 

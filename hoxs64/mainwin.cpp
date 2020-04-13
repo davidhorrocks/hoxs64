@@ -397,57 +397,55 @@ RECT rcClient;
 				{
 					SaveMainWindowSize();
 				}
+			}
 
-				if (GetClientRect(hWnd, &rcClient))
+			if (GetClientRect(hWnd, &rcClient))
+			{
+				y = rcClient.top;
+				x = rcClient.left;
+				clientWidth = max(0, rcClient.right - rcClient.left) - x;
+				clientHeight = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
+				if (clientWidth > 0 && clientHeight > 0)
 				{
-					y = rcClient.top;
-					x = rcClient.left;
-					clientWidth = max(0, rcClient.right - rcClient.left) - x;
-					clientHeight = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
-					if (clientWidth > 0 && clientHeight > 0)
+					bool isCustomSizeBlit = true;
+					UINT showWindowFlags;
+					if (G::IsHideWindow)
 					{
-						bool isCustomSizeBlit = true;
-						UINT showWindowFlags;
-						if (G::IsHideWindow)
-						{
-							showWindowFlags = SWP_NOZORDER | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOREDRAW;
-						}
-						else
-						{
-							showWindowFlags = SWP_NOZORDER | SWP_NOMOVE;
-						}
+						showWindowFlags = SWP_NOZORDER | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOREDRAW;
+					}
+					else
+					{
+						showWindowFlags = SWP_NOZORDER | SWP_NOMOVE;
+					}
 
-						if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, showWindowFlags))
+					if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, showWindowFlags))
+					{
+						CConfig tCfg;
+						appStatus->GetUserConfig(tCfg);
+						if (!tCfg.m_bUseBlitStretch)
 						{
-							CConfig tCfg;
-							appStatus->GetUserConfig(tCfg);
-							if (!tCfg.m_bUseBlitStretch)
+							this->GetRequiredMainWindowSize(tCfg.m_borderSize, tCfg.m_bShowFloppyLed, tCfg.m_bDoubleSizedWindow, &mainWidth, &mainHeight);
+							RECT rcMain = {0, 0, mainWidth, mainHeight};
+							this->CalcEmuWindowSize(rcMain, &emuWinWidth, &emuWinHeight);
+							if (emuWinWidth == w && emuWinHeight == h)
 							{
-								this->GetRequiredMainWindowSize(tCfg.m_borderSize, tCfg.m_bShowFloppyLed, tCfg.m_bDoubleSizedWindow, &mainWidth, &mainHeight);
-								RECT rcMain = {0, 0, mainWidth, mainHeight};
-								this->CalcEmuWindowSize(rcMain, &emuWinWidth, &emuWinHeight);
-								if (emuWinWidth == w && emuWinHeight == h)
-								{
-									isCustomSizeBlit = false;
-								}
+								isCustomSizeBlit = false;
 							}
+						}
 
-							tCfg.m_bWindowedCustomSize = isCustomSizeBlit;
-							appStatus->SetUserConfig(tCfg);
+						tCfg.m_bWindowedCustomSize = isCustomSizeBlit;
+						appStatus->SetUserConfig(tCfg);
 
-							//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.								
-							appStatus->m_bWindowedCustomSize = isCustomSizeBlit;
-							if (dx != NULL)
-							{
-								dx->m_bWindowedCustomSize = isCustomSizeBlit;
-								dx->Reset();
-							}
+						//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.								
+						appStatus->m_bWindowedCustomSize = isCustomSizeBlit;
+						if (dx != NULL)
+						{
+							dx->m_bWindowedCustomSize = isCustomSizeBlit;
+							dx->Reset();
 						}
 					}
 				}
 			}
-			//if (m_hWndStatusBar != NULL)				
-			//	SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
 		}
 	}
 
