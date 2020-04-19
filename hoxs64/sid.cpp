@@ -3,10 +3,6 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include "boost2005.h"
 #include "defines.h"
 #include "CDPI.h"
@@ -15,6 +11,8 @@
 #include "utils.h"
 #include "savestate.h"
 #include "register.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -135,6 +133,11 @@ DWORD soundplay_pos;
 DWORD soundwrite_pos;
 
 	if (appStatus->m_bMaxSpeed)
+	{
+		return E_FAIL;
+	}
+
+	if (appStatus->m_bClosing || dx->pSecondarySoundBuffer == nullptr)
 	{
 		return E_FAIL;
 	}
@@ -396,10 +399,11 @@ DWORD SID64::UpdateSoundBufferLockSize(HCFG::EMUFPS fps)
 
 HRESULT SID64::InitResamplingFilters(HCFG::EMUFPS fps)
 {
-const int INTERPOLATOR_CUTOFF_FREQUENCY = 16000;
-const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
+constexpr int INTERPOLATOR_CUTOFF_FREQUENCY = 16000;
+constexpr int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 
 	appStatus->m_bFilterOK = false;
+	this->SetSidChipAddressMap(appStatus->m_numberOfExtraSIDs, appStatus->m_Sid2Address, appStatus->m_Sid3Address, appStatus->m_Sid4Address, appStatus->m_Sid5Address, appStatus->m_Sid6Address, appStatus->m_Sid7Address, appStatus->m_Sid8Address);
 	long interpolatedSamplesPerSecond;
 	filterPreFilterResampleChannel1.CleanSync();
 	filterPreFilterResampleChannel2.CleanSync();
@@ -411,9 +415,7 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		filterKernelLength = SIDRESAMPLEFIRLENGTH_50;
 		filterInterpolationFactor = INTERPOLATION_FACTOR_50;
 		filterDecimationFactor = DECIMATION_FACTOR_50;
-
 		interpolatedSamplesPerSecond = PAL50CLOCKSPERSECOND * filterInterpolationFactor;
-
 		if (filterPreFilterResampleChannel1.AllocSync(filterKernelLength, filterInterpolationFactor) !=0)
 		{
 			return E_OUTOFMEMORY;
@@ -439,7 +441,6 @@ const int INTERPOLATOR2X_CUTOFF_FREQUENCY = 14000;
 		filterPreFilterResampleChannel2.AllocSync(stage1Len, STAGE1X);
 		filterPreFilterStage2Channel1.AllocSync(stage2Len, STAGE2X);
 		filterPreFilterStage2Channel2.AllocSync(stage2Len, STAGE2X);
-
 		filterPreFilterResampleChannel1.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X);
 		filterPreFilterResampleChannel2.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X);
 		filterPreFilterStage2Channel1.CreateFIRKernel(INTERPOLATOR_CUTOFF_FREQUENCY, PALCLOCKSPERSECOND * STAGE1X * STAGE2X);
@@ -504,7 +505,7 @@ void SID64::Reset(ICLK sysclock, bool poweronreset)
 	sid6.Reset(sysclock, poweronreset);
 	sid7.Reset(sysclock, poweronreset);
 	sid8.Reset(sysclock, poweronreset);
-	appStatus->ResetSidChipAddressMap();
+	SetSidChipAddressMap(appStatus->m_numberOfExtraSIDs, appStatus->m_Sid2Address, appStatus->m_Sid3Address, appStatus->m_Sid4Address, appStatus->m_Sid5Address, appStatus->m_Sid6Address, appStatus->m_Sid7Address, appStatus->m_Sid8Address);
 }
 
 void SID64::ExecuteCycle(ICLK sysclock)

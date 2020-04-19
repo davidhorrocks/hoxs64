@@ -8,48 +8,52 @@
 #include "appstatus.h"
 
 
-CAppStatus::CAppStatus()
+CAppStatus::CAppStatus() noexcept
 {
-	m_bSoundOK=false;
-	m_bSoundMute=false;
-	m_bFilterOK=false;
-	m_bActive=false;				// App is running/active
-	m_bReady=false;				// App is ready for updates
-	m_bWindowed=true;			// App is in windowed mode
-	m_bRunning=false;
-	m_bDebug=false;
-	m_bBreak=false;
-	m_bPaused=false;
-	m_bClosing=false;
-	m_bInitDone=false;
-	m_fskip = 0;
-	m_displayFormat = 0;
-	m_ScreenDepth = 0;
-	m_bUseCPUDoubler = false;
-	m_blitFilterDX = 0;
-	m_audioSpeedStatus = HCFG::AUDIO_OK;
-	m_bAutoload = 0;
+	m_bBusy = false;
+	m_bSoundOK = false;
+	m_bSoundMute = false;
+	m_bFilterOK = false;
+	m_bActive = false;
+	m_bReady = false;
+	m_bWindowed = true;
+	m_bRunning = false;
+	m_bDebug = false;
+	m_bBreak = false;
+	m_bPaused = false;
+	m_bClosing = false;
+	m_bIsDebugCart = false;
+	signed int m_fskip = 0;
+	m_audioSpeedStatus = HCFG::AUDIOSPEED::AUDIO_OK;
+	m_systemfrequency = {};
+	m_framefrequency = {};
+	m_framefrequencyDoubler = {};
+	m_bAutoload = false;
+	m_bInitDone = false;
+	m_bUpdateWindowTitle = false;
 	m_bDiskLedMotor = false;
 	m_bDiskLedDrive = false;
+	m_bDiskLedWrite = false;
 	m_bSerialTooBusyForSeparateThread = false;
+	m_bSaveSkipFrames = false;
+	m_bSaveLimitSpeed = false;
+	m_SaveSyncModeFullscreen = HCFG::FULLSCREENSYNCMODE::FSSM_VBL;
+	m_SaveSyncModeWindowed = HCFG::FULLSCREENSYNCMODE::FSSM_VBL;
 	SaveSpeedSettings();
 }
 
-
-void CAppStatus::SaveSpeedSettings()
+void CAppStatus::SaveSpeedSettings() noexcept
 {
 	m_bSaveSkipFrames = m_bSkipFrames;
 	m_bSaveLimitSpeed = m_bLimitSpeed;
-	m_bSaveUseBlitStretch = m_bUseBlitStretch;
 	m_SaveSyncModeFullscreen = m_syncModeFullscreen;
 	m_syncModeWindowed = m_SaveSyncModeWindowed;
 }
 
-void CAppStatus::RestoreSpeedSettings()
+void CAppStatus::RestoreSpeedSettings() noexcept
 {
 	m_bSkipFrames = m_bSaveSkipFrames;
 	m_bLimitSpeed = m_bSaveLimitSpeed;
-	m_bUseBlitStretch = m_bSaveUseBlitStretch;
 	m_syncModeFullscreen = m_SaveSyncModeFullscreen;
 	m_syncModeWindowed = m_SaveSyncModeWindowed;
 }

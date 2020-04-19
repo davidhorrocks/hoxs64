@@ -14,6 +14,8 @@
 #include "util.h"
 #include "utils.h"
 #include "register.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -53,7 +55,7 @@ bit16 SIDLoader::MakeSidAddressFromByte(bit8 rsidByte)
 	return ((bit16)0xD000 | (((bit16)rsidByte & 0xfe) << 4));
 }
 
-HRESULT SIDLoader::LoadSIDFile(TCHAR *filename)
+HRESULT SIDLoader::LoadSIDFile(const TCHAR *filename)
 {
 HRESULT hr;
 HANDLE hfile=0;
@@ -717,7 +719,7 @@ HRESULT SIDLoader::SetErrorCouldNotLoadDriverDueToFreePages(bit32 startPage, bit
 	return SetError(E_FAIL, TEXT("Could not load the SID driver around SID file's data pages at $%04x - $%04x"), (unsigned int)(bit32)startPage * 0x100, (unsigned int)((startPage + pageLength * 0x100) - 1));
 }
 
-HRESULT SIDLoader::LoadSID(bit8 *ramMemory, TCHAR *filename, bool bUseDefaultStartSong, WORD startSong)
+HRESULT SIDLoader::LoadSID(bit8 *ramMemory, const TCHAR *filename, bool bUseDefaultStartSong, bit16 startSong)
 {
 HRESULT hr;
 	
@@ -737,7 +739,7 @@ HRESULT hr;
 	return S_OK;
 }
 
-HRESULT SIDLoader::LoadSID(bit8 *ramMemory, bool bUseDefaultStartSong, WORD startSong)
+HRESULT SIDLoader::LoadSID(bit8 *ramMemory, bool bUseDefaultStartSong, bit16 startSong)
 {
 HRESULT hr;
 bit16 defaultDriverAddress = 0x0834;

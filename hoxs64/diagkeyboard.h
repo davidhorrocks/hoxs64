@@ -1,6 +1,6 @@
-#ifndef __DIAGKEYBOARD_H__
-#define __DIAGKEYBOARD_H__
-
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
 #include "c64Keys.h"
 
 void GetKeyName(BYTE scancode,TCHAR *buffer,int buffersize);
@@ -91,7 +91,3 @@ private:
 		);
 	CDX9 *pDX;
 };
-
-
-
-#endif

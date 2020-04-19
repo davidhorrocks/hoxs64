@@ -1,6 +1,6 @@
-#ifndef __DEFINES_H__
-#define __DEFINES_H__
-
+#pragma once
+#include <windows.h>
+#include <tchar.h>
 #define APPNAME TEXT("Hoxs64")
 #define APPMENUNAME TEXT("Hoxs64")
 #define HOXS_MAIN_WND_CLASS TEXT("Hoxs64")
@@ -40,8 +40,8 @@
 
 #define C64DISKFILENAMELENGTH 16
 
-const int WIDTH_64 = 406;
-const int HEIGHT_64 = 284;
+#define WIDTH_64 (406);
+#define HEIGHT_64 (284);
 
 #define CPUID_MAIN 0
 #define CPUID_DISK 1
@@ -51,6 +51,4 @@ const int HEIGHT_64 = 284;
 #define OVERFLOWSAFTYTHRESHOLD (0x4000000000000000LL)
 #else
 #define OVERFLOWSAFTYTHRESHOLD (0x40000000L)
-#endif
-
 #endif

@@ -1,6 +1,4 @@
-#ifndef __CMDARG_H__
-#define __CMDARG_H__
-
+#pragma once
 typedef class MList<TCHAR *> CListTString;
 typedef class MListElement<TCHAR *> CListElementTString;
 
@@ -51,5 +49,3 @@ private:
 	static HRESULT LoadCommandOption(CListElementTString **ppElement, CommandArg *commandArg);
 
 };
-
-#endif

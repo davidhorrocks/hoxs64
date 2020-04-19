@@ -1,5 +1,5 @@
-#ifndef __TAP_H__
-#define __TAP_H__
+#pragma once
+#include "errormsg.h"
 
 # pragma pack (1)
 typedef struct tagRAWTAPE
@@ -17,7 +17,7 @@ class TAP64 : public ErrorMsg
 public:
 	TAP64();
 	~TAP64();
-	HRESULT LoadTAPFile(TCHAR *s);
+	HRESULT LoadTAPFile(const TCHAR *s);
 	void UnloadTAP();
 
 	RAWTAPE TapeHeader;
@@ -35,12 +35,18 @@ class Tape64 : public ITape, public TAP64
 {
 public:
 	Tape64();
-	bit32 tape_position;
-	ICLK tape_pulse_length;
-	ICLK CurrentClock;
-	ICLK nextTapeTickClock;
+	~Tape64() = default;
+	Tape64(const Tape64&) = delete;
+	Tape64& operator=(const Tape64&) = delete;
+	Tape64(Tape64&&) = delete;
+	Tape64& operator=(Tape64&&) = delete;
 
-	HRESULT InsertTAPFile(TCHAR *filename);
+	bit32 tape_position = 0;
+	ICLK tape_pulse_length = 0;
+	ICLK CurrentClock = 0;
+	ICLK nextTapeTickClock = 0;
+
+	HRESULT InsertTAPFile(const TCHAR *filename);
 
 	virtual void SetMotorWrite(bool motor, bit8 write);
 	virtual void PressPlay();
@@ -51,12 +57,10 @@ public:
 
 	void GetState(SsTape &state);
 	void SetState(const SsTape &state);
-	ITapeEvent *TapeEvent;
+	ITapeEvent *TapeEvent = nullptr;
 private:
-	bool bMotorOn;
-	bool bPlayDown;
-	bool bEOT;
-	bool bEOD;
+	bool bMotorOn = false;
+	bool bPlayDown = false;
+	bool bEOT = false;
+	bool bEOD = false;
 };
-
-#endif

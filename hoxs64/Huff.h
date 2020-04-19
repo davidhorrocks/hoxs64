@@ -1,6 +1,4 @@
-#ifndef __HUFF_H__ 
-#define __HUFF_H__ 
-
+#pragma once
 #include "filestream.h"
 
 #define HUFFBUFFERSIZE (32)
@@ -99,12 +97,10 @@ public:
 	HRESULT SetFile(HANDLE hfile, bool bOwnFileHandle);
 	HRESULT SetFile(IStream *pStream);
 
-	HRESULT Decompress(DWORD numberOfDoubleWords, DWORD **data);
+	HRESULT Decompress(unsigned int numberOfDoubleWords, bit32 **data);
 
 private:
 	void InitSetFile();
 
 	IStream *m_pStream;
 };
-
-#endif

@@ -1,5 +1,5 @@
-#ifndef __DISSASSEMBLYREG_H__
-#define __DISSASSEMBLYREG_H__
+#pragma once
+#include "cvirwindow.h"
 
 class CDisassemblyReg_EventSink_OnTextChanged : public EventSink<EdLnTextChangedEventArgs>
 {
@@ -277,5 +277,3 @@ private:
 	EdLn *GetTabLastControl();
 	HRESULT UpdateDisplay(EdLn *control, int value);
 };
-
-#endif

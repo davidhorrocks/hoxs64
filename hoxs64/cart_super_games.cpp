@@ -1,21 +1,3 @@
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
-#include <tchar.h>
-#include <assert.h>
-#include <algorithm>
-#include "boost2005.h"
-#include "user_message.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
-#include "errormsg.h"
-#include "CDPI.h"
-#include "bits.h"
-#include "util.h"
-#include "utils.h"
-#include "register.h"
 #include "cart.h"
 
 CartSuperGames::CartSuperGames(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)

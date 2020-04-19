@@ -1,11 +1,9 @@
 #include <windows.h>
 #include <commctrl.h>
+#include <string>
+#include "wfs.h"
 #include <tchar.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include "boost2005.h"
@@ -15,6 +13,8 @@
 #include "util.h"
 #include "utils.h"
 #include "register.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -32,9 +32,10 @@
 #include "tap.h"
 
 
-RAM64::RAM64()
+RAM64::RAM64() noexcept
 {
 	Zero64MemoryPointers();
+	randengine_main.seed(rd());
 }
 
 RAM64::~RAM64()
@@ -135,7 +136,7 @@ void RAM64::InitReset(bool poweronreset)
 	{
 		for (i=0; i <= 0xFF; i++)
 		{
-			mMemory[i << 8] = dist_byte(G::randengine_main);
+			mMemory[i << 8] = dist_byte(this->randengine_main);
 		}
 	}
 
@@ -163,134 +164,186 @@ void RAM64::Reset(bool poweronreset)
 }
 
 
-HRESULT RAM64::Init(TCHAR *szAppDirectory, Cart *cart)
+HRESULT RAM64::Init(const wchar_t* pwszAppDirectory, Cart* cart)
 {
-HANDLE hfile=0;
-BOOL r;
-DWORD bytes_read;
-TCHAR szRomPath[MAX_PATH+1];
-	ClearError();
+	HANDLE hfile = 0;
+	BOOL r;
+	DWORD bytes_read;
+	std::wstring wsRomPath;
+	static const wchar_t ROM_NAME_KERNAL[] = L"kernal.rom";
+	static const wchar_t ROM_NAME_BASIC[] = L"basic.rom";
+	static const wchar_t ROM_NAME_CHAR[] = L"char.rom";
 
+	ClearError();
 	m_pCart = cart;
-	if (szAppDirectory==NULL)
-		m_szAppDirectory[0] = 0;
-	else
-		_tcscpy_s(m_szAppDirectory, _countof(m_szAppDirectory), szAppDirectory);
+	wsAppDirectory.clear();
+	if (pwszAppDirectory != nullptr)
+	{
+		wsAppDirectory = pwszAppDirectory;
+	}
 
 	if (S_OK != Allocate64Memory())
+	{
 		return E_FAIL;
+	}
 
-	hfile=INVALID_HANDLE_VALUE;
-	szRomPath[0]=0;
-	if (_tmakepath_s(szRomPath, _countof(szRomPath), 0, m_szAppDirectory, TEXT("kernal.rom"), 0)==0)
-		hfile=CreateFile(szRomPath,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
-		hfile=CreateFile(TEXT("kernal.rom"),GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
+	hfile = INVALID_HANDLE_VALUE;
+	wsRomPath.append(wsAppDirectory);
+	Wfs::Path_Append(wsRomPath, ROM_NAME_KERNAL);
+	hfile = CreateFileW(Wfs::EnsureLongNamePrefix(wsRomPath).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+
+	if (hfile == INVALID_HANDLE_VALUE)
+	{
+		hfile = CreateFileW(ROM_NAME_KERNAL, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	}
+
+	if (hfile == INVALID_HANDLE_VALUE)
+	{
 		return SetError(E_FAIL, TEXT("Could not open kernal.rom"));
-	r=ReadFile(hfile, mKernal, 0x2000, &bytes_read,NULL);
+	}
+
+	r = ReadFile(hfile, mKernal, 0x2000, &bytes_read, NULL);
 	CloseHandle(hfile);
-	if (r==0)
+	if (r == 0)
+	{
 		return SetError(E_FAIL, TEXT("Could not read from kernal.rom"));
-	if (bytes_read!=0x2000)
+	}
+
+	if (bytes_read != 0x2000)
+	{
 		return SetError(E_FAIL, TEXT("Could not read 0x2000 bytes from kernal.rom"));
+	}
 
-	hfile=INVALID_HANDLE_VALUE;
-	szRomPath[0]=0;
-	if (_tmakepath_s(szRomPath, _countof(szRomPath), 0, m_szAppDirectory, TEXT("basic.rom"), 0)==0)
-		hfile=CreateFile(szRomPath,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
-		hfile=CreateFile(TEXT("basic.rom"),GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
+	hfile = INVALID_HANDLE_VALUE;
+	wsRomPath.clear();
+	wsRomPath.append(wsAppDirectory);
+	Wfs::Path_Append(wsRomPath, ROM_NAME_BASIC);
+	hfile = CreateFileW(Wfs::EnsureLongNamePrefix(wsRomPath).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (hfile == INVALID_HANDLE_VALUE)
+	{
+		hfile = CreateFileW(ROM_NAME_BASIC, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	}
+
+	if (hfile == INVALID_HANDLE_VALUE)
+	{
 		return SetError(E_FAIL, TEXT("Could not open basic.rom"));
-	r=ReadFile(hfile, mBasic,0x2000, &bytes_read,NULL);
-	CloseHandle(hfile);
-	if (r==0)
-		return SetError(E_FAIL, TEXT("Could not read from basic.rom"));
-	if (bytes_read!=0x2000)
-		return SetError(E_FAIL, TEXT("Could not read 0x2000 bytes from basic.rom"));
+	}
 
-	hfile=INVALID_HANDLE_VALUE;
-	szRomPath[0]=0;
-	if (_tmakepath_s(szRomPath, _countof(szRomPath), 0, m_szAppDirectory, TEXT("char.rom"), 0)==0)
-		hfile=CreateFile(szRomPath,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
-		hfile=CreateFile(TEXT("char.rom"),GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
-		return SetError(E_FAIL, TEXT("Could not open char.rom"));
-	r=ReadFile(hfile,mCharGen,0x1000,&bytes_read,NULL);
+	r = ReadFile(hfile, mBasic, 0x2000, &bytes_read, NULL);
 	CloseHandle(hfile);
-	if (r==0)
+	if (r == 0)
+	{
+		return SetError(E_FAIL, TEXT("Could not read from basic.rom"));
+	}
+
+	if (bytes_read != 0x2000)
+	{
+		return SetError(E_FAIL, TEXT("Could not read 0x2000 bytes from basic.rom"));
+	}
+
+	hfile = INVALID_HANDLE_VALUE;
+	wsRomPath.clear();
+	wsRomPath.append(wsAppDirectory);
+	Wfs::Path_Append(wsRomPath, ROM_NAME_CHAR);
+
+	hfile = CreateFileW(Wfs::EnsureLongNamePrefix(wsRomPath).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (hfile == INVALID_HANDLE_VALUE)
+	{
+		hfile = CreateFileW(ROM_NAME_CHAR, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	}
+
+	if (hfile == INVALID_HANDLE_VALUE)
+	{
+		return SetError(E_FAIL, TEXT("Could not open char.rom"));
+	}
+
+	r = ReadFile(hfile, mCharGen, 0x1000, &bytes_read, NULL);
+	CloseHandle(hfile);
+	if (r == 0)
+	{
 		return SetError(E_FAIL, TEXT("Could not read from char.rom"));
-	if (bytes_read!=0x1000)
+	}
+
+	if (bytes_read != 0x1000)
+	{
 		return SetError(E_FAIL, TEXT("Could not read 0x1000 bytes from char.rom"));
+	}
 
 	InitMMU();
-
 	return S_OK;
 }
 
 void RAM64::LoadResetPattern()
 {
-HANDLE hfile=0;
-BOOL r;
-DWORD bytes_read;
-TCHAR szRomPath[MAX_PATH+1];
-	hfile=INVALID_HANDLE_VALUE;
-	szRomPath[0]=0;
-	if (_tmakepath_s(szRomPath, _countof(szRomPath), 0, m_szAppDirectory, TEXT("c64.ram"), 0)==0)
-		hfile=CreateFile(szRomPath,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	if (hfile==INVALID_HANDLE_VALUE)
-		hfile=CreateFile(TEXT("c64.ram"),GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	HANDLE hfile = 0;
+	BOOL r;
+	DWORD bytes_read;
+	std::wstring wsRomPath;
+	static const wchar_t RAM_NAME_PATTERN[] = L"c64.ram";
+	hfile = INVALID_HANDLE_VALUE;
+	wsRomPath.clear();
+	wsRomPath.append(wsAppDirectory);
+	Wfs::Path_Append(wsRomPath, RAM_NAME_PATTERN);
+	hfile = CreateFileW(Wfs::EnsureLongNamePrefix(wsRomPath).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (hfile == INVALID_HANDLE_VALUE)
+	{
+		hfile = CreateFileW(RAM_NAME_PATTERN, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	}
 
-	if (hfile!=INVALID_HANDLE_VALUE)
-	{		
+	if (hfile != INVALID_HANDLE_VALUE)
+	{
 		r = ReadFile(hfile, mMemory, 0x10000, &bytes_read, NULL);
 		CloseHandle(hfile);
 	}
 }
 
-HRESULT RAM64::Allocate64Memory(){
-bool r=S_OK;
-const int MEM_RAM64 = 64* 1024;
-const int MEM_KERNAL = 8* 1024;
-const int MEM_BASIC = 8* 1024;
-const int MEM_CHARGEN = 4* 1024;
-const int MEM_IO = 4* 1024;
+HRESULT RAM64::Allocate64Memory() {
+	constexpr int MEM_RAM64 = 64 * 1024;
+	constexpr int MEM_KERNAL = 8 * 1024;
+	constexpr int MEM_BASIC = 8 * 1024;
+	constexpr int MEM_CHARGEN = 4 * 1024;
+	constexpr int MEM_IO = 4 * 1024;
 
 	Free64Memory();
-	if (NULL != (mMemory =(bit8 *) VirtualAlloc(NULL, (MEM_RAM64 + MEM_KERNAL + MEM_BASIC + MEM_CHARGEN + MEM_IO), MEM_COMMIT, PAGE_READWRITE))){
+	if (NULL != (mMemory = (bit8*)VirtualAlloc(NULL, (MEM_RAM64 + MEM_KERNAL + MEM_BASIC + MEM_CHARGEN + MEM_IO), MEM_COMMIT, PAGE_READWRITE)))
+	{
 		mKernal = mMemory + (INT_PTR)MEM_RAM64;
 		mBasic = mKernal + (INT_PTR)MEM_KERNAL;
 		mIO = mBasic + (INT_PTR)MEM_BASIC;
 		mCharGen = mIO + (INT_PTR)MEM_IO;
 		return S_OK;
 	}
-	else{
+	else
+	{
 		return SetError(E_FAIL, TEXT("Allocate64Memory() failed"));
 	}
 }
 
-void RAM64::Free64Memory(){
-	if(mMemory)
+void RAM64::Free64Memory() noexcept
+{
+	if (mMemory)
+	{
 		VirtualFree(mMemory, 0, MEM_RELEASE);
+	}
+
 	Zero64MemoryPointers();
 }
 
-void RAM64::Zero64MemoryPointers(){
-	m_iCurrentCpuMmuIndex=0;
-	mMemory=0L;
-	mKernal=0L;
-	mBasic=0L;
-	mIO=0L;
-	mCharGen=0L;
-	mColorRAM=0L;
+void RAM64::Zero64MemoryPointers() noexcept
+{
+	m_iCurrentCpuMmuIndex = 0;
+	mMemory = 0L;
+	mKernal = 0L;
+	mBasic = 0L;
+	mIO = 0L;
+	mCharGen = 0L;
+	mColorRAM = 0L;
 
-	miMemory=0L;
-	miKernal=0L;
-	miBasic=0L;
-	miIO=0L;
-	miCharGen=0L;
+	miMemory = 0L;
+	miKernal = 0L;
+	miBasic = 0L;
+	miIO = 0L;
+	miCharGen = 0L;
 }
 
 int RAM64::GetCurrentCpuMmuMemoryMap()
@@ -298,7 +351,7 @@ int RAM64::GetCurrentCpuMmuMemoryMap()
 	return m_iCurrentCpuMmuIndex;
 }
 
-bit8 *RAM64::GetCpuMmuIndexedPointer(MEM_TYPE mt)
+bit8* RAM64::GetCpuMmuIndexedPointer(MEM_TYPE mt)
 {
 	switch (mt)
 	{

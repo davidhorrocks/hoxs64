@@ -11,6 +11,7 @@ public:
 	void Reset(); 
 	void Clean();
 	int GetWidth(LPCTSTR s);
+	int GetWidthW(LPCWSTR s);
 	int GetSuggestedDlgComboBoxWidth(HWND hDialog);
 	int maxWidth;
 private:

@@ -1,11 +1,11 @@
-#ifndef __MDIDEGUGGERFRAME_H__
-#define __MDIDEGUGGERFRAME_H__
+#pragma once
+#include "cvirwindow.h"
 
 class CMDIDebuggerFrame_EventSink_OnTrace : public EventSink<EventArgs>
 {
 protected:
 
-	virtual int Sink(void *sender, EventArgs& e)
+	int Sink(void *sender, EventArgs& e) override
 	{
 		OnTrace(sender, e);
 		return 0;
@@ -59,17 +59,22 @@ public:
 
 	CMDIDebuggerFrame(IC64 *c64, IAppCommand *pAppCommand, CConfig *cfg, CAppStatus *appStatus);
 	virtual ~CMDIDebuggerFrame();
+	CMDIDebuggerFrame(const CMDIDebuggerFrame&) = default;
+	CMDIDebuggerFrame& operator=(const CMDIDebuggerFrame&) = default;
+	CMDIDebuggerFrame(CMDIDebuggerFrame&&) = default;
+	CMDIDebuggerFrame& operator=(CMDIDebuggerFrame&&) = default;
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
 	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
+	virtual void WindowRelease() override;
 	virtual void GetMinWindowSize(int &w, int &h);
-
 	HWND Show(CVirWindow *pParentWindow);
 	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	bool IsWinDlgModelessBreakpointVicRaster();
 	void OpenNewCli();
 
+	shared_ptr<CMDIDebuggerFrame> keepAlive;
 	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuC64;
 	weak_ptr<CDisassemblyFrame> m_pWinDebugCpuDisk;
 	Wp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster;
@@ -124,5 +129,3 @@ private:
 	void UnadviseEvents();
 	void SetMenuState();
 };
-
-#endif

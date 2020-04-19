@@ -1,6 +1,4 @@
-#ifndef __HEXCONV_H__
-#define __HEXCONV_H__
-
+#pragma once
 class HexConv
 {
 public:
@@ -10,5 +8,3 @@ public:
 private:
 	static void init_hex_table();
 };
-
-#endif

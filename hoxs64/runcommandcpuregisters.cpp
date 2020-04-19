@@ -12,6 +12,8 @@
 #include "cevent.h"
 #include "bits.h"
 #include "util.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"

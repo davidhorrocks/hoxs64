@@ -1,5 +1,5 @@
-#ifndef __BREAKPOINTFRAME_H__
-#define __BREAKPOINTFRAME_H__
+#pragma once
+#include "cvirwindow.h"
 
 class WpcBreakpoint_EventSink_OnBreakpointC64ExecuteChanged : public EventSink<BreakpointC64ExecuteChangedEventArgs>
 {
@@ -78,9 +78,15 @@ class WpcBreakpoint_EventSink :
 class WpcBreakpoint : public CVirWindow, protected WpcBreakpoint_EventSink
 {
 public:
-	typedef vector<Sp_BreakpointItem> LstBrk;
-	WpcBreakpoint(IC64 *c64, IAppCommand *pAppCommand);
+	typedef vector<BreakpointItem> LstBrk;
+
+	WpcBreakpoint(IC64* c64, IAppCommand* pAppCommand);
 	virtual ~WpcBreakpoint();
+	WpcBreakpoint() = delete;
+	WpcBreakpoint(const BreakpointItem&) = delete;
+	virtual WpcBreakpoint& operator=(const WpcBreakpoint&) = delete;
+	WpcBreakpoint(BreakpointItem&&) = delete;
+	WpcBreakpoint& operator=(BreakpointItem&&) = delete;
 
 	static const TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -88,7 +94,7 @@ public:
 protected:
 	LstBrk m_lstBreak;
 
-	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 	LRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, LRESULT &lresult);
@@ -97,7 +103,7 @@ protected:
 	bool LvBreakPoint_OnRClick(NMITEMACTIVATE *pnmh, LRESULT &lresult);
 	bool LvBreakPoint_OnKeyDown(NMLVKEYDOWN *pnmh, LRESULT &lresult);
 	
-	HRESULT LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& bp);
+	HRESULT LvBreakPoint_RowCol_GetData(int iRow, BreakpointItem& bp);
 	HRESULT LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch);
 	int LvBreakPoint_RowCol_State(int iRow, int iCol);
 
@@ -122,8 +128,13 @@ private:
 			Cycle = 4
 		};
 	};
+
 	HWND m_hLvBreak;
 	HMENU m_hMenuBreakPoint;
+	CDPI m_dpi;
+	IC64* c64;
+	IAppCommand* m_pAppCommand;
+
 	HRESULT Init();
 	HWND CreateListView(CREATESTRUCT *pcs, HWND hWndParent);
 	HRESULT InitListViewColumns(HWND hWndListView);
@@ -133,16 +144,16 @@ private:
 	void RefreshBreakpointListView();
 	void RedrawBreakpointListItems();
 
-	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
-	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);
-	void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e);
-	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e);
-	void OnRadixChanged(void *sender, RadixChangedEventArgs& e);
+	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e) override;
+	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e) override;
+	void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e) override;
+	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e) override;
+	void OnRadixChanged(void *sender, RadixChangedEventArgs& e) override;
 
 	void OnShowAssembly();
-	void DeleteBreakpoint(Sp_BreakpointKey bp);
-	void EnableBreakpoint(Sp_BreakpointKey bp);
-	void DisableBreakpoint(Sp_BreakpointKey bp);
+	void DeleteBreakpoint(const BreakpointItem& bp);
+	void EnableBreakpoint(const BreakpointItem& bp);
+	void DisableBreakpoint(const BreakpointItem& bp);
 
 	void OnDeleteSelectedBreakpoint();
 	void OnEnableSelectedBreakpoint();
@@ -151,13 +162,6 @@ private:
 	void OnSetRadixDecimal();
 
 	HRESULT AdviseEvents();
-	void UnadviseEvents();
-	void Cleanup();
-
-	bool m_bSuppressThisBreakpointEvent;
-	CDPI m_dpi;
-	IC64 *c64;
-	IAppCommand *m_pAppCommand;
+	void UnadviseEvents() noexcept;
+	void Cleanup() noexcept;
 };
-
-#endif

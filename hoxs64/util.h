@@ -1,5 +1,4 @@
-#ifndef __UTIL_H__
-#define __UTIL_H__
+#pragma once
 
 #include "defines.h"
 #include "bits.h"
@@ -43,7 +42,6 @@ namespace HCFG
 		EMUWINSTR_ASPECTSTRETCH = 3,
 		EMUWINSTR_ASPECTSTRETCHBORDERCLIP = 4
 	} EMUWINDOWSTRETCH;
-
 
 	typedef enum tagEMUWINDOWFILTER {
 		EMUWINFILTER_AUTO = 0,
@@ -107,8 +105,8 @@ public:
 	int FirstRasterLine;
 	int LastRasterLine;
 	void SetBorder(HCFG::EMUBORDERSIZE border);
-	void SetBorder(int screenWidth, int screenHeight, int toolbarHeight);
-	void SetBorder2(int screenWidth, int screenHeight, int toolbarHeight);
+	//void SetBorder(int screenWidth, int screenHeight);
+	void SetBorder2(int screenWidth, int screenHeight);
 
 	static const int BEZEL = 28;
 
@@ -262,5 +260,3 @@ namespace DBGSYM
 		} Radix; 
 	};
 };
-
-#endif

@@ -10,6 +10,8 @@
 #include "mlist.h"
 #include "carray.h"
 #include "cevent.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "CDPI.h"
 #include "bits.h"
@@ -428,7 +430,7 @@ unsigned int cartstatesize, cartfullstatesize;
 
 							if (dwordCount > 0)
 							{
-								hr = hw.Decompress(dwordCount, (DWORD **)&pcd->pData);
+								hr = hw.Decompress(dwordCount, (bit32 **)&pcd->pData);
 								if (FAILED(hr))
 									break;
 								pcd->ownData = true;

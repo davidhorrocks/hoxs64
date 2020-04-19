@@ -1,5 +1,5 @@
-#ifndef __WPANEL_H__
-#define __WPANEL_H__
+#pragma once
+#include "cvirwindow.h"
 
 class WPanel;
 class WPanelManager;
@@ -7,7 +7,7 @@ class WPanelManager;
 class IWPanelManager
 {
 public:
-	virtual Sp_CVirMdiFrameWindow Get_MdiFrameWindow() = 0;
+	virtual CVirMdiFrameWindow *Get_MdiFrameWindow() = 0;
 	virtual void OnDestroyWPanel(shared_ptr<WPanel> pwp) = 0;
 	virtual int Get_SizerGap() = 0;
 	virtual void Get_RootRect(RECT *prc) = 0;
@@ -59,5 +59,3 @@ private:
 };
 
 typedef shared_ptr<WPanel> Sp_WPanel;
-
-#endif

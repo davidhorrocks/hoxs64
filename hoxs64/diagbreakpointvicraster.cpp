@@ -15,7 +15,6 @@
 #include "resource.h"
 #include "diagbreakpointvicraster.h"
 
-
 CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, IC64 *c64)
 {
 	m_iLine = 0;
@@ -28,8 +27,11 @@ CDiagBreakpointVicRaster::CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, IC
 
 CDiagBreakpointVicRaster::~CDiagBreakpointVicRaster()
 {
-	int x = 0;
-	x++;
+}
+
+void CDiagBreakpointVicRaster::WindowRelease()
+{
+	keepAlive.reset();
 }
 
 int CDiagBreakpointVicRaster::GetRasterLine()

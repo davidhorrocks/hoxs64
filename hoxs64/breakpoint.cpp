@@ -1,14 +1,13 @@
 #include <windows.h>
 #include "dx_version.h"
-#include <ddraw.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include "boost2005.h"
 #include "defines.h"
 #include "bits.h"
 #include "util.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -18,17 +17,20 @@
 #include "c6502.h"
 #include "breakpoint.h"
 
-
-BreakpointKey::BreakpointKey()
+BreakpointItem::BreakpointItem() noexcept
 {
 	this->machineident = DBGSYM::MachineIdent::MainCpu;
 	this->bptype = DBGSYM::BreakpointType::Execute;
 	this->address = 0;
 	this->vic_cycle = 1;
 	this->vic_line = 0;
+	this->enabled = true;
+	this->initialSkipOnHitCount = 0;
+	this->currentSkipOnHitCount = 0;
 }
 
-BreakpointKey::BreakpointKey(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
+BreakpointItem::BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address) noexcept
+	:BreakpointItem()
 {
 	this->machineident = machineident;
 	this->bptype = bptype;
@@ -37,18 +39,34 @@ BreakpointKey::BreakpointKey(DBGSYM::MachineIdent::MachineIdent machineident, DB
 	this->vic_line = 0;
 }
 
-int BreakpointKey::Compare(BreakpointKey y) const
+BreakpointItem::BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) noexcept
+	: BreakpointItem(machineident, bptype, address)
 {
-const BreakpointKey& x = *this;
+	this->enabled = enabled;
+	this->initialSkipOnHitCount = initialSkipOnHitCount;
+	this->currentSkipOnHitCount = currentSkipOnHitCount;
+}
+
+int BreakpointItem::Compare(const BreakpointItem& y) const noexcept
+{
+	const BreakpointItem& x = *this;
 	if (x.machineident < y.machineident)
+	{
 		return -1;
+	}
 	else if (x.machineident > y.machineident)
+	{
 		return 1;
+	}
 
 	if (x.bptype < y.bptype)
+	{
 		return -1;
+	}
 	else if (x.bptype > y.bptype)
+	{
 		return 1;
+	}
 
 	switch (x.bptype)
 	{
@@ -56,75 +74,76 @@ const BreakpointKey& x = *this;
 	case DBGSYM::BreakpointType::Read:
 	case DBGSYM::BreakpointType::Write:
 		if (x.address < y.address)
-			return -1;		
+		{
+			return -1;
+		}
 		else if (x.address > y.address)
+		{
 			return 1;
+		}
+
 		return 0;
 	case DBGSYM::BreakpointType::VicRasterCompare:
 		if (x.vic_line < y.vic_line)
-			return -1;		
+		{
+			return -1;
+		}
 		else if (x.vic_line > y.vic_line)
+		{
 			return 1;
+		}
+
 		if (x.vic_cycle < y.vic_cycle)
-			return -1;		
+		{
+			return -1;
+		}
 		else if (x.vic_cycle > y.vic_cycle)
+		{
 			return 1;
+		}
+
 		return 0;
 	}
+
 	return 0;
 }
 
-bool BreakpointKey::operator==(const BreakpointKey y) const
+bool BreakpointItem::operator==(const BreakpointItem& y) const noexcept
 {
 	return Compare(y) == 0;
 }
 
-bool BreakpointKey::operator<(const BreakpointKey y) const
+bool BreakpointItem::operator<(const BreakpointItem& y) const noexcept
 {
 	return Compare(y) < 0;
 }
 
-bool BreakpointKey::operator>(const BreakpointKey y) const
+bool BreakpointItem::operator>(const BreakpointItem& y) const noexcept
 {
 	return Compare(y) > 0;
 }
 
-bool LessBreakpointKey::operator()(const Sp_BreakpointKey x, const Sp_BreakpointKey y) const
+bool LessBreakpointItem::operator()(const BreakpointItem& x, const BreakpointItem& y) const noexcept
 {
-	return *x < *y;
+	return x.Compare(y) < 0;
 }
 
-BreakpointItem::BreakpointItem()
-{
-	this->enabled = true;
-	this->initialSkipOnHitCount = 0;
-	this->currentSkipOnHitCount = 0;
-}
-
-BreakpointItem::BreakpointItem(DBGSYM::MachineIdent::MachineIdent machineident, DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
-	: BreakpointKey(machineident, bptype, address)
-{
-	this->enabled = enabled;
-	this->initialSkipOnHitCount = initialSkipOnHitCount;
-	this->currentSkipOnHitCount = currentSkipOnHitCount;
-}
-
-void CPU6502::SetBreakOnInterruptTaken()
+void CPU6502::SetBreakOnInterruptTaken() noexcept
 {
 	m_bBreakOnInterruptTaken = true;
 }
 
-void CPU6502::ClearBreakOnInterruptTaken()
+void CPU6502::ClearBreakOnInterruptTaken() noexcept
 {
 	m_bBreakOnInterruptTaken = false;
 }
 
-bool CPU6502::GetBreakOnInterruptTaken()
+bool CPU6502::GetBreakOnInterruptTaken() noexcept
 {
 	return m_bBreakOnInterruptTaken;
 }
 
-void CPU6502::SetStepOverBreakpoint()
+void CPU6502::SetStepOverBreakpoint() noexcept
 {
     m_bEnableStepOverBreakpoint = true;
 	m_bStepOverGotNextAddress = false;
@@ -132,7 +151,7 @@ void CPU6502::SetStepOverBreakpoint()
 	m_bStepOverBreakNextInstruction = false;
 }
 
-void CPU6502::ClearStepOverBreakpoint()
+void CPU6502::ClearStepOverBreakpoint()  noexcept
 {
 	m_bEnableStepOverBreakpoint = false;
 	m_bStepOverGotNextAddress = false;
@@ -140,13 +159,13 @@ void CPU6502::ClearStepOverBreakpoint()
 	m_bStepOverBreakNextInstruction = false;
 }
 
-void CPU6502::SetStepOutWithRtsRtiPlaTsx()
+void CPU6502::SetStepOutWithRtsRtiPlaTsx() noexcept
 {
     m_bEnableStepOutWithRtsRtiPlaPlpTxs = true;
 	m_stepOutStackPointer = this->mSP;
 }
 
-void CPU6502::ClearStepOutWithRtsRtiPlaTsx()
+void CPU6502::ClearStepOutWithRtsRtiPlaTsx() noexcept
 {
 	m_bEnableStepOutWithRtsRtiPlaPlpTxs = false;
 	m_stepOutStackPointer = 0xff;
@@ -158,13 +177,13 @@ void CPU6502::SetStepOutWithRtsRti()
 	m_stepOutStackPointer = this->mSP;
 }
 
-void CPU6502::ClearStepOutWithRtsRti()
+void CPU6502::ClearStepOutWithRtsRti() noexcept
 {
 	m_bEnableStepOutWithRtsRti = false;
 	m_stepOutStackPointer = 0xff;
 }
 
-void CPU6502::ClearTemporaryBreakpoints()
+void CPU6502::ClearTemporaryBreakpoints() noexcept
 {
 	this->ClearStepOverBreakpoint();
 	this->ClearBreakOnInterruptTaken();
@@ -173,17 +192,14 @@ void CPU6502::ClearTemporaryBreakpoints()
 
 bool CPU6502::SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
-	Sp_BreakpointItem v(new BreakpointItem((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
-	if (v == 0)
-		return false;
-	return this->m_pIBreakpointManager->BM_SetBreakpoint(v);
+	BreakpointItem breakpoint((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address, enabled, initialSkipOnHitCount, currentSkipOnHitCount);
+	return this->m_pIBreakpointManager->BM_SetBreakpoint(breakpoint);
 }
 
-bool CPU6502::GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint)
+bool CPU6502::GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, BreakpointItem& breakpoint)
 {
-	BreakpointKey key((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address);
-	Sp_BreakpointKey k(&key, null_deleter());
-	return this->m_pIBreakpointManager->BM_GetBreakpoint(k, breakpoint);
+	BreakpointItem key((DBGSYM::MachineIdent::MachineIdent)this->ID, bptype, address);
+	return this->m_pIBreakpointManager->BM_GetBreakpoint(key, breakpoint);
 }
 
 // Returns: 
@@ -268,17 +284,18 @@ int i = -1;
 		{
 			// An interrupt sequence is not currently being taken.
 			// This is a normal instruction opcode.
-			Sp_BreakpointItem bp;
+			BreakpointItem bp;
 			if (GetBreakpoint(DBGSYM::BreakpointType::Execute, address, bp))
 			{
-				if (bp->enabled)
+				if (bp.enabled)
 				{
-					i = bp->currentSkipOnHitCount;
+					i = bp.currentSkipOnHitCount;
 					if (bHitIt && i == 0)
 					{
-						bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+						bp.currentSkipOnHitCount = bp.initialSkipOnHitCount;
+						m_pIBreakpointManager->BM_SetBreakpoint(bp);
 					}
-				}			
+				}
 			}
 		}
 
@@ -295,13 +312,13 @@ int i = -1;
 
 bool CPU6502::IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-	Sp_BreakpointItem bp;
+	BreakpointItem bp;
 	return GetBreakpoint(bptype, address, bp);
 }
 
 void CPU6502::DeleteBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-	Sp_BreakpointItem bp;
+	BreakpointItem bp;
 	if (this->GetBreakpoint(bptype, address, bp))
 	{
 		this->m_pIBreakpointManager->BM_DeleteBreakpoint(bp);
@@ -310,16 +327,22 @@ void CPU6502::DeleteBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bi
 
 void CPU6502::EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-	Sp_BreakpointItem bp;
+	BreakpointItem bp;
 	if (this->GetBreakpoint(bptype, address, bp))
-		bp->enabled = true;
+	{
+		bp.enabled = true;
+		this->m_pIBreakpointManager->BM_SetBreakpoint(bp);
+	}
 }
 
 void CPU6502::DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address)
 {
-	Sp_BreakpointItem bp;
+	BreakpointItem bp;
 	if (this->GetBreakpoint(bptype, address, bp))
-		bp->enabled = false;
+	{
+		bp.enabled = false;
+		this->m_pIBreakpointManager->BM_SetBreakpoint(bp);
+	}
 }
 
 void CPU6502::StartDebug()

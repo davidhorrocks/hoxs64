@@ -1,12 +1,11 @@
-#ifndef __BITS_H__
-#define __BITS_H__
+#pragma once
 
 typedef unsigned char bit8;
 typedef signed char bit8s;
 typedef unsigned short bit16;
 typedef signed short bit16s;
-typedef unsigned long bit32;
-typedef signed long bit32s;
+typedef unsigned __int32 bit32;
+typedef signed __int32 bit32s;
 typedef unsigned __int64 bit64;
 typedef signed __int64 bit64s;
 
@@ -20,12 +19,12 @@ typedef signed __int64 bit64s;
 
 # pragma pack (1)
 typedef union {	
-	volatile bit32 dword;
+	bit32 dword;
 	struct {
-		volatile bit8 ths;
-		volatile bit8 sec;
-		volatile bit8 min;
-		volatile bit8 hr;
+		bit8 ths;
+		bit8 sec;
+		bit8 min;
+		bit8 hr;
 	} byte;		
 } cia_tod;
 
@@ -48,4 +47,3 @@ bit32 dwordswap(bit32 v);
 bit16 makeWordLittleEndian(bit16);
 bit16 makeWordBigEndian(bit16);
 
-#endif

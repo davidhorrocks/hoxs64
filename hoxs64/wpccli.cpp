@@ -10,6 +10,7 @@
 #include "CDPI.h"
 #include "IC64.h"
 #include "utils.h"
+#include "StringConverter.h"
 #include "dchelper.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -23,14 +24,14 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	m_bIsTimerActive = false;
 	m_bClosing = false;
 	m_iCommandNumber = 0;
-	m_hinstRiched = NULL;
-	m_hWndEdit = NULL;
-	m_wpOrigEditProc = NULL;
-	m_pIRichEditOle = NULL;
-	m_pITextDocument = NULL;
-	m_pRange = NULL;
-	m_hFont = NULL;
-	m_bstrFontName = NULL;
+	m_hinstRiched = nullptr;
+	m_hWndEdit = nullptr;
+	m_wpOrigEditProc = nullptr;
+	m_pIRichEditOle = nullptr;
+	m_pITextDocument = nullptr;
+	m_pRange = nullptr;
+	m_hFont = nullptr;
+	m_bstrFontName = nullptr;
 	m_nCliFontHeight = 0;
 	m_commandstate = Idle;
 	m_cpumode = DBGSYM::CliCpuMode::C64;
@@ -44,15 +45,16 @@ WpcCli::WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	{
 		TCHAR fontname[100];
 		fontname[0] = 0;
-		HDC hdc = ::CreateCompatibleDC(NULL);
+		HDC hdc = ::CreateCompatibleDC(nullptr);
 		if (hdc)
 		{
-			HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
-			BOOL br = GetTextFace(hdc, _countof(fontname), fontname);
+			SelectObject(hdc, hFont);
+			const BOOL br = GetTextFace(hdc, _countof(fontname), fontname);
 			if (br)
 			{
-				m_bstrFontName = G::AllocBStr(fontname);
-			}			
+				m_bstrFontName = StringConverter::AllocBStr(fontname);
+			}
+
 			DeleteDC(hdc);
 		}
 	}
@@ -63,11 +65,16 @@ WpcCli::~WpcCli()
 	if (m_bstrFontName)
 	{
 		SysFreeString(m_bstrFontName);
-		m_bstrFontName = NULL;
+		m_bstrFontName = nullptr;
 	}
 }
 
-HRESULT WpcCli::RegisterClass(HINSTANCE hInstance)
+void WpcCli::WindowRelease()
+{
+	this->keepAlive.reset();
+}
+
+HRESULT WpcCli::RegisterClass(HINSTANCE hInstance) noexcept
 {
 WNDCLASSEX  wc;
 
@@ -231,7 +238,7 @@ EventArgs argChanged;
 		return;
 	if (m_pICommandResult->GetStatus() == DBGSYM::CliCommandStatus::CompletedOK)
 	{
-		CommandToken *pToken = m_pICommandResult->GetToken();
+		const CommandToken *pToken = m_pICommandResult->GetToken();
 		if (pToken)
 		{
 			DBGSYM::CliCpuMode::CliCpuMode cpumode = DBGSYM::CliCpuMode::C64;
@@ -399,7 +406,7 @@ HRESULT hr;
 	}
 }
 
-bool WpcCli::isRangeInView(ITextRange *pIRange)
+bool WpcCli::isRangeInView(ITextRange const *pIRange)
 {
 	if (m_nCliFontHeight <= 0 || pIRange == NULL)
 	{
@@ -710,7 +717,7 @@ HRESULT WpcCli::WriteCommandResponse(ITextRange *pRange, LPCTSTR pText)
 	}
 
 	BSTR bstr;
-	bstr = G::AllocBStr(pText);
+	bstr = StringConverter::AllocBStr(pText);
 	if (bstr)
 	{
 		pRange->SetText(bstr);
@@ -722,7 +729,7 @@ HRESULT WpcCli::WriteCommandResponse(ITextRange *pRange, LPCTSTR pText)
 
 HRESULT WpcCli::WriteCommandResponse(long iCharIndex, LPCTSTR pText)
 {
-ITextRange *pRange = 0;
+ITextRange * pRange = nullptr;
 HRESULT hr;
 
 	hr = m_pITextDocument->Range(iCharIndex, iCharIndex, &pRange);

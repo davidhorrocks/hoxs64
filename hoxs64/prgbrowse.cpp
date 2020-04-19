@@ -3,19 +3,14 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include <winuser.h>
-
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
 #include <assert.h>
+#include <algorithm>
 #include "boost2005.h"
 #include "defines.h"
 #include "mlist.h"
@@ -24,6 +19,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -47,8 +44,6 @@
 #define HEIGHT_LVITEM_96 (16)
 #define HEIGHT_LVFONT_96 (8)
 #define MARGIN_TOP_LVITEM_96 (4)
-
-CDirectoryArray arr;
 
 UINT_PTR CALLBACK PRGBrowseDialogHookProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -107,15 +102,7 @@ void CPRGBrowse::CleanUp()
 
 HRESULT CPRGBrowse::Init(bit8 *pCharGen)
 {
-HRESULT hr;
 RGBQUAD rgb;
-	hr = m_c64file.Init();
-	if (FAILED(hr))
-	{
-		CleanUp();
-		return SetError(m_c64file);
-	}
-
 	mhEvtComplete = CreateEvent(NULL, TRUE, TRUE, NULL);
 	if (!mhEvtComplete)
 	{
@@ -579,16 +566,18 @@ void CPRGBrowse::OnMeasureListViewItem(LPMEASUREITEMSTRUCT lpmis)
 
 void CPRGBrowse::OnDrawListViewItem(LPDRAWITEMSTRUCT lpdis)
 {
-const char S_WORKING[] = "WORKING...";
-BYTE tempC64String[MAXLENLVITEM];
-RGBQUAD rgb;
-HBRUSH hBrushListBox;
-HBRUSH hbrushOld;
-int charLen=0;
-int i;
+	const char S_WORKING[] = "WORKING...";
+	BYTE tempC64String[MAXLENLVITEM];
+	RGBQUAD rgb;
+	HBRUSH hBrushListBox;
+	HBRUSH hbrushOld;
+	int charLen=0;
 
 	if (lpdis->itemID == -1)
+	{
 		return;
+	}
+
 	switch (lpdis->itemAction)
 	{
 	case ODA_SELECT:
@@ -611,7 +600,9 @@ int i;
 			memset(tempC64String, 0x20, sizeof(tempC64String));
 			charLen = m_c64file.GetC64Diskname(tempC64String, sizeof(tempC64String));
 			if (charLen > sizeof(tempC64String))
+			{
 				charLen = sizeof(tempC64String);
+			}
 		}
 		else if (lpdis->itemData >= (DWORD)miLoadedListItemCount)
 		{
@@ -625,7 +616,10 @@ int i;
 			memset(tempC64String, 0x20, sizeof(tempC64String));
 			charLen = m_c64file.GetDirectoryItemName((int)lpdis->itemData, tempC64String, sizeof(tempC64String));
 			if (charLen > sizeof(tempC64String))
+			{
 				charLen = sizeof(tempC64String);
+			}
+
 			const bit8 *ftname = m_c64file.GetDirectoryItemTypeName((int)lpdis->itemData);
 			if (ftname!=NULL)
 			{
@@ -639,14 +633,8 @@ int i;
 		if (m_c64file.GetFileType()==C64File::ef_SID)
 		{
 			bUsedShifedCharROMSet = true;
-			for (i=0; i < sizeof(tempC64String); i++)
-			{
-				if (tempC64String[i] >= 'A' && tempC64String[i] <= 'Z')
-					tempC64String[i]+=0x20;
-				else if (tempC64String[i] >= 'a' && tempC64String[i] <= 'z')
-					tempC64String[i]-=0x20;
-			}
 		}
+
 		//Create background brush.
 		memcpy(&rgb, &VIC6569::vic_color_array[VIC6569::vicBLUE], 4);
 		hBrushListBox = CreateSolidBrush(RGB(rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue));
@@ -655,11 +643,8 @@ int i;
 			hbrushOld = (HBRUSH)SelectObject(lpdis->hDC, hBrushListBox);
 			if (hbrushOld)
 			{
-				RECT rc = lpdis->rcItem;
-				FillRect(lpdis->hDC, &rc, hBrushListBox);
-			
+				FillRect(lpdis->hDC, &lpdis->rcItem, hBrushListBox);
 				DrawC64String(lpdis->hDC, lpdis->rcItem.left, lpdis->rcItem.top + m_dpi.ScaleY(MARGIN_TOP_LVITEM_96), tempC64String, sizeof(tempC64String), bUsedShifedCharROMSet, m_dpi.ScaleY(HEIGHT_LVFONT_96));
-
 				if (lpdis->itemID == 0 && miLoadedListItemCount!=0)
 				{
 					//Draw unline for the title position
@@ -677,16 +662,18 @@ int i;
 						hPen = NULL;
 					}
 				}
+
 				if ((lpdis->itemState & ODS_SELECTED))
 				{ 
-					RECT rc = lpdis->rcItem;
-					DrawFocusRect(lpdis->hDC, &rc); 
+					DrawFocusRect(lpdis->hDC, &lpdis->rcItem);
 				} 
 
 				SelectObject(lpdis->hDC, hbrushOld);
 			}
+
 			DeleteObject(hBrushListBox);
 		}				
+
 		LeaveCriticalSection(&mCrtStatus);
 	}
 }
@@ -824,7 +811,7 @@ int c;
 			SendMessage(m_hListBox, LB_SETITEMDATA, 0, 0);
 
 			c = m_c64file.GetFileCount();
-			miLoadedListItemCount = min(c, MAXLISTITEMCOUNT);
+			miLoadedListItemCount = std::min(c, MAXLISTITEMCOUNT);
 			for (i=0,k=0 ; i < miLoadedListItemCount ; i++)
 			{
 				j = SendMessage(m_hListBox, LB_ADDSTRING, 0, (LPARAM) TEXT("C64 File"));

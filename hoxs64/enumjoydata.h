@@ -1,4 +1,7 @@
 #pragma once
+#include <windows.h>
+#include "dx_version.h"
+#include "hconfig.h"
 
 class EnumJoyData
 {

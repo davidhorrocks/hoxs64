@@ -1,6 +1,4 @@
-#ifndef __TCARRAY_H__
-#define	__TCARRAY_H__
-
+#pragma once
 template <class T>
 class CArray;
 
@@ -8,20 +6,13 @@ template <class T>
 class CArrayElement
 {
 public:
-	CArrayElement()
-	{
-	};
 
-	~CArrayElement()
-	{
-	};
-
-	class CArrayElement &operator=(class CArrayElement &rhs)
-	{
-		m_data = rhs.m_data;
-		return *this;
-	}
-
+	CArrayElement() = default;
+	~CArrayElement() = default;
+	CArrayElement(const CArrayElement&) = default;
+	CArrayElement& operator=(const CArrayElement&) = default;
+	CArrayElement(CArrayElement&&) = default;
+	CArrayElement& operator=(CArrayElement&&) = default;
 	friend class CArray<T>;
 private:
 	T m_data;
@@ -31,9 +22,9 @@ template <class T>
 class CArray
 {
 public:
-	CArray()
+	CArray() noexcept
 	{
-		m_mem=NULL;
+		m_mem = NULL;
 		Clear();
 	}
 
@@ -41,6 +32,11 @@ public:
 	{
 		Clear();
 	}
+
+	CArray(const CArray&) = delete;
+	CArray& operator=(const CArray&) = delete;
+	CArray(CArray&&) = delete;
+	CArray& operator=(CArray&&) = delete;
 
 	typedef int (*CompareFunc)(T &v1, T &v2);
 
@@ -66,7 +62,7 @@ public:
 	static const unsigned int MAXSCOUNT = ((unsigned int)((signed int)-1)) >> 1;
 	static const int x = 1L;
 
-	void Clear()
+	void Clear() noexcept
 	{
 		if (m_mem)
 		{
@@ -182,9 +178,7 @@ public:
 		return m_mem[i].m_data;
 	}
 private:
-	CArrayElement<T> *m_mem;
-	unsigned int  m_array_size;
-	unsigned int  m_count;
+	CArrayElement<T> *m_mem = nullptr;
+	unsigned int  m_array_size = 0;
+	unsigned int  m_count = 0;
 };
-
-#endif

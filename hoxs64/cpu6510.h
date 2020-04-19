@@ -1,6 +1,4 @@
-#ifndef __CPU6510_H__
-#define __CPU6510_H__
-
+#pragma once
 class CPU6510;
 class CIA1;
 class CIA2;
@@ -14,13 +12,18 @@ public:
 	static const int ShellExitCpu64Halt = 0xFF;
 	CPU6510();
 	~CPU6510();
-	bit8 IRQ_VIC;	
-	bit8 IRQ_CIA;
-	bit8 IRQ_CRT;
-	bit8 NMI_CIA;
-	bit8 NMI_CRT;
-	bool m_bIsWriteCycle;
-	bool bExitOnHltInstruction;
+	CPU6510(const CPU6510&) = delete;
+	CPU6510& operator=(const CPU6510&) = delete;
+	CPU6510(CPU6510&&) = delete;
+	CPU6510& operator=(CPU6510&&) = delete;
+
+	bit8 IRQ_VIC = 0;	
+	bit8 IRQ_CIA = 0;
+	bit8 IRQ_CRT = 0;
+	bit8 NMI_CIA = 0;
+	bit8 NMI_CRT = 0;
+	bool m_bIsWriteCycle = false;
+	bool bExitOnHltInstruction = false;
 
 	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, ISid64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
 	void SetCassetteSense(bit8 sense);
@@ -71,39 +74,39 @@ public:
 	void GetState(SsCpuMain &state);
 	void SetState(const SsCpuMain &state);
 private:
-	CIA1 *pCia1;
-	CIA2 *pCia2;
-	VIC6569 *pVic;
-	Cart *pCart;
-	RAM64 *ram;
-	ITape *tape;
-	IC64Event *pIC64Event;
-	IC64 *pIC64;
+	CIA1* pCia1 = nullptr;
+	CIA2 *pCia2 = nullptr;
+	VIC6569 *pVic = nullptr;
+	Cart *pCart = nullptr;
+	RAM64 *ram = nullptr;
+	ITape *tape = nullptr;
+	IC64Event *pIC64Event = nullptr;
+	IC64 *pIC64 = nullptr;
 
 	//devices
-	IRegister *cia1;
-	IRegister *cia2;
-	IRegister *vic;
-	ISid64 *sid;
-	IRegister *cart;
+	IRegister *cia1 = nullptr;
+	IRegister *cia2 = nullptr;
+	IRegister *vic = nullptr;
+	ISid64 *sid = nullptr;
+	IRegister *cart = nullptr;
 
-	bit8 **m_ppMemory_map_read;
-	bit8 **m_ppMemory_map_write;
-	bit8 *m_piColourRAM;
+	bit8 **m_ppMemory_map_read = nullptr;
+	bit8 **m_ppMemory_map_write = nullptr;
+	bit8 *m_piColourRAM = nullptr;
 
-	bit8 cpu_io_data;
-	bit8 cpu_io_ddr;
-	bit8 cpu_io_output;
-	bit8 cpu_io_readoutput;
-	bit8 LORAM;
-	bit8 HIRAM;
-	bit8 CHAREN;
-	bit8 CASSETTE_WRITE;
-	bit8 CASSETTE_MOTOR;
-	bit8 CASSETTE_SENSE;
-	ICLK m_fade7clock;
-	ICLK m_fade6clock;
-	bool bEnableDebugCart;	
+	bit8 cpu_io_data = 0;
+	bit8 cpu_io_ddr = 0;
+	bit8 cpu_io_output = 0;
+	bit8 cpu_io_readoutput = 0;
+	bit8 LORAM = 0;
+	bit8 HIRAM = 0;
+	bit8 CHAREN = 0;
+	bit8 CASSETTE_WRITE = 0;
+	bit8 CASSETTE_MOTOR = 0;
+	bit8 CASSETTE_SENSE = 0;
+	ICLK m_fade7clock = 0;
+	ICLK m_fade6clock = 0;
+	bool bEnableDebugCart = false;	
 
 	virtual void SyncChips();
 	virtual void check_interrupts1();
@@ -112,5 +115,3 @@ private:
 	void write_cpu_io_data(bit8 data);
 	void write_cpu_io_ddr(bit8 data, ICLK sysclock);
 };
-
-#endif

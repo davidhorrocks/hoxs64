@@ -1,6 +1,6 @@
-#ifndef __DIAGCOLOR_H__
-#define __DIAGCOLOR_H__
-
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
 #include "bits.h"
 
 extern LRESULT CALLBACK VicColorWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -60,5 +60,3 @@ private:
 	void LoadPepto();
 	void LoadPreviousColors();
 };
-
-#endif

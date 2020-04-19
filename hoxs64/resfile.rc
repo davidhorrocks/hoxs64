@@ -82,10 +82,15 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON_BIG            ICON                    "img\\icon1.ico"
+
 IDI_ICON_SMALL          ICON                    "img\\icon_sma.ico"
+
 IDI_BREAK               ICON                    "img\\break.ico"
+
 IDI_CHIP1               ICON                    "img\\chip1.ico"
+
 IDI_GREENFIND           ICON                    "img\\greenfind.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -152,7 +157,6 @@ BEGIN
         MENUITEM "Emulation",                   IDM_SETTING_EMULATION2
         MENUITEM "&Keyboard",                   IDM_SETTING_KEYBOARD
         MENUITEM "&Joystick",                   IDM_SETTING_JOYSTICK
-        MENUITEM "Double Sized Window",         IDM_SETTING_DOUBLESIZEDWINDOW, CHECKED
         MENUITEM "Lock Aspect Ratio",           IDM_SETTINGS_LOCKASPECTRATIO, CHECKED
         MENUITEM "Swap Joysticks\tAlt J",       IDM_SETTING_SWAPJOYSTICKS, CHECKED
         MENUITEM "Toggle Max Speed\tAlt Q",     IDM_SETTING_MAXSPEED, CHECKED
@@ -671,7 +675,7 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,116,127,50,14
 END
 
-IDD_SETTINGTABGENERAL DIALOGEX 0, 0, 152, 122
+IDD_SETTINGTABGENERAL DIALOGEX 0, 0, 184, 120
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
@@ -681,8 +685,8 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,126,11
     CONTROL         "Allow opposing joystick directions",IDC_ALLOWOPPOSINGJOYSTICK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,48,129,11
-    CONTROL         "Disable DWM (Aero) for full screen",IDC_DISABLE_DWM_FULLSCREEN,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,134,11
+    CONTROL         "Enable ImGui menu for windowed mode",IDC_IMGUI_WINDOWEDMODE_ENABLE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,145,11
     GROUPBOX        "Host CPU Usage",IDC_SETTINGS_HOSTCPUUSAGE,7,76,134,31
     CONTROL         "Friendly",IDC_HOSTCPU_FRIENDLY,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,92,53,8
     CONTROL         "Aggressive",IDC_HOSTCPU_AGGRESSIVE,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,75,92,53,8
@@ -702,8 +706,6 @@ BEGIN
     LTEXT           "Refresh",IDC_STATIC,15,68,37,10
     COMBOBOX        IDC_CBO_ADAPTER_REFRESH,58,68,197,14,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "Pixel Doubler",IDC_SETTINGS_PIXELDOUBLER,7,89,131,65
-    CONTROL         "DX Blit",IDC_DOUBLER_BLIT,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,101,37,8
-    CONTROL         "CPU",IDC_DOUBLER_CPU,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,76,101,34,8
     LTEXT           "Stretch",IDC_LBL_STRETCH,15,118,29,8,SS_ENDELLIPSIS
     COMBOBOX        IDC_CBO_STRETCH,47,115,83,12,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Filter",IDC_LBL_FILTER,15,137,29,8
@@ -939,9 +941,9 @@ BEGIN
     IDD_SETTINGTABGENERAL, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 145
+        RIGHTMARGIN, 177
         TOPMARGIN, 7
-        BOTTOMMARGIN, 115
+        BOTTOMMARGIN, 113
     END
 
     IDD_SETTINGTABVIDEO, DIALOG
@@ -1042,37 +1044,64 @@ END
 
 IDR_SIDDRIVER           BINARY                  "siddrv.o65"
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
 IDB_LEDREDON            BITMAP                  "img\\ledredon.bmp"
+
 IDB_LEDBLUEOFF          BITMAP                  "img\\ledblueoff.bmp"
+
 IDB_LEDBLUEON           BITMAP                  "img\\ledblueon.bmp"
+
 IDB_LEDGREENOFF         BITMAP                  "img\\ledgreenoff.bmp"
+
 IDB_LEDGREENON          BITMAP                  "img\\ledgreenon.bmp"
+
 IDB_LEDREDOFF           BITMAP                  "img\\ledredoff.bmp"
+
 IDB_REBARBKGND1         BITMAP                  "img\\rebarbackground.bmp"
+
 IDB_DEBUGGERSTEPINMASK  BITMAP                  "img\\debugger step in mask.bmp"
+
 IDB_DEBUGGERSTEPIN      BITMAP                  "img\\debugger step in.bmp"
+
 IDB_DEBUGGERSTEPOUTMASK BITMAP                  "img\\debugger step out mask.bmp"
+
 IDB_DEBUGGERSTEPOUT     BITMAP                  "img\\debugger step out.bmp"
+
 IDB_DEBUGGERSTEPOVERMASK BITMAP                  "img\\debugger step over mask.bmp"
+
 IDB_DEBUGGERSTEPOVER    BITMAP                  "img\\debugger step over.bmp"
+
 IDB_BREAK               BITMAP                  "img\\break.bmp"
+
 IDB_DEBUGGERSTEPONECLOCK BITMAP                  "img\\debugger step one clock.bmp"
+
 IDB_DEBUGGERSTEPONECLOCKMASK BITMAP                  "img\\debugger step one clock mask.bmp"
+
 IDB_DEBUGGERTRACE       BITMAP                  "img\\debugger trace.bmp"
+
 IDB_DEBUGGERTRACEMASK   BITMAP                  "img\\debugger trace mask.bmp"
+
 IDB_DEBUGGERSTOP        BITMAP                  "img\\debugger stop.bmp"
+
 IDB_DEBUGGERSTOPMASK    BITMAP                  "img\\debugger stop mask.bmp"
+
 IDB_DEBUGGERTRACEFRAME  BITMAP                  "img\\debugger trace frame.bmp"
+
 IDB_DEBUGGERTRACEFRAMEMASK BITMAP                  "img\\debugger trace frame mask.bmp"
+
 IDB_DEBUGGERTRACEINT    BITMAP                  "img\\candy_clock.bmp"
+
 IDB_DEBUGGERTRACEINTMASK BITMAP                  "img\\candy clock mask.bmp"
+
 IDB_DEBUGGERTRACEINT_64 BITMAP                  "img\\candy_clock_64.bmp"
+
 IDB_BREAKDISABLE        BITMAP                  "img\\break_disable.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1080,6 +1109,18 @@ IDB_BREAKDISABLE        BITMAP                  "img\\break_disable.bmp"
 //
 
 IDB_PNG_WINDOWFULLSCREEN PNG                     "img\\window_fullscreen.png"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_SETTINGTABGENERAL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1097,10 +1138,6 @@ BEGIN
     IDS_WINCLASS_KEYPRESS   "GetKeyPressClass"
     IDS_PRESSANYKEY         "press any key"
     IDS_DISK_SAVEDISK_FDI   "Save disk as raw binary. Compatible with custom formats."
-END
-
-STRINGTABLE
-BEGIN
     IDS_DISK_SAVEDISK_D64   "Save disk in the standard CBM format. Not compatible with custom formats."
 END
 

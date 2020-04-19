@@ -1,5 +1,5 @@
-#ifndef __T64_H__
-#define __T64_H__
+#pragma once
+#include "errormsg.h"
 
 struct C64Filename
 {
@@ -63,8 +63,8 @@ class T64 : public ErrorMsg
 public:
 	T64();
 	~T64();
-	HRESULT LoadT64Directory(TCHAR filename[], int maxcount);
-	HRESULT LoadT64File(TCHAR filename[], DWORD offset, WORD size);
+	HRESULT LoadT64Directory(const TCHAR filename[], int maxcount);
+	HRESULT LoadT64File(const TCHAR filename[], DWORD offset, WORD size);
 	void CleanUp();
 
 	BYTE *data;
@@ -85,5 +85,3 @@ private:
 	static int T64::CompareT64DirItemOffset(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b);
 	static int T64::CompareT64DirItemOriginalIndex(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b);
 };
-
-#endif

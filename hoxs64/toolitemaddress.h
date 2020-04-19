@@ -1,5 +1,5 @@
-#ifndef __TOOLITEMADDRESS_H__
-#define __TOOLITEMADDRESS_H__
+#pragma once
+#include "cvirwindow.h"
 
 #define MAX_EDIT_GOTO_ADDRESS_CHARS (256)
 
@@ -49,5 +49,3 @@ private:
 	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
-
-#endif

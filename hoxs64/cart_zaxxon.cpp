@@ -10,6 +10,8 @@
 #include "mlist.h"
 #include "carray.h"
 #include "cevent.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "CDPI.h"
 #include "bits.h"

@@ -1,6 +1,4 @@
-#ifndef __VIA6522_H__
-#define __VIA6522_H__
-
+#pragma once
 #define VIA_SER_DISABLED	(0x0)
 #define VIA_SER_IN_T2		(0x1)
 #define VIA_SER_IN_02		(0x2)
@@ -83,22 +81,21 @@ public:
 	virtual void SetPinsPortB(bit8 newPin)=0;
 	virtual void SetSystemInterrupt()=0;
 	virtual void ClearSystemInterrupt()=0;
-
 	void InitReset(ICLK sysclock, bool poweronreset);
-	//IRegister
-	virtual void Reset(ICLK sysclock, bool poweronreset);
-	virtual void ExecuteCycle(ICLK sysclock);
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
-	virtual ICLK GetCurrentClock();
-	virtual void SetCurrentClock(ICLK sysclock);
 
-	virtual void ExecuteDevices(ICLK sysclock)=0;
+	//IRegister
+	void Reset(ICLK sysclock, bool poweronreset) override;
+	void ExecuteCycle(ICLK sysclock) override;
+	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
+	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock) override;
+	ICLK GetCurrentClock() override;
+	void SetCurrentClock(ICLK sysclock) override;
+
+	virtual void ExecuteDevices(ICLK sysclock) = 0;
 
 	void GetState(SsViaCommon &state);
 	void SetState(const SsViaCommon &state);
-
 	bit8 PortAOutput();
 	bit8 PortBOutput();
 	void SetCA1Input(bool, int phase);
@@ -106,8 +103,6 @@ public:
 	void SetCB1Input(bool, int phase);
 	void SetCB2Input(bool, int phase);
 	void WakeUp();
-	void SetPortA();
-	void SetPortB();
 
 protected:
 	virtual void OnTransitionCA1Low();
@@ -116,66 +111,58 @@ protected:
 	void LocalCB2Output(bool);
 
 public:
-	int ID;
-	ICLK DevicesClock;
-	
-	bool bLatchA;
-	bool bLatchB;
-
-	bit8 ora;
-	bit8 ira;
-	bit8 orb;
-	bit8 irb;
-	bit8 ddra;
-	bit8 ddrb;
-	bit16u timer1_counter;
-	bit16u timer2_counter;
-	bit16u timer1_latch;
-	bit16u timer2_latch;
-	bit8 acr;
-	bit8 pcr;
-	bool ca1_in;
-	bool ca1_in_prev;
-	bool ca2_in;
-	bool ca2_in_prev;
-	bool cb1_in;
-	bool cb1_in_prev;
-	bool cb2_in;
-	bool cb2_in_prev;
-	bool ca2_out;
-	bool cb1_out;
-	bool cb2_out;
-	bit8 ifr;
-	bit8 ier;
-	bit8 shiftRegisterMode;
-	bool shiftClockLevel;
-	bit8 shiftCounter;
-	bit8 shiftRegisterData;
-	unsigned __int64 delay;
-	unsigned __int64 feed;
-	unsigned __int64 old_delay;
-	unsigned __int64 old_feed;
-	bit8 Interrupt;
-	bit8 bPB7TimerMode;
-	bit8 bPB7Toggle;
-	bit8 bPB7TimerOut;
-	bit8 no_change_count;
-	bit16 dec_2;
-	bit8 idle;
+	int ID = 0;
+	ICLK DevicesClock = 0;
+	bool bLatchA = false;
+	bool bLatchB = false;
+	bit8 ora = 0;
+	bit8 ira = 0;
+	bit8 orb = 0;
+	bit8 irb = 0;
+	bit8 ddra = 0;
+	bit8 ddrb = 0;
+	bit16u timer1_counter = {};
+	bit16u timer2_counter = {};
+	bit16u timer1_latch = {};
+	bit16u timer2_latch = {};
+	bit8 acr = 0;
+	bit8 pcr = 0;
+	bool ca1_in = false;
+	bool ca1_in_prev = false;
+	bool ca2_in = false;
+	bool ca2_in_prev = false;
+	bool cb1_in = false;
+	bool cb1_in_prev = false;
+	bool cb2_in = false;
+	bool cb2_in_prev = false;
+	bool ca2_out = false;
+	bool cb1_out = false;
+	bool cb2_out = false;
+	bit8 ifr = 0;
+	bit8 ier = 0;
+	bit8 shiftRegisterMode = 0;
+	bool shiftClockLevel = false;
+	bit8 shiftCounter = 0;
+	bit8 shiftRegisterData = 0;
+	unsigned __int64 delay = 0;
+	unsigned __int64 feed = 0;
+	unsigned __int64 old_delay = 0;
+	unsigned __int64 old_feed = 0;
+	bit8 Interrupt = 0;
+	bit8 bPB7TimerMode = 0;
+	bit8 bPB7Toggle = 0;
+	bit8 bPB7TimerOut = 0;
+	bit8 no_change_count = 0;
+	bit16 dec_2 = 0;
+	bit8 idle = 0;
 
 private:
 	void ActiveTransitionCA1();
 	void ActiveTransitionCA2();
 	void ActiveTransitionCB1();
-	void ActiveTransitionCB2();
-	
+	void ActiveTransitionCB2();	
 	void TransitionCA1();
 	void TransitionCA2();
 	void TransitionCB1();
 	void TransitionCB2();
-
 };
-
-
-#endif
-

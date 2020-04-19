@@ -1,14 +1,15 @@
-#ifndef __DISSASSEMBLYCHILD_H__
-#define __DISSASSEMBLYCHILD_H__
+#pragma once
+#include "cvirwindow.h"
 
 class CDisassemblyChild_EventSink_OnCpuRegPCChanged : public EventSink<EventArgs>
 {
 protected:
-	virtual int Sink(void *sender, EventArgs& e)
+	int Sink(void *sender, EventArgs& e) override
 	{
 		OnCpuRegPCChanged(sender, e);
 		return 0;
 	}
+
 	virtual void OnCpuRegPCChanged(void *sender, EventArgs& e) =0;
 };
 
@@ -21,15 +22,15 @@ class CDisassemblyChild : public CVirWindow, public CDisassemblyChild_EventSink,
 {
 public:
 	CDisassemblyChild(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont);
-	virtual ~CDisassemblyChild();
+	~CDisassemblyChild();
 
 	static const int ID_SCROLLBAR = 2000;
 	static const int ID_DISASSEMBLY = 2001;
 	static TCHAR ClassName[];
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-	void GetMinWindowSize(int &w, int &h);
+	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) override;
+	void GetMinWindowSize(int &w, int &h) override;
 	bit16 GetTopAddress();
 	bit16 GetNthAddress(bit16 startaddress, int linenumber);
 	int GetNumberOfLines();
@@ -48,9 +49,9 @@ private:
 	int m_MinSizeH;
 
 	HRESULT Init();
-	virtual void OnCpuRegPCChanged(void *sender, EventArgs& e);
+	void OnCpuRegPCChanged(void *sender, EventArgs& e) override;
 	HRESULT AdviseEvents();
-	void UnadviseEvents();
+	void UnadviseEvents() noexcept;
 	HWND CreateScrollBar();
 	HWND CreateEditWindow(int x, int y, int w, int h);
 	HRESULT GetSizeRectEditWindow(RECT &rc);
@@ -66,8 +67,6 @@ private:
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void SetAddressScrollPos(int pos);	
-	void Cleanup();
-	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void Cleanup() noexcept;
+	LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };
-
-#endif

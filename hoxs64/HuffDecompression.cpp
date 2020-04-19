@@ -60,7 +60,7 @@ void HuffDecompression::InitSetFile()
 	//bufferPos=0;
 }
 
-HRESULT HuffDecompression::Decompress(DWORD numberOfDoubleWords, DWORD **data)
+HRESULT HuffDecompression::Decompress(unsigned int numberOfDoubleWords, bit32** data)
 {
 HuffNode *rootNode;
 bit8 subStreamHeader1;
@@ -71,7 +71,7 @@ short currentWord;
 bit8 frame;
 HuffNode *currentNode,*hn;
 HRESULT hr;
-DWORD i,v;
+DWORD v;
 DWORD mask;
 CHuffNodeArray nodeArray;
 HuffNodeHolder nodeHolder;
@@ -79,7 +79,12 @@ int cnt = 0;
 ULONG bytesRead = 0;
 ULONG bytesToRead = 0;
 
-	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, numberOfDoubleWords * 4);
+	if (numberOfDoubleWords >= 0x40000000)
+	{
+		return E_INVALIDARG;
+	}
+
+	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (SIZE_T)numberOfDoubleWords * 4);
 	if (!fdiStream.data)
 	{
 		return E_OUTOFMEMORY;
@@ -164,7 +169,7 @@ ULONG bytesToRead = 0;
 
 		//Build Huffman tree;
 		frame = 0;
-		i=0;
+		unsigned int i = 0;
 		while(1)
 		{
 			if (frame == 0)
@@ -217,8 +222,9 @@ ULONG bytesToRead = 0;
 					break;
 				}
 			}
+
 			i++;
-			if (i>0x20000)//tree limit
+			if (i > 0x20000)//tree limit
 			{
 				return E_FAIL;
 			}
@@ -346,7 +352,7 @@ ULONG bytesToRead = 0;
 		}
 	} while (fdiStream.lowBitNumber != 0);
 
-	*data = (DWORD *)fdiStream.data;
+	*data = (bit32 *)fdiStream.data;
 	fdiStream.data = 0;
 	return S_OK;
 }

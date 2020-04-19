@@ -38,6 +38,11 @@ CMDIChildCli::CMDIChildCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont)
 	this->m_hFont = hFont;
 }
 
+void CMDIChildCli::WindowRelease()
+{
+	this->keepAlive.reset();
+}
+
 HRESULT CMDIChildCli::RegisterClass(HINSTANCE hInstance)
 {
 WNDCLASSEX wc; 
@@ -62,38 +67,43 @@ WNDCLASSEX wc;
 };
 
 
-HWND CMDIChildCli::Create(shared_ptr<CVirMdiFrameWindow> pWinMdiFrame)
+HWND CMDIChildCli::Create(CVirMdiFrameWindow *pWinMdiFrame)
 {
-	m_pWinMdiFrame = pWinMdiFrame;
+	this->m_pWinMdiFrame = pWinMdiFrame;
 	HWND hWnd = ::CreateMDIWindow(ClassName, TEXT("CLI"), WS_MAXIMIZE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, pWinMdiFrame->Get_MDIClientWindow(), this->GetHinstance(), (LPARAM)this);
 	return hWnd;
 }
 
 HRESULT CMDIChildCli::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-shared_ptr<WpcCli> pWpcCli;
+	shared_ptr<WpcCli> pWpcCli;
 	try
 	{
 		pWpcCli = shared_ptr<WpcCli>(new WpcCli(c64, m_pIAppCommand, m_hFont));
-		if (pWpcCli == NULL)
-			throw std::bad_alloc();
-	}
-	catch(std::exception&)
-	{
-	}
-	if (pWpcCli != 0)
-	{
-		RECT rcClient;
-		if (GetClientRect(hWnd, &rcClient))
+		if (pWpcCli == nullptr)
 		{
-			HWND hWndWpcCli = pWpcCli->Create(this->GetHinstance(), hWnd, NULL, 0, 0, rcClient.right- rcClient.left, rcClient.bottom - rcClient.top, (HMENU)1000);
-			if (hWndWpcCli != 0)
+			throw std::bad_alloc();
+		}
+
+		if (pWpcCli != nullptr)
+		{
+			RECT rcClient;
+			if (GetClientRect(hWnd, &rcClient))
 			{
-				m_pWinWpcCli = pWpcCli;
-				return S_OK;
+				HWND hWndWpcCli = pWpcCli->Create(this->GetHinstance(), hWnd, NULL, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, (HMENU)1000);
+				if (hWndWpcCli != 0)
+				{
+					pWpcCli->keepAlive = pWpcCli;
+					m_pWinWpcCli = pWpcCli;
+					return S_OK;
+				}
 			}
 		}
 	}
+	catch (std::exception&)
+	{
+	}
+
 	return E_FAIL;
 }
 

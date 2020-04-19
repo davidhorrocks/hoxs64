@@ -39,22 +39,22 @@ public:
 	static void UpgradeStateV3ToV4(const SsSidV3 &in, SsSidV4 &out);
 
 private:
-	int id;
-	bit16 sidAddress;
-	bool active;
-	bool forceMono;
-	CAppStatus *appStatus;
-	bit8 sidVolume;
-	bit8 sidFilter;
-	bit8 sidVoice_though_filter;
-	bit8 sidResonance;
-	bit16 sidFilterFrequency;
-	bit8 sidPotX;
-	bit8 sidPotY;
-	bool sidBlock_Voice3;
-	bit8 sidInternalBusByte;
-	ICLK sidReadDelayClock;
-	ICia1 *cia1;
+	int id = 0;
+	bit16 sidAddress = 0xd400;
+	bool active = false;
+	bool forceMono = false;
+	CAppStatus *appStatus = nullptr;
+	bit8 sidVolume = 0;
+	bit8 sidFilter = 0;
+	bit8 sidVoice_though_filter = 0;
+	bit8 sidResonance = 0;
+	bit16 sidFilterFrequency = 0;
+	bit8 sidPotX = 0;
+	bit8 sidPotY = 0;
+	bool sidBlock_Voice3 = false;
+	bit8 sidInternalBusByte = false;
+	ICLK sidReadDelayClock = 0;
+	ICia1 *cia1 = nullptr;
 	SIDVoice voice1;
 	SIDVoice voice2;
 	SIDVoice voice3;

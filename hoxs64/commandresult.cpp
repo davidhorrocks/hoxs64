@@ -10,6 +10,8 @@
 #include "defines.h"
 #include "bits.h"
 #include "util.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -47,37 +49,37 @@ CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode
 		m_hevtQuit = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtQuit==NULL)
 		{
-			throw std::runtime_error(S_EVENTCREATEERROR);
+			throw std::exception(S_EVENTCREATEERROR);
 		}
 
 		m_hevtLineTaken = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (m_hevtLineTaken==NULL)
 		{
-			throw std::runtime_error(S_EVENTCREATEERROR);
+			throw std::exception(S_EVENTCREATEERROR);
 		}
 
 		m_hevtAllLinesTaken = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (m_hevtAllLinesTaken==NULL)
 		{
-			throw std::runtime_error(S_EVENTCREATEERROR);
+			throw std::exception(S_EVENTCREATEERROR);
 		}
 
 		m_hevtResultDataReady = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtResultDataReady==NULL)
 		{
-			throw std::runtime_error(S_EVENTCREATEERROR);
+			throw std::exception(S_EVENTCREATEERROR);
 		}
 
 		m_hevtResultDataTaken = CreateEvent(NULL, TRUE, FALSE, NULL);
 		if (m_hevtResultDataTaken==NULL)
 		{
-			throw std::runtime_error(S_EVENTCREATEERROR);
+			throw std::exception(S_EVENTCREATEERROR);
 		}
 
 		m_mux = CreateMutex(NULL, FALSE, NULL);
 		if (m_mux==NULL)
 		{
-			throw std::runtime_error(S_EVENTCREATEERROR);
+			throw std::exception(S_EVENTCREATEERROR);
 		}
 
 		m_pIMonitor = pIMonitor;

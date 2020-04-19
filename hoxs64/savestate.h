@@ -1,5 +1,5 @@
 #pragma once
-
+#include "bits.h"
 #include "vicpixelbuffer.h"
 
 # pragma pack (1)
@@ -292,7 +292,7 @@ struct SsVic6569
 
 	bit8 ScreenPixelBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE+1][PIXELBUFFER_SIZE+1];
 	bit8 LinePixelBuffer[PIXELBUFFER_COUNT][PIXELBUFFER_SIZE+1];
-	bit32 FrameNumber;
+	bit32 frameNumber;
 
 	bit8 bVicRasterMatch;
 	bit8 vic_in_display_y;
@@ -318,7 +318,7 @@ struct SsVic6569
 
 	bit8 vicMemoryBankIndex;
 
-	int m_iLastBackedUpFrameNumber;
+	int lastBackedUpFrameNumber;
 };
 
 struct SsCiaV0

@@ -1,11 +1,14 @@
-#ifndef __VIA2_H__
-#define __VIA2_H__
-
+#pragma once
 
 class VIA2 : public VIA
 {
 public:
-	VIA2();
+	VIA2() = default;
+	~VIA2() = default;
+	VIA2(const VIA2&) = delete;
+	VIA2& operator=(const VIA2&) = delete;
+	VIA2(VIA2&&) = delete;
+	VIA2& operator=(VIA2&&) = delete;
 
 	HRESULT Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk);
 	virtual void ExecuteDevices(ICLK sysclock);
@@ -29,11 +32,9 @@ protected:
 	virtual void OnTransitionCA1Low();
 
 public:
-	bit8 oldDiskControl;
-	DiskInterface *disk;
-	CPUDisk *cpu;
-	CAppStatus *appStatus;
+	bit8 oldDiskControl = 0;
+	DiskInterface *disk = nullptr;
+	CPUDisk *cpu = nullptr;
+	CAppStatus *appStatus = nullptr;
 };
 
-
-#endif

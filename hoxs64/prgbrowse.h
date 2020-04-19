@@ -1,9 +1,8 @@
-#ifndef __CPRGBrowse_H__
-#define	__CPRGBrowse_H__
+#pragma once
+#include "errormsg.h"
 
 typedef class CArrayElement<struct C64Filename> CDirectoryElement;
 typedef class CArray<struct C64Filename> CDirectoryArray;
-
 
 class CPRGBrowse : public ErrorMsg
 {
@@ -80,7 +79,3 @@ private:
 	void OnMeasureListViewItem(LPMEASUREITEMSTRUCT lpdis);
 	void OnDrawListViewItem(LPDRAWITEMSTRUCT lpdis);
 };
-
-
-
-#endif

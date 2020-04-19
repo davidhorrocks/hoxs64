@@ -2,10 +2,6 @@
 #include <windowsx.h>
 #include <tchar.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdarg.h>
@@ -20,6 +16,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -645,7 +643,7 @@ HWND hWndDevice = NULL;
 					tmpDeviceName.append(TEXT(" "));
 				}
 
-				tmpDeviceName.append(G::GetLastWin32ErrorString(item->hrStatus));
+				tmpDeviceName.append(G::GetLastWin32ErrorTString(item->hrStatus));
 			}
 
 			tw.GetWidth(tmpDeviceName.c_str());		

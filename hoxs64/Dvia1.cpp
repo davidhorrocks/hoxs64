@@ -1,22 +1,6 @@
-#include <windows.h>
-#include <commctrl.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
-#include <stdio.h>
-#include <assert.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "CDPI.h"
-#include "bits.h"
-#include "util.h"
 #include "utils.h"
 #include "register.h"
-#include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
@@ -43,13 +27,6 @@
 #include "t64.h"
 #include "tap.h"
 #include "diskinterface.h"
-
-VIA1::VIA1()
-{
-	appStatus=0;
-	cpu=0;
-	disk=0;
-}
 
 HRESULT VIA1::Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk)
 {

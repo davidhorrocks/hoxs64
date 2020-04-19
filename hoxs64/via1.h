@@ -1,5 +1,4 @@
-#ifndef __VIA1_H__
-#define __VIA1_H__
+#pragma once
 
 class CPUDisk;
 class DiskInterface;
@@ -8,7 +7,12 @@ class VIA1 : public VIA
 {
 public:
 
-	VIA1();
+	VIA1() = default;
+	~VIA1() = default;
+	VIA1(const VIA1&) = delete;
+	VIA1& operator=(const VIA1&) = delete;
+	VIA1(VIA1&&) = delete;
+	VIA1& operator=(VIA1&&) = delete;
 
 	HRESULT Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *disk);
 	virtual void ExecuteDevices(ICLK sysclock);
@@ -27,9 +31,7 @@ public:
 	void GetState(SsVia1 &state);
 	void SetState(const SsVia1 &state);
 
-	CPUDisk *cpu;
-	DiskInterface *disk;
-	CAppStatus *appStatus;
+	CPUDisk *cpu = nullptr;
+	DiskInterface *disk = nullptr;
+	CAppStatus *appStatus = nullptr;
 };
-
-#endif

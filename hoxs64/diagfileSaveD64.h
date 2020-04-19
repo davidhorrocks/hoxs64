@@ -1,5 +1,5 @@
-#ifndef __DIAGFILESAVED64_H__
-#define	__DIAGFILESAVED64_H__
+#pragma once
+#include "cvirwindow.h"
 
 class CDiagFileSaveD64
 {
@@ -28,5 +28,3 @@ private:
 	int mgapCheckTracks40Bottom;
 	bool mbGapsDone;
 };
-
-#endif

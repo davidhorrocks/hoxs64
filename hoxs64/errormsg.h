@@ -1,11 +1,18 @@
-#ifndef __ERRORMSG_H__
-#define __ERRORMSG_H__
+#pragma once
+#include <windows.h>
+#include <commctrl.h>
+#include <tchar.h>
 
 class ErrorMsg
 {
 public:
 	ErrorMsg();
-	~ErrorMsg();
+	virtual ~ErrorMsg();
+	ErrorMsg(const ErrorMsg&) = default;
+	ErrorMsg(ErrorMsg&&) = default;
+	ErrorMsg& operator=(const ErrorMsg&) = default;
+	ErrorMsg& operator=(ErrorMsg&&) = default;
+
 	TCHAR errorText[300];
 	HRESULT errorValue;
 
@@ -24,4 +31,3 @@ protected:
 	const TCHAR *localLastWindowsErrorString;
 };
 
-#endif

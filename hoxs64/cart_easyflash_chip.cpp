@@ -1,21 +1,3 @@
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
-#include <tchar.h>
-#include <assert.h>
-#include <algorithm>
-#include "boost2005.h"
-#include "user_message.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "cevent.h"
-#include "errormsg.h"
-#include "CDPI.h"
-#include "bits.h"
-#include "util.h"
-#include "utils.h"
-#include "register.h"
 #include "cart.h"
 
 EasyFlashChip::EasyFlashChip()
@@ -50,7 +32,7 @@ bit8 *p;
 		
 		p = &(((bit8 *)s)[sizeof(SsState)]);
 
-		bit32 n = (bit32)min(this->m_vecPendingSectorErase.size(), EasyFlashChip::MAXEASYFLASHBANKS);
+		bit32 n = (bit32)std::min(this->m_vecPendingSectorErase.size(), (size_t)EasyFlashChip::MAXEASYFLASHBANKS);
 		*((bit32 *)p) = n;
 		p++;
 		for (unsigned int i=0; i<n; i++, p++)
@@ -83,7 +65,7 @@ SsState *s;
 	m_mode = (EEasyFlashMode)s->m_mode;
 
 	bit8 *p = &(((bit8 *)s)[sizeof(SsState)]);
-	bit32 n = (bit32)min(this->m_vecPendingSectorErase.size(), EasyFlashChip::MAXEASYFLASHBANKS);
+	bit32 n = (bit32)std::min(this->m_vecPendingSectorErase.size(), (size_t)EasyFlashChip::MAXEASYFLASHBANKS);
 
 	m_vecPendingSectorErase.resize(n);
 	for (unsigned int i=0; i<n; i++)

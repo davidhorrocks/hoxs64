@@ -1,15 +1,12 @@
-#ifndef __WPANELMANAGER_H__
-#define __WPANELMANAGER_H__
-
-//typedef MListElement<WPanel *> WpElement;
-//typedef MList<WPanel *> WpList;
+#pragma once
+#include "cvirwindow.h"
 
 class WPanelManager : IWPanelManager
 {
 public:
 	WPanelManager();
 	~WPanelManager();
-	HRESULT Init(HINSTANCE hInstance, Sp_CVirMdiFrameWindow pMdiFrameWindow, HWND hWndRebar);
+	HRESULT Init(HINSTANCE hInstance, CVirMdiFrameWindow *pMdiFrameWindow, HWND hWndRebar);
 	HRESULT CreateNewPanel(WPanel::InsertionStyle::EInsertionStyle style, LPTSTR pszTitle, Sp_CVirWindow pChildWin);
 	void SizePanels(HWND hWnd, int x, int y, int w, int h);
 
@@ -20,7 +17,7 @@ public:
 
 private:
 	//IWPanelManager
-	virtual Sp_CVirMdiFrameWindow Get_MdiFrameWindow();
+	virtual CVirMdiFrameWindow *Get_MdiFrameWindow();
 	virtual void OnDestroyWPanel(Sp_WPanel pwp);
 	virtual int Get_SizerGap();
 	virtual void Get_RootRect(RECT *prc);
@@ -45,7 +42,7 @@ private:
 	HBITMAP m_hbmSizerBar;
 	HBRUSH  m_hbrSizerBar;
 
-	Wp_CVirMdiFrameWindow m_pWinMdiFrameWindow;
+	CVirMdiFrameWindow *m_pWinMdiFrameWindow;
 	HWND m_hWndRebar;
 
 	HINSTANCE m_hInstance;
@@ -53,5 +50,3 @@ private:
 	CDPI m_dpi;
 	int m_iSizerGap;
 };
-
-#endif

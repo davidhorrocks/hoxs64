@@ -3,21 +3,21 @@
 #include <tchar.h>
 #include <winuser.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <assert.h>
 #include "defines.h"
 #include <commctrl.h>
+#include "cvirwindow.h"
 #include "CDPI.h"
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "hconfig.h"
 #include "appstatus.h"
-#include "dxstuff9.h"
 #include "besttextwidth.h"
 #include "diagemulationsettingstab.h"
 #include "resource.h"
@@ -44,9 +44,9 @@ CDiagEmulationSettingsTab::~CDiagEmulationSettingsTab()
 {
 }
 
-HRESULT CDiagEmulationSettingsTab::Init(CDX9 *dx, const CConfig *cfg)
+HRESULT CDiagEmulationSettingsTab::Init(Graphics *pGx, const CConfig *cfg)
 {
-	m_pDx = dx;
+	m_pGx = pGx;
 	CurrentCfg = *cfg;
 	NewCfg = *cfg;
 	return S_OK;
@@ -56,7 +56,10 @@ void CDiagEmulationSettingsTab::VideoPageSizeComboBoxes()
 {
 	HWND hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	if (!hVideoPage)
+	{
 		return;
+	}
+
 	static int ctls[] = {IDC_CBO_ADAPTER, IDC_CBO_MODE, IDC_CBO_FORMAT, IDC_CBO_ADAPTER_REFRESH, IDC_CBO_FILTER, IDC_CBO_STRETCH, IDC_CBO_BORDER, IDC_CBO_FPS};
 	G::AutoSetComboBoxHeight(hVideoPage, ctls, _countof(ctls), 0);
 }
@@ -72,15 +75,12 @@ void CDiagEmulationSettingsTab::DiskPageSizeComboBoxes()
 
 void CDiagEmulationSettingsTab::FillDevices()
 {
-UINT i;
-LRESULT lr;
-CDisplayInfo displayInfo;
-HWND hWndCboAdapter;
-HWND hVideoPage;
-HMONITOR hMonitor;
-GUID emptyGuid;
-LRESULT currentSelection = -1;
-
+	UINT i;
+	LRESULT lr;
+	HWND hWndCboAdapter;
+	HWND hVideoPage;
+	HMONITOR hMonitor;
+	LRESULT currentSelection = -1;
 	try
 	{
 		if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
@@ -102,55 +102,61 @@ LRESULT currentSelection = -1;
 
 		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_RESETCONTENT, 0, 0);
 		m_AdapterArray.clear();
-		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();
-		if (m_AdapterArray.capacity() < iAdapterCount)
-		{
-			m_AdapterArray.reserve(iAdapterCount);
-		}
-
-		ZeroMemory(&emptyGuid, sizeof(emptyGuid));
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Auto"));
+		m_vdxgiAdapters.clear();
+		this->m_pGx->FillAdapters(m_vdxgiAdapters);
+		CDisplayInfo2 displayInfoDeviceAuto;
+		displayInfoDeviceAuto.isAuto = true;
+		m_AdapterArray.push_back(displayInfoDeviceAuto);
+		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_INSERTSTRING, -1, (LPARAM) TEXT("Auto"));
 		if (lr >= 0)
 		{
 			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM) 0);
-			if (NewCfg.m_fullscreenAdapterId == emptyGuid)
-			{
-				currentSelection = lr;
-			}
+			currentSelection = lr;
 		}
 
 		HDC hdcControl = GetDC(hWndCboAdapter);
 		BestTextWidthDC tw(hdcControl);
 		tw.SetFont(this->defaultFont);
-		for (i=0 ; i < iAdapterCount ; i++)
+		for (i=0 ; i < m_vdxgiAdapters.size(); i++)
 		{
-			ZeroMemory(&displayInfo, sizeof(displayInfo));
-			displayInfo.bRequireClean = true;
+			CDisplayInfo2 displayInfo;
+			displayInfo.adapter = m_vdxgiAdapters[i];
 			displayInfo.adapterOrdinal = i;
-			m_pDx->m_pD3D->GetAdapterIdentifier(i, 0, &displayInfo.adapter);
-			hMonitor = m_pDx->m_pD3D->GetAdapterMonitor(i);
-			if (hMonitor!=0)
+			if (SUCCEEDED(displayInfo.adapter->GetDesc1(&displayInfo.adapterDesc)))
 			{
-				displayInfo.monitor.cbSize = sizeof(MONITORINFOEX);
-				m_pDx->DXUTGetMonitorInfo(hMonitor, &displayInfo.monitor);
-			}
-
-			if (SUCCEEDED(displayInfo.MakeName()))
-			{
-				// appends a shallow copy of displayInfo
-				m_AdapterArray.push_back(displayInfo);
-
-				// m_AdapterArray now controls the life time of displayInfo allocated memory
-				// prevent clean of local displayInfo. 
-				displayInfo.bRequireClean = false;
-				tw.GetWidth(displayInfo.name);
-				lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_ADDSTRING, 0, (LPARAM) displayInfo.name);
-				if (lr >= 0)
-				{				
-					SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM) (m_AdapterArray.size() - 1));
-					if ((NewCfg.m_fullscreenAdapterNumber == i) && (NewCfg.m_fullscreenAdapterId != emptyGuid))
+				UINT j = 0;
+				Microsoft::WRL::ComPtr<IDXGIOutput> output;
+				for (j = 0; displayInfo.adapter->EnumOutputs(j, output.GetAddressOf()) != DXGI_ERROR_NOT_FOUND; j++)
+				{
+					displayInfo.output = output;
+					displayInfo.outputOrdinal = j;
+					if (SUCCEEDED(displayInfo.output->GetDesc(&displayInfo.outputDesc)))
 					{
-						currentSelection = lr;
+						hMonitor = displayInfo.outputDesc.Monitor;
+						if (hMonitor != 0)
+						{
+							displayInfo.monitor.cbSize = sizeof(MONITORINFOEX);
+							if (GetMonitorInfo(hMonitor, &displayInfo.monitor))
+							{
+								if (SUCCEEDED(displayInfo.MakeName()))
+								{
+									m_AdapterArray.push_back(displayInfo);
+									tw.GetWidthW(displayInfo.nameOfAdapter.c_str());
+									lr = SendDlgItemMessageW(hVideoPage, IDC_CBO_ADAPTER, CB_INSERTSTRING, -1, (LPARAM)displayInfo.nameOfAdapter.c_str());
+									if (lr >= 0)
+									{
+										SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_SETITEMDATA, lr, (LPARAM)(m_AdapterArray.size() - 1));
+										if ((!NewCfg.m_fullscreenAdapterIsDefault))
+										{
+											if ((NewCfg.m_fullscreenAdapterNumber == i && NewCfg.m_fullscreenOutputNumber == j))
+											{
+												currentSelection = lr;
+											}
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -182,9 +188,14 @@ LRESULT currentSelection = -1;
 	}
 }
 
-int CDiagEmulationSettingsTab::fnFindModeFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
+int CDiagEmulationSettingsTab::fnFindModeFormat(const CDisplayFormatInfo& mode1, const CDisplayFormatInfo& mode2)
 {
-	if (mode1.mode.Format == mode2.mode.Format)
+	if (mode1.isAuto != mode2.isAuto)
+	{
+		return 1;
+	}
+
+	if (mode1.format == mode2.format)
 	{
 		return 0;
 	}
@@ -196,20 +207,47 @@ int CDiagEmulationSettingsTab::fnFindModeFormat(const CDisplayModeInfo &mode1, c
 
 int CDiagEmulationSettingsTab::fnCompareMode(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
 {
-	if (mode1.mode.Width > mode2.mode.Width)
+	if (mode1.isAuto && !mode2.isAuto)
+	{
+		return -1;
+	}
+	else if (!mode1.isAuto && mode2.isAuto)
 	{
 		return 1;
 	}
-	else if (mode1.mode.Width < mode2.mode.Width)
+
+	if (mode1.width > mode2.width)
+	{
+		return 1;
+	}
+	else if (mode1.width < mode2.width)
 	{
 		return -1;
 	}
 
-	if (mode1.mode.Height > mode2.mode.Height)
+	if (mode1.height > mode2.height)
 	{
 		return 1;
 	}
-	else if (mode1.mode.Height < mode2.mode.Height)
+	else if (mode1.height < mode2.height)
+	{
+		return -1;
+	}
+
+	if (mode1.scanlineOrdering > mode2.scanlineOrdering)
+	{
+		return 1;
+	}
+	else if (mode1.scanlineOrdering < mode2.scanlineOrdering)
+	{
+		return -1;
+	}
+
+	if (mode1.scaling > mode2.scaling)
+	{
+		return 1;
+	}
+	else if (mode1.scaling < mode2.scaling)
 	{
 		return -1;
 	}
@@ -222,22 +260,31 @@ bool CDiagEmulationSettingsTab::fnForListCompareMode(const CDisplayModeInfo &mod
 	return fnCompareMode(mode1, mode2) < 0;
 }
 
-int CDiagEmulationSettingsTab::fnCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
+int CDiagEmulationSettingsTab::fnCompareFormat(const CDisplayFormatInfo &mode1, const CDisplayFormatInfo &mode2)
 {
-	if (CDX9::GetBitsPerPixel(mode1.mode.Format) > CDX9::GetBitsPerPixel(mode2.mode.Format))
+	if (mode1.isAuto && !mode2.isAuto)
+	{
+		return -1;
+	}
+	else if (!mode1.isAuto && mode2.isAuto)
 	{
 		return 1;
 	}
-	else if (CDX9::GetBitsPerPixel(mode1.mode.Format) < CDX9::GetBitsPerPixel(mode2.mode.Format))
+
+	if (GraphicsHelper::GetBitsPerPixel(mode1.format) > GraphicsHelper::GetBitsPerPixel(mode2.format))
+	{
+		return 1;
+	}
+	else if (GraphicsHelper::GetBitsPerPixel(mode1.format) < GraphicsHelper::GetBitsPerPixel(mode2.format))
 	{
 		return -1;
 	}
 
-	if (mode1.mode.Format > mode2.mode.Format)
+	if (mode1.format > mode2.format)
 	{
 		return 1;
 	}
-	else if (mode1.mode.Format < mode2.mode.Format)
+	else if (mode1.format < mode2.format)
 	{
 		return -1;
 	}
@@ -245,7 +292,7 @@ int CDiagEmulationSettingsTab::fnCompareFormat(const CDisplayModeInfo &mode1, co
 	return 0;
 }
 
-bool CDiagEmulationSettingsTab::fnForListCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2)
+bool CDiagEmulationSettingsTab::fnForListCompareFormat(const CDisplayFormatInfo& mode1, const CDisplayFormatInfo& mode2)
 {
 	return fnCompareFormat(mode1, mode2) < 0;
 }
@@ -271,12 +318,12 @@ LRESULT index;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
 	if (lr < 0)
 	{
-		FillModes(-1);
+		FillModes2(0);
 		return;
 	}
 	else if (lr == 0)
 	{
-		FillModes(D3DADAPTER_DEFAULT);
+		FillModes2(0);
 		return;
 	}
 
@@ -284,27 +331,25 @@ LRESULT index;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
 	if (lr == CB_ERR || lr < 0)
 	{
-		FillModes(-1);
+		FillModes2(0);
 		return;
 	}
 
 	if ((size_t)lr >= m_AdapterArray.size())
 	{
-		FillModes(-1);
+		FillModes2(0);
 		return;
 	} 
 
-	FillModes((int)m_AdapterArray[(ULONG)lr].adapterOrdinal);
+	FillModes2((int)lr);
 }
 
-void CDiagEmulationSettingsTab::FillModes(int adapterOrdinal)
+void CDiagEmulationSettingsTab::FillModes2(int displayInfoIndex)
 {
-HWND hVideoPage, hWndCboMode;
-LRESULT currentSelection = -1;
-CDisplayModeInfo  modeInfo;
-UINT i;
-LRESULT lr;
-
+	HWND hVideoPage, hWndCboMode;
+	LRESULT currentSelection = -1;
+	LRESULT lr;
+	HRESULT hr;
 	try
 	{
 		if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
@@ -319,67 +364,130 @@ LRESULT lr;
 			return;
 		}
 
-		SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_RESETCONTENT, 0, 0);
-		m_ModeList.clear();
-		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
-		if (adapterOrdinal < 0 || (UINT)adapterOrdinal >= iAdapterCount)
+		if (displayInfoIndex < 0 || (size_t)displayInfoIndex >= m_AdapterArray.size())
 		{
 			return;
 		}
 
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_ADDSTRING, 0, (LPARAM) szAuto);
-		if (lr >= 0)
-		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETITEMDATA, lr, (LPARAM) 0);
-			if (NewCfg.m_fullscreenWidth == 0)
-			{
-				currentSelection = lr;
-			}
-		}
+		CDisplayInfo2& currentAdapter = m_AdapterArray[displayInfoIndex];
 
-		for (UINT iFormatToTest = 0; (signed int)CDX9::Formats[iFormatToTest] > 0 ; iFormatToTest++)
+		SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_RESETCONTENT, 0, 0);
+
+		m_ModeList.clear();
+		m_ModeCompleteList.clear();
+
+		if (!currentAdapter.isAuto)
 		{
-			UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount((UINT)adapterOrdinal, CDX9::Formats[iFormatToTest]);
-			for (i=0 ; i < iModeCount ; i++)
+			std::vector<DXGI_MODE_DESC> modeDescArray;
+			for (UINT iFormatToTest = 0; iFormatToTest < _countof(GraphicsHelper::Formats); iFormatToTest++)
 			{
-				ZeroMemory(&modeInfo, sizeof(modeInfo));
-				modeInfo.bRequireClean = true;
-				m_pDx->m_pD3D->EnumAdapterModes((UINT)adapterOrdinal, CDX9::Formats[iFormatToTest], i, &modeInfo.mode);
-				if (m_pDx->IsAcceptableMode(modeInfo.mode))
+				UINT iModeCount = 0;
+				modeDescArray.clear();
+				hr = currentAdapter.output->GetDisplayModeList(GraphicsHelper::Formats[iFormatToTest], DXGI_ENUM_MODES_INTERLACED | DXGI_ENUM_MODES_SCALING, &iModeCount, NULL);
+				if (SUCCEEDED(hr))
 				{
-					CDisplayModeInfo_WxH_is_equal mode_equal_WxH(modeInfo);
-					if (std::find_if(m_ModeList.cbegin(), m_ModeList.cend(), mode_equal_WxH) != m_ModeList.cend())
+					if (iModeCount > 0)
 					{
-						continue;
+						modeDescArray.resize(iModeCount);
+						hr = currentAdapter.output->GetDisplayModeList(GraphicsHelper::Formats[iFormatToTest], DXGI_ENUM_MODES_INTERLACED | DXGI_ENUM_MODES_SCALING, &iModeCount, modeDescArray.data());
+						if (SUCCEEDED(hr))
+						{
+							for (std::vector<DXGI_MODE_DESC>::const_iterator iter = modeDescArray.cbegin(); iter != modeDescArray.cend(); iter++)
+							{
+								const DXGI_MODE_DESC& modeDesc = *iter;
+								if (GraphicsHelper::IsAcceptableMode(modeDesc.Width, modeDesc.Height, modeDesc.Format))
+								{
+									m_ModeCompleteList.push_back(modeDesc);
+								}
+							}
+						}
 					}
-				
-					if (SUCCEEDED(modeInfo.MakeName(m_pDx)))
-					{
-						//appends a shallow copy of modeInfo
-						m_ModeList.push_back(modeInfo);
-
-						//m_ModeList will clean modeInfo allocated memory
-						//prevent clean of local modeInfo.
-						modeInfo.bRequireClean = false;
-					}
-				}		
+				}
 			}
 		}
 
+		for (auto iter = m_ModeCompleteList.begin(); iter != m_ModeCompleteList.end(); iter++)
+		{
+			DXGI_MODE_DESC& modeDesc = *iter;
+			CDisplayModeInfo mode;
+			mode.isAuto = false;
+			mode.height = modeDesc.Height;
+			mode.width = modeDesc.Width;
+			mode.scaling = modeDesc.Scaling;
+			mode.scanlineOrdering = modeDesc.ScanlineOrdering;
+			mode.MakeName();
+			CDisplayModeInfo_WxH_is_equal mode_equal_WxH(mode);
+			if (std::find_if(m_ModeList.cbegin(), m_ModeList.cend(), mode_equal_WxH) != m_ModeList.cend())
+			{
+				continue;
+			}
+
+			m_ModeList.push_back(mode);
+		}
+
+		// Sort list
 		CDisplayModeInfo_WxH_is_less mode_is_less;
 		m_ModeList.sort(mode_is_less);
-		list<CDisplayModeInfo>::const_iterator cit;
-		for (cit = m_ModeList.cbegin(); cit != m_ModeList.cend(); cit++)
+
+		// Insert Auto option
+		CDisplayModeInfo modeInfoAuto;
+		modeInfoAuto.isAuto = true;
+		modeInfoAuto.MakeName();
+		m_ModeList.push_front(modeInfoAuto);
+
+		currentSelection = 0;
+		// Fill the modes dropdrown list.
+		if (m_ModeList.size() > 0)
 		{
-		
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_ADDSTRING, 0, (LPARAM) cit->name);
-			if (lr >= 0)
+			LRESULT widthAndHeightOnlySelection = -1;
+			bool foundExact = false;
+			bool foundWidthAndHeightOnly = false;
+			DXGI_MODE_SCALING currentScaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_STRETCHED;
+			DXGI_MODE_SCANLINE_ORDER currentScanLineOrder = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_LOWER_FIELD_FIRST;
+			for (auto iter = m_ModeList.begin(); iter != m_ModeList.end(); iter++)
 			{
-				SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETITEMDATA, lr, (LPARAM) &*cit);
-				if (NewCfg.m_fullscreenWidth == cit->mode.Width && NewCfg.m_fullscreenHeight == cit->mode.Height)
+				CDisplayModeInfo& mode = *iter;
+				lr = SendDlgItemMessageW(hVideoPage, IDC_CBO_MODE, CB_INSERTSTRING, -1, (LPARAM)mode.name.c_str());
+				if (lr >= 0)
 				{
-					currentSelection = lr;
+					SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_SETITEMDATA, lr, (LPARAM)&mode);
+					if (mode.isAuto)
+					{
+						if (NewCfg.m_fullscreenWidth == 0 || currentAdapter.isAuto)
+						{
+							if (!foundExact)
+							{
+								currentSelection = lr;
+								foundExact = true;
+							}
+						}
+					}
+					else
+					{
+						if (NewCfg.m_fullscreenWidth == mode.width && NewCfg.m_fullscreenHeight == mode.height && NewCfg.m_fullscreenDxGiModeScaling == mode.scaling && NewCfg.m_fullscreenDxGiModeScanlineOrdering == mode.scanlineOrdering)
+						{
+							if (!foundExact)
+							{
+								currentSelection = lr;
+								foundExact = true;
+							}
+						}
+					}
+
+					if (NewCfg.m_fullscreenWidth == mode.width && NewCfg.m_fullscreenHeight == mode.height)
+					{
+						if (mode.scaling <= currentScaling && mode.scanlineOrdering <= currentScanLineOrder)
+						{
+							widthAndHeightOnlySelection = lr;
+							foundWidthAndHeightOnly = true;
+						}
+					}
 				}
+			}
+
+			if (!foundExact && foundWidthAndHeightOnly)
+			{
+				currentSelection = widthAndHeightOnlySelection;
 			}
 		}
 
@@ -400,10 +508,10 @@ LRESULT lr;
 
 void CDiagEmulationSettingsTab::FillFormats()
 {
-HWND hVideoPage, hWndCboAdapter, hWndCboMode;
-LRESULT lr;
-UINT iAdapterOrdinal;
-LRESULT index;
+	HWND hVideoPage, hWndCboAdapter, hWndCboMode;
+	LRESULT lr;
+	int displayInfoIndex;
+	LRESULT index;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 	{
@@ -428,12 +536,12 @@ LRESULT index;
 	if (lr == CB_ERR || lr < 0)
 	{
 		//clear formats list
-		FillFormats(-1, 0, 0);
+		FillFormats2(NULL);
 		return;
 	}
 	else if (lr == 0)
 	{
-		iAdapterOrdinal = D3DADAPTER_DEFAULT;
+		displayInfoIndex = 0;
 	}
 	else
 	{
@@ -442,23 +550,23 @@ LRESULT index;
 		if (lr == CB_ERR || lr < 0)
 		{
 			//clear formats list
-			FillFormats(-1, 0, 0);
+			FillFormats2(NULL);
 			return;
 		}
 
-		iAdapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
+		displayInfoIndex = (int)lr;
 	}
 
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
 	if (lr == CB_ERR || lr < 0)
 	{
 		//clear formats list
-		FillFormats(-1, 0, 0);
+		FillFormats2(NULL);
 		return;
 	}
 	else if (lr == 0)
 	{
-		FillFormats(iAdapterOrdinal, 0, 0);
+		FillFormats2(NULL);
 		return;
 	}
 
@@ -466,21 +574,20 @@ LRESULT index;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
 	if (lr == CB_ERR || lr == NULL)
 	{
-		FillFormats(-1, 0, 0);
+		FillFormats2(NULL);
 		return;
 	} 
 
-	D3DDISPLAYMODE &mode = ((CDisplayModeInfo *)lr)->mode;
-	FillFormats(iAdapterOrdinal, mode.Width, mode.Height);
+	const CDisplayModeInfo *pmode = reinterpret_cast<CDisplayModeInfo *>(lr);
+	FillFormats2(pmode);
 }
 
-void CDiagEmulationSettingsTab::FillFormats(int adapterOrdinal, UINT width, UINT height)
+void CDiagEmulationSettingsTab::FillFormats2(const CDisplayModeInfo* pModeSelected)
 {
-HWND hVideoPage, hWndCboFormat;
-LRESULT currentSelection = -1;
-CDisplayModeInfo modeInfo;
-UINT i;
-LRESULT lr;
+	HWND hVideoPage, hWndCboFormat;
+	LRESULT currentSelection = -1;
+	CDisplayModeInfo modeInfo;
+	LRESULT lr;
 
 	try
 	{
@@ -498,73 +605,69 @@ LRESULT lr;
 
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_RESETCONTENT, 0, 0);
 		m_ModeFormatList.clear();
-
-		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
-		if (adapterOrdinal < 0 || (UINT)adapterOrdinal >= iAdapterCount)
-		{
-			return;
-		}
-
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_ADDSTRING, 0, (LPARAM) szAuto);
-		if (lr >= 0)
-		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETITEMDATA, lr, (LPARAM) 0);
-			if (NewCfg.m_fullscreenFormat == 0)
-			{
-				currentSelection = lr;
-			}
-		}
 	
-		if (height != 0 && width != 0)
+		if (pModeSelected != NULL && !pModeSelected->isAuto && pModeSelected->width != 0 && pModeSelected->height != 0)
 		{
-			for (UINT iFormatToTest = 0; (signed int)CDX9::Formats[iFormatToTest] > 0 ; iFormatToTest++)
+			CDisplayModeInfo_WxH_is_equal mode_equal_WxH(*pModeSelected);
+			for (auto iter = m_ModeCompleteList.begin(); iter != m_ModeCompleteList.end(); iter++)
 			{
-				D3DFORMAT format = CDX9::Formats[iFormatToTest];
-				UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount(adapterOrdinal, format);
-				for (i=0 ; i < iModeCount ; i++)
+				DXGI_MODE_DESC& modeDesc = *iter;
+				if (pModeSelected->height != modeDesc.Height || pModeSelected->width != modeDesc.Width || pModeSelected->scaling != modeDesc.Scaling || pModeSelected->scanlineOrdering != modeDesc.ScanlineOrdering)
 				{
-					ZeroMemory(&modeInfo, sizeof(modeInfo));
-					modeInfo.bRequireClean = true;
-					m_pDx->m_pD3D->EnumAdapterModes(adapterOrdinal, format, i, &modeInfo.mode);
-					if (m_pDx->IsAcceptableMode(modeInfo.mode))
-					{
-						if (modeInfo.mode.Height != height || modeInfo.mode.Height != height)
-						{
-							continue;
-						}
-
-						CDisplayModeInfo_format_is_equal mode_equal_format(modeInfo.mode.Format);
-						if (std::find_if(m_ModeFormatList.cbegin(), m_ModeFormatList.cend(), mode_equal_format) != m_ModeFormatList.cend())
-						{
-							continue;
-						}
-
-						if (SUCCEEDED(modeInfo.MakeNameFormat(m_pDx)))
-						{
-							//appends a shallow copy of modeInfo
-							m_ModeFormatList.push_back(modeInfo);
-
-							//m_ModeFormatList will clean modeInfo allocated memory
-							//prevent clean of local modeInfo.
-							modeInfo.bRequireClean = false;
-						}
-					}		
+					continue;
 				}
+
+				CDisplayFormatInfo format;
+				format.format = modeDesc.Format;
+				format.MakeName();
+				CDisplayModeInfo_format_is_equal mode_equal_format(format);
+				if (std::find_if(m_ModeFormatList.cbegin(), m_ModeFormatList.cend(), mode_equal_format) != m_ModeFormatList.cend())
+				{
+					continue;
+				}
+
+				m_ModeFormatList.push_back(format);
 			}
 		}
 
 		CDisplayModeInfo_format_is_less mode_is_less;
 		m_ModeFormatList.sort(mode_is_less);
-		list<CDisplayModeInfo>::const_iterator cit;
-		for (cit = m_ModeFormatList.cbegin(); cit != m_ModeFormatList.cend(); cit++)
+
+		// Insert Auto option
+		CDisplayFormatInfo formatInfoAuto;
+		formatInfoAuto.isAuto = true;
+		formatInfoAuto.MakeName();
+		m_ModeFormatList.push_front(formatInfoAuto);
+		currentSelection = 0;
+		bool foundExact = false;
+		for (auto iter = m_ModeFormatList.begin(); iter != m_ModeFormatList.end(); iter++)
 		{
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_ADDSTRING, 0, (LPARAM) cit->name);
+			CDisplayFormatInfo& format = *iter;
+			lr = SendDlgItemMessageW(hVideoPage, IDC_CBO_FORMAT, CB_INSERTSTRING, -1, (LPARAM)iter->name.c_str());
 			if (lr >= 0)
 			{
-				SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETITEMDATA, lr, (LPARAM) &*cit);
-				if (NewCfg.m_fullscreenFormat == cit->mode.Format)
+				SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_SETITEMDATA, lr, (LPARAM)&format);
+				if (format.isAuto)
 				{
-					currentSelection = lr;
+					if (NewCfg.m_fullscreenFormat == 0 || pModeSelected == NULL || pModeSelected->isAuto)
+					{
+						if (!foundExact)
+						{
+							currentSelection = lr;
+							foundExact = true;
+						}
+					}
+				}
+				else
+				{
+					if (NewCfg.m_fullscreenFormat == format.format)
+					{
+						if (!foundExact)
+						{
+							currentSelection = lr;
+							foundExact = true;
+						}
+					}
 				}
 			}
 		}
@@ -588,7 +691,6 @@ void CDiagEmulationSettingsTab::FillRefresh()
 {
 HWND hVideoPage, hWndCboAdapter, hWndCboMode;
 LRESULT lr;
-UINT iAdapterOrdinal;
 LRESULT index;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
@@ -609,15 +711,16 @@ LRESULT index;
 		return;
 	}
 
+	unsigned int iAdapterOrdinal = 0;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
 	if (lr == CB_ERR || lr < 0)
 	{
-		FillRefresh(-1, 0, 0, D3DFMT_UNKNOWN);
+		FillRefresh2(NULL, NULL);
 		return;
 	}
 	else if (lr == 0)
 	{
-		iAdapterOrdinal = D3DADAPTER_DEFAULT;
+		iAdapterOrdinal = 0;
 	}
 	else
 	{
@@ -625,7 +728,7 @@ LRESULT index;
 		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
 		if (lr == CB_ERR || lr < 0)
 		{
-			FillRefresh(-1, 0, 0, D3DFMT_UNKNOWN);
+			FillRefresh2(NULL, NULL);
 			return;
 		}
 
@@ -635,33 +738,24 @@ LRESULT index;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
 	if (lr == CB_ERR || lr < 0)
 	{
-		FillRefresh(iAdapterOrdinal, 0, 0, D3DFMT_UNKNOWN);
+		FillRefresh2(NULL, NULL);
 		return;
-	}
-	else if (lr == 0)
-	{
-		FillRefresh(iAdapterOrdinal, 0, 0, D3DFMT_UNKNOWN);
-		return;
-	}
+	}	
 
 	index = lr;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
 	if (lr == CB_ERR || lr == NULL)
 	{
-		FillRefresh(iAdapterOrdinal, 0, 0, D3DFMT_UNKNOWN);
+		FillRefresh2(NULL, NULL);
 		return;
 	} 
 
-	D3DDISPLAYMODE &modeWH = ((CDisplayModeInfo *)lr)->mode;
+	const CDisplayModeInfo* pmode = reinterpret_cast<CDisplayModeInfo*>(lr);
+
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_GETCURSEL, 0, 0);
 	if (lr == CB_ERR || lr < 0)
 	{
-		FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, D3DFMT_UNKNOWN);
-		return;
-	}
-	else if (lr == 0)
-	{
-		FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, D3DFMT_UNKNOWN);
+		FillRefresh2(pmode, NULL);
 		return;
 	}
 
@@ -669,21 +763,20 @@ LRESULT index;
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FORMAT, CB_GETITEMDATA, index, 0);
 	if (lr == CB_ERR || lr == NULL)
 	{
-		FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, D3DFMT_UNKNOWN);
+		FillRefresh2(pmode, NULL);
 		return;
 	} 
 	
-	D3DDISPLAYMODE &modeFormat = ((CDisplayModeInfo *)lr)->mode;
-	FillRefresh(iAdapterOrdinal, modeWH.Width, modeWH.Height, modeFormat.Format);
+	const CDisplayFormatInfo* pformat = reinterpret_cast<CDisplayFormatInfo*>(lr);
+	FillRefresh2(pmode, pformat);
 }
 
-void CDiagEmulationSettingsTab::FillRefresh(int adapterOrdinal, UINT width, UINT height, D3DFORMAT format)
+void CDiagEmulationSettingsTab::FillRefresh2(const CDisplayModeInfo* pModeSelected, const CDisplayFormatInfo* pFormatSelected)
 {
-HWND hVideoPage, hWndCboRefresh;
-LRESULT currentSelection = -1;
-CDisplayModeInfo  modeInfo;
-UINT i;
-LRESULT lr;
+	HWND hVideoPage, hWndCboRefresh;
+	LRESULT currentSelection = -1;
+	CDisplayModeInfo  modeInfo;
+	LRESULT lr;
 
 	try
 	{
@@ -701,68 +794,74 @@ LRESULT lr;
 
 		SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_RESETCONTENT, 0, 0);
 		m_ModeRefreshList.clear();
-		UINT iAdapterCount = m_pDx->m_pD3D->GetAdapterCount();	
-		if (adapterOrdinal < 0 || (UINT)adapterOrdinal >= iAdapterCount)
+		if (pModeSelected != NULL && !pModeSelected->isAuto && pFormatSelected != NULL && !pFormatSelected->isAuto)
 		{
-			return;
-		}
-
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_ADDSTRING, 0, (LPARAM) szAuto);
-		if (lr >= 0)
-		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_SETITEMDATA, lr, (LPARAM) 0);
-			if (NewCfg.m_fullscreenRefresh == 0)
+			for (auto iter = m_ModeCompleteList.begin(); iter != m_ModeCompleteList.end(); iter++)
 			{
-				currentSelection = lr;
-			}
-		}
-	
-		if (height != 0 && width != 0 && format != D3DFMT_UNKNOWN)
-		{
-			UINT iModeCount = m_pDx->m_pD3D->GetAdapterModeCount(adapterOrdinal, format);
-			for (i=0 ; i < iModeCount ; i++)
-			{
-				ZeroMemory(&modeInfo, sizeof(modeInfo));
-				modeInfo.bRequireClean = true;
-				m_pDx->m_pD3D->EnumAdapterModes(adapterOrdinal, format, i, &modeInfo.mode);
-				if (m_pDx->IsAcceptableMode(modeInfo.mode))
+				DXGI_MODE_DESC& modeDesc = *iter;
+				if (pModeSelected->height != modeDesc.Height || pModeSelected->width != modeDesc.Width || pModeSelected->scaling != modeDesc.Scaling || pModeSelected->scanlineOrdering != modeDesc.ScanlineOrdering)
 				{
-					if (modeInfo.mode.Height != height || modeInfo.mode.Height != height || modeInfo.mode.Format != format)
-					{
-						continue;
-					}
+					continue;
+				}
 
-					CDisplayModeInfo_refresh_is_equal mode_equal_refresh(modeInfo.mode.RefreshRate);
-					if (std::find_if(m_ModeRefreshList.cbegin(), m_ModeRefreshList.cend(), mode_equal_refresh) != m_ModeRefreshList.cend())
-					{
-						continue;
-					}
+				if (pFormatSelected->format != modeDesc.Format)
+				{
+					continue;
+				}
 
-					if (SUCCEEDED(modeInfo.MakeNameRefresh(m_pDx)))
-					{
-						//appends a shallow copy of modeInfo
-						m_ModeRefreshList.push_back(modeInfo);
+				CDisplayRefreshInfo refresh;
+				refresh.refreshRateNumerator = modeDesc.RefreshRate.Numerator;
+				refresh.refreshRateDenominator = modeDesc.RefreshRate.Denominator;
+				refresh.MakeName();
+				CDisplayModeInfo_refresh_is_equal refresh_equal(refresh);
+				if (std::find_if(m_ModeRefreshList.cbegin(), m_ModeRefreshList.cend(), refresh_equal) != m_ModeRefreshList.cend())
+				{
+					continue;
+				}
 
-						//m_ModeFormatList will clean modeInfo allocated memory
-						//prevent clean of local modeInfo.
-						modeInfo.bRequireClean = false;
-					}
-				}		
+				m_ModeRefreshList.push_back(refresh);
 			}
 		}
 
 		CDisplayModeInfo_refresh_is_less refresh_is_less;
 		m_ModeRefreshList.sort(refresh_is_less);
-		list<CDisplayModeInfo>::const_iterator cit;
-		for (cit = m_ModeRefreshList.cbegin(); cit != m_ModeRefreshList.cend(); cit++)
+
+		// Insert Auto option
+		CDisplayRefreshInfo refreshInfoAuto;
+		refreshInfoAuto.isAuto = true;
+		refreshInfoAuto.MakeName();
+		m_ModeRefreshList.push_front(refreshInfoAuto);
+		currentSelection = 0;
+		bool foundExact = false;
+
+		for (auto iter = m_ModeRefreshList.begin(); iter != m_ModeRefreshList.end(); iter++)
 		{
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_ADDSTRING, 0, (LPARAM) cit->name);
+			CDisplayRefreshInfo& refresh = *iter;
+			lr = SendDlgItemMessageW(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_INSERTSTRING, -1, (LPARAM)iter->name.c_str());
 			if (lr >= 0)
 			{
-				SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_SETITEMDATA, lr, (LPARAM) &*cit);
-				if (NewCfg.m_fullscreenRefresh == (unsigned int)cit->mode.RefreshRate)
+				SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER_REFRESH, CB_SETITEMDATA, lr, (LPARAM) & *iter);
+				if (refresh.isAuto)
 				{
-					currentSelection = lr;
+					if (NewCfg.m_fullscreenRefreshNumerator == 0 || NewCfg.m_fullscreenRefreshDenominator == 0 || pFormatSelected == NULL || pFormatSelected->isAuto)
+					{
+						if (!foundExact)
+						{
+							currentSelection = lr;
+							foundExact = true;
+						}
+					}
+				}
+				else
+				{
+					if (NewCfg.m_fullscreenRefreshNumerator == refresh.refreshRateNumerator && NewCfg.m_fullscreenRefreshDenominator == refresh.refreshRateDenominator)
+					{
+						if (!foundExact)
+						{
+							currentSelection = lr;
+							foundExact = true;
+						}
+					}
 				}
 			}
 		}
@@ -786,10 +885,7 @@ void CDiagEmulationSettingsTab::FillSizes()
 {
 HWND hVideoPage, hDiskPage, hWndCboSize;
 LRESULT lr;
-D3DDISPLAYMODE *pMode;
-LRESULT index;
 LRESULT currentSelection = -1;
-bool bAdd1X, bAdd2X, bAddStretch;
 bool bShowFloppyLed;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
@@ -830,97 +926,26 @@ bool bShowFloppyLed;
 	ReadBorder(&border);
 	C64WindowDimensions dims;
 	dims.SetBorder(border);
-	bAdd1X = false;
-	bAdd2X = false;
-	bAddStretch = false;
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
-	if (lr < 0)
-	{
-		return;
-	}
-	else if (lr == 0)
-	{
-		bAdd1X = true;
-		bAdd2X = true;
-		if (IsDlgButtonChecked(hVideoPage, IDC_DOUBLER_BLIT))
-		{
-			bAddStretch = true;
-		}
-	}
-	else
-	{
-		index = lr;
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr == NULL)
-		{
-			return;
-		} 
 
-		pMode = &((CDisplayModeInfo *)lr)->mode;
-		if (pMode)
+	tw.GetWidth(szVideoFilter_StretchToFit);
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM)szVideoFilter_StretchToFit);
+	if (lr >= 0)
+	{
+		SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM)HCFG::EMUWINSTR_ASPECTSTRETCH);
+		if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_ASPECTSTRETCH)
 		{
-			if (m_pDx->IsAcceptableMode(*pMode))
-			{
-				bAdd1X = m_pDx->CanMode1X(*pMode, dims, bShowFloppyLed);
-				bAdd2X = m_pDx->CanMode2X(*pMode, dims, bShowFloppyLed);
-				if (IsDlgButtonChecked(hVideoPage, IDC_DOUBLER_BLIT))
-				{
-					bAddStretch = true;
-				}
-			}
+			currentSelection = lr;
 		}
 	}
 
-	if (bAdd1X)
+	tw.GetWidth(szVideoFilter_StretchWithBorderClip);
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM)szVideoFilter_StretchWithBorderClip);
+	if (lr >= 0)
 	{
-		tw.GetWidth(szVideoFilter_1X);
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_1X);
-		if (lr >= 0)
+		SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM)HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP);
+		if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
 		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_1X);
-			if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_1X)
-			{
-				currentSelection = lr;
-			}
-		}
-	}
-
-	if (bAdd2X)
-	{
-		tw.GetWidth(szVideoFilter_2X);
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_2X);
-		if (lr >= 0)
-		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_2X);
-			if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_2X)
-			{
-				currentSelection = lr;
-			}
-		}
-	}
-
-	if (bAddStretch)
-	{
-		tw.GetWidth(szVideoFilter_StretchToFit);
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchToFit);
-		if (lr >= 0)
-		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_ASPECTSTRETCH);
-			if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_ASPECTSTRETCH)
-			{
-				currentSelection = lr;
-			}
-		}
-
-		tw.GetWidth(szVideoFilter_StretchWithBorderClip);
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
-		if (lr >= 0)
-		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP);
-			if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
-			{
-				currentSelection = lr;
-			}
+			currentSelection = lr;
 		}
 	}
 
@@ -947,29 +972,30 @@ bool bShowFloppyLed;
 
 void CDiagEmulationSettingsTab::FillFilters()
 {
-HWND hVideoPage, hDiskPage, hWndCboAdapter, hWndCboFilter;
-LRESULT lr;
-UINT iAdapterOrdinal;
-D3DDISPLAYMODE *pMode;
-LRESULT index;
-LRESULT currentSelection = -1;
-bool bAddNone, bAddPoint, bAddLinear;
-bool bShowFloppyLed;
+	HWND hVideoPage, hDiskPage, hWndCboAdapter, hWndCboFilter;
+	LRESULT lr;
+	bool bShowFloppyLed;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
+	{
 		return;
-	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
+	}
 
+	hVideoPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)->GetHwnd();
 	hWndCboAdapter = GetDlgItem(hVideoPage, IDC_CBO_ADAPTER);
 	if (hWndCboAdapter == NULL)
+	{
 		return;
+	}
 
 	hWndCboFilter = GetDlgItem(hVideoPage, IDC_CBO_FILTER);
 	if (hWndCboFilter == NULL)
+	{
 		return;
+	}
 
+	LRESULT currentSelection = -1;
 	SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_RESETCONTENT, 0, 0);
-
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_ADDSTRING, 0, (LPARAM) szAuto);
 	if (lr >= 0)
 	{
@@ -978,31 +1004,7 @@ bool bShowFloppyLed;
 		{
 			currentSelection = lr;
 		}
-	}
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETCURSEL, 0, 0);
-	if (lr < 0 || lr >= MAXLONG)
-	{
-		return;
-	}
-	else if (lr == 0)
-	{
-		iAdapterOrdinal = D3DADAPTER_DEFAULT;
-	}
-	else
-	{
-		index = lr;
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr < 0 || lr >= MAXLONG)
-		{
-			return;
-		}
-		iAdapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
-	}
-	D3DCAPS9 caps;
-	ZeroMemory(&caps, sizeof(caps));
-	if (FAILED(m_pDx->m_pD3D->GetDeviceCaps(iAdapterOrdinal, D3DDEVTYPE_HAL, &caps)))
-		return ;
-	
+	}	
 	
 	if (GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK))
 	{
@@ -1015,78 +1017,34 @@ bool bShowFloppyLed;
 	C64WindowDimensions dims;
 	dims.SetBorder(border);
 
-	bAddNone = true;
-	bAddPoint = false;
-	bAddLinear = false;
-	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
-	if (lr < 0 || lr >= MAXLONG)
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Point"));
+	if (lr >= 0)
 	{
-		return;
-	}
-	else if (lr == 0)
-	{
-		bAddPoint = true;
-		bAddLinear = true;
-	}
-	else
-	{
-		index = lr;
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
-		if (lr == CB_ERR || lr == NULL)
+		SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETITEMDATA, lr, (LPARAM)HCFG:: EMUWINFILTER_POINT);
+		if (NewCfg.m_blitFilter == HCFG::EMUWINFILTER_POINT)
 		{
-			return;
-		} 
+			currentSelection = lr;
+		}
+	}
 
-		pMode = &((CDisplayModeInfo *)lr)->mode;
-		if (pMode)
-		{
-			if (m_pDx->IsAcceptableMode(*pMode))
-			{
-				if (m_pDx->CanMode1X(*pMode, dims, bShowFloppyLed))
-				{
-					if (caps.StretchRectFilterCaps & D3DPTFILTERCAPS_MAGFPOINT)
-						bAddPoint = true;
-					if (caps.StretchRectFilterCaps & D3DPTFILTERCAPS_MAGFLINEAR)
-						bAddLinear = true;
-				}
-				else
-				{
-					if (caps.StretchRectFilterCaps & D3DPTFILTERCAPS_MINFPOINT)
-						bAddPoint = true;
-					if (caps.StretchRectFilterCaps & D3DPTFILTERCAPS_MINFLINEAR)
-						bAddLinear = true;
-				}
-			}
-		}
-	}
-	if (bAddPoint)
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Linear"));
+	if (lr >= 0)
 	{
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Point"));
-		if (lr >= 0)
+		SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINFILTER_LINEAR);
+		if (NewCfg.m_blitFilter == HCFG::EMUWINFILTER_LINEAR)
 		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETITEMDATA, lr, (LPARAM)HCFG:: EMUWINFILTER_POINT);
-			if (NewCfg.m_blitFilter == HCFG::EMUWINFILTER_POINT)
-			{
-				currentSelection = lr;
-			}
+			currentSelection = lr;
 		}
 	}
-	if (bAddLinear)
-	{
-		lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_ADDSTRING, 0, (LPARAM) TEXT("Linear"));
-		if (lr >= 0)
-		{
-			SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINFILTER_LINEAR);
-			if (NewCfg.m_blitFilter == HCFG::EMUWINFILTER_LINEAR)
-			{
-				currentSelection = lr;
-			}
-		}
-	}
+
 	if (currentSelection >= 0)
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETCURSEL, currentSelection, 0);
+	}
 	else
+	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETCURSEL, 0, 0);
+	}
 }
 
 void CDiagEmulationSettingsTab::FillSidCount()
@@ -1468,82 +1426,6 @@ shared_ptr<CTabPageDialog> pPage;
 	}
 }
 
-void CDiagEmulationSettingsTab::SettingsOnPixelDoublerChange()
-{
-HWND hWndCtrl, hVideoPage;
-bool bIsCpuDoubler;
-shared_ptr<CTabPageDialog> pPage;
-LRESULT lr;
-	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
-	{
-		hVideoPage = pPage->GetHwnd();
-		bIsCpuDoubler = (IsDlgButtonChecked(hVideoPage, IDC_DOUBLER_CPU) != BST_UNCHECKED);
-
-		hWndCtrl = GetDlgItem(hVideoPage, IDC_LBL_FILTER);
-		if (hWndCtrl)
-			EnableWindow(hWndCtrl, !bIsCpuDoubler);
-
-		hWndCtrl = GetDlgItem(hVideoPage, IDC_CBO_FILTER);
-		if (hWndCtrl)
-			EnableWindow(hWndCtrl, !bIsCpuDoubler);
-
-
-		if (bIsCpuDoubler)
-		{
-			//Filters are not supported by the CPU pixel doubler.
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_GETCOUNT, 0, 0);
-			if(lr != CB_ERR && lr >= 0 && lr > 0)
-			{
-				SendDlgItemMessage(hVideoPage, IDC_CBO_FILTER, CB_SETCURSEL, 0, 0);
-			}
-		}
-
-
-		if (bIsCpuDoubler)
-		{
-			//Remove 'stretch to fit' if there.
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_FINDSTRING, 0, (LPARAM) szVideoFilter_StretchToFit);
-			if (lr != CB_ERR && lr >= 0)
-			{
-				SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_DELETESTRING, lr, 0);				
-			}
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_FINDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
-			if (lr != CB_ERR && lr >= 0)
-			{
-				SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_DELETESTRING, lr, 0);				
-			}
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_GETCURSEL, 0, 0);
-			if (lr == CB_ERR)
-			{
-				SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETCURSEL, 0, 0);
-			}
-
-		}
-		else
-		{
-			//Add 'stretch to fit' if not there.
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_FINDSTRING, 0, (LPARAM) szVideoFilter_StretchToFit);
-			if (lr == CB_ERR || lr < 0)
-			{
-				lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchToFit);
-				if (lr >= 0)
-				{
-					SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_ASPECTSTRETCH);
-				}
-			}
-			lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_FINDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
-			if (lr == CB_ERR || lr < 0)
-			{
-				lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM) szVideoFilter_StretchWithBorderClip);
-				if (lr >= 0)
-				{
-					SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM) HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP);
-				}
-			}
-		}
-	}
-}
-
 void CDiagEmulationSettingsTab::SettingsOnCiaChipChange()
 {
 HWND hTabPage;
@@ -1564,12 +1446,12 @@ shared_ptr<CTabPageDialog> pPage;
 	}
 }
 
-HRESULT CDiagEmulationSettingsTab::ReadAdapterOrdinal(DWORD *adapterOrdinal, GUID *adapterId)
+HRESULT CDiagEmulationSettingsTab::ReadAdapterOrdinal(bool* pbIsDefault, unsigned int* pAdapterOrdinal, unsigned int* pOutputOrdinal)
 {
-HWND hWnd;
-shared_ptr<CTabPageDialog> pPage;
-LRESULT lr;
-LRESULT index;
+	HWND hWnd;
+	shared_ptr<CTabPageDialog> pPage;
+	LRESULT lr;
+	LRESULT index;
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
@@ -1579,59 +1461,74 @@ LRESULT index;
 		{
 			if (lr == 0)
 			{
-				if (adapterOrdinal!=NULL)
-					*adapterOrdinal = D3DADAPTER_DEFAULT;
-				if (adapterId!=NULL)
-					ZeroMemory(adapterId, sizeof(GUID));
+				if (pbIsDefault != NULL)
+				{
+					*pbIsDefault = true;
+				}
+
+				if (pAdapterOrdinal != NULL)
+				{
+					*pAdapterOrdinal = 0;
+				}
+
+				if (pOutputOrdinal != NULL)
+				{
+					*pOutputOrdinal = 0;
+				}
+
 				return S_OK;
 			}
 			else
 			{
 				index = lr;
 				lr = SendDlgItemMessage(hWnd, IDC_CBO_ADAPTER, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr >= 0 && lr < MAXLONG)
+				if (lr != CB_ERR && lr >= 0 && (size_t)lr < m_AdapterArray.size())
 				{
-					if (adapterOrdinal!=NULL)
-						*adapterOrdinal  = m_AdapterArray[(ULONG)lr].adapterOrdinal;
-					if (adapterId!=NULL)
-						*adapterId  = m_AdapterArray[(ULONG)lr].adapter.DeviceIdentifier;
+					const CDisplayInfo2& displayInfo = m_AdapterArray[(size_t)lr];
+					if (pAdapterOrdinal != NULL)
+					{
+						*pAdapterOrdinal = displayInfo.adapterOrdinal;
+					}
+
+					if (pOutputOrdinal != NULL)
+					{
+						*pOutputOrdinal = displayInfo.outputOrdinal;
+					}
+
+					if (pbIsDefault != NULL)
+					{
+						*pbIsDefault = false;
+					}
+
 					return S_OK;
 				}
 			}
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT CDiagEmulationSettingsTab::ReadAdapterMode(D3DDISPLAYMODE *pMode)
+HRESULT CDiagEmulationSettingsTab::ReadAdapterMode(CDisplayModeInfo **ppMode)
 {
 HWND hWnd;
 shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
-	ZeroMemory(pMode, sizeof(D3DDISPLAYMODE));
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
 		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_MODE, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
-			if (lr == 0)
+			index = lr;
+			lr = SendDlgItemMessage(hWnd, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
+			if (lr != CB_ERR && lr != 0)
 			{
-				return S_OK;
-			}
-			else
-			{
-				index = lr;
-				lr = SendDlgItemMessage(hWnd, IDC_CBO_MODE, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr != NULL)
+				if (ppMode != NULL)
 				{
-					if (pMode != NULL)
-					{
-						*pMode  = ((CDisplayModeInfo *)lr)->mode;
-					}
-
+					*ppMode  = reinterpret_cast<CDisplayModeInfo *>(lr);
 					return S_OK;
 				}
 			}
@@ -1641,53 +1538,50 @@ LRESULT index;
 	return E_FAIL;
 }
 
-HRESULT CDiagEmulationSettingsTab::ReadAdapterFormat(D3DFORMAT *pFormat)
+HRESULT CDiagEmulationSettingsTab::ReadAdapterFormat(CDisplayFormatInfo** ppFormat)
 {
-HWND hWnd;
-shared_ptr<CTabPageDialog> pPage;
-LRESULT lr;
-LRESULT index;
+	HWND hWnd;
+	shared_ptr<CTabPageDialog> pPage;
+	LRESULT lr;
+	LRESULT index;
 
-	*pFormat = D3DFMT_UNKNOWN;
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
 	{
 		hWnd = pPage->GetHwnd();
 		lr = SendDlgItemMessage(hWnd, IDC_CBO_FORMAT, CB_GETCURSEL, 0, 0);
 		if (lr != CB_ERR && lr >= 0)
 		{
-			if (lr == 0)
+			index = lr;
+			lr = SendDlgItemMessage(hWnd, IDC_CBO_FORMAT, CB_GETITEMDATA, index, 0);
+			if (lr != CB_ERR && lr != 0)
 			{
-				return S_OK;
-			}
-			else
-			{
-				index = lr;
-				lr = SendDlgItemMessage(hWnd, IDC_CBO_FORMAT, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr != NULL)
+				if (ppFormat != NULL)
 				{
-					if (pFormat != NULL)
-					{
-						*pFormat  = ((CDisplayModeInfo *)lr)->mode.Format;
-					}
-
+					*ppFormat = reinterpret_cast<CDisplayFormatInfo*>(lr);
 					return S_OK;
 				}
 			}
 		}
 	}
+
 	return E_FAIL;
 }
 
-HRESULT CDiagEmulationSettingsTab::ReadAdapterRefresh(UINT *pRefreshRate)
+HRESULT CDiagEmulationSettingsTab::ReadAdapterRefresh(UINT *pRefreshRateNumerator, UINT* pRefreshRateDenominator)
 {
 HWND hWnd;
 shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
 
-	if (pRefreshRate != NULL)
+	if (pRefreshRateNumerator != NULL)
 	{
-		*pRefreshRate = 0;
+		*pRefreshRateNumerator = 0;
+	}
+
+	if (pRefreshRateDenominator != NULL)
+	{
+		*pRefreshRateDenominator = 0;
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
@@ -1704,11 +1598,20 @@ LRESULT index;
 			{
 				index = lr;
 				lr = SendDlgItemMessage(hWnd, IDC_CBO_ADAPTER_REFRESH, CB_GETITEMDATA, index, 0);
-				if (lr != CB_ERR && lr != NULL)
+				if (lr != CB_ERR && lr != 0)
 				{
-					if (pRefreshRate != NULL)
+					CDisplayRefreshInfo* pRefreshRate = reinterpret_cast<CDisplayRefreshInfo *>(lr);
+					if (!pRefreshRate->isAuto)
 					{
-						*pRefreshRate  = ((CDisplayModeInfo *)lr)->mode.RefreshRate;
+						if (pRefreshRateNumerator != NULL)
+						{
+							*pRefreshRateNumerator = pRefreshRate->refreshRateNumerator;
+						}
+
+						if (pRefreshRateDenominator != NULL)
+						{
+							*pRefreshRateDenominator = pRefreshRate->refreshRateDenominator;
+						}
 					}
 
 					return S_OK;
@@ -1726,7 +1629,6 @@ HWND hWnd;
 shared_ptr<CTabPageDialog> pPage;
 LRESULT lr;
 LRESULT index;
-
 
 	*pStretch = HCFG::EMUWINSTR_AUTO;
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
@@ -1747,13 +1649,16 @@ LRESULT index;
 				if (lr != CB_ERR)
 				{
 					if (pStretch != NULL)
-						*pStretch  = (HCFG::EMUWINDOWSTRETCH)lr;
+					{
+						*pStretch = (HCFG::EMUWINDOWSTRETCH)lr;
+					}
+
 					return S_OK;
 				}
 			}
-
 		}
 	}
+
 	return E_FAIL;
 }
 
@@ -1783,13 +1688,16 @@ LRESULT index;
 				if (lr != CB_ERR)
 				{
 					if (pFilter != NULL)
-						*pFilter  = (HCFG::EMUWINDOWFILTER)lr;
+					{
+						*pFilter = (HCFG::EMUWINDOWFILTER)lr;
+					}
+
 					return S_OK;
 				}
 			}
-
 		}
 	}
+
 	return E_FAIL;
 }
 
@@ -1816,6 +1724,7 @@ LRESULT index;
 			}
 		}
 	}
+
 	switch (*pBorder)
 	{
 	case HCFG::EMUBORDER_FULL:
@@ -1832,10 +1741,10 @@ LRESULT index;
 
 bool CDiagEmulationSettingsTab::ReadComboItemDataInt(int page, int control_id, int *data)
 {
-HWND hWnd;
-shared_ptr<CTabPageDialog> pPage;
-LRESULT lr;
-LRESULT index;
+	HWND hWnd;
+	shared_ptr<CTabPageDialog> pPage;
+	LRESULT lr;
+	LRESULT index;
 
 	*data = 0;
 	pPage = GetPage(page);
@@ -2014,6 +1923,7 @@ LRESULT index;
 			}
 		}
 	}
+
 	switch (*pFps)
 	{
 	case HCFG::EMUFPS_50:
@@ -2027,39 +1937,65 @@ LRESULT index;
 
 void CDiagEmulationSettingsTab::loadconfig(const CConfig *cfg)
 {
-HWND hWnd;
-shared_ptr<CTabPageDialog> pPage;
+	HWND hWnd;
+	shared_ptr<CTabPageDialog> pPage;
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_GENERAL)) != NULL)
 	{
 		hWnd = pPage->GetHwnd();
 		if (cfg->m_bShowSpeed)
+		{
 			CheckDlgButton(hWnd, IDC_SHOWSPEED, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_SHOWSPEED, BST_UNCHECKED);
+		}
+
 		if (cfg->m_bLimitSpeed)
+		{
 			CheckDlgButton(hWnd, IDC_LIMITSPEED, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_LIMITSPEED, BST_UNCHECKED);
+		}
+
 		if (cfg->m_bCPUFriendly)
+		{
 			CheckRadioButton(hWnd, IDC_HOSTCPU_FRIENDLY, IDC_HOSTCPU_AGGRESSIVE, IDC_HOSTCPU_FRIENDLY);
+		}
 		else
+		{
 			CheckRadioButton(hWnd, IDC_HOSTCPU_FRIENDLY, IDC_HOSTCPU_AGGRESSIVE, IDC_HOSTCPU_AGGRESSIVE);
+		}
 
 		if (cfg->m_bD1541_Thread_Enable)
+		{
 			CheckDlgButton(hWnd, IDC_DISKONSEPARATETHREAD, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_DISKONSEPARATETHREAD, BST_UNCHECKED);
+		}
 
 		if (cfg->m_bAllowOpposingJoystick)
+		{
 			CheckDlgButton(hWnd, IDC_ALLOWOPPOSINGJOYSTICK, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_ALLOWOPPOSINGJOYSTICK, BST_UNCHECKED);
+		}
 
-		if (cfg->m_bDisableDwmFullscreen)
-			CheckDlgButton(hWnd, IDC_DISABLE_DWM_FULLSCREEN, BST_CHECKED);
+		if (cfg->m_bEnableImGuiWindowed)
+		{
+			CheckDlgButton(hWnd, IDC_IMGUI_WINDOWEDMODE_ENABLE, BST_CHECKED);
+		}
 		else
-			CheckDlgButton(hWnd, IDC_DISABLE_DWM_FULLSCREEN, BST_UNCHECKED);
+		{
+			CheckDlgButton(hWnd, IDC_IMGUI_WINDOWEDMODE_ENABLE, BST_UNCHECKED);
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
@@ -2098,15 +2034,6 @@ shared_ptr<CTabPageDialog> pPage;
 		else
 		{
 			CheckRadioButton(hWnd, IDC_VBLSYNC_WND, IDC_LINESYNC_WND, IDC_LINESYNC_WND);
-		}
-
-		if (cfg->m_bUseBlitStretch)
-		{
-			CheckRadioButton(hWnd, IDC_DOUBLER_BLIT, IDC_DOUBLER_CPU, IDC_DOUBLER_BLIT);
-		}
-		else
-		{
-			CheckRadioButton(hWnd, IDC_DOUBLER_BLIT, IDC_DOUBLER_CPU, IDC_DOUBLER_CPU);	
 		}
 	}
 
@@ -2163,14 +2090,22 @@ shared_ptr<CTabPageDialog> pPage;
 	{
 		hWnd = pPage->GetHwnd();
 		if (cfg->m_bD1541_Emulation_Enable)
+		{
 			CheckDlgButton(hWnd, IDC_1541_EMULATION, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_1541_EMULATION, BST_UNCHECKED);
+		}
 
 		if (cfg->m_bShowFloppyLed)
+		{
 			CheckDlgButton(hWnd, IDC_CHK_SHOWFLOPPYLED, BST_CHECKED);
+		}
 		else
+		{
 			CheckDlgButton(hWnd, IDC_CHK_SHOWFLOPPYLED, BST_UNCHECKED);
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP)) != NULL)
@@ -2211,7 +2146,6 @@ shared_ptr<CTabPageDialog> pPage;
 	FillSidCount();
 	FillSidAddress();
 	SettingsOnLimitSpeedChange();
-	SettingsOnPixelDoublerChange();
 }
 
 void CDiagEmulationSettingsTab::saveconfig(CConfig *cfg)
@@ -2267,13 +2201,13 @@ shared_ptr<CTabPageDialog> pPage;
 			cfg->m_bAllowOpposingJoystick = false;
 		}
 
-		if (IsDlgButtonChecked(hWnd, IDC_DISABLE_DWM_FULLSCREEN))
+		if (IsDlgButtonChecked(hWnd, IDC_IMGUI_WINDOWEDMODE_ENABLE))
 		{
-			cfg->m_bDisableDwmFullscreen = true;
+			cfg->m_bEnableImGuiWindowed = true;
 		}
 		else
 		{
-			cfg->m_bDisableDwmFullscreen = false;
+			cfg->m_bEnableImGuiWindowed = false;
 		}
 	}
 
@@ -2315,51 +2249,47 @@ shared_ptr<CTabPageDialog> pPage;
 			cfg->m_syncModeWindowed = HCFG::FSSM_LINE;
 		}
 
-		if (IsDlgButtonChecked(hWnd, IDC_DOUBLER_BLIT))
+		unsigned int adapterOrdinal = 0;
+		unsigned int outputOrdinal = 0;
+		bool isDefaultAdapter = 0;
+		if (SUCCEEDED(ReadAdapterOrdinal(&isDefaultAdapter, &adapterOrdinal, &outputOrdinal)))
 		{
-			cfg->m_bUseBlitStretch = true;
-		}
-		else
-		{
-			cfg->m_bUseBlitStretch = false;
+			cfg->m_fullscreenAdapterIsDefault = isDefaultAdapter;
+			cfg->m_fullscreenAdapterNumber = adapterOrdinal;
+			cfg->m_fullscreenOutputNumber = outputOrdinal;
 		}
 
-		GUID zeroGuid;
-		DWORD adapterOrdinal;
-		GUID adapterId;
-		ZeroMemory(&adapterId, sizeof(GUID));
-		ZeroMemory(&zeroGuid, sizeof(GUID));
-		if (SUCCEEDED(ReadAdapterOrdinal(&adapterOrdinal, &adapterId)))
+		CDisplayModeInfo* pMode;
+		if (SUCCEEDED(ReadAdapterMode(&pMode)))
 		{
-			if (adapterId == zeroGuid)
+			if (pMode->isAuto)
 			{
-				cfg->m_fullscreenAdapterNumber = D3DADAPTER_DEFAULT;
-				cfg->m_fullscreenAdapterId = zeroGuid;
+				cfg->m_fullscreenWidth = 0;
+				cfg->m_fullscreenHeight = 0;
+				cfg->m_fullscreenDxGiModeScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+				cfg->m_fullscreenDxGiModeScaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
 			}
 			else
 			{
-				cfg->m_fullscreenAdapterNumber = adapterOrdinal;
-				cfg->m_fullscreenAdapterId = adapterId;
+				cfg->m_fullscreenWidth = pMode->width;
+				cfg->m_fullscreenHeight = pMode->height;
+				cfg->m_fullscreenDxGiModeScanlineOrdering = pMode->scanlineOrdering;
+				cfg->m_fullscreenDxGiModeScaling = pMode->scaling;
 			}
 		}
 
-		D3DDISPLAYMODE adapterMode;
-		if (SUCCEEDED(ReadAdapterMode(&adapterMode)))
+		CDisplayFormatInfo *pFormat;
+		if (SUCCEEDED(ReadAdapterFormat(&pFormat)))
 		{
-			cfg->m_fullscreenWidth = adapterMode.Width;
-			cfg->m_fullscreenHeight = adapterMode.Height;
+			cfg->m_fullscreenFormat = pFormat->format;
 		}
 
-		D3DFORMAT adapterFormat;
-		if (SUCCEEDED(ReadAdapterFormat(&adapterFormat)))
+		UINT adapterRefreshNumerator;
+		UINT adapterRefreshDenominator;
+		if (SUCCEEDED(ReadAdapterRefresh(&adapterRefreshNumerator, &adapterRefreshDenominator)))
 		{
-			cfg->m_fullscreenFormat = adapterFormat;
-		}
-
-		UINT adapterRefresh;
-		if (SUCCEEDED(ReadAdapterRefresh(&adapterRefresh)))
-		{
-			cfg->m_fullscreenRefresh = adapterRefresh;
+			cfg->m_fullscreenRefreshNumerator = adapterRefreshNumerator;
+			cfg->m_fullscreenRefreshDenominator = adapterRefreshDenominator;
 		}
 
 		HCFG::EMUWINDOWSTRETCH adapterStretch;
@@ -2696,15 +2626,6 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 				return TRUE;
 			}
 			break;
-		case IDC_DOUBLER_BLIT:
-		case IDC_DOUBLER_CPU:
-			switch (HIWORD(wParam))
-			{
-			case BN_CLICKED:
-				SettingsOnPixelDoublerChange();
-				return TRUE;
-			}
-			break;
 		case IDC_RAD_CIA6526:
 			switch (HIWORD(wParam))
 			{
@@ -2777,195 +2698,241 @@ bool CDiagEmulationSettingsTab::CDisplayModeInfo_WxH_is_less::operator()(const C
 	return CDiagEmulationSettingsTab::fnCompareMode(a, b) < 0;
 }
 
-CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_equal::CDisplayModeInfo_format_is_equal(D3DFORMAT format)
+CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_equal::CDisplayModeInfo_format_is_equal(const CDisplayFormatInfo& format)
 	: format(format)
 {
 }
 
-bool CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_equal::operator()(const CDisplayModeInfo& mode) const
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_equal::operator()(const CDisplayFormatInfo& format) const
 {
-	return this->format == mode.mode.Format;
+	return this->format.format == format.format && this->format.isAuto == format.isAuto;
 }
 
-bool CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_less::operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_format_is_less::operator()(const CDisplayFormatInfo& a, const CDisplayFormatInfo& b) const
 {
 	return CDiagEmulationSettingsTab::fnCompareFormat(a, b) < 0;
 }
 
-CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_equal::CDisplayModeInfo_refresh_is_equal(UINT refresh)
+CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_equal::CDisplayModeInfo_refresh_is_equal(const CDisplayRefreshInfo& refresh)
 	: refresh(refresh)
 {
 }
 
-bool CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_equal::operator()(const CDisplayModeInfo& mode) const
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_equal::operator()(const CDisplayRefreshInfo& refresh) const
 {
-	return this->refresh == mode.mode.RefreshRate;
+	return this->refresh.refreshRateNumerator == refresh.refreshRateNumerator && this->refresh.refreshRateDenominator == refresh.refreshRateDenominator;
 }
 
-bool CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_less::operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const
+bool CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_less::operator()(const CDisplayRefreshInfo& a, const CDisplayRefreshInfo& b) const
 {
-	return a.mode.RefreshRate < b.mode.RefreshRate;
+	double rateL = 0.0;
+	double rateR = 0.0;
+	if (a.refreshRateDenominator != 0)
+	{
+		rateL = a.refreshRateNumerator / a.refreshRateDenominator;
+	}
+
+	if (b.refreshRateDenominator != 0)
+	{
+		rateR = b.refreshRateNumerator / b.refreshRateDenominator;
+	}
+
+	return rateL < rateR;
 }
 
-CDisplayInfo::CDisplayInfo()
+CDisplayInfo2::CDisplayInfo2()
 {
-	bRequireClean = true;
+	isAuto = false;
 	adapterOrdinal = 0;
-	ZeroMemory(&adapter, sizeof(adapter));
+	outputOrdinal = 0;
+	ZeroMemory(&adapterDesc, sizeof(adapterDesc));
+	ZeroMemory(&outputDesc, sizeof(outputDesc));
 	ZeroMemory(&monitor, sizeof(monitor));
-	name = NULL;
 }
 
-
-CDisplayInfo::~CDisplayInfo()
-{	
-	if (bRequireClean)
-	{
-		if (name)
-		{
-			GlobalFree(name);
-		}
-
-		name = NULL;
-	}
-}
-
-HRESULT CDisplayInfo::MakeName()
+HRESULT CDisplayInfo2::MakeName()
 {
-int lenName;
-
-	if (name)
+	try
 	{
-		GlobalFree(name);
-		name = NULL;
-	}
-
-	lenName = sizeof(adapter.Description) + lstrlen(TEXT(" ")) + sizeof(monitor.szDevice) + 1;
-	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
-	if (name == NULL)
-	{
-		return E_OUTOFMEMORY;
-	}
-#ifdef UNICODE
-
-	int lenUcBuffer = 0;
-	name[0] = L'\0';
-	//if (SUCCEEDED(G::AnsiToUcRequiredBufferLength(adapter.Description, 0, lenUcBuffer)))
-	if (SUCCEEDED(G::AnsiToUc(adapter.Description, NULL, 0, lenUcBuffer)))
-	{
-		WCHAR *pTempUcBuffer = (WCHAR *)malloc(lenUcBuffer * sizeof(TCHAR));
-		if (pTempUcBuffer!=NULL)
+		nameOfAdapter.clear();
+		if (isAuto)
 		{
-			if (SUCCEEDED(G::AnsiToUc(adapter.Description, pTempUcBuffer, 0)))
-			{
-				wcsncpy_s((WCHAR *)name, lenName, pTempUcBuffer, _TRUNCATE);
-			}
-			free(pTempUcBuffer);
-			pTempUcBuffer = NULL;
+			nameOfAdapter.append(TEXT("Auto"));
+			return S_OK;
 		}
+
+		nameOfAdapter.append(adapterDesc.Description);
+		nameOfAdapter.append(L" ");
+		nameOfAdapter.append(monitor.szDevice);
+	}
+	catch (...)
+	{
+		return E_FAIL;
 	}
 
-	wcsncat_s((WCHAR *)name, lenName, L" ", 1);
-	wcsncat_s((WCHAR *)name, lenName, monitor.szDevice, _TRUNCATE);
-#else
-	strncpy_s(name, lenName, adapter.Description, strlen(adapter.Description));
-	int lenAnsiBuffer = 0;
-	if (SUCCEEDED(G::UcToAnsiRequiredBufferLength(monitor.szDevice, 0, lenAnsiBuffer)))
-	{
-		char *pTempAnsiBuffer = (char *)malloc(lenAnsiBuffer);
-		if (pTempAnsiBuffer!=NULL)
-		{
-			if (SUCCEEDED(G::UcToAnsi(monitor.szDevice,  pTempAnsiBuffer, 0)))
-			{
-				strncat_s(name, lenName, " ", 1);
-				strncat_s(name, lenName, pTempAnsiBuffer, _TRUNCATE);
-			}
-			free(pTempAnsiBuffer);
-			pTempAnsiBuffer = NULL;
-		}
-	}
-#endif
-	
 	return S_OK;
 }
 
 CDisplayModeInfo::CDisplayModeInfo()
 {
-	bRequireClean = true;
-	ZeroMemory(&mode, sizeof(mode));
-	name = NULL;
+	isAuto = false;
+	width = 0;
+	height = 0;
+	scanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+	scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
 }
 
-CDisplayModeInfo::~CDisplayModeInfo()
+HRESULT CDisplayModeInfo::MakeName()
 {
-	if (bRequireClean)
+	HRESULT hr = S_OK;
+	wchar_t *p = nullptr;
+	try
 	{
-		if (name)
+		name.clear();
+		if (isAuto)
 		{
-			GlobalFree(name);
+			name.append(TEXT("Auto"));
+			return S_OK;
 		}
 
-		name = NULL;
+		int lenName = GraphicsHelper::GetDisplayResolutionText(width, height, NULL, 0);
+		p = new wchar_t[lenName];
+		if (p != NULL)
+		{
+			GraphicsHelper::GetDisplayResolutionText(width, height, p, lenName);
+			name.append(p);
+			if (scanlineOrdering == DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE)
+			{
+				name.append(TEXT(" p"));
+			}
+			else if (scanlineOrdering == DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_LOWER_FIELD_FIRST)
+			{
+				name.append(TEXT(" i (L)"));
+			}
+			else if (scanlineOrdering == DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UPPER_FIELD_FIRST)
+			{
+				name.append(TEXT(" i (U)"));
+			}
+
+			if (scaling == DXGI_MODE_SCALING::DXGI_MODE_SCALING_CENTERED)
+			{
+				name.append(TEXT(" centered"));
+			}
+			else if (scaling == DXGI_MODE_SCALING::DXGI_MODE_SCALING_STRETCHED)
+			{
+				name.append(TEXT(" stretched"));
+			}
+
+			hr = S_OK;
+		}
+		else
+		{
+			hr = E_OUTOFMEMORY;
+		}
 	}
+	catch (...)
+	{
+		hr = E_FAIL;
+	}
+
+	if (p != nullptr)
+	{
+		delete[] p;
+		p = nullptr;
+	}
+
+	return hr;
 }
 
-HRESULT CDisplayModeInfo::MakeName(CDX9 *dx)
+CDisplayFormatInfo::CDisplayFormatInfo()
 {
-int lenName;
-	if (name)
-	{
-		GlobalFree(name);
-		name = NULL;
-	}
-
-	lenName = dx->GetDisplayResolutionText(mode, NULL, 0);
-	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
-	if (name == NULL)
-	{
-		return E_OUTOFMEMORY;
-	}
-
-	dx->GetDisplayResolutionText(mode, name, lenName);
-	return S_OK;
-
+	isAuto = false;
+	format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
 }
 
-HRESULT CDisplayModeInfo::MakeNameFormat(CDX9 *dx)
+HRESULT CDisplayFormatInfo::MakeName()
 {
-int lenName;
-	if (name)
+	HRESULT hr = S_OK;
+	wchar_t* p = nullptr;
+	try
 	{
-		GlobalFree(name);
-		name = NULL;
+		name.clear();
+		if (isAuto)
+		{
+			name.append(L"Auto");
+			return S_OK;
+		}
+
+		int lenName = GraphicsHelper::GetDisplayFormatText(format, NULL, 0);
+		p = new wchar_t[lenName];
+		if (p != NULL)
+		{
+			GraphicsHelper::GetDisplayFormatText(format, p, lenName);
+			name.append(p);
+			hr = S_OK;
+		}
+		else
+		{
+			hr = E_OUTOFMEMORY;
+		}
+	}
+	catch (...)
+	{
+		hr = E_FAIL;
 	}
 
-	lenName = dx->GetDisplayFormatText(mode, NULL, 0);
-	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
-	if (name == NULL)
+	if (p != nullptr)
 	{
-		return E_OUTOFMEMORY;
+		delete[] p;
+		p = nullptr;
 	}
 
-	dx->GetDisplayFormatText(mode, name, lenName);
-	return S_OK;
+	return hr;
 }
 
-HRESULT CDisplayModeInfo::MakeNameRefresh(CDX9 *dx)
+CDisplayRefreshInfo::CDisplayRefreshInfo()
 {
-int lenName;
-	if (name)
+	isAuto = false;
+	refreshRateNumerator = 0;
+	refreshRateDenominator = 0;
+}
+
+HRESULT CDisplayRefreshInfo::MakeName()
+{
+	HRESULT hr = S_OK;
+	wchar_t* p = nullptr;
+	try
 	{
-		GlobalFree(name);
-		name = NULL;
+		name.clear();
+		if (isAuto)
+		{
+			name.append(TEXT("Auto"));
+			return S_OK;
+		}
+
+		int lenName = GraphicsHelper::GetDisplayRefreshText(refreshRateNumerator, refreshRateDenominator, NULL, 0);
+		p = new wchar_t[lenName];
+		if (p != NULL)
+		{
+			GraphicsHelper::GetDisplayRefreshText(refreshRateNumerator, refreshRateDenominator, p, lenName);
+			name.append(p);
+			hr = S_OK;
+		}
+		else
+		{
+			hr = E_OUTOFMEMORY;
+		}
+	}
+	catch (...)
+	{
+		hr = E_FAIL;
 	}
 
-	lenName = dx->GetDisplayRefreshText(mode, NULL, 0);
-	name = (TCHAR *)GlobalAlloc(GPTR, lenName * sizeof(TCHAR));
-	if (name == NULL)
+	if (p != nullptr)
 	{
-		return E_OUTOFMEMORY;
+		delete[] p;
+		p = nullptr;
 	}
 
-	dx->GetDisplayRefreshText(mode, name, lenName);
-	return S_OK;
+	return hr;
 }

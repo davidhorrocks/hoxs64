@@ -1,9 +1,9 @@
-#ifndef __ASSEMBLER_H__
-#define __ASSEMBLER_H__
+#pragma once
 
-#define MAX_IDENTIFIER_SIZE 10
 struct AssemblyToken
 {
+	static const int MAX_IDENTIFIER_SIZE = 10;
+
 	AssemblyToken();
 	enum tagTType
 	{
@@ -69,7 +69,7 @@ private:
 	LexState::ELexState m_LexState;
 	LPCTSTR m_pszText;
 	int m_pos;
-	TCHAR m_bufIdentifierString[MAX_IDENTIFIER_SIZE];
+	TCHAR m_bufIdentifierString[AssemblyToken::MAX_IDENTIFIER_SIZE];
 	int m_ibufPos;
 	int m_bufNumber;
 	DBGSYM::MonitorOption::Radix radix;
@@ -119,5 +119,3 @@ private:
 	HRESULT _ParseNumber16(bit16 *piNumber, bool *pIs16bit);
 	bool TryParseHexWord(LPCTSTR str, bit16 *pvalue);
 };
-
-#endif

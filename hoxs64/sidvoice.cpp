@@ -87,10 +87,6 @@ void SIDVoice::Reset(ICLK sysclock, bool poweronreset)
 	lastSample = CalcWaveOutput(wavetype, this->noiseFeedbackSample1, this->noiseFeedbackMask0, this->noiseFeedbackMask1);
 }
 
-SIDVoice::~SIDVoice()
-{
-}
-
 HRESULT SIDVoice::Init(CAppStatus *appStatus)
 {
 	this->appStatus = appStatus;

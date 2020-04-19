@@ -1,5 +1,19 @@
-#ifndef __C64FILE_H__
-#define __C64FILE_H__
+#pragma once
+#include "wfs.h"
+#include "defines.h"
+#include "bits.h"
+#include "util.h"
+#include "mlist.h"
+#include "carray.h"
+#include "register.h"
+#include "savestate.h"
+#include "FDI.h"
+#include "p64.h"
+#include "d64.h"
+#include "t64.h"
+#include "tap.h"
+#include "sidfile.h"
+#include "errormsg.h"
 
 struct C64DirectoryItem
 {
@@ -56,26 +70,36 @@ public:
 		ef_SID,
 		ef_UNKNOWN
 	};
+
 	C64File();
 	~C64File();
-	HRESULT Init();
-	HRESULT IsFDI(TCHAR filename[], bool &result);
-	HRESULT IsP64(TCHAR filename[], bool &result);
-	HRESULT IsG64(TCHAR filename[], bool &result);
-	HRESULT IsD64(TCHAR filename[], bool &result);
-	HRESULT IsT64(TCHAR filename[], bool &result);
-	HRESULT IsTAP(TCHAR filename[], bool &result);
-	HRESULT IsPRG(TCHAR filename[], bool &result);
-	HRESULT IsP00(TCHAR filename[], bool &result);
-	HRESULT IsSID(TCHAR filename[], bool &result);
+	C64File(const C64File&) = default;
+	C64File(C64File&&) = default;
+	C64File& operator=(const C64File&) = default;
+	C64File& operator=(C64File&&) = default;
 
-	HRESULT GetC64FileType(TCHAR filename[],enum eC64FileType &filetype);
+	static HRESULT IsFDI(const TCHAR filename[], bool &result);
+	static HRESULT IsP64(const TCHAR filename[], bool &result);
+	static HRESULT IsG64(const TCHAR filename[], bool &result);
+	static HRESULT IsD64(const TCHAR filename[], bool &result);
+	static HRESULT IsT64(const TCHAR filename[], bool &result);
+	static HRESULT IsTAP(const TCHAR filename[], bool &result);
+	static HRESULT IsPRG(const TCHAR filename[], bool &result);
+	static HRESULT IsP00(const TCHAR filename[], bool &result);
+	static HRESULT IsSID(const TCHAR filename[], bool &result);
+	static HRESULT GetC64FileType(const TCHAR filename[],enum eC64FileType &filetype);
+	static int GetC64FileNameLength(const bit8 filename[], int bufferLength);
+	static int CompareC64FileNames(const bit8 filename1[], int length1, const bit8 filename2[], int length2);
+	static bit8 ConvertPetAsciiToScreenCode(bit8 petascii);
+	static bit8 ConvertCommandLineAnsiToPetAscii(unsigned char ch);
+	static unsigned char C64File::ConvertPetAsciiToAnsi(bit8 ch);
+	static bool FilenameHasExtension(const TCHAR filename[], const TCHAR ext[]);
+
 	void ClearDirectory();
-	HRESULT LoadDirectory(TCHAR filename[], int maxcount, int &count, bool bPrgFilesOnly, HANDLE hevtQuit);
-	HRESULT LoadFileImage(TCHAR filename[], const bit8 c64FileName[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit16* pFileSize);
-	enum eC64FileType GetFileType();
-	int GetFileCount();
-
+	HRESULT LoadDirectory(const TCHAR filename[], int maxcount, int &count, bool bPrgFilesOnly, HANDLE hevtQuit);
+	HRESULT LoadFileImage(const TCHAR filename[], const bit8 c64FileName[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit16* pFileSize);
+	enum eC64FileType GetFileType() const;
+	int GetFileCount() const;
 	int GetDirectoryItemNameLength(int);
 	int GetDirectoryItemName(int index, bit8 *outBuffer, int bufferLength);
 	int GetC64DisknameLength();
@@ -83,26 +107,20 @@ public:
 	int GetOriginalDirectoryIndex(int);
 	const bit8 *GetDirectoryItemTypeName(int index);
 
-	static int GetC64FileNameLength(const bit8 filename[], int bufferLength);
-	static int CompareC64FileNames(const bit8 filename1[], int length1, const bit8 filename2[], int length2);
-
 	static const bit8 FTN_DEL[3];
 	static const bit8 FTN_SEQ[3];
 	static const bit8 FTN_PRG[3];
 	static const bit8 FTN_USR[3];
 	static const bit8 FTN_REL[3];
 	static const bit8 FTN_CLR[3];
-	static bit8 ConvertPetAsciiToScreenCode(bit8 petascii);
-	static bit8 ConvertAnsiToPetAscii(unsigned char ch);
+	static const char formatsong[];
 private:
-	static bit8 blankname[C64DISKFILENAMELENGTH];
-	bit8 mDirectoryItemNameBuffer[C64DISKFILENAMELENGTH];
+	//static bit8 blankname[C64DISKFILENAMELENGTH];
+	bit8 mDirectoryItemNameBuffer[20];
 	void CleanUp();
-	static bool FilenameHasExtention(TCHAR filename[], TCHAR ext[]);
 	eC64FileType _FileType;
 	T64 t64;
 	GCRDISK disk;
 	C64Directory directory;
 	SIDLoader sidLoader;
 };
-#endif

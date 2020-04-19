@@ -9,6 +9,8 @@
 #include "bits.h"
 #include "carray.h"
 #include "mlist.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "huff.h"
 #include "FDI.h"
@@ -111,7 +113,7 @@ const bit8 GCRDISK::D64_BAM[256]=
 //i: bit wise index into the GCR data to start decoding.
 //return: return a byte whose low nibble is the decoded result. The high nibble is zero on success.
 //if the 5 bits in the source buffer indexed by i is invalid GCR then the function returns 0xff
-bit8 GCRDISK::D64_extract_binary_nibble (bit8 *src,unsigned long i)
+bit8 GCRDISK::D64_extract_binary_nibble (bit8 *src,unsigned long i) noexcept
 {
 if ((i % 8) <= 3)
 	return gcr_reverse_table[(    (src[i/8L] >> (3 - (i % 8)))     &   0x1f )];
@@ -130,7 +132,7 @@ else
 //return: returns -1 on success. If an invalid GCR 5 bit group is found 
 //then that 5 bit group is converted to 0x0 and the bit index 
 //into src of the invalid data is returned.
-long GCRDISK::D64_GCR_to_Binary(bit8 *src, bit8 *dest, unsigned long length)
+long GCRDISK::D64_GCR_to_Binary(bit8 *src, bit8 *dest, unsigned long length) noexcept
 {
 long status;
 unsigned long i,j,k;
@@ -159,7 +161,7 @@ bit8 t;
 //src: Pointer to source data buffer.
 //dest: Pointer to buffer that will receive the GCR encoded data.
 //length is the number of bytes to convert.
-void GCRDISK::D64_Binary_to_GCR(bit8 *src, bit8 *dest, long length)
+void GCRDISK::D64_Binary_to_GCR(bit8 *src, bit8 *dest, long length) noexcept
 {
 long l;
 #define hi_nib(i) gcr_table[(src[i] & 0xf0) >> 4]
@@ -711,7 +713,7 @@ bit8 c = 0;
 	return c;
 }
 
-void GCRDISK::Clean()
+void GCRDISK::Clean() noexcept
 {
 int i;
 	if (m_pD64Binary)
@@ -1616,7 +1618,7 @@ bool memoryAllocFailed = false;
 	return hr;
 }
 
-HRESULT GCRDISK::ReadFromFile(HANDLE hfile, TCHAR *filename, char *buffer, DWORD byteCount, DWORD *bytesRead)
+HRESULT GCRDISK::ReadFromFile(HANDLE hfile, const TCHAR *filename, char *buffer, DWORD byteCount, DWORD *bytesRead)
 {
 DWORD bytes_read=0;
 BOOL r;
@@ -1649,7 +1651,7 @@ HRESULT GCRDISK::ReadFromFileQ(HANDLE hfile, char *buffer, DWORD byteCount, DWOR
 	return ReadFromFile(hfile, 0, buffer, byteCount, bytesRead);
 }
 
-HRESULT GCRDISK::LoadG64FromFileHandle(HANDLE hfile, TCHAR *filename, bool bConvertToRAW)
+HRESULT GCRDISK::LoadG64FromFileHandle(HANDLE hfile, const TCHAR *filename, bool bConvertToRAW)
 {
 HRESULT hr;
 DWORD r;
@@ -1838,7 +1840,7 @@ bit16 s;
 	return S_OK;
 }
 
-HRESULT GCRDISK::LoadP64FromFileHandle(HANDLE hfile, TCHAR *filename)
+HRESULT GCRDISK::LoadP64FromFileHandle(HANDLE hfile, const TCHAR *filename)
 {
 TP64MemoryStream P64MemoryStreamInstance;
 DWORD file_size;
@@ -1900,23 +1902,18 @@ HRESULT hr = E_FAIL;
     return hr;
 }
 
-HRESULT GCRDISK::LoadFDIFromFileHandle(HANDLE hfile, TCHAR *filename)
+HRESULT GCRDISK::LoadFDIFromFileHandle(HANDLE hfile, const TCHAR *filename)
 {
 HRESULT hr;
-DWORD r,dw,filePointer;
+DWORD r;
+bit32 dw;
+bit64 filePointer;
 struct FDIHeader fdiHeader;
 bit8 tr,ftr;
-DWORD file_size;
 struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0];
 
 	ClearError();
 	P64ImageClear(&m_P64Image);
-	file_size = GetFileSize(hfile, 0);
-	if (INVALID_FILE_SIZE == file_size)
-	{
-		return SetError(E_FAIL,TEXT("Could not open %s."), filename);
-	}
-
 	hr = ReadFromFile(hfile, filename, &fdiHeader.signature[0], sizeof(struct FDIHeader), 0);
 	if (FAILED(hr))
 	{
@@ -2009,7 +2006,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 			}
 
 			dw = fdiTrackDescription[ftr].size;
-			dw = dw | ((DWORD)(fdiTrackDescription[ftr].type & 0x3f)<<8);
+			dw = dw | ((bit32)(fdiTrackDescription[ftr].type & 0x3f)<<8);
 			dw *= 0x100;
 		}
 		else if ((fdiTrackDescription[ftr].type & 0xf0) == 0xd0)
@@ -2020,7 +2017,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 				return SetError(hr, TEXT("%s is not a valid C64 FDI file."), filename);
 			}
 
-			dw = (DWORD)fdiTrackDescription[ftr].size * 256;
+			dw = (bit32)fdiTrackDescription[ftr].size * 256;
 		}
 		else if ((fdiTrackDescription[ftr].type & 0xf0) == 0xc0)
 		{
@@ -2029,7 +2026,7 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 			{
 				return SetError(hr, TEXT("%s is not a valid C64 FDI file."), filename);
 			}
-			dw = (DWORD)fdiTrackDescription[ftr].size * 256;
+			dw = (bit32)fdiTrackDescription[ftr].size * 256;
 		}
 		else
 		{
@@ -2064,17 +2061,17 @@ struct FDITrackDescription *fdiTrackDescription = &fdiHeader.trackDescription[0]
 	}
 	if (wordswap(fdiHeader.version) >= 0x0201)
 	{
-		return FDICheckCRC(hfile, filename, file_size);
+		return FDICheckCRC(hfile, filename);
 	}
 
 	return S_OK;
 }
 
-HRESULT GCRDISK::FDICheckCRC(HANDLE hfile, TCHAR *filename, DWORD file_size)
+HRESULT GCRDISK::FDICheckCRC(HANDLE hfile, const TCHAR *filename)
 {
 HRESULT hr;
 DWORD r;
-long i;
+bit64 fileindex;
 bit8 currentByte;
 CRC32Alloc crc;
 //#ifdef DEBUG
@@ -2086,54 +2083,84 @@ struct FDIHeader fdiHeader;
 TCHAR sTest[] = TEXT("123456789");
 bit32 vTest=0;
 bit32 vTestCheck=0xCBF43926;
+BOOL br;
+bit64 file_size = 0;
+int i;
 
 	if (!crc.isOK)
+	{
 		return E_OUTOFMEMORY;
+	}
 
 	crc.pCRC32->Init(CRC32POLY,0xffffffff,0xffffffff, true);
+	LARGE_INTEGER fileSizeLarge;
+	br = GetFileSizeEx(hfile, &fileSizeLarge);
+	if (!br)
+	{
+		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
+	}
 
-	r = SetFilePointer (hfile, 0L, 0L, FILE_BEGIN);
+	file_size = fileSizeLarge.QuadPart;
+	r = SetFilePointer(hfile, 0L, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
+
 	hr = ReadFromFile(hfile, filename, (char *)&fdiHeader, sizeof(struct FDIHeader), 0);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	r = SetFilePointer (hfile, 0x200, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 	}
-	for (i=0x200 ; (DWORD)i < file_size ; i++)
+
+	constexpr int quitDelayCycles = 0x1000;
+	int quitCount = quitDelayCycles;
+	for (fileindex = 0x200 ; fileindex < file_size ; fileindex++, quitCount--)
 	{
+		if (quitCount < 0)
+		{
+			quitCount = quitDelayCycles;
+			if (IsEventQuitSignalled())
+			{
+				return E_FAIL;
+			}
+		}
+
 		hr = ReadFromFile(hfile, filename, (char *)&currentByte, 1, 0);
 		if (FAILED(hr))
+		{
 			return hr;
+		}
+
 		crc.pCRC32->ProcessByte((BYTE)currentByte);
 	}
+
 	vData =crc.pCRC32->Value();
-
-
 	crc.pCRC32->Init();
-	for (i=0 ; i < lstrlen(sTest) ; i++)
+	for (i = 0 ; i < lstrlen(sTest) ; i++)
 	{
 		crc.pCRC32->ProcessByte((BYTE)sTest[i]);
 	}
-	vTest = crc.pCRC32->Value();
 
+	vTest = crc.pCRC32->Value();
 	crc.pCRC32->Init();
 	for (i=0 ; i < 508 ; i++)
 	{
 		crc.pCRC32->ProcessByte((BYTE)  ((BYTE *)&fdiHeader.signature[0])[i]);
 	}
-	vHeader = crc.pCRC32->Value();
 
+	vHeader = crc.pCRC32->Value();
 	if (dwordswap(fdiHeader.headerCRC)!=vHeader || dwordswap(fdiHeader.dataCRC)!=vData)
 	{
 		return SetError(APPERR_BAD_CRC, TEXT("The FDI disk file has successfully loaded but the CRC-32 check has failed. This file may be corrupt."));
 	}
+
 	return S_OK;
 }
 
@@ -2186,7 +2213,7 @@ bit8 speedG64;
 }
 
 
-HRESULT GCRDISK::FDIReadGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType)
+HRESULT GCRDISK::FDIReadGCR(HANDLE hfile, bit64 filePointer, bit8 trackNumber, bit8 fdiTrackType)
 {
 HRESULT hr;
 bit32 trackBitLength;
@@ -2194,9 +2221,10 @@ bit32 trackByteLength;
 bit32 indexPos;
 bit8 speed;
 DWORD r;
-
+LARGE_INTEGER filePointerLarge;
 	trackSize[trackNumber] = 0;
-	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
+	filePointerLarge.QuadPart = filePointer;
+	r = SetFilePointerEx (hfile, filePointerLarge, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return E_FAIL;
@@ -2281,7 +2309,7 @@ int j;
 	}
 }
 
-HRESULT GCRDISK::FDIReadDecodedGCR(HANDLE hfile, DWORD filePointer, bit8 trackNumber, bit8 fdiTrackType)
+HRESULT GCRDISK::FDIReadDecodedGCR(HANDLE hfile, bit64 filePointer, bit8 trackNumber, bit8 fdiTrackType)
 {
 bit8 speed;
 DWORD r;
@@ -2293,9 +2321,10 @@ bit16 wordData;
 bit8 byteData;
 bit8 buffer4[4];
 bit8 b1,b2,b3,b4,b5;
-
+LARGE_INTEGER filePointerLarge;
 	trackSize[trackNumber] = 0;
-	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
+	filePointerLarge.QuadPart = filePointer;
+	r = SetFilePointerEx(hfile, filePointerLarge, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return E_FAIL;
@@ -2505,19 +2534,25 @@ bit8 b1,b2,b3,b4,b5;
 	return S_OK;
 }
 
-HRESULT GCRDISK::FDIReadTrackStream(HANDLE hfile, DWORD filePointer, bit8 trackNumber)
+HRESULT GCRDISK::FDIReadTrackStream(HANDLE hfile, bit64 filePointer, bit8 trackNumber)
 {
 HRESULT hr;
-DWORD r,d,i;
+DWORD r;
+DWORD d;
+bit64 fileindex;
 FDIStreamsHeader fdiStreamsHeader;
 HuffDecompression hd;
+LARGE_INTEGER filePointerLarge;
+unsigned int i;
 
 	hr = hd.SetFile(hfile, false);
 	if (FAILED(hr))
 	{
 		return hr;
 	}
-	r = SetFilePointer (hfile, filePointer, 0L, FILE_BEGIN);
+
+	filePointerLarge.QuadPart = filePointer;
+	r = SetFilePointerEx (hfile, filePointerLarge, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		return E_FAIL;
@@ -2599,8 +2634,9 @@ HuffDecompression hd;
 			if (fdiStreamsHeader.minSize)
 			{
 				//Min
-				i = filePointer + 16 + fdiStreamsHeader.aveSize;
-				r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
+				fileindex = filePointer + 16 + fdiStreamsHeader.aveSize;
+				filePointerLarge.QuadPart = fileindex;
+				r = SetFilePointerEx(hfile, filePointerLarge, 0L, FILE_BEGIN);
 				if (r == INVALID_SET_FILE_POINTER)
 				{
 					return E_FAIL;
@@ -2625,8 +2661,9 @@ HuffDecompression hd;
 				if (fdiStreamsHeader.maxSize)
 				{
 					//Max
-					i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize;
-					r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
+					fileindex = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize;
+					filePointerLarge.QuadPart = fileindex;
+					r = SetFilePointerEx(hfile, filePointerLarge, 0L, FILE_BEGIN);
 					if (r == INVALID_SET_FILE_POINTER)
 					{
 						return E_FAIL;
@@ -2655,8 +2692,9 @@ HuffDecompression hd;
 			if (fdiStreamsHeader.idxSize)
 			{
 				//Index
-				i = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize + fdiStreamsHeader.maxSize;
-				r = SetFilePointer (hfile, i, 0L, FILE_BEGIN);
+				fileindex = filePointer + 16 + fdiStreamsHeader.aveSize + fdiStreamsHeader.minSize + fdiStreamsHeader.maxSize;
+				filePointerLarge.QuadPart = fileindex;
+				r = SetFilePointerEx(hfile, filePointerLarge, 0L, FILE_BEGIN);
 				if (r == INVALID_SET_FILE_POINTER)
 				{
 					return E_FAIL;
@@ -2807,18 +2845,18 @@ HuffDecompression hd;
 	return S_OK;
 }
 
-HRESULT GCRDISK::FDICopyTrackStream(HANDLE hfile, DWORD pulseCount, DWORD **data)
+HRESULT GCRDISK::FDICopyTrackStream(HANDLE hfile, bit32 pulseCount, bit32** data)
 {
 FDIStream fdiStream;
 HRESULT hr;
-DWORD i;
+bit32 i;
 bit32 *p;
 
-	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, pulseCount * 4);
+	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (DWORD)pulseCount * 4);
 	if (!fdiStream.data)
 		return E_FAIL;
 
-	hr = ReadFromFileQ(hfile, (char *)&fdiStream.data, pulseCount * 4, 0);
+	hr = ReadFromFileQ(hfile, (char *)&fdiStream.data, (DWORD)pulseCount * 4, 0);
 	if (FAILED(hr))
 		return hr;
 
@@ -2834,7 +2872,7 @@ bit32 *p;
 	return S_OK;
 }
 
-HRESULT GCRDISK::LoadP64FromFile(TCHAR *filename)
+HRESULT GCRDISK::LoadP64FromFile(const TCHAR *filename)
 {
 HANDLE hfile=0;
 HRESULT hr;
@@ -2855,7 +2893,7 @@ HRESULT hr;
 	return hr;
 }
 
-HRESULT GCRDISK::LoadFDIFromFile(TCHAR *filename)
+HRESULT GCRDISK::LoadFDIFromFile(const TCHAR *filename)
 {
 HANDLE hfile=0;
 HRESULT hr;
@@ -2864,7 +2902,7 @@ HRESULT hr;
 	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
-		return SetError(E_FAIL,TEXT("Could not open %s."),filename);
+		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
 	}
 	hr= LoadFDIFromFileHandle(hfile, filename);
 	if (FAILED(hr))
@@ -2876,7 +2914,7 @@ HRESULT hr;
 	return hr;
 }
 
-HRESULT GCRDISK::LoadG64FromFile(TCHAR *filename, bool bConvertToRAW)
+HRESULT GCRDISK::LoadG64FromFile(const TCHAR *filename, bool bConvertToRAW)
 {
 HANDLE hfile=0;
 HRESULT hr;
@@ -2901,7 +2939,7 @@ HRESULT hr;
 	return S_OK;
 }
 
-HRESULT GCRDISK::LoadD64FromFile(TCHAR *filename, bool bConvertToRAW, bool bAlignD64Tracks)
+HRESULT GCRDISK::LoadD64FromFile(const TCHAR *filename, bool bConvertToRAW, bool bAlignD64Tracks)
 {
 HANDLE hfile=0;
 BOOL r;
@@ -2969,7 +3007,7 @@ HRESULT hr = S_OK;
 
 #define SOFFSET(t, m)	(INT_PTR)(&(((t *)(0))->m))
 
-HRESULT GCRDISK::SaveFDIToFile(TCHAR *filename)
+HRESULT GCRDISK::SaveFDIToFile(const TCHAR *filename)
 {
 BOOL rb;
 FDIHeader fdiHeader;
@@ -3104,7 +3142,7 @@ CRC32Alloc crc;
 			return SetError(E_FAIL,TEXT("Could not seek in file %s."),filename);
 		}
 
-		PP64PulseStream track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + tr];
+		track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + tr];
 		compressedBufferSize = 0;
 		currentPulseCount = 0;
 		if (track->UsedFirst >= 0 && track->UsedLast >= 0)
@@ -3279,12 +3317,12 @@ CRC32Alloc crc;
 }
 
 //Not implemented
-HRESULT GCRDISK::SaveG64ToFile(TCHAR *filename)
+HRESULT GCRDISK::SaveG64ToFile(const TCHAR *filename)
 {
 	return S_OK;
 }
 
-HRESULT GCRDISK::SaveP64ToFile(TCHAR *filename)
+HRESULT GCRDISK::SaveP64ToFile(const TCHAR *filename)
 {
 TP64MemoryStream P64MemoryStreamInstance;
 HANDLE hFile = NULL;
@@ -3301,13 +3339,13 @@ DWORD bytesWritten;
 			hFile = CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL); 
 			if (hFile == INVALID_HANDLE_VALUE)
 			{
-				errorbuffer = G::MallocFormattedString(TEXT("Could not open %s."), filename);
+				errorbuffer = StringConverter::MallocFormattedString(TEXT("Could not open %s."), filename);
 				hr = this->SetErrorFromGetLastError(::GetLastError(), errorbuffer);
 				break;
 			}
 			if (!WriteFile(hFile, P64MemoryStreamInstance.Data, P64MemoryStreamInstance.Size, &bytesWritten, NULL))
 			{
-				errorbuffer = G::MallocFormattedString(TEXT("Could not write to %s."), filename);
+				errorbuffer = StringConverter::MallocFormattedString(TEXT("Could not write to %s."), filename);
 				hr = this->SetErrorFromGetLastError(::GetLastError(), errorbuffer);
 				break;
 			}
@@ -3330,7 +3368,7 @@ DWORD bytesWritten;
 	return hr;
 }
 
-HRESULT GCRDISK::SaveD64ToFile(TCHAR *filename, int numberOfTracks)
+HRESULT GCRDISK::SaveD64ToFile(const TCHAR *filename, int numberOfTracks)
 {
 HANDLE hfile=0;
 long r;
@@ -3401,7 +3439,7 @@ HRESULT hr;
 	return hr;
 }
 
-void GCRDISK::MakeNewD64Image(TCHAR *diskname, bit8 id1, bit8 id2)
+void GCRDISK::MakeNewD64Image(const TCHAR *diskname, bit8 id1, bit8 id2)
 {
 char dname[16];
 int i;
@@ -3420,7 +3458,7 @@ int i;
 	m_pD64Binary[D64_info[17].file_offset + 0xA3] = id2;
 }
 
-void GCRDISK::InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks)
+void GCRDISK::InsertNewDiskImage(const TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks)
 {
 	m_d64_protectOff=0;
 	m_d64TrackCount = numberOfTracks == 40 ? 40 : 35;

@@ -1,6 +1,5 @@
-#ifndef __WPCCLI_H__
-#define __WPCCLI_H__
-
+#pragma once
+#include "cvirwindow.h"
 #include <RichEdit.h>
 #include <Richole.h>
 #include <Tom.h>
@@ -11,13 +10,20 @@ class WpcCli : public CVirWindow
 {
 public:
 	WpcCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont);
-	virtual ~WpcCli();
+	~WpcCli();
+
+	WpcCli(const WpcCli&) = delete;
+	WpcCli& operator=(const WpcCli&) = delete;
+	WpcCli(WpcCli&&) = delete;
+	WpcCli& operator=(WpcCli&&) = delete;
 
 	static const TCHAR ClassName[];
-	static HRESULT RegisterClass(HINSTANCE hInstance);
-	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
+	static HRESULT RegisterClass(HINSTANCE hInstance) noexcept;
+	shared_ptr<WpcCli> keepAlive;
+	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) override;
+	void WindowRelease() override;
 protected:
-	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 	HRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled);
@@ -26,7 +32,7 @@ protected:
 	void OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnTimer(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	
-	LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 	void OnCommandEnterKey();
 private:
 	enum CommandState
@@ -64,8 +70,6 @@ private:
 	HRESULT SetCharInsertionPoint(long iCharIndex);
 	HRESULT WriteCommandResponse(long iCharIndex, LPCTSTR pText);
 	HRESULT WriteCommandResponse(ITextRange *pRange, LPCTSTR pText);
-	bool isRangeInView(ITextRange *pIRange);
+	bool isRangeInView(ITextRange const *pIRange);
 	bit16 GetDefaultCpuPcAddress();
 };
-
-#endif

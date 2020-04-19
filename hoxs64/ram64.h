@@ -1,12 +1,19 @@
-#ifndef __ram64_H__
-#define __ram64_H__
+#pragma once
+#include <string>
+#include "cart.h"
+#include "errormsg.h"
 
 class RAM64 : public ErrorMsg
 {
 public:
-	RAM64();
+	RAM64() noexcept;
 	~RAM64();
-	HRESULT Init(TCHAR *szAppDirectory, Cart *cart);
+	RAM64(const RAM64&) = delete;
+	RAM64& operator=(const RAM64&) = delete;
+	RAM64(RAM64&&) = delete;
+	RAM64& operator=(RAM64&&) = delete;
+
+	HRESULT Init(const wchar_t* pwszAppDirectory, Cart *cart);
 	void InitReset(bool poweronreset);
 	void Reset(bool poweronreset);
 	void ConfigureMMU(bit8 index, bit8 ***p_memory_map_read, bit8 ***p_memory_map_write);
@@ -16,33 +23,33 @@ public:
 	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
 	bit8 *GetCpuMmuIndexedPointer(MEM_TYPE mt);
 
-	MEM_TYPE MMU_MT_read[32][16];
-	MEM_TYPE MMU_MT_write[32][16];
-	bit8 *MMU_read[32][16];
-	bit8 *MMU_write[32][16];
-	bit8 *VicMMU_read[4][4];
-	bit8 *miMemory;
-	bit8 *miKernal;
-	bit8 *miBasic;
-	bit8 *miIO;
-	bit8 *miCharGen;
-	bit8 tmp_data[0x10000];
-	bit8 *mMemory;
-	bit8 *mKernal;
-	bit8 *mBasic;
-	bit8 *mIO;
-	bit8 *mColorRAM;
-	bit8 *mCharGen;
+	MEM_TYPE MMU_MT_read[32][16] = {};
+	MEM_TYPE MMU_MT_write[32][16] = {};
+	bit8 *MMU_read[32][16] = {};
+	bit8 *MMU_write[32][16] = {};
+	bit8 *VicMMU_read[4][4] = {};
+	bit8 *miMemory = nullptr;
+	bit8 *miKernal = nullptr;
+	bit8 *miBasic = nullptr;
+	bit8 *miIO = nullptr;
+	bit8 *miCharGen = nullptr;
+	bit8 tmp_data[0x10000] = {};
+	bit8 *mMemory = nullptr;
+	bit8 *mKernal = nullptr;
+	bit8 *mBasic = nullptr;
+	bit8 *mIO = nullptr;
+	bit8 *mColorRAM = nullptr;
+	bit8 *mCharGen = nullptr;
 private:
-	Cart *m_pCart;
-	bit8 m_iCurrentCpuMmuIndex;
-	TCHAR m_szAppDirectory[MAX_PATH+1];
+	Cart *m_pCart = nullptr;
+	bit8 m_iCurrentCpuMmuIndex = 0;
+	std::wstring wsAppDirectory;
 	HRESULT	Allocate64Memory();
-	void Free64Memory();
-	void Zero64MemoryPointers();
+	void Free64Memory() noexcept;
+	void Zero64MemoryPointers() noexcept;
 	void InitMMU();
 	void InitMMU_0();
 	void LoadResetPattern();
+	random_device rd;
+	mt19937 randengine_main;
 };
-
-#endif

@@ -91,6 +91,25 @@ int BestTextWidthDC::GetWidth(LPCTSTR s)
 	return 0;
 }
 
+int BestTextWidthDC::GetWidthW(LPCWSTR s)
+{
+	if (hdc != NULL && s != NULL)
+	{
+		SIZE sztext;
+		if (GetTextExtentPoint32W(hdc, s, lstrlenW(s), &sztext))
+		{
+			if (sztext.cx > maxWidth)
+			{
+				maxWidth = sztext.cx;
+			}
+
+			return sztext.cx;
+		}
+	}
+
+	return 0;
+}
+
 void BestTextWidthDC::RestoreFont()
 {
 	if (hdc)

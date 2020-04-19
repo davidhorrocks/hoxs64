@@ -7,11 +7,8 @@
 #include <tchar.h>
 #include <assert.h>
 #include "CDPI.h"
-
 #include "IC64.h"
-
 #include "utils.h"
-
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -67,13 +64,18 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(IC64 *c64, IAppCommand *pAppCommand, CConfi
 	HRESULT hr = Init();
 	if (FAILED(hr))
 	{
-		throw new std::runtime_error("CMDIDebuggerFrame::Init() Failed");
+		throw new std::exception("CMDIDebuggerFrame::Init() Failed");
 	}
 }
 
 CMDIDebuggerFrame::~CMDIDebuggerFrame()
 {
 	Cleanup();
+}
+
+void CMDIDebuggerFrame::WindowRelease()
+{
+	keepAlive.reset();
 }
 
 HRESULT CMDIDebuggerFrame::Init()
@@ -278,7 +280,7 @@ HRESULT hr = E_FAIL;
 			return E_FAIL;
 		}
 
-		hr = m_WPanelManager.Init(this->GetHinstance(), this->shared_from_this(), m_hWndRebar);
+		hr = m_WPanelManager.Init(this->GetHinstance(), this, m_hWndRebar);
 		if (FAILED(hr))
 		{
 			return hr;
@@ -436,9 +438,10 @@ HRESULT hr;
 
 		if (pwin != NULL)
 		{
-			hr = pwin->Show(this->shared_from_this());
+			hr = pwin->Show(this->GetHwnd());
 			if (SUCCEEDED(hr))
 			{
+				pwin->keepAlive = pwin;
 				pwin->UpdateDisplay(pcmode, address);
 			}
 		}
@@ -462,9 +465,10 @@ HRESULT hr;
 
 		if (pwin != NULL)
 		{
-			hr = pwin->Show(this->shared_from_this());
+			hr = pwin->Show(this->GetHwnd());
 			if (SUCCEEDED(hr))
 			{
+				pwin->keepAlive = pwin;
 				pwin->UpdateDisplay(pcmode, address);
 			}
 		}
@@ -503,9 +507,14 @@ void CMDIDebuggerFrame::OpenNewCli()
 	try
 	{
 		shared_ptr<CMDIChildCli> pWinMdiChild = shared_ptr<CMDIChildCli>(new CMDIChildCli(c64, m_pAppCommand, m_hFont));
-		if (pWinMdiChild == 0)
+		if (pWinMdiChild == nullptr)
+		{
 			throw std::bad_alloc();
-		HWND hWndMdiChildCli = pWinMdiChild->Create(this->shared_from_this());
+		}
+
+		pWinMdiChild->keepAlive = pWinMdiChild;
+
+		HWND hWndMdiChildCli = pWinMdiChild->Create(this);
 		::ShowWindow(hWndMdiChildCli, SW_SHOW);
 		::UpdateWindow(hWndMdiChildCli);
 	}
@@ -601,7 +610,11 @@ void CMDIDebuggerFrame::ShowDlgBreakpointVicRaster()
 		return;
 	}
 
-	pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
+	INT_PTR r = pdlg->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), this->m_hWnd);
+	if (r != 0 && r != -1)
+	{
+		pdlg->keepAlive = pdlg;
+	}
 }
 
 void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
@@ -619,12 +632,13 @@ void CMDIDebuggerFrame::ShowModelessDlgBreakpointVicRaster()
 		HWND hwnd = pdlg->ShowModelessDialog(this->m_hInst, MAKEINTRESOURCE(IDD_BRKVICRASTER), hWndOwner);
 		if (hwnd)
 		{
+			pdlg->keepAlive = pdlg;
 			int x = 0, y = 0;
 			RECT rcMain, rcDlg;
 			bool bAutoPos = false;
 			if (GetWindowRect(hWndOwner, &rcMain))
 			{
-				if (G::GetWindowRect6(hwnd, &rcDlg))
+				if (GetWindowRect(hwnd, &rcDlg))
 				{
 					OffsetRect(&rcDlg, -(rcDlg.left - rcMain.left) - (rcDlg.right - rcDlg.left), 0);
 					if (rcDlg.left < 0)

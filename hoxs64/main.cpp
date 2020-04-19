@@ -3,13 +3,7 @@
 #include <windowsx.h>
 #include <commctrl.h>
 #include <Winuser.h>
-//include <Winable.h>
-//include <shlwapi.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <D3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -20,6 +14,7 @@
 #include <assert.h>
 #include "servicerelease.h"
 #include "boost2005.h"
+#include "Wfs.h"
 #include "defines.h"
 #include "mlist.h"
 #include "carray.h"
@@ -29,6 +24,8 @@
 #include "util.h"
 #include "utils.h"
 #include "besttextwidth.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hexconv.h"
 #include "C64.h"
@@ -55,59 +52,48 @@
 #include "wpccli.h"
 #include "mdichildcli.h"
 #include "mdidebuggerframe.h"
-
-#include "emuwin.h"
 #include "mainwin.h"
-
 #include "main.h"
 #include "resource.h"
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-#if _WIN32_WINNT >= 0x400
-LRESULT CALLBACK LowLevelKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam );
-#else
-LRESULT CALLBACK KeyboardProc( int nCode, WPARAM wParam, LPARAM lParam );
-#endif
-
-BOOL CenterWindow (HWND, HWND);
-
-CApp app;
-
-
-int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
+int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
-	return app.Run(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+	CApp* app = new CApp();
+	int r = app->Run(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+	delete app;
+	return r;
 }
 
-CApp::CApp()
+CApp::CApp() noexcept(false)
 {
 	ZeroMemory(&m_Vinfo, sizeof(m_Vinfo));
-	_tcsncpy_s(m_szAppName, _countof(m_szAppName), APPNAME, _TRUNCATE);
-	_tcsncpy_s(m_szMainWndClsName, _countof(m_szMainWndClsName), HOXS_MAIN_WND_CLASS, _TRUNCATE);
-	_tcsncpy_s(m_szMonitorWndClsName, _countof(m_szMonitorWndClsName), HOXS_MONITOR_WND_CLASS, _TRUNCATE);
-	_tcsncpy_s(m_szMonitorDisassembleWndClsName, _countof(m_szMonitorDisassembleWndClsName), HOXS_MONITOR_DISS_WND_CLASS, _TRUNCATE);
 
+	wsAppName = APPNAME;
+	wsMainWndClsName = HOXS_MAIN_WND_CLASS;
+	wsMonitorWndClsName = HOXS_MONITOR_WND_CLASS;
+	wsMonitorDisassembleWndClsName = HOXS_MONITOR_DISS_WND_CLASS;
+
+	isImGuiStarted = false;
 	m_bStartFullScreen = false;
 	m_bShowSpeed = true;
 	m_bLimitSpeed = true;
 	m_bSkipFrames = true;
-	
-	m_bActive     = false;
-	m_bReady      = false;
-	m_bRunning    = false;
-	m_bWindowed   = true;
-	m_bDebug      = false;
-	m_bPaused      = false;
-	m_bMaxSpeed   = false;
+
+	m_bActive = false;
+	m_bReady = false;
+	m_bRunning = false;
+	m_bWindowed = true;
+	m_bDebug = false;
+	m_bPaused = false;
+	m_bMaxSpeed = false;
 	m_syncModeFullscreen = HCFG::FSSM_LINE;
 	m_bAutoload = false;
-	m_bWindowSizing = false;
 	m_bClosing = false;
 	m_bBusy = false;
 	hCursorBusy = LoadCursor(0L, IDC_WAIT);
 	hOldCursor = NULL;
-	m_hKeyboardHook = NULL;
 
 	ZeroMemory(&m_StartupStickyKeys, sizeof(m_StartupStickyKeys));
 	ZeroMemory(&m_StartupToggleKeys, sizeof(m_StartupToggleKeys));
@@ -115,24 +101,128 @@ CApp::CApp()
 	m_StartupStickyKeys.cbSize = sizeof(STICKYKEYS);
 	m_StartupToggleKeys.cbSize = sizeof(TOGGLEKEYS);
 	m_StartupFilterKeys.cbSize = sizeof(FILTERKEYS);
+
+	lastMouseX = 0;
+	lastMouseY = 0;
 }
 
 CApp::~CApp()
 {
+	Cleanup();
+}
+
+void* CApp::operator new(size_t i)
+{
+	return _mm_malloc(i, 16);
+}
+
+void CApp::operator delete(void* p)
+{
+	_mm_free(p);
+}
+
+void CApp::Cleanup() noexcept
+{
 	FreeDirectX();
+	CloseImGuiContext();
+}
+
+void CApp::CloseAppWindow()
+{
+	this->m_bRunning = false;
+	this->m_bClosing = true;
+	this->m_pWinAppWindow->CloseWindow();
+}
+
+void CApp::CreateImGuiContext()
+{
+	if (isImGuiStarted)
+	{
+		return;
+	}
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+	//io.ConfigViewportsNoAutoMerge = true;
+	//io.ConfigViewportsNoTaskBarIcon = true;
+	//io.ConfigViewportsNoDefaultParent = true;
+	//io.ConfigDockingAlwaysTabBar = true;
+	//io.ConfigDockingTransparentPayload = true;
+#if 0
+	io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
+	io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
+#endif
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsClassic();
+
+	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle& style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
+
+	//io.ConfigDocking
+
+	// Setup Platform/Renderer bindings
+	//ImGui_ImplWin32_Init(m_pWinAppWindow->GetHwnd());
+	isImGuiStarted = true;
+}
+
+void CApp::CloseImGuiContext() noexcept
+{
+	try
+	{
+		if (isImGuiStarted)
+		{
+			isImGuiStarted = false;
+			ImGui::DestroyContext();
+		}
+	}
+	catch(...)
+	{
+
+	}
 }
 
 
-int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
+int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
-MSG msg;
-HRESULT hRet;
-ULARGE_INTEGER frequency, last_counter, new_counter, tSlice;
-ULARGE_INTEGER frequencyDoubler;
-DWORD emulationSpeed = FRAMEUPDATEFREQ * 100;
-ULARGE_INTEGER start_counter,end_counter;
-short captionUpdateCounter = 0;
-BOOL bRet;
+	MSG msg;
+	HRESULT hRet;
+	ULARGE_INTEGER frequency, last_counter, new_counter, tSlice;
+	ULARGE_INTEGER frequencyDoubler;
+	DWORD emulationSpeed = FRAMEUPDATEFREQ * 100;
+	ULARGE_INTEGER start_counter,end_counter;
+	short captionUpdateCounter = 0;
+	BOOL bRet;
+
+#if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
+	Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
+	if (FAILED(hRet))
+	{
+		G::InitFail(0, hRet, TEXT("Microsoft::WRL::Wrappers::RoInitializeWrapper failed"));
+		return ShellExitInitFailed;
+	}
+#else
+	hRet = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
+	if (FAILED(hRet))
+	{
+		G::InitFail(0, hRet, TEXT("CoInitializeEx failed"));
+		return ShellExitInitFailed;
+	}
+#endif
+	
+	ImGui_ImplWin32_EnableDpiAwareness();
 
 	m_hInstance = hInstance;
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
@@ -148,6 +238,7 @@ BOOL bRet;
 			return ShellExitInitFailed;
 		}
 	}
+
 	frequency.QuadPart = m_framefrequency.QuadPart;
 	frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
 	QueryPerformanceCounter((PLARGE_INTEGER)&last_counter);
@@ -164,12 +255,6 @@ BOOL bRet;
 		return ShellExitInitFailed;
 	}
 	
-
-#if _WIN32_WINNT >= 0x400
-	m_hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,  ::LowLevelKeyboardProc, GetModuleHandle(NULL), 0 );
-#else
-	m_hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD,  ::KeyboardProc, GetModuleHandle(NULL), 0 );
-#endif
 	AllowAccessibilityShortcutKeys(false);
 	
 	m_bReady = true;
@@ -238,14 +323,14 @@ msgloop:
                     //(!IsWindow(hWndDebugCpuDisk) || !IsDialogMessage(hWndDebugCpuDisk, &msg)) &&
                     //(!IsWindow(hWndDebuggerMdiClient) || !IsDialogMessage(hWndDebuggerMdiClient, &msg)) &&
 					(!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) &&
-					(!TranslateAccelerator(hWndDefaultAccelerator, app.m_hAccelTable, &msg)))
+					(!TranslateAccelerator(hWndDefaultAccelerator, this->m_hAccelTable, &msg)))
 				{
 					TranslateMessage(&msg); 
 					DispatchMessage(&msg);
 				}
 				continue;
 			}
-			if (!TranslateAccelerator(m_pWinAppWindow->GetHwnd(), app.m_hAccelTable, &msg))
+			if (!TranslateAccelerator(m_pWinAppWindow->GetHwnd(), this->m_hAccelTable, &msg))
 			{
 				TranslateMessage(&msg); 
 				DispatchMessage(&msg);
@@ -254,7 +339,7 @@ msgloop:
 		frequency.QuadPart = m_framefrequency.QuadPart;
 		frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
 
-		if (((m_bActive && m_bReady) || G::IsHideWindow) && m_bRunning && !m_bPaused)
+		if (((m_bActive && m_bReady) || ErrorLogger::HideWindow) && m_bRunning && !m_bPaused)
 		{
 			if (!bExecuteFrameDone)
 			{
@@ -264,7 +349,7 @@ msgloop:
 					captionUpdateCounter = FRAMEUPDATEFREQ;
 					QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
 					emulationSpeed =(ULONG) (((ULONGLONG)100) * (frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ) / (end_counter.QuadPart - start_counter.QuadPart));
-					m_pWinAppWindow->UpdateWindowTitle(m_szTitle, emulationSpeed);
+					m_pWinAppWindow->UpdateWindowTitle(wsTitle.c_str(), emulationSpeed);
 					QueryPerformanceCounter((PLARGE_INTEGER)&start_counter);
 					c64.PreventClockOverflow();
 				}
@@ -372,7 +457,7 @@ msgloop:
 
 					last_counter.QuadPart = new_counter.QuadPart;
 				}
-			
+				
 				//Execute one frame.
 				bExecuteFrameDone = true;
 				int frameResult;
@@ -396,9 +481,7 @@ msgloop:
 				if (frameResult)
 				{
 					this->c64.WriteOnceExitCode(ShellExitCycleLimit);
-					this->m_bRunning = false;
-					this->m_bClosing = true;
-					this->m_pWinAppWindow->CloseWindow();
+					this->CloseAppWindow();
 				}
 			}
 
@@ -406,14 +489,14 @@ msgloop:
 			bool bDrawThisFrame = ((m_fskip < 0) || m_bIsDebugCart || m_bDebug);
 			if (bDrawThisFrame)
 			{
-				hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window(true);
+				hRet = m_pWinAppWindow->UpdateC64Window(true);
 				if (SUCCEEDED(hRet))
 				{
 					if (!m_bIsDebugCart)
 					{
 						if (SUCCEEDED(hRet))
 						{
-							hRet = dx.Present(D3DPRESENT_DONOTWAIT);
+							hRet = gx.PresentFrame();
 							if (SUCCEEDED(hRet))
 							{
 								if (this->m_syncModeFullscreen == HCFG::FSSM_FRAME_DOUBLER && !this->m_bWindowed)
@@ -421,7 +504,7 @@ msgloop:
 									ULARGE_INTEGER last_present_counter;
 									QueryPerformanceCounter((PLARGE_INTEGER)&last_present_counter);
 									tSlice.QuadPart = 0;
-									hRet = m_pWinAppWindow->m_pWinEmuWin->UpdateC64Window(false);
+									hRet = m_pWinAppWindow->UpdateC64Window(false);
 									if (SUCCEEDED(hRet))
 									{
 										if (((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart))
@@ -432,7 +515,7 @@ msgloop:
 												tSlice.QuadPart = new_counter.QuadPart - last_present_counter.QuadPart;
 											}
 
-											dx.Present(D3DPRESENT_DONOTWAIT);
+											gx.PresentFrame();
 										}
 									}
 								}
@@ -465,44 +548,37 @@ msgloop:
 		{
 			//Handle paused or non ready states in a CPU friendly manner.
 			SoundHalt();
-			if (!m_bClosing && m_bActive && !m_bReady && !G::IsHideWindow)
+			if (!m_bClosing && m_bActive && !m_bReady && !ErrorLogger::HideWindow)
 			{
-				hRet = E_FAIL;
-				if (dx.m_pd3dDevice != NULL)
+				hRet = E_FAIL;				
+				if (gx.isInitOK)
 				{
-					hRet = dx.m_pd3dDevice->TestCooperativeLevel();
-					if (hRet == D3DERR_DEVICENOTRESET)
-					{
-						hRet = dx.Reset();
-						if (SUCCEEDED(hRet))
-						{
-							m_pWinAppWindow->SetColours();
-							m_bReady = true;
-						}
-						else
-						{
-							if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
-							{
-								m_bReady = true;
-							}
-							else
-							{
-								G::WaitMessageTimeout(1000);
-							}
-						}					
-					}
-					else if (hRet == D3DERR_DEVICELOST)
-					{
-						G::WaitMessageTimeout(1000);
-					}
-					else if (hRet == D3D_OK)
+					hRet = gx.TestPresent();
+					if (hRet == S_OK)
 					{
 						m_bReady = true;
+					}
+					else if (hRet == DXGI_ERROR_DEVICE_REMOVED || hRet == DXGI_ERROR_DEVICE_RESET)
+					{
+						if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+						{
+							m_bReady = true;
+						}
+
+						G::WaitMessageTimeout(1000);
+					}
+					else 
+					{
+						CloseAppWindow();
 					}
 				}
 				else
 				{
 					G::WaitMessageTimeout(1000);
+					if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+					{
+						m_bReady = true;
+					}
 				}
 			}
 			else
@@ -521,12 +597,6 @@ msgloop:
 	}
 finish:
 	AllowAccessibilityShortcutKeys(true);
-	if (m_hKeyboardHook)
-	{
-		UnhookWindowsHookEx(m_hKeyboardHook );
-		m_hKeyboardHook = NULL;
-	}
-
 	HRESULT pngresult = c64.SavePng(NULL);
 	if (c64.Get_EnableDebugCart())
 	{		
@@ -587,108 +657,96 @@ HRESULT hr;
 	hr = CAppWindow::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register main window class."), m_szAppName, MB_ICONEXCLAMATION);
-		return hr;
-	}
-
-	hr = CEmuWindow::RegisterClass(hInstance);
-	if (FAILED(hr))
-	{
-		G::DebugMessageBox(0L, TEXT("Failed to register emulation window class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register main window class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 
 	hr = RegisterKeyPressWindow(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register GetKeyPressClass class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register GetKeyPressClass class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 
 	hr = RegisterVicColorWindow(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register VicColorClass class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register VicColorClass class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 
 	hr = CMDIDebuggerFrame::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register CMDIDebuggerFrame class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CMDIDebuggerFrame class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = WpcCli::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register WpcCli class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register WpcCli class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CMDIChildCli::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register CMDIChildCli class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CMDIChildCli class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CToolItemAddress::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register RegisterClass class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register RegisterClass class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyFrame::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyFrame class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyFrame class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyChild::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyChild class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyChild class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyEditChild::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyEditChild class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyEditChild class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = CDisassemblyReg::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyReg class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register CDisassemblyReg class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = WPanel::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register WPanel class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register WPanel class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 	hr = WpcBreakpoint::RegisterClass(hInstance);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Failed to register WpcBreakpoint class."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Failed to register WpcBreakpoint class."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		return hr;
 	}
 
 	return S_OK;
 }
 
-LPTSTR CApp::GetAppTitle()
+const wchar_t *CApp::GetAppTitle()
 {
-	return m_szTitle; 
+	return wsTitle.c_str(); 
 }
 
-LPTSTR CApp::GetAppName()
+const wchar_t* CApp::GetAppName()
 {
-	return m_szAppName; 
-}
-
-LPTSTR CApp::GetMonitorTitle()
-{
-	return m_szMonitorTitle;
+	return wsAppName.c_str(); 
 }
 
 VS_FIXEDFILEINFO *CApp::GetVersionInfo()
@@ -696,38 +754,33 @@ VS_FIXEDFILEINFO *CApp::GetVersionInfo()
 	return &m_Vinfo;
 }
 
-HRESULT CApp::InitInstance(int nCmdShow, LPTSTR lpCmdLine)
+HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 {
-BOOL br;
-HRESULT hr;
-DWORD lr;
-HWND hWndMain;
-TCHAR t[60];
-CConfig *thisCfg = static_cast<CConfig *>(this);
-CAppStatus *thisAppStatus = static_cast<CAppStatus *>(this);
-IC64Event *thisC64Event = static_cast<IC64Event *>(this);
-TCHAR drive[_MAX_DRIVE];
-TCHAR dir[_MAX_DIR];
-TCHAR fname[_MAX_FNAME];
-TCHAR ext[_MAX_EXT];
-int minWidth;
-int minHeight;
-int mainWinWidth;
-int mainWinHeight;
-int emuWinWidth;
-int emuWinHeight;
-int mainWinFixedWidth;
-int mainWinFixedHeight;
-int emuWinFixedWidth;
-int emuWinFixedHeight;
-RECT rcMain;
+	BOOL br;
+	HRESULT hr;
+	DWORD lr;
+	HWND hWndMain;
+	TCHAR t[60];
+	CConfig *thisCfg = this;
+	CAppStatus *thisAppStatus = this;
+	IC64Event *thisC64Event = this;
+	IAppCommand* thisAppCommand = this;
+	int minWidth;
+	int minHeight;
+	int mainWinWidth;
+	int mainWinHeight;
+	int mainWinFixedWidth;
+	int mainWinFixedHeight;
+	WCHAR maxpathbuffer[MAX_PATH + 1];
 
 	ClearError();
-	lr = GetModuleFileName(NULL, m_szAppFullPath, _countof(m_szAppFullPath));
+	lr = GetModuleFileName(NULL, maxpathbuffer, _countof(maxpathbuffer) - 1);
 	if (lr==0) 
 	{
 		return E_FAIL;
 	}
+
+	wsAppFullPath = maxpathbuffer;
 	
 	//Process command line arguments.
 	CParseCommandArg cmdArgs(lpCmdLine);
@@ -756,48 +809,34 @@ RECT rcMain;
 		if (caWindowHide)
 		{
 			nCmdShow = SW_HIDE;
-			G::IsHideWindow = true;
+			ErrorLogger::HideWindow = true;
 		}
 
-		G::IsHideMessageBox = true;
+		ErrorLogger::HideMessageBox = true;
 	}
 	else if (caStartFullscreen)
 	{
 		this->m_bStartFullScreen = true;
 	}
 
-	//Save application directory path name
-	if (_tcscpy_s(m_szAppDirectory, _countof(m_szAppDirectory), m_szAppFullPath) != 0)
+	std::wstring wsroot;
+	std::wstring wsfilename;
+	Wfs::SplitRootPath(wsAppFullPath, wsroot, wsAppDirectory, wsfilename);
+	wsAppDirectory = wsroot + wsAppDirectory;
+	wsAppConfigPath.clear();
+	Wfs::Path_Append(wsAppConfigPath, wsAppDirectory);
+	Wfs::Path_Append(wsAppConfigPath, L"hoxs64.ini");
+	if (LoadString(m_hInstance, IDS_APP_TITLE, maxpathbuffer, _countof(maxpathbuffer) - 1))
 	{
-		m_szAppDirectory[0] = 0;
+		wsTitle = maxpathbuffer;
 	}
 
-	if (_tsplitpath_s(m_szAppDirectory, drive, _countof(drive), dir, _countof(dir), fname, _countof(fname), ext, _countof(ext))==0)
+	if (LoadString(m_hInstance, IDS_MONITOR_TITLE, maxpathbuffer, _countof(maxpathbuffer) - 1))
 	{
-		m_szAppDirectory[0] = 0;
-		if (_tmakepath_s(m_szAppDirectory, _countof(m_szAppDirectory), drive, dir, 0, 0)!=0)
-		{
-			m_szAppDirectory[0] = 0;
-		}
-	}
-	else
-	{
-		m_szAppDirectory[0] = 0;
+		wsMonitorTitle = maxpathbuffer;
 	}
 
-	m_szAppConfigPath[0] = 0;
-	if (_tmakepath_s(m_szAppConfigPath, _countof(m_szAppConfigPath), 0, m_szAppDirectory, TEXT("hoxs64"), TEXT("ini"))!=0)
-	{
-		m_szAppConfigPath[0]=0;
-	}
-
-	//Make a window title based on the version information.
-	m_szTitle[0]='\0';
-	m_szMonitorTitle[0]='\0';
-	LoadString(m_hInstance, IDS_APP_TITLE, m_szTitle, MAX_STR_LEN);
-	LoadString(m_hInstance, IDS_MONITOR_TITLE, m_szMonitorTitle, MAX_STR_LEN);
-
-	if (SUCCEEDED(G::GetVersion_Res(m_szAppFullPath, &m_Vinfo)))
+	if (SUCCEEDED(G::GetVersion_Res(wsAppFullPath.c_str(), &m_Vinfo)))
 	{
 #if defined(SERVICERELEASE) && (SERVICERELEASE > 0)
 		_sntprintf_s(t, _countof(t), _TRUNCATE, TEXT("    V %d.%d.%d.%d SR %d")
@@ -813,16 +852,11 @@ RECT rcMain;
 			, (int)(m_Vinfo.dwProductVersionLS>>16 & 0xFF)
 			, (int)(m_Vinfo.dwProductVersionLS & 0xFF));
 #endif
-		_tcsncat_s(m_szTitle, _countof(m_szTitle), t, _TRUNCATE);
+		wsTitle.append(t);
 	}
 
 	//Set up some late bound OS DLL calls
-	G::InitLateBindLibraryCalls();
 	G::InitRandomSeed();
-	if (CDX9::CheckDXVersion9() < 0x0900)
-	{
-		return (E_FAIL);
-	}
 
 	//Initialise common control library.
 	INITCOMMONCONTROLSEX icex;
@@ -831,7 +865,14 @@ RECT rcMain;
 	br = ::InitCommonControlsEx(&icex);
 	if (br == FALSE)
 	{
-		G::DebugMessageBox(0L, TEXT("InitCommonControlsEx() failed."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("InitCommonControlsEx() failed."), wsAppName.c_str(), MB_ICONWARNING);
+		return E_FAIL;
+	}
+
+	hr = dx.Init(thisAppStatus);
+	if (FAILED(hr))
+	{
+		G::DebugMessageBox(0L, TEXT("Initialisation failed for DirectX helper."), wsAppName.c_str(), MB_ICONWARNING);
 		return E_FAIL;
 	}
 
@@ -874,89 +915,65 @@ RECT rcMain;
 
 	//Apply the users settings.
 	ApplyConfig(mainCfg);
-	m_hAccelTable = LoadAccelerators (m_hInstance, m_szAppName);
+	m_hAccelTable = LoadAccelerators (m_hInstance, wsAppName.c_str());
 	try
 	{
-		m_pWinAppWindow = shared_ptr<CAppWindow>(new CAppWindow(&dx, this, this, &c64));
+		m_pWinAppWindow = std::make_shared<CAppWindow>(&gx, &dx, static_cast<IAppCommand *>(this), static_cast<CAppStatus *>(this), &c64);
 	}
 	catch (...)
 	{
-		G::DebugMessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("Unable to create the application window."), wsAppName.c_str(), MB_ICONWARNING);
 		return E_FAIL;
 	}
 
-	m_pWinAppWindow->m_pWinEmuWin->SetNotify(this);
+	m_pWinAppWindow->SetNotify(this);	
 	m_pWinAppWindow->GetMinimumWindowedSize(m_borderSize, m_bShowFloppyLed, &minWidth, &minHeight);
 	POINT winpos = {0,0};
-	bool bWindowedCustomSize = false;
-	m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, m_bDoubleSizedWindow, &mainWinFixedWidth, &mainWinFixedHeight);
-	rcMain.left = 0;
-	rcMain.top = 0;
-	rcMain.right = mainWinFixedWidth;
-	rcMain.bottom = mainWinFixedHeight;
-	m_pWinAppWindow->CalcEmuWindowSize(rcMain, &emuWinFixedWidth, &emuWinFixedHeight);
-	mainWinWidth = mainWinFixedWidth;
-	mainWinHeight = mainWinFixedHeight;
+	m_pWinAppWindow->GetRequiredMainWindowSize(m_borderSize, m_bShowFloppyLed, &mainWinFixedWidth, &mainWinFixedHeight);
 
 	//Look for saved x,y position and custom window size.
-	hr = mainCfg.LoadWindowSetting(winpos, bWindowedCustomSize, mainWinWidth, mainWinHeight);
+	hr = mainCfg.LoadWindowSetting(winpos, mainWinWidth, mainWinHeight);
 	if (FAILED(hr))
 	{
-		bWindowedCustomSize = false;
 		mainWinWidth = mainWinFixedWidth;
 		mainWinHeight = mainWinFixedHeight;
 		winpos = GetCenteredPos(mainWinWidth, mainWinHeight);
 	}
-	else
-	{
-		if (bWindowedCustomSize)
-		{
-			mainWinWidth = max(minWidth, mainWinWidth);
-			mainWinHeight = max(minHeight, mainWinHeight);
-		}
-	}
 
-	if (!mainCfg.m_bUseBlitStretch && bWindowedCustomSize)
-	{
-		//Attempt to use CPU blit if a custom window size matches the set size for the current state of "Double Sized Window".
-		RECT rcMain = {0, 0, mainWinWidth, mainWinHeight};
-		m_pWinAppWindow->CalcEmuWindowSize(rcMain, &emuWinWidth, &emuWinHeight);
-		if (emuWinFixedWidth == emuWinWidth && emuWinFixedHeight == emuWinHeight)
-		{
-			bWindowedCustomSize = false;
-		}
-	}
-
+	mainWinWidth = std::max(minWidth, mainWinWidth);
+	mainWinHeight = std::max(minHeight, mainWinHeight);
 	//Apply custom window size flag.
-	m_bWindowedCustomSize = bWindowedCustomSize;
-	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, m_szTitle, winpos.x, winpos.y, mainWinWidth, mainWinHeight, NULL);
+	hWndMain = m_pWinAppWindow->Create(m_hInstance, NULL, wsTitle.c_str(), winpos.x, winpos.y, mainWinWidth, mainWinHeight, NULL);
 	if (!hWndMain)
 	{
-		G::DebugMessageBox(0L, TEXT("Unable to create the application window."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("Unable to create the application window."), wsAppName.c_str(), MB_ICONWARNING);
 		return E_FAIL;
 	}
 
 	m_bWindowed = true;
-	if (!G::IsHideWindow)
+	if (!ErrorLogger::HideWindow)
 	{
 		G::EnsureWindowPosition(hWndMain);
 	}
 
 	m_pWinAppWindow->SaveMainWindowSize();
 
-	//Initialise directx
-	hr = dx.Init(thisAppStatus);
+	CreateImGuiContext();
+
+	// Initialise Direct 3D
+	hr = gx.Initialize(&c64, thisAppCommand, thisAppStatus);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Initialisation failed for direct 3D."), m_szAppName, MB_ICONWARNING);
+		G::DebugMessageBox(0L, TEXT("Initialisation failed for Direct 3D 11.1."), wsAppName.c_str(), MB_ICONWARNING);
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
 	
+	// Initialise Direct Input
 	hr = dx.OpenDirectInput(m_hInstance, hWndMain);
 	if (FAILED(hr))
 	{
-		G::DebugMessageBox(0L, TEXT("Initialisation failed for direct input."), m_szAppName, MB_ICONEXCLAMATION);
+		G::DebugMessageBox(0L, TEXT("Initialisation failed for Direct Input."), wsAppName.c_str(), MB_ICONEXCLAMATION);
 		DestroyWindow(hWndMain);
 		return hr;
 	}
@@ -967,7 +984,7 @@ RECT rcMain;
 		hr = dx.OpenDirectSound(hWndMain, m_fps);
 		if (FAILED(hr))
 		{
-			G::DebugMessageBox(hWndMain, TEXT("Direct Sound has failed to initialise with the primary sound driver. Sound will be unavailable."), m_szAppName, MB_ICONWARNING);
+			G::DebugMessageBox(hWndMain, TEXT("Direct Sound has failed to initialise with the primary sound driver. Sound will be unavailable."), wsAppName.c_str(), MB_ICONWARNING);
 		}
 		else
 		{
@@ -976,17 +993,20 @@ RECT rcMain;
 	}
 
 	//Initialise the c64 emulation.
-	if (S_OK != c64.Init(thisAppStatus, thisC64Event, &dx, m_szAppDirectory)) 
+	if (S_OK != c64.Init(thisAppCommand, thisAppStatus, thisC64Event, &gx, &dx, wsAppDirectory.c_str()))
 	{
-		c64.DisplayError(0, m_szAppName);
+		c64.DisplayError(0, wsAppName.c_str());
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
 
-	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen, false, m_bDoubleSizedWindow, m_bWindowedCustomSize, mainWinWidth, mainWinHeight, m_bUseBlitStretch);
+	// Call ApplyConfig a second time to push settings to the C64.
+	ApplyConfig(mainCfg);
+
+	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen);
 	if (FAILED(hr))
 	{
-		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), m_szAppName);
+		m_pWinAppWindow->DisplayError(m_pWinAppWindow->GetHwnd(), wsAppName.c_str());
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
@@ -1119,7 +1139,7 @@ RECT rcMain;
 	}
 
 	ShowWindow(hWndMain, nCmdShow);
-	if (!G::IsHideWindow)
+	if (!ErrorLogger::HideWindow)
 	{
 		UpdateWindow(hWndMain);
 	}
@@ -1138,16 +1158,27 @@ POINT CApp::GetCenteredPos(int w, int h)
 		rcWorkArea.right = GetSystemMetrics(SM_CXSCREEN);
 		rcWorkArea.bottom = GetSystemMetrics(SM_CYSCREEN);
 	}
-	r.x = max(0, (rcWorkArea.right - rcWorkArea.left - w) / 2);
-	r.y = max(0, (rcWorkArea.bottom - rcWorkArea.top - h) / 2);
+	r.x = (rcWorkArea.right - rcWorkArea.left - w) / 2;
+	if (r.x < 0)
+	{
+		r.x = 0;
+	}
+
+	r.y = (rcWorkArea.bottom - rcWorkArea.top - h) / 2;
+	if (r.y < 0)
+	{
+		r.y = 0;
+	}
+
 	return r;
 }
 
-void CApp::FreeDirectX(){
+void CApp::FreeDirectX() noexcept
+{
 	m_bReady = false;
 	dx.CloseDirectSound();
 	dx.CloseDirectInput();
-	dx.CleanupD3D();
+	gx.Cleanup();
 }
 
 void CApp::RestoreDefaultSettings()
@@ -1169,7 +1200,6 @@ void CApp::SaveCurrentSetting()
 
 void CApp::ToggleMaxSpeed()
 {
-	CConfig tCfg = *(static_cast<CConfig *>(this));
 	if (!m_bMaxSpeed)
 	{
 		SaveSpeedSettings();
@@ -1184,9 +1214,9 @@ void CApp::ToggleMaxSpeed()
 	}
 }
 
-void CApp::LoadCrtFile(HWND hWnd)
+void CApp::LoadCrtFileDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH];
 BOOL b;
 
@@ -1216,9 +1246,9 @@ BOOL b;
 	}
 }
 
-void CApp::InsertTape(HWND hWnd)
+void CApp::InsertTapeDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH];
 BOOL b;
 
@@ -1243,9 +1273,9 @@ BOOL b;
 	}
 }
 
-void CApp::AutoLoad(HWND hWnd)
+void CApp::AutoLoadDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH];
 BOOL b;
 HRESULT hr;
@@ -1269,7 +1299,7 @@ CPRGBrowse prgBrowse;
 	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::ALL);
 	if (b)
 	{
-		HRESULT hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks);
+		hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks);
 		if (hr != S_OK)
 		{
 			c64.DisplayError(hWnd, TEXT("Auto Load"));
@@ -1279,9 +1309,9 @@ CPRGBrowse prgBrowse;
 	}
 }
 
-void CApp::LoadC64Image(HWND hWnd)
+void CApp::LoadC64ImageDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH];
 BOOL b;
 bit16 start, loadSize;
@@ -1313,9 +1343,9 @@ HRESULT hr;
 	}
 }
 
-void CApp::LoadT64(HWND hWnd)
+void CApp::LoadT64Dialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH+1];
 BOOL b;
 bit16 start, loadSize;
@@ -1358,9 +1388,9 @@ int i;
 	}
 }
 
-void CApp::InsertDiskImage(HWND hWnd)
+void CApp::InsertDiskImageDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH+1];
 BOOL b;
 HRESULT hr;
@@ -1402,9 +1432,9 @@ CPRGBrowse prgBrowse;
 	}
 }
 
-void CApp::SaveD64Image(HWND hWnd)
+void CApp::SaveD64ImageDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH];
 TCHAR filename[MAX_PATH];
 BOOL b;
@@ -1425,15 +1455,7 @@ CDiagFileSaveD64 childDialog;
 	}
 
 	ZeroMemory(&of, sizeof(of));
-	if (G::IsEnhancedWinVer())
-	{
-		of.lStructSize = sizeof(OPENFILENAME_500EX);
-	}
-	else
-	{
-		of.lStructSize = sizeof(OPENFILENAME);
-	}
-
+	of.lStructSize = sizeof(OPENFILENAME);
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.d64)\0*.d64\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex =1;
@@ -1475,9 +1497,9 @@ CDiagFileSaveD64 childDialog;
 	}
 }
 
-void CApp::SaveFDIImage(HWND hWnd)
+void CApp::SaveFDIImageDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH+1];
 TCHAR filename[MAX_PATH+1];
 BOOL b;
@@ -1491,15 +1513,7 @@ HRESULT hr;
 	}
 
 	ZeroMemory(&of, sizeof(of));
-	if (G::IsEnhancedWinVer())
-	{
-		of.lStructSize = sizeof(OPENFILENAME_500EX);
-	}
-	else
-	{
-		of.lStructSize = sizeof(OPENFILENAME);
-	}
-
+	of.lStructSize = sizeof(OPENFILENAME);
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.fdi)\0*.fdi\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
@@ -1531,9 +1545,9 @@ HRESULT hr;
 	}
 }
 
-void CApp::SaveP64Image(HWND hWnd)
+void CApp::SaveP64ImageDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH+1];
 TCHAR filename[MAX_PATH+1];
 BOOL b;
@@ -1547,15 +1561,7 @@ HRESULT hr;
 	}
 
 	ZeroMemory(&of, sizeof(of));
-	if (G::IsEnhancedWinVer())
-	{
-		of.lStructSize = sizeof(OPENFILENAME_500EX);
-	}
-	else
-	{
-		of.lStructSize = sizeof(OPENFILENAME);
-	}
-
+	of.lStructSize = sizeof(OPENFILENAME);
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.p64)\0*.p64\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
@@ -1587,9 +1593,9 @@ HRESULT hr;
 	}
 }
 
-void CApp::SaveC64State(HWND hWnd)
+void CApp::SaveC64StateDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH+1];
 TCHAR filename[MAX_PATH+1];
 BOOL b;
@@ -1598,15 +1604,7 @@ HRESULT hr;
 	TCHAR title[] = TEXT("Save State Image");
 
 	ZeroMemory(&of, sizeof(of));
-	if (G::IsEnhancedWinVer())
-	{
-		of.lStructSize = sizeof(OPENFILENAME_500EX);
-	}
-	else
-	{
-		of.lStructSize = sizeof(OPENFILENAME);
-	}
-
+	of.lStructSize = sizeof(OPENFILENAME);
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("State Image (*.64s)\0*.64s\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
@@ -1631,9 +1629,9 @@ HRESULT hr;
 	}
 }
 
-void CApp::LoadC64State(HWND hWnd)
+void CApp::LoadC64StateDialog(HWND hWnd)
 {
-OPENFILENAME_500EX of;
+OPENFILENAME of;
 TCHAR initfilename[MAX_PATH];
 BOOL b;
 HRESULT hr;
@@ -1718,7 +1716,10 @@ void CApp::SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecond
 	this->m_Sid6Address = addressOfSixthSID;
 	this->m_Sid7Address = addressOfSeventhSID;
 	this->m_Sid8Address = addressOfEighthSID;
-	this->c64.sid.SetSidChipAddressMap(numberOfExtraSidChips, addressOfSecondSID, addressOfThirdSID, addressOfFourthSID, addressOfFifthSID, addressOfSixthSID, addressOfSeventhSID, addressOfEighthSID);
+	if (c64.isInitOK)
+	{
+		this->c64.sid.SetSidChipAddressMap(numberOfExtraSidChips, addressOfSecondSID, addressOfThirdSID, addressOfFourthSID, addressOfFifthSID, addressOfSixthSID, addressOfSeventhSID, addressOfEighthSID);
+	}
 }
 
 void CApp::ResetSidChipAddressMap()
@@ -1734,8 +1735,9 @@ void CApp::SetUserConfig(const CConfig& newcfg)
 void CApp::ApplyConfig(const CConfig& newcfg)
 {	
 HWND hWnd = 0;
-CConfig &cfg= *(static_cast<CConfig *>(this));
+CConfig &cfg= *this;
 bool bNeedDisplayReset = false;
+bool bNeedDisplayStyleUpdate = false;
 bool bNeedSoundFilterInit = false;
 bool bPaletteChanged = false;
 unsigned int i;
@@ -1745,37 +1747,45 @@ unsigned int i;
 		hWnd = m_pWinAppWindow->GetHwnd();
 	}
 
-	c64.cia1.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
-	c64.cia2.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
-
-	if (newcfg.m_bSID_Emulation_Enable!=false && this->m_bSID_Emulation_Enable==false)
+	if (c64.isInitOK)
 	{
-		c64.sid.CurrentClock = c64.cpu.CurrentClock;
+		c64.cia1.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
+		c64.cia2.SetMode(newcfg.m_CIAMode, newcfg.m_bTimerBbug);
+		if (newcfg.m_bSID_Emulation_Enable != false && this->m_bSID_Emulation_Enable == false)
+		{
+			c64.sid.CurrentClock = c64.cpu.CurrentClock;
+		}
+
+		if (newcfg.m_bD1541_Emulation_Enable != false && this->m_bD1541_Emulation_Enable == false)
+		{
+			c64.diskdrive.CurrentPALClock = c64.cpu.CurrentClock;
+		}
 	}
 
-	if (newcfg.m_bD1541_Emulation_Enable!=false && this->m_bD1541_Emulation_Enable==false)
-	{
-		c64.diskdrive.CurrentPALClock = c64.cpu.CurrentClock;
-	}
-
-	if (newcfg.m_bUseBlitStretch != this->m_bUseBlitStretch 
-		|| newcfg.m_bWindowedCustomSize != this->m_bWindowedCustomSize
-		|| newcfg.m_bDoubleSizedWindow != this->m_bDoubleSizedWindow 
-		|| (newcfg.m_bWindowedLockAspectRatio && !this->m_bWindowedLockAspectRatio)
-		|| newcfg.m_blitFilter != this->m_blitFilter
-		|| newcfg.m_borderSize != this->m_borderSize
-		|| newcfg.m_bShowFloppyLed != this->m_bShowFloppyLed
+	if (newcfg.m_fullscreenAdapterIsDefault != this->m_fullscreenAdapterIsDefault
+		|| newcfg.m_fullscreenAdapterNumber != this->m_fullscreenAdapterNumber
+		|| newcfg.m_fullscreenOutputNumber != this->m_fullscreenOutputNumber
+		|| newcfg.m_fullscreenWidth != this->m_fullscreenWidth
+		|| newcfg.m_fullscreenHeight != this->m_fullscreenHeight
+		|| newcfg.m_fullscreenFormat != this->m_fullscreenFormat
+		|| newcfg.m_fullscreenRefreshNumerator != this->m_fullscreenRefreshNumerator
+		|| newcfg.m_fullscreenRefreshDenominator != this->m_fullscreenRefreshDenominator
 		|| newcfg.m_syncModeFullscreen != this->m_syncModeFullscreen
-		|| newcfg.m_syncModeWindowed != this->m_syncModeWindowed
-		|| newcfg.m_fullscreenAdapterNumber != this->m_fullscreenAdapterNumber)
+		|| newcfg.m_syncModeWindowed != this->m_syncModeWindowed)
 	{
 		bNeedDisplayReset = true;
 	}
 
+	if (newcfg.m_bWindowedLockAspectRatio && !this->m_bWindowedLockAspectRatio
+		|| newcfg.m_borderSize != this->m_borderSize
+		|| newcfg.m_bShowFloppyLed != this->m_bShowFloppyLed)
+	{
+		bNeedDisplayStyleUpdate = true;
+	}
+	
+
 	bool keepWindowPlacement = true;
-	if (newcfg.m_bWindowedCustomSize != this->m_bWindowedCustomSize 
-		|| newcfg.m_bDoubleSizedWindow != this->m_bDoubleSizedWindow 
-		|| (newcfg.m_bWindowedLockAspectRatio && !this->m_bWindowedLockAspectRatio)
+	if (newcfg.m_bWindowedLockAspectRatio && !this->m_bWindowedLockAspectRatio
 		|| newcfg.m_syncModeFullscreen != this->m_syncModeFullscreen
 		|| newcfg.m_syncModeWindowed != this->m_syncModeWindowed
 		|| newcfg.m_fullscreenAdapterNumber != this->m_fullscreenAdapterNumber)
@@ -1799,48 +1809,29 @@ unsigned int i;
 	// Use the new config.
 	cfg = newcfg;
 
-	if (bPaletteChanged)
+	this->m_fskip = -1;
+	if (hWnd != 0 && gx.isInitOK)
 	{
-		 if (m_pWinAppWindow)
-		 {
-			 m_pWinAppWindow->SetColours();
-		 }
-	}
-
-	if (bNeedDisplayReset)
-	{
-		if (hWnd)
-		{			
-			int minw;
-			int minh;
-			m_pWinAppWindow->GetMinimumWindowedSize(newcfg.m_borderSize, newcfg.m_bShowFloppyLed, &minw, &minh);
-
-			// Get a default window size.
-			int w = 0;
-			int h = 0;
-			m_pWinAppWindow->GetRequiredMainWindowSize(newcfg.m_borderSize, newcfg.m_bShowFloppyLed, newcfg.m_bDoubleSizedWindow, &w, &h);
-			
-			if (newcfg.m_bWindowedCustomSize)
+		if (bPaletteChanged)
+		{
+			if (m_pWinAppWindow)
 			{
-				RECT rc;					
-				if (CopyRect(&rc, &m_pWinAppWindow->m_rcMainWindow))
-				{
-					if (newcfg.m_bWindowedLockAspectRatio)
-					{
-						m_pWinAppWindow->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rc);
-					}
-				}
-
-				w = rc.right - rc.left;
-				h = rc.bottom - rc.top;
-				if (w < minw || h < minh)
-				{
-					w = minw;
-					h = minh;
-				}
+				m_pWinAppWindow->SetColours();
 			}
+		}
 
-			m_pWinAppWindow->SetWindowedMode(m_bWindowed, keepWindowPlacement, newcfg.m_bDoubleSizedWindow, newcfg.m_bWindowedCustomSize, w, h, newcfg.m_bUseBlitStretch);
+		this->gx.SetVsyncMode(this->m_bWindowed ? this->m_syncModeWindowed : this->m_syncModeFullscreen);
+		this->gx.c64display.SetPixelFilter(m_blitFilter == HCFG::EMUWINDOWFILTER::EMUWINFILTER_POINT);
+		if (bNeedDisplayReset)
+		{
+			if (m_pWinAppWindow)
+			{
+				m_pWinAppWindow->SetWindowedMode(m_bWindowed);
+			}
+		}
+		else if (bNeedDisplayStyleUpdate)
+		{
+			this->gx.c64display.SetRenderStyle(0, 0, this->m_bWindowed, m_borderSize, m_bShowFloppyLed, m_fullscreenStretch, m_blitFilter == HCFG::EMUWINDOWFILTER::EMUWINFILTER_POINT);
 		}
 	}
 
@@ -1860,29 +1851,49 @@ unsigned int i;
 		this->m_framefrequencyDoubler.QuadPart = this->m_framefrequency.QuadPart / 2;
 	}
 
-	CopyMemory(&c64.cia1.c64KeyMap[0], &newcfg.m_KeyMap[0], sizeof(c64.cia1.c64KeyMap));
-	this->m_fskip = -1;	
-	m_bUseKeymap = false;
-	dx.InitJoys(hWnd, this->m_joy1config, this->m_joy2config);
-	this->SetSidChipAddressMap(newcfg.m_numberOfExtraSIDs, newcfg.m_Sid2Address, newcfg.m_Sid3Address, newcfg.m_Sid4Address, newcfg.m_Sid5Address, newcfg.m_Sid6Address, newcfg.m_Sid7Address, newcfg.m_Sid8Address);
-	if (this->m_bSoundOK)
+	if (hWnd)
 	{
-		c64.sid.UpdateSoundBufferLockSize(this->m_fps);
-		if (bNeedSoundFilterInit)
+		dx.InitJoys(hWnd, this->m_joy1config, this->m_joy2config);
+	}
+
+	this->SetSidChipAddressMap(newcfg.m_numberOfExtraSIDs, newcfg.m_Sid2Address, newcfg.m_Sid3Address, newcfg.m_Sid4Address, newcfg.m_Sid5Address, newcfg.m_Sid6Address, newcfg.m_Sid7Address, newcfg.m_Sid8Address);	
+	if (c64.isInitOK)
+	{
+		c64.UpdateKeyMap();
+		if (this->m_bSoundOK)
 		{
-			c64.sid.InitResamplingFilters(this->m_fps);
+			c64.sid.UpdateSoundBufferLockSize(this->m_fps);
+			if (bNeedSoundFilterInit)
+			{
+				c64.sid.InitResamplingFilters(this->m_fps);
+			}
 		}
 	}
 
 	if (hWnd)
 	{
-		m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
+		m_pWinAppWindow->UpdateWindowTitle(wsTitle.c_str(), -1);
 	}
 }
 
-void CApp::SetBusy(bool bBusy)
+void CApp::SetBusyApp(bool isBusy)
 {
-	if (bBusy)
+	if (isBusy)
+	{
+		this->SoundOff();
+	}
+
+	this->SetBusy(isBusy);
+
+	if (!isBusy)
+	{
+		this->SoundOn();
+	}
+}
+
+void CApp::SetBusy(bool isBusy)
+{
+	if (isBusy)
 	{
 		this->m_bBusy = true;
 		UpdateWindow(m_pWinAppWindow->GetHwnd());
@@ -2136,7 +2147,7 @@ EventArgs e;
 	m_bBreak = false;
 	m_bRunning = true;
 	m_bPaused = false;
-	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
+	m_pWinAppWindow->UpdateWindowTitle(wsTitle.c_str(), -1);
 	if (hWnd)
 	{
 		SetForegroundWindow(hWnd);
@@ -2202,12 +2213,12 @@ EventArgs e;
 
 void CApp::UpdateEmulationDisplay()
 {
-	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	if (m_pWinAppWindow == nullptr)
 	{
 		return;
 	}
 
-	m_pWinAppWindow->m_pWinEmuWin->UpdateC64WindowWithObjects();
+	m_pWinAppWindow->UpdateC64WindowWithObjects();
 }
 
 bool CApp::IsRunning()
@@ -2261,42 +2272,42 @@ HWND CApp::GetMainFrameWindow()
 
 void CApp::DisplayVicCursor(bool bEnabled)
 {
-	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	if (m_pWinAppWindow == nullptr)
 	{
 		return;
 	}
 
-	m_pWinAppWindow->m_pWinEmuWin->DisplayVicCursor(bEnabled);
+	m_pWinAppWindow->DisplayVicCursor(bEnabled);
 }
 
 void CApp::DisplayVicRasterBreakpoints(bool bEnabled)
 {
-	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	if (m_pWinAppWindow == nullptr)
 	{
 		return;
 	}
 
-	m_pWinAppWindow->m_pWinEmuWin->DisplayVicRasterBreakpoints(bEnabled);
+	m_pWinAppWindow->DisplayVicRasterBreakpoints(bEnabled);
 }
 
 void CApp::SetVicCursorPos(int iCycle, int iLine)
 {
-	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	if (m_pWinAppWindow == nullptr)
 	{
 		return;
 	}
 
-	m_pWinAppWindow->m_pWinEmuWin->SetVicCursorPos(iCycle, iLine);
+	m_pWinAppWindow->SetVicCursorPos(iCycle, iLine);
 }
 
 void CApp::GetVicCursorPos(int *piCycle, int *piLine)
 {
-	if (m_pWinAppWindow == 0 || m_pWinAppWindow->m_pWinEmuWin == 0)
+	if (m_pWinAppWindow == nullptr)
 	{
 		return;
 	}
 
-	m_pWinAppWindow->m_pWinEmuWin->GetVicCursorPos(piCycle, piLine);
+	m_pWinAppWindow->GetVicCursorPos(piCycle, piLine);
 }
 
 void CApp::SetRadixHexadecimal()
@@ -2309,10 +2320,82 @@ void CApp::SetRadixDecimal()
 	this->c64.GetMon()->Set_Radix(DBGSYM::MonitorOption::Dec);
 }
 
+void CApp::GetLastMousePosition(int* x, int* y)
+{
+	*x = lastMouseX;
+	*y = lastMouseY;
+}
+
+void CApp::SetLastMousePosition(const int* x, const int* y)
+{
+	lastMouseX = *x;
+	lastMouseY = *y;
+}
+
+void CApp::PostCloseMainWindow()
+{
+	::PostMessage(this->GetMainFrameWindow(), WM_CLOSE, 0, 0);
+}
+
+void CApp::PostToggleFullscreen()
+{
+	::PostMessage(this->GetMainFrameWindow(), WM_COMMAND, MAKEWPARAM(IDM_TOGGLEFULLSCREEN, 0), 0);
+}
+
+bool CApp::PostAutoLoadFile(const wchar_t *pszFilename, int directoryIndex, bool quickload)
+{
+	if (pszFilename != nullptr)
+	{
+		if (std::wcslen(pszFilename) > 0)
+		{
+			HRESULT hr = this->c64.AutoLoad(pszFilename, directoryIndex, false, nullptr, quickload, false);
+			if (SUCCEEDED(hr))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool CApp::InsertDiskImageFromFile(const wchar_t* pszFilename)
+{
+	if (pszFilename != nullptr)
+	{
+		HRESULT hr = c64.InsertDiskImageFile(pszFilename, false, false);
+		if (SUCCEEDED(hr))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CApp::InsertTapeImageFromFile(const wchar_t* pszFilename)
+{
+	if (pszFilename != nullptr)
+	{
+		HRESULT hr = c64.tape64.InsertTAPFile(pszFilename);
+		if (SUCCEEDED(hr))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void CApp::EnableC64Input(bool enabled)
+{
+	c64.cia1.EnableInput(enabled);
+}
+
 void CApp::TogglePause()
 {
 	m_bPaused = !m_bPaused;
-	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
+	m_pWinAppWindow->UpdateWindowTitle(wsTitle.c_str(), -1);
 }
 
 void CApp::ToggleSoundMute()
@@ -2327,7 +2410,7 @@ void CApp::ToggleSoundMute()
 		c64.sid.MasterVolume = 1.0;
 	}
 
-	m_pWinAppWindow->UpdateWindowTitle(m_szTitle, -1);
+	m_pWinAppWindow->UpdateWindowTitle(wsTitle.c_str(), -1);
 }
 
 HWND CApp::ShowDevelopment()
@@ -2343,79 +2426,6 @@ HWND hWnd = NULL;
 
 	return hWnd;
 }
-
-#if _WIN32_WINNT >= 0x400
-LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	return app.LowLevelKeyboardProc(nCode, wParam, lParam); 
-}
-
-LRESULT CApp::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-    if (nCode < 0 || nCode != HC_ACTION )  // do not process message 
-	{
-        return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam); 
-	}
- 
-    bool bEatKeystroke = false;
-    switch (wParam) 
-    {
-        case WM_KEYDOWN:  
-        case WM_KEYUP:    
-        {
-			bool bWinKey;
-			KBDLLHOOKSTRUCT* p = (KBDLLHOOKSTRUCT*)lParam;
-			bWinKey = ((p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN));
-            bEatKeystroke = (!m_bWindowed && m_bActive && bWinKey);
-            break;
-        }
-    }
- 
-    if( bEatKeystroke )
-	{
-        return 1;
-	}
-    else
-	{
-        return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam );
-	}
-}
-#else
-LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	return app.KeyboardProc(nCode, wParam, lParam); 
-}
-LRESULT CApp::KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-    if (nCode < 0 || nCode != HC_ACTION )  // do not process message 
-	{
-        return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam); 
-	}
- 
-    bool bEatKeystroke = false;
-    switch (wParam) 
-    {
-        case WM_KEYDOWN:  
-        case WM_KEYUP:    
-        {
-			bool bWinKey;
-			bWinKey = ((wParam == VK_LWIN) || (wParam == VK_RWIN));
-            bEatKeystroke = (!m_bWindowed && m_bActive && bWinKey);
-            break;
-        }
-    }
- 
-    if( bEatKeystroke )
-	{
-        return 1;
-	}
-    else
-	{
-        return CallNextHookEx(m_hKeyboardHook, nCode, wParam, lParam );
-	}
-}
-#endif
-
 
 void CApp::AllowAccessibilityShortcutKeys( bool bAllowKeys )
 {

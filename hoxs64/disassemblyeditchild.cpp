@@ -57,7 +57,7 @@ HRESULT hr;
 
 	hr = Init();
 	if (FAILED(hr))
-		throw std::runtime_error("CDisassemblyEditChild::Init() failed");
+		throw std::exception("CDisassemblyEditChild::Init() failed");
 }
 
 CDisassemblyEditChild::~CDisassemblyEditChild()
@@ -601,12 +601,13 @@ HRESULT hr;
 					if (m_hWnd != NULL)
 					{
 						SetFocus(m_hWnd);
+						UpdateWindow(m_hWnd);
 					}
 
-					UpdateWindow(m_hWnd);
 					return 0;
 				}
 			}
+
 			break;
 		}
 
@@ -1241,11 +1242,11 @@ TEXTMETRIC tm;
 							::SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
 							if (this->GetCpu()->IsBreakpoint(DBGSYM::BreakpointType::Execute, albFront.Address))
 							{
-								Sp_BreakpointItem breakpoint;
+								BreakpointItem breakpoint;
 								if (this->GetCpu()->GetBreakpoint(DBGSYM::BreakpointType::Execute, albFront.Address, breakpoint))
 								{
 									SelectObject(hdc, bshBarBreak);
-									if (breakpoint->enabled)
+									if (breakpoint.enabled)
 									{
 										DrawBitmap(hdc, 0, y, hMemDC, m_hBmpBreakEnabled);
 									}
@@ -1480,10 +1481,10 @@ CPUState cpustate;
 		if (this->GetCpu()->IsBreakpoint(DBGSYM::BreakpointType::Execute, currentAddress))
 		{
 			buffer.IsBreak = true;
-			Sp_BreakpointItem bp;
+			BreakpointItem bp;
 			if (this->GetCpu()->GetBreakpoint(DBGSYM::BreakpointType::Execute, currentAddress, bp))
 			{
-				buffer.IsBreakEnabled = bp->enabled;
+				buffer.IsBreakEnabled = bp.enabled;
 			}
 		}
 
@@ -1495,7 +1496,6 @@ CPUState cpustate;
 		assemblyLineBuffer[currentLine] = buffer;
 		currentAddress += instructionSize;
 	}
-
 }
 
 bit16 CDisassemblyEditChild::GetNearestTopAddress(bit16 address)

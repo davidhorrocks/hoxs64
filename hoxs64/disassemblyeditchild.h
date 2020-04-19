@@ -1,11 +1,11 @@
-#ifndef __DISSASSEMBLYEDITCHILD_H__
-#define __DISSASSEMBLYEDITCHILD_H__
+#pragma once
+#include "cvirwindow.h"
 
 class CDisassemblyEditChild_EventSink_OnBreakpointC64ExecuteChanged : public EventSink<BreakpointC64ExecuteChangedEventArgs>
 {
 protected:
 
-	virtual int Sink(void *sender, BreakpointC64ExecuteChangedEventArgs& e)
+	int Sink(void *sender, BreakpointC64ExecuteChangedEventArgs& e) override
 	{
 		OnBreakpointC64ExecuteChanged(sender, e);
 		return 0;
@@ -18,7 +18,7 @@ class CDisassemblyEditChild_EventSink_OnBreakpointDiskExecuteChanged : public Ev
 {
 protected:
 
-	virtual int Sink(void *sender, BreakpointDiskExecuteChangedEventArgs& e)
+	int Sink(void *sender, BreakpointDiskExecuteChangedEventArgs& e) override
 	{
 		OnBreakpointDiskExecuteChanged(sender, e);
 		return 0;
@@ -31,7 +31,7 @@ class CDisassemblyEditChild_EventSink_OnBreakpointVicChanged : public EventSink<
 {
 protected:
 
-	virtual int Sink(void *sender, BreakpointVicChangedEventArgs& e)
+	int Sink(void *sender, BreakpointVicChangedEventArgs& e) override
 	{
 		OnBreakpointVicChanged(sender, e);
 		return 0;
@@ -44,7 +44,7 @@ class CDisassemblyEditChild_EventSink_OnBreakpointChanged : public EventSink<Bre
 {
 protected:
 
-	virtual int Sink(void *sender, BreakpointChangedEventArgs& e)
+	int Sink(void *sender, BreakpointChangedEventArgs& e) override
 	{
 		OnBreakpointChanged(sender, e);
 		return 0;
@@ -57,7 +57,7 @@ class CDisassemblyEditChild_EventSink_OnRadixChanged : public EventSink<RadixCha
 {
 protected:
 
-	virtual int Sink(void *sender, RadixChangedEventArgs& e)
+	int Sink(void *sender, RadixChangedEventArgs& e) override
 	{
 		OnRadixChanged(sender, e);
 		return 0;
@@ -113,10 +113,10 @@ public:
 	};
 
 	CDisassemblyEditChild(int cpuid, IC64 *c64, IAppCommand *pAppCommand, HFONT hFont);
-	virtual ~CDisassemblyEditChild();
+	~CDisassemblyEditChild();
 	static TCHAR ClassName[];
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
+	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) override;
 	void InvalidateBuffer();
 	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 	void UpdateBuffer(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
@@ -129,7 +129,7 @@ public:
 	bit16 GetBottomAddress(int offset);
 	bit16 GetNextAddress();
 	bit16 GetPrevAddress();
-	void GetMinWindowSize(int &w, int &h);
+	void GetMinWindowSize(int &w, int &h) override;
 	void SetHome();
 	void CancelAsmEditing();
 	HRESULT SaveAsmEditing();
@@ -200,13 +200,11 @@ private:
 	bool OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnVScroll(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnEditFocusedMnemonic();
-	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e);
-	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e);
-	void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e);
-	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e);
-	void OnRadixChanged(void *sender, RadixChangedEventArgs& e);
-	virtual LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnBreakpointC64ExecuteChanged(void *sender, BreakpointC64ExecuteChangedEventArgs& e) override;
+	void OnBreakpointDiskExecuteChanged(void *sender, BreakpointDiskExecuteChangedEventArgs& e) override;
+	void OnBreakpointVicChanged(void *sender, BreakpointVicChangedEventArgs& e) override;
+	void OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e) override;
+	void OnRadixChanged(void *sender, RadixChangedEventArgs& e) override;
+	LRESULT SubclassWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
+	LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 };
-
-#endif

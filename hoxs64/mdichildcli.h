@@ -1,17 +1,18 @@
-#ifndef __MDICHILDCLI_H__
-#define __MDICHILDCLI_H_
+#pragma once
+#include "cvirwindow.h"
 
 class CMDIChildCli : public CVirMdiChildWindow
 {
 public:
 	CMDIChildCli(IC64 *c64, IAppCommand *pIAppCommand, HFONT hFont);
 	static const TCHAR ClassName[];
+	virtual void WindowRelease() override;
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	HWND Create(shared_ptr<CVirMdiFrameWindow> pWinMdiFrame);
-
+	HWND Create(CVirMdiFrameWindow *pWinMdiFrame);
+	shared_ptr<CMDIChildCli> keepAlive;
 protected:
-	shared_ptr<CVirMdiFrameWindow> m_pWinMdiFrame;
+	CVirMdiFrameWindow *m_pWinMdiFrame;
 	weak_ptr<WpcCli> m_pWinWpcCli; 
 	IC64 *c64;
 	IAppCommand *m_pIAppCommand;
@@ -21,5 +22,3 @@ protected:
 	void OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
-
-#endif

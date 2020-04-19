@@ -3,11 +3,8 @@
 #include <tchar.h>
 #include <windowsx.h>
 #include <winuser.h>
+#include <algorithm>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <stdio.h>
 #include "servicerelease.h"
 #include "defines.h"
@@ -15,6 +12,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "diagcolour.h"
@@ -267,9 +266,9 @@ DWORD dwPosBlue;
 		dwPosGreen = ::GetDlgItemInt(this->m_hWnd, IDC_EDITRGBCOLORGREEN, &isTranslated, FALSE);
 		dwPosBlue = ::GetDlgItemInt(this->m_hWnd, IDC_EDITRGBCOLORBLUE, &isTranslated, FALSE);
 
-		dwPosRed = min(dwPosRed, 0xff);
-		dwPosGreen = min(dwPosGreen, 0xff);
-		dwPosBlue = min(dwPosBlue, 0xff);
+		dwPosRed = std::min(dwPosRed, (DWORD)0xff);
+		dwPosGreen = std::min(dwPosGreen, (DWORD)0xff);
+		dwPosBlue = std::min(dwPosBlue, (DWORD)0xff);
 
 		DWORD pos = 0;
 		bool ok = true;
@@ -337,9 +336,9 @@ DWORD dwPosBlue;
 	dwPosGreen = (DWORD)::SendDlgItemMessage(this->m_hWnd, IDC_SLIDERRGBCOLORGREEN, TBM_GETPOS, 0, 0);
 	dwPosBlue = (DWORD)::SendDlgItemMessage(this->m_hWnd, IDC_SLIDERRGBCOLORBLUE, TBM_GETPOS, 0, 0);
 
-	dwPosRed = min(dwPosRed, 0xff);
-	dwPosGreen = min(dwPosGreen, 0xff);
-	dwPosBlue = min(dwPosBlue, 0xff);
+	dwPosRed = std::min(dwPosRed, (DWORD)0xff);
+	dwPosGreen = std::min(dwPosGreen, (DWORD)0xff);
+	dwPosBlue = std::min(dwPosBlue, (DWORD)0xff);
 
 	bit32 cl = (dwPosRed << 16) | (dwPosGreen << 8) | (dwPosBlue);
 	this->largepaletteitem.RGBColour = cl;

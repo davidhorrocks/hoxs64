@@ -1,35 +1,16 @@
-#include <windows.h>
-#include <commctrl.h>
-#include <tchar.h>
-#include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "CDPI.h"
-#include "bits.h"
-#include "util.h"
-#include "utils.h"
 #include "register.h"
-#include "errormsg.h"
-#include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
-#include "hexconv.h"
 #include "savestate.h"
 #include "cart.h"
 #include "c6502.h"
 #include "ram64.h"
 #include "cpu6510.h"
 #include "cia6526.h"
-#include "vic6569.h"
 #include "tap.h"
 #include "c64keys.h"
 #include "cia1.h"
+#include "ErrorLogger.h"
 
 #define KEYBOARDMINSCANINTERVAL (PAL_CLOCKS_PER_FRAME / 2)
 #define DEVICEACQUIRECLOCKS (500 * PALCLOCKSPERSECOND / 1000)
@@ -59,7 +40,7 @@ CIA1::CIA1()
 	ZeroMemory(&this->js, sizeof(this->js));
 }
 
-HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad)
+HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, IMonitorVic* vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad)
 {
 	ClearError();
 	this->ID = 1;
@@ -71,13 +52,23 @@ HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, VIC6569 *vi
 	this->tape64 = tape64;
 	this->pIC64 = pIC64;
 	this->pIAutoLoad = pAutoLoad;
+	this->SetMode(appStatus->m_CIAMode, appStatus->m_bTimerBbug);
+	this->UpdateKeyMap();
 	return S_OK;
+}
+
+void CIA1::UpdateKeyMap()
+{
+	if (appStatus != nullptr)
+	{
+		CopyMemory(&this->c64KeyMap[0], &appStatus->m_KeyMap[0], sizeof(this->c64KeyMap));
+	}
 }
 
 ICLK CIA1::NextScanDelta()
 {
 	ICLK desiredVideoPosition = (ICLK)dist_pal_frame(randengine);
-	ICLK currentVideoPosition = vic->vic_raster_line * PAL_CLOCKS_PER_LINE + vic->vic_raster_cycle - 1;
+	ICLK currentVideoPosition = vic->GetCurrentRasterLine() * PAL_CLOCKS_PER_LINE + vic->GetCurrentRasterCycle() - 1;
 	ICLK vicdiff = vic->CurrentClock - this->CurrentClock;
 	currentVideoPosition = (currentVideoPosition + PAL_CLOCKS_PER_FRAME - vicdiff)  % PAL_CLOCKS_PER_FRAME;
 
@@ -376,7 +367,7 @@ void CIA1::WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new
 
 void CIA1::InitReset(ICLK sysclock, bool poweronreset)
 {
-	CIA::InitReset(sysclock, poweronreset);
+	CIA::InitCommonReset(sysclock, poweronreset);
 	nextKeyboardScanClock = sysclock;
 	joyport1=0xff;
 	joyport2=0xff;
@@ -452,8 +443,8 @@ bit8 enablePot;
 
 void CIA1::SetKeyMatrixDown(bit8 row, bit8 col)
 {
-	row &= 0xf;
-	col &= 0xf;
+	row &= 0x7;
+	col &= 0x7;
 	KEYMATRIX_DOWN(row , col);
 }
 
@@ -723,6 +714,11 @@ unsigned int j;
 	return false;
 }
 
+void CIA1::EnableInput(bool enabled)
+{
+	this->enableInput = enabled;
+}
+
 bit8 CIA1::Get_PotAX()
 {
 	return this->potAx;
@@ -747,7 +743,7 @@ void CIA1::WriteDebuggerReadKeyboard()
 {
 #ifdef DEBUG
 	TCHAR sDebug[50];
-	_stprintf_s(sDebug, _countof(sDebug), TEXT("%08X %08X %08X %d %03X %02X"), vic->FrameNumber, vic->CurrentClock, this->CurrentClock, (int)(ICLKS)(vic->CurrentClock - this->CurrentClock), vic->vic_raster_line, vic->vic_raster_cycle);
+	_stprintf_s(sDebug, _countof(sDebug), TEXT("%08X %08X %08X %d %03X %02X"), vic->GetFrameCounter(), vic->CurrentClock, this->CurrentClock, (int)(ICLKS)(vic->CurrentClock - this->CurrentClock), vic->GetCurrentRasterLine(), vic->GetCurrentRasterCycle());
 	OutputDebugString(sDebug);
 	OutputDebugString(TEXT("\n"));
 #endif
@@ -755,33 +751,33 @@ void CIA1::WriteDebuggerReadKeyboard()
 
 void CIA1::ReadKeyboard()
 {
-unsigned char buffer[256];
-unsigned char c64keyboard[C64Keys::C64K_COUNTOFKEYS];
-HRESULT  hr;
-static int softcursorleftcount = 0;
-static int softcursorupcount = 0;
-static int softf2count = 0;
-static int softf4count = 0;
-static int softf6count = 0;
-static int softf8count = 0;
-bool joy1ok;
-bool joy2ok;
-bool keyboardok;
-bit8 localjoyport1;
-bit8 localjoyport2;
-//3-2-1-0 bit postion in joynaxis
-//U-D-L-R //U is up, D is down L is left, R is right
-unsigned int joy1axis = 0;
-unsigned int joy2axis = 0;
-bool joy1fire1 = 0;
-bool joy2fire1 = 0;
-bool joy1fire2 = 0;
-bool joy2fire2 = 0;
-bit8 localpotAx = 0xff;
-bit8 localpotAy = 0xff;
-bit8 localpotBx = 0xff;
-bit8 localpotBy = 0xff;
-unsigned int i;
+	unsigned char buffer[256];
+	unsigned char c64keyboard[C64Keys::C64K_COUNTOFKEYS];
+	HRESULT  hr;
+	static int softcursorleftcount = 0;
+	static int softcursorupcount = 0;
+	static int softf2count = 0;
+	static int softf4count = 0;
+	static int softf6count = 0;
+	static int softf8count = 0;
+	bool joy1ok;
+	bool joy2ok;
+	bool keyboardok;
+	bit8 localjoyport1;
+	bit8 localjoyport2;
+	//3-2-1-0 bit postion in joynaxis
+	//U-D-L-R //U is up, D is down L is left, R is right
+	unsigned int joy1axis = 0;
+	unsigned int joy2axis = 0;
+	bool joy1fire1 = 0;
+	bool joy2fire1 = 0;
+	bool joy1fire2 = 0;
+	bool joy2fire2 = 0;
+	bit8 localpotAx = 0xff;
+	bit8 localpotAy = 0xff;
+	bit8 localpotBx = 0xff;
+	bit8 localpotBy = 0xff;
+	unsigned int i;
 
 	localjoyport2=0xff;
 	localjoyport1=0xff;
@@ -797,8 +793,13 @@ unsigned int i;
 		return;
 	}
 
+	if (!this->enableInput)
+	{
+		return;
+	}
+
 	ResetKeyboard();
-	if (G::IsHideWindow)
+	if (ErrorLogger::HideWindow)
 	{
 		return;
 	}
@@ -1248,13 +1249,13 @@ unsigned int i;
 void CIA1::GetState(SsCia1V2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
-	CIA::GetState(state.cia);
+	CIA::GetCommonState(state.cia);
 	state.nextKeyboardScanClock = nextKeyboardScanClock;
 }
 
 void CIA1::SetState(const SsCia1V2 &state)
 {
-	CIA::SetState(state.cia);
+	CIA::SetCommonState(state.cia);
 	nextKeyboardScanClock = state.nextKeyboardScanClock;
 }
 

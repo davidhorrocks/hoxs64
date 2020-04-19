@@ -11,6 +11,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "c64keys.h"
 #include "carray.h"
@@ -411,17 +413,18 @@ JoyKeyName::ButtonKeySet JoyKeyName::PovKey6 =
 	JoyKeyName::JoynPovKey6List
 };
 
-CConfig::CConfig()
+CConfig::CConfig() noexcept
 {
-	ZeroMemory(&m_fullscreenAdapterId, sizeof(m_fullscreenAdapterId));
+	m_fullscreenAdapterIsDefault = true;
+	m_fullscreenAdapterNumber = 0;
+	m_fullscreenOutputNumber = 0;
 	ZeroMemory(&m_joy1config.joystickID, sizeof(m_joy1config.joystickID));
 	ZeroMemory(&m_joy2config.joystickID, sizeof(m_joy2config.joystickID));
 	m_bD1541_Thread_Enable = false;
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
-	m_bWindowedCustomSize = false;
+	m_bEnableImGuiWindowed = true;
 	m_bWindowedLockAspectRatio = false;
-	m_bUseBlitStretch = true;
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
@@ -442,6 +445,7 @@ CConfig::CConfig()
 	m_Sid6Address = 0;
 	m_Sid7Address = 0;
 	m_Sid8Address = 0;
+	LoadDefaultSetting();
 }
 
 void CConfig::SetCiaNewOldMode(bool isNew)
@@ -472,26 +476,16 @@ void CConfig::SetRunNormal()
 	m_bMaxSpeed = false;
 }
 
-#define readregkeyboarditem(n) tempLenValue = lenValue;\
-		lRetCode = RegReadStr(hKey1, TEXT(#n), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);\
-		if (lRetCode == ERROR_SUCCESS)\
-		{\
-			m_KeyMap[n] = (unsigned char) _ttol(szValue);\
-		}
-
-
 HRESULT CConfig::LoadCurrentSetting()
 {
-TCHAR szValue[20];
-HKEY  hKey1; 
-LONG   lRetCode; 
-ULONG tempLenValue;
-DWORD type;
-DWORD dwValue;
-int i;
+	HKEY  hKey1; 
+	LONG   lRetCode; 
+	ULONG tempLenValue;
+	DWORD type;
+	DWORD dwValue;
+	int i;
 	
 	LoadDefaultSetting();
-	const ULONG lenValue = sizeof(szValue);
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"),
 		0, KEY_READ,
@@ -499,7 +493,8 @@ int i;
 	
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		lRetCode = RegQueryValueEx(hKey1, TEXT("PrefsSaved"), NULL, &type, (PBYTE) NULL, &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("PrefsSaved"), &dwValue);
 		RegCloseKey(hKey1);
 		if (lRetCode != ERROR_SUCCESS)
 		{
@@ -522,92 +517,89 @@ int i;
 	
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		readregkeyboarditem(C64Keys::C64K_0);
-		readregkeyboarditem(C64Keys::C64K_1);
-		readregkeyboarditem(C64Keys::C64K_2);
-		readregkeyboarditem(C64Keys::C64K_3);
-		readregkeyboarditem(C64Keys::C64K_4);
-		readregkeyboarditem(C64Keys::C64K_5);
-		readregkeyboarditem(C64Keys::C64K_6);
-		readregkeyboarditem(C64Keys::C64K_7);
-		readregkeyboarditem(C64Keys::C64K_8);
-		readregkeyboarditem(C64Keys::C64K_9);
-		readregkeyboarditem(C64Keys::C64K_A);
-		readregkeyboarditem(C64Keys::C64K_B);
-		readregkeyboarditem(C64Keys::C64K_C);
-		readregkeyboarditem(C64Keys::C64K_D);
-		readregkeyboarditem(C64Keys::C64K_E);
-		readregkeyboarditem(C64Keys::C64K_F);
-		readregkeyboarditem(C64Keys::C64K_G);
-		readregkeyboarditem(C64Keys::C64K_H);
-		readregkeyboarditem(C64Keys::C64K_I);
-		readregkeyboarditem(C64Keys::C64K_J);
-		readregkeyboarditem(C64Keys::C64K_K);
-		readregkeyboarditem(C64Keys::C64K_L);
-		readregkeyboarditem(C64Keys::C64K_M);
-		readregkeyboarditem(C64Keys::C64K_N);
-		readregkeyboarditem(C64Keys::C64K_O);
-		readregkeyboarditem(C64Keys::C64K_P);
-		readregkeyboarditem(C64Keys::C64K_Q);
-		readregkeyboarditem(C64Keys::C64K_R);
-		readregkeyboarditem(C64Keys::C64K_S);
-		readregkeyboarditem(C64Keys::C64K_T);
-		readregkeyboarditem(C64Keys::C64K_U);
-		readregkeyboarditem(C64Keys::C64K_V);
-		readregkeyboarditem(C64Keys::C64K_W);
-		readregkeyboarditem(C64Keys::C64K_X);
-		readregkeyboarditem(C64Keys::C64K_Y);
-		readregkeyboarditem(C64Keys::C64K_Z);
-		readregkeyboarditem(C64Keys::C64K_PLUS);
-		readregkeyboarditem(C64Keys::C64K_MINUS);
-		readregkeyboarditem(C64Keys::C64K_ASTERISK);
-		readregkeyboarditem(C64Keys::C64K_SLASH);
-		readregkeyboarditem(C64Keys::C64K_COMMA);
-		readregkeyboarditem(C64Keys::C64K_DOT);
-		readregkeyboarditem(C64Keys::C64K_ARROWLEFT);
-		readregkeyboarditem(C64Keys::C64K_COLON);
-		readregkeyboarditem(C64Keys::C64K_SEMICOLON);
-		readregkeyboarditem(C64Keys::C64K_CONTROL);
-		readregkeyboarditem(C64Keys::C64K_STOP);
-		readregkeyboarditem(C64Keys::C64K_COMMODORE);
-		readregkeyboarditem(C64Keys::C64K_LEFTSHIFT);
-		readregkeyboarditem(C64Keys::C64K_RIGHTSHIFT);
-		readregkeyboarditem(C64Keys::C64K_RESTORE);		
-		readregkeyboarditem(C64Keys::C64K_HOME);
-		readregkeyboarditem(C64Keys::C64K_DEL);
-		readregkeyboarditem(C64Keys::C64K_RETURN);
-		readregkeyboarditem(C64Keys::C64K_ARROWUP);
-		readregkeyboarditem(C64Keys::C64K_POUND);
-		readregkeyboarditem(C64Keys::C64K_EQUAL);
-		readregkeyboarditem(C64Keys::C64K_CURSORDOWN);
-		readregkeyboarditem(C64Keys::C64K_CURSORRIGHT);
-		readregkeyboarditem(C64Keys::C64K_CURSORUP);
-		readregkeyboarditem(C64Keys::C64K_CURSORLEFT);
-		readregkeyboarditem(C64Keys::C64K_SPACE);
-		readregkeyboarditem(C64Keys::C64K_AT);
-		readregkeyboarditem(C64Keys::C64K_F1);
-		readregkeyboarditem(C64Keys::C64K_F2);
-		readregkeyboarditem(C64Keys::C64K_F3);
-		readregkeyboarditem(C64Keys::C64K_F4);
-		readregkeyboarditem(C64Keys::C64K_F5);
-		readregkeyboarditem(C64Keys::C64K_F6);
-		readregkeyboarditem(C64Keys::C64K_F7);
-		readregkeyboarditem(C64Keys::C64K_F8);
-
-		readregkeyboarditem(C64Keys::C64K_JOY1FIRE);
-		readregkeyboarditem(C64Keys::C64K_JOY1UP);
-		readregkeyboarditem(C64Keys::C64K_JOY1DOWN);
-		readregkeyboarditem(C64Keys::C64K_JOY1LEFT);
-		readregkeyboarditem(C64Keys::C64K_JOY1RIGHT);
-		readregkeyboarditem(C64Keys::C64K_JOY2FIRE);
-		readregkeyboarditem(C64Keys::C64K_JOY2UP);
-		readregkeyboarditem(C64Keys::C64K_JOY2DOWN);
-		readregkeyboarditem(C64Keys::C64K_JOY2LEFT);
-		readregkeyboarditem(C64Keys::C64K_JOY2RIGHT);
-
-		readregkeyboarditem(C64Keys::C64K_JOY1FIRE2);
-		readregkeyboarditem(C64Keys::C64K_JOY2FIRE2);
-
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_0"), C64Keys::C64K_0);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_1"), C64Keys::C64K_1);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_2"), C64Keys::C64K_2);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_3"), C64Keys::C64K_3);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_4"), C64Keys::C64K_4);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_5"), C64Keys::C64K_5);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_6"), C64Keys::C64K_6);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_7"), C64Keys::C64K_7);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_8"), C64Keys::C64K_8);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_9"), C64Keys::C64K_9);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_A"), C64Keys::C64K_A);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_B"), C64Keys::C64K_B);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_C"), C64Keys::C64K_C);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_D"), C64Keys::C64K_D);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_E"), C64Keys::C64K_E);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F"), C64Keys::C64K_F);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_G"), C64Keys::C64K_G);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_H"), C64Keys::C64K_H);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_I"), C64Keys::C64K_I);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_J"), C64Keys::C64K_J);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_K"), C64Keys::C64K_K);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_L"), C64Keys::C64K_L);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_M"), C64Keys::C64K_M);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_N"), C64Keys::C64K_N);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_O"), C64Keys::C64K_O);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_P"), C64Keys::C64K_P);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_Q"), C64Keys::C64K_Q);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_R"), C64Keys::C64K_R);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_S"), C64Keys::C64K_S);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_T"), C64Keys::C64K_T);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_U"), C64Keys::C64K_U);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_V"), C64Keys::C64K_V);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_W"), C64Keys::C64K_W);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_X"), C64Keys::C64K_X);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_Y"), C64Keys::C64K_Y);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_Z"), C64Keys::C64K_Z);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_PLUS"), C64Keys::C64K_PLUS);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_MINUS"), C64Keys::C64K_MINUS);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_ASTERISK"), C64Keys::C64K_ASTERISK);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_SLASH"), C64Keys::C64K_SLASH);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_COMMA"), C64Keys::C64K_COMMA);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_DOT"), C64Keys::C64K_DOT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_ARROWLEFT"), C64Keys::C64K_ARROWLEFT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_COLON"), C64Keys::C64K_COLON);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_SEMICOLON"), C64Keys::C64K_SEMICOLON);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CONTROL"), C64Keys::C64K_CONTROL);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_STOP"), C64Keys::C64K_STOP);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_COMMODORE"), C64Keys::C64K_COMMODORE);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_LEFTSHIFT"), C64Keys::C64K_LEFTSHIFT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_RIGHTSHIFT"), C64Keys::C64K_RIGHTSHIFT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_RESTORE"), C64Keys::C64K_RESTORE);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_HOME"), C64Keys::C64K_HOME);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_DEL"), C64Keys::C64K_DEL);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_RETURN"), C64Keys::C64K_RETURN);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_ARROWUP"), C64Keys::C64K_ARROWUP);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_POUND"), C64Keys::C64K_POUND);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_EQUAL"), C64Keys::C64K_EQUAL);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORDOWN"), C64Keys::C64K_CURSORDOWN);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORRIGHT"), C64Keys::C64K_CURSORRIGHT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORUP"), C64Keys::C64K_CURSORUP);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORLEFT"), C64Keys::C64K_CURSORLEFT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_SPACE"), C64Keys::C64K_SPACE);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_AT"), C64Keys::C64K_AT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F1"), C64Keys::C64K_F1);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F2"), C64Keys::C64K_F2);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F3"), C64Keys::C64K_F3);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F4"), C64Keys::C64K_F4);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F5"), C64Keys::C64K_F5);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F6"), C64Keys::C64K_F6);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F7"), C64Keys::C64K_F7);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F8"), C64Keys::C64K_F8);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1FIRE"), C64Keys::C64K_JOY1FIRE);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1UP"), C64Keys::C64K_JOY1UP);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1DOWN"), C64Keys::C64K_JOY1DOWN);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1LEFT"), C64Keys::C64K_JOY1LEFT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1RIGHT"), C64Keys::C64K_JOY1RIGHT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1FIRE2"), C64Keys::C64K_JOY1FIRE2);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2FIRE"), C64Keys::C64K_JOY2FIRE);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2UP"), C64Keys::C64K_JOY2UP);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2DOWN"), C64Keys::C64K_JOY2DOWN);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2LEFT"), C64Keys::C64K_JOY2LEFT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2RIGHT"), C64Keys::C64K_JOY2RIGHT);
+		ReadRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2FIRE2"), C64Keys::C64K_JOY2FIRE2);
 		RegCloseKey(hKey1);
 	}
 
@@ -618,49 +610,49 @@ int i;
 	
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("D1541_Emulation"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("D1541_Emulation"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bD1541_Emulation_Enable = _ttol(szValue) != 0;
+			m_bD1541_Emulation_Enable = dwValue != 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SID_Emulation"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SID_Emulation"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bSID_Emulation_Enable = _ttol(szValue) != 0;
+			m_bSID_Emulation_Enable = dwValue != 0;
 		}
 		
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("LimitSpeed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("LimitSpeed"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bLimitSpeed = _ttol(szValue) != 0;
+			m_bLimitSpeed = dwValue != 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("ShowSpeed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("ShowSpeed"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bShowSpeed = _ttol(szValue) != 0;
+			m_bShowSpeed = dwValue != 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SkipAltFrames"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SkipAltFrames"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bSkipFrames = _ttol(szValue) != 0;
+			m_bSkipFrames = dwValue != 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SIDSampleMode"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SIDSampleMode"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bSIDResampleMode = _ttol(szValue) != 0;
+			m_bSIDResampleMode = dwValue != 0;
 		}
 
-		tempLenValue = lenValue;
+		dwValue = 0;
 		lRetCode = RegReadDWordOrStr(hKey1, TEXT("WindowedLockAspectRatio"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
@@ -671,242 +663,279 @@ int i;
 			this->m_bWindowedLockAspectRatio = false;
 		}
 
-		tempLenValue = lenValue;
+		dwValue = 0;
 		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SIDStereo"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
 			m_bSIDStereo = dwValue != 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SyncMode1"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);	
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SyncMode1"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_syncModeFullscreen = (HCFG::FULLSCREENSYNCMODE) _ttol(szValue);
+			m_syncModeFullscreen = (HCFG::FULLSCREENSYNCMODE) dwValue;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SyncMode2"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SyncMode2"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_syncModeWindowed = (HCFG::FULLSCREENSYNCMODE) _ttol(szValue);
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("DoubleSizedWindow"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			m_bDoubleSizedWindow = _ttol(szValue) != 0;
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("UseBlitStretch"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			m_bUseBlitStretch = _ttol(szValue) != 0;
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("UseKeymap"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode == ERROR_SUCCESS)
-		{
-			m_bUseKeymap = _ttol(szValue) != 0;
+			m_syncModeWindowed = (HCFG::FULLSCREENSYNCMODE) dwValue;
 		}
 		
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SwapJoysticks"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SwapJoysticks"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bSwapJoysticks = _ttol(szValue) != 0;
+			m_bSwapJoysticks = dwValue != 0;
 		}
 		else
 		{
 			m_bSwapJoysticks = false;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("CPUFriendly"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("CPUFriendly"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bCPUFriendly = _ttol(szValue) != 0;
+			m_bCPUFriendly = dwValue != 0;
 		}
 		else
 		{
 			m_bCPUFriendly = true;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("AudioClockSync"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("AudioClockSync"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bAudioClockSync = _ttol(szValue) != 0;
+			m_bAudioClockSync = dwValue != 0;
 		}
 		else
 		{
 			m_bAudioClockSync = true;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("SIDDigiBoost"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("SIDDigiBoost"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bSidDigiBoost = _ttol(szValue) != 0;
+			m_bSidDigiBoost = dwValue != 0;
 		}
 		else
 		{
 			m_bSidDigiBoost = false;
 		}
 
-		lRetCode = G::GetClsidFromRegValue(hKey1, TEXT("FullscreenAdapterId"), &m_fullscreenAdapterId);
-		if (FAILED(lRetCode))
-		{
-			ZeroMemory(&m_fullscreenAdapterId, sizeof(GUID));
-		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("FullscreenAdapterNumber"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenAdapterIsDefault"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_fullscreenAdapterNumber = _ttol(szValue);
+			m_fullscreenAdapterIsDefault = dwValue != 0;
+		}
+		else
+		{
+			m_fullscreenAdapterIsDefault = true;
+		}
+
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenAdapterNumber"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenAdapterNumber = dwValue;
 		}
 		else
 		{
 			m_fullscreenAdapterNumber = 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("FullscreenWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenOutputNumber"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_fullscreenWidth = _ttol(szValue);
+			m_fullscreenOutputNumber = dwValue;
+		}
+		else
+		{
+			m_fullscreenOutputNumber = 0;
+		}
+
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenWidth"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenWidth = dwValue;
 		}
 		else
 		{
 			m_fullscreenWidth = 0;
 		}
-	
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("FullscreenHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenHeight"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_fullscreenHeight = _ttol(szValue);
+			m_fullscreenHeight = dwValue;
 		}
 		else
 		{
 			m_fullscreenHeight = 0;
 		}
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("FullscreenRefresh"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenRefreshNumerator"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_fullscreenRefresh = _ttol(szValue);
+			m_fullscreenRefreshNumerator = dwValue;
 		}
 		else
 		{
-			m_fullscreenRefresh = 0;
+			m_fullscreenRefreshNumerator = 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("FullscreenFormat"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenRefreshDenominator"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_fullscreenFormat = _ttol(szValue);
+			m_fullscreenRefreshDenominator = dwValue;
+		}
+		else
+		{
+			m_fullscreenRefreshDenominator = 0;
+		}
+
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenFormat"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenFormat = dwValue;
 		}
 		else
 		{
 			m_fullscreenFormat = 0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("FullscreenStretch"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenDxGiModeScaling"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_fullscreenStretch = (HCFG::EMUWINDOWSTRETCH) _ttol(szValue);
+			m_fullscreenDxGiModeScaling = (DXGI_MODE_SCALING) dwValue;
+		}
+		else
+		{
+			m_fullscreenDxGiModeScaling = (DXGI_MODE_SCALING)0;
+		}
+
+		if ((unsigned int)m_fullscreenDxGiModeScaling > (unsigned int)DXGI_MODE_SCALING::DXGI_MODE_SCALING_STRETCHED)
+		{
+			m_fullscreenDxGiModeScaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
+		}
+
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenDxGiModeScanlineOrdering"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenDxGiModeScanlineOrdering = (DXGI_MODE_SCANLINE_ORDER) dwValue;
+		}
+		else
+		{
+			m_fullscreenDxGiModeScanlineOrdering = (DXGI_MODE_SCANLINE_ORDER)0;
+		}
+
+		if ((unsigned int)m_fullscreenDxGiModeScanlineOrdering > (unsigned int)DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_LOWER_FIELD_FIRST)
+		{
+			m_fullscreenDxGiModeScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+		}
+
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FullscreenStretch"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_fullscreenStretch = (HCFG::EMUWINDOWSTRETCH) dwValue;
 		}
 		else
 		{
 			m_fullscreenStretch = (HCFG::EMUWINDOWSTRETCH)0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("BlitFilter"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("BlitFilter"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_blitFilter = (HCFG::EMUWINDOWFILTER)_ttol(szValue);
+			m_blitFilter = (HCFG::EMUWINDOWFILTER)dwValue;
 		}
 		else
 		{
 			m_blitFilter = (HCFG::EMUWINDOWFILTER)0;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("BorderSize"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("BorderSize"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_borderSize = (HCFG::EMUBORDERSIZE)_ttol(szValue);
+			m_borderSize = (HCFG::EMUBORDERSIZE)dwValue;
 		}
 		else
 		{
 			m_borderSize = HCFG::EMUBORDER_TV;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("ShowFloppyLed"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("ShowFloppyLed"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bShowFloppyLed = _ttol(szValue) != 0;
+			m_bShowFloppyLed = dwValue != 0;
 		}
 		else
 		{
 			m_bShowFloppyLed = true;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("FPS"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("FPS"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_fps = (HCFG::EMUFPS)_ttol(szValue);
+			m_fps = (HCFG::EMUFPS)dwValue;
 		}
 		else
 		{
 			m_fps = HCFG::EMUFPS_50;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("TrackZeroSensor"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("TrackZeroSensor"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_TrackZeroSensorStyle = (HCFG::ETRACKZEROSENSORSTYLE)_ttol(szValue);
+			m_TrackZeroSensorStyle = (HCFG::ETRACKZEROSENSORSTYLE)dwValue;
 		}
 		else
 		{
 			m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("CIAMode"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("CIAMode"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_CIAMode = (HCFG::CIAMODE)_ttol(szValue);
+			m_CIAMode = (HCFG::CIAMODE)dwValue;
 		}
 		else
 		{
 			m_CIAMode = HCFG::CM_CIA6526A;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("CIATimerBbug"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("CIATimerBbug"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			this->m_bTimerBbug = _ttol(szValue) != 0;
+			this->m_bTimerBbug = dwValue != 0;
 		}
 		else
 		{
 			this->m_bTimerBbug = false;
 		}
 
-		tempLenValue = lenValue;
+		dwValue = 0;
 		lRetCode = RegReadDWordOrStr(hKey1, TEXT("NumberOfExtraSidChips"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
@@ -941,9 +970,9 @@ int i;
 			&this->m_Sid8Address
 		};
 
-		for (int i=0; i < _countof(sidAddressName); i++)
+		for (i = 0; i < _countof(sidAddressName); i++)
 		{
-			tempLenValue = lenValue;
+			dwValue = 0;
 			lRetCode = RegReadDWordOrStr(hKey1, sidAddressName[i], &dwValue);
 			bit16 sidAddress = 0;
 			if (lRetCode == ERROR_SUCCESS)
@@ -963,11 +992,11 @@ int i;
 			*sidAddressValue[i] = sidAddress;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("DiskThreadEnable"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("DiskThreadEnable"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bD1541_Thread_Enable = _ttol(szValue) != 0;
+			m_bD1541_Thread_Enable = dwValue != 0;
 		}
 		else
 		{
@@ -981,26 +1010,36 @@ int i;
 			}
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("AllowOpposingJoystick"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("AllowOpposingJoystick"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bAllowOpposingJoystick = _ttol(szValue) != 0;
+			m_bAllowOpposingJoystick = dwValue != 0;
 		}
 		else
 		{
 			m_bAllowOpposingJoystick = false;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("DisableDwmFullscreen"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("DisableDwmFullscreen"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			m_bDisableDwmFullscreen = _ttol(szValue) != 0;
+			m_bDisableDwmFullscreen = dwValue != 0;
 		}
 		else
 		{
 			m_bDisableDwmFullscreen = false;
+		}
+
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("EnableImGuiWindowed"), &dwValue);
+		if (lRetCode == ERROR_SUCCESS)
+		{
+			m_bEnableImGuiWindowed = dwValue != 0;
+		}
+		else
+		{
+			m_bEnableImGuiWindowed = true;
 		}
 		
 		RegCloseKey(hKey1);
@@ -1026,12 +1065,12 @@ int i;
 				colorregkeyname.push_back(TEXT('a') + i - 0xa);
 			}
 
-			tempLenValue = sizeof(DWORD);
+			tempLenValue = sizeof(dwValue);
 			type = REG_DWORD;
-			lRetCode = RegQueryValueEx(hKey1, colorregkeyname.c_str(), NULL, &type, (PBYTE) &szValue[0], &tempLenValue);
+			lRetCode = RegQueryValueEx(hKey1, colorregkeyname.c_str(), NULL, &type, (PBYTE) &dwValue, &tempLenValue);
 			if (lRetCode == ERROR_SUCCESS && tempLenValue == sizeof(DWORD))
 			{
-				this->m_colour_palette[i] = (*(DWORD *)szValue);
+				this->m_colour_palette[i] = dwValue;
 			}
 			else
 			{
@@ -1058,7 +1097,7 @@ LONG   lRetCode;
 DWORD dw;
 
 	unsigned int joyIndex = joystickNumber - 1;
-	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	if (joyIndex >= _countof(JoyKeyName::Name))
 	{
 		return E_FAIL;
 	}
@@ -1278,7 +1317,7 @@ unsigned int i;
 unsigned int joyIndex = joystickNumber - 1;
 DWORD dwitem[joyconfig::MAXAXIS];
 
-	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	if (joyIndex >= _countof(JoyKeyName::Name))
 	{
 		return E_FAIL;
 	}
@@ -1311,7 +1350,7 @@ unsigned int axisCount = 0;
 unsigned int i;
 unsigned int joyIndex = joystickNumber - 1;
 
-	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	if (joyIndex >= _countof(JoyKeyName::Name))
 	{
 		return E_FAIL;
 	}
@@ -1403,7 +1442,7 @@ HRESULT CConfig::WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyN
 DWORD dwValue;
 unsigned int joyIndex = joystickNumber - 1;
 
-	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	if (joyIndex >= _countof(JoyKeyName::Name))
 	{
 		return E_FAIL;
 	}
@@ -1431,7 +1470,7 @@ unsigned int povCount = 0;
 unsigned int i;
 unsigned int joyIndex = joystickNumber - 1;
 
-	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	if (joyIndex >= _countof(JoyKeyName::Name))
 	{
 		return E_FAIL;
 	}
@@ -1526,7 +1565,7 @@ unsigned int i;
 unsigned int joyIndex = joystickNumber - 1;
 DWORD dwitem[joyconfig::MAXPOV];
 
-	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	if (joyIndex >= _countof(JoyKeyName::Name))
 	{
 		return E_FAIL;
 	}
@@ -1561,7 +1600,7 @@ unsigned int i;
 unsigned int j;
 unsigned int joyIndex = joystickNumber - 1;
 
-	if (joyIndex >= _countof(JoyKeyName::Name[joyIndex]))
+	if (joyIndex >= _countof(JoyKeyName::Name))
 	{
 		return E_FAIL;
 	}
@@ -1644,12 +1683,37 @@ unsigned int joyIndex = joystickNumber - 1;
 }
 
 
-#define writeregkeyboarditem(n)	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_KeyMap[n]));\
-	RegSetValueEx(hKey1, TEXT(#n), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR))
+HRESULT CConfig::WriteRegKeyboardItem(HKEY hkey, LPCTSTR keyname, unsigned char keyvalue) noexcept
+{
+	DWORD dwValue = m_KeyMap[keyvalue];
+	LSTATUS r = RegSetValueEx(hkey, keyname, 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
+	if (r == ERROR_SUCCESS)
+	{
+		return S_OK;
+	}
+	else
+	{
+		return E_FAIL;
+	}
+}
+
+HRESULT CConfig::ReadRegKeyboardItem(HKEY hkey, LPCTSTR keyname, unsigned char keyvalue) noexcept
+{
+	DWORD dwValue = 0;
+	LSTATUS r = RegReadDWordOrStr(hkey, keyname, &dwValue);
+	if (r == ERROR_SUCCESS)
+	{
+		m_KeyMap[keyvalue] = dwValue & 0xff;
+		return S_OK;
+	}
+	else
+	{
+		return E_FAIL;
+	}
+}
 
 HRESULT CConfig::SaveWindowSetting(HWND hWnd)
 {
-TCHAR szValue[20];
 HKEY  hKey1; 
 DWORD  dwDisposition; 
 LONG   lRetCode; 
@@ -1679,31 +1743,29 @@ DWORD dwValue;
 		return E_FAIL;
 	} 
 	
-	wsprintf(szValue, TEXT("%d"), (int) (pt_winpos.x));
-	RegSetValueEx(hKey1, TEXT("MainWinPosX"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)pt_winpos.x;
+	RegSetValueEx(hKey1, TEXT("MainWinPosX"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%d"), (int) (pt_winpos.y));
-	RegSetValueEx(hKey1, TEXT("MainWinPosY"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)pt_winpos.y;
+	RegSetValueEx(hKey1, TEXT("MainWinPosY"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	dwValue = this->m_bWindowedCustomSize ? 1 : 0;
-	RegSetValueEx(hKey1, TEXT("WindowedCustomSize"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(dwValue));
+	int w = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
+	if (w < 0)
+	{
+		w = 0;
+	}
 
-	int w = max(0, wp.rcNormalPosition.right - wp.rcNormalPosition.left);
-	int h = max(0, wp.rcNormalPosition.bottom - wp.rcNormalPosition.top);		
+	int h = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
+	if (h < 0)
+	{
+		h = 0;
+	}
 
-	//Warning
-	//VS2005 does not have an templated overload for fixed size arrays which then does not expect the count pararmter to be passed in.
-	//In other words, we would be passing in too many arguments. 
-	//The count (_TRUNCATE) would be seen as an additional argument for formatting would cause a buffer overrun in szValue.
-	//The cast of buffer to (TCHAR *) and the passing of count as _TRUNCATE ensures that VS2005 will compile correctly
-	_sntprintf_s((TCHAR *)(&szValue[0]), _countof(szValue), _TRUNCATE, TEXT("%d"), w);
-	RegSetValueEx(hKey1, TEXT("MainWinWidth"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)w;
+	RegSetValueEx(hKey1, TEXT("MainWinWidth"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 	
-	_sntprintf_s((TCHAR *)(&szValue[0]), _countof(szValue), _TRUNCATE, TEXT("%d"), h);
-	RegSetValueEx(hKey1, TEXT("MainWinHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
-
-	wsprintf(szValue, TEXT("%d"), (int) (m_bDoubleSizedWindow ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("DoubleSizedWindow"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)h;
+	RegSetValueEx(hKey1, TEXT("MainWinHeight"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 	
 	RegCloseKey(hKey1);
 	return S_OK;
@@ -1711,11 +1773,11 @@ DWORD dwValue;
 
 HRESULT CConfig::SaveMDIWindowSetting(HWND hWnd)
 {
-TCHAR szValue[20];
-HKEY  hKey1; 
-DWORD  dwDisposition; 
-LONG   lRetCode; 
-WINDOWPLACEMENT wp;
+	HKEY  hKey1; 
+	DWORD  dwDisposition; 
+	LONG   lRetCode; 
+	WINDOWPLACEMENT wp;
+	DWORD dwValue;
 
 	ZeroMemory(&wp, sizeof(wp));
 	wp.length = sizeof(wp);
@@ -1743,36 +1805,36 @@ WINDOWPLACEMENT wp;
 		return E_FAIL;
 	} 
 
-	wsprintf(szValue, TEXT("%ld"), (LONG) (pt_mdidebuggerwinpos.x));
-	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerPosX"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)pt_mdidebuggerwinpos.x;
+	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerPosX"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%ld"), (LONG) (pt_mdidebuggerwinpos.y));
-	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerPosY"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)pt_mdidebuggerwinpos.y;
+	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerPosY"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%ld"), (LONG) (sz_mdidebuggerwinsize.cx));
-	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerWidth"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)sz_mdidebuggerwinsize.cx;
+	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerWidth"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%ld"), (LONG) (sz_mdidebuggerwinsize.cy));
-	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)sz_mdidebuggerwinsize.cy;
+	RegSetValueEx(hKey1, TEXT("MDIWinDebuggerHeight"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
 	RegCloseKey(hKey1);
-
 	return S_OK;
 }
 
-HRESULT CConfig::LoadWindowSetting(POINT& pos, bool& bWindowedCustomSize, int& winWidth, int& winHeight)
+HRESULT CConfig::LoadWindowSetting(POINT& pos, int& winWidth, int& winHeight)
 {
-TCHAR szValue[20];
-HKEY  hKey1; 
-LONG   lRetCode; 
-DWORD tempLenValue,lenValue;
-
-	DWORD windowedCustomSize = 0;
+	DWORD dwValue;
+	HKEY  hKey1; 
+	LONG   lRetCode; 
+	const int max_width = GetSystemMetrics(SM_CXMAXTRACK);
+	const int max_height = GetSystemMetrics(SM_CYMAXTRACK);
+	const int min_width = GetSystemMetrics(SM_CXMINTRACK);
+	const int min_height = GetSystemMetrics(SM_CYMINTRACK);
 	POINT _pos = {0, 0};
-	int w = 0;
-	int h = 0;
+	int w = min_width;
+	int h = min_width;
 	bool ok = false;
-	bool customok = false;
+	int v;
 	do
 	{
 		lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
@@ -1780,98 +1842,69 @@ DWORD tempLenValue,lenValue;
 			0, KEY_READ,
 			&hKey1);	
 		if (lRetCode != ERROR_SUCCESS)
-			break;
-
-		const int max_width = GetSystemMetrics(SM_CXMAXTRACK);
-		const int max_height = GetSystemMetrics(SM_CYMAXTRACK);
-		const int min_width = GetSystemMetrics(SM_CXMINTRACK);
-		const int min_height = GetSystemMetrics(SM_CYMINTRACK);
-
-		lenValue = sizeof(szValue);
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("MainWinPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-		if (lRetCode != ERROR_SUCCESS)
-		{
-			break;
-		}
-
-		errno = 0;
-		_pos.x = _ttol(szValue);
-		if (errno != 0)
 		{
 			break;
 		}
 		
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("MainWinPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MainWinPosX"), &dwValue);
 		if (lRetCode != ERROR_SUCCESS)
 		{
 			break;
 		}
 
-		errno = 0;
-		_pos.y = _ttol(szValue);
-		if (errno != 0)
+		_pos.x = dwValue;		
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MainWinPosY"), &dwValue);
+		if (lRetCode != ERROR_SUCCESS)
 		{
 			break;
+		}
+
+		_pos.y = dwValue;
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MainWinWidth"), &dwValue);
+		if (lRetCode != ERROR_SUCCESS)
+		{
+			break;
+		}
+
+		v = dwValue;
+		w = v;
+		if (w < min_width)
+		{
+			w = min_width;
+		}
+		else if (w > max_width)
+		{
+			w = max_width;
+		}
+
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MainWinHeight"), &dwValue);
+		if (lRetCode != ERROR_SUCCESS)
+		{
+			break;
+		}
+
+		v = dwValue;
+		h = v;
+		if (h < min_height)
+		{
+			h = min_height;
+		}
+		else if (h > max_height)
+		{
+			h = max_height;
 		}
 
 		ok = true;
-		tempLenValue = sizeof(windowedCustomSize);
-		lRetCode = RegQueryValueEx(hKey1, TEXT("WindowedCustomSize"), NULL, NULL, (PBYTE) &windowedCustomSize, &tempLenValue);
-		if (lRetCode != ERROR_SUCCESS)
-		{
-			break;
-		}
-
-		if (windowedCustomSize)
-		{
-			tempLenValue = lenValue;
-			lRetCode = RegReadStr(hKey1, TEXT("MainWinWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-			if (lRetCode != ERROR_SUCCESS)
-			{
-				break;
-			}
-
-			errno = 0;
-			w = max(min(_ttol(szValue), max_width), min_width);
-			if (errno != 0)
-			{
-				break;
-			}
-
-			tempLenValue = lenValue;
-			lRetCode = RegReadStr(hKey1, TEXT("MainWinHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
-			if (lRetCode != ERROR_SUCCESS)
-			{
-				break;
-			}
-
-			errno = 0;
-			h = max(min(_ttol(szValue), max_height), min_height);
-			if (errno != 0)
-			{
-				break;
-			}
-
-			customok = true;
-
-		}		
 	} while(false);
 	if (ok)
 	{
-		if (!customok)
-		{
-			windowedCustomSize = false;
-			w = 0;
-			h = 0;
-		}
-
 		pos = _pos;
 		winWidth = w;
 		winHeight = h;
-		bWindowedCustomSize = windowedCustomSize != 0;
-		m_bWindowedCustomSize = bWindowedCustomSize;
 	}
 
 	return ok ? S_OK : E_FAIL;
@@ -1879,10 +1912,9 @@ DWORD tempLenValue,lenValue;
 
 HRESULT CConfig::LoadMDIWindowSetting(POINT& pos, SIZE& size)
 {
-TCHAR szValue[20];
 HKEY  hKey1; 
 LONG   lRetCode; 
-ULONG tempLenValue,lenValue;
+DWORD dwValue;
 
 	lRetCode = RegOpenKeyEx(HKEY_CURRENT_USER,
 		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"),
@@ -1897,41 +1929,79 @@ ULONG tempLenValue,lenValue;
 
 	int min_x = GetSystemMetrics(SM_CXMIN);
 	int min_y = GetSystemMetrics(SM_CYMIN);
-
+	int v;
 	pos.x = left;
 	pos.y = top;
 	size.cx = 0;
 	size.cy = 0;
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		lenValue = sizeof(szValue);
-
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerPosX"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MDIWinDebuggerPosX"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			pos.x = max(min(_ttol(szValue), max_x), left);
+			v = dwValue;
+			if (v > max_x)
+			{
+				v = max_x;
+			}
+			else if (v < left)
+			{
+				v = left;
+			}
+
+			pos.x = v;
 		}
 		
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerPosY"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MDIWinDebuggerPosY"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			pos.y = max(min(_ttol(szValue), max_y), top);
+			v = dwValue;
+			if (v > max_y)
+			{
+				v = max_y;
+			}
+			else if (v < top)
+			{
+				v = top;
+			}
+
+			pos.y = v;
 		}
 
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerWidth"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MDIWinDebuggerWidth"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{			
-			size.cx = max(min(_ttol(szValue), max_x), min_x);
+			v = dwValue;
+			if (v > max_x)
+			{
+				v = max_x;
+			}
+			else if (v < min_x)
+			{
+				v = min_x;
+			}
+
+			size.cx = v;
 		}
 		
-		tempLenValue = lenValue;
-		lRetCode = RegReadStr(hKey1, TEXT("MDIWinDebuggerHeight"), NULL, NULL, (PBYTE) &szValue[0], &tempLenValue);
+		dwValue = 0;
+		lRetCode = RegReadDWordOrStr(hKey1, TEXT("MDIWinDebuggerHeight"), &dwValue);
 		if (lRetCode == ERROR_SUCCESS)
 		{
-			size.cy = max(min(_ttol(szValue), max_y), min_y);
+			v = dwValue;
+			if (v > max_y)
+			{
+				v = max_y;
+			}
+			else if (v < min_y)
+			{
+				v = min_y;
+			}
+
+			size.cy = v;
 		}
 		
 		return S_OK;
@@ -1944,207 +2014,210 @@ ULONG tempLenValue,lenValue;
 
 HRESULT CConfig::SaveCurrentSetting()
 {
-TCHAR szValue[50];
-HKEY  hKey1; 
-DWORD  dwDisposition;
-DWORD  dwValue;
-LONG   lRetCode; 
-int i;
+	HKEY  hKey1;
+	DWORD  dwDisposition;
+	DWORD  dwValue;
+	LONG   lRetCode;
+	int i;
 
-	lRetCode = RegCreateKeyEx (HKEY_CURRENT_USER, 
-		TEXT("SOFTWARE\\Hoxs64\\1.0\\Keyboard"), 
-		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
-		NULL, &hKey1, 
-		&dwDisposition); 
+	lRetCode = RegCreateKeyEx(HKEY_CURRENT_USER,
+		TEXT("SOFTWARE\\Hoxs64\\1.0\\Keyboard"),
+		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS,
+		NULL, &hKey1,
+		&dwDisposition);
 
-	if (lRetCode != ERROR_SUCCESS)
-	{
-		G::ShowLastError(NULL);
-		return E_FAIL;
-	} 
-
-	writeregkeyboarditem(C64Keys::C64K_0);
-	writeregkeyboarditem(C64Keys::C64K_1);
-	writeregkeyboarditem(C64Keys::C64K_2);
-	writeregkeyboarditem(C64Keys::C64K_3);
-	writeregkeyboarditem(C64Keys::C64K_4);
-	writeregkeyboarditem(C64Keys::C64K_5);
-	writeregkeyboarditem(C64Keys::C64K_6);
-	writeregkeyboarditem(C64Keys::C64K_7);
-	writeregkeyboarditem(C64Keys::C64K_8);
-	writeregkeyboarditem(C64Keys::C64K_9);
-	writeregkeyboarditem(C64Keys::C64K_A);
-	writeregkeyboarditem(C64Keys::C64K_B);
-	writeregkeyboarditem(C64Keys::C64K_C);
-	writeregkeyboarditem(C64Keys::C64K_D);
-	writeregkeyboarditem(C64Keys::C64K_E);
-	writeregkeyboarditem(C64Keys::C64K_F);
-	writeregkeyboarditem(C64Keys::C64K_G);
-	writeregkeyboarditem(C64Keys::C64K_H);
-	writeregkeyboarditem(C64Keys::C64K_I);
-	writeregkeyboarditem(C64Keys::C64K_J);
-	writeregkeyboarditem(C64Keys::C64K_K);
-	writeregkeyboarditem(C64Keys::C64K_L);
-	writeregkeyboarditem(C64Keys::C64K_M);
-	writeregkeyboarditem(C64Keys::C64K_N);
-	writeregkeyboarditem(C64Keys::C64K_O);
-	writeregkeyboarditem(C64Keys::C64K_P);
-	writeregkeyboarditem(C64Keys::C64K_Q);
-	writeregkeyboarditem(C64Keys::C64K_R);
-	writeregkeyboarditem(C64Keys::C64K_S);
-	writeregkeyboarditem(C64Keys::C64K_T);
-	writeregkeyboarditem(C64Keys::C64K_U);
-	writeregkeyboarditem(C64Keys::C64K_V);
-	writeregkeyboarditem(C64Keys::C64K_W);
-	writeregkeyboarditem(C64Keys::C64K_X);
-	writeregkeyboarditem(C64Keys::C64K_Y);
-	writeregkeyboarditem(C64Keys::C64K_Z);
-	writeregkeyboarditem(C64Keys::C64K_PLUS);
-	writeregkeyboarditem(C64Keys::C64K_MINUS);
-	writeregkeyboarditem(C64Keys::C64K_ASTERISK);
-	writeregkeyboarditem(C64Keys::C64K_SLASH);
-	writeregkeyboarditem(C64Keys::C64K_COMMA);
-	writeregkeyboarditem(C64Keys::C64K_DOT);
-	writeregkeyboarditem(C64Keys::C64K_ARROWLEFT);
-	writeregkeyboarditem(C64Keys::C64K_COLON);
-	writeregkeyboarditem(C64Keys::C64K_SEMICOLON);
-	writeregkeyboarditem(C64Keys::C64K_CONTROL);
-	writeregkeyboarditem(C64Keys::C64K_STOP);
-	writeregkeyboarditem(C64Keys::C64K_COMMODORE);
-	writeregkeyboarditem(C64Keys::C64K_LEFTSHIFT);
-	writeregkeyboarditem(C64Keys::C64K_RIGHTSHIFT);
-	writeregkeyboarditem(C64Keys::C64K_RESTORE);
-	writeregkeyboarditem(C64Keys::C64K_HOME);
-	writeregkeyboarditem(C64Keys::C64K_DEL);
-	writeregkeyboarditem(C64Keys::C64K_RETURN);
-	writeregkeyboarditem(C64Keys::C64K_ARROWUP);
-	writeregkeyboarditem(C64Keys::C64K_POUND);
-	writeregkeyboarditem(C64Keys::C64K_EQUAL);
-	writeregkeyboarditem(C64Keys::C64K_CURSORDOWN);
-	writeregkeyboarditem(C64Keys::C64K_CURSORRIGHT);
-	writeregkeyboarditem(C64Keys::C64K_CURSORUP);
-	writeregkeyboarditem(C64Keys::C64K_CURSORLEFT);
-	writeregkeyboarditem(C64Keys::C64K_SPACE);
-	writeregkeyboarditem(C64Keys::C64K_AT);
-	writeregkeyboarditem(C64Keys::C64K_F1);
-	writeregkeyboarditem(C64Keys::C64K_F2);
-	writeregkeyboarditem(C64Keys::C64K_F3);
-	writeregkeyboarditem(C64Keys::C64K_F4);
-	writeregkeyboarditem(C64Keys::C64K_F5);
-	writeregkeyboarditem(C64Keys::C64K_F6);
-	writeregkeyboarditem(C64Keys::C64K_F7);
-	writeregkeyboarditem(C64Keys::C64K_F8);
-
-	writeregkeyboarditem(C64Keys::C64K_JOY1FIRE);
-	writeregkeyboarditem(C64Keys::C64K_JOY1UP);
-	writeregkeyboarditem(C64Keys::C64K_JOY1DOWN);
-	writeregkeyboarditem(C64Keys::C64K_JOY1LEFT);
-	writeregkeyboarditem(C64Keys::C64K_JOY1RIGHT);
-	writeregkeyboarditem(C64Keys::C64K_JOY2FIRE);
-	writeregkeyboarditem(C64Keys::C64K_JOY2UP);
-	writeregkeyboarditem(C64Keys::C64K_JOY2DOWN);
-	writeregkeyboarditem(C64Keys::C64K_JOY2LEFT);
-	writeregkeyboarditem(C64Keys::C64K_JOY2RIGHT);	
-
-	writeregkeyboarditem(C64Keys::C64K_JOY1FIRE2);
-	writeregkeyboarditem(C64Keys::C64K_JOY2FIRE2);
-	RegCloseKey(hKey1);
-	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
-		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"), 
-		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
-		NULL, &hKey1, 
-		&dwDisposition); 
 	if (lRetCode != ERROR_SUCCESS)
 	{
 		G::ShowLastError(NULL);
 		return E_FAIL;
 	}
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bD1541_Emulation_Enable ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("D1541_Emulation"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_0"), C64Keys::C64K_0);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_1"), C64Keys::C64K_1);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_2"), C64Keys::C64K_2);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_3"), C64Keys::C64K_3);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_4"), C64Keys::C64K_4);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_5"), C64Keys::C64K_5);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_6"), C64Keys::C64K_6);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_7"), C64Keys::C64K_7);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_8"), C64Keys::C64K_8);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_9"), C64Keys::C64K_9);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_A"), C64Keys::C64K_A);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_B"), C64Keys::C64K_B);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_C"), C64Keys::C64K_C);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_D"), C64Keys::C64K_D);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_E"), C64Keys::C64K_E);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F"), C64Keys::C64K_F);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_G"), C64Keys::C64K_G);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_H"), C64Keys::C64K_H);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_I"), C64Keys::C64K_I);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_J"), C64Keys::C64K_J);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_K"), C64Keys::C64K_K);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_L"), C64Keys::C64K_L);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_M"), C64Keys::C64K_M);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_N"), C64Keys::C64K_N);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_O"), C64Keys::C64K_O);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_P"), C64Keys::C64K_P);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_Q"), C64Keys::C64K_Q);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_R"), C64Keys::C64K_R);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_S"), C64Keys::C64K_S);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_T"), C64Keys::C64K_T);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_U"), C64Keys::C64K_U);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_V"), C64Keys::C64K_V);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_W"), C64Keys::C64K_W);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_X"), C64Keys::C64K_X);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_Y"), C64Keys::C64K_Y);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_Z"), C64Keys::C64K_Z);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_PLUS"), C64Keys::C64K_PLUS);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_MINUS"), C64Keys::C64K_MINUS);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_ASTERISK"), C64Keys::C64K_ASTERISK);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_SLASH"), C64Keys::C64K_SLASH);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_COMMA"), C64Keys::C64K_COMMA);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_DOT"), C64Keys::C64K_DOT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_ARROWLEFT"), C64Keys::C64K_ARROWLEFT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_COLON"), C64Keys::C64K_COLON);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_SEMICOLON"), C64Keys::C64K_SEMICOLON);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CONTROL"), C64Keys::C64K_CONTROL);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_STOP"), C64Keys::C64K_STOP);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_COMMODORE"), C64Keys::C64K_COMMODORE);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_LEFTSHIFT"), C64Keys::C64K_LEFTSHIFT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_RIGHTSHIFT"), C64Keys::C64K_RIGHTSHIFT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_RESTORE"), C64Keys::C64K_RESTORE);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_HOME"), C64Keys::C64K_HOME);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_DEL"), C64Keys::C64K_DEL);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_RETURN"), C64Keys::C64K_RETURN);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_ARROWUP"), C64Keys::C64K_ARROWUP);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_POUND"), C64Keys::C64K_POUND);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_EQUAL"), C64Keys::C64K_EQUAL);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORDOWN"), C64Keys::C64K_CURSORDOWN);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORRIGHT"), C64Keys::C64K_CURSORRIGHT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORUP"), C64Keys::C64K_CURSORUP);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_CURSORLEFT"), C64Keys::C64K_CURSORLEFT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_SPACE"), C64Keys::C64K_SPACE);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_AT"), C64Keys::C64K_AT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F1"), C64Keys::C64K_F1);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F2"), C64Keys::C64K_F2);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F3"), C64Keys::C64K_F3);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F4"), C64Keys::C64K_F4);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F5"), C64Keys::C64K_F5);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F6"), C64Keys::C64K_F6);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F7"), C64Keys::C64K_F7);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_F8"), C64Keys::C64K_F8);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1FIRE"), C64Keys::C64K_JOY1FIRE);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1UP"), C64Keys::C64K_JOY1UP);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1DOWN"), C64Keys::C64K_JOY1DOWN);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1LEFT"), C64Keys::C64K_JOY1LEFT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1RIGHT"), C64Keys::C64K_JOY1RIGHT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY1FIRE2"), C64Keys::C64K_JOY1FIRE2);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2FIRE"), C64Keys::C64K_JOY2FIRE);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2UP"), C64Keys::C64K_JOY2UP);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2DOWN"), C64Keys::C64K_JOY2DOWN);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2LEFT"), C64Keys::C64K_JOY2LEFT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2RIGHT"), C64Keys::C64K_JOY2RIGHT);
+	WriteRegKeyboardItem(hKey1, TEXT("C64Keys::C64K_JOY2FIRE2"), C64Keys::C64K_JOY2FIRE2);
+	RegCloseKey(hKey1);
+	lRetCode = RegCreateKeyEx(HKEY_CURRENT_USER,
+		TEXT("SOFTWARE\\Hoxs64\\1.0\\General"),
+		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS,
+		NULL, &hKey1,
+		&dwDisposition);
+	if (lRetCode != ERROR_SUCCESS)
+	{
+		G::ShowLastError(NULL);
+		return E_FAIL;
+	}
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSID_Emulation_Enable ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("SID_Emulation"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bD1541_Emulation_Enable ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("D1541_Emulation"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bShowSpeed ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("ShowSpeed"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bSID_Emulation_Enable ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("SID_Emulation"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bLimitSpeed ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("LimitSpeed"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bShowSpeed ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("ShowSpeed"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSkipFrames ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("SkipAltFrames"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bLimitSpeed ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("LimitSpeed"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_bSIDResampleMode);
-	RegSetValueEx(hKey1, TEXT("SIDSampleMode"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bSkipFrames ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("SkipAltFrames"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_syncModeFullscreen);
-	RegSetValueEx(hKey1, TEXT("SyncMode1"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bSIDResampleMode ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("SIDSampleMode"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_syncModeWindowed);
-	RegSetValueEx(hKey1, TEXT("SyncMode2"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_syncModeFullscreen;
+	RegSetValueEx(hKey1, TEXT("SyncMode1"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bDoubleSizedWindow ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("DoubleSizedWindow"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_syncModeWindowed;
+	RegSetValueEx(hKey1, TEXT("SyncMode2"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bUseBlitStretch ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("UseBlitStretch"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bSwapJoysticks ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("SwapJoysticks"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bUseKeymap ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("UseKeymap"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bCPUFriendly ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("CPUFriendly"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSwapJoysticks ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("SwapJoysticks"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bAudioClockSync ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("AudioClockSync"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bCPUFriendly ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("CPUFriendly"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bSidDigiBoost ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("SIDDigiBoost"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bAudioClockSync ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("AudioClockSync"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
-	
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bSidDigiBoost ? 1: 0));
-	RegSetValueEx(hKey1, TEXT("SIDDigiBoost"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	//G::SaveClsidToRegValue(hKey1, TEXT("FullscreenAdapterId"), &m_fullscreenAdapterId);
 
-	G::SaveClsidToRegValue(hKey1, TEXT("FullscreenAdapterId"), &m_fullscreenAdapterId);
+	dwValue = this->m_fullscreenAdapterIsDefault ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("FullscreenAdapterIsDefault"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenAdapterNumber);
-	RegSetValueEx(hKey1, TEXT("FullscreenAdapterNumber"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_fullscreenAdapterNumber;
+	RegSetValueEx(hKey1, TEXT("FullscreenAdapterNumber"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenWidth);
-	RegSetValueEx(hKey1, TEXT("FullscreenWidth"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_fullscreenOutputNumber;
+	RegSetValueEx(hKey1, TEXT("FullscreenOutputNumber"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenHeight);
-	RegSetValueEx(hKey1, TEXT("FullscreenHeight"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_fullscreenWidth;
+	RegSetValueEx(hKey1, TEXT("FullscreenWidth"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenRefresh);
-	RegSetValueEx(hKey1, TEXT("FullscreenRefresh"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_fullscreenHeight;
+	RegSetValueEx(hKey1, TEXT("FullscreenHeight"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenFormat);
-	RegSetValueEx(hKey1, TEXT("FullscreenFormat"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)m_fullscreenRefreshNumerator;
+	RegSetValueEx(hKey1, TEXT("FullscreenRefreshNumerator"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fullscreenStretch);
-	RegSetValueEx(hKey1, TEXT("FullscreenStretch"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)m_fullscreenRefreshDenominator;
+	RegSetValueEx(hKey1, TEXT("FullscreenRefreshDenominator"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_blitFilter);
-	RegSetValueEx(hKey1, TEXT("BlitFilter"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_fullscreenFormat;
+	RegSetValueEx(hKey1, TEXT("FullscreenFormat"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_borderSize);
-	RegSetValueEx(hKey1, TEXT("BorderSize"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)m_fullscreenDxGiModeScaling;
+	RegSetValueEx(hKey1, TEXT("FullscreenDxGiModeScaling"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bShowFloppyLed ? 1 : 0));
-	RegSetValueEx(hKey1, TEXT("ShowFloppyLed"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = (DWORD)m_fullscreenDxGiModeScanlineOrdering;
+	RegSetValueEx(hKey1, TEXT("FullscreenDxGiModeScanlineOrdering"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) m_fps);
-	RegSetValueEx(hKey1, TEXT("FPS"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_fullscreenStretch;
+	RegSetValueEx(hKey1, TEXT("FullscreenStretch"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_TrackZeroSensorStyle));
-	RegSetValueEx(hKey1, TEXT("TrackZeroSensor"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_blitFilter;
+	RegSetValueEx(hKey1, TEXT("BlitFilter"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_CIAMode));
-	RegSetValueEx(hKey1, TEXT("CIAMode"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_borderSize;
+	RegSetValueEx(hKey1, TEXT("BorderSize"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bTimerBbug ? 1 : 0));
-	RegSetValueEx(hKey1, TEXT("CIATimerBbug"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bShowFloppyLed ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("ShowFloppyLed"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
+
+	dwValue = m_fps;
+	RegSetValueEx(hKey1, TEXT("FPS"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
+
+	dwValue = m_TrackZeroSensorStyle;
+	RegSetValueEx(hKey1, TEXT("TrackZeroSensor"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
+
+	dwValue = m_CIAMode;
+	RegSetValueEx(hKey1, TEXT("CIAMode"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
+
+	dwValue = m_bTimerBbug ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("CIATimerBbug"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
 	dwValue = (DWORD)this->m_numberOfExtraSIDs;
 	if (dwValue >= 8)
@@ -2152,25 +2225,25 @@ int i;
 		dwValue = 0;
 	}
 
-	RegSetValueEx(hKey1, TEXT("NumberOfExtraSidChips"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+	RegSetValueEx(hKey1, TEXT("NumberOfExtraSidChips"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
 	dwValue = this->m_bWindowedLockAspectRatio ? 1 : 0;
-	RegSetValueEx(hKey1, TEXT("WindowedLockAspectRatio"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(dwValue));
+	RegSetValueEx(hKey1, TEXT("WindowedLockAspectRatio"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(dwValue));
 
 	dwValue = m_bSIDStereo ? 1 : 0;
-	RegSetValueEx(hKey1, TEXT("SIDStereo"), 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+	RegSetValueEx(hKey1, TEXT("SIDStereo"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	LPCTSTR sidAddressName[] = { 
-		TEXT("Sid2Address"), 
-		TEXT("Sid3Address"), 
-		TEXT("Sid4Address"), 
-		TEXT("Sid5Address"), 
-		TEXT("Sid6Address"), 
-		TEXT("Sid7Address"), 
-		TEXT("Sid8Address") 
+	LPCTSTR sidAddressName[] = {
+		TEXT("Sid2Address"),
+		TEXT("Sid3Address"),
+		TEXT("Sid4Address"),
+		TEXT("Sid5Address"),
+		TEXT("Sid6Address"),
+		TEXT("Sid7Address"),
+		TEXT("Sid8Address")
 	};
 
-	bit16* sidAddressValue[] = { 
+	bit16* sidAddressValue[] = {
 		&this->m_Sid2Address,
 		&this->m_Sid3Address,
 		&this->m_Sid4Address,
@@ -2180,36 +2253,39 @@ int i;
 		&this->m_Sid8Address
 	};
 
-	for (int i=0; i < _countof(sidAddressName); i++)
+	for (i = 0; i < _countof(sidAddressName); i++)
 	{
-		DWORD dwValue = *sidAddressValue[i];
-		RegSetValueEx(hKey1, sidAddressName[i], 0, REG_DWORD, (LPBYTE) &dwValue, sizeof(DWORD));
+		dwValue = *sidAddressValue[i];
+		RegSetValueEx(hKey1, sidAddressName[i], 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 	}
-	
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bD1541_Thread_Enable ? 1 : 0));
-	RegSetValueEx(hKey1, TEXT("DiskThreadEnable"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bAllowOpposingJoystick ? 1 : 0));
-	RegSetValueEx(hKey1, TEXT("AllowOpposingJoystick"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bD1541_Thread_Enable ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("DiskThreadEnable"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	wsprintf(szValue, TEXT("%lu"), (ULONG) (m_bDisableDwmFullscreen ? 1 : 0));
-	RegSetValueEx(hKey1, TEXT("DisableDwmFullscreen"), 0, REG_SZ, (LPBYTE) szValue, (lstrlen(szValue) + 1) * sizeof(TCHAR));
+	dwValue = m_bAllowOpposingJoystick ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("AllowOpposingJoystick"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
-	lstrcpy(szValue, TEXT("1"));
-	RegSetValueEx(hKey1, TEXT("PrefsSaved"), 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+	dwValue = m_bDisableDwmFullscreen ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("DisableDwmFullscreen"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
+
+	dwValue = m_bEnableImGuiWindowed ? 1 : 0;
+	RegSetValueEx(hKey1, TEXT("EnableImGuiWindowed"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
+
+	dwValue = 1;
+	RegSetValueEx(hKey1, TEXT("PrefsSaved"), 0, REG_DWORD, (LPBYTE)&dwValue, sizeof(DWORD));
 
 	RegCloseKey(hKey1);
 
-	lRetCode = RegCreateKeyEx ( HKEY_CURRENT_USER, 
-		TEXT("SOFTWARE\\Hoxs64\\1.0\\VICIIPalette"), 
-		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, 
-		NULL, &hKey1, 
-		&dwDisposition); 
+	lRetCode = RegCreateKeyEx(HKEY_CURRENT_USER,
+		TEXT("SOFTWARE\\Hoxs64\\1.0\\VICIIPalette"),
+		0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS,
+		NULL, &hKey1,
+		&dwDisposition);
 	if (lRetCode != ERROR_SUCCESS)
 	{
 		G::ShowLastError(NULL);
 		return E_FAIL;
-	} 
+	}
 
 	std::basic_string<TCHAR> colorregkeyname;
 	for (i = 0; i < VicIIPalette::NumColours; i++)
@@ -2224,8 +2300,9 @@ int i;
 		{
 			colorregkeyname.push_back(TEXT('a') + i - 0xa);
 		}
+
 		DWORD rgbcolor = this->m_colour_palette[i];
-		RegSetValueEx(hKey1, colorregkeyname.c_str(), NULL, REG_DWORD, (PBYTE) &rgbcolor, sizeof(DWORD));
+		RegSetValueEx(hKey1, colorregkeyname.c_str(), NULL, REG_DWORD, (PBYTE)&rgbcolor, sizeof(DWORD));
 	}
 
 	RegCloseKey(hKey1);
@@ -2366,7 +2443,7 @@ unsigned int i;
 	return S_OK;
 }
 
-void CConfig::SetPalettePepto()
+void CConfig::SetPalettePepto() noexcept
 {
 int i;
 	for(i = 0; i < VicIIPalette::NumColours; i++)
@@ -2470,9 +2547,6 @@ void CConfig::LoadDefaultSetting()
 	m_bSIDResampleMode = true;
 	m_syncModeFullscreen = HCFG::FSSM_VBL;
 	m_syncModeWindowed = HCFG::FSSM_LINE;
-	m_bDoubleSizedWindow = true;
-	m_bUseBlitStretch = true;
-	m_bUseKeymap = false;
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
 	m_bAudioClockSync = true;
@@ -2488,11 +2562,17 @@ void CConfig::LoadDefaultSetting()
 
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
+	m_bEnableImGuiWindowed = true;
+	m_fullscreenAdapterIsDefault = true;
 	m_fullscreenAdapterNumber = 0;
+	m_fullscreenOutputNumber = 0;
 	m_fullscreenWidth = 0;
 	m_fullscreenHeight = 0;
-	m_fullscreenRefresh = 0;
+	m_fullscreenRefreshNumerator = 0;
+	m_fullscreenRefreshDenominator = 0;
 	m_fullscreenFormat = 0;
+	m_fullscreenDxGiModeScaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
+	m_fullscreenDxGiModeScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	m_fullscreenStretch = HCFG::EMUWINSTR_AUTO;
 	m_blitFilter = HCFG::EMUWINFILTER_AUTO;
 	m_borderSize = HCFG::EMUBORDER_TV;
@@ -2527,7 +2607,6 @@ DWORD tempLenValue;
 DWORD dw;
 TCHAR szValue[20];
 LPDWORD lpReserved = 0;
-	const DWORD lenValue = sizeof(szValue);
 	lRetCode = RegQueryValueEx(hKey, lpValueName, lpReserved, &type, NULL, NULL);
 	if (lRetCode == ERROR_SUCCESS)
 	{
@@ -2545,7 +2624,7 @@ LPDWORD lpReserved = 0;
 		}
 		else if (type == REG_SZ)
 		{
-			tempLenValue = lenValue;
+			tempLenValue = sizeof(szValue);
 			lRetCode = RegReadStr(hKey, lpValueName, lpReserved, NULL, (PBYTE) &szValue[0], &tempLenValue);
 			if (lRetCode == ERROR_SUCCESS)
 			{
@@ -2622,13 +2701,13 @@ LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPD
 	return r;
 }
 
-joyconfig::joyconfig()
+joyconfig::joyconfig() noexcept
 {	
 	LoadDefault();
 	joyNotAcquiredClock = 0;
 }
 
-void joyconfig::defaultClearAxisDirection(GameControllerItem::ControllerAxisDirection offsets[], GameControllerItem::ControllerAxisDirection axisDirection, unsigned int count)
+void joyconfig::defaultClearAxisDirection(GameControllerItem::ControllerAxisDirection offsets[], GameControllerItem::ControllerAxisDirection axisDirection, unsigned int count) noexcept
 {
 	if (offsets != NULL)
 	{
@@ -2639,7 +2718,7 @@ void joyconfig::defaultClearAxisDirection(GameControllerItem::ControllerAxisDire
 	}
 }
 
-void joyconfig::LoadDefault()
+void joyconfig::LoadDefault() noexcept
 {
 	unsigned int i;
 	ZeroMemory(&joystickID, sizeof(joystickID));
@@ -2650,8 +2729,20 @@ void joyconfig::LoadDefault()
 	ZeroMemory(&leftButtonOffsets, sizeof(leftButtonOffsets));
 	ZeroMemory(&rightButtonOffsets, sizeof(rightButtonOffsets));
 	ZeroMemory(&keyNoAssign, sizeof(keyNoAssign));
-	ZeroMemory(&isValidKeyNoAssign, sizeof(isValidKeyNoAssign));		
+	ZeroMemory(&isValidKeyNoAssign, sizeof(isValidKeyNoAssign));
+	ZeroMemory(&povAvailable, sizeof(povAvailable));
+	ZeroMemory(&povIndex, sizeof(povIndex));
+	ZeroMemory(&keyNButtonCount, sizeof(keyNButtonCount));
+	ZeroMemory(&keyNButtonOffsets, sizeof(keyNButtonOffsets));
+	ZeroMemory(&keyNAxisCount, sizeof(keyNAxisCount));
+	ZeroMemory(&keyNAxisOffsets, sizeof(keyNAxisOffsets));
+	ZeroMemory(&keyNAxisDirection, sizeof(keyNAxisDirection));
+	ZeroMemory(&keyNPovCount, sizeof(keyNPovCount));
+	ZeroMemory(&keyNPovOffsets, sizeof(keyNPovOffsets));
+	ZeroMemory(&keyNPovDirection, sizeof(keyNPovDirection));
 	ZeroMemory(&axes, sizeof(axes));
+	ZeroMemory(&pov, sizeof(pov));
+
 	IsEnabled = false;
 	isPovEnabled = true;
 	IsValidId = false;
@@ -2685,7 +2776,7 @@ void joyconfig::LoadDefault()
 	rightAxisCount = 0;
 	rightPovCount = 0;
 	enableKeyAssign = false;
-	for (i=0; i < MAXKEYMAPS; i++)
+	for (i = 0; i < MAXKEYMAPS; i++)
 	{
 		defaultClearAxisDirection(keyNAxisDirection[i], GameControllerItem::DirectionAny, MAXAXIS);
 		ZeroMemory(&keyNButtonOffsets[i], sizeof(keyNButtonOffsets[0]));

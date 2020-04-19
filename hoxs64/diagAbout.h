@@ -1,5 +1,6 @@
-#ifndef __DIAGABOUT_H__
-#define __DIAGABOUT_H__
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
 
 class CDiagAbout : public CVirDialog, public ErrorMsg
 {
@@ -12,4 +13,4 @@ private:
 	BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	VS_FIXEDFILEINFO *m_pVinfo;
 };
-#endif
+

@@ -1,6 +1,4 @@
-#ifndef __D1541_H__
-#define __D1541_H__
-
+#pragma once
 class DiskInterface;
 
 class CPUDisk : public CPU6502
@@ -8,22 +6,26 @@ class CPUDisk : public CPU6502
 public:
 	CPUDisk();
 	~CPUDisk();
+	CPUDisk(const CPUDisk&) = delete;
+	CPUDisk& operator=(const CPUDisk&) = delete;
+	CPUDisk(CPUDisk&&) = delete;
+	CPUDisk& operator=(CPUDisk&&) = delete;
 
 	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, IRegister *via1, IRegister *via2, DiskInterface *disk, bit8 *pMappedRAM, bit8 *pMappedROM, IBreakpointManager *pIBreakpointManager);
 
-	IC64Event *pIC64Event;
-	IC64 *pIC64;
-	bit8 *pMappedRAM;
-	bit8 *pMappedROM;
+	IC64Event *pIC64Event = nullptr;
+	IC64 *pIC64 = nullptr;
+	bit8 *pMappedRAM = nullptr;
+	bit8 *pMappedROM = nullptr;
 
 	//Interrupting devices
-	IRegister *via1;
-	IRegister *via2;
+	IRegister *via1 = nullptr;
+	IRegister *via2 = nullptr;
 
-	DiskInterface *disk;
+	DiskInterface *disk = nullptr;
 
-	bit8 IRQ_VIA1;	
-	bit8 IRQ_VIA2;
+	bit8 IRQ_VIA1 = 0;	
+	bit8 IRQ_VIA2 = 0;
 
 	void Set_VIA1_IRQ(ICLK sysclock);
 	void Clear_VIA1_IRQ();
@@ -59,5 +61,3 @@ public:
 	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
 	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);	
 };
-
-#endif

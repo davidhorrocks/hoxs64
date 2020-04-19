@@ -24,7 +24,7 @@ CIA::CIA()
 	is_warm = false;
 }
 
-void CIA::InitReset(ICLK sysclock, bool poweronreset)
+void CIA::InitCommonReset(ICLK sysclock, bool poweronreset)
 {
 	CurrentClock=sysclock;
 	DevicesClock=sysclock;
@@ -92,7 +92,7 @@ void CIA::InitReset(ICLK sysclock, bool poweronreset)
 
 void CIA::Reset(ICLK sysclock, bool poweronreset)
 {
-	InitReset(sysclock, poweronreset);
+	InitCommonReset(sysclock, poweronreset);
 	ClearSystemInterrupt();
 
 	WriteRegister(2, CurrentClock, 0);
@@ -117,8 +117,8 @@ void CIA::SetMode(HCFG::CIAMODE mode, bool bTimerBbug)
 
 void CIA::PreventClockOverflow()
 {
-	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
-	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
+	constexpr ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	constexpr ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
 	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
 
 	if ((ICLKS)(CurrentClock - ClockReadICR) >= CLOCKSYNCBAND_FAR)
@@ -1532,7 +1532,7 @@ void CIA::init_bitcount()
 	}
 }
 
-void CIA::GetState(SsCiaV2 &state)
+void CIA::GetCommonState(SsCiaV2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
@@ -1598,7 +1598,7 @@ void CIA::GetState(SsCiaV2 &state)
 	state.bPB67Toggle = bPB67Toggle;
 }
 
-void CIA::SetState(const SsCiaV2 &state)
+void CIA::SetCommonState(const SsCiaV2 &state)
 {
 	CurrentClock = state.CurrentClock;
 	DevicesClock = state.DevicesClock;

@@ -20,7 +20,6 @@ const TCHAR WpcBreakpoint::ClassName[] = TEXT("Hoxs64WpcBreakpoint");
 WpcBreakpoint::WpcBreakpoint(IC64 *c64, IAppCommand *pAppCommand)
 {
 HRESULT hr;
-	m_bSuppressThisBreakpointEvent = false;
 	m_hLvBreak = NULL;
 	m_hMenuBreakPoint = NULL;
 	this->c64 = c64;
@@ -28,7 +27,7 @@ HRESULT hr;
 	hr = Init();
 	if (FAILED(hr))
 	{		
-		throw std::runtime_error("WpcBreakpoint::Init() failed");
+		throw std::exception("WpcBreakpoint::Init() failed");
 	}
 }
 
@@ -99,12 +98,12 @@ HRESULT WpcBreakpoint::AdviseEvents()
 	return hr;
 }
 
-void WpcBreakpoint::UnadviseEvents()
+void WpcBreakpoint::UnadviseEvents() noexcept
 {
 	((WpcBreakpoint_EventSink_OnRadixChanged *)this)->UnadviseAll();
 }
 
-void WpcBreakpoint::Cleanup()
+void WpcBreakpoint::Cleanup() noexcept
 {
 	this->UnadviseEvents();
 	if (m_hMenuBreakPoint)
@@ -146,20 +145,29 @@ HWND WpcBreakpoint::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR tit
 
 LRESULT WpcBreakpoint::OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	CREATESTRUCT *pcs = (CREATESTRUCT *)lParam;
-	if (pcs == NULL)
+	try
 	{
-		return -1;
+		CREATESTRUCT* pcs = (CREATESTRUCT*)lParam;
+		if (pcs == NULL)
+		{
+			return -1;
+		}
+
+		m_hLvBreak = CreateListView(pcs, hWnd);
+		if (!m_hLvBreak)
+		{
+			return -1;
+		}
+
+		RefreshBreakpointListView();
+		return 0;
+	}
+	catch (...)
+	{
+
 	}
 
-	m_hLvBreak = CreateListView(pcs, hWnd);
-	if (!m_hLvBreak)
-	{
-		return -1;
-	}
-
-	RefreshBreakpointListView();
-	return 0;
+	return -1;
 }
 
 void WpcBreakpoint::SetMenuState()
@@ -357,31 +365,37 @@ HRESULT WpcBreakpoint::FillListView(HWND hWndListView)
 {
 HRESULT hr = E_FAIL;
 bool ok = false;
-	
+
+	IEnumBreakpointItem* p = nullptr;
 	try
 	{
 		m_lstBreak.clear();	
-		Sp_BreakpointItem v;	
-		IEnumBreakpointItem *p = c64->GetMon()->BM_CreateEnumBreakpointItem();
-		if (p)
+		BreakpointItem v;
+		p = c64->GetMon()->BM_CreateEnumBreakpointItem();
+		while (p->GetNext(v))
 		{
-			while (p->GetNext(v))
-			{
-				m_lstBreak.push_back(v);
-			}
-
-			delete p;
+			m_lstBreak.push_back(v);
 		}
 
 		ListView_SetItemCount(hWndListView, m_lstBreak.size());
+		if (p)
+		{
+			delete p;
+			p = nullptr;
+		}
+
 		ok = true;
 	}
 	catch(...)
-	{
+	{		
 		ok = false;
+		if (p)
+		{
+			delete p;
+			p = nullptr;
+		}
 	}
-
-
+	
 	return ok ? S_OK : E_FAIL;
 }
 
@@ -398,7 +412,7 @@ LRESULT WpcBreakpoint::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 	return 0;
 }
 
-HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetData(int iRow, Sp_BreakpointItem& bp)
+HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetData(int iRow, BreakpointItem& bp)
 {
 	if ((iRow < 0) || ((unsigned int)iRow >= this->m_lstBreak.size()))
 	{
@@ -417,6 +431,7 @@ LPCTSTR WpcBreakpoint::sRasterCompare = TEXT("Raster Compare");
 LPCTSTR WpcBreakpoint::sLine = TEXT("Line");
 LPCTSTR WpcBreakpoint::sCycle = TEXT("Cycle");
 LPCTSTR WpcBreakpoint::sAddress = TEXT("Address");
+
 HRESULT WpcBreakpoint::LvBreakPoint_RowCol_GetText(int iRow, int iCol, LPTSTR pText, int cch)
 {
 #define ADDRESS_DIGITS 4
@@ -431,7 +446,7 @@ TCHAR sIntBuffer[20];
 	}
 
 	*pText = _T('\0');
-	Sp_BreakpointItem bp;
+	BreakpointItem bp;
 	hr = LvBreakPoint_RowCol_GetData(iRow, bp);
 	if (FAILED(hr))
 	{
@@ -441,47 +456,47 @@ TCHAR sIntBuffer[20];
 	switch(iCol)
 	{
 	case LvBreakColumnIndex::Cpu:
-		if (bp->machineident == DBGSYM::MachineIdent::MainCpu)
+		if (bp.machineident == DBGSYM::MachineIdent::MainCpu)
 		{
 			_tcsncpy_s(pText, cch, sC64, _TRUNCATE);
 		}
-		else if (bp->machineident == DBGSYM::MachineIdent::DiskCpu)
+		else if (bp.machineident == DBGSYM::MachineIdent::DiskCpu)
 		{
 			_tcsncpy_s(pText, cch, sDisk, _TRUNCATE);
 		}
-		else if (bp->machineident == DBGSYM::MachineIdent::Vic)
+		else if (bp.machineident == DBGSYM::MachineIdent::Vic)
 		{
 			_tcsncpy_s(pText, cch, sVic, _TRUNCATE);
 		}
 
 		break;
 	case LvBreakColumnIndex::Type:
-		if (bp->bptype == DBGSYM::BreakpointType::Execute)
+		if (bp.bptype == DBGSYM::BreakpointType::Execute)
 		{
 			_tcsncpy_s(pText, cch, sExecute, _TRUNCATE);
 		}
-		else if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+		else if (bp.bptype == DBGSYM::BreakpointType::VicRasterCompare)
 		{
 			_tcsncpy_s(pText, cch, sRasterCompare, _TRUNCATE);
 		}
 
 		break;
 	case LvBreakColumnIndex::Address:
-		if (bp->bptype == DBGSYM::BreakpointType::Execute)
+		if (bp.bptype == DBGSYM::BreakpointType::Execute)
 		{
 			switch (c64->GetMon()->Get_Radix())
 			{
 			case DBGSYM::MonitorOption::Hex:
-				HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
+				HexConv::long_to_hex(bp.address, sAddressHexBuf, ADDRESS_DIGITS); 
 				_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
 				_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
 				break;
 			case DBGSYM::MonitorOption::Dec:
-				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->address);
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp.address);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			default:
-				HexConv::long_to_hex(bp->address, sAddressHexBuf, ADDRESS_DIGITS); 
+				HexConv::long_to_hex(bp.address, sAddressHexBuf, ADDRESS_DIGITS); 
 				_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
 				_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
 				break;
@@ -490,20 +505,20 @@ TCHAR sIntBuffer[20];
 
 		break;
 	case LvBreakColumnIndex::Line:
-		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+		if (bp.bptype == DBGSYM::BreakpointType::VicRasterCompare)
 		{
 			switch (c64->GetMon()->Get_Radix())
 			{
 			case DBGSYM::MonitorOption::Hex:
-				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%03X"), bp->vic_line);
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%03X"), bp.vic_line);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			case DBGSYM::MonitorOption::Dec:
-				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_line);
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp.vic_line);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			default:
-				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%03X"), bp->vic_line);
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%03X"), bp.vic_line);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			}
@@ -511,20 +526,20 @@ TCHAR sIntBuffer[20];
 
 		break;
 	case LvBreakColumnIndex::Cycle:
-		if (bp->bptype == DBGSYM::BreakpointType::VicRasterCompare)
+		if (bp.bptype == DBGSYM::BreakpointType::VicRasterCompare)
 		{
 			switch (c64->GetMon()->Get_Radix())
 			{
 			case DBGSYM::MonitorOption::Hex:
-				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%02X"), bp->vic_cycle);
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%02X"), bp.vic_cycle);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			case DBGSYM::MonitorOption::Dec:
-				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp->vic_cycle);
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("%d"), bp.vic_cycle);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			default:
-				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%02X"), bp->vic_cycle);
+				_stprintf_s(sIntBuffer, _countof(sIntBuffer), TEXT("$%02X"), bp.vic_cycle);
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			}
@@ -537,14 +552,14 @@ TCHAR sIntBuffer[20];
 
 int WpcBreakpoint::LvBreakPoint_RowCol_State(int iRow, int iCol)
 {
-	Sp_BreakpointItem bp;
+	BreakpointItem bp;
 	HRESULT hr = LvBreakPoint_RowCol_GetData(iRow, bp);
 	if (FAILED(hr))
 	{
 		return 0;
 	}
 
-	if (bp->enabled)
+	if (bp.enabled)
 	{
 		return 1;
 	}
@@ -587,12 +602,11 @@ lresult = 0;
 	{
 		if ((lvHitTestInfo.flags & LVHT_ONITEMSTATEICON) != 0 && (lvHitTestInfo.flags & LVHT_ONITEMLABEL) == 0)
 		{
-			m_bSuppressThisBreakpointEvent = true;
-			Sp_BreakpointItem bp;
+			BreakpointItem bp;
 			hr = LvBreakPoint_RowCol_GetData(pnmh->iItem, bp);
 			if (SUCCEEDED(hr))
 			{
-				if (bp->enabled)
+				if (bp.enabled)
 				{
 					this->DisableBreakpoint(bp);
 				}
@@ -602,7 +616,6 @@ lresult = 0;
 				}
 			}
 
-			m_bSuppressThisBreakpointEvent = false;
 			RECT rcState;
 			if (ListView_GetItemRect(m_hLvBreak, iRow, &rcState, LVIR_BOUNDS))
 			{
@@ -732,11 +745,6 @@ void WpcBreakpoint::OnBreakpointVicChanged(void *sender, BreakpointVicChangedEve
 
 void WpcBreakpoint::OnBreakpointChanged(void *sender, BreakpointChangedEventArgs& e)
 {
-	if (m_bSuppressThisBreakpointEvent)
-	{
-		return;
-	}	
-
 	RefreshBreakpointListView();
 }
 
@@ -751,44 +759,35 @@ void WpcBreakpoint::OnShowAssembly()
 	int i = ListView_GetNextItem(m_hLvBreak, -1, LVNI_SELECTED);
 	if (i>=0)
 	{
-		Sp_BreakpointItem bp;
+		BreakpointItem bp;
 		if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 		{
-			switch(bp->machineident)
+			switch(bp.machineident)
 			{
 			case DBGSYM::MachineIdent::MainCpu:
-				this->m_pAppCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
+				this->m_pAppCommand->ShowCpuDisassembly(CPUID_MAIN, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp.address);
 				break;
 			case DBGSYM::MachineIdent::DiskCpu:
-				this->m_pAppCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp->address);
+				this->m_pAppCommand->ShowCpuDisassembly(CPUID_DISK, DBGSYM::SetDisassemblyAddress::EnsureAddressVisible, bp.address);
 				break;
 			}
 		}
 	}
 }
 
-void WpcBreakpoint::DeleteBreakpoint(Sp_BreakpointKey bp)
+void WpcBreakpoint::DeleteBreakpoint(const BreakpointItem& bp)
 {
-	if(bp!=0)
-	{
-		this->c64->GetMon()->BM_DeleteBreakpoint(bp);
-	}
+	this->c64->GetMon()->BM_DeleteBreakpoint(bp);
 }
 
-void WpcBreakpoint::EnableBreakpoint(Sp_BreakpointKey bp)
+void WpcBreakpoint::EnableBreakpoint(const BreakpointItem& bp)
 {
-	if(bp!=0)
-	{
-		this->c64->GetMon()->BM_EnableBreakpoint(bp);
-	}
+	this->c64->GetMon()->BM_EnableBreakpoint(bp);
 }
 
-void WpcBreakpoint::DisableBreakpoint(Sp_BreakpointKey bp)
+void WpcBreakpoint::DisableBreakpoint(const BreakpointItem& bp)
 {
-	if(bp!=0)
-	{
-		this->c64->GetMon()->BM_DisableBreakpoint(bp);
-	}
+	this->c64->GetMon()->BM_DisableBreakpoint(bp);
 }
 
 void WpcBreakpoint::OnDeleteSelectedBreakpoint()
@@ -796,15 +795,15 @@ void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 	try
 	{
 		int selcount = ListView_GetSelectedCount(m_hLvBreak);
-		vector<Sp_BreakpointItem> vecDelete;
+		vector<BreakpointItem> vecDelete;
 		vecDelete.reserve(selcount);
 	
-		for (int c = 0, i = -1 ; c==0 || (i>=0 && c<selcount) ; c++)
+		for (int c = 0, i = -1; c == 0 || (i >= 0 && c < selcount); c++)
 		{
 			i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
-			if (i>=0)
+			if (i >= 0)
 			{
-				Sp_BreakpointItem bp;
+				BreakpointItem bp;
 				if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 				{
 					vecDelete.push_back(bp);
@@ -812,7 +811,7 @@ void WpcBreakpoint::OnDeleteSelectedBreakpoint()
 			}
 		}
 
-		for (vector<Sp_BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
+		for (vector<BreakpointItem>::iterator it = vecDelete.begin(); it != vecDelete.end(); it++)
 		{
 			c64->GetMon()->BM_DeleteBreakpoint(*it);
 		}
@@ -830,12 +829,14 @@ void WpcBreakpoint::OnEnableSelectedBreakpoint()
 		i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
 		if (i>=0)
 		{
-			Sp_BreakpointItem bp;
+			BreakpointItem bp;
 			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 			{
 				c64->GetMon()->BM_EnableBreakpoint(bp);
 			}
 		}
+
+		ListView_RedrawItems(m_hLvBreak, i, i);
 	}
 }
 
@@ -847,11 +848,13 @@ void WpcBreakpoint::OnDisableSelectedBreakpoint()
 		i = ListView_GetNextItem(m_hLvBreak, i, LVNI_SELECTED);
 		if (i>=0)
 		{
-			Sp_BreakpointItem bp;
+			BreakpointItem bp;
 			if (SUCCEEDED(this->LvBreakPoint_RowCol_GetData(i, bp)))
 			{
 				c64->GetMon()->BM_DisableBreakpoint(bp);
 			}
+
+			ListView_RedrawItems(m_hLvBreak, i, i);
 		}
 	}
 }

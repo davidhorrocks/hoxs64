@@ -14,6 +14,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hexconv.h"
 #include "dchelper.h"

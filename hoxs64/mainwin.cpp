@@ -3,12 +3,9 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include <winuser.h>
+#include <Dwmapi.h>
 #include <commctrl.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <stdio.h>
 #include <assert.h>
 #include "IC64.h"
@@ -44,42 +41,77 @@
 #include "wpccli.h"
 #include "mdichildcli.h"
 #include "mdidebuggerframe.h"
-
-#include "emuwin.h"
 #include "mainwin.h"
+#include "vicpixelbuffer.h"
+#include "dchelper.h"
 #include "resource.h"
 
 const LPTSTR CAppWindow::lpszClassName = HOXS_MAIN_WND_CLASS;
 const LPTSTR CAppWindow::lpszMenuName = APPMENUNAME;
 
-
-
-CAppWindow::CAppWindow(CDX9 *dx, IAppCommand *pAppCommand, CAppStatus *appStatus, IC64 *c64)
+CAppWindow::CAppWindow(Graphics* pGx, CDX9 *dx, IAppCommand *appCommand, CAppStatus *appStatus, IC64 *c64)
 {
-	SetRect(&m_rcMainWindow, 0, 0, 0, 0);
-	m_hMenuOld=NULL;
-	m_hOldCursor = NULL;
-	m_hWndStatusBar = 0;
-	m_iStatusBarHeight = 0;
-
+	this->pGx = pGx;
 	this->dx = dx;
 	this->appStatus = appStatus;
 	this->c64 = c64;
-	this->m_pAppCommand = pAppCommand;
+	this->appCommand = appCommand;
 
-	appStatus->m_bWindowed = TRUE;
+	appStatus->m_bWindowed = true;
+	SetRect(&m_rcMainWindow, 0, 0, 0, 0);
+	m_hMenuOld = nullptr;
+	m_hOldCursor = nullptr;
 
-	m_hCursorBusy = LoadCursor(0L, IDC_WAIT);
-	if (!m_hCursorBusy)
-		throw std::runtime_error("LoadCursor failed.");
-	m_pWinEmuWin = shared_ptr<CEmuWindow>(new CEmuWindow(dx, appStatus, appStatus, c64));
-	if (m_pWinEmuWin == 0)
-		throw std::bad_alloc();
+	m_bDrawCycleCursor = false;
+	m_bDrawVicRasterBreakpoints = false;
+	m_iVicCycleCursor = 1;
+	m_iVicLineCursor = 0;
+	m_pINotify = nullptr;
+	m_bDragMode = false;
+	m_hBrushBrkInner = nullptr;
+	m_hBrushBrkOuter = nullptr;
+	m_hBrushBrkInner = CreateSolidBrush(RGB(255, 220, 220));
+	m_hBrushBrkOuter = CreateSolidBrush(RGB(10, 40, 40));
+	m_dwStyle = 0;
+	try
+	{
+		m_hCursorBusy = LoadCursor(0L, IDC_WAIT);
+		{
+			if (!m_hCursorBusy)
+			{
+				throw std::exception("LoadCursor failed.");
+			}
+		}
+	}
+	catch(...)
+	{
+		Cleanup();
+		throw;
+	}	
 }
 
 CAppWindow::~CAppWindow()
 {
-	int i =0;
+	Cleanup();
+}
+
+void CAppWindow::WindowRelease()
+{
+	this->keepAlive.reset();
+}
+
+void CAppWindow::Cleanup()
+{
+	if (m_hBrushBrkInner)
+	{
+		DeleteObject(m_hBrushBrkInner);
+		m_hBrushBrkInner = nullptr;
+	}
+	if (m_hBrushBrkOuter)
+	{
+		DeleteObject(m_hBrushBrkOuter);
+		m_hBrushBrkOuter = nullptr;
+	}
 }
 
 HRESULT CAppWindow::RegisterClass(HINSTANCE hInstance)
@@ -90,7 +122,7 @@ WNDCLASSEX  wc;
     // the main window.
 	ZeroMemory(&wc, sizeof(wc));
 	wc.cbSize			= sizeof(WNDCLASSEX);
-	wc.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+	wc.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC | CS_SAVEBITS;
 	wc.lpfnWndProc		= (WNDPROC)::WindowProc;
 	wc.cbClsExtra		= 0;
 	wc.cbWndExtra		= sizeof(CAppWindow *);
@@ -107,27 +139,13 @@ WNDCLASSEX  wc;
 		return S_OK;
 }
 
-void CAppWindow::SetColours()
-{
-	m_pWinEmuWin->SetColours();
-}
-
-void CAppWindow::GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, bool bDoubleSizedWindow, int *w, int *h)
+void CAppWindow::GetRequiredMainWindowSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, int *w, int *h)
 {
 C64WindowDimensions dims;
 
 	dims.SetBorder(borderSize);
-
-	if (bDoubleSizedWindow)
-	{
-		*w=dims.Width*2 + GetSystemMetrics(SM_CXSIZEFRAME)*2;
-		*h=dims.Height*2 + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) +  CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
-	}
-	else
-	{
-		*w=dims.Width + GetSystemMetrics(SM_CXSIZEFRAME)*2;
-		*h=dims.Height + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) +  CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
-	}
+	*w=dims.Width + GetSystemMetrics(SM_CXSIZEFRAME)*2;
+	*h=dims.Height + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + pGx->c64display.GetToolBarHeight(bShowFloppyLed);
 }
 
 void CAppWindow::GetMinimumWindowedSize(HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, int *w, int *h)
@@ -135,9 +153,12 @@ void CAppWindow::GetMinimumWindowedSize(HCFG::EMUBORDERSIZE borderSize, bool bSh
 	C64WindowDimensions dims;
 	dims.SetBorder(borderSize);
 	int width = dims.Width / 2 + GetSystemMetrics(SM_CXSIZEFRAME)*2;
-	int height = dims.Height / 2 + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + CDX9::GetToolBarHeight(bShowFloppyLed) + m_iStatusBarHeight;
-	width = max(GetSystemMetrics(SM_CXMINTRACK), width);
-	height = max(GetSystemMetrics(SM_CYMINTRACK), height);
+	int height = dims.Height / 2 + GetSystemMetrics(SM_CYSIZEFRAME)*2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + pGx->c64display.GetToolBarHeight(bShowFloppyLed);
+	int v;
+	v = GetSystemMetrics(SM_CXMINTRACK);	
+	width = width >= v ? width : v;
+	v = GetSystemMetrics(SM_CYMINTRACK);
+	height = height >= v ? height : v;
 	if (w)
 	{
 		*w = width;
@@ -158,23 +179,7 @@ void CAppWindow::CalcEmuWindowPadding(int *padw, int *padh)
 
 	if (padh)
 	{
-		*padh= GetSystemMetrics(SM_CYSIZEFRAME) * 2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION) + m_iStatusBarHeight;
-	}
-}
-
-void CAppWindow::CalcEmuWindowSize(RECT rcMainWindow, int *w, int *h)
-{
-	int padw;
-	int padh;
-	CalcEmuWindowPadding(&padw, &padh);
-	if (w)
-	{
-		*w = max(0, rcMainWindow.right - rcMainWindow.left - padw);
-	}
-
-	if (h)
-	{
-		*h = max(0, rcMainWindow.bottom - rcMainWindow.top - padh);
+		*padh= GetSystemMetrics(SM_CYSIZEFRAME) * 2 + GetSystemMetrics(SM_CYMENU) + GetSystemMetrics(SM_CYCAPTION);
 	}
 }
 
@@ -185,43 +190,42 @@ HWND CAppWindow::Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[
 	this->m_rcMainWindow.top = y;
 	this->m_rcMainWindow.right = x + w;
 	this->m_rcMainWindow.bottom = y + h;
-	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX  | WS_MINIMIZEBOX | WS_SIZEBOX, x, y, w, h, hWndParent, hMenu, hInstance);
+	HWND hWnd = CVirWindow::CreateVirWindow(0L, lpszClassName, title, WindowStyles, x, y, w, h, hWndParent, hMenu, hInstance);
 	return hWnd;
 }
+
+const DWORD CAppWindow::WindowStyles = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SIZEBOX;
 
 void CAppWindow::AspectMaxSizing(HWND hWnd, int edge, RECT &rect)
 {
 	RECT rcWorkArea;
 	CopyRect(&rcWorkArea, &rect);
 
-	if (G::s_pFnMonitorFromWindow != NULL)
-	{
-		HMONITOR hMonitorInUse = G::s_pFnMonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
-		MONITORINFOEX miMonitorInUse;
-		ZeroMemory(&miMonitorInUse, sizeof(miMonitorInUse));
-		miMonitorInUse.cbSize = sizeof(miMonitorInUse);
-		if (CDX9::DXUTGetMonitorInfo(hMonitorInUse, &miMonitorInUse))
-		{			
-			CopyRect(&rcWorkArea, &miMonitorInUse.rcWork);
-			if (rect.top < miMonitorInUse.rcMonitor.top)
-			{
-				rcWorkArea.top -= (miMonitorInUse.rcMonitor.top - rect.top);
-			}
+	HMONITOR hMonitorInUse = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+	MONITORINFOEX miMonitorInUse;
+	ZeroMemory(&miMonitorInUse, sizeof(miMonitorInUse));
+	miMonitorInUse.cbSize = sizeof(miMonitorInUse);
+	if (GetMonitorInfo(hMonitorInUse, &miMonitorInUse))
+	{			
+		CopyRect(&rcWorkArea, &miMonitorInUse.rcWork);
+		if (rect.top < miMonitorInUse.rcMonitor.top)
+		{
+			rcWorkArea.top -= (miMonitorInUse.rcMonitor.top - rect.top);
+		}
 
-			if (rect.bottom > miMonitorInUse.rcMonitor.bottom)
-			{				
-				rcWorkArea.bottom += (rect.bottom - miMonitorInUse.rcMonitor.bottom);
-			}
+		if (rect.bottom > miMonitorInUse.rcMonitor.bottom)
+		{				
+			rcWorkArea.bottom += (rect.bottom - miMonitorInUse.rcMonitor.bottom);
+		}
 
-			if (rect.left < miMonitorInUse.rcMonitor.left)
-			{
-				rcWorkArea.left -= (miMonitorInUse.rcMonitor.left - rect.left);
-			}
+		if (rect.left < miMonitorInUse.rcMonitor.left)
+		{
+			rcWorkArea.left -= (miMonitorInUse.rcMonitor.left - rect.left);
+		}
 
-			if (rect.right > miMonitorInUse.rcMonitor.right)
-			{
-				rcWorkArea.right += (rect.right - miMonitorInUse.rcMonitor.right);
-			}
+		if (rect.right > miMonitorInUse.rcMonitor.right)
+		{
+			rcWorkArea.right += (rect.right - miMonitorInUse.rcMonitor.right);
 		}
 	}
 
@@ -252,7 +256,7 @@ void CAppWindow::AspectSizing(int edge, RECT &rect)
 	int padh;
 	CalcEmuWindowPadding(&padw, &padh);
 	int window_adjust_x = padw;
-	int window_adjust_y = padh + CDX9::GetToolBarHeight(this->appStatus->m_bShowFloppyLed);
+	int window_adjust_y = padh + pGx->c64display.GetToolBarHeight(this->appStatus->m_bShowFloppyLed);
 	int size_x_desired = (rect.right - rect.left) - window_adjust_x;
 	int size_y_desired = (rect.bottom - rect.top) - window_adjust_y;
 	switch (edge)
@@ -357,19 +361,27 @@ void CAppWindow::AspectSizing(int edge, RECT &rect)
 	}
 }
 
+bool CAppWindow::OnMove(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	int xPos = (int)(short)LOWORD(lParam);   // horizontal position 
+	int yPos = (int)(short)HIWORD(lParam);   // vertical position 
+
+	if (!pGx->IsWantingFullscreen() && !pGx->IsWentFullscreen())
+	{
+		SaveMainWindowSize();
+		return true;
+	}
+
+	else
+	{
+		return false;
+	}
+}
+
 bool CAppWindow::OnSize(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 int w, h;
-int x, y;
-int mainWidth;
-int mainHeight;
-int clientWidth;
-int clientHeight;
-int emuWinWidth;
-int emuWinHeight;
-RECT rcClient;
-
-	if (G::IsHideWindow)
+	if (ErrorLogger::HideWindow)
 	{
 		return 0;
 	}
@@ -379,86 +391,67 @@ RECT rcClient;
 	h = (int)(DWORD)HIWORD(lParam);
     if (SIZE_MAXHIDE==wParam || SIZE_MINIMIZED==wParam)
 	{
-		if (appStatus != NULL)
-		{
-			appStatus->SoundHalt();
-			appStatus->m_bActive = false;
-		}
+		appCommand->SoundHalt();
+		appStatus->m_bActive = false;
 	}
-    else
+	else
 	{
-		if (appStatus != NULL && appStatus->m_bWindowed)
+		if (appStatus->m_bReady && !appStatus->m_bClosing)
 		{
-			if (appStatus->m_bReady && !appStatus->m_bClosing)
+			appStatus->m_bActive = true;
+			if (wParam == SIZE_RESTORED)
 			{
-				//appStatus->m_bReady will be false whilst we are transiting between windowed mode and fullscreen mode.
-				appStatus->m_bActive = true;
-				if (wParam == SIZE_RESTORED)
+				if (!pGx->IsWantingFullscreen() && !pGx->IsWentFullscreen())
 				{
 					SaveMainWindowSize();
 				}
 			}
-
-			if (GetClientRect(hWnd, &rcClient))
-			{
-				y = rcClient.top;
-				x = rcClient.left;
-				clientWidth = max(0, rcClient.right - rcClient.left) - x;
-				clientHeight = max(0, rcClient.bottom - rcClient.top) - y - m_iStatusBarHeight;
-				if (clientWidth > 0 && clientHeight > 0)
-				{
-					bool isCustomSizeBlit = true;
-					UINT showWindowFlags;
-					if (G::IsHideWindow)
-					{
-						showWindowFlags = SWP_NOZORDER | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOREDRAW;
-					}
-					else
-					{
-						showWindowFlags = SWP_NOZORDER | SWP_NOMOVE;
-					}
-
-					if (SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, showWindowFlags))
-					{
-						CConfig tCfg;
-						appStatus->GetUserConfig(tCfg);
-						if (!tCfg.m_bUseBlitStretch)
-						{
-							this->GetRequiredMainWindowSize(tCfg.m_borderSize, tCfg.m_bShowFloppyLed, tCfg.m_bDoubleSizedWindow, &mainWidth, &mainHeight);
-							RECT rcMain = {0, 0, mainWidth, mainHeight};
-							this->CalcEmuWindowSize(rcMain, &emuWinWidth, &emuWinHeight);
-							if (emuWinWidth == w && emuWinHeight == h)
-							{
-								isCustomSizeBlit = false;
-							}
-						}
-
-						tCfg.m_bWindowedCustomSize = isCustomSizeBlit;
-						appStatus->SetUserConfig(tCfg);
-
-						//Hack to propagate m_bWindowedCustomSize. TODO Fix function ApplyConfig() to handle this efficiently.								
-						appStatus->m_bWindowedCustomSize = isCustomSizeBlit;
-						if (dx != NULL)
-						{
-							dx->m_bWindowedCustomSize = isCustomSizeBlit;
-							dx->Reset();
-						}
-					}
-				}
-			}
 		}
+
+		ResizeGraphics(hWnd, w, h);
 	}
 
 	return 0;	 
+}
+
+void CAppWindow::ResizeGraphics(HWND hWnd, int width, int height)
+{
+	if (appStatus->m_bReady && !appStatus->m_bClosing)
+	{
+		RECT rcClient;
+		if (GetClientRect(hWnd, &rcClient))
+		{
+			const int reserveHeight = 0;
+			int y = rcClient.top;
+			int x = rcClient.left;
+			int clientWidth = rcClient.right - rcClient.left;
+			int clientHeight = rcClient.bottom - rcClient.top - reserveHeight;
+			if (clientWidth > 0 && clientHeight > 0)
+			{
+				UINT showWindowFlags;
+				if (ErrorLogger::HideWindow)
+				{
+					showWindowFlags = SWP_NOZORDER | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOREDRAW;
+				}
+				else
+				{
+					showWindowFlags = SWP_NOZORDER | SWP_NOMOVE;
+				}
+
+				//SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, showWindowFlags);
+				pGx->ResizeBuffers(clientWidth, clientHeight);
+			}
+		}
+	}
 }
 
 bool CAppWindow::OnSizing(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
 	if (lParam != NULL)
 	{
-		if (appStatus != NULL && appStatus->m_bWindowed && appStatus->m_bWindowedLockAspectRatio)
+		if (appStatus->m_bWindowedLockAspectRatio && !pGx->IsWantingFullscreen() && !pGx->IsWentFullscreen())
 		{
-			if (appStatus->m_bReady && !appStatus->m_bClosing)
+			if (!appStatus->m_bClosing)
 			{
 				AspectSizing((int)wParam, *((LPRECT)lParam));
 				return true;
@@ -469,29 +462,115 @@ bool CAppWindow::OnSizing(HWND hWnd, WPARAM wParam, LPARAM lParam)
 	return false;
 }
 
-bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult)
+bool CAppWindow::OnGetMinMaxInfo(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
-/*Dialogs*/
-shared_ptr<CDiagColour> pDiagColour;
-shared_ptr<CDiagKeyboard> pDiagKeyboard;
-shared_ptr<CDiagJoystick> pDiagJoystick;
-shared_ptr<CDiagEmulationSettingsTab> pDiagEmulationSettingsTab;
-shared_ptr<CDiagNewBlankDisk> pDiagNewBlankDisk;
-shared_ptr<CDiagAbout> pDiagAbout;
-HRESULT hr;
-CConfig tCfg;
-HRESULT hRet;
-INT_PTR r;
-int wmId, wmEvent;
-wmId    = LOWORD(wParam); // Remember, these are...
-wmEvent = HIWORD(wParam); // ...different for Win32!
+	MINMAXINFO* pMinMax;
+	pMinMax = (MINMAXINFO*)lParam;
+	if (!pGx->IsWantingFullscreen() && !pGx->IsWentFullscreen())
+	{
+		int w;
+		int h;
+		GetMinimumWindowedSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, &w, &h);
+		if (w > pMinMax->ptMinTrackSize.x)
+		{
+			pMinMax->ptMinTrackSize.x = w;
+		}
+
+		if (h > pMinMax->ptMinTrackSize.y)
+		{
+			pMinMax->ptMinTrackSize.y = h;
+		}
+
+		if (appStatus->m_bWindowedLockAspectRatio)
+		{
+			// Apply aspect ratio to the normal window dimensions.
+			RECT rcWorkArea;
+			rcWorkArea.left = 0;
+			rcWorkArea.top = 0;
+			rcWorkArea.right = pMinMax->ptMaxTrackSize.x;
+			rcWorkArea.bottom = pMinMax->ptMaxTrackSize.y;
+			RECT rcAspect;
+			CopyRect(&rcAspect, &rcWorkArea);
+			this->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rcAspect);
+			if (rcAspect.right - rcAspect.left <= rcWorkArea.right - rcWorkArea.left)
+			{
+				pMinMax->ptMaxTrackSize.x = rcAspect.right - rcAspect.left;
+			}
+
+			if (rcAspect.bottom - rcAspect.top <= rcWorkArea.bottom - rcWorkArea.top)
+			{
+				pMinMax->ptMaxTrackSize.y = rcAspect.bottom - rcAspect.top;
+			}
+
+			// Apply aspect ratio to the maximized window dimensions.
+			rcWorkArea.left = pMinMax->ptMaxPosition.x;
+			rcWorkArea.top = pMinMax->ptMaxPosition.y;
+			rcWorkArea.right = pMinMax->ptMaxPosition.x + pMinMax->ptMaxSize.x;
+			rcWorkArea.bottom = pMinMax->ptMaxPosition.y + pMinMax->ptMaxSize.y;
+			rcAspect;
+			CopyRect(&rcAspect, &rcWorkArea);
+			this->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rcAspect);
+			pMinMax->ptMaxSize.x = rcAspect.right - rcAspect.left;
+			pMinMax->ptMaxSize.y = rcAspect.bottom - rcAspect.top;
+		}
+
+		return true;
+	}
+	else
+	{
+		pMinMax->ptMaxTrackSize.x = GetSystemMetrics(SM_CXMAXTRACK);
+		pMinMax->ptMaxTrackSize.y = GetSystemMetrics(SM_CYMAXTRACK);
+		return true;
+	}
+
+	return false;
+}
+
+bool CAppWindow::OnWindowPositionChanged(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	if (appStatus->m_bReady)
+	{
+		if (!pGx->IsFullscreen())
+		{
+			if (pGx->IsWentFullscreen())
+			{
+				this->SetWindowedMode(true);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void CAppWindow::OnDisplayChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+}
+
+bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lresult)
+{
+	/*Dialogs*/
+	shared_ptr<CDiagColour> pDiagColour;
+	shared_ptr<CDiagKeyboard> pDiagKeyboard;
+	shared_ptr<CDiagJoystick> pDiagJoystick;
+	shared_ptr<CDiagEmulationSettingsTab> pDiagEmulationSettingsTab;
+	shared_ptr<CDiagNewBlankDisk> pDiagNewBlankDisk;
+	shared_ptr<CDiagAbout> pDiagAbout;
+	HRESULT hr;
+	CConfig* pTemporaryCfg;
+	HRESULT hRet;
+	INT_PTR r;
+	int wmId, wmEvent;
+	wmId = LOWORD(wParam); // Remember, these are...
+	wmEvent = HIWORD(wParam); // ...different for Win32!
+
 	//Parse the menu selections:
-	switch (wmId) 
+	switch (wmId)
 	{
 	case IDM_TAPE_INSERT:
-		appStatus->SoundHalt();
-		appStatus->InsertTape(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->InsertTapeDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_TAPE_PLAY:
@@ -507,21 +586,21 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 		lresult = 0;
 		return true;
 	case IDM_TAPE_LOADIMAGE:
-		appStatus->SoundHalt();
-		appStatus->LoadC64Image(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->LoadC64ImageDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_TAPE_LOADT64:
-		appStatus->SoundHalt();
-		appStatus->LoadT64(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->LoadT64Dialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_FILE_AUTOLOAD:
-		appStatus->SoundHalt();
-		appStatus->AutoLoad(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->AutoLoadDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_FILE_HARDRESET:
@@ -532,15 +611,15 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 		lresult = 0;
 		return true;
 	case IDM_CART_DETACHCART:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
 		c64->DetachCart();
-		appStatus->SoundResume();
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_CART_ATTACHCRT:
-		appStatus->SoundHalt();
-		appStatus->LoadCrtFile(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->LoadCrtFileDialog(hWnd);
+		appCommand->SoundResume();
 		return 0;
 	case IDM_CART_FREEZE:
 		c64->CartFreeze(true);
@@ -553,17 +632,17 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 	case IDM_FILE_MONITOR:
 		if (appStatus->m_bWindowed)
 		{
-			m_pAppCommand->ShowDevelopment();
+			appCommand->ShowDevelopment();
 		}
 
 		lresult = 0;
 		return true;
 	case IDM_FILE_PAUSE:
-		appStatus->TogglePause();
+		appCommand->TogglePause();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_MUTESOUND:
-		appStatus->ToggleSoundMute();			
+		appCommand->ToggleSoundMute();
 		lresult = 0;
 		return true;
 	case IDM_EXIT:
@@ -571,67 +650,69 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 		lresult = 0;
 		return true;
 	case IDM_HELP_ABOUT:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
 		try
 		{
 			pDiagAbout = shared_ptr<CDiagAbout>(new CDiagAbout());
-			if (pDiagAbout!=0)
+			if (pDiagAbout != 0)
 			{
-				hr = pDiagAbout->Init(appStatus->GetVersionInfo());
+				hr = pDiagAbout->Init(appCommand->GetVersionInfo());
 				if (SUCCEEDED(hr))
 				{
 					pDiagAbout->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_ABOUT), hWnd);
 				}
 			}
 		}
-		catch(...)
+		catch (...)
 		{
 		}
 
-		appStatus->SoundResume();
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_RESTOREDEFAULT:
-		appStatus->SoundHalt();
-		appStatus->RestoreDefaultSettings();
-		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window(true)))
+		appCommand->SoundHalt();
+		appCommand->RestoreDefaultSettings();
+		if (SUCCEEDED(this->UpdateC64Window(true)))
 		{
-			this->m_pWinEmuWin->Present(0);
+			this->Present();
 		}
 
-		G::DebugMessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
-		appStatus->SoundResume();
+		G::DebugMessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
-		appStatus->SoundHalt();
-		appStatus->RestoreUserSettings();
-		if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window(true)))
+		appCommand->SoundHalt();
+		appCommand->RestoreUserSettings();
+		if (SUCCEEDED(this->UpdateC64Window(true)))
 		{
-			this->m_pWinEmuWin->Present(0);
+			this->Present();
 		}
 
-		G::DebugMessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION); 
-		appStatus->SoundResume();
+		G::DebugMessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_SAVE:
-		appStatus->SoundHalt();
-		appStatus->UpdateUserConfigFromSid();
-		appStatus->SaveCurrentSetting();
-		G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION); 
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->UpdateUserConfigFromSid();
+		appCommand->SaveCurrentSetting();
+		G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_EMULATION2:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
+		pTemporaryCfg = nullptr;
 		try
 		{
-			appStatus->GetUserConfig(tCfg);
+			pTemporaryCfg = new CConfig();
+			appCommand->GetUserConfig(*pTemporaryCfg);
 			pDiagEmulationSettingsTab = shared_ptr<CDiagEmulationSettingsTab>(new CDiagEmulationSettingsTab());
-			if (pDiagEmulationSettingsTab!=0)
+			if (pDiagEmulationSettingsTab != 0)
 			{
-				hr = pDiagEmulationSettingsTab->Init(dx, &tCfg);
+				hr = pDiagEmulationSettingsTab->Init(pGx, pTemporaryCfg);
 				if (SUCCEEDED(hr))
 				{
 					pDiagEmulationSettingsTab->SetTabID(IDC_SETTINGTAB);
@@ -641,203 +722,268 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 						r = pDiagEmulationSettingsTab->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_SETTING2), hWnd);
 						if (LOWORD(r) == IDOK)
 						{
-							tCfg = pDiagEmulationSettingsTab->NewCfg;
-							appStatus->SetUserConfig(tCfg);
-							appStatus->ApplyConfig(tCfg);
+							appCommand->SetUserConfig(pDiagEmulationSettingsTab->NewCfg);
+							appCommand->ApplyConfig(pDiagEmulationSettingsTab->NewCfg);
 						}
+
 						pDiagEmulationSettingsTab->FreePages();
 					}
 				}
 				else
-					pDiagEmulationSettingsTab->DisplayError(hWnd, appStatus->GetAppName());
+				{
+					pDiagEmulationSettingsTab->DisplayError(hWnd, appCommand->GetAppName());
+				}
 			}
 		}
-		catch(...)
+		catch (...)
 		{
 		}
-		appStatus->SoundResume();
 
+		if (pTemporaryCfg)
+		{
+			delete pTemporaryCfg;
+			pTemporaryCfg = nullptr;
+		}
+
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_COLOUR:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
+		pTemporaryCfg = nullptr;
 		try
 		{
-			appStatus->GetUserConfig(tCfg);
+			pTemporaryCfg = new CConfig();
+			appCommand->GetUserConfig(*pTemporaryCfg);
 			pDiagColour = shared_ptr<CDiagColour>(new CDiagColour());
-			if (pDiagColour!=0)
+			if (pDiagColour != 0)
 			{
-				hr = pDiagColour->Init(&tCfg);
+				hr = pDiagColour->Init(pTemporaryCfg);
 				if (SUCCEEDED(hr))
-				{			 
-					r = pDiagColour->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_VICIICOLOURPALETTE),hWnd);
+				{
+					r = pDiagColour->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_VICIICOLOURPALETTE), hWnd);
 					if (LOWORD(r) == IDOK)
 					{
-						tCfg = pDiagColour->newCfg;
-						appStatus->SetUserConfig(tCfg);
-						appStatus->ApplyConfig(tCfg);
+						appCommand->SetUserConfig(pDiagColour->newCfg);
+						appCommand->ApplyConfig(pDiagColour->newCfg);
 					}
 				}
 				else
 				{
-					pDiagColour->DisplayError(hWnd, appStatus->GetAppName());
+					pDiagColour->DisplayError(hWnd, appCommand->GetAppName());
 				}
 			}
 		}
-		catch(...)
+		catch (...)
 		{
 		}
 
-		appStatus->SoundResume();
+		if (pTemporaryCfg)
+		{
+			delete pTemporaryCfg;
+			pTemporaryCfg = nullptr;
+		}
+
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_KEYBOARD:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
+		pTemporaryCfg = nullptr;
 		try
 		{
-			appStatus->GetUserConfig(tCfg);
+			pTemporaryCfg = new CConfig();
+			appCommand->GetUserConfig(*pTemporaryCfg);
 			pDiagKeyboard = shared_ptr<CDiagKeyboard>(new CDiagKeyboard());
-			if (pDiagKeyboard!=0)
+			if (pDiagKeyboard != 0)
 			{
-				hr = pDiagKeyboard->Init(dx, &tCfg);
+				hr = pDiagKeyboard->Init(dx, pTemporaryCfg);
 				if (SUCCEEDED(hr))
 				{
 					pDiagKeyboard->SetTabID(IDC_KEYBOARDTAB);
 					pDiagKeyboard->SetPages(4, &m_tabPagesKeyboard[0]);
-			 
-					r = pDiagKeyboard->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_KEYBOARD),hWnd);
+
+					r = pDiagKeyboard->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_KEYBOARD), hWnd);
 					if (LOWORD(r) == IDOK)
 					{
-						tCfg = pDiagKeyboard->newCfg;
-						appStatus->SetUserConfig(tCfg);
-						appStatus->ApplyConfig(tCfg);
+						appCommand->SetUserConfig(pDiagKeyboard->newCfg);
+						appCommand->ApplyConfig(pDiagKeyboard->newCfg);
 					}
 
 					pDiagKeyboard->FreePages();
 				}
 				else
 				{
-					pDiagKeyboard->DisplayError(hWnd, appStatus->GetAppName());
+					pDiagKeyboard->DisplayError(hWnd, appCommand->GetAppName());
 				}
 			}
 			dx->pKeyboard->Unacquire();
-			dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY); 
+			dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 		}
-		catch(...)
+		catch (...)
 		{
 		}
 
-		appStatus->SoundResume();
+		if (pTemporaryCfg)
+		{
+			delete pTemporaryCfg;
+			pTemporaryCfg = nullptr;
+		}
+
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_JOYSTICK:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
+		pTemporaryCfg = nullptr;
 		try
 		{
-			appStatus->GetUserConfig(tCfg);
-			pDiagJoystick = shared_ptr<CDiagJoystick>(new CDiagJoystick(dx, &tCfg));
+			pTemporaryCfg = new CConfig();
+			appCommand->GetUserConfig(*pTemporaryCfg);
+			pDiagJoystick = shared_ptr<CDiagJoystick>(new CDiagJoystick(dx, pTemporaryCfg));
 			if (pDiagJoystick != 0)
 			{
 				pDiagJoystick->Init();
 				r = pDiagJoystick->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_JOYSTICK), hWnd);
 				if (LOWORD(r) == IDOK)
 				{
-					tCfg = pDiagJoystick->newCfg;
-					appStatus->SetUserConfig(tCfg);
-					appStatus->ApplyConfig(tCfg);
+					appCommand->SetUserConfig(pDiagJoystick->newCfg);
+					appCommand->ApplyConfig(pDiagJoystick->newCfg);
 				}
 			}
 		}
-		catch(...)
+		catch (...)
 		{
 		}
 
-		appStatus->SoundResume();
-		lresult = 0;
-		return true;
-	case IDM_SETTING_DOUBLESIZEDWINDOW:
-		appStatus->SoundHalt();
-		appStatus->GetUserConfig(tCfg);
-		tCfg.m_bDoubleSizedWindow = !tCfg.m_bDoubleSizedWindow;
-		tCfg.m_bWindowedCustomSize = false;
-		appStatus->SetUserConfig(tCfg);
-		appStatus->ApplyConfig(tCfg);
-		appStatus->SoundResume();
+		if (pTemporaryCfg)
+		{
+			delete pTemporaryCfg;
+			pTemporaryCfg = nullptr;
+		}
+
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTING_SWAPJOYSTICKS:
-		appStatus->SoundHalt();
-		appStatus->GetUserConfig(tCfg);
-		tCfg.m_bSwapJoysticks = !tCfg.m_bSwapJoysticks;
-		appStatus->SetUserConfig(tCfg);
-		appStatus->ApplyConfig(tCfg);
-		MessageBeep(MB_ICONASTERISK);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		pTemporaryCfg = nullptr;
+		try
+		{
+			pTemporaryCfg = new CConfig();
+			appCommand->GetUserConfig(*pTemporaryCfg);
+			pTemporaryCfg->m_bSwapJoysticks = !pTemporaryCfg->m_bSwapJoysticks;
+			appCommand->SetUserConfig(*pTemporaryCfg);
+			appCommand->ApplyConfig(*pTemporaryCfg);
+			MessageBeep(MB_ICONASTERISK);
+		}
+		catch (...)
+		{
+		}
+
+		if (pTemporaryCfg)
+		{
+			delete pTemporaryCfg;
+			pTemporaryCfg = nullptr;
+		}
+
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_SETTINGS_LOCKASPECTRATIO:
-		appStatus->GetUserConfig(tCfg);
-		tCfg.m_bWindowedLockAspectRatio = !tCfg.m_bWindowedLockAspectRatio;
-		tCfg.m_bWindowedCustomSize = true;
-		appStatus->SetUserConfig(tCfg);
-		appStatus->ApplyConfig(tCfg);
+		pTemporaryCfg = nullptr;
+		try
+		{
+			pTemporaryCfg = new CConfig();
+			appCommand->GetUserConfig(*pTemporaryCfg);
+			pTemporaryCfg->m_bWindowedLockAspectRatio = !pTemporaryCfg->m_bWindowedLockAspectRatio;
+			appCommand->SetUserConfig(*pTemporaryCfg);
+			appCommand->ApplyConfig(*pTemporaryCfg);
+		}
+		catch (...)
+		{
+		}
+
+		if (pTemporaryCfg)
+		{
+			delete pTemporaryCfg;
+			pTemporaryCfg = nullptr;
+		}
+
 		lresult = 0;
 		return true;
 	case IDM_SETTINGS_SIDSTEREO:
-		appStatus->GetUserConfig(tCfg);
-		tCfg.m_bSIDStereo = !tCfg.m_bSIDStereo;
-		appStatus->SetUserConfig(tCfg);
-		appStatus->ApplyConfig(tCfg);
+		pTemporaryCfg = nullptr;
+		try
+		{
+			pTemporaryCfg = new CConfig();
+
+			appCommand->GetUserConfig(*pTemporaryCfg);
+			pTemporaryCfg->m_bSIDStereo = !pTemporaryCfg->m_bSIDStereo;
+			appCommand->SetUserConfig(*pTemporaryCfg);
+			appCommand->ApplyConfig(*pTemporaryCfg);
+		}
+		catch (...)
+		{
+
+		}
+
+		if (pTemporaryCfg)
+		{
+			delete pTemporaryCfg;
+			pTemporaryCfg = nullptr;
+		}
+
 		lresult = 0;
 		return true;
 	case IDM_SETTING_MAXSPEED:
-		appStatus->SoundHalt();
-		appStatus->ToggleMaxSpeed();
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->ToggleMaxSpeed();
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_DISK_INSERT_EXISTINGDISK:
-		appStatus->SoundHalt();
-		appStatus->InsertDiskImage(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->InsertDiskImageDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_DISK_SAVEDISK_D64:
-		appStatus->SoundHalt();
-		appStatus->SaveD64Image(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->SaveD64ImageDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_DISK_SAVEDISK_FDI:
-		appStatus->SoundHalt();
-		appStatus->SaveFDIImage(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->SaveFDIImageDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_DISK_SAVEDISK_P64:
-		appStatus->SoundHalt();
-		appStatus->SaveP64Image(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->SaveP64ImageDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_FILE_SAVESTATE:
-		appStatus->SoundHalt();
-		appStatus->SaveC64State(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->SaveC64StateDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_FILE_LOADSTATE:
-		appStatus->SoundHalt();
-		appStatus->LoadC64State(hWnd);
-		appStatus->SoundResume();
+		appCommand->SoundHalt();
+		appCommand->LoadC64StateDialog(hWnd);
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_DISK_INSERT_NEWBLANKDISK:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
 		try
 		{
 			pDiagNewBlankDisk = shared_ptr<CDiagNewBlankDisk>(new CDiagNewBlankDisk());
-			if (pDiagNewBlankDisk!=0)
+			if (pDiagNewBlankDisk != 0)
 			{
 				hr = pDiagNewBlankDisk->Init();
 				if (SUCCEEDED(hr))
@@ -846,29 +992,29 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 					if (LOWORD(r) == IDOK)
 					{
 						c64->InsertNewDiskImage(pDiagNewBlankDisk->diskname, pDiagNewBlankDisk->id1, pDiagNewBlankDisk->id2, pDiagNewBlankDisk->bAlignTracks, pDiagNewBlankDisk->numberOfTracks);
-					}	
+					}
 				}
 				else
-					pDiagNewBlankDisk->DisplayError(hWnd, appStatus->GetAppName());
+					pDiagNewBlankDisk->DisplayError(hWnd, appCommand->GetAppName());
 			}
 		}
-		catch(...)
+		catch (...)
 		{
 		}
 
-		appStatus->SoundResume();
+		appCommand->SoundResume();
 		lresult = 0;
 		return true;
 	case IDM_DISK_REMOVEDISK:
 		c64->RemoveDisk();
 		lresult = 0;
 		return true;
-	case IDM_DISK_WRITEPROTECT_ON:     
+	case IDM_DISK_WRITEPROTECT_ON:
 		c64->Set_DiskProtect(true);
 		UpdateMenu();
 		lresult = 0;
 		return true;
-	case IDM_DISK_WRITEPROTECT_OFF:        
+	case IDM_DISK_WRITEPROTECT_OFF:
 		c64->Set_DiskProtect(false);
 		UpdateMenu();
 		lresult = 0;
@@ -878,17 +1024,15 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 		lresult = 0;
 		return true;
 	case IDM_TOGGLEFULLSCREEN:
-		appStatus->SoundHalt();
-        if (appStatus->m_bActive && appStatus->m_bReady && !appStatus->m_bDebug)
-        {
-			//appStatus->m_bPaused = false;
-			appStatus->m_bReady = false;
+		appCommand->SoundHalt();
+		if (appStatus->m_bActive && appStatus->m_bReady && !appStatus->m_bDebug)
+		{
 			hRet = ToggleFullScreen();
 			if (FAILED(hRet))
 			{
-				DisplayError(hWnd, appStatus->GetAppName());
+				DisplayError(hWnd, appCommand->GetAppName());
 			}
-        }
+		}
 
 		lresult = 0;
 		return true;
@@ -897,9 +1041,9 @@ wmEvent = HIWORD(wParam); // ...different for Win32!
 	return false;
 }
 
-bool CAppWindow::OnSysCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult)
+bool CAppWindow::OnSysCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lresult)
 {
-	if (G::IsHideWindow)
+	if (ErrorLogger::HideWindow)
 	{
 		return false;
 	}
@@ -908,103 +1052,47 @@ bool CAppWindow::OnSysCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &
 	{
 		return false;
 	}
-	else if (appStatus->m_bWindowed)
-	{
-		switch (wParam & 0xfff0)
-		{
-			case SC_SCREENSAVE:
-			case SC_MONITORPOWER:
-				lresult =  0;
-				return true;
-			case SC_MOVE:
-			case SC_SIZE:
-			case SC_MINIMIZE:
-			case SC_KEYMENU:
-			case SC_MOUSEMENU:
-				appStatus->SoundHalt();
-				break;
-		}
-	}
-	else
-	{
-		switch (wParam & 0xfff0)
-		{
-        case SC_MAXIMIZE:
-        case SC_MONITORPOWER:
-		case SC_SCREENSAVE:
-		case SC_TASKLIST:
-		case SC_DEFAULT:
-			lresult =  0;
-			return true;
-        case SC_MOVE:
-        case SC_SIZE:
-		case SC_MINIMIZE:
-		case SC_KEYMENU:
-		case SC_MOUSEMENU:
-			appStatus->SoundHalt();
-			lresult =  0;
-			return true;
-		}
-	}
+
+	//else if (appStatus->m_bWindowed)
+	//{
+	//	switch (wParam & 0xfff0)
+	//	{
+	//	case SC_SCREENSAVE:
+	//	case SC_MONITORPOWER:
+	//		lresult = 0;
+	//		return true;
+	//	}
+	//}
+	//else
+	//{
+	//	switch (wParam & 0xfff0)
+	//	{
+	//	case SC_MONITORPOWER:
+	//	case SC_SCREENSAVE:
+	//		lresult = 0;
+	//		return true;
+	//	}
+	//}
 
 	return false;
 }
 
 bool CAppWindow::OnCreate(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult)
 {
-bool bOK;
-int w, h;
-
-	bOK = false;
-	m_pWinEmuWin->GetRequiredWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_bDoubleSizedWindow, &w, &h);
-	if (m_pWinEmuWin->Create(m_hInst, m_hWnd, NULL, 0, 0, w, h, (HMENU) LongToPtr(IDC_MAIN_WINEMULATION)) == 0)
-	{
-		lresult = -1;
-	}
-	else
-	{
-		lresult = 0;
-	}
-
-	return true;
-
 	/*
-	const int iStatusParts = 1;
-	RECT rcStatusBar;
-	HLOCAL hloc;
-	hloc = LocalAlloc(LHND, sizeof(int) * iStatusParts);
-	if (hloc != 0)
-	{
-
-		int *pParts = (int *)LocalLock(hloc);
-		if (pParts != 0)
-		{
-			pParts[0] = 20;
-			m_hWndStatusBar = CreateWindowEx(0, STATUSCLASSNAME, NULL, CCS_BOTTOM | WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, m_hWnd, (HMENU) IDC_MAIN_WINSTATUSBAR, m_hInstance, NULL);
-			if (m_hWndStatusBar != 0)
-			{
-				SendMessage(m_hWndStatusBar, SB_SETPARTS, (WPARAM)iStatusParts, (LPARFAM)pParts);
-				bOK = true;				
-			}
-			LocalUnlock(pParts);
-		}
-		LocalFree(hloc);
-	}
-	if (m_hWndStatusBar)
-	{
-		GetWindowRect(m_hWndStatusBar, &rcStatusBar);
-		m_iStatusBarHeight = rcStatusBar.bottom - rcStatusBar.top;
-		if (m_iStatusBarHeight < 0)
-			m_iStatusBarHeight = 0;
-	}
-	*/		
+	WM_CREATE message
+	If an application processes this message, it should return zero to continue creation of the window. 
+	If the application returns –1, the window is destroyed and the CreateWindowEx or CreateWindow function returns a NULL handle.
+	*/
+	lresult = 0;
+	return true;
 }
 
 bool CAppWindow::OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult)
 {
-HWND hWndDebuggerFrame;
+	HWND hWndDebuggerFrame;
 
-	appStatus->SoundHalt();
+	appCommand->SoundHalt();
 	appStatus->m_bClosing = true;
 	if (!this->m_pMDIDebugger.expired())
 	{
@@ -1016,15 +1104,13 @@ HWND hWndDebuggerFrame;
 		}
 	}
 
-	if (!appStatus->m_bWindowed)
+	if (pGx->IsFullscreen())
 	{
-		if (SUCCEEDED(ToggleFullScreen()))
-		{
-			//Fix to avoid strange crash if the default DestroyWindow is called straight away.
-			PostMessage(hWnd, WM_CLOSE, 0, 0);
-			lresult = 0;
-			return true;
-		}
+		pGx->GoWindowed();
+		//Fix to avoid strange crash if the default DestroyWindow is called straight away.
+		PostMessage(hWnd, WM_CLOSE, 0, 0);
+		lresult = 0;
+		return true;
 	}
 	else
 	{
@@ -1039,7 +1125,7 @@ void CAppWindow::OnActivate(HWND hWnd, WPARAM wParam, LPARAM lParam)
 bool bIsWindowActive;
 bool bIsWindowMinimised;
 
-	if (G::IsHideWindow)
+	if (ErrorLogger::HideWindow)
 	{
 		return;
 	}
@@ -1050,18 +1136,7 @@ bool bIsWindowMinimised;
 
 	if (!appStatus->m_bWindowed && bIsWindowMinimised)
 	{
-		appStatus->SoundHalt();
-		if (G::IsDwmApiOk() && appStatus->m_bDisableDwmFullscreen)
-		{
-			if (!appStatus->m_bWindowed)
-			{
-				BOOL bIsDwmOn;
-				if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&bIsDwmOn)))
-				{
-					G::s_pFnDwmEnableComposition(DWM_EC_ENABLECOMPOSITION);
-				}
-			}
-		}
+		appCommand->SoundHalt();
 	}
 
 	if (appStatus->m_bReady)
@@ -1070,113 +1145,35 @@ bool bIsWindowMinimised;
 	}
 }
 
-bool CAppWindow::OnGetMinMaxInfo(HWND hWnd, WPARAM wParam, LPARAM lParam)
-{
-MINMAXINFO *pMinMax;
-	if (appStatus != NULL)
-	{
-		if (appStatus->m_bWindowed)
-		{
-			int w;
-			int h;
-			GetMinimumWindowedSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, &w, &h);
-			pMinMax = (MINMAXINFO *)lParam;
-			pMinMax->ptMinTrackSize.x = w;
-			pMinMax->ptMinTrackSize.y = h;			
-			if (appStatus->m_bWindowedLockAspectRatio)
-			{
-				// Apply aspect ratio to the normal window dimensions.
-				RECT rcWorkArea;
-				rcWorkArea.left = 0;
-				rcWorkArea.top = 0;
-				rcWorkArea.right = pMinMax->ptMaxTrackSize.x;
-				rcWorkArea.bottom = pMinMax->ptMaxTrackSize.y;
-				RECT rcAspect;
-				CopyRect(&rcAspect, &rcWorkArea);
-				this->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rcAspect);
-				if (rcAspect.right - rcAspect.left <= rcWorkArea.right - rcWorkArea.left)
-				{
-					pMinMax->ptMaxTrackSize.x = rcAspect.right - rcAspect.left;
-				}
-				
-				if (rcAspect.bottom - rcAspect.top <= rcWorkArea.bottom - rcWorkArea.top)
-				{
-					pMinMax->ptMaxTrackSize.y = rcAspect.bottom - rcAspect.top;
-				}
-
-				// Apply aspect ratio to the maximized window dimensions.
-				rcWorkArea.left = pMinMax->ptMaxPosition.x;
-				rcWorkArea.top = pMinMax->ptMaxPosition.y;
-				rcWorkArea.right = pMinMax->ptMaxPosition.x + pMinMax->ptMaxSize.x;
-				rcWorkArea.bottom = pMinMax->ptMaxPosition.y + pMinMax->ptMaxSize.y;
-				rcAspect;
-				CopyRect(&rcAspect, &rcWorkArea);
-				this->AspectMaxSizing(hWnd, WMSZ_BOTTOMRIGHT, rcAspect);
-				pMinMax->ptMaxSize.x = rcAspect.right - rcAspect.left;
-				pMinMax->ptMaxSize.y = rcAspect.bottom - rcAspect.top;
-			}
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
 bool CAppWindow::OnSetCursor(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult)
 {
-    if (appStatus->m_bActive && !appStatus->m_bWindowed)
-    {
-        SetCursor(NULL);
-        lresult = TRUE;
-		return true;
-    }
-	else if (appStatus->m_bBusy)
-	{
-		SetCursor(m_hCursorBusy);
-		lresult = TRUE;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void CAppWindow::OnDisplayChange(HWND hWnd, WPARAM wParam, LPARAM lParam)
-{
-	if (G::IsHideWindow)
-	{
-		return;
-	}
-
-	if (appStatus->m_bWindowed)
-	{
-		appStatus->m_bReady = false;
-	}
+	return false;
 }
 
 void CAppWindow::OnPaletteChanged(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
-	if (G::IsHideWindow)
-	{
-		return;
-	}
+}
 
+bool CAppWindow::OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lresult)
+{
 	if (appStatus->m_bWindowed)
 	{
-		if (hWnd != (HWND) wParam)
-		{
-			SetColours();
-			InvalidateRect(hWnd, NULL, FALSE);
-		}
+		UpdateC64WindowWithObjects();
 	}
+
+	ValidateRect(hWnd, NULL);
+	lresult = 0;
+	return true;
 }
+
 
 LRESULT CAppWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 HMENU hMenu  = 0;
 LRESULT lr = 0;
+
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+		return true;
 
 	switch (uMsg) 
 	{
@@ -1188,20 +1185,27 @@ LRESULT lr = 0;
 
 		break;
 	case WM_ENTERMENULOOP:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
 		UpdateMenu();
 		return 0;
 	case WM_EXITMENULOOP:
-		appStatus->SoundResume();
+		appCommand->SoundResume();
 		return 0;
 	case WM_ENTERSIZEMOVE:
-		appStatus->SoundHalt();
+		appCommand->SoundHalt();
 		return 0;
 	case WM_EXITSIZEMOVE:
-		appStatus->SoundResume();
+		appCommand->SoundResume();
 		return 0;
 	case WM_ACTIVATE:
 		OnActivate(hWnd, wParam, lParam);
+		break;
+	case WM_MOVE:
+		if (OnMove(hWnd, wParam, lParam))
+		{
+			return 0;
+		}
+
 		break;
 	case WM_SIZE:
 		if (OnSize(hWnd, wParam, lParam))
@@ -1217,8 +1221,6 @@ LRESULT lr = 0;
 		}
 
 		break;
-	case WM_MOVE:
-		return 0;
 	case WM_GETMINMAXINFO:
 		if (OnGetMinMaxInfo(hWnd, wParam, lParam))
 		{
@@ -1226,8 +1228,25 @@ LRESULT lr = 0;
 		}
 		
 		break;
+	case WM_WINDOWPOSCHANGED:
+		if (OnWindowPositionChanged(hWnd, wParam, lParam))
+		{
+			return 0;
+		}
+
+		break;
 	case WM_DISPLAYCHANGE:
 		OnDisplayChange(hWnd, wParam, lParam);
+		break;
+	case WM_DPICHANGED:
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
+		{
+			//const int dpi = HIWORD(wParam);
+			//printf("WM_DPICHANGED to %d (%.0f%%)\n", dpi, (float)dpi / 96.0f * 100.0f);
+			const RECT* suggested_rect = (RECT*)lParam;
+			::SetWindowPos(hWnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
+		}
+
 		break;
 	case WM_COMMAND:
 		if (OnCommand(hWnd, wParam, lParam, lr))
@@ -1266,6 +1285,15 @@ LRESULT lr = 0;
 		{
 			return 0;
 		}
+
+		break;
+	case WM_PAINT:
+		if (OnPaint(hWnd, wParam, wParam, lr))
+		{
+			return lr;
+		}
+
+		break;
     case WM_SETCURSOR:
 		if (OnSetCursor(hWnd, wParam, wParam, lr))
 		{
@@ -1275,7 +1303,7 @@ LRESULT lr = 0;
 		break;
 	case WM_DESTROY:
 		appStatus->m_bReady = false;
-		appStatus->FreeDirectX();
+		appCommand->FreeDirectX();
 		PostQuitMessage(0);
 		return 0;
 	case WM_MONITOR_BREAK_CPU64:
@@ -1286,6 +1314,15 @@ LRESULT lr = 0;
 		return 0;
 	case WM_MONITOR_BREAK_VICRASTER:
 		OnBreakVic(hWnd, uMsg, wParam, lParam);
+		return 0;
+	case WM_LBUTTONDOWN:
+		OnLButtonDown(hWnd, uMsg, wParam, lParam);
+		return 0;
+	case WM_MOUSEMOVE:
+		OnMouseMove(hWnd, uMsg, wParam, lParam);
+		return 0;
+	case WM_LBUTTONUP:
+		OnLButtonUp(hWnd, uMsg, wParam, lParam);
 		return 0;
 	}
 
@@ -1299,9 +1336,9 @@ void CAppWindow::CloseWindow()
 
 void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	appStatus->SoundHalt();
+	appCommand->SoundHalt();
 	//G::DebugMessageBox(hWnd, TEXT("A C64 CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_pAppCommand->ShowDevelopment();
+	HWND hWndMon = appCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -1310,9 +1347,9 @@ void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	appStatus->SoundHalt();
+	appCommand->SoundHalt();
 	//G::DebugMessageBox(hWnd, TEXT("A disk CPU execute breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_pAppCommand->ShowDevelopment();
+	HWND hWndMon = appCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -1321,9 +1358,9 @@ void CAppWindow::OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 void CAppWindow::OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	appStatus->SoundHalt();
+	appCommand->SoundHalt();
 	//G::DebugMessageBox(hWnd, TEXT("A VIC raster compare breakpoint occurred."), TEXT("Monitor Breakpoint"), MB_ICONSTOP|MB_OK);
-	HWND hWndMon = m_pAppCommand->ShowDevelopment();
+	HWND hWndMon = appCommand->ShowDevelopment();
 	if (hWndMon)
 	{
 		SendMessage(hWndMon, uMsg, wParam, lParam);
@@ -1345,14 +1382,6 @@ HMENU hMenu;
 		{
 			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_ON, MF_BYCOMMAND | MF_UNCHECKED);
 			CheckMenuItem (hMenu, IDM_DISK_WRITEPROTECT_OFF, MF_BYCOMMAND | MF_CHECKED);
-		}
-		if (appStatus->m_bDoubleSizedWindow)
-		{
-			CheckMenuItem (hMenu, IDM_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_CHECKED);
-		}
-		else
-		{
-			CheckMenuItem (hMenu, IDM_SETTING_DOUBLESIZEDWINDOW, MF_BYCOMMAND | MF_UNCHECKED);
 		}
 	
 		if (appStatus->m_bSwapJoysticks)
@@ -1425,319 +1454,125 @@ WINDOWPLACEMENT wp;
 
 HRESULT CAppWindow::ResetDirect3D()
 {
-	return SetWindowedMode(true, true, true, false, 0, 0, appStatus->m_bUseBlitStretch);
+	return SetWindowedMode(true);
 }
 
+void CAppWindow::RestoreWindowPosition()
+{
+	UINT flags = ErrorLogger::HideWindow ? SWP_HIDEWINDOW : SWP_SHOWWINDOW;
+	SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, flags);
+	G::EnsureWindowPosition(m_hWnd);
+}
 
 HRESULT CAppWindow::ToggleFullScreen()
 {
-	HRESULT r = SetWindowedMode(!appStatus->m_bWindowed, false, appStatus->m_bDoubleSizedWindow, appStatus->m_bWindowedCustomSize, this->m_rcMainWindow.right - this->m_rcMainWindow.left, this->m_rcMainWindow.bottom - this->m_rcMainWindow.top, appStatus->m_bUseBlitStretch);
+	HRESULT hr = S_OK;
+	hr = SetWindowedMode(!appStatus->m_bWindowed);
 
-	if (G::IsWin98OrLater())
+	if(appStatus->m_bWindowed)
 	{
-		if(appStatus->m_bWindowed)
-		{
-			SetThreadExecutionState(ES_CONTINUOUS);   
-		}
-		else
-		{
-			SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_CONTINUOUS); 
-		}
+		SetThreadExecutionState(ES_CONTINUOUS);   
 	}
-	return r;
-}
-
-HRESULT CAppWindow::SetWindowedMode(bool wantWindowed, bool useCurrentWindowPlacement, bool bDoubleSizedWindow, bool bWindowedCustomSize, int width, int height, bool bUseBlitStretch)
-{
-HRESULT hr;
-UINT showFlags = 0;
-int xpos = 0;
-int ypos = 0;
-bool wasWindowed = appStatus->m_bWindowed;
-
-	ClearError();
-	appStatus->m_bReady = false;
-	appStatus->m_fskip = -1;
-
-    if (wasWindowed)
+	else
 	{
-		// Currently in Windowed mode.
-		SaveMainWindowSize();
-		if (!wantWindowed)
-		{
-			SetWindowedStyle(false);
-		}
-
-		WINDOWPLACEMENT wp;
-		ZeroMemory(&wp, sizeof(wp));
-		wp.flags = sizeof(wp);
-		if (!GetWindowPlacement(this->m_hWnd, &wp))
-		{
-			return E_FAIL;
-		}
-		
-		xpos = wp.rcNormalPosition.left;
-		ypos = wp.rcNormalPosition.top;	
-		if (wantWindowed)
-		{
-			// Staying in Windowed mode.
-			showFlags = wp.showCmd;
-			if (useCurrentWindowPlacement)
-			{				
-				if (showFlags == SW_SHOWMAXIMIZED)
-				{
-					RECT rc;
-					xpos = wp.ptMaxPosition.x;
-					ypos = wp.ptMaxPosition.y;
-					if (!GetWindowRect(this->m_hWnd, &rc))
-					{
-						return E_FAIL;
-					}
-
-					width = rc.right - rc.left;
-					height = rc.bottom - rc.top;
-					bWindowedCustomSize = true;
-				}
-				else
-				{
-					if (showFlags == SW_SHOWMINIMIZED)
-					{
-						ShowWindow(m_hWnd, SW_RESTORE);
-					}
-
-					xpos = wp.rcNormalPosition.left;
-					ypos = wp.rcNormalPosition.top;							
-					width = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
-					height = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
-					bWindowedCustomSize = true;
-				}
-			}
-			else
-			{
-				if (showFlags != SW_SHOWNORMAL)
-				{
-					ShowWindow(m_hWnd, SW_RESTORE);
-				}
-			}
-		}
+		SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_CONTINUOUS); 
 	}
 
-	hr = SetCoopLevel(wantWindowed, useCurrentWindowPlacement, bDoubleSizedWindow, bWindowedCustomSize, xpos, ypos, width, height, bUseBlitStretch);
-	if (FAILED(hr))
-	{
-		TCHAR errorTextSave[300];
-		_tcscpy_s(errorTextSave, _countof(errorText), errorText);
-		SetCoopLevel(true, useCurrentWindowPlacement, bDoubleSizedWindow, bWindowedCustomSize, xpos, ypos, width, height, bUseBlitStretch);
-		_tcscpy_s(errorText, _countof(errorText), errorTextSave);
-	}
-
-	if (appStatus->m_bWindowed)
-	{
-		SetWindowedStyle(true);
-		UINT showWindowFlags;
-		if (G::IsHideWindow)
-		{
-			showWindowFlags = SWP_NOZORDER | SWP_NOSIZE | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_NOOWNERZORDER;
-		}
-		else
-		{
-			showWindowFlags = SWP_NOZORDER | SWP_FRAMECHANGED;
-			if (useCurrentWindowPlacement || width <= 0 || height <= 0)			
-			{
-				showWindowFlags = SWP_NOSIZE;
-			}
-		}
-
-		if (wantWindowed && !wasWindowed)
-		{
-			SetWindowPos(m_hWnd, HWND_TOP, m_rcMainWindow.left, m_rcMainWindow.top, m_rcMainWindow.right - m_rcMainWindow.left, m_rcMainWindow.bottom - m_rcMainWindow.top, SWP_SHOWWINDOW);
-		}
-
-		G::EnsureWindowPosition(m_hWnd);
-		SaveMainWindowSize();
-		if (appStatus->m_syncModeWindowed == HCFG::FSSM_VBL && !appStatus->m_bDebug)
-		{
-			appStatus->m_fskip = 1;
-		}
-
-		if (!G::IsHideWindow)
-		{
-			if (SUCCEEDED(this->m_pWinEmuWin->UpdateC64Window(true)))
-			{
-				this->m_pWinEmuWin->Present(0);
-			}
-		}
-	}
 	return hr;
 }
 
 void CAppWindow::SetWindowedStyle(bool bWindowed)
 {
-HMENU hMt;
-LONG_PTR lp;
+	HMENU hMt;
+	LONG_PTR lp;
 
 	if (bWindowed)
 	{
 		lp = GetWindowLongPtr(m_hWnd, GWL_STYLE);
 		lp |= CAppWindow::StylesWindowed;
-		#pragma warning(disable:4244)
+#pragma warning(disable:4244)
 		SetWindowLongPtr(m_hWnd, GWL_STYLE, lp);
-		#pragma warning(default:4244)
+#pragma warning(default:4244)
 		if (m_hMenuOld)
 		{
 			SetMenu(m_hWnd, m_hMenuOld);
 			m_hMenuOld = NULL;
-		}
-
-		if (m_hWndStatusBar)
-		{
-			ShowWindow(m_hWndStatusBar, SW_SHOW);
+			PostMessage(m_hWnd, WM_KEYUP, VK_MENU, 0xc000001);
 		}
 	}
 	else
 	{
-		hMt=GetMenu(m_hWnd);
+		hMt = GetMenu(m_hWnd);
 		if (hMt)
 		{
 			SetMenu(m_hWnd, NULL);
 			m_hMenuOld = hMt;
 		}
 
-		if (m_hWndStatusBar)
-		{
-			ShowWindow(m_hWndStatusBar, SW_HIDE);
-		}
-
 		lp = GetWindowLongPtr(m_hWnd, GWL_STYLE);
 		lp &= ~CAppWindow::StylesWindowed;
 		lp |= CAppWindow::StylesNonWindowed;
-		#pragma warning(disable:4244)
+#pragma warning(disable:4244)
 		SetWindowLongPtr(m_hWnd, GWL_STYLE, lp);
-		#pragma warning(default:4244)
+#pragma warning(default:4244)
 	}
 }
 
-HRESULT CAppWindow::SetCoopLevel(bool bWindowed, bool useCurrentWindowPlacement, bool bDoubleSizedWindow, bool bWindowedCustomSize, int xpos, int ypos, int width, int height, bool bUseBlitStretch)
+HRESULT CAppWindow::SetWindowedMode(bool wantWindowed)
 {
-HRESULT hRet;
-	BOOL bIsDwmOn = FALSE;
+	this->appStatus->m_bReady = false;
+	HWND hwndMainWindow = this->GetHwnd();
+	bool usePointFilter = appStatus->m_blitFilter == HCFG::EMUWINDOWFILTER::EMUWINFILTER_POINT;	
+	SetWindowedStyle(wantWindowed);
 
-	if (G::IsHideWindow)
+	if (!ErrorLogger::HideWindow)
 	{
-		return S_FALSE;
-	}
-
-	if (G::IsDwmApiOk() && appStatus->m_bDisableDwmFullscreen)
-	{
-		if (!bWindowed)
-		{			
-			if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&bIsDwmOn)))
-			{
-				if (bIsDwmOn)
-				{
-					G::s_pFnDwmEnableComposition(DWM_EC_DISABLECOMPOSITION);
-				}
-			}
-		}
-	}
-
-	hRet = InitSurfaces(bWindowed, useCurrentWindowPlacement, bDoubleSizedWindow, bWindowedCustomSize, xpos, ypos, width, height, bUseBlitStretch);
-	if (SUCCEEDED(hRet))
-	{
-		appStatus->m_bWindowed = bWindowed;
-	}
-
-	if (G::IsDwmApiOk() && appStatus->m_bDisableDwmFullscreen)
-	{
-		if (bWindowed)
+		if (wantWindowed)
 		{
-			if (SUCCEEDED(G::s_pFnDwmIsCompositionEnabled(&bIsDwmOn)))
-			{
-				G::s_pFnDwmEnableComposition(DWM_EC_ENABLECOMPOSITION);
-			}
-		}
-	}
-
-    return hRet;
-}
-
-HRESULT CAppWindow::InitSurfaces(bool bWindowed, bool useCurrentWindowPlacement, bool bDoubleSizedWindow, bool bWindowedCustomSize, int xpos, int ypos, int width, int height, bool bUseBlitStretch)
-{
-HRESULT		        hRet;
-int w,h;
-D3DDISPLAYMODE displayModeRequested;
-D3DTEXTUREFILTERTYPE filter;
-RECT rc;
-	ClearError();
-	ZeroMemory(&displayModeRequested, sizeof(D3DDISPLAYMODE));
-	filter = CDX9::GetDxFilterFromEmuFilter(appStatus->m_blitFilter);
-	if (bWindowed)
-	{
-  		if (useCurrentWindowPlacement)
-		{			
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST, xpos, ypos, width, height, SWP_NOMOVE | SWP_NOSIZE);
-			SetRect(&rc, 0, 0, width, height);
-			CalcEmuWindowSize(rc, &w, &h);
-			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
-		}
-  		else if (bWindowedCustomSize)
-		{
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST, xpos, ypos, width, height, SWP_NOMOVE);
-			SetRect(&rc, 0, 0, width, height);
-			CalcEmuWindowSize(rc, &w, &h);
-			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+			ImGui::SetMouseCursor(ImGuiMouseCursor_::ImGuiMouseCursor_Arrow);
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
 		}
 		else
 		{
-			GetRequiredMainWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST, xpos, ypos, w, h,  SWP_NOMOVE);
-			m_pWinEmuWin->GetRequiredWindowSize(appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bDoubleSizedWindow, &w, &h);
-			SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER);
+			ImGui::SetMouseCursor(ImGuiMouseCursor_::ImGuiMouseCursor_None);
+			SetCursor(NULL);
 		}
-		
-		hRet = dx->InitD3D(m_pWinEmuWin->GetHwnd(), m_hWnd, true, bDoubleSizedWindow, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncModeWindowed, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
-		if (FAILED(hRet))
-		{
-			appStatus->m_bWindowed = true;
-			appStatus->m_bWindowedCustomSize = false;
-			return SetError(hRet, TEXT("InitD3D failed."));
-		}
+	}
 
-		appStatus->m_bWindowed = true;		
+	HRESULT hr = pGx->SetMode(appStatus->m_fullscreenAdapterIsDefault, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenOutputNumber, hwndMainWindow, appStatus->m_fullscreenWidth, appStatus->m_fullscreenHeight, appStatus->m_fullscreenRefreshNumerator, appStatus->m_fullscreenRefreshDenominator, appStatus->m_fullscreenDxGiModeScanlineOrdering, appStatus->m_fullscreenDxGiModeScaling, wantWindowed, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_fullscreenStretch, usePointFilter, wantWindowed ? appStatus->m_syncModeWindowed : appStatus->m_syncModeFullscreen);
+	if (SUCCEEDED(hr))
+	{
+		this->appStatus->m_bReady = true;
+		if (wantWindowed)
+		{
+			RestoreWindowPosition();
+		}
 	}
 	else
 	{
-		displayModeRequested.Format = (D3DFORMAT)appStatus->m_fullscreenFormat;
-		displayModeRequested.Height = appStatus->m_fullscreenHeight;
-		displayModeRequested.Width = appStatus->m_fullscreenWidth;
-		displayModeRequested.RefreshRate = appStatus->m_fullscreenRefresh;
-		hRet = dx->InitD3D(m_hWnd, m_hWnd, false, true, bWindowedCustomSize, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, bUseBlitStretch, appStatus->m_fullscreenStretch, filter, appStatus->m_syncModeFullscreen, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenAdapterId, displayModeRequested);
-		if (FAILED(hRet))
+		if (!ErrorLogger::HideWindow)
 		{
-			appStatus->m_bWindowed = true;
-			appStatus->m_bWindowedCustomSize = false;
-			return SetError(hRet, TEXT("InitD3D failed."));
+			ImGui::SetMouseCursor(ImGuiMouseCursor_::ImGuiMouseCursor_Arrow);
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
 		}
-
-		appStatus->m_bWindowed = false;
 	}
 
-	ClearSurfaces();
-	SetColours();
-	return S_OK;
+	if (!pGx->IsFullscreen())
+	{
+		SetWindowedStyle(true);
+	}
+
+	return hr;
 }
 
-void CAppWindow::ClearSurfaces()
-{
-	m_pWinEmuWin->ClearSurfaces();
-}
-
-void CAppWindow::UpdateWindowTitle(TCHAR *szTitle, DWORD emulationSpeed)
+void CAppWindow::UpdateWindowTitle(const TCHAR *szTitle, DWORD emulationSpeed)
 {
 TCHAR szBuff[300];
-	szBuff[0];
-	if (appStatus==NULL || appStatus==NULL)
+	if (appStatus == NULL)
+	{
 		return;
+	}
+
 	if (appStatus->m_bShowSpeed && (long)emulationSpeed>=0)
 	{
 		_sntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, TEXT("%s at %d%%"), szTitle, emulationSpeed);
@@ -1771,22 +1606,6 @@ TCHAR szBuff[300];
 		SetWindowText(m_hWnd, szBuff);
 	}
 }
-
-void CAppWindow::SetDriveMotorLed(bool bOn)
-{
-	if (m_hWndStatusBar)
-	{
-		if (bOn)
-		{
-			SendMessage(m_hWndStatusBar, SB_SETBKCOLOR, 0, (LPARAM) RGB(33, 250, 131));
-		}
-		else
-		{
-			SendMessage(m_hWndStatusBar, SB_SETBKCOLOR, 0, (LPARAM) RGB(1, 63, 29));
-		}
-	}
-}
-
 
 struct tabpageitem CAppWindow::m_tabPagesKeyboard[4]=
 {
@@ -1834,27 +1653,25 @@ struct tabpageitem CAppWindow::m_tabPagesSetting[5]=
 
 HWND CAppWindow::ShowDevelopment()
 {
-CDPI dpi;
-HWND hWnd = NULL;
-shared_ptr<CMDIDebuggerFrame> pwin;
-HRESULT hr;
-const int X_GAP = 362;
-bool bCreated = false;
-bool ok = false;
+	CDPI dpi;
+	HWND hWnd = NULL;
+	shared_ptr<CMDIDebuggerFrame> pwin;
+	HRESULT hr;
+	constexpr int X_GAP = 362;
+	bool bCreated = false;
+	bool ok = false;
 
-	appStatus->SoundHalt();
+	appCommand->SoundHalt();
 	c64->SynchroniseDevicesWithVIC();
 	appStatus->m_bRunning = false;
 	appStatus->m_bDebug = true;
-
 	RECT rcDesk;
 	G::GetWorkArea(rcDesk);
-
 	try
 	{
 		if (m_pMDIDebugger.expired() || m_pMDIDebugger.lock()->GetHwnd() == 0)
 		{
-			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->m_pAppCommand, this->appStatus, this->appStatus));
+			pwin = shared_ptr<CMDIDebuggerFrame>(new CMDIDebuggerFrame(this->c64, this->appCommand, this->appStatus, this->appStatus));
 			if (pwin != NULL)
 			{
 				int x,y,w,h;
@@ -1867,6 +1684,7 @@ bool ok = false;
 					w = CW_USEDEFAULT;
 					h = CW_USEDEFAULT;
 				}
+
 				POINT pos = {x,y};
 				SIZE size= {w,h};
 				hr = CConfig::LoadMDIWindowSetting(pos, size);
@@ -1877,9 +1695,11 @@ bool ok = false;
 					w = size.cx;
 					h = size.cy;
 				}
+
 				hWnd = pwin->Create(m_hInst, 0, TEXT("C64 Monitor"), x, y, w, h, NULL);
 				if (hWnd != 0)
 				{
+					pwin->keepAlive = pwin;
 					bCreated = true;
 					m_pMDIDebugger = pwin;
 					G::EnsureWindowPosition(hWnd);
@@ -1890,8 +1710,11 @@ bool ok = false;
 		else
 		{
 			pwin = m_pMDIDebugger.lock();
-			hWnd = pwin->GetHwnd();
-			ok = true;
+			if (pwin != nullptr)
+			{
+				hWnd = pwin->GetHwnd();
+				ok = true;
+			}
 		}
 	}
 	catch (std::exception&)
@@ -1909,13 +1732,377 @@ bool ok = false;
 			pwin->ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 			pwin->ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::EnsurePCVisible, 0);
 		}
-		this->UpdateWindowTitle(appStatus->GetAppTitle(), -1);
-		this->m_pWinEmuWin->UpdateC64WindowWithObjects();
+
+		this->UpdateWindowTitle(appCommand->GetAppTitle(), -1);
+		this->UpdateC64WindowWithObjects();
 	}
 	else
 	{
-		G::DebugMessageBox(0L, TEXT("Unable to create the debugger window."), appStatus->GetAppName(), MB_ICONWARNING);
-		m_pAppCommand->Resume();
+		G::DebugMessageBox(0L, TEXT("Unable to create the debugger window."), appCommand->GetAppName(), MB_ICONWARNING);
+		appCommand->Resume();
 	}
+
 	return hWnd;
+}
+
+// From old CEmuWindow child window
+void CAppWindow::SetColours()
+{
+	if (c64 != nullptr && c64->IsInitOK())
+	{
+		c64->SetupColorTables();
+	}
+}
+
+void CAppWindow::SetNotify(INotify* pINotify)
+{
+	m_pINotify = pINotify;
+}
+
+void CAppWindow::GetVicRasterPositionFromClientPosition(int x, int y, int& cycle, int& line)
+{
+	C64Display& c64display = pGx->c64display;
+	int s = c64display.displayStart + DISPLAY_START;
+	int st = c64display.displayFirstVicRaster;
+	int sb = c64display.displayLastVicRaster;
+	int wc = c64display.displayWidth;
+	int hc = c64display.displayHeight;
+	int wp = c64display.drcScreen.right - c64display.drcScreen.left;
+	int hp = c64display.drcScreen.bottom - c64display.drcScreen.top;
+
+	cycle = (s + ((x * wc) / wp)) & ~7;
+	cycle = cycle / 8;
+	cycle += 1;
+	if (cycle < 1)
+	{
+		cycle = 1;
+	}
+
+	if (cycle > PAL_CLOCKS_PER_LINE)
+	{
+		cycle = PAL_CLOCKS_PER_LINE;
+	}
+
+	line = st + ((y * hc) / hp);
+	line -= 1;
+
+	if (line < 0)
+	{
+		line = 0;
+	}
+
+	if (line > PAL_MAX_LINE)
+	{
+		line = PAL_MAX_LINE;
+	}
+}
+
+void CAppWindow::GetVicCycleRectFromClientPosition(int x, int y, RECT& rcVicCycle)
+{
+	int cycle;
+	int line;
+	GetVicRasterPositionFromClientPosition(x, y, cycle, line);
+	SetRect(&rcVicCycle, (cycle - 1) * 8, line, (cycle) * 8, line + 1);
+}
+
+void CAppWindow::GetDisplayRectFromVicRect(const RECT rcVicCycle, RECT& rcDisplay)
+{
+	C64Display& c64display = pGx->c64display;
+	int s = c64display.displayStart + DISPLAY_START;
+	int st = c64display.displayFirstVicRaster;
+	int sb = c64display.displayLastVicRaster;
+	int wc = c64display.displayWidth;
+	int hc = c64display.displayHeight;
+	int wp = c64display.drcScreen.right - c64display.drcScreen.left;
+	int hp = c64display.drcScreen.bottom - c64display.drcScreen.top;
+
+	double left = ::ceil((double)(rcVicCycle.left - s) * (double)wp / (double)wc);
+	double right = ::floor((double)(rcVicCycle.right - s) * (double)wp / (double)wc);
+	rcDisplay.left = (LONG)left;
+	rcDisplay.right = (LONG)right;
+	if (right <= left)
+	{
+		right = left + 1;
+	}
+
+	double top = ::ceil((double)(rcVicCycle.top - st) * (double)hp / (double)hc);
+	double bottom = ::floor((double)(rcVicCycle.bottom - st) * (double)hp / (double)hc);
+	if (bottom <= top)
+	{
+		bottom = top + 1;
+	}
+
+	rcDisplay.top = (LONG)top;
+	rcDisplay.bottom = (LONG)bottom;
+	OffsetRect(&rcDisplay, c64display.drcScreen.left, c64display.drcScreen.top);
+}
+
+
+void CAppWindow::DisplayVicCursor(bool bEnabled)
+{
+	m_bDrawCycleCursor = bEnabled;
+}
+
+void CAppWindow::DisplayVicRasterBreakpoints(bool bEnabled)
+{
+	m_bDrawVicRasterBreakpoints = bEnabled;
+}
+
+void CAppWindow::SetVicCursorPos(int iCycle, int iLine)
+{
+	m_iVicCycleCursor = iCycle;
+	m_iVicLineCursor = iLine;
+}
+
+void CAppWindow::GetVicCursorPos(int* piCycle, int* piLine)
+{
+	if (piCycle)
+	{
+		*piCycle = m_iVicCycleCursor;
+	}
+
+	if (piLine)
+	{
+		*piLine = m_iVicLineCursor;
+	}
+}
+
+void CAppWindow::OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (ErrorLogger::HideWindow)
+	{
+		return;
+	}
+
+	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+
+		m_bDragMode = true;
+		SetCapture(hWnd);
+		SetCursorAtClientPosition(x, y);
+		UpdateC64WindowWithObjects();
+		if (m_pINotify)
+		{
+			m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+		}
+	}
+}
+
+void CAppWindow::OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (ErrorLogger::HideWindow)
+	{
+		return;
+	}
+
+	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		ReleaseCapture();
+		if (m_bDragMode)
+		{
+			SetCursorAtClientPosition(x, y);
+			UpdateC64WindowWithObjects();
+			if (m_pINotify)
+			{
+				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+			}
+		}
+
+		m_bDragMode = false;
+	}
+}
+
+bool CAppWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (ErrorLogger::HideWindow)
+	{
+		return true;
+	}
+
+	int x = GET_X_LPARAM(lParam);
+	int y = GET_Y_LPARAM(lParam);
+
+	appCommand->SetLastMousePosition(&x, &y);
+	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
+	{
+		if (m_bDragMode)
+		{
+			SetCursorAtClientPosition(x, y);
+			UpdateC64WindowWithObjects();
+			if (m_pINotify)
+			{
+				m_pINotify->VicCursorMove(m_iVicCycleCursor, m_iVicLineCursor);
+			}
+		}
+	}
+
+	return true;
+}
+
+void CAppWindow::SetCursorAtClientPosition(int x, int y)
+{
+	int cycle, line;
+	GetVicRasterPositionFromClientPosition(x, y, cycle, line);
+	this->SetVicCursorPos(cycle, line);
+}
+
+void CAppWindow::UpdateC64WindowWithObjects()
+{
+	if (ErrorLogger::HideWindow)
+	{
+		return;
+	}
+
+	if (appStatus->m_bWindowed && appStatus->m_bDebug && !appStatus->m_bRunning && m_bDrawVicRasterBreakpoints)
+	{
+		pGx->c64display.EnableVicCursorSprites(true);
+		PrepareVicCursorsForDrawing();
+	}
+
+	HRESULT hr = this->UpdateC64Window(true);
+	if (SUCCEEDED(hr))
+	{
+		this->Present();
+	}
+
+	pGx->c64display.EnableVicCursorSprites(false);
+}
+
+void CAppWindow::DrawCursorAtVicPosition(HDC hdc, int cycle, int line)
+{
+	RECT rcVicCycle;
+	RECT rcDisplay;
+	RECT rcDisplay2;
+	SetRect(&rcVicCycle, (cycle - 1) * 8, line, (cycle) * 8, line + 1);
+	GetDisplayRectFromVicRect(rcVicCycle, rcDisplay);
+	CopyRect(&rcDisplay2, &rcDisplay);
+	int p = (rcDisplay.bottom - rcDisplay.top);
+	int dx = p;
+	int dy = p;
+	InflateRect(&rcDisplay2, dx, dy);
+	HBRUSH hOuter = m_hBrushBrkOuter;
+	HBRUSH hInner = m_hBrushBrkInner;
+	if (!hInner)
+	{
+		hInner = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	}
+
+	if (!hOuter)
+	{
+		hOuter = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
+	}
+
+	FillRect(hdc, &rcDisplay2, (HBRUSH)hOuter);
+	FillRect(hdc, &rcDisplay, (HBRUSH)hInner);
+}
+
+void CAppWindow::PrepareVicCursorsForDrawing()
+{
+	pGx->c64display.ClearVicCursorSprites();
+	if (m_bDrawCycleCursor)
+	{
+		// Prepare the user unconfirmed VIC breakpoint.
+		pGx->c64display.InsertCursorSprite(VicCursorPosition(m_iVicCycleCursor, m_iVicLineCursor));
+	}
+
+	IEnumBreakpointItem* p = nullptr;
+	try
+	{
+		// // Prepare all user confirmed VIC breakpoints.
+		p = c64->GetMon()->BM_CreateEnumBreakpointItem();
+		BreakpointItem v;
+		while (p->GetNext(v))
+		{
+			if (v.bptype == DBGSYM::BreakpointType::VicRasterCompare)
+			{
+				pGx->c64display.InsertCursorSprite(VicCursorPosition(v.vic_cycle, v.vic_line));
+			}
+		}
+
+		if (p)
+		{
+			delete p;
+			p = nullptr;
+		}
+	}
+	catch(std::bad_alloc)
+	{
+		if (p)
+		{
+			delete p;
+			p = nullptr;
+		}
+
+		throw;
+	}
+}
+
+HRESULT CAppWindow::RenderWindow()
+{
+	HRESULT hr;
+	if (!pGx || !pGx->isInitOK)
+	{
+		return E_FAIL;
+	}
+
+	pGx->ClearFrame();
+	hr = pGx->RenderFrame();
+	return hr;
+}
+
+/*
+Function: UpdateC64Window
+Description:
+Draws a full C64 screen to the current DirectX backbuffer and presents the display.
+The display consists of two parts separated by the current VIC output cursor position.
+Pixels from the top of the display to the current VIC output cursor position are from
+the current C64 frame. Pixels from beyond the current VIC output cursor position to
+the bottom of the display are from the previous C64 frame.
+*/
+HRESULT CAppWindow::UpdateC64Window(bool refreshVicData)
+{
+	HRESULT hr = S_OK;
+
+	if (ErrorLogger::HideWindow)
+	{
+		return S_FALSE;
+	}
+
+	if (refreshVicData)
+	{
+		if (c64 != nullptr && c64->IsInitOK())
+		{
+			hr = c64->UpdateBackBuffer();
+		}
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		//CAppWindow::RenderWindow Stretch-blits from the dx small surface to the dx backbuffer.
+		hr = RenderWindow();
+	}
+
+	return hr;
+}
+
+HRESULT CAppWindow::Present()
+{
+	if (pGx == nullptr)
+	{
+		return E_FAIL;
+	}
+
+	return pGx->PresentFrame();
+}
+
+void CAppWindow::GetRequiredClientWindowSize(HCFG::EMUBORDERSIZE borderSize, BOOL bShowFloppyLed, int* w, int* h)
+{
+	C64WindowDimensions dims;
+	dims.SetBorder(borderSize);
+	*w = dims.Width;
+	*h = dims.Height + pGx->c64display.GetToolBarHeight(bShowFloppyLed);
 }

@@ -1,5 +1,6 @@
-#ifndef __DIAGBREAKPOINTVICRASTER_H__
-#define __DIAGBREAKPOINTVICRASTER_H__
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
 
 class CDiagBreakpointVicRaster_EventSink_OnVicCursorChange : protected EventSink<VicCursorMoveEventArgs>
 {
@@ -22,9 +23,11 @@ class CDiagBreakpointVicRaster : public CVirDialog, CDiagBreakpointVicRaster_Eve
 public:
 	CDiagBreakpointVicRaster(IAppCommand *pIAppCommand, IC64 *c64);
 	virtual ~CDiagBreakpointVicRaster();
-
+	virtual void WindowRelease() override;
 	int GetRasterLine();
 	int GetRasterCycle();
+
+	shared_ptr<CDiagBreakpointVicRaster> keepAlive;
 private:
 	int m_iLine;
 	int m_iCycle;
@@ -46,5 +49,3 @@ private:
 
 typedef shared_ptr<CDiagBreakpointVicRaster> Sp_CDiagBreakpointVicRaster;
 typedef weak_ptr<CDiagBreakpointVicRaster> Wp_CDiagBreakpointVicRaster;
-
-#endif

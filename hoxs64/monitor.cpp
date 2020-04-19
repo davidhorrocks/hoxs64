@@ -1,21 +1,11 @@
 #include <windows.h>
-#include "dx_version.h"
-#include <commctrl.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include <tchar.h>
 #include <assert.h>
-#include "CDPI.h"
-#include "utils.h"
-#include "errormsg.h"
 #include "hexconv.h"
 #include "cevent.h"
-#include "bits.h"
-#include "util.h"
 #include "register.h"
 #include "savestate.h"
 #include "c6502.h"
-#include "assembler.h"
 #include "runcommand.h"
 #include "commandresult.h"
 #include "monitor.h"
@@ -44,23 +34,24 @@ BreakpointDiskExecuteChangedEventArgs::BreakpointDiskExecuteChangedEventArgs(bit
 	this->Count = count;
 }
 
-Monitor::Monitor()
+Monitor::Monitor() noexcept
 {
 	m_bMonitorEvents = true;
-	m_pMonitorMainCpu = NULL;
-	m_pMonitorDiskCpu = NULL;
-	m_pMonitorVic = NULL;
-	m_pMonitorDisk = NULL;
-	m_mux = NULL;
+	m_pMonitorMainCpu = nullptr;
+	m_pMonitorDiskCpu = nullptr;
+	m_pMonitorVic = nullptr;
+	m_pMonitorDisk = nullptr;
+	m_mux = nullptr;
 	this->radix = DBGSYM::MonitorOption::Hex;
+	this->m_pIC64Event = nullptr;
 }
 
-Monitor::~Monitor()
+Monitor::~Monitor() noexcept
 {
 	if (m_mux)
 	{
 		CloseHandle(m_mux);
-		m_mux = NULL;
+		m_mux = nullptr;
 	}
 }
 
@@ -77,7 +68,7 @@ HRESULT hr = E_FAIL;
 
 		m_mux = CreateMutex(NULL, FALSE, NULL);
 		if (m_mux==NULL)
-			throw std::runtime_error("CreateMutex failed in Monitor::Init()");
+			throw std::exception("CreateMutex failed in Monitor::Init()");
 		hr = S_OK;
 	}
 	catch(...)
@@ -110,7 +101,7 @@ TCHAR szWord[5];
 
 	if (pCycle_Text != NULL && cchCycle_Text > 0)
 	{
-		_stprintf_s(pCycle_Text, cchCycle_Text,TEXT("%d"), cycle);
+		_stprintf_s(pCycle_Text, cchCycle_Text,TEXT("%d"), (int)(unsigned int)cycle);
 	}
 }
 
@@ -229,7 +220,7 @@ bit16 absAddress;
 		lstrcat(szAssembly, TEXT(" #"));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandByte);
 		}
 		else
 		{
@@ -245,7 +236,7 @@ bit16 absAddress;
 		lstrcat(szAssembly, TEXT(" "));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandByte);
 		}
 		else
 		{
@@ -261,7 +252,7 @@ bit16 absAddress;
 		lstrcat(szAssembly, TEXT(" "));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandByte);
 		}
 		else
 		{
@@ -278,7 +269,7 @@ bit16 absAddress;
 		lstrcat(szAssembly,TEXT(" "));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandByte);
 		}
 		else
 		{
@@ -296,7 +287,7 @@ bit16 absAddress;
 		operandWord |= ((bit16)pMonitorCpu->MonReadByte(address+2, memorymap) << 8);
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandWord);
 		}
 		else
 		{
@@ -313,7 +304,7 @@ bit16 absAddress;
 		lstrcat(szAssembly,TEXT(" "));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandWord);
 		}
 		else
 		{
@@ -331,7 +322,7 @@ bit16 absAddress;
 		lstrcat(szAssembly,TEXT(" "));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandWord);
 		}
 		else
 		{
@@ -349,7 +340,7 @@ bit16 absAddress;
 		lstrcat(szAssembly,TEXT(" ("));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandWord);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandWord);
 		}
 		else
 		{
@@ -366,7 +357,7 @@ bit16 absAddress;
 		lstrcat(szAssembly,TEXT(" ("));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandByte);
 		}
 		else
 		{
@@ -383,7 +374,7 @@ bit16 absAddress;
 		lstrcat(szAssembly,TEXT(" ("));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)operandByte);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)operandByte);
 		}
 		else
 		{
@@ -409,7 +400,7 @@ bit16 absAddress;
 		lstrcat(szAssembly, TEXT(" "));
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (unsigned int)absAddress);
+			_sntprintf_s(szNumber, _countof(szNumber), _TRUNCATE, TEXT("%-d"), (int)(unsigned int)absAddress);
 		}
 		else
 		{
@@ -439,7 +430,7 @@ bit16 absAddress;
 	{
 		if (this->radix == DBGSYM::MonitorOption::Dec)
 		{
-			_sntprintf_s(szAddress, _countof(szNumber), _TRUNCATE, TEXT("%5d"), (unsigned int)address);
+			_sntprintf_s(szAddress, _countof(szNumber), _TRUNCATE, TEXT("%5d"), (int)(unsigned int)address);
 		}
 		else
 		{
@@ -497,7 +488,7 @@ const unsigned int DECDIGITS = 3;
 				break;
 			}
 				
-			c = _sntprintf_s(s, charsRemaining + 1, _TRUNCATE, TEXT("%3d"), (unsigned int)b);
+			c = _sntprintf_s(s, charsRemaining + 1, _TRUNCATE, TEXT("%3d"), (int)(unsigned int)b);
 			s += c;
 			charsRemaining -= c;
 		}
@@ -521,30 +512,28 @@ const unsigned int DECDIGITS = 3;
 	return elementsFormatted;
 }
 
-bool Monitor::BM_SetBreakpoint(Sp_BreakpointItem bp)
+bool Monitor::BM_SetBreakpoint(const BreakpointItem& bp)
 {
 	if (MapBpExecute.size() >= BREAK_LIST_SIZE)
+	{
 		return false;
-	Sp_BreakpointItem bp_find;
-	if (BM_GetBreakpoint(bp, bp_find))
-	{
-		*bp_find = *bp;
 	}
-	else
-	{
-		MapBpExecute[bp] = bp;
-	}
+
+	BreakpointItem key = bp;
+	MapBpExecute[key] = bp;
+
 	if (m_pIC64Event && m_bMonitorEvents)
 	{
 		m_pIC64Event->BreakpointChanged();
 	}
+
 	return true;
 }
 
-bool Monitor::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp)
+bool Monitor::BM_GetBreakpoint(const BreakpointItem& key, BreakpointItem &bp)
 {
 	BpMap::iterator it;
-	it = MapBpExecute.find(k);
+	it = MapBpExecute.find(key);
 	if (it != MapBpExecute.end())
 	{
 		bp = it->second;
@@ -554,12 +543,12 @@ bool Monitor::BM_GetBreakpoint(Sp_BreakpointKey k, Sp_BreakpointItem &bp)
 	return false;
 }
 
-void Monitor::BM_DeleteBreakpoint(Sp_BreakpointKey k)
+void Monitor::BM_DeleteBreakpoint(const BreakpointItem& key)
 {
-Sp_BreakpointItem bp;
-	if (this->BM_GetBreakpoint(k, bp))
+	BreakpointItem bp;
+	if (this->BM_GetBreakpoint(key, bp))
 	{
-		this->MapBpExecute.erase(k);
+		this->MapBpExecute.erase(key);
 	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
@@ -568,12 +557,13 @@ Sp_BreakpointItem bp;
 	}
 }
 
-void Monitor::BM_EnableBreakpoint(Sp_BreakpointKey k)
+void Monitor::BM_EnableBreakpoint(const BreakpointItem& key)
 {
-Sp_BreakpointItem bp;
-	if (this->BM_GetBreakpoint(k, bp))
+	BreakpointItem bp;
+	if (this->BM_GetBreakpoint(key, bp))
 	{
-		bp->enabled = true;
+		bp.enabled = true;
+		MapBpExecute[key] = bp;
 	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
@@ -582,12 +572,21 @@ Sp_BreakpointItem bp;
 	}
 }
 
-void Monitor::BM_DisableBreakpoint(Sp_BreakpointKey k)
+void Monitor::BM_DisableBreakpoint(const BreakpointItem& key)
 {
-Sp_BreakpointItem bp;
-	if (this->BM_GetBreakpoint(k, bp))
+	BreakpointItem bp;
+	if (this->BM_GetBreakpoint(key, bp))
 	{
-		bp->enabled = false;
+		bp.enabled = false;
+		MapBpExecute[key] = bp;
+	}
+
+	if (this->BM_GetBreakpoint(key, bp))
+	{
+		if (bp.enabled)
+		{
+			bp.enabled = bp.enabled;
+		}		
 	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
@@ -598,9 +597,9 @@ Sp_BreakpointItem bp;
 
 void Monitor::BM_EnableAllBreakpoints()
 {
-	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+	for (BpMap::iterator it = MapBpExecute.begin(); it != MapBpExecute.end(); it++)
 	{
-		it->second->enabled = true;
+		it->second.enabled = true;
 	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
@@ -611,9 +610,9 @@ void Monitor::BM_EnableAllBreakpoints()
 
 void Monitor::BM_DisableAllBreakpoints() 
 {
-	for (BpMap::iterator it = MapBpExecute.begin(); it!=MapBpExecute.end(); it++)
+	for (BpMap::iterator it = MapBpExecute.begin(); it != MapBpExecute.end(); it++)
 	{
-		it->second->enabled = false;
+		it->second.enabled = false;
 	}
 
 	if (m_pIC64Event && m_bMonitorEvents)
@@ -721,8 +720,10 @@ void Monitor::QuitCommands()
 			(*it)->Quit();
 		}
 
+		ReleaseMutex(m_mux);
 		while (true)
 		{
+			rm = WaitForSingleObject(m_mux, INFINITE);
 			if(rm == WAIT_OBJECT_0)
 			{
 				list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin();
@@ -741,10 +742,8 @@ void Monitor::QuitCommands()
 			}
 			else
 			{
-				break;//should not happen
+				break;
 			}
-
-			rm = WaitForSingleObject(m_mux, INFINITE);
 		}
 	}
 }

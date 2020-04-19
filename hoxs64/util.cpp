@@ -76,40 +76,6 @@ void C64WindowDimensions::SetBorder(HCFG::EMUBORDERSIZE border)
 	assert(LastRasterLine == FirstRasterLine + Height - 1);
 }
 
-void C64WindowDimensions::SetBorder(int screenWidth, int screenHeight, int toolbarHeight)
-{
-	int w = screenWidth;
-	if (w < 0)
-		w = 0;
-	if (w > WDFullWidth)
-		w = WDFullWidth;
-
-	int h = screenHeight - toolbarHeight;
-	if (h < 0)
-		h = 0;
-	if (h > WDFullHeight)
-		h = WDFullHeight;
-
-	int s = WDNoBorderStart + (WDNoBorderWidth - screenWidth) / 2;
-	if (s < WDFullStart)
-		s = WDFullStart;
-
-	int fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
-	if (fr < WDFullFirstRaster)
-		fr = WDFullFirstRaster;
-
-	int lr = fr + h - 1;
-	if (lr > WDFullLastRaster)
-		lr = WDFullLastRaster;
-
-
-	Width = w;
-	Height = h;
-	Start = s;
-	FirstRasterLine = fr;
-	LastRasterLine = lr;
-}
-
 C64WindowDimensions::Scaling::Scaling(ScalingType scaleType, double scale)
 	: scaleType(scaleType), scale(scale)
 {
@@ -120,18 +86,19 @@ C64WindowDimensions::Scaling::Scaling()
 {
 }
 
-void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight, int toolbarHeight)
+void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight)
 {
-	int h;
-	int w;
-	int lr;
-	int fr;
-	int s;
+	SetBorder(HCFG::EMUBORDER_TV);
+	int h = this->Height;
+	int w = this->Width;
+	int lr = this->LastRasterLine;
+	int fr = this->FirstRasterLine;
+	int s = this->Start;
 	double c64ratio, c64wbratio, screenratio;
 	Scaling scaleInner;
 	Scaling scaleOuter;
 	Scaling scale;
-	int clientHeight = screenHeight - toolbarHeight;
+	int clientHeight = screenHeight;
 	int clientWidth = screenWidth;
 	int withBorderHeight = WDNoBorderHeight + 2 * BEZEL;
 	int withBorderWidth = WDNoBorderWidth + 2 * BEZEL;
@@ -173,28 +140,48 @@ void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight, int tool
 	{
 	case Scaling::TopBottomOuter:
 		h = withBorderHeight;
-		w = min((int)floor(clientWidth / scale.scale), withBorderWidth);
+		w = (int)floor(clientWidth / scale.scale);
+		if (w > withBorderWidth)
+		{
+			w = withBorderWidth;
+		}
+
 		s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
 		fr = WDNoBorderFirstRaster - BEZEL;		
 		lr = fr + h - 1;
 		break;
 	case Scaling::TopBottomInner:
 		h = WDNoBorderHeight;
-		w = min((int)floor(clientWidth / scale.scale), withBorderWidth);
+		w = (int)floor(clientWidth / scale.scale);
+		if (w > withBorderWidth)
+		{
+			w = withBorderWidth;
+		}
+
 		s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
 		fr = WDNoBorderFirstRaster;
 		lr = fr + h - 1;
 		break;
 	case Scaling::LeftRightInner:
 		w = WDNoBorderWidth;
-		h = min((int)floor(clientHeight / scale.scale), withBorderHeight);
+		h = (int)floor(clientHeight / scale.scale);
+		if (h > withBorderHeight)
+		{
+			h = withBorderHeight;
+		}
+
 		s = WDNoBorderStart;
 		fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
 		lr = fr + h - 1;
 		break;
 	case Scaling::LeftRightOuter:
 		w = withBorderWidth;
-		h = min((int)floor(clientHeight / scale.scale), withBorderHeight);
+		h = (int)floor(clientHeight / scale.scale);
+		if (h > withBorderHeight)
+		{
+			h = withBorderHeight;
+		}
+
 		s = WDNoBorderStart - BEZEL;
 		fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
 		lr = fr + h - 1;

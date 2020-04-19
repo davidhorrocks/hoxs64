@@ -1,6 +1,2 @@
-#ifndef __HOXS64_H__
-#define __HOXS64_H__
-
+#pragma once
 #include "resource.h"
-
-#endif

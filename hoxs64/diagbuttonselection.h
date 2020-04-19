@@ -1,5 +1,6 @@
 #pragma once
-
+#include "cvirwindow.h"
+#include "errormsg.h"
 #include "gamecontrolleritem.h"
 
 class CDiagButtonSelection : public CVirDialog, public ErrorMsg

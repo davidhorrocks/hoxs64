@@ -1,46 +1,51 @@
 #pragma once
 class FileStream : public IStream
 {
+private:
     FileStream(HANDLE hFile, bool bOwnFileHandle);
-
-    ~FileStream();
+    FileStream(const FileStream&) = delete;
+    FileStream& operator=(const FileStream&) = delete;
+    FileStream(FileStream&&) = delete;
+    FileStream& operator=(FileStream&&) = delete;
+public:
+    virtual ~FileStream();
 
 public:
     HRESULT static CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite);
 
     HRESULT static CreateObject(HANDLE hFile, bool bOwnFileHandle, IStream ** ppStream);
 
-	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void ** ppvObject);
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void ** ppvObject) override;
 	
-	virtual ULONG STDMETHODCALLTYPE AddRef(void);
+	ULONG STDMETHODCALLTYPE AddRef(void) override;
 
-    virtual ULONG STDMETHODCALLTYPE Release(void);
+    ULONG STDMETHODCALLTYPE Release(void) override;
 
     // ISequentialStream Interface
 public:
-    virtual HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead);
+    HRESULT STDMETHODCALLTYPE Read(void* pv, ULONG cb, ULONG* pcbRead) override;
 
-    virtual HRESULT STDMETHODCALLTYPE Write(void const* pv, ULONG cb, ULONG* pcbWritten);
+    HRESULT STDMETHODCALLTYPE Write(void const* pv, ULONG cb, ULONG* pcbWritten) override;
 
     // IStream Interface
 public:
-    virtual HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER);
+    HRESULT STDMETHODCALLTYPE SetSize(ULARGE_INTEGER) override;
 
-    virtual HRESULT STDMETHODCALLTYPE CopyTo(IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*);
+    HRESULT STDMETHODCALLTYPE CopyTo(IStream*, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*) override;
     
-    virtual HRESULT STDMETHODCALLTYPE Commit(DWORD);
+    HRESULT STDMETHODCALLTYPE Commit(DWORD) override;
 
-    virtual HRESULT STDMETHODCALLTYPE Revert(void);
+    HRESULT STDMETHODCALLTYPE Revert(void) override;
 
-    virtual HRESULT STDMETHODCALLTYPE LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+    HRESULT STDMETHODCALLTYPE LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) override;
     
-    virtual HRESULT STDMETHODCALLTYPE UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+    HRESULT STDMETHODCALLTYPE UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) override;
     
-    virtual HRESULT STDMETHODCALLTYPE Clone(IStream **);
+    HRESULT STDMETHODCALLTYPE Clone(IStream **) override;
 
-    virtual HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER liDistanceToMove, DWORD dwOrigin, ULARGE_INTEGER* lpNewFilePointer);
+    HRESULT STDMETHODCALLTYPE Seek(LARGE_INTEGER liDistanceToMove, DWORD dwOrigin, ULARGE_INTEGER* lpNewFilePointer) override;
 
-    virtual HRESULT STDMETHODCALLTYPE Stat(STATSTG* pStatstg, DWORD grfStatFlag);
+    HRESULT STDMETHODCALLTYPE Stat(STATSTG* pStatstg, DWORD grfStatFlag) override;
 
 private:
     HANDLE _hFile;

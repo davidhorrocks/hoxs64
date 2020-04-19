@@ -1,6 +1,4 @@
-#ifndef __COMMANDRESULT_H__
-#define __COMMANDRESULT_H__
-
+#pragma once
 
 #define WM_COMMANDRESULT_COMPLETED (WM_USER + 1)
 #define WM_COMMANDRESULT_LINEREADY (WM_USER + 2)
@@ -9,7 +7,7 @@ class CommandResult : public ICommandResult, public enable_shared_from_this<Comm
 {
 public:
 	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress);
-	~CommandResult();
+	virtual ~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
 
@@ -69,5 +67,3 @@ private:
 	void Cleanup();
 	void CleanThreadAllocations();
 };
-
-#endif

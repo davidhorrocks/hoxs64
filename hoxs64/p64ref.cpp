@@ -1,7 +1,7 @@
 // p64ref.cpp : Defines the entry point for the console application.
 //
-#include "windows.h"
-#include "tchar.h"
+#include <windows.h>
+#include <tchar.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "p64.h"

@@ -1,5 +1,6 @@
-#ifndef __DISSASSEMBLYFRAME_H__
-#define __DISSASSEMBLYFRAME_H__
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
 
 class CDisassemblyFrame_EventSink_OnResume : public EventSink<EventArgs>
 {
@@ -143,9 +144,12 @@ public:
 	static const ButtonInfo TB_ButtonsAddress[];
 	static const ImageInfo TB_ImageList[];
 	static const TCHAR ClassName[];
-	static const TCHAR MenuName[];	
+	static const TCHAR MenuName[];
+	
+	shared_ptr<CDisassemblyFrame> keepAlive;
 
-	HRESULT Show(Sp_CVirWindow pWinParent);
+	virtual void WindowRelease() override;
+	HRESULT Show(HWND hWndParent);
 	void UpdateDisplay(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
@@ -223,5 +227,3 @@ private:
 	virtual LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };
 
-
-#endif

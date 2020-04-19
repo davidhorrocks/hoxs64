@@ -52,7 +52,8 @@ HRESULT FileStream::QueryInterface(REFIID iid, void ** ppvObject)
 		|| iid == __uuidof(IStream)
 		|| iid == __uuidof(ISequentialStream))
 	{
-		*ppvObject = static_cast<IStream*>(this);
+		IStream* pstrm = this;
+		*ppvObject = pstrm;
 		AddRef();
 		return S_OK;
 	} else

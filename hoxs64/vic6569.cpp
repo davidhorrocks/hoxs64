@@ -1,24 +1,8 @@
 #include <windows.h>
-#include <commctrl.h>
-#include "dx_version.h"
-#include <stdio.h>
-#include <assert.h>
-#include <stdarg.h>
-#include <intrin.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "mlist.h"
-#include "carray.h"
-#include "CDPI.h"
-#include "bits.h"
-#include "util.h"
-#include "utils.h"
-#include "tchar.h"
+#include <tchar.h>
 #include "register.h"
-#include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
-#include "dxstuff9.h"
 #include "savestate.h"
 #include "cart.h"
 #include "c6502.h"
@@ -71,9 +55,6 @@ bit32 VIC6569::vic_color_array[256]=
 	0x00959595 //LT GRAY
 };
 
-bit8 VIC6569::vic_color_array8[256];
-bit16 VIC6569::vic_color_array16[256];
-bit32 VIC6569::vic_color_array24[256];
 bit32 VIC6569::vic_color_array32[256];
 
 bit8 VIC6569::BA_line_info[256][2][64]=
@@ -2059,10 +2040,9 @@ int i;
 		vic_color_array[i] = (bit32)VicIIPalette::Pepto[i];
 	}
 
-	m_pBackBuffer = NULL;
 	ram=NULL;
 	cpu=NULL;
-	dx=NULL;
+	pGx=NULL;
 	appStatus=NULL;
 	vic_pixelbuffer=NULL;
 	for (int i=0; i < 8; i++)
@@ -2070,8 +2050,8 @@ int i;
 		vicSprite[i].vic = this;
 	}
 
-	FrameNumber = 0;
-	m_iLastBackedUpFrameNumber = -1;
+	frameNumber = 0;
+	lastBackedUpFrameNumber = 0;
 	currentPixelBufferNumber = 0;
 }
 
@@ -2081,8 +2061,8 @@ int i,j;
 bit32 initial_raster_line = PAL_MAX_LINE;
 
 	CurrentClock = sysclock;
-	FrameNumber = 0;
-	m_iLastBackedUpFrameNumber = -1;
+	frameNumber = 0;
+	lastBackedUpFrameNumber = -1;
 	vicMemoryBankIndex = 0;
 	LP_TRIGGER=0;
 	vicLightPen=1;
@@ -2288,19 +2268,19 @@ VIC6569::~VIC6569()
 	Cleanup();
 }
 
-HRESULT VIC6569::Init(CAppStatus *appStatus, CDX9 *dx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager)
+HRESULT VIC6569::Init(CAppStatus *appStatus, Graphics* pGx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager)
 {
 	Cleanup();
 
 	this->appStatus = appStatus;
-	this->dx = dx;
+	this->pGx = pGx;
 	this->ram = ram;
 	this->cpu = cpu;
 	this->m_pIBreakpointManager = pIBreakpointManager;
 	SetMMU(0);
 	setup_multicolor_mask_table();
 	setup_vic_ba();
-
+	this->setup_color_tables();
 	Reset(CurrentClock, true);
 	return S_OK;
 }
@@ -2345,16 +2325,14 @@ bit8 k;
 	{
 		k = (i & 0xAA) | ((i & 0xAA) >> 1);
 		foregroundMask_mcm[(bit8)i]=k;
-	}
-	
+	}	
 }
 
-void VIC6569::setup_color_tables(D3DFORMAT format)
+void VIC6569::setup_color_tables()
 {
 bit16 i;
 bit8 red,green,blue;
 bit32 cl;
-IDirect3DSurface9 *pSurface;
 
 	for (i = 0; i < 256; i++)
 	{
@@ -2368,66 +2346,23 @@ IDirect3DSurface9 *pSurface;
 		}
 
 		vic_color_array[i] = cl;
-		vic_color_array8[i] = (bit8)i;
 	}
 
-	//32
+	DXGI_FORMAT format = GraphicsHelper::DefaultPixelFormat;
+	//if (pGx)
+	//{
+	//	pGx->GetCurrentBufferFormat(&format);
+	//}
+
+	// Assume 32 bit colour
 	for (i=0 ; i < 256 ; i++)
 	{
 		red=(bit8)((vic_color_array[i & 15] & 0x00ff0000) >> 16);
 		green=(bit8)((vic_color_array[i & 15] & 0x0000ff00) >> 8);
 		blue=(bit8)((vic_color_array[i & 15] & 0x000000ff));
 
-		cl = dx->ConvertColour(format, RGB(red, green, blue));
+		cl = GraphicsHelper::ConvertColour(format, RGB(red, green, blue));
 		vic_color_array32[i] =  cl;		
-	}
-
-	//24
-	for (i=0 ; i < 256 ; i++)
-	{
-		red=(bit8)((vic_color_array[i & 15] & 0x00ff0000) >> 16);
-		green=(bit8)((vic_color_array[i & 15] & 0x0000ff00) >> 8);
-		blue=(bit8)((vic_color_array[i & 15] & 0x000000ff));
-
-		cl = dx->ConvertColour(format, RGB(red, green, blue));
-		vic_color_array24[i] = cl;		
-	}
-
-	//16
-	for (i=0 ; i < 256 ; i++)
-	{
-		red=(bit8)((vic_color_array[i & 15] & 0x00ff0000) >> 16);
-		green=(bit8)((vic_color_array[i & 15] & 0x0000ff00) >> 8);
-		blue=(bit8)((vic_color_array[i & 15] & 0x000000ff));
-
-		cl = dx->ConvertColour(format, RGB(red, green, blue));
-		vic_color_array16[i] = (bit16) cl;		
-	}
-
-	switch (format)
-	{
-		case D3DFMT_P8:
-		case D3DFMT_A8:
-		case D3DFMT_L8:
-			if (D3D_OK == dx->m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pSurface))
-			{
-				if (pSurface)
-				{				
-					//8
-					for (i=0 ; i < 256 ; i++)
-					{
-						red=(bit8)((vic_color_array[i & 15] & 0x00ff0000) >> 16);
-						green=(bit8)((vic_color_array[i & 15] & 0x0000ff00) >> 8);
-						blue=(bit8)((vic_color_array[i & 15] & 0x000000ff));
-
-						cl= (bit8) dx->DDColorMatch(pSurface, RGB(red, green, blue));
-						vic_color_array8[i] = (bit8) cl;		
-					}
-					pSurface->Release();
-					pSurface = NULL;
-				}
-			}
-			break;
 	}
 }
 
@@ -2566,17 +2501,17 @@ void VIC6569::Cleanup()
 
 void VIC6569::BackupMainPixelBuffers()
 {
-	m_iLastBackedUpFrameNumber = FrameNumber;
+	lastBackedUpFrameNumber = frameNumber;
 }
 
 HRESULT VIC6569::UpdateBackBufferLine(bit8 *pDestSurfLine, int videoPitch, bit16 line, bit8 cycle)
 {
-	if (dx == NULL)
+	if (pGx == NULL)
 	{
 		return E_FAIL;
 	}
 
-	if (dx->m_pd3dDevice == NULL)
+	if (!pGx->isInitOK)
 	{
 		return E_FAIL;
 	}
@@ -2634,45 +2569,40 @@ HRESULT VIC6569::UpdateBackBufferLine(bit8 *pDestSurfLine, int videoPitch, bit16
 		}
 	}
 
+	C64Display& c64display = pGx->c64display;
 	int height = 1;
-	int width = dx->m_displayWidth;
-	int startx = dx->m_displayStart;
+	int width = c64display.displayWidth;
+	int startx = c64display.displayStart;
 	int starty = current_line;
 	int ypos = 0;
 	int xpos = 0;
 	int bufferPitch = _countof(ScreenPixelBuffer[0][0]);
-	if ((unsigned int)starty >= dx->m_displayFirstVicRaster && (unsigned int)starty <= dx->m_displayLastVicRaster)
+	if ((unsigned int)starty >= c64display.displayFirstVicRaster && (unsigned int)starty <= c64display.displayLastVicRaster)
 	{
 		bit8 *pPixelBuffer = LinePixelBuffer[0];
-		ypos = starty - dx->m_displayFirstVicRaster;
-		if (appStatus->m_bUseCPUDoubler)
-		{
-			ypos = ypos * 2;
-		}
-
-		render(appStatus->m_ScreenDepth, appStatus->m_bUseCPUDoubler, pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, pPixelBuffer, startx, videoPitch, bufferPitch, 0);
+		ypos = starty - c64display.displayFirstVicRaster;
+		render(pDestSurfLine, xpos, ypos, width, height, pPixelBuffer, pPixelBuffer, startx, videoPitch, bufferPitch, 0);
 	}
+
 	return S_OK;
 }
 
 HRESULT VIC6569::UpdateBackBuffer()
 {
-HRESULT hr = E_FAIL;
-D3DLOCKED_RECT lrLockRect; 
-
-	if (dx == NULL)
+	HRESULT hr = E_FAIL;
+	if (pGx == NULL)
 	{
 		return E_FAIL;
 	}
 
-	if (dx->m_pd3dDevice == NULL)
+	if (!pGx->isInitOK)
 	{
 		return E_FAIL;
 	}
 
 	if (appStatus->m_bDebug)
 	{
-		if (m_iLastBackedUpFrameNumber != FrameNumber)
+		if (lastBackedUpFrameNumber != frameNumber)
 		{
 			BackupMainPixelBuffers();
 		}
@@ -2685,31 +2615,39 @@ D3DLOCKED_RECT lrLockRect;
 	}
 
 	int previousFramePixelBufferNumber = currentFramePixelBufferNumber ^ 1;
-	IDirect3DSurface9 *pBackBuffer = dx->GetSmallSurface();
-	if (pBackBuffer)
+	Microsoft::WRL::ComPtr<ID3D11Resource> screenResource;
+	C64Display& c64display = pGx->c64display;
+	hr = c64display.screenTexture.GetTextureResource(&screenResource);
+	if (SUCCEEDED(hr))
 	{
-		hr = pBackBuffer->LockRect(&lrLockRect, NULL, D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK);
-		if (SUCCEEDED(hr))
+		if (screenResource != nullptr)
 		{
-			bit8 *pDestSurfLine = (bit8 *) lrLockRect.pBits;
-			int height = dx->m_displayHeight;
-			int width = dx->m_displayWidth;
-			int startx = dx->m_displayStart;
-			int bufferPitch = _countof(ScreenPixelBuffer[0][0]);
-			bit8 *pPixelBufferCurrentFrame = &ScreenPixelBuffer[currentFramePixelBufferNumber][dx->m_displayFirstVicRaster][0];
-			bit8 *pPixelBufferPreviousFrame = &ScreenPixelBuffer[previousFramePixelBufferNumber][dx->m_displayFirstVicRaster][0];
-			render(appStatus->m_ScreenDepth, appStatus->m_bUseCPUDoubler, pDestSurfLine, 0, 0, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, lrLockRect.Pitch, bufferPitch, dx->m_displayFirstVicRaster);
-			if (appStatus->m_bDebug)
-			{
-				hr = UpdateBackBufferLine(pDestSurfLine, lrLockRect.Pitch, (bit16)vic_raster_line, vic_raster_cycle);
+			D3D11_MAPPED_SUBRESOURCE mapped;
+			hr = pGx->deviceContext->Map(screenResource.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+			if (SUCCEEDED(hr))
+			{				
+				bit8* pDestSurfLine = (bit8*)mapped.pData;
+				int height = c64display.displayHeight;
+				int width = c64display.displayWidth;
+				int startx = c64display.displayStart;
+				int bufferPitch = _countof(ScreenPixelBuffer[0][0]);
+				bit8* pPixelBufferCurrentFrame = &ScreenPixelBuffer[currentFramePixelBufferNumber][c64display.displayFirstVicRaster][0];
+				bit8* pPixelBufferPreviousFrame = &ScreenPixelBuffer[previousFramePixelBufferNumber][c64display.displayFirstVicRaster][0];
+				render(pDestSurfLine, 0, 0, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, mapped.RowPitch, bufferPitch, c64display.displayFirstVicRaster);
+				if (appStatus->m_bDebug)
+				{
+					hr = UpdateBackBufferLine(pDestSurfLine, mapped.RowPitch, (bit16)vic_raster_line, vic_raster_cycle);
+				}
+
+				pGx->deviceContext->Unmap(screenResource.Get(), 0);
 			}
-
-			pBackBuffer->UnlockRect();
 		}
-
-		pBackBuffer->Release();
-		pBackBuffer = NULL;
+		else
+		{ 
+			hr = E_POINTER;
+		}
 	}
+
 	return hr;
 }
 
@@ -2857,7 +2795,7 @@ bit8 data8;
 				vic_check_irq_in_cycle2=true;
 				currentPixelBufferNumber ^= 1;
 				vic_pixelbuffer = ScreenPixelBuffer[currentPixelBufferNumber][0];
-				FrameNumber++;
+				frameNumber++;
 				if (appStatus->m_bDebug)
 				{
 					BackupMainPixelBuffers();
@@ -3630,7 +3568,7 @@ void VIC6569::WriteAccessToDebugger(bit16 line, bit8 cycle, bit16 pc, bit8 dataB
 {
 #ifdef DEBUG
 	TCHAR sDebug[50];
-	_stprintf_s(sDebug, _countof(sDebug), TEXT("%08X %04X %02X %04X %02X"), this->FrameNumber, line, cycle, pc, dataByte);
+	_stprintf_s(sDebug, _countof(sDebug), TEXT("%08X %04X %02X %04X %02X"), this->frameNumber, line, cycle, pc, dataByte);
 	OutputDebugString(sDebug);
 	OutputDebugString(TEXT("\n"));
 #endif
@@ -5055,269 +4993,9 @@ startx: Pixel x co-ordinate offset into the source buffers to start reading from
 videoPitch: Destination buffer Y pitch.
 bufferPitch: Source buffer Y pitch.
 */
-void VIC6569::render(long depth, bool bPixelDoubler, unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
+void VIC6569::render(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
 {
-	if (bPixelDoubler)
-	{
-		switch (depth)
-		{
-		case 32:
-			render_32bit_2x(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		case 24:
-			render_24bit_2x(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		case 16:
-			render_16bit_2x(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		case 8:
-			render_8bit_2x(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		}
-	}
-	else
-	{
-		switch (appStatus->m_ScreenDepth)
-		{
-		case 32:
-			render_32bit(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		case 24:
-			render_24bit(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		case 16:
-			render_16bit(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		case 8:
-			render_8bit(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
-			break;
-		}
-	}
-}
-
-void VIC6569::render_8bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
-{
-//TEST ME
-bit8 *pPixelBuffer;
-int maxCurrentFrameLine = vic_raster_line - firstVicRasterLine;
-bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos));
-bit8 *q = (bit8 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos));
-int i,j;
-bit8 v;
-bit16 cl;
-int h;
-
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
-
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array8[v];
-			cl = cl | (cl << 8);
-			*((bit16 *)(p + (2*i))) = cl;
-
-			*((bit16 *)(q + (2*i))) = cl;
-		}
-
-		p = (bit8 *)((INT_PTR)p + 2*videoPitch);
-		q = (bit8 *)((INT_PTR)q + 2*videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
-}
-
-
-void VIC6569::render_8bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
-{
-//TEST ME
-bit8 *pPixelBuffer;
-int maxCurrentFrameLine = vic_raster_line - firstVicRasterLine;
-bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos));
-int i,j;
-bit8 v;
-bit8 cl;
-int h;
-
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
-
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array8[v];
-			*((bit8 *)(p + ((i)))) = cl;
-		}
-		p = (bit8 *)((INT_PTR)p + videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
-}
-
-void VIC6569::render_16bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
-{
-bit8 *pPixelBuffer;
-int maxCurrentFrameLine = vic_raster_line - firstVicRasterLine;
-bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 2));
-int i,j;
-bit8 v;
-bit16 cl;
-int h;
-
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
-
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array16[v];
-			*((bit16 *)(p + (INT_PTR)((2*i)))) = cl;
-		}
-		p = (bit8 *)((INT_PTR)p + videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
-}
-
-void VIC6569::render_16bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
-{
-bit8 *pPixelBuffer;
-int maxCurrentFrameLine = vic_raster_line - firstVicRasterLine;
-bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 2));
-bit8 *q = (bit8 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 2));
-int i,j;
-bit8 v;
-bit32 cl;
-int h;
-
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
-
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array16[v];
-			cl = cl | (cl << 16);
-			*((bit32 *)(p + (INT_PTR)((2*i) * 2))) = cl;
-
-			*((bit32 *)(q + (INT_PTR)((2*i) * 2))) = cl;
-		}
-
-		p = (bit8 *)((INT_PTR)p + 2*videoPitch);
-		q = (bit8 *)((INT_PTR)q + 2*videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
-}
-
-void VIC6569::render_24bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
-{
-//TEST ME
-bit8 *pPixelBuffer;
-int maxCurrentFrameLine = vic_raster_line - firstVicRasterLine;
-bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 3));
-int i,j;
-bit8 v;
-bit32 cl;
-int h;
-
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
-
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array24[v] & 0xffffff;
-			*((bit8 *)(p + (INT_PTR)(i * 3))) = (bit8)(cl & 0xff);
-			*((bit16 *)(p + (INT_PTR)((i * 3) +1))) = (bit16)((cl >> 8) & 0xffff);
-		}
-
-		p = (bit8 *)((INT_PTR)p + videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
-}
-
-void VIC6569::render_24bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
-{
-//TEST ME
-bit8 *pPixelBuffer;
-int maxCurrentFrameLine = vic_raster_line - firstVicRasterLine;
-bit8 *p = (bit8 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 3));
-bit8 *q = (bit8 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 3));
-int i,j;
-bit8 v;
-bit32 cl;
-int h;
-
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
-
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array24[v] & 0xffffff;
-			cl = cl | ((cl & 0xff) << 24);
-			*((bit32 *)(p + (INT_PTR)((2*i) * 3))) = cl;
-			*((bit16 *)(p + (INT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
-
-			*((bit32 *)(q + (INT_PTR)((2*i) * 3))) = cl;
-			*((bit16 *)(q + (INT_PTR)(((2*i) * 3) +4))) = (bit16)((cl >> 8) & 0xffff);
-		}
-
-		p = (bit8 *)((INT_PTR)p + 2*videoPitch);
-		q = (bit8 *)((INT_PTR)q + 2*videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
+	render_32bit(pRow, xpos, ypos, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, videoPitch, bufferPitch, firstVicRasterLine);
 }
 
 void VIC6569::render_32bit(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
@@ -5352,77 +5030,19 @@ int h;
 	}
 }
 
-void VIC6569::render_32bit_2x(unsigned char *pRow, int xpos, int ypos, int width, int height, bit8 pPixelBufferCurrentFrame[], bit8 pPixelBufferPreviousFrame[], int startx, int videoPitch, int bufferPitch, bit32 firstVicRasterLine)
+unsigned int VIC6569::GetFrameCounter()
 {
-bit8 *pPixelBuffer;
-int maxCurrentFrameLine = vic_raster_line - firstVicRasterLine;
-#ifdef _WIN64
-bit64 *p = (bit64 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 4));
-bit64 *q = (bit64 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 4));
-int i,j;
-bit8 v;
-bit64 cl;
-int h;
+	return this->frameNumber;
+}
 
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
+bit16 VIC6569::GetCurrentRasterLine()
+{
+	return vic_raster_line;
+}
 
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array32[v];
-			cl = (cl << 32) | cl;
-			p[i] = cl;
-			q[i] = cl;
-		}
-		p = (bit64 *)((INT_PTR)p + 2*videoPitch);
-		q = (bit64 *)((INT_PTR)q + 2*videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
-#else
-bit32 *p = (bit32 *)(pRow + (INT_PTR)(ypos * videoPitch + xpos * 4));
-bit32 *q = (bit32 *)(pRow + (INT_PTR)((ypos+1) * videoPitch + xpos * 4));
-int i,j;
-bit8 v;
-bit32 cl;
-int h;
-
-	for (h = 0; h < height; h++)
-	{
-		if (h >= maxCurrentFrameLine)
-		{
-			pPixelBuffer = pPixelBufferPreviousFrame;
-		}
-		else
-		{
-			pPixelBuffer = pPixelBufferCurrentFrame;
-		}
-
-		for(i=0,j = DISPLAY_START+startx; i < (int)width ; i++,j++)
-		{
-			v = pPixelBuffer[j];
-			cl = vic_color_array32[v];
-			p[2*i] = cl;
-			p[2*i+1] = cl;
-			q[2*i] = cl;
-			q[2*i+1] = cl;
-		}
-
-		p = (bit32 *)((INT_PTR)p + 2*videoPitch);
-		q = (bit32 *)((INT_PTR)q + 2*videoPitch);
-		pPixelBufferCurrentFrame += bufferPitch;
-		pPixelBufferPreviousFrame += bufferPitch;
-	}
-#endif
+bit8 VIC6569::GetCurrentRasterCycle()
+{
+	return vic_raster_cycle;
 }
 
 bit16 VIC6569::GetNextRasterLine()
@@ -5449,39 +5069,38 @@ bit8 VIC6569::GetNextRasterCycle()
 
 bool VIC6569::SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount)
 {
-	Sp_BreakpointItem bp(new BreakpointItem(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0, enabled, initialSkipOnHitCount, currentSkipOnHitCount));
-	if (bp == 0)
-		return false;
-	bp->vic_line = line;
-	bp->vic_cycle = cycle;
+	BreakpointItem bp(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0, enabled, initialSkipOnHitCount, currentSkipOnHitCount);
+	bp.vic_line = line;
+	bp.vic_cycle = cycle;
 	return this->m_pIBreakpointManager->BM_SetBreakpoint(bp);
 }
 
-bool VIC6569::GetBreakpointRasterCompare(int line, int cycle, Sp_BreakpointItem& breakpoint)
+bool VIC6569::GetBreakpointRasterCompare(int line, int cycle, BreakpointItem& breakpoint)
 {
-	BreakpointKey key(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0);
-	Sp_BreakpointKey k(&key, null_deleter());
-	k->vic_line = line;
-	k->vic_cycle = cycle;
-	return this->m_pIBreakpointManager->BM_GetBreakpoint(k, breakpoint);
+	BreakpointItem key(DBGSYM::MachineIdent::Vic, DBGSYM::BreakpointType::VicRasterCompare, 0);
+	key.vic_line = line;
+	key.vic_cycle = cycle;
+	return this->m_pIBreakpointManager->BM_GetBreakpoint(key, breakpoint);
 }
 
 int VIC6569::CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt)
 {
 int i = -1;
 
-	Sp_BreakpointItem bp;
+	BreakpointItem bp;
 	if (GetBreakpointRasterCompare(line, cycle, bp))
 	{
-		if (bp->enabled)
+		if (bp.enabled)
 		{
-			i = bp->currentSkipOnHitCount;
+			i = bp.currentSkipOnHitCount;
 			if (bHitIt && i == 0)
 			{
-				bp->currentSkipOnHitCount = bp->initialSkipOnHitCount;
+				bp.currentSkipOnHitCount = bp.initialSkipOnHitCount;
+				this->m_pIBreakpointManager->BM_SetBreakpoint(bp);
 			}
 		}			
 	}
+
 	return i;
 } 
 
@@ -5565,7 +5184,7 @@ void VIC6569::GetState(SsVic6569 &state)
 	state.m_bVicBankChanging = m_bVicBankChanging;
 	state.vicBankChangeByte = vicBankChangeByte;
 	state.de00_byte = de00_byte;
-	state.FrameNumber = FrameNumber;
+	state.frameNumber = frameNumber;
 	state.bVicRasterMatch = bVicRasterMatch;
 	state.vic_in_display_y = vic_in_display_y;
 	state.vic_badline = vic_badline;
@@ -5583,7 +5202,7 @@ void VIC6569::GetState(SsVic6569 &state)
 	state.vic_allow_c_access = vic_allow_c_access;
 	state.m_bVicModeChanging = m_bVicModeChanging;
 	state.vicMemoryBankIndex = vicMemoryBankIndex;
-	state.m_iLastBackedUpFrameNumber = m_iLastBackedUpFrameNumber;
+	state.lastBackedUpFrameNumber = lastBackedUpFrameNumber;
 
 	for (int i = 0; i < _countof(vicSprite); i++)
 	{
@@ -5662,7 +5281,7 @@ void VIC6569::SetState(const SsVic6569 &state)
 	vicVC = state.vicVC;
 	vicRC = state.vicRC;
 	vicVCBASE = state.vicVCBASE;
-	vicVMLI = min(state.vicVMLI, NUM_SCREEN_COLUMNS);
+	vicVMLI = state.vicVMLI <= NUM_SCREEN_COLUMNS ? state.vicVMLI : NUM_SCREEN_COLUMNS;
 	vicAEC = state.vicAEC;
 	vicIDLE = state.vicIDLE;
 	vicIDLE_DELAY = state.vicIDLE_DELAY;
@@ -5682,7 +5301,7 @@ void VIC6569::SetState(const SsVic6569 &state)
 	m_bVicBankChanging = state.m_bVicBankChanging != 0;
 	vicBankChangeByte = state.vicBankChangeByte;
 	de00_byte = state.de00_byte;
-	FrameNumber = state.FrameNumber;
+	frameNumber = state.frameNumber;
 	bVicRasterMatch = state.bVicRasterMatch != 0;
 	vic_in_display_y = state.vic_in_display_y;
 	vic_badline = state.vic_badline;
@@ -5700,7 +5319,7 @@ void VIC6569::SetState(const SsVic6569 &state)
 	vic_allow_c_access = state.vic_allow_c_access != 0;
 	m_bVicModeChanging = state.m_bVicModeChanging != 0;
 	vicMemoryBankIndex = state.vicMemoryBankIndex & 3;
-	m_iLastBackedUpFrameNumber = state.m_iLastBackedUpFrameNumber;
+	lastBackedUpFrameNumber = state.lastBackedUpFrameNumber;
 
 	for (int i = 0; i < _countof(vicSprite); i++)
 	{

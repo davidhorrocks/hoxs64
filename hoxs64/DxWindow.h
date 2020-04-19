@@ -11,11 +11,11 @@ class DxObject
 public:
 	DxObject();
 	~DxObject();
-	virtual HRESULT SetDevice(IDirect3DDevice9 *pd3dDevice);
+	virtual HRESULT SetDevice(ID3D11Device1* pd3dDevice);
 protected:
 	virtual HRESULT LoadDeviceObjects();
 	void FreeDeviceObjects();
-	IDirect3DDevice9 *m_pd3dDevice;
+	ID3D11Device1* m_pd3dDevice;
 };
 
 class DxWindow : public DxObject

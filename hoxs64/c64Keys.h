@@ -1,6 +1,6 @@
 #pragma once
-#include "windows.h"
-#include "tchar.h"
+#include <windows.h>
+#include <tchar.h>
 
 class C64Keys
 {
@@ -109,7 +109,7 @@ public:
 
 	static KeyRC KeyRowCol[C64K_COUNTOFKEYS];
 	static LPCTSTR GetName(C64Key c64keynumber);
-	static void Init();
+	static void Init() noexcept;
 private:
-	static  void setkeyrc(C64Key key, unsigned char row, unsigned char col);
+	static  void setkeyrc(C64Key key, unsigned char row, unsigned char col) noexcept;
 };

@@ -1,6 +1,4 @@
-#ifndef __CIA6526_H__
-#define __CIA6526_H__
-
+#pragma once
 #define bitCountA0		0
 #define bitCountA1		1
 #define bitCountA2		2
@@ -74,16 +72,20 @@ class CIA : public IRegister
 {
 public:
 	CIA();
-	void InitReset(ICLK sysclock, bool poweronreset);
+	~CIA() = default;
+	CIA(const CIA&) = delete;
+	CIA& operator=(const CIA&) = delete;
+	CIA(CIA&&) = delete;
+	CIA& operator=(CIA&&) = delete;
 
 	//IRegister
-	virtual void Reset(ICLK sysclock, bool poweronreset);
-	virtual void ExecuteCycle(ICLK sysclock);
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
-	virtual ICLK GetCurrentClock();
-	virtual void SetCurrentClock(ICLK sysclock);
+	void Reset(ICLK sysclock, bool poweronreset) override;
+	void ExecuteCycle(ICLK sysclock) override;
+	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
+	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock) override;
+	ICLK GetCurrentClock() override;
+	void SetCurrentClock(ICLK sysclock) override;
 
 	virtual bit8 ReadPortA()=0;
 	virtual bit8 ReadPortB()=0;
@@ -114,73 +116,71 @@ public:
 	static int prec_bitcount[256];
 	static void init_bitcount();
 
-	ICLK DevicesClock;
-	int ID;
-	bit64 delay;
-	bit64 feed;
-	bit64 delay_aux_mask;
-	bit64 old_delay;
-	bit64 old_feed;
-	bool idle;
-	bit16 dec_a;
-	bit16 dec_b;
-	bit32 no_change_count;
-	bool flag_change;
-	bool f_flag_in;
-	bool f_sp_in;
-	bool f_sp_out;
-	bool f_cnt_in;
-	bool f_cnt_out;
-	bit8 pra_out;
-	bit8 prb_out;
-	bit8 ddra;
-	bit8 ddrb;
-	bit16u ta_counter;
-	bit16u tb_counter;
-	bit16u ta_latch;
-	bit16u tb_latch;
-	ICLKS tod_clock_reload;
-	ICLKS tod_clock_rate;
-	ICLKS tod_tick;
-	volatile bit8 tod_alarm;
-	volatile bit8 tod_read_freeze;	
-	volatile cia_tod tod_read_latch;
-	volatile bit8 tod_write_freeze;
-	volatile cia_tod tod_write_latch;
-	volatile cia_tod tod;
-	volatile cia_tod alarm;
-	bit8 cra;
-	bit8 crb;
-	bit32 timera_output;
-	bit32 timerb_output;
-	bit8 icr;
-	bit8 icr_ack;
-	bit8 imr;
-	bit8 Interrupt;
-	bit8 serial_data_register;
-	bit8 serial_shift_buffer;
-	bit8 serial_int_count;
-	bool serial_data_write_pending;
-	bool serial_data_write_loading;
-	bit32 serial_interrupt_delay;
-	bool bEarlyIRQ;
-	bool bTimerBbug;
-	ICLK ClockReadICR;
-	unsigned char bPB67TimerMode;
-	unsigned char bPB67TimerOut;
-	unsigned char bPB67Toggle;
-	ICLK ClockNextWakeUpClock;
-	ICLK ClockNextTODWakeUpClock;
-	bool is_warm;
+	ICLK DevicesClock = {};
+	int ID = 0;
+	bit64 delay = 0;
+	bit64 feed = 0;
+	bit64 delay_aux_mask = 0;
+	bit64 old_delay = 0;
+	bit64 old_feed = 0;
+	bool idle = false;
+	bit16 dec_a = 0;
+	bit16 dec_b = 0;
+	bit32 no_change_count = 0;
+	bool flag_change = false;
+	bool f_flag_in = false;
+	bool f_sp_in = false;
+	bool f_sp_out = false;
+	bool f_cnt_in = false;
+	bool f_cnt_out = false;
+	bit8 pra_out = 0;
+	bit8 prb_out = 0;
+	bit8 ddra = 0;
+	bit8 ddrb = 0;
+	bit16u ta_counter = {};
+	bit16u tb_counter = {};
+	bit16u ta_latch = {};
+	bit16u tb_latch = {};
+	ICLKS tod_clock_reload = 0;
+	ICLKS tod_clock_rate = 0;
+	ICLKS tod_tick = 0;
+	volatile bit8 tod_alarm = 0;
+	volatile bit8 tod_read_freeze = 0;
+	volatile cia_tod tod_read_latch = {};
+	volatile bit8 tod_write_freeze = {};
+	volatile cia_tod tod_write_latch = {};
+	volatile cia_tod tod = {};
+	volatile cia_tod alarm = {};
+	bit8 cra = 0;
+	bit8 crb = 0;
+	bit32 timera_output = 0;
+	bit32 timerb_output = 0;
+	bit8 icr = 0;
+	bit8 icr_ack = 0;
+	bit8 imr = 0;
+	bit8 Interrupt = 0;
+	bit8 serial_data_register = 0;
+	bit8 serial_shift_buffer = 0;
+	bit8 serial_int_count = 0;
+	bool serial_data_write_pending = false;
+	bool serial_data_write_loading = false;
+	bit32 serial_interrupt_delay = 0;
+	bool bEarlyIRQ = false;
+	bool bTimerBbug = false;
+	ICLK ClockReadICR = 0;
+	unsigned char bPB67TimerMode = 0;
+	unsigned char bPB67TimerOut = 0;
+	unsigned char bPB67Toggle = 0;
+	ICLK ClockNextWakeUpClock = 0;
+	ICLK ClockNextTODWakeUpClock = 0;
+	bool is_warm = false;
 protected:
-	void GetState(SsCiaV2 &state);
-	void SetState(const SsCiaV2 &state);
+	void InitCommonReset(ICLK sysclock, bool poweronreset);
+	void GetCommonState(SsCiaV2 &state);
+	void SetCommonState(const SsCiaV2 &state);
 	static void UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out);
 	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);
 
 	random_device rd;
 	mt19937 randengine;
 };
-
-
-#endif

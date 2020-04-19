@@ -1,83 +1,49 @@
-#ifndef __APPSTATUS_H__
-#define __APPSTATUS_H__
+#pragma once
+#include "hconfig.h"
 
 class CAppStatus : public CConfig
 {
 public:
-	CAppStatus();
-	bool					m_bBusy;
-	bool                    m_bSoundOK;
-	bool                    m_bSoundMute;
-	bool					m_bFilterOK;
-	bool                    m_bActive;				// App window is either active or not minimised
-	bool                    m_bReady;				// DirectX is ready for use.
-	bool                    m_bWindowed;			// App is in windowed mode
-	bool					m_bRunning;
-	bool					m_bDebug;
-	bool					m_bBreak;
-	bool					m_bPaused;
-	bool					m_bWindowSizing;
-	bool					m_bClosing;
-	bool                    m_bIsDebugCart;
-	signed int				m_fskip;
-	DWORD					m_displayFormat;	//Direct 3D9 Display format
-	DWORD					m_blitFilterDX;	//Direct 3D9 Blit filter
-	//eScreenType m_ScreenType;
-	long					m_ScreenDepth;
-	bool					m_bUseCPUDoubler;
+	CAppStatus() noexcept;
+	~CAppStatus() = default;
+	CAppStatus(const CAppStatus&) = default;
+	CAppStatus(CAppStatus&&) = default;
+	CAppStatus& operator=(const CAppStatus&) = default;
+	CAppStatus& operator=(CAppStatus&&) = default;
 
-	HCFG::AUDIOSPEED		m_audioSpeedStatus;
-	ULARGE_INTEGER			m_systemfrequency;
-	ULARGE_INTEGER			m_framefrequency;
-	ULARGE_INTEGER			m_framefrequencyDoubler;
+	bool m_bBusy = false;
+	bool m_bSoundOK = false;
+	bool m_bSoundMute = false;
+	bool m_bFilterOK = false;
+	bool m_bActive = false;				// App window is either active or not minimised
+	bool m_bReady = false;				// DirectX is ready for use.
+	bool m_bWindowed = true;			// App is in windowed mode
+	bool m_bRunning = false;
+	bool m_bDebug = false;
+	bool m_bBreak = false;
+	bool m_bPaused = true;
+	bool m_bClosing = false;
+	bool m_bIsDebugCart = false;
+	signed int m_fskip = 0;
 
-	bool                    m_bAutoload;
-	bool					m_bInitDone;
-	bool					m_bUpdateWindowTitle;
-	bool					m_bDiskLedMotor;
-	bool					m_bDiskLedDrive;
-	bool					m_bDiskLedWrite;
-	bool					m_bSerialTooBusyForSeparateThread;
+	HCFG::AUDIOSPEED m_audioSpeedStatus = HCFG::AUDIOSPEED::AUDIO_OK;
+	ULARGE_INTEGER m_systemfrequency = {};
+	ULARGE_INTEGER m_framefrequency = {};
+	ULARGE_INTEGER m_framefrequencyDoubler = {};
 
-	virtual LPTSTR GetAppTitle() = 0;
-	virtual LPTSTR GetAppName() = 0;
-	virtual LPTSTR GetMonitorTitle() = 0;
-	virtual void SoundHalt() = 0;
-	virtual void SoundResume() = 0;
-	virtual void TogglePause() = 0;
-	virtual void ToggleSoundMute() = 0;
-	virtual void ToggleMaxSpeed() = 0;	
-	virtual void FreeDirectX() = 0;
-	virtual void InsertTape(HWND hWnd) = 0;
-	virtual void LoadCrtFile(HWND hWnd) = 0;
-	virtual void LoadC64Image(HWND hWnd) = 0;
-	virtual void LoadT64(HWND hWnd) = 0;
-	virtual void AutoLoad(HWND hWnd) = 0;
-	virtual void InsertDiskImage(HWND hWnd) = 0;
-	virtual void SaveD64Image(HWND hWnd) = 0;
-	virtual void SaveFDIImage(HWND hWnd) = 0;
-	virtual void SaveP64Image(HWND hWnd) = 0;	
-	virtual void SaveC64State(HWND hWnd) = 0;
-	virtual void LoadC64State(HWND hWnd) = 0;
-	virtual VS_FIXEDFILEINFO *GetVersionInfo() = 0;
-	virtual void RestoreUserSettings() = 0;
-	virtual void RestoreDefaultSettings() = 0;
-	virtual void SaveCurrentSetting() = 0;
-	virtual void GetUserConfig(CConfig& cfg) = 0;
-	virtual void SetUserConfig(const CConfig& newcfg) = 0;
-	virtual void ApplyConfig(const CConfig& newcfg) = 0;
-	virtual void SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID, bit16 addressOfFifthSID, bit16 addressOfSixthSID, bit16 addressOfSeventhSID, bit16 addressOfEighthSID) = 0;
-	virtual void ResetSidChipAddressMap() = 0;
-	virtual void UpdateUserConfigFromSid() = 0;
+	bool m_bAutoload = false;
+	bool m_bInitDone = false;
+	bool m_bUpdateWindowTitle = false;
+	bool m_bDiskLedMotor = false;
+	bool m_bDiskLedDrive = false;
+	bool m_bDiskLedWrite = false;
+	bool m_bSerialTooBusyForSeparateThread = true;
 
-	void SaveSpeedSettings();
-	void RestoreSpeedSettings();
+	void SaveSpeedSettings() noexcept;
+	void RestoreSpeedSettings() noexcept;
 private:
-	bool m_bSaveSkipFrames;;
-	bool m_bSaveLimitSpeed;
-	bool m_bSaveUseBlitStretch;
-	HCFG::FULLSCREENSYNCMODE m_SaveSyncModeFullscreen;
-	HCFG::FULLSCREENSYNCMODE m_SaveSyncModeWindowed;
+	bool m_bSaveSkipFrames = false;
+	bool m_bSaveLimitSpeed = true;
+	HCFG::FULLSCREENSYNCMODE m_SaveSyncModeFullscreen = HCFG::FULLSCREENSYNCMODE::FSSM_VBL;
+	HCFG::FULLSCREENSYNCMODE m_SaveSyncModeWindowed = HCFG::FULLSCREENSYNCMODE::FSSM_VBL;
 };
-
-#endif

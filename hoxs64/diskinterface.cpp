@@ -2,14 +2,11 @@
 #include <commctrl.h>
 #include <tchar.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <stdio.h>
 #include <assert.h>
 #include "boost2005.h"
 #include "defines.h"
+#include "wfs.h"
 #include "mlist.h"
 #include "carray.h"
 #include "CDPI.h"
@@ -17,6 +14,8 @@
 #include "util.h"
 #include "utils.h"
 #include "register.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -55,69 +54,85 @@ DiskInterface::DiskInterface()
 	: dist_motor_slow(0, 0x1fff), dist_weakbit(0, 0x7fff)
 {
 	firstboot = true;
+	m_P64Image = {};
 	P64ImageCreate(&this->m_P64Image);
-	m_currentHeadIndex=0;
+	m_d64_serialbus = 0;
+	m_d64_dipswitch = 0;
+	m_d64_protectOff = 0;
+	m_d64_sync = 0;
+	m_d64_forcesync = 0;
+	m_d64_soe_enable = 1;
+	m_d64_write_enable = 0;
+	m_d64_diskchange_counter = 0;
+	m_d64TrackCount = 0;
+	m_c64_serialbus_diskview = 0;
+	m_c64_serialbus_diskview_next = 0;
+	m_diskChangeCounter = 0;
+	CurrentPALClock = 0;
+	m_changing_c64_serialbus_diskview_diskclock = 0;
+	m_driveWriteChangeClock = 0;
+	m_motorOffClock = 0;
+	m_headStepClock = 0;
+	m_headStepClockUp = 0;
+	m_pendingclocks = 0;
+	m_DiskThreadCommandedPALClock = 0;
+	m_DiskThreadCurrentPALClock = 0;
+	m_d64_diskwritebyte = 0;
+	m_bDiskMotorOn = 0;
+	m_bDriveLedOn = 0;
+	m_bDriveWriteWasOn = 0;
+	m_diskLoaded = 0;
+	m_currentHeadIndex = 0;
 	m_currentTrackNumber = 0;
 	m_previousTrackNumber = 0;
 	m_lastHeadStepDir = 0;
 	m_lastHeadStepPosition = 0;
-	m_shifterWriter_UD3 = 0;
-	m_shifterReader_UD2 = 0;	
+	m_shifterWriter_UD3 = 0; //74LS165 UD3
+	m_shifterReader_UD2 = 0; //74LS164 UD2 Two flops make the shifter effectively 10 bits. The lower 8 bits are read by VIA2 port A.
+	m_busDataUpdateClock = 0;
 	m_busByteReadyPreviousData = 0;
 	m_busByteReadySignal = true;
-	m_busDataUpdateClock = 0;
-	m_frameCounter_UC3 = 0;
+	m_frameCounter_UC3 = 0; //74LS191 UC3
 	m_debugFrameCounter = 0;
-	m_clockDivider1_UE7 = 0;
-	m_clockDivider2_UF4 = 0;
-	m_bDiskMotorOn = false;
-	m_bDriveWriteWasOn = false;
-	m_bDriveLedOn = false;
-	m_driveWriteChangeClock = 0;
+	m_clockDivider1_UE7_Reload = 0;
+	m_clockDivider1_UE7 = 0; //74LS193 UE7 16MHz
+	m_clockDivider2_UF4 = 0; //74LS193 UF4
 	m_writeStream = 0;
-	m_diskLoaded = 0;
 	m_totalclocks_UE7 = 0;
 	m_lastPulseTime = 0;
 	m_lastWeakPulseTime = 0;
-	m_bPulseState = false;
-	m_bLastPulseState = false;
-	m_bPendingPulse = false;
 	m_counterStartPulseFilter = DISKHEADFILTERWIDTH;
 	m_nextP64PulsePosition = -1;
+	m_bPendingPulse = 0;
+	m_bPulseState = 0;
+	m_bLastPulseState = 0;
+	m_pD1541_ram = nullptr;
+	m_pD1541_rom = nullptr;
+	m_pIndexedD1541_rom = nullptr;
+	m_diskd64clk_xf = 0;
 
-	m_d64_soe_enable = 1;
-	m_d64_write_enable = 0;
-	m_d64_serialbus = 0;
-	m_d64_dipswitch = 0;
-	m_d64_sync = 0;
-	m_d64_forcesync = 0;
-	m_d64_diskwritebyte = 0;
-	m_d64_diskchange_counter = 0;
-	m_diskChangeCounter = 0;
-
-	m_c64_serialbus_diskview = 0;
-	m_c64_serialbus_diskview_next = 0;
-	m_changing_c64_serialbus_diskview_diskclock = 0;
-
-	m_pD1541_ram = NULL;
-	m_pD1541_rom = NULL;
-	m_pIndexedD1541_rom = NULL;
-	CurrentPALClock = 0;
-	CurrentClock = 0;
-
-	m_d64TrackCount = 0;
-
-	m_motorOffClock = 0;
-	m_headStepClock = 0;
-	m_headStepClockUp = 0;
-
-	mThreadId = 0;
 	mhThread = 0;
-	mbDiskThreadCommandQuit = false;
-	mbDiskThreadPause = false;
-	mbDiskThreadHasQuit = false;
+	mThreadId = 0;
 	mevtDiskReady = 0;
 	mevtDiskCommand = 0;
+	mevtDiskQuit = 0;
+	mevtDiskPause = 0;
+	mbDiskThreadCommandQuit = false;
+	mbDiskThreadCommandResetClock = false;
+	mbDiskThreadHasQuit = false;
+	mbDiskThreadPause = false;
+	mcrtDisk = {};
+
+	int i;
+	for (i = 0; i < _countof(m_waitCommand); i++)
+	{
+		m_waitCommand[i] = 0;
+	}
+
+	for (i = 0; i < _countof(m_waitReady); i++)
+	{
+		m_waitReady[i] = 0;
+	}
 }
 
 DiskInterface::~DiskInterface()
@@ -230,13 +245,14 @@ int i;
 	}
 }
 
-HRESULT DiskInterface::Init(CAppStatus *appStatus, IC64 *pIC64, IC64Event *pIC64Event, IBreakpointManager *pIBreakpointManager,TCHAR *szAppDirectory)
+HRESULT DiskInterface::Init(CAppStatus* appStatus, IC64* pIC64, IC64Event* pIC64Event, IBreakpointManager* pIBreakpointManager, const wchar_t* pszAppDirectory)
 {
-HANDLE hfile=0;
-BOOL r;
-DWORD bytes_read;
-TCHAR szRomPath[MAX_PATH+1];
-HRESULT hr;
+	HANDLE hfile = 0;
+	BOOL r;
+	DWORD bytes_read;
+	std::wstring wsRomPath;
+	static const wchar_t ROM_NAME_DOS[] = L"C1541.rom";
+	HRESULT hr;
 
 	ClearError();
 	Cleanup();
@@ -251,64 +267,61 @@ HRESULT hr;
 		return SetError(hr, TEXT("InitDiskThread failed"));
 	}
 
-	if (szAppDirectory==NULL)
+	wsAppDirectory.clear();
+	if (pszAppDirectory != nullptr)
 	{
-		m_szAppDirectory[0] = 0;
-	}
-	else
-	{
-		_tcscpy_s(m_szAppDirectory, _countof(m_szAppDirectory), szAppDirectory);
+		wsAppDirectory.append(pszAppDirectory);
 	}
 
-	m_pD1541_ram=(bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,0x0800);
-	if (m_pD1541_ram==NULL)
+	m_pD1541_ram = (bit8*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 0x0800);
+	if (m_pD1541_ram == NULL)
 	{
 		Cleanup();
 		return SetError(E_OUTOFMEMORY, TEXT("Memory allocation failed"));
 	}
 
-	m_pD1541_rom=(bit8 *) GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,0x4000);
-	if (m_pD1541_ram==NULL)
+	m_pD1541_rom = (bit8*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 0x4000);
+	if (m_pD1541_ram == NULL)
 	{
 		Cleanup();
 		return SetError(E_OUTOFMEMORY, TEXT("Memory allocation failed"));
 	}
 
-	hfile=INVALID_HANDLE_VALUE;
-	szRomPath[0]=0;
-	if (_tmakepath_s(szRomPath, _countof(szRomPath), 0, m_szAppDirectory, TEXT("C1541.rom"), 0) == 0)
+	hfile = INVALID_HANDLE_VALUE;
+	wsRomPath.clear();
+	Wfs::Path_Append(wsRomPath, wsAppDirectory);
+	Wfs::Path_Append(wsRomPath, ROM_NAME_DOS);
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(wsRomPath).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	if (hfile == INVALID_HANDLE_VALUE)
 	{
-		hfile=CreateFile(szRomPath,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+		hfile = CreateFile(TEXT("C1541.rom"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	}
 
-	if (hfile==INVALID_HANDLE_VALUE)
-	{
-		hfile=CreateFile(TEXT("C1541.rom"),GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
-	}
-
-	if (hfile==INVALID_HANDLE_VALUE)
+	if (hfile == INVALID_HANDLE_VALUE)
 	{
 		Cleanup();
 		return SetError(E_FAIL, TEXT("Could not open C1541.rom"));
 	}
-	r=ReadFile(hfile,m_pD1541_rom,0x4000,&bytes_read,NULL);
+
+	r = ReadFile(hfile, m_pD1541_rom, 0x4000, &bytes_read, NULL);
 	CloseHandle(hfile);
-	if (r==0)
+	if (r == 0)
 	{
 		Cleanup();
 		return SetError(E_FAIL, TEXT("Could not read from C1541.rom"));
 	}
-	if (bytes_read!=0x4000)
+
+	if (bytes_read != 0x4000)
 	{
 		Cleanup();
 		return SetError(E_FAIL, TEXT("Could not read 0x4000 bytes from C1541.rom"));
 	}
 
-	m_pIndexedD1541_rom = m_pD1541_rom-0xC000;	
+	m_pIndexedD1541_rom = m_pD1541_rom - 0xC000;
 	via1.Init(1, appStatus, &cpu, this);
 	via2.Init(2, appStatus, &cpu, this);
 	cpu.Init(pIC64, pIC64Event, CPUID_DISK, &via1, &via2, this, m_pD1541_ram, m_pIndexedD1541_rom, pIBreakpointManager);
-	m_d64_protectOff=1;//1=no protect;0=protected;
+	m_d64_protectOff = 1;//1=no protect;0=protected;
 	return S_OK;
 }
 
@@ -447,7 +460,7 @@ void DiskInterface::ThreadSignalQuit()
 	LeaveCriticalSection(&mcrtDisk);
 }
 
-void DiskInterface::CloseDiskThread()
+void DiskInterface::CloseDiskThread() noexcept
 {
 	if (mhThread)
 	{
@@ -576,20 +589,21 @@ bool bCommand;
 	return 0;
 }
 
-void DiskInterface::Cleanup()
+void DiskInterface::Cleanup() noexcept
 {
-
 	CloseDiskThread();
 	if (m_pD1541_ram)
 	{
 		GlobalFree(m_pD1541_ram);
 		m_pD1541_ram=NULL;
 	}
+
 	if (m_pD1541_rom)
 	{
 		GlobalFree(m_pD1541_rom);
 		m_pD1541_rom=NULL;
 	}
+
 	m_pIndexedD1541_rom=NULL;
 	P64ImageDestroy(&m_P64Image);
 }

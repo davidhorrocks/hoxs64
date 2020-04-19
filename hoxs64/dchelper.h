@@ -1,5 +1,4 @@
-#ifndef __DCHELPER_H__
-#define __DCHELPER_H__
+#pragma once
 
 class DcHelper
 {
@@ -17,6 +16,3 @@ private:
 
 	int iSavedDC;
 };
-
-#endif
-

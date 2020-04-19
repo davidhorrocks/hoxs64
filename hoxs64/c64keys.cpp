@@ -1,7 +1,6 @@
-#include "windows.h"
-#include "tchar.h"
+#include <windows.h>
+#include <tchar.h>
 #include "c64Keys.h"
-
 
 C64Keys::KeyRC C64Keys::KeyRowCol[C64K_COUNTOFKEYS];
 
@@ -183,7 +182,7 @@ LPCTSTR C64Keys::GetName(C64Key c64keynumber)
 }
 
 
-void C64Keys::setkeyrc(C64Key key, unsigned char row, unsigned char col)
+void C64Keys::setkeyrc(C64Key key, unsigned char row, unsigned char col) noexcept
 {
 	KeyRowCol[key].row = row;
 	KeyRowCol[key].col = col;
@@ -191,7 +190,7 @@ void C64Keys::setkeyrc(C64Key key, unsigned char row, unsigned char col)
 	KeyRowCol[key].rowmask = (unsigned char)~(1<<col);
 }
 
-void C64Keys::Init()
+void C64Keys::Init() noexcept
 {
 unsigned int i;
 	for (i = 0 ; i < _countof(KeyRowCol); i++)

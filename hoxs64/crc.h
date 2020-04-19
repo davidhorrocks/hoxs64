@@ -1,5 +1,4 @@
-#ifndef __CRC_H__
-#define __CRC_H__
+#pragma once
 
 #define CRC32POLY 0x04C11DB7L
 
@@ -32,4 +31,3 @@ public:
 	bool isOK;
 	CRC32 *pCRC32;
 };
-#endif

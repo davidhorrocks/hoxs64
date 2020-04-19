@@ -1,5 +1,6 @@
-#ifndef __DIAGNEWBLANKDISK_H__
-#define __DIAGNEWBLANKDISK_H__
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
 
 class CDiagNewBlankDisk : public CVirDialog, public ErrorMsg
 {
@@ -19,5 +20,3 @@ public:
 protected:
 private:
 };
-
-#endif

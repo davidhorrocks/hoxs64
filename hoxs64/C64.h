@@ -1,12 +1,13 @@
-#ifndef __C64_H__
-#define __C64_H__
-
+#pragma once
 #include "boost2005.h"
+#include <string>
 #include "user_message.h"
 #include "defines.h"
 #include "mlist.h"
 #include "carray.h"
 #include "cevent.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "bits.h"
 #include "util.h"
@@ -49,6 +50,11 @@ class C64 : public IC64, private ITapeEvent, public IAutoLoad, public ErrorMsg
 public:	
 	C64();
 	~C64();
+	C64(const C64&) = delete;
+	C64& operator=(const C64&) = delete;
+	C64(C64&&) = delete;
+	C64& operator=(C64&&) = delete;
+	
 	RAM64 ram;
 	CPU6510 cpu;
 	VIC6569 vic;
@@ -62,13 +68,17 @@ public:
 	static const bit32 NOCOMPRESSION = 0;
 	static const bit32 HUFFCOMPRESSION = 1;
 
-	CAppStatus *appStatus;
-	IC64Event *pIC64Event;
-	CDX9 *dx;
+	IAppCommand* appCommand = nullptr;
+	CAppStatus *appStatus = nullptr;
+	IC64Event *pIC64Event = nullptr;
+	Graphics* pGx = nullptr;
+	CDX9* dx = nullptr;
+	bool isInitOK = false;
 	Monitor mon;
-	HRESULT Init(CAppStatus *, IC64Event *, CDX9 *, TCHAR *szAppDirectory);
+	HRESULT Init(IAppCommand *, CAppStatus *, IC64Event *, Graphics *, CDX9 *, const wchar_t* pwszAppDirectory);
 	void InitReset(ICLK sysclock, bool poweronreset);
 	void Reset(ICLK sysclock, bool poweronreset);
+	void UpdateKeyMap() override;
 	void ExecuteDiskInstruction();
 	void ExecuteC64Instruction();
 	void ExecuteC64Clock();
@@ -78,74 +88,75 @@ public:
 	void Warm();
 	void EnterDebugRun(bool bWithSound);
 	void FinishDebugRun();
-
 	void SetBasicProgramEndAddress(bit16 last_byte);
-
-	HRESULT AutoLoad(TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks);
+	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks);
 	static HRESULT CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength);
-
-	HRESULT LoadCrtFile(TCHAR *filename);
-	HRESULT LoadImageFile(TCHAR *filename, bit16* pStartAddress, bit16* pSize);
-	HRESULT LoadT64ImageFile(TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
-	HRESULT LoadTAPFile(TCHAR *filename);
-	HRESULT InsertDiskImageFile(TCHAR *filename, bool alignD64Tracks, bool immediately);
-	HRESULT LoadD64FromFile(TCHAR *filename, bool alignD64Tracks, bool immediately);
-	HRESULT LoadG64FromFile(TCHAR *filename, bool immediately);
-	HRESULT LoadP64FromFile(TCHAR *filename, bool immediately);
-	HRESULT LoadFDIFromFile(TCHAR *filename, bool immediately);
-
-	HRESULT SaveD64ToFile(TCHAR *filename, int numberOfTracks);
-	HRESULT SaveFDIToFile(TCHAR *filename);
-	HRESULT SaveP64ToFile(TCHAR *filename);	
+	HRESULT LoadCrtFile(const TCHAR *filename);
+	HRESULT LoadImageFile(const TCHAR *filename, bit16* pStartAddress, bit16* pSize);
+	HRESULT LoadT64ImageFile(const TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
+	HRESULT LoadTAPFile(const TCHAR *filename);
+	HRESULT InsertDiskImageFile(const TCHAR *filename, bool alignD64Tracks, bool immediately);
+	HRESULT LoadD64FromFile(const TCHAR *filename, bool alignD64Tracks, bool immediately);
+	HRESULT LoadG64FromFile(const TCHAR *filename, bool immediately);
+	HRESULT LoadP64FromFile(const TCHAR *filename, bool immediately);
+	HRESULT LoadFDIFromFile(const TCHAR *filename, bool immediately);
+	HRESULT SaveD64ToFile(const TCHAR *filename, int numberOfTracks);
+	HRESULT SaveFDIToFile(const TCHAR *filename);
+	HRESULT SaveP64ToFile(const TCHAR *filename);
 	HRESULT SaveTrackStateV0(unsigned int trackNumber, bit32 *pTrackBuffer, TP64Image& diskP64Image, unsigned int track_size, unsigned  int *p_gap_count);
 	HRESULT LoadTrackStateV0(unsigned int trackNumber, const bit32 *pTrackBuffer, TP64Image& diskP64Image, unsigned int gap_count);
-	HRESULT SaveC64StateToFile(TCHAR *filename);
-	HRESULT LoadC64StateFromFile(TCHAR *filename);
+	HRESULT SaveC64StateToFile(const TCHAR *filename);
+	HRESULT LoadC64StateFromFile(const TCHAR *filename);
 
 	//IAutoLoad
-	void AutoLoadHandler(ICLK sysclock);
+	void AutoLoadHandler(ICLK sysclock) override;
 
 	//ITapeEvent
-	void Pulse(ICLK sysclock);
-	void EndOfTape(ICLK sysclock);
+	void Pulse(ICLK sysclock) override;
+	void EndOfTape(ICLK sysclock) override;
 	
 	//IC64
-	virtual void HardReset(bool bCancelAutoload);
-	virtual void SoftReset(bool bCancelAutoload);
-	virtual void CartFreeze(bool bCancelAutoload);
-	virtual void CartReset(bool bCancelAutoload);
-	virtual void PostHardReset(bool bCancelAutoload);
-	virtual void PostSoftReset(bool bCancelAutoload);
-	virtual void PostCartFreeze(bool bCancelAutoload);
-	virtual void ResetKeyboard();
-	virtual void TapePressPlay();
-	virtual void TapePressStop();
-	virtual void TapePressRewind();
-	virtual void TapePressEject();
-	virtual HRESULT InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks);
-	virtual void RemoveDisk();
-	virtual void Set_DiskProtect(bool bOn);
-	virtual bool Get_DiskProtect();
-	virtual void DiskReset();
-	virtual void DetachCart();
-	virtual bool IsCartAttached();
-	virtual IMonitor *GetMon();
-	virtual void SetupColorTables(unsigned int d3dFormat);
-	virtual HRESULT UpdateBackBuffer();
-	virtual void SynchroniseDevicesWithVIC();
-	virtual bool Get_EnableDebugCart();
-	virtual void Set_EnableDebugCart(bool bEnable);
-	virtual ICLK Get_LimitCycles();
-	virtual void Set_LimitCycles(ICLK cycles);
-	virtual const TCHAR *Get_ExitScreenShot();
-	virtual void Set_ExitScreenShot(const TCHAR * filename);
-	virtual int Get_ExitCode();
-	virtual void Set_ExitCode(int exitCode);
-	virtual int WriteOnceExitCode(int exitCode);
-	virtual bool HasExitCode();
-	virtual void ResetOnceExitCode();
-	virtual HRESULT SavePng(const TCHAR * filename);
-	virtual void ClearAllTemporaryBreakpoints();
+	bool IsInitOK() override;
+	void HardReset(bool bCancelAutoload) override;
+	void SoftReset(bool bCancelAutoload) override;
+	void CartFreeze(bool bCancelAutoload) override;
+	void CartReset(bool bCancelAutoload) override;
+	void PostHardReset(bool bCancelAutoload) override;
+	void PostSoftReset(bool bCancelAutoload) override;
+	void PostCartFreeze(bool bCancelAutoload) override;
+	void ResetKeyboard() override;
+	void TapePressPlay() override;
+	void TapePressStop() override;
+	void TapePressRewind() override;
+	void TapePressEject() override;
+	HRESULT InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks) override;
+	void RemoveDisk() override;
+	void Set_DiskProtect(bool bOn) override;
+	bool Get_DiskProtect() override;
+	void DiskReset() override;
+	void DetachCart() override;
+	bool IsCartAttached() override;
+	IMonitor *GetMon() override;
+	void SetupColorTables() override;
+	HRESULT UpdateBackBuffer() override;
+	void SynchroniseDevicesWithVIC() override;
+	bool Get_EnableDebugCart() override;
+	void Set_EnableDebugCart(bool bEnable) override;
+	ICLK Get_LimitCycles() override;
+	void Set_LimitCycles(ICLK cycles) override;
+	const TCHAR *Get_ExitScreenShot() override;
+	void Set_ExitScreenShot(const TCHAR * filename) override;
+	int Get_ExitCode() override;
+	void Set_ExitCode(int exitCode) override;
+	int WriteOnceExitCode(int exitCode) override;
+	bool HasExitCode() override;
+	void ResetOnceExitCode() override;
+	HRESULT SavePng(const TCHAR * filename) override;
+	void ClearAllTemporaryBreakpoints() override;
+	bool GetDriveLedMotorStatus() override;
+	bool GetDriveLedDriveStatus() override;
+	bool GetDriveLedWriteStatus() override;
+	bit8* GetRomCharPointer() override;
 
 	IMonitorCpu *GetCpu(int cpuid);
 
@@ -182,72 +193,93 @@ public:
 	static const int SCREENWRITELOCATION = 1024 + 40*6;
 	void WriteSysCallToScreen(bit16 startaddress);
 protected:
-	TCHAR m_szAppDirectory[MAX_PATH+1];
+	std::wstring wsAppDirectory;
 	struct AutoLoadCommand
 	{
-		enum AutoLoadType type;
-		enum AutoLoadSequence sequence;
-		bit16 startaddress;
-		bit16 imageSize;
-		TCHAR filename[MAX_PATH+1];
-		bit8 c64filename[C64DISKFILENAMELENGTH];
-		int directoryIndex;
-		bool bIndexOnlyPrgFiles;
-		bool bQuickLoad;
-		bool bAlignD64Tracks;
-		bit8 *pImageData;
-		class SIDLoader *pSidFile;
-		ICLK startclock;
+		enum AutoLoadType type  = AutoLoadType::AUTOLOAD_NONE;
+		enum AutoLoadSequence sequence = AutoLoadSequence::AUTOSEQ_RESET;
+		bit16 startaddress = 0;
+		bit16 imageSize = 0;
+		std::wstring wsfilename;
+		bit8 c64filename[C64DISKFILENAMELENGTH] = {};
+		int directoryIndex = 0;
+		bool bIndexOnlyPrgFiles = false;
+		bool bQuickLoad = false;
+		bool bAlignD64Tracks = false;
+		bit8 *pImageData = nullptr;
+		class SIDLoader *pSidFile = nullptr;
+		ICLK startclock = 0;
 
-		AutoLoadCommand()
+		AutoLoadCommand() noexcept
 		{
 			startclock = 0;
 			pImageData = 0;
 			pSidFile = 0;
 			CleanUp();
 		}
+
 		~AutoLoadCommand()
 		{
 			CleanUp();
 		}
-		void CleanUp()
+
+		AutoLoadCommand(const AutoLoadCommand&) = delete;
+		AutoLoadCommand& operator=(const AutoLoadCommand&) = delete;
+		AutoLoadCommand(AutoLoadCommand&&) = delete;
+		AutoLoadCommand& operator=(AutoLoadCommand&&) = delete;
+
+		void CleanUp() noexcept
 		{
-			if (pImageData)
+			try
 			{
-				GlobalFree(pImageData);
-				pImageData = 0;
+				if (pImageData)
+				{
+					GlobalFree(pImageData);
+					pImageData = 0;
+
+				}
+
+				if (pSidFile)
+				{
+					delete(pSidFile);
+					pSidFile = 0;
+				}
+
+				startclock = 0;
+				type = AUTOLOAD_NONE;
+				sequence = AUTOSEQ_RESET;
+				startaddress = 0;
+				imageSize = 0;
+				memset(c64filename, 0xA0, sizeof(c64filename));
+				wsfilename.clear();
+				directoryIndex = 0;
+				bIndexOnlyPrgFiles = false;
+				bQuickLoad = false;
+				bAlignD64Tracks = false;
+			}
+			catch(...)
+			{
 
 			}
-			if (pSidFile)
-			{
-				delete(pSidFile);
-				pSidFile = 0;
-			}
-			imageSize = 0;
-			type = AUTOLOAD_NONE;
-			sequence = AUTOSEQ_RESET;
-			startaddress = 0;
-			directoryIndex = 0;
-			bQuickLoad = false;
-			memset(c64filename, 0xA0, sizeof(c64filename));
 		}
 	};
+
 	AutoLoadCommand autoLoadCommand;
 
 private:
 	void SharedSoftReset();
 	void ProcessReset();
 	void ExecuteRandomClocks(int minimumClocks, int maximumClocks);
-	bool bPendingSystemCommand;
-	C64Cmd m_SystemCommand;
-	bool m_bLastPostedDriveWriteLed;
-	ICLK m_iClockOverflowCheckCounter;
-	bool bEnableDebugCart;
-	ICLK limitCycles;
+	bool bPendingSystemCommand = false;
+	C64Cmd m_SystemCommand = C64Cmd::C64CMD_NONE;
+	bool m_bLastPostedDriveWriteLed = false;
+	ICLK m_iClockOverflowCheckCounter = 0;
+	bool bEnableDebugCart = false;
+	ICLK limitCycles = 0;
 	std::basic_string<TCHAR> exitScreenShot;
-	bool bWantExitScreenShot;
-	bool bExitCodeWritten;
-	int exitCode;
+	bool bWantExitScreenShot = false;
+	bool bExitCodeWritten = false;
+	int exitCode = 0;
+	random_device rd;
+	mt19937 randengine_main;
 };
-
-#endif

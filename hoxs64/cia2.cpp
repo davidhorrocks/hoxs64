@@ -1,22 +1,4 @@
-#include <windows.h>
-#include <commctrl.h>
-#include <tchar.h>
-#include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "CDPI.h"
-#include "bits.h"
-#include "util.h"
-#include "utils.h"
 #include "register.h"
-#include "errormsg.h"
-#include "hconfig.h"
 #include "appstatus.h"
 #include "dxstuff9.h"
 #include "savestate.h"
@@ -24,7 +6,6 @@
 #include "c6502.h"
 #include "ram64.h"
 #include "cpu6510.h"
-#include "hexconv.h"
 #include "cia6526.h"
 #include "vic6569.h"
 #include "via6522.h"
@@ -37,7 +18,6 @@
 #include "tap.h"
 #include "cia6526.h"
 #include "cia2.h"
-
 
 #define NO_CHANGE_TO_IDLE 4
 #define MINIMUM_STAY_IDLE 3
@@ -61,6 +41,7 @@ HRESULT CIA2::Init(CAppStatus *appStatus, CPU6510 *cpu, VIC6569 *vic, DiskInterf
 	this->cpu = cpu;
 	this->vic = vic;
 	this->disk = disk;
+	this->SetMode(appStatus->m_CIAMode, appStatus->m_bTimerBbug);
 	return S_OK;
 }
 
@@ -194,7 +175,7 @@ void CIA2::WritePortB(bool is_ddr, bit8 ddr_old, bit8 portdata_old, bit8 ddr_new
 
 void CIA2::InitReset(ICLK sysclock, bool poweronreset)
 {
-	CIA::InitReset(sysclock, poweronreset);
+	CIA::InitCommonReset(sysclock, poweronreset);
 	m_commandedVicBankIndex = 3;
 }
 
@@ -226,7 +207,7 @@ ICLK v = sysclock - CurrentClock;
 void CIA2::GetState(SsCia2V2 &state)
 {
 	ZeroMemory(&state, sizeof(state));
-	CIA::GetState(state.cia);
+	CIA::GetCommonState(state.cia);
 	
 	state.c64_serialbus = c64_serialbus;
 	state.m_commandedVicBankIndex = m_commandedVicBankIndex;
@@ -234,7 +215,7 @@ void CIA2::GetState(SsCia2V2 &state)
 
 void CIA2::SetState(const SsCia2V2 &state)
 {
-	CIA::SetState(state.cia);
+	CIA::SetCommonState(state.cia);
 	c64_serialbus = state.c64_serialbus;
 	m_commandedVicBankIndex = state.m_commandedVicBankIndex;
 }

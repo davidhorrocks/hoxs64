@@ -50,6 +50,24 @@
     <Filter Include="Header Files\gamecontroller">
       <UniqueIdentifier>{dbd93224-35c3-4e8c-a5ab-6575199a5c39}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{42452d95-f84f-45bb-8574-491960a05646}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\DX11">
+      <UniqueIdentifier>{4a9458a8-96a9-4553-a208-08bd1d51a20b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DX11">
+      <UniqueIdentifier>{5a835642-9bc6-4430-b9ad-a5dee7a45fd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{c05bb543-fb04-45c3-af18-1825ccd4457f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\filesystem">
+      <UniqueIdentifier>{a4fa0774-214e-4799-9647-eeb938a6a583}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\filesystem">
+      <UniqueIdentifier>{b2b29779-03d6-4710-9b62-523cf3ec0651}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="appstatus.cpp">
@@ -116,9 +134,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dxstuff9.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="emuwin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="errormsg.cpp">
@@ -325,15 +340,6 @@
     <ClCompile Include="cart_kcs_power.cpp">
       <Filter>Source Files\cart</Filter>
     </ClCompile>
-    <ClCompile Include="DxWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DxLabel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DxTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="p64.cpp">
       <Filter>Source Files\p64</Filter>
     </ClCompile>
@@ -361,9 +367,6 @@
     <ClCompile Include="breakpointresult.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
-    <ClCompile Include="breakpoint.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="commandresult.cpp">
       <Filter>Source Files\debugger</Filter>
     </ClCompile>
@@ -384,6 +387,99 @@
     </ClCompile>
     <ClCompile Include="buttonitemdata.cpp">
       <Filter>Source Files\gamecontroller</Filter>
+    </ClCompile>
+    <ClCompile Include="StringConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="graphicshelper.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Shaders.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera2D.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera3D.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Color.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObject2D.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObject3D.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="ErrorLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="StringHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderableGameObject.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Sprite.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="C64ScreenTexture.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="C64Display.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="cvirwindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PositionOnlyGameObject2D.cpp">
+      <Filter>Source Files\DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="breakpoint.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_impl_dx11.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_impl_win32.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="dirlist.cpp">
+      <Filter>Source Files\filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="wfs.cpp">
+      <Filter>Source Files\filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="directoryviewer.cpp">
+      <Filter>Source Files\filesystem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -453,13 +549,7 @@
     <ClInclude Include="diskinterface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="dx_version.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="dxstuff9.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="emuwin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="errormsg.h">
@@ -600,9 +690,6 @@
     <ClInclude Include="wpccli.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
-    <ClInclude Include="oldos_multimon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="commandresult.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
@@ -681,9 +768,6 @@
     <ClInclude Include="cart_kcs_power.h">
       <Filter>Header Files\cart</Filter>
     </ClInclude>
-    <ClInclude Include="DxWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="p64.h">
       <Filter>Header Files\p64</Filter>
     </ClInclude>
@@ -729,9 +813,6 @@
     <ClInclude Include="breakpointresult.h">
       <Filter>Header Files\debugger</Filter>
     </ClInclude>
-    <ClInclude Include="breakpoint.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="sidvoice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -744,8 +825,128 @@
     <ClInclude Include="gamecontrolleritem.h">
       <Filter>Header Files\gamecontroller</Filter>
     </ClInclude>
+    <ClInclude Include="dx_version.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
     <ClInclude Include="buttonitemdata.h">
       <Filter>Header Files\gamecontroller</Filter>
+    </ClInclude>
+    <ClInclude Include="graphics.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="ErrorLogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StringConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="graphicshelper.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Vertex.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBufferTypes.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Color.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexBuffer.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="IndexBuffer.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBuffer.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Sprite.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject2D.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject3D.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderableGameObject.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera2D.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera3D.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="COMException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StringHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C64Display.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="C64ScreenTexture.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="cvirwindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PositionOnlyGameObject2D.h">
+      <Filter>Header Files\DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="breakpoint.h">
+      <Filter>Header Files\debugger</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imconfig.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_impl_dx11.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_impl_win32.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_internal.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_rectpack.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_textedit.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_truetype.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="dirlist.h">
+      <Filter>Header Files\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="wfs.h">
+      <Filter>Header Files\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="directoryviewer.h">
+      <Filter>Header Files\filesystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -876,5 +1077,13 @@
     <CustomBuild Include="siddrv.asm">
       <Filter>casm</Filter>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="vertexshader_2d.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="pixelshader_2d.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

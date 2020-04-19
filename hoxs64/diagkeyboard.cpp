@@ -2,10 +2,6 @@
 #include <windowsx.h>
 #include <tchar.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
-#include <dinput.h>
-#include <dsound.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <winuser.h>
@@ -19,6 +15,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "appstatus.h"
@@ -1197,7 +1195,7 @@ BYTE ch[2];
 				CharUpper((LPTSTR)&ch[0]);
 #ifdef UNICODE
 				int chOut;
-				if (SUCCEEDED(G::AnsiToUc((LPCSTR) &ch[0], &buffer[0], 1, chOut)))
+				if (SUCCEEDED(StringConverter::AnsiToUc((LPCSTR) &ch[0], &buffer[0], 1, chOut)))
 				{
 					buffer[chOut] = 0;
 				}

@@ -4,6 +4,8 @@
 #include "CDPI.h"
 #include "utils.h"
 #include "tchar.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "stdio.h"
 #include "defines.h"
@@ -77,7 +79,7 @@ HRESULT ErrorMsg::SetErrorFromGetLastError()
 HRESULT ErrorMsg::SetErrorFromGetLastError(DWORD err, LPCTSTR szError)
 {
 HRESULT hRet = HRESULT_FROM_WIN32(err);
-	TCHAR *s = G::GetLastWin32ErrorString(err);
+	TCHAR *s = G::GetLastWin32ErrorTString(err);
 	if (s == NULL)
 	{
 		SetError(hRet, TEXT("An error occurred."));
@@ -133,6 +135,6 @@ const TCHAR *ErrorMsg::GetLastWindowsErrorString()
 		::LocalFree((HLOCAL)localLastWindowsErrorString);
 		localLastWindowsErrorString = NULL;
 	}
-	localLastWindowsErrorString = G::GetLastWin32ErrorString();
+	localLastWindowsErrorString = G::GetLastWin32ErrorTString();
 	return localLastWindowsErrorString != NULL ? localLastWindowsErrorString : &G::EmptyString[0];
 }

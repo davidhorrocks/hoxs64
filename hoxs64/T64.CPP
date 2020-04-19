@@ -17,6 +17,8 @@
 #include "util.h"
 #include "utils.h"
 #include "register.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "t64.h"
 
@@ -80,7 +82,7 @@ void T64::CleanUp()
 	memset(&t64Header, 0, sizeof(t64Header));
 }
 
-HRESULT T64::LoadT64Directory(TCHAR filename[], int maxcount)
+HRESULT T64::LoadT64Directory(const TCHAR filename[], int maxcount)
 {
 HANDLE hfile=0;
 BOOL r;
@@ -226,7 +228,7 @@ HRESULT hr;
 }
 
 
-HRESULT T64::LoadT64File(TCHAR filename[], DWORD offset, WORD size)
+HRESULT T64::LoadT64File(const TCHAR filename[], DWORD offset, WORD size)
 {
 HANDLE hfile=0;
 BOOL r;

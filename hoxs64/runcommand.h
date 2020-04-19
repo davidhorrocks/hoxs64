@@ -1,5 +1,4 @@
-#ifndef __RUNCOMMAND_H__
-#define __RUNCOMMAND_H__
+#pragma once
 
 class RunCommandHelp : public IRunCommand
 {
@@ -104,5 +103,3 @@ protected:
 private:
 	ICommandResult *m_pCommandResult;
 };
-
-#endif

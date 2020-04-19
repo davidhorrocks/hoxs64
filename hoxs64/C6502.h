@@ -1,9 +1,10 @@
-#ifndef __CPU6502_H__
-#define __CPU6502_H__
-
+#pragma once
+#include "register.h"
+#include "savestate.h"
 #include "bpenum.h"
+#include "errormsg.h"
 
-#define BREAK_LIST_SIZE 65536
+#define BREAK_LIST_SIZE 999999
 
 #define psNEGATIVE	(0x80)
 #define psOVERFLOW	(0x40)
@@ -499,52 +500,57 @@ typedef struct {
 class CPU6502 : public IRegister, public IMonitorCpu, public ErrorMsg
 {
 public:
-	CPU6502();
-	~CPU6502();
+	CPU6502() noexcept;
+	~CPU6502() = default;
+	CPU6502(const CPU6502&) = delete;
+	CPU6502& operator=(const CPU6502&) = delete;
+	CPU6502(CPU6502&&) = delete;
+	CPU6502& operator=(CPU6502&&) = delete;
 
-	HRESULT Init(int ID, IBreakpointManager *pIBreakpointManager);
+	HRESULT Init(int ID, IBreakpointManager* pIBreakpointManager);
 	void Cleanup();
 
-	virtual bit8 ReadByte(bit16 address)=0;
-	virtual void WriteByte(bit16 address, bit8 data)=0;
+	virtual bit8 ReadByte(bit16 address) = 0;
+	virtual void WriteByte(bit16 address, bit8 data) = 0;
+
 	//IMonitorCpu
-	virtual int GetCpuId();
-	virtual bit8 MonReadByte(bit16 address, int memorymap)=0;
-	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap)=0;
-	virtual void GetCpuState(CPUState& state);
-	virtual bool IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
-	virtual void DeleteBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
-	virtual void EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
-	virtual void DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address);
-	virtual bool SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount);
-	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, Sp_BreakpointItem& breakpoint);
-	virtual void SetBreakOnInterruptTaken();
-	virtual void ClearBreakOnInterruptTaken();
-    virtual void SetStepOverBreakpoint();
-    virtual void ClearStepOverBreakpoint();
-    virtual void SetStepOutWithRtsRtiPlaTsx();
-    virtual void ClearStepOutWithRtsRtiPlaTsx();
-    virtual void SetStepOutWithRtsRti();
-    virtual void ClearStepOutWithRtsRti();
-	virtual void ClearTemporaryBreakpoints();
-	virtual void SetPC(bit16 address);
-	virtual void SetA(bit8 v);
-	virtual void SetX(bit8 v);
-	virtual void SetY(bit8 v);
-	virtual void SetSR(bit8 v);
-	virtual void SetSP(bit8 v);
-	virtual void SetDdr(bit8 v);
-	virtual void SetData(bit8 v);
+	int GetCpuId() override;
+	virtual bit8 MonReadByte(bit16 address, int memorymap) = 0;
+	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap) = 0;
+	void GetCpuState(CPUState& state) override;
+	bool IsBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address) override;
+	void DeleteBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address) override;
+	void EnableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address) override;
+	void DisableBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address) override;
+	bool SetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) override;
+	bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, BreakpointItem& breakpoint) override;
+	void SetBreakOnInterruptTaken() noexcept override;
+	void ClearBreakOnInterruptTaken() noexcept override;
+	void SetStepOverBreakpoint() noexcept override;
+	void ClearStepOverBreakpoint() noexcept override;
+	void SetStepOutWithRtsRtiPlaTsx() noexcept override;
+	void ClearStepOutWithRtsRtiPlaTsx() noexcept override;
+	void SetStepOutWithRtsRti() override;
+	void ClearStepOutWithRtsRti() noexcept override;
+	void ClearTemporaryBreakpoints() noexcept override;
+	void SetPC(bit16 address) override;
+	void SetA(bit8 v) override;
+	void SetX(bit8 v) override;
+	void SetY(bit8 v) override;
+	void SetSR(bit8 v) override;
+	void SetSP(bit8 v) override;
+	void SetDdr(bit8 v) override;
+	void SetData(bit8 v) override;
 
 	void InitReset(ICLK sysclock, bool poweronreset);
 	//IRegister
-	virtual void Reset(ICLK sysclock, bool poweronreset);
-	virtual void ExecuteCycle(ICLK sysclock);
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock)=0;
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data)=0;
-	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock)=0;
-	virtual ICLK GetCurrentClock() = 0;
-	virtual void SetCurrentClock(ICLK sysclock) = 0;
+	void Reset(ICLK sysclock, bool poweronreset) override;
+	void ExecuteCycle(ICLK sysclock) override;
+	virtual bit8 ReadRegister(bit16 address, ICLK sysclock) = 0;
+	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data) = 0;
+	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock) = 0;
+	ICLK GetCurrentClock() override;
+	void SetCurrentClock(ICLK sysclock) override;
 	int ID;
 
 	virtual void SetIRQ(ICLK sysclock);
@@ -559,85 +565,87 @@ public:
 	virtual void PreventClockOverflow();
 	virtual void OnHltInstruction();
 
-	bit16 decode_array[256];
-	bit16u mPC;
-	bit8 mA;
-	bit8 mX;
-	bit8 mY;
-	bit8 mSP;
+	bit16 decode_array[256] = {};
+	bit16u mPC = {};
+	bit8 mA = 0;
+	bit8 mX = 0;
+	bit8 mY = 0;
+	bit8 mSP = 0;
 
-	unsigned int fNEGATIVE;
-	unsigned int fOVERFLOW;
-	unsigned int fBREAK;
-	unsigned int fDECIMAL;
-	unsigned int fINTERRUPT;
-	unsigned int fZERO;
-	unsigned int fCARRY;
+	unsigned int fNEGATIVE = 0;
+	unsigned int fOVERFLOW = 0;
+	unsigned int fBREAK = 0;
+	unsigned int fDECIMAL = 0;
+	unsigned int fINTERRUPT = 0;
+	unsigned int fZERO = 0;
+	unsigned int fCARRY = 0;
 
-	unsigned int m_cpu_sequence;
-	unsigned int m_cpu_final_sequence;
-	unsigned int m_op_code;
+	unsigned int m_cpu_sequence = 0;
+	unsigned int m_cpu_final_sequence = 0;
+	unsigned int m_op_code = 0;
 
-	bit8	PROCESSOR_INTERRUPT;
-	bit8 IRQ, NMI, NMI_TRIGGER,BA;
-	bit16u m_CurrentOpcodeAddress;
-	bool SOTrigger;
-	ICLK SOTriggerClock;
-	bit16 jumpAddress;
+	bit8 PROCESSOR_INTERRUPT = 0;
+	bit8 IRQ = 0;
+	bit8 NMI = 0;
+	bit8 NMI_TRIGGER = 0;
+	bit8 BA = 0;
+	bit16u m_CurrentOpcodeAddress = {};
+	bool SOTrigger = false;
+	ICLK SOTriggerClock = 0;
+	bit16 jumpAddress = 0;
+
 	int CheckExecute(bit16 address, bool bHitIt);
 	void StartDebug();
 	void StopDebug();
 	bool IsWriteCycle();
 	bool IsOpcodeFetch();
 	bool IsInterruptInstruction();
-	bool GetBreakOnInterruptTaken();
+	bool GetBreakOnInterruptTaken() noexcept;
 
-	bit8 m_bDebug;
-	bool bSoftResetOnHltInstruction;
-	bool bHardResetOnHltInstruction;
-	bool bExitOnHltInstruction;
+	bit8 m_bDebug = 0;
+	bool bSoftResetOnHltInstruction = false;
+	bool bHardResetOnHltInstruction = false;
+	bool bExitOnHltInstruction = false;
 
 	static const InstructionInfo AssemblyData[256];
 
 protected:
-	ICLK FirstIRQClock;
-	ICLK FirstNMIClock;
-	ICLK RisingIRQClock;
-	ICLK FirstBALowClock;
-	ICLK LastBAHighClock;
-	ICLK m_CurrentOpcodeClock;
-	bool m_bBALowInClock2OfSEI;
+	ICLK FirstIRQClock = 0;
+	ICLK FirstNMIClock = 0;
+	ICLK RisingIRQClock = 0;
+	ICLK FirstBALowClock = 0;
+	ICLK LastBAHighClock = 0;
+	ICLK m_CurrentOpcodeClock = 0;
+	bool m_bBALowInClock2OfSEI = false;
 
-	bit16u addr;
-	bit16u ptr;
-	bit8 databyte;
-	unsigned int v;
-	bit8 axa_byte;
-	bool m_bBreakOnInterruptTaken;
+	bit16u addr = {};
+	bit16u ptr = {};
+	bit8 databyte = 0;
+	unsigned int v = 0;
+	bit8 axa_byte = 0;
+	bool m_bBreakOnInterruptTaken = false;
 
 	bit8 code_add(unsigned int _a, unsigned int _s);
 	bit8 code_sub(unsigned int _a, unsigned int _s);
 	bit8 code_cmp(unsigned int _a, unsigned int _s);
 	bit8 code_arr(unsigned int _a, unsigned int _s);
 
-	virtual void SyncChips()=0;
+	virtual void SyncChips() = 0;
 	virtual void check_interrupts1();
 	virtual void check_interrupts0();
 	virtual void SyncVFlag();
 	virtual void CheckForCartFreeze();
 
-	void GetState(SsCpuCommon &state);
-	void SetState(const SsCpuCommon &state);
+	void GetState(SsCpuCommon& state);
+	void SetState(const SsCpuCommon& state);
 private:
-	void InitDecoder();
-    bool m_bEnableStepOverBreakpoint;
-    bool m_bStepOverGotNextAddress;
-    bit16 m_stepOverAddressBreakpoint;
-	bool m_bStepOverBreakNextInstruction;
-	bool m_bEnableStepOutWithRtsRtiPlaPlpTxs;
-	bool m_bEnableStepOutWithRtsRti;
-	bit8 m_stepOutStackPointer;
-	IBreakpointManager *m_pIBreakpointManager;
+	void InitDecoder() noexcept;
+	bool m_bEnableStepOverBreakpoint = false;
+	bool m_bStepOverGotNextAddress = false;
+	bit16 m_stepOverAddressBreakpoint = 0;
+	bool m_bStepOverBreakNextInstruction = false;
+	bool m_bEnableStepOutWithRtsRtiPlaPlpTxs = false;
+	bool m_bEnableStepOutWithRtsRti = false;
+	bit8 m_stepOutStackPointer = 0;
+	IBreakpointManager* m_pIBreakpointManager = nullptr;
 };
-
-#endif

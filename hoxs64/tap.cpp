@@ -17,6 +17,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "savestate.h"
 #include "register.h"
@@ -42,7 +44,7 @@ void TAP64::UnloadTAP()
 	tape_max_counter=0;
 }
 
-HRESULT TAP64::LoadTAPFile(TCHAR *filename)
+HRESULT TAP64::LoadTAPFile(const TCHAR *filename)
 {
 HANDLE hfile = INVALID_HANDLE_VALUE;
 DWORD file_size;
@@ -337,7 +339,7 @@ void Tape64::Rewind()
 		bEOT = true;
 }
 
-HRESULT Tape64::InsertTAPFile(TCHAR *filename)
+HRESULT Tape64::InsertTAPFile(const TCHAR *filename)
 {
 HRESULT hr;
 

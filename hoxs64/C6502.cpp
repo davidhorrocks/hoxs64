@@ -1,19 +1,5 @@
 #include <windows.h>
-#include <assert.h>
-#include "dx_version.h"
-#include <ddraw.h>
-#include <dinput.h>
-#include <dsound.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include "boost2005.h"
-#include "defines.h"
-#include "bits.h"
-#include "util.h"
-#include "errormsg.h"
-#include "hconfig.h"
-#include "appstatus.h"
-#include "savestate.h"
+#include <tchar.h>
 #include "register.h"
 #include "bpenum.h"
 #include "c6502.h"
@@ -316,7 +302,7 @@ const InstructionInfo CPU6502::AssemblyData[256]=
 	{0xFF,TEXT("ISB"),amABSOLUTEX,1,3},
 };
 
-CPU6502::CPU6502()
+CPU6502::CPU6502() noexcept
 {
 	m_bDebug=0;
 	InitDecoder();
@@ -336,11 +322,7 @@ CPU6502::CPU6502()
 	ClearTemporaryBreakpoints();
 }
 
-CPU6502::~CPU6502()
-{
-}
-
-void CPU6502::InitDecoder()
+void CPU6502::InitDecoder() noexcept
 {
 int i;
 	for (i=0; i<=255; i++)
@@ -691,6 +673,9 @@ void CPU6502::GetCpuState(CPUState& state)
 	state.BA = BA;
 	state.cycle = (int)(CurrentClock - m_CurrentOpcodeClock);
 	state.IsInterruptInstruction = IsInterruptInstruction();
+	state.opcode = m_op_code;
+	state.PortDataStored = 0;
+	state.PortDdr = 0;
 }
 
 void CPU6502::SetBALow(ICLK sysclock)

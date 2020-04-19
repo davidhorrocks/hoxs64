@@ -1,5 +1,7 @@
-#ifndef __CEVENT_H__
-#define __CEVENT_H__
+#pragma once
+
+#include "mlist.h"
+#include "carray.h"
 
 template<class A>
 class EventSink;
@@ -10,17 +12,26 @@ class EventArgs
 
 typedef MListElement<void *> *HSink;
 
+
 template<class A>
 class EventSource
 {
 public:
-	EventSource()
+	EventSource() noexcept
 	{
+
 	}
+
 	virtual ~EventSource()
 	{
 		RemoveAll();
 	}
+
+	EventSource(const EventSource&) = delete;
+	EventSource& operator=(const EventSource&) = delete;
+	EventSource(EventSource&&) = delete;
+	EventSource& operator=(EventSource&&) = delete;
+
 	HSink Advise(EventSink<A> *sink)
 	{
 		MListElement<EventSink<A> *> *hs = NULL;
@@ -46,6 +57,7 @@ public:
 			return NULL;
 		}
 	}
+
 	void Unadvise(HSink hs)
 	{
 		MListElement<EventSink<A> *> * p;
@@ -65,6 +77,7 @@ public:
 			}
 		}
 	}
+
 	void Unadvise(EventSink<A> *sink)
 	{
 	MListElement<EventSink<A> *> * p;
@@ -93,7 +106,7 @@ public:
 		for (p = m_lstSink.Head(); p != NULL; p = p->Next())
 		{
 			EventSink<A> *p_es = p->m_data;
-			if (p_es != NULL)
+			if (p_es != nullptr)
 			{
 				p_es->Sink(sender, e);
 			}
@@ -102,29 +115,30 @@ public:
 private:
 	MList<EventSink<A> *> m_lstSink;
 
-	void RemoveAll()
+	void RemoveAll() noexcept
 	{
-		MListElement<EventSink<A> *> * p;
-		MListElement<EventSink<A> *> * t;
-		EventSink<A> *eventsink;
-		for (p = m_lstSink.Head(); p != NULL; )
+		MListElement<EventSink<A> *> * p = nullptr;
+		MListElement<EventSink<A> *> * t = nullptr;
+		EventSink<A> *eventsink = nullptr;
+		for (p = m_lstSink.Head(); p != nullptr; )
 		{
 			t = p;
 			p = p->Next();
 			eventsink = t->m_data;
-			if (eventsink != NULL)
+			if (eventsink != nullptr)
 			{
 				eventsink->_RemoveEventLinksBySource(this);
 			}
+
 			m_lstSink.Remove(t);
 		}
 	}
 
-	void _RemoveSink(EventSink<A> *sink)
+	void _RemoveSink(const EventSink<A> *sink) noexcept
 	{
 		MListElement<EventSink<A> *> * p;
 		MListElement<EventSink<A> *> * t;
-		for (p = m_lstSink.Head(); p != NULL;)
+		for (p = m_lstSink.Head(); p != nullptr;)
 		{
 			t = p;
 			p = p->Next();
@@ -141,33 +155,37 @@ template<class A>
 class EventLink
 {
 public:
-	EventSource<A> *source;
-	MListElement<EventSink<A> *> * elementsink;
+	EventSource<A> *source = nullptr;
+	MListElement<EventSink<A> *> * elementsink = nullptr;
 };
 
 template<class A>
 class EventSink
 {
 public:
-	EventSink()
-	{
-	}
+	EventSink() = default;
 	virtual ~EventSink()
 	{
 		UnadviseAll();
 	}
-	virtual int Sink(void *sender, A &e)=0;
-	void UnadviseAll()
+
+	EventSink(const EventSink&) = default;
+	EventSink& operator=(const EventSink&) = default;
+	EventSink(EventSink&&) = delete;
+	EventSink& operator=(EventSink&&) = delete;
+
+	virtual int Sink(void* sender, A& e) = 0;
+	void UnadviseAll() noexcept
 	{
-		MListElement<EventLink<A>> *p = NULL;
-		MListElement<EventLink<A>> *t = NULL;
-		EventSource<A> *s;
-		for (p = m_links.Head(); p!=NULL; )
+		MListElement<EventLink<A>>* p = nullptr;
+		MListElement<EventLink<A>>* t = nullptr;
+		EventSource<A>* s;
+		for (p = m_links.Head(); p != nullptr; )
 		{
 			t = p;
 			p = p->Next();
 			s = t->m_data.source;
-			if (s != NULL)
+			if (s != nullptr)
 			{
 				s->_RemoveSink(this);
 				m_links.Remove(t);
@@ -176,22 +194,26 @@ public:
 	}
 private:
 	MList<EventLink<A>> m_links;
-	MListElement<EventLink<A>> * EventSink::_AddLink(EventLink<A>& k)
+	MListElement<EventLink<A>>* EventSink::_AddLink(const EventLink<A>& k) noexcept
 	{
-	MListElement<EventLink<A>> *r = NULL;
-		HRESULT hr= m_links.Append(k);
+		MListElement<EventLink<A>>* r = nullptr;
+		HRESULT hr = m_links.Append(k);
 		if (SUCCEEDED(hr))
+		{
 			return m_links.Tail();
-		else 
-			return NULL;
+		}
+		else
+		{
+			return nullptr;
+		}
 	}
 
-	void _RemoveEventLinksBySourceElement(MListElement<EventSink<A> *> element)
+	void _RemoveEventLinksBySourceElement(const MListElement<EventSink<A>*> element) noexcept
 	{
-		MListElement<EventLink<A>> *p = NULL;
-		MListElement<EventLink<A>> *t = NULL;
-		MListElement<EventSink<A> *> el;
-		for (i=0, p = m_links.Head(); p!=NULL; )
+		MListElement<EventLink<A>>* p = nullptr;
+		MListElement<EventLink<A>>* t = nullptr;
+		MListElement<EventSink<A>*> el;
+		for (i = 0, p = m_links.Head(); p != nullptr; )
 		{
 			t = p;
 			p = p->Next();
@@ -203,23 +225,22 @@ private:
 		}
 	}
 
-	void _RemoveEventLinksBySource(EventSource<A> *source)
+	void _RemoveEventLinksBySource(const EventSource<A> * source) noexcept
 	{
-		MListElement<EventLink<A>> *p = NULL;
-		MListElement<EventLink<A>> *t = NULL;
-		for (p = m_links.Head(); p!=NULL; )
+		MListElement<EventLink<A>>* p = nullptr;
+		MListElement<EventLink<A>>* t = nullptr;
+		for (p = m_links.Head(); p != nullptr; )
 		{
 			t = p;
 			p = p->Next();
-			EventSource<A> *s = t->m_data.source;
+			const EventSource<A>* s = t->m_data.source;
 			if (s == source)
 			{
 				m_links.Remove(t);
 			}
 		}
 	}
-friend EventSource<A>;
+
+	friend EventSource<A>;
 };
 
-
-#endif

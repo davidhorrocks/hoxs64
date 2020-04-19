@@ -1,5 +1,5 @@
-#ifndef __SIDFILE_H__
-#define __SIDFILE_H__
+#pragma once
+#include "errormsg.h"
 
 # pragma pack (1)
 struct SIDFileHeader1
@@ -67,7 +67,6 @@ struct fixedheader32
 
 # pragma pack ()
 
-
 class SIDLoader : public ErrorMsg
 {
 public:
@@ -76,9 +75,9 @@ public:
 
 
 	void cleanup();
-	HRESULT LoadSIDFile(TCHAR *filename);
+	HRESULT LoadSIDFile(const TCHAR *filename);
 	HRESULT LoadSIDDriverResource(bit16 loadAddress, bit8 *pMemory);
-	HRESULT LoadSID(bit8 *ramMemory, TCHAR *filename, bool bUseDefaultStartSong, bit16 startSong);
+	HRESULT LoadSID(bit8 *ramMemory, const TCHAR *filename, bool bUseDefaultStartSong, bit16 startSong);
 	HRESULT LoadSID(bit8 *ramMemory, bool bUseDefaultStartSong, bit16 startSong);
 
 	static bit16 MakeSidAddressFromByte(bit8 rsidByte);
@@ -108,5 +107,3 @@ private:
 	HRESULT SetErrorCouldNotLoadDriverDueToData(bit16 address, bit16 codeSize);
 	HRESULT SetErrorCouldNotLoadDriverDueToFreePages(bit32 startPage, bit32 pageLength);	
 };
-
-#endif

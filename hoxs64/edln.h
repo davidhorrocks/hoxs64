@@ -1,6 +1,7 @@
-#ifndef __EDLN_H__
-#define __EDLN_H__
-
+#pragma once
+#include <windows.h>
+#include <commctrl.h>
+#include "cevent.h"
 
 class EdLn;
 
@@ -141,5 +142,3 @@ private:
 	void InitVars();
 	void SpacePadBuffer(TCHAR *pszBuffer, int bufferSize);
 };
-
-#endif

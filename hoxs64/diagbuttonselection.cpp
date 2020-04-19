@@ -12,6 +12,8 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hconfig.h"
 #include "diagbuttonselection.h"
@@ -699,14 +701,14 @@ int len;
 						int maxallowedstringlen = _countof(phName.wsz);
 						int lenAnsiBuffer = 0;
 						bool stringOK = false;
-						if (SUCCEEDED(G::UcToAnsiRequiredBufferLength(phName.wsz, maxallowedstringlen - 1, lenAnsiBuffer)))
+						if (SUCCEEDED(StringConverter::UcToAnsiRequiredBufferLength(phName.wsz, maxallowedstringlen - 1, lenAnsiBuffer)))
 						{
 							if (lenAnsiBuffer > 0)
 							{
 								char *p = this->AllocAnsiStringBuffer(lenAnsiBuffer);
 								if (p != NULL)
 								{
-									if (SUCCEEDED(G::UcToAnsi(phName.wsz, p, lenAnsiBuffer)))
+									if (SUCCEEDED(StringConverter::UcToAnsi(phName.wsz, p, lenAnsiBuffer)))
 									{
 										stringOK = true;
 										Edit_SetText(hwndDeviceName, p);

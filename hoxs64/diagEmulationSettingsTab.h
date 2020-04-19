@@ -1,32 +1,52 @@
-#ifndef __DIAGEMULATION_SETTINGS_TAB_H__
-#define __DIAGEMULATION_SETTINGS_TAB_H__
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
+#include "graphics.h"
 
-struct CDisplayInfo
+struct CDisplayInfo2
 {
-	CDisplayInfo();
-	~CDisplayInfo();
-	D3DADAPTER_IDENTIFIER9 adapter;
-	MONITORINFOEXW monitor;
+	CDisplayInfo2();
+	bool isAuto;
+	DXGI_ADAPTER_DESC1 adapterDesc;
+	DXGI_OUTPUT_DESC outputDesc;
 	UINT adapterOrdinal;
-	TCHAR *name;
-	TCHAR *nameFormat;
-	bool bRequireClean;
+	UINT outputOrdinal;
+	MONITORINFOEXW monitor;
+	std::wstring nameOfAdapter;
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+	Microsoft::WRL::ComPtr<IDXGIOutput> output;
 	HRESULT MakeName();
 };
 
 struct CDisplayModeInfo
 {
 	CDisplayModeInfo();
-	~CDisplayModeInfo();
-	D3DDISPLAYMODE mode;
-	TCHAR *name;
-	int lenName;
-	bool bRequireClean;
-	HRESULT MakeName(CDX9 *dx);
-	HRESULT MakeNameFormat(CDX9 *dx);
-	HRESULT MakeNameRefresh(CDX9 *dx);
+	bool isAuto;
+	unsigned int width;
+	unsigned int height;
+	DXGI_MODE_SCANLINE_ORDER scanlineOrdering;
+	DXGI_MODE_SCALING scaling;
+	std::wstring name;
+	HRESULT MakeName();
 };
 
+struct CDisplayFormatInfo
+{
+	CDisplayFormatInfo();
+	bool isAuto;
+	DXGI_FORMAT format;
+	std::wstring name;
+	HRESULT MakeName();
+};
+struct CDisplayRefreshInfo
+{
+	CDisplayRefreshInfo();
+	bool isAuto;
+	unsigned int refreshRateNumerator;
+	unsigned int refreshRateDenominator;
+	std::wstring name;
+	HRESULT MakeName();
+};
 class CDiagEmulationSettingsTab : public CTabDialog, public ErrorMsg
 {
 public:
@@ -35,13 +55,12 @@ public:
 	void loadconfig(const CConfig *);
 	void saveconfig(CConfig *);
 
-	HRESULT Init(CDX9 *dx, const CConfig *cfg);
+	HRESULT Init(Graphics* pGx, const CConfig *cfg);
 	CConfig CurrentCfg;
 	CConfig NewCfg;
 	HFONT defaultFont;
 protected:
 	void SettingsOnLimitSpeedChange();
-	void SettingsOnPixelDoublerChange();
 	void SettingsOnCiaChipChange();
 	CDPI m_dpi;
 
@@ -54,19 +73,21 @@ private:
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL OnPageEvent(CTabPageDialog *page, HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
 
-	CDX9 *m_pDx;
-	vector<CDisplayInfo> m_AdapterArray;
+	Graphics* m_pGx;
+	std::vector<Microsoft::WRL::ComPtr<IDXGIAdapter1>> m_vdxgiAdapters;
+	vector<CDisplayInfo2> m_AdapterArray;
+	vector<DXGI_MODE_DESC> m_ModeCompleteList;
 	list<CDisplayModeInfo> m_ModeList;
-	list<CDisplayModeInfo> m_ModeFormatList;
-	list<CDisplayModeInfo> m_ModeRefreshList;
-
+	list<CDisplayFormatInfo> m_ModeFormatList;
+	list<CDisplayRefreshInfo> m_ModeRefreshList;
+	
 	void FillDevices();
 	void FillModes();
-	void FillModes(int adapterOrdinal);
+	void FillModes2(int displayInfoIndex);
 	void FillFormats();
-	void FillFormats(int adapterOrdinal, UINT width, UINT height);
+	void FillFormats2(const CDisplayModeInfo * pModeSelected);
 	void FillRefresh();
-	void FillRefresh(int adapterOrdinal, UINT width, UINT height, D3DFORMAT format);
+	void FillRefresh2(const CDisplayModeInfo* pModeSelected, const CDisplayFormatInfo* pFormatSelected);
 	void FillSizes();
 	void FillFilters();
 	void FillSidCount();
@@ -80,16 +101,16 @@ private:
 	void CloseFonts();
 
 public:
-	static int fnFindModeFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
-	static int fnCompareMode(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
+	static int fnFindModeFormat(const CDisplayFormatInfo& mode1, const CDisplayFormatInfo& mode2);
+	static int fnCompareMode(const CDisplayModeInfo& mode1, const CDisplayModeInfo& mode2);
 	static bool fnForListCompareMode(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
-	static int fnCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
-	static bool fnForListCompareFormat(const CDisplayModeInfo &mode1, const CDisplayModeInfo &mode2);
+	static int fnCompareFormat(const CDisplayFormatInfo& mode1, const CDisplayFormatInfo& mode2);
+	static bool fnForListCompareFormat(const CDisplayFormatInfo& mode1, const CDisplayFormatInfo& mode2);
 private:
-	HRESULT ReadAdapterOrdinal(DWORD *adapterOrdinal, GUID *adapterId);
-	HRESULT ReadAdapterMode(D3DDISPLAYMODE *pMode);
-	HRESULT ReadAdapterFormat(D3DFORMAT *pFormat);
-	HRESULT ReadAdapterRefresh(UINT *pRefreshRate);
+	HRESULT ReadAdapterOrdinal(bool *pbIsDefault, unsigned int* pAdapterOrdinal, unsigned int* pOutputOrdinal);
+	HRESULT ReadAdapterMode(CDisplayModeInfo **pMode);
+	HRESULT ReadAdapterFormat(CDisplayFormatInfo** ppFormat);
+	HRESULT ReadAdapterRefresh(UINT* pRefreshRateNumerator, UINT* pRefreshRateDenominator);
 	HRESULT ReadAdapterStretch(HCFG::EMUWINDOWSTRETCH *pFormat);
 	HRESULT ReadAdapterFilter(HCFG::EMUWINDOWFILTER *pFilter);
 	void ReadTrackZeroSensor(HCFG::ETRACKZEROSENSORSTYLE *v);
@@ -136,35 +157,32 @@ private:
 	class CDisplayModeInfo_format_is_equal
 	{
 	public:
-		CDisplayModeInfo_format_is_equal(D3DFORMAT format);
-		bool operator()(const CDisplayModeInfo& mode) const;
+		CDisplayModeInfo_format_is_equal(const CDisplayFormatInfo& format);
+		bool operator()(const CDisplayFormatInfo& format) const;
 	private:
-		const D3DFORMAT format;
+		const CDisplayFormatInfo& format;
 	};
 
 	class CDisplayModeInfo_format_is_less
 	{
 	public:
-		bool operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const;
+		bool operator()(const CDisplayFormatInfo& a, const CDisplayFormatInfo& b) const;
 	private:
 	};
 
 	class CDisplayModeInfo_refresh_is_equal
 	{
 	public:
-		CDisplayModeInfo_refresh_is_equal(UINT refresh);
-		bool operator()(const CDisplayModeInfo& mode) const;
+		CDisplayModeInfo_refresh_is_equal(const CDisplayRefreshInfo& refresh);
+		bool operator()(const CDisplayRefreshInfo& refresh) const;
 	private:
-		const UINT refresh;
+		const CDisplayRefreshInfo& refresh;
 	};
 
 	class CDisplayModeInfo_refresh_is_less
 	{
 	public:
-		bool operator()(const CDisplayModeInfo& a, const CDisplayModeInfo& b) const;
+		bool operator()(const CDisplayRefreshInfo& a, const CDisplayRefreshInfo& b) const;
 	private:
 	};
 };
-
-
-#endif

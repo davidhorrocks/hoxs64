@@ -91,13 +91,18 @@ HRESULT hr;
 	hr = Init();
 	if (FAILED(hr))
 	{
-		throw std::runtime_error("CDisassemblyFrame::Init() Failed");
+		throw std::exception("CDisassemblyFrame::Init() Failed");
 	}
 }
 
 CDisassemblyFrame::~CDisassemblyFrame()
 {
 	Cleanup();
+}
+
+void CDisassemblyFrame::WindowRelease()
+{
+	keepAlive.reset();
 }
 
 HRESULT CDisassemblyFrame::Init()
@@ -270,14 +275,13 @@ HIMAGELIST CDisassemblyFrame::CreateImageListStepNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-HRESULT CDisassemblyFrame::Show(Sp_CVirWindow pWinParent)
+HRESULT CDisassemblyFrame::Show(HWND hWndParent)
 {
 WINDOWPLACEMENT wp;
 int x,y,w,h;
 BOOL br;
 HWND hWnd;
 
-	HWND hWndParent = pWinParent->GetHwnd();
 	RECT rcDesk;
 	G::GetMonitorWorkAreaFromWindow(hWndParent, rcDesk);
 	hWnd = this->GetHwnd();

@@ -2,8 +2,6 @@
 #include <windowsx.h>
 #include <commctrl.h>
 #include "dx_version.h"
-#include <d3d9.h>
-#include <d3dx9core.h>
 #include "boost2005.h"
 #include <tchar.h>
 #include <string.h>

@@ -1,5 +1,5 @@
 #pragma once
-
+#include "errormsg.h"
 #include "sidvoice.h"
 #include "sidchip.h"
 
@@ -11,10 +11,15 @@ class SID64 : public ISid64, public ErrorMsg
 public:
 	SID64();
 	~SID64();
-	CDX9 *dx;
-	CAppStatus *appStatus;
-	bit32 m_last_dxsample;
-	double MasterVolume;
+	SID64(const SID64&) = delete;
+	SID64& operator=(const SID64&) = delete;
+	SID64(SID64&&) = delete;
+	SID64& operator=(SID64&&) = delete;
+
+	CDX9 *dx = nullptr;
+	CAppStatus *appStatus = nullptr;
+	bit32 m_last_dxsample = 0;
+	double MasterVolume = 0.0;
 	SidChip sid1;
 	SidChip sid2;
 	SidChip sid3;
@@ -51,31 +56,31 @@ public:
 
 	friend struct SIDVoice;
 private:
-	long filterInterpolationFactor;
-	long filterDecimationFactor;
-	long filterKernelLength;
+	long filterInterpolationFactor = 0;
+	long filterDecimationFactor = 0;
+	long filterKernelLength = 0;
 	Filter filterPreFilterStage2Channel1;
 	Filter filterPreFilterStage2Channel2;
 	Filter filterPreFilterResampleChannel1;
 	Filter filterPreFilterResampleChannel2;
-	DWORD soundBufferByteSize;
-	DWORD bufferLockByteSize;
-	DWORD bufferByteLockPoint;
-	bit8 bufferSplit;
-	bit32 *pBuffer1;
-	bit32 *pBuffer2;
-	bit32 *pOverflowBuffer;
-	DWORD bufferByteLen1;
-	DWORD bufferByteLen2;
-	DWORD bufferSampleBlockLen1;
-	DWORD bufferSampleBlockLen2;
-	DWORD overflowBufferSampleLen;
-	DWORD bufferSampleBlockIndex;
-	DWORD overflowBufferBlockIndex;
-	long sidSampler;//Used for filter
-	int currentAudioSyncState;
-	int lastAudioSyncState;
-	int lastAudioGap;
+	DWORD soundBufferByteSize = 0;
+	DWORD bufferLockByteSize = 0;
+	DWORD bufferByteLockPoint = 0;
+	bit8 bufferSplit = 0;
+	bit32 *pBuffer1 = nullptr;
+	bit32 *pBuffer2 = nullptr;
+	bit32 *pOverflowBuffer = nullptr;
+	DWORD bufferByteLen1 = 0;
+	DWORD bufferByteLen2 = 0;
+	DWORD bufferSampleBlockLen1 = 0;
+	DWORD bufferSampleBlockLen2 = 0;
+	DWORD overflowBufferSampleLen = 0;
+	DWORD bufferSampleBlockIndex = 0;
+	DWORD overflowBufferBlockIndex = 0;
+	long sidSampler = 0;//Used for filter
+	int currentAudioSyncState = 0;
+	int lastAudioSyncState = 0;
+	int lastAudioGap = 0;
 
 	DWORD GetSoundBufferLockSize(HCFG::EMUFPS fps);
 	void CleanUp();

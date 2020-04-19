@@ -16,6 +16,8 @@
 #include "util.h"
 #include "utils.h"
 #include "register.h"
+#include "StringConverter.h"
+#include "ErrorLogger.h"
 #include "errormsg.h"
 #include "hexconv.h"
 #include "dchelper.h"
@@ -1207,7 +1209,7 @@ TCHAR *pBuffer = this->szEditTextBuffer;
 	}
 
 	t = 0.0;
-	int r = _stscanf_s(pBuffer, TEXT(" %f"), &t);
+	int r = _stscanf_s(pBuffer, TEXT(" %lf"), &t);
 	if (r < 1)
 	{
 		return E_FAIL;

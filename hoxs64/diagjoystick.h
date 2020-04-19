@@ -1,9 +1,8 @@
-#ifndef __DIAGJOYSTICK_H__
-#define __DIAGJOYSTICK_H__
-
+#pragma once
+#include "cvirwindow.h"
+#include "errormsg.h"
 #include "CDPI.h"
 #include "gamecontrolleritem.h"
-
 
 extern BOOL CALLBACK EnumDlgJoyCallback(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef);
 extern BOOL CALLBACK EnumDlgJoyAxisCallback(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef);
@@ -183,5 +182,3 @@ private:
 
 	CDX9 *pDX;
 };
-
-#endif

@@ -33,7 +33,7 @@ HRESULT hr;
 	hr = Init();
 	if (FAILED(hr))
 	{
-		throw std::runtime_error("CDisassemblyChild::Init() failed");
+		throw std::exception("CDisassemblyChild::Init() failed");
 	}
 }
 
@@ -42,7 +42,7 @@ CDisassemblyChild::~CDisassemblyChild()
 	Cleanup();
 }
 
-void CDisassemblyChild::Cleanup()
+void CDisassemblyChild::Cleanup() noexcept
 {
 	UnadviseEvents();
 }
@@ -602,7 +602,7 @@ void CDisassemblyChild::OnCpuRegPCChanged(void *sender, EventArgs& e)
 HRESULT CDisassemblyChild::AdviseEvents()
 {
 	HRESULT hr;
-	HSink hs;
+	HSink hs = nullptr;
 	hr = S_OK;
 	do
 	{
@@ -628,7 +628,7 @@ HRESULT CDisassemblyChild::AdviseEvents()
 	return hr;
 }
 
-void CDisassemblyChild::UnadviseEvents()
+void CDisassemblyChild::UnadviseEvents() noexcept
 {
 	((CDisassemblyChild_EventSink_OnCpuRegPCChanged *)this)->UnadviseAll();
 }
