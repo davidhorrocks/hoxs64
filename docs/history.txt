@@ -1,0 +1,1415 @@
+02 November 2019 v1.0.25.0
+==========================
+1) Added 100Hz full screen frame rate doubler option to help prevent IPS LCD
+pixel burn in when using G-Sync.
+
+
+22 October 2019 v1.0.24.0
+=========================
+1) Improved G-Sync performance with the host CPU aggressive mode.
+
+
+12 October 2019 v1.0.23.2
+=========================
+1) Fix joystick settings dialog configuration fault.
+
+
+03 October 2019 v1.0.23.1
+=========================
+1) Added aspect ratio resizing option to windowed mode.
+
+2) Added 6th key to the joystick assignment key map.
+
+3) Fix configuration save / load of joystick fire 2.
+
+
+25 September 2019 v1.0.23.0
+===========================
+1) Allow PC joystick to control up to 5 C64 keys.
+
+2) Monitor refresh option added to emulation video settings.
+
+
+25 August 2019 v1.0.22.4
+========================
+1) Fix to remember the address of a disused extra SID chip.
+
+
+25 August 2019 v1.0.22.3
+========================
+1) 8 SID load from a saved state file fix.
+
+
+25 August 2019 v1.0.22.2
+========================
+1) 8 SID configuration to support the "The Tuneful Eight [ultimate]"
+https://csdb.dk/release/?id=180946
+
+
+24 August 2019 v1.0.22.1
+========================
+1) SID file loading adjustment.
+
+
+24 August 2019 v1.0.22.0
+========================
+1) Multiple SID chip configuration added to the "chip" tab settings. Up to 4
+SID chips can be configured. Added SID stereo / mono toggle option.
+
+2) Stability fixes and improvements to the built in sid file player to 
+support version 4 sid files with automatic multiple SID chip configuration.
+
+
+12 August 2019 v1.0.21.2
+========================
+1) Changed command line option -autoload "hostfilename.d64" ":c64filename" 
+such that c64filename will have the case flipped.
+
+2) Added command line option "@" to index a directory with no file type filter.
+
+
+02 June 2019 v1.0.21.1
+======================
+1) The debugger now displays and parses all numbers using the current selected radix (hex or dec)
+while permitting the use of "$" and "." as radix overrides.
+
+2) Fixed broken loading of a cartridge with in a save state file.
+
+3) Bug fix for randomly distributing keyboard and joystick input into the video frame.
+
+4) Changed ANE to use 0xEF as the magic constant as recommended by Groepaz.
+
+
+27 April 2019 v1.0.21.0
+=======================
+Fix ANE opcode for Turrican 3
+
+
+27 April 2019 v1.0.20.0
+=======================
+1) Added debugger step over JSR and step out with stack instructions functionality.
+
+2) Fixed incorrect memory map while using the debugger that allowed the VIC to read from IO space.
+This caused Emufuxx0r to fail while using the debugger.
+
+
+24 March 2019 v1.0.19.0
+=======================
+Fix track wrap around disk image corruption to the file produced with "Save as D64".
+
+
+12 February 2019 v1.0.18.0
+==========================
+1) Fix 1541 drive memory map that was broken since v1.0.14.0. The title Intoxication by Singular 
+https://csdb.dk/release/?id=4431 is now working again.
+
+
+09 February 2019 v1.0.17.0
+==========================
+1) VIC emulation improvement to accurately emulate the early C-Data usage whenever X-Scroll is
+decreased by 4 or more.
+
+
+25 December 2018 v1.0.16.0
+==========================
+1) Prevent memory buffer overflow error when mounting G64 disk files that 
+contain tracks that are longer than 7928 bytes. Allow arbitrary length G64 
+track data to be scaled to the emulated disk.
+
+
+24 December 2018 v1.0.15.0
+==========================
+1) Fixed G64 file header track size sanity check.
+
+
+22 December 2018 v1.0.14.0
+==========================
+1) Added VIA6522 shift register emulation to support raw captured VMAX4 loaders.
+
+2) CIA Time Of Day emulation accuracy improvement.
+
+
+02 December 2018 v1.0.12.0
+==========================
+1) Allow game device axes to be unselected in the joystick settings.
+
+2) Experimental support for game devices with more than 32 buttons and up to 128 buttons.
+
+3) Fix to broken save state.
+
+
+18 November 2018 v1.0.11.0
+==========================
+1) SID envelope timing fixes. SID sustain register cycle accurate response to changes. Update to 
+the SID noise write back behaviour.
+
+
+04 November 2018 v1.0.10.0
+==========================
+1) SID envelope timing fixes to accommodate VICE test programs in
+testprogs\SID\env_test\ 
+Also improved is the timing of gate attack during release and gate release during attack as 
+measured by own test programs.
+
+
+15 April 2018 v1.0.9.9
+======================
+1) New joystick configuration and fixes. Multiple host game device buttons 
+can be assigned to a C64 joystick function.
+
+
+04 February 2018 v1.0.9.8
+=========================
+1) Fixed audio clock sync sound bug that can happen when running a monitor 
+FPS that is less than the emulated FPS.
+
+
+28 January 2018 v1.0.9.7
+========================
+1) CIA ICR interrupt regression fix that was broken in v1.0.9.6 that prevented the game 
+International Karate from working.
+
+2) Fixed audio clock sync that was causing slow downs in windowed mode VBL sync.
+
+
+01 January 2018 v1.0.9.6
+========================
+1) CIA old timer B bug timing fixes for Wilfred Bos's alternate version of the dd0dtest.
+
+2) Updated 8580 SID combined wave with slightly improved samples from a real C64C CSG 8580R5.
+
+3) Added a new joystick setting to enable the use all fire buttons.
+
+4) Added separate VBL sync or line sync options for both Direct X full screen and windowed mode.
+
+5) Fixed the "Stretch with border clip" in some resolutions to provide a more optimal zoom.
+
+
+20 September 2017 v1.0.9.5
+==========================
+1) Fix for saving and loading user preferences that was broken in v1.0.9.4.
+
+
+17 September 2017 v1.0.9.4
+==========================
+1) CIA serial and CNT timing improvements thanks to test programs written by 
+Mariusz.
+
+2) Added VIC-II colour palette user configuration dialog box.
+
+3) Added command line options (see hoxs64.txt) to support the VICE 64 
+testbench.
+
+4) Changed the colour RAM reset pattern to use bytes $0C and $03 as per the 
+same C64C whose RAM reset pattern is already used.
+
+
+19 March 2017 v1.0.9.2
+======================
+1) Fixed memory leak when changing the floppy disk image.
+
+2) The joystick game controler will now respond to all POV/hat switches.
+
+
+21 February 2017 v1.0.9.1
+=========================
+1) Fixed CPU opcodes SHS SHA SHY SHX ARR (decimal mode) to pass the VICE tests.
+
+2) Added SID noise write back behaviour.
+
+3) Corrected the SID master volume position to be after the SID filters. Was broken since v1.0.8.8.
+
+5) SID ring modulation fix.
+
+6) Corrected sector gaps when reading a D64.
+
+7) Adjusted 1541 drive motor spin down timing as required for Wonderland XIII by Censor Design.
+
+8) Fixed fault with save state / load state.
+
+9) Fixed fault with FDI save.
+
+10) Fixed Ultimax open address fetch.
+
+
+2 January 2017 v1.0.9.0
+=======================
+1) Added Benjamin 'BeRo' Rosseaux's P64 1541 file format. Hoxs64 incorporates the P64 source code 
+written by Benjamin 'BeRo' Rosseaux author of Mirco64 http://micro64.de 
+The P64 disk representation with its linked list management is now used as the internal real time 
+representation of the disk.
+
+2) Fixed numerous bugs with the CIA Time Of Day clocks so as to pass the VICE test programs under 
+testprogs\CIA\tod
+
+3) Improved CIA emulation to handle instructions that perform multiple accesses to address $DD0D 
+so as to pass the VICE test testprogs\CIA\dd0dtest\dd0dtest.prg
+
+
+9 May 2016 v1.0.8.9
+===================
+1) Fix VIC where a write to the raster compare register was causing a raster IRQ to occur one clock too soon.
+This fixes "Vandalism News #64" http://csdb.dk/release/?id=138976 reported by iAN CooG/HokutoForce.
+
+
+10 May 2015 v1.0.8.8
+====================
+1) Disk drive VIA fixes to pass the VICE testprogs\drive\viavarious test programs.
+
+2) Sound improvement fix for last part of Comaland 2014.
+
+3) Windows GUI fixes.
+
+
+8 May 2014 v1.0.8.7
+===================
+1) Resizable main window for windowed mode.
+
+2) Fix Ultimax VIC fetch.
+
+
+22 September 2013 v1.0.8.6
+==========================
+1) Fixed an EasyFlash cartridge fault when loading a 4KB banked CRT file or state file.
+
+
+22 September 2013 v1.0.8.5
+==========================
+1) Added emulation state file save, load and restore facility.
+
+2) Added Epyx Fastload cartridge.
+
+3) Added screen border hide options.
+
+4) Fixed Retro Reply cartridge banking fault.
+
+5) Reworked the CPU code to accommodate XAA/ANE for a MOS8500 as reported by Visual6502.org
+http://visual6502.org/wiki/index.php?title=6502_Opcode_8B_(XAA,_ANE)
+
+
+6 January 2013 v1.0.8.4
+=======================
+Bug fix to opcodes AXH/SHY/AHX/TAS broken in v1.0.8.3.
+
+
+4 January 2013 v1.0.8.3
+=======================
+Bug fix to VIC. Removed faulty VIC ClockNextWakeUpClock runtime (not debugger) mode optimiser code 
+that had caused the Technological Snow demo by Agony Design to fail since v1.0.6.3.
+
+
+3 January 2013 v1.0.8.2
+=======================
+1) EasyFlash v2 title screen glitch now fixed by correcting the "hard reset" code to set the sprite
+Y expansion flip-flops. 
+
+
+1 January 2013 v1.0.8.1
+=======================
+1) Added the EasyFlash 1MB cartridge. A simplified emulation of the AMD Am29F040 EPROM permits writing 
+and passes EasyProg v1.6.3 tests.
+
+2) Fixed freeze and soft reset to spread randomly through the frame to improve the chance of a successful freeze.
+
+
+30 December 2012 v1.0.8.0
+=========================
+1) New cartridge emulation with freeze function. Peter Schepers CRT format is supported. 
+The following cartridge emulations are supported.
+
+Action Replay v[6 - 2]
+Final Cartridge III (v3 only)
+Retro Replay 64K RAM
+Magic Desk
+Ocean 1
+Fun Play
+Super Games
+System 3
+Dinamic
+Zaxxon
+Simons Basic
+Normal Cartridge
+
+The CRT reader uses the in file reported chip bank numbers and not the order they appear in the file. 
+
+2) Fixed misreported raster position in the debugger when starting a new frame.
+
+
+21 November 2012 v1.0.7.5
+=========================
+1) Added point and click raster position breakpoints. Breakpoints can be disabled with out being deleted.
+
+2) Added command window with assemble, disassemble and C64 memory map selection.
+
+3) Added disassemble window address finder.
+
+4) Added disassemble window mouse wheel scrolling (WinXP+).
+
+5) Randomisation of drive weak bits. Minor drive timing improvement.
+
+
+11 March 2012 v1.0.7.4
+======================
+1) The application is marked as "DPI Aware". All Windows GUI elements are DPI aware and will render 
+smooth clear text when used with Windows 7's "make text bigger" option. Only the windowed mode C64 
+bitmapped rendering remains non DPI aware as with previous versions.
+
+2) Added a work in progress breakpoint listview with context menu options "Show Address" and "Delete 
+All Breakpoints"
+
+3) Illegal opcode tweak for demo 'Errata' by Emulamer.
+
+4) CRASHFIX: Fixed stack corruption crash when reading G64 files with custom speed zones.
+
+5) CRASHFIX: Fixed application lock up bug while drag scrolling the disassembly window.
+
+
+25 October 2011 v1.0.7.3
+========================
+1) Enabled editing of the CPU registers and the disassembly mnemonics. The mnemonic edit box 
+accepts either 6502 assembly or space delimited numbers.
+
+2) Fixed pixel glitch while stepping in the debugger.
+
+3) Added up/left soft cursor keys.
+
+4) Tweak for demo 'Bad Copy' by Emulamer.
+
+
+17 April 2011 v1.0.7.2
+======================
+1) Fixed broken 320x200 and 320x240 modes.
+
+2) Added option for disabling DWM (Aero) for full screen mode.
+
+
+13 April 2011 v1.0.7.1
+======================
+1) Text rendering bug fix to disassembly window.
+
+2) Added trace till IRQ/NMI function.
+
+3) Potential missed breakpoint while tracing bug fix.
+
+4) Miscellaneous monitor GUI fixes and improvements.
+
+
+11 April 2011 v1.0.7.0
+======================
+1) VIC sprite collision timing fixes.
+
+2) VIC phase 2 fetch fix for Ruined Art demo.
+
+3) Improved CPU disassembly monitor. Instruction based scrolling. Separate CPU windows 
+allow both clock step and instruction step with ablility to step through the IRQ and NMI cycles.
+VIC raster line and cycle is displayed.
+
+4) Fix to CIA Timer B bug.
+
+5) ALT Q key nuisance fixed.
+
+
+24 October 2010 v1.0.6.2
+========================
+1) Fixes to the key matrix.
+
+2) Fixed Time Of Day alarm fail to trigger bug that was introduced in v1.0.5.27 that
+may cause the game Hypersports to get stuck on the clay shooting part.
+
+3) Audio resample mode is now on when restoring default settings.
+
+
+10 October 2010 v1.0.6.1
+========================
+1) Adjusted all VIC $D011 and $D016 mode change transitions to give pixel exact output
+
+2) Improved keyboard matrix emulation. Space bar now works correctly in the Nitro 16 demo.
+
+3) Adjusted VIC light-pen timing.
+
+4) Adjusted CIA6526A IRQ timing.
+
+5) Common code base now supports both x86 and x64 compiles. 
+(x64 bit version is tested on Windows 7 with full DirectX install).
+
+6) Added WinXP styles that use common control library 6.
+
+7) Adjusted audio sync.
+
+
+25 May 2010 v1.0.6.0
+====================
+1) Added CIA6526 and CIA6526A options to the emulation setting dialog.
+
+2) Corrected all valid VIC mode change transitions to give pixel exact output.
+
+3) Adjusted IRQ DMA behaviour for instructions SEI and CLI.
+
+4) Fixed a restore key bug.
+
+5) Adjusted Quick Speed to honour the VBL Sync option.
+
+6) Optimised the DirectX video device creation.
+
+
+16 April 2010 v1.0.5.29
+=======================
+1) Corrected the sprite multicolour enable register transitions.
+
+2) Corrected VIC mode change transition from text mode to multicolour text mode to give 
+pixel exact output.
+
+3) Corrected VIC bottom border behaviour.
+
+4) Fixed bug with the recently implemented edge triggered raster IRQ behaviour.
+
+5) Bug fixes and performance improvements to the GCR to D64 converter that is used by the file dialog
+directory browser, quickload and the save to D64.
+
+6) Fixed bug with the quickload of D64 programs that should be started with SYS.
+
+7) Added light pen IRQ re-trigger behaviour.
+
+
+2 October 2009 v1.0.5.28
+========================
+1) Bug fix to correct a 32 bit integer overflow bug that causes incorrect emulation behaviour after 
+1 hour and 13 minutes of continuous use.
+
+
+13 August 2009 v1.0.5.27
+========================
+1) Added general option to enable/disable opposing joystick directions.
+
+2) Speed optimisation to the CPU, CIA and VIC. The emulation is noticeable faster 
+on lines with no DMA fetches and no IRQs
+
+3) Bug fix to the reverse keyboard matrix. Was broken for years!
+
+4) Accurate emulation of the $DD00 VIC bank switch bug.
+
+Unless something is majorly broken, the next release will include the long awaited debugger. Work
+on the debugger is now in progress.
+
+
+12 July 2009 v1.0.5.26
+======================
+1) Bug fix to the FDI file format reader. Rapidlok game Serve and Volley now works. Many other FDI 
+captures now work.
+
+2) New "Disk on Separate Thread" option added to the general settings page. Multi-core CPUs will provide
+increased performance when the serial bus is idle.
+
+3) 1541 drive fixes. 
+
+4) Numerous VIC mid raster line mode change fixes. A newly discovered edge triggered raster IRQ behaviour 
+is now implemented as seen on both old and new VIC chips.
+
+5) Joystick fixed to prevent opposing directions from being simultaneously pressed.
+
+
+29 May 2008 v1.0.5.25
+=====================
+1) Bug fix for an un-initialised boolean that either allows head stepping while the motor
+is off (the most likely case) or causes missed head steps depending of the "random" state of 
+the boolean.
+
+
+29 May 2008 v1.0.5.24
+=====================
+1) Another adjustment to the 1541 drive head stepping logic and initialisation of disk drive 
+that is broken in the previous release as seen by excessive flashing of the 1541 LED. 
+
+2) The 1541 disk motor will run continue to spin for a short a fraction of a second after being
+turned off. The disk loader for Star Trekking the Game is now more accurately accommodated. 
+
+
+28 May 2008 v1.0.5.23
+=====================
+1) Adjustment to the 1541 drive head stepping logic and initialisation of 
+drive internal track counter. Some quickloads including the Tsumami demo that are broken in 
+previous release are working again.
+
+
+27 May 2008 v1.0.5.22
+=====================
+1) Adjustment to the 1541 drive head stepping logic to fix the demo Cafe Odd by Reflex that
+was broken in the previous release.
+
+
+26 May 2008 v1.0.5.21
+=====================
+1) The VIC fix for the Tsunami demo by Booze Design in v1.0.4.25 has proved to be an incorrect
+model. The correct model that is now implemented allows sprite DMA to occur with the sprite not
+displayed. 
+
+2) The 1541 drive emulation has been corrected to prevent disk head movement in the same clock
+as the disk motor is turned on.
+
+
+24 May 2008 v1.0.5.20
+=====================
+1) VIC regression fixes and improvements to mid screen mode changes as seen on a C64C. The C64C 
+infamous grey dot bug is not emulated. The anomalous phase 2 VIC fetch that does not fetch $FF is 
+not emulated. Many more demos will correctly display stray pixels or not as per a C64C. 
+
+
+26 April 2008 v1.0.5.19
+=======================
+1) VIC fixes for bugs introduced in previous version. Some effects caused by a write to VIC $D016 
+mode control have been brought forward by 4 pixels.
+
+2) The SID combined waves that use sawtooth will no longer respond to ring modulation as 
+observed on a C64C.
+
+3) Fixed the disk inspector to discount empty directory records. Crest Avantgarde will now 
+browse.
+
+
+20 April 2008 v1.0.5.18
+=======================
+1) Fixed NMI timing during BRK instruction.
+
+2) VIC fixes including the adjustment of the Sprite Y Expansion and the charactor display 
+logic. The following demos are fixed. "Destruction" by Dream, "Spice Up Your Life" by 
+Triad and "Parados"
+
+
+24 February 2008 v1.0.5.17
+==========================
+1) Added options to create and save either 35 or 40 tracks to a D64 file.
+
+2) Added track align option for creating and loading D64 files.
+
+3) Added command line options.
+example:
+hoxs64.exe -quickload -alignd64tracks -autoload "c:\games\games.d64" 5
+This will auto quick load program 6 from the file games.d64. Aligned tracks will be used.
+
+4) VIC fixes. Numerous demos fixed.
+
+5) 1541 disk VIA fixes.
+
+
+27 January 2008 v1.0.5.16
+=========================
+1) VIC fixes. Stray black pixels removed from Scorpion demo.
+
+
+20 January 2008 v1.0.5.15
+=========================
+1) Adjusted disk drive VIA timers. The Orbservan disk mag now loads.
+
+
+14 January 2008 v1.0.5.14
+=========================
+1) Adjusted IRQ timing for branch instructions.
+
+
+4 January 2008 v1.0.5.13
+========================
+1) Fixed auto disk swap bug introduced in v1.0.5.11. Disk head does not remain high while
+a disk swap is in progress.
+
+
+2 January 2008 v1.0.5.12
+========================
+1) Fixed overlapping IRQ and NMI timing. The Flexible demo part 3 flicker is fixed.
+
+2) Fixed sound noise bug caused by an incorrectly truncated floating-point number.
+
+
+1 January 2008 v1.0.5.11
+========================
+1) Fixed memory bug in FDI disk decompression.
+
+2) Fixed bug in RTI opcode. Flexible demo part 3 now works.
+
+3) The disk head data line is held high when the motor is off. Startrek game now loads.
+
+4) Fixed CIA PB6-7 bug introduced in v1.0.5.0
+
+5) Reduced sound volumes to avoid wave cropping.
+
+
+
+19 November 2007 v1.0.5.10
+==========================
+1) Fixed SounDemon’s sid emulation compatibility that was broken in the previous release.
+
+2) Adjusted memory-reset pattern. An optional memory pattern file called c64.ram has been 
+added. The file was sampled and extrapolated from the memory-reset pattern of a C64C. 
+If the c64.ram file is missing then a default pattern is generated.
+
+
+18 November 2007 v1.0.5.9
+=========================
+1) Fixed disk head movement while motor is off bug that was introduced in v1.0.5.0. 
+The LogosLand 2 demo works again. 
+
+2) The disk ROM is updated from 1541C to 1541-II. The game Kangarudy II works.
+
+3) Adjusted SID oscillator register $D41B to read a one cycle delay as per an 8580 SID.
+
+4) Adjusted memory reset pattern. The game Snow Queen and the demo Typical / Beyond The Force 
+works.
+
+5) Fixed assertion failure while performing a reset in debug mode.
+
+6) Fixed long standing internal "first chance exception" whilst querying the application 
+version.
+
+
+28 October 2007 v1.0.5.8
+========================
+1) Fixed memory write access general protection fault caused by using less than
+full borders with sprites active around raster line zero.
+
+
+21 October 2007 v1.0.5.7
+========================
+1) The memory requirement of the Finite Impulse Response (FIR) filters is reduced without
+compromising sound quality. There is increased performace of the 50.12Hz mode for machines
+with relatively small L2 caches.
+
+2) Added choice of two 50.12Hz modes. The large FIR mode performs best on large L2 caches
+such as 4Mb. The multistage FIR mode performs best on smaller L2 caches.
+
+
+18 October 2007 v1.0.5.6
+========================
+1) Added C64 video speed option for 50Hz and 50.12Hz. 
+
+
+14 October 2007 v1.0.5.5
+========================
+1) Improved screen saver disablement by responding to WM_SYSCOMMAND instead of changing
+the system screen saver timeout.
+
+
+13 October 2007 v1.0.5.4
+========================
+1) Added border size options, "Full, "TV" and "Small".
+
+2) Added show/hide floppy LEDs.
+
+3) Improved handling of video mode changes.
+
+
+10 October 2007 v1.0.5.2
+========================
+1) Fixed slow performance with VBL sync by changing the presentation interval from
+D3DPRESENT_INTERVAL_DEFAULT to D3DPRESENT_INTERVAL_ONE
+
+
+10 October 2007 v1.0.5.1
+========================
+1) Fixed window resizing minor bug when going from fullscreen to windowed mode.
+
+
+10 October 2007 v1.0.5.0
+========================
+1) Upgraded to DirectX 9 October 2006 libraries or higher. 
+
+2) Added video mode and multi-monitor adapter selection.
+
+3) Added full screen stretch-to-fit.
+
+4) Added blit stretch filter selection.
+
+5) VBL Sync works in both windowed and full screen.
+
+6) Added floppy LEDs.
+
+7) Temporarily disabled screen saver.
+
+8) VIC fixes. TRC-TBI intro demo displays. Fixed the VIC LP IRQ response to the keyboard.
+
+
+31 July 2007 v1.0.4.26
+======================
+1) VIC timing fixes
+
+
+30 July 2007 v1.0.4.25
+======================
+1) VIC timing fixes. Stray pixels have been removed from the Tsunami Demo.
+
+
+18 July 2007 v1.0.4.24
+======================
+1) IRQ timing adjusted. VIA timers adjusted. SID and CPU register fade adjusted.
+The following titles will now work:- "Locomotion", "Aurora 90%", "The Addams Family"
+and "Star Expedition"
+
+
+18 June 2007 v1.0.4.23
+======================
+1) Bug fix to the TAP version 2 reader. The "Giana Sisters" tape file now plays.
+
+2) Adjusted TOD clock to allow the possibility of a TOD Alarm IRQ occurring immediately on 
+a write to the TOD clock. The game "Hammer Fist" now plays.
+
+7 June 2007 v1.0.4.22
+=====================
+1) Minor VIC fixes.
+
+4 June 2007 v1.0.4.21
+=====================
+1) Fixed bug introduced in the previous version to the D64/G64/New disk insertion that 
+loads tracks into both the whole track and halftrack position.
+
+2) 1541 ROM changed to a 1541C revision 2 to cure a half track miss-alignment issue that 
+prevents the correct saving to an inserted floppy following an attempted save with no 
+floppy inserted.
+
+4 June 2007 v1.0.4.20
+=====================
+1) Numerous 1541 emulation fixes. The demo Intoxication by Singular and game Starflight 
+now work.
+
+2) Fixes to the VIC border unit and background colours. The demos LCP_memories and Skaaneland 
+by Fairlight now display correctly.
+ 
+
+27 May 2007 v1.0.4.19
+=====================
+1) Fixed assertion failure whilst using the monitor with a disabled 1541 disk drive.
+
+
+24 May 2007 v1.0.4.18
+=====================
+1) Minor adjustment to the VIC under-border background colour logic. The "1993" part of 
+"Totally Stoned 2" by Booze Design is now pixel exact as seen on a real C64C.
+ 
+
+21 May 2007 v1.0.4.17
+=====================
+1) Adjustment to the VIC sprite Y expand register. The game Flying Shark now displays 
+correctly.
+
+2) Adjustment to the CIA serial shift register to raise the initial byte complete IRQ after 15 
+timer  underflows instead of 16 timer underflows. The game Athena now displays correctly.
+
+3) Adjustment to the VIC display enable bit. The game Elven Warrior now displays.
+
+4) Adjustment to the SID ADSR. The HVSC sid tune /VARIOUS/G-L/Kordiaukis/Request.sid
+missing instruments have been restored.
+
+
+19 May 2007 v1.0.4.16
+=====================
+1) The VIC emulation as been enhanced to include a 4 pixel delay before responding to 
+changes to the sprite multicolor register. Stray pixels have been removed from the 
+"Krestage 3" Demo by Crest 50 pixel sprite upper border.
+
+16 May 2007 v1.0.4.15
+=====================
+1) Fixed restore key freeze bug introduced in v1.0.4.12.
+
+
+16 May 2007 v1.0.4.14
+=====================
+1) Added 25 pixel sprite feature used in the "Krestage 3" Demo by Crest. The demo will
+now run unpatched.
+
+2) Bug fix to broken sprite timing introduced in v1.0.4.12 that was noticed in the 
+"Royal Arte" Demo By Booze Design
+
+
+15 May 2007 v1.0.4.13
+=====================
+1) Bug fix to Win9x file open/save dialogs introduced in v1.0.4.12.
+
+
+14 May 2007 v1.0.4.12
+=====================
+1) Added disk image, T64 and SID file inspector to the Auto Load dialog box.
+
+2) Added Quick Load to the Auto Load dialog box for fast loading PRG files from a CBM DOS
+disk image.
+
+3) Minor adjustment to the SID noise waveform. The California Games title music drums
+now plays correctly.
+
+4) Bug fix to the "Save As D64" option that guessed the wrong speed zone of a track which
+resulted in a corrupted saved D64. The default speed zones are now assumed during a 
+"Save As D64".
+
+5) ROMs are searched for in the following order. The folder of the executable. The current
+system path.
+
+
+12 October 2006 v1.0.4.11
+=========================
+1)  The CIA Time Of Day clock has been corrected to have the same quirky BCD count up 
+behaviour as the real thing. 
+
+2) The CIA Time Of Day count-up frequency has been corrected and now responds to 
+the 50Hz / 60Hz TOD input selector.
+
+09 October 2006 v1.0.4.10
+=========================
+1) Fixed CIA Time Of Day freeze on write function. A freeze bug in the game 
+"Frankie Goes To Hollywood" has been fixed.
+
+06 October 2006 v1.0.4.9
+========================
+1) The Flexible Disk Image support has been upgraded to include the new FDI v2.1 format 
+with CRC-32 error detection.
+
+2) T64 read-only file support has been added. A T64 directory browser has been added to 
+the Tape menu.
+
+3) The SID resonance has been boosted.
+
+4) The SID ADSR timings have been corrected to be cycle exact.
+
+5) Fixed long standing incorrect implementation of the SID "Hard-Sync".
+
+6) The SID "combined waveforms" now uses an 8bit wave table. The samples were taken from a 
+Commodore C64C with serial number "HB5 527013 E" via the SID register $D41B.
+
+7) Minor adjustment of SID sample holding behaviour for waveform $00.
+
+8) An intermittent performance slow down issue with the SID filters has been fixed. The 
+performance loss was a result excessive underflow with ultra small numbers known as 
+de-normal floating point numbers.
+
+Many thanks to Stephan Parth for SID emulation testing.
+
+
+
+22 August 2006 v1.0.4.8
+=======================
+1) The SID emulation has been improved. The amplitude modulators will hold the last 
+sample sent from waveform generators that have been set to output no waveforms. 
+Clicking, ticking and popping noises have been removed from the following sid tunes: 
+Sheep In Space
+Sidewinder II
+Brutal_Techno.sid by S. Bachliñski (Moog) & Jetan
+
+2) The combined waveforms have been adjusted.
+
+3) Minor VIC-II fixes have been made. Several stray black pixels have been removed from 
+the bottom right of the "kiss" screen in +H2K demo by Plush. White flickering pixels 
+have been removed from the sprite multiplexer hidden screen in Krestage by Crest.
+
+22 January 2006 v1.0.4.7
+========================
+1) Sound bug fix to "resampling" mode.
+
+22 January 2006 v1.0.4.6
+========================
+1) Added SID "resampling" and "down sampling" options to the emulation settings page. 
+Previous versions implemented down sampling only. Resampling introduces less noise but 
+requires significantly more CPU power than down sampling. Resampling is off by default.
+
+
+16 January 2006 v1.0.4.5
+========================
+1) The length of time taken to reset the noise waveform via the "test bit" has been set 
+to 7 seconds. Version 1.0.4.2 and lower never reset the noise waveform. Version 1.0.4.3 
+accommodated the SounDemons emulation detector test by introducing a reset delay that 
+took a tiny fraction of a second. As a result some noise bases sid files will play 
+correctly as they did in version 1.0.4.2
+
+
+16 January 2006 v1.0.4.4
+========================
+1) Version 1.0.4.3 may suffer poor performance on a host CPU with L2 cache 256Kb or less. 
+The interpolation filter kernel size has now been slightly reduced to restore performance.
+
+2) The sprite collision timing has been delayed by two pixels. As a result, 
+Emu-Fuxx0r V1 compatibility has been added in addition to existing Emu-Fuxx0r V2 
+compatibility.
+
+
+15 January 2006 v1.0.4.3
+========================
+1) Corrected delayed response of the SID wave feedback register $D418. Improved 
+combined SID wave forms emulation. SounDemons "Waveform Composer" emulation detection 
+test now passes.
+
+2) Added Pete Rittwage's weak bit handling to the 1541 drive emulation as required by
+some copy protected disk images.
+
+
+13 January 2006 v1.0.4.2
+========================
+1) Fixed bug that would silently fail to insert an FDI disk if the emulator write 
+protection was enabled prior to insertion.
+
+11 January 2006 v1.0.4.1
+========================
+1) Fixed GPF in Insert New Blank Disk.
+2) Disk write protection bug fix.
+
+11 January 2006 v1.0.4.0
+========================
+1) Disk file support is expanded to include Vincent Joguin's FDI (Flexible Disk Image) 
+and G64 (Raw GCR Binary). G64 files can be loaded but not saved. FDI files can be both 
+loaded and saved. FDI support is limited to the Raw Pulse Stream Tracks format.
+
+2) Non standard track layout D64 files are loaded more correctly but will save only as 
+FDI. Standard track layout D64 files will save as normal.
+
+3) The 1541 emulation is enhanced to support bitwise resolution of disk tracks. Magnetic 
+disk pulses are specified to a resolution of 16Mhz. No more than one pulse can be
+specified with in the same 1Mhz band arc of any track.  G64 files effectively specify a
+bit resolution between 0.3Mhz and 0.25Mhz depending on the speed zone setting.
+
+4) The 1541 floppy disk controller emulation includes all relevant internal counters 
+and shift registers.
+
+5) 1541 VIA port latching and handshaking is now emulated.
+
+6) Improved handling of disk protect sensor while swapping disks.
+
+
+
+13 December 2005 v1.0.3.12
+==========================
+1) Fixed sprite bug introduced in release (v1.0.3.8) where a sprite could empty its buffer at 
+column cycle 63 even thought the sprite was hidden at X position >= 0x1f8. This was noticed as 
+occasional blank sprite lines in the second part of the "Ice Cream Castle" demo by Crest.
+
+12 December 2005 v1.0.3.12
+==========================
+1) Sprite hiding, distortion and buffering near the fetch clocks is now correctly emulated. 
+"Demus Interruptus" by Crest should display now display correctly with true cycle based sprites.
+2) Frame skip is off by default and VBL Sync is on by default.
+
+
+20 November 2005 v1.0.3.11
+==========================
+1) Quick speed mode retains maximum compatibility by disabling sound output but not disabling the 
+SID emulation. The "Emu-fuxx0r v2" test will now pass in Quick speed mode.
+
+14 November 2005 v1.0.3.10
+==========================
+1) Fixed instance corrupted sideborder graphics introduced in release (v1.0.3.8).
+The problem was visible during a decreasing X Scroll in raster cycle 56.
+
+12 November 2005 v1.0.3.9
+=========================
+1) Fixed some corrupted sideborder graphics introduced in the previous release (v1.0.3.8).
+
+12 November 2005 v1.0.3.8 : Possibly the world’s first emulator to fool "Emu-fuxx0r v2".
+=========================
+1) Cycle based sprite emulation.
+2) "Emu-fuxx0r v2" by Plush compatibility. The "Quick speed" toggle must be switched off to pass 
+the "Emu-fuxx0r v2" test. This is because the "Quick speed" toggle disables the SID emulation.
+3) DExx memory compatibility.
+4) SID digi boost option.
+
+14 September 2005 v1.0.3.7
+==========================
+1) Corrected SID to return 255 for the X-Y game paddle positions. The game Lemmings will now work 
+in joystick mode.
+
+12 September 2005 v1.0.3.6
+==========================
+1) CIA timers are set to 65535 following a hard reset. The game Netherworld will now run as a result.
+2) Fixed CIA timer output to PB6 and PB7.
+
+8 September 2005 v1.0.3.5
+=========================
+1) Improved SID player compatibility. RSID "C64 BASIC" mode support added. PSID 60hz CIA mode support added.
+
+7 September 2005 v1.0.3.4
+=========================
+1) Bug fixes to SID player. RSID support. 60hz SID play mode is not supported in this release.
+
+6 September 2005 v1.0.3.3
+=========================
+1) SID File version 1 and version 2 support.
+
+6 September 2005 v1.0.3.2
+=========================
+1) Initial release of SID file player. Support is limited to the PSID "PAL Vertical Blank" variety.
+SID files are loaded through the auto-load menu option.
+2) Additional ring modulation bugs fixed.
+
+20 August 2005 v1.0.3.1
+=======================
+1) Corrected poor sounding ring modulation noticed in Sidewinder II.
+
+19 August 2005 v1.0.3.0
+=======================
+1) Fixed pulse width modulation to allow digi sound playback in Air Combat Emulator (A.C.E.)
+2) Added F-key control boxes to the keyboard configuration page.
+3) Added Quick speed toggle on Alt-Q.
+
+15 August 2005 v1.0.2.9
+=======================
+1) Fixed digi sound playback that was noticed broken by Stuart Toomer.
+2) Adjustment to filter to keep stable when operating above the pi/3 Chamberlin frequency limit.
+
+13 August 2005 v1.0.2.8
+=======================
+1) SID filters implemented as a state variable Chamberlin filter. 
+2) SID ring modulation has been redesigned to use the method as described in the 
+"SID Primer" by Stephen L. Judd. The previous version used triangle 
+and sawthooth wave tables with wave multiplication.
+
+7 June 2005 v1.0.2.7
+====================
+1) Any PC joystick button can be selected as the fire button.
+2) Improved CPU friendly mode.
+
+8 December 2004 v1.0.2.6
+========================
+1) Sound sampling set to 44100Hz
+
+8 August 2004 v1.0.2.5
+======================
+1) Bug fix to allow "Audio clock sync" to work with disabled disk drive emulation. 
+Previous versions require that drive emulation is enabled.
+
+25 July 2004 v1.0.2.4
+=====================
+1) Bug fix in joystick configuration code. All joysticks should work now.
+2) Pause function on Alt-P.
+
+
+22 July 2004 v1.0.2.3
+=====================
+1) Joystick swap function on Alt-J fixed after initially released not working.
+
+
+22 July 2004 v1.0.2.2
+=====================
+1) Audio clock sync option to prevent sound glitches on computers whose audio clock
+is slightly in dissagreement with the windows "Performance Counter".
+2) Joystick swap function on Alt-J
+3) CPU Friendly option.
+4) Minor fix to CIA ports to read pin levels instead of output levels.
+5) www.hoxs64.com domain name in service.
+
+17 July 2004 v1.0.2.1
+=====================
+PC Joystick/Pad support available. Win2000 tested.
+
+5 February 2004 v1.0.2.0
+========================
+Direct Sound set to software mode. Some machines show much poorer performance 
+with hardware sound even with fast processors and memory. This is probably 
+because hardware sound is optimised for large sound buffers and Hoxs64 uses 
+small buffers. Try this version if sound is jerky with 600+Mhz PC.
+
+29 March 2003 v1.0.1.2
+======================
+1) Added Auto Load option to the file menu for easier C64 program loading.
+2) Minor VIC-II fixes. 
+
+22 March 2003 v1.0.1.0
+======================
+1) Added windows screen doubler with option to choose between a CPU 
+or a DirectX pixel doubler.
+2) Changed C64 colours to RGB values provided by Stuart Toomer.
+3) Changed full screen mode to prefer 8bit colour for performance.
+
+10 March 2003 v1.0.0.10
+=======================
+1) Option to configure Keyboard assignments
+
+2) Load/Save of setting to the registry. Setting are saved under 
+HKEY_CURRENT_USER/Software/Hoxs64
+
+3) Minor VIC-II fixes. Hoxs64 can run all screens in the "Ice Cream Castle" demo 
+by Crest with out glitches.
+
+
+1 August 2002 V1.0.0.4 
+======================
+Numerous improvements to the VIC emulation accuracy.
+
+1) The sprite X positions are displayed more correctly when the X register is changed
+on a line for which the sprite is active.
+
+2) The border and boundground0 colours change 12 clocks after the write access 
+to the colour registers as explained in "Christian Bauer's VIC-II Article". 
+This rule applies regardless of the amount of XSCROLL.
+
+3) If the value XSCROLL increases then the VIC will output idle state coloured pixels
+only after the current character has been shifted out to the display.
+
+4) Corrected the idle state colours underneath the border. "Demus Interruptus" 
+now shows all screen pixel perfect.
+
+5) Sprites are corrupted if positioned near to the sprite data fetch clocks. 
+As a result, Hoxs64 will the run "Demus Interruptus" with out having to patch.
+
+
+8 July 2002 V1.0.0.3
+====================
+1) BUG Fix: Corrected colours that are fetched during the time that the VIC attempts to
+read from memory whilst the CPU still controls the address lines.
+
+
+17 June 2002 V1.0.0.2
+=====================
+1) BUG Fix: Intermittent loss of display during full screen mode operation.
+
+
+7 June 2002 V1.0.0.1 (up to 30% faster emulation using frame skip)
+====================
+1) New option on settings dialog to skip alternate frames (on by default). Use this 
+option if emulation speed is a priority.
+2) Option to alter the synchronisation for full screen mode. "VBL Sync" (on by default)
+is the slow but gives cleaner display switching. Line Sync is faster but may show small 
+visual glitches during animation.
+
+
+7 June 2002 V1.0.0 (Better disk and sound)
+==================
+1) The 1541 disk can be written to and can be saved to a D64 file on the host computer.
+Changes to the current 1541 disk are not immediately saved to the host computer storage.
+Changes to the current 1541 disk must be explicitly saved to the host PC through the Disk
+menu.
+
+2) Ability to insert a blank pre formatted disk.
+
+3) Finally fixed the last of the sound glitches (arrgh!). If any one has sound 
+problems on 100% speed, then please let me know.
+
+4) Synchronised screen redraw in full screen mode.
+
+
+10 May 2002 V0.9D (Better disk and sound)
+=================
+1) Improved disk drive emulation compatibility to allow more turbo loaders to work.
+All loaders that are known to me at this time will now load.
+
+2) Removed excessive function calls to the DirectSound "GetStatus" call. The result 
+is that the sound play back does not "jump" as much.
+
+
+17 April 2002 V0.9C
+====================
+1) Fixed a random chance of a "divide by zero" GPF when pausing and un-pausing the
+emulation. This situation occurs when changing screen mode or accessing menus.
+
+2) Fixed a bug with the CIA TOD clocks not counting up in correct order with respect 
+to "rollover and carry" from the LSBs to the MSBs.
+
+3) Fixed disk drive emulation to cause a false SINC condition between changing 
+disks. Some software uses the false SINC as a means to detect when a disk has been 
+removed.
+
+4) Fixed a bug that caused sprites in the patched demo "Demus Interruptus" not to 
+show correctly. This was because "Christian Bauer's VIC-II Article" did not mention 
+that the increment that is added to the internal register MCBASE (for sprite 
+pointer indexing) is dependant on the current value of MCBASE. After debugging the 
+demo "Demus Interruptus" I realised what happening and I was forced to rip this 
+table from VICE1.7
+
+I would much love to know the logic in this table:-
+
+const int vic_ii_sprites_crunch_table[64] =
+{
+	1,   4,   3, /* 0 */
+	4,   1,   0, /* 3 */
+	-1,  0,   1, /* 6 */
+	4,   3,   4, /* 9 */
+	1,   8,   7, /* 12 */
+	8,   1,   4, /* 15 */
+	3,   4,   1, /* 18 */
+	0,  -1,   0, /* 21 */
+	1,   4,   3, /* 24 */
+	4,   1,  -8, /* 27 */
+	-9, -8,   1, /* 30 */
+	4,   3,   4, /* 33 */
+	1,   0,  -1, /* 36 */
+	0,   1,   4, /* 39 */
+	3,   4,   1, /* 42 */
+	8,   7,   8, /* 45 */
+	1,   4,   3, /* 48 */
+	4,   1,   0, /* 51 */
+	-1,  0,   1, /* 54 */
+	4,   3,   4, /* 57 */
+	1, -40, -41, /* 60 */
+	0
+};
+
+This is how the table would look in Hoxs64 V0.9B as per
+"Christian Bauer's VIC-II Article" :-
+
+const int vic_ii_sprites_crunch_table[64] =
+{
+	1,   1,   1, /* 0 */
+	1,   1,   1, /* 3 */
+	1,   1,   1, /* 6 */
+	1,   1,   1, /* 9 */
+	1,   1,   1, /* 12 */
+	1,   1,   1, /* 15 */
+	1,   1,   1, /* 18 */
+	1,   1,   1, /* 21 */
+	1,   1,   1, /* 24 */
+	1,   1,   1, /* 27 */
+	1,   1,   1, /* 30 */
+	1,   1,   1, /* 33 */
+	1,   1,   1, /* 36 */
+	1,   1,   1, /* 39 */
+	1,   1,   1, /* 42 */
+	1,   1,   1, /* 45 */
+	1,   1,   1, /* 48 */
+	1,   1,   1, /* 51 */
+	1,   1,   1, /* 54 */
+	1,   1,   1, /* 57 */
+	1,   1,   1, /* 60 */
+	0
+};
+
+4 February 2002 V0.9B
+======================
+1) Fixed a GPF memory read in the VIC code.
+
+
+3 February 2002 V0.9A
+======================
+1) Improved the DirectSound secondary buffer re-synchronisation. De-synchronisation 
+occurs as a result of the DirectSound play back clock rate being independent to the
+clock that controls the emulation speed. All those random noise glitches should not 
+occur on machines that can maintain 100% emulation speed.
+
+2) Fixed a CPU port bug that caused the status of cassette play button not be read
+correctly until the port was written to. The two sided tape loaders should now work 
+as they did in version 0.7.
+
+3) The disk track head position will be left unchanged between inserting disks.
+The two disk game "Press Your Luck" will now load.
+
+4) Fixed a minor VIC display bug that could occasionally cause multicolour text 
+to be incorrectly masked against a sprite.
+
+5) Added a scrollbar to the debug window.
+
+6) Added execute break point capability. An execute break point is toggled by 
+left clicking on the address label of a mnemonic.
+
+7) Fixed the ARR undocumented opcode.
+
+
+12 November 2001 V0.9
+=====================
+More of those fancy demos should now display.
+FLI and IFLI should work. (It was sort of working before, if you wrote a program that
+worked with the old Hoxs64 incompatible timing.)
+
+1) Timing of interrupts with respect to the VIC --> CPU BA line has been fixed (I hope).
+This information is not easy to find.
+
+2) Introduced a 12 clock cycle delay between the "g-access" data fetch of the VIC and
+the rendering of the pixels. Pixels are rendered with the colour register values that
+are available at the clock that they are rendered, as opposed to the clock that the 
+pixels are fetched.
+
+3) Fix to allow the border to be turned off by a switch from a 24 line to a 25 line 
+display while the raster line is any where on the "top comparison line". This 
+information seems to be missing from Christian Bauer's VIC Article.
+
+4) Reworked CPU and VIC timing to allow the CPU to influence some additional 
+operations of the VIC at the same clock cycle as the write to the VIC registers.
+
+5) Fixed the VIC to fetch the lower 4 bits of the current CPU opcode when accessing the 
+colour RAM while the address lines are in use by the CPU.
+
+6) Introduced a 2 clock cycle delay (was 1 clock delay) between the CPU write to $D011
+and the time that VIC goes from idle to display state given the various logic rules.
+
+
+3 November 2001 V0.8D
+=====================
+1) Set disk drive speed from PAL Speed up to 1Mhz. Introduced a 1 clock cycle delay 
+for the disk drive to see changes to the serial bus. This has the effect of allowing 
+a wider variety of disk turbo loaders to now work.
+2) "Limit speed" and "show speed" options in the settings menu.
+
+
+30 October 2001 V0.8C
+=====================
+Fixed a sound bug that caused NT4 service pack3+ machines not to initialise the sound.
+Fixed a minor bug with the CPU port.
+
+
+26 October 2001 V0.8B
+=====================
+Fixed a sound bug that caused garbage noise if the sound emulation was turned off
+and then a menu option was later selected.
+
+
+26 October 2001 V0.8
+=====================
+1) Not NT tested yet. SID (Sound Interface Device) now works. The only the filters 
+are missing.
+
+
+15 October 2001 V0.7D
+=====================
+1) Sprites can now be displayed in the extreme left and right edge underneath the
+border.
+
+
+10 October 2001 V0.7C
+=====================
+1) Fixed incorrect background colour underneath the left right border.
+2) Fixed a compiler optimisation error by disabling optimisations for the CIA
+execute cycle. The game Bounty Bob now works again as it did in V0.7
+
+
+10 October 2001 V0.7B
+=====================
+1) Left and right border can now be opened.
+2) Fixed a display bug caused by a multicolour foreground pixel being cut in 
+half by the left border thus causing an incorrect colour. This was noticed in the 
+title screen of California Games as an odd coloured vertical bar near the left 
+border.
+
+
+9 October 2001 V0.7
+===================
+1) New 1541 Disk drive emulation. The drive is read only and supports the D64 
+file format. Turbo and custom loaders should run except the so called "Blast" 
+game collection. This should not be a problem because "Blast" disks allow you 
+to manually load  games by their filenames.
+
+
+2) Improved DirectX handling with full screen mode and enhanced support for 
+windowed mode.
+The following windowed modes are now supported:
+32 bit colour
+24 bit colour
+16 bit colour
+8 bit palletised (256 colours)
+
+The following full screen resolutions are now supported:
+400x300
+320x240
+320x200
+
+3) Fixed bug with 24 bit colour renderer.
+
+4) DirectX 3 support for NT4 with service pack 3 or higher.
+
+
+6 August 2001 V0.6b 
+===================
+Small speed optimisation of VIC-II.
+
+
+29 July 2001 V0.6a 
+==================
+Fixed CIA2 ports to read highs when DDR set to input. Beamrider now works.
+
+
+25 July 2001 V0.6 
+=================
+Initial release. The CPU, VIC, and MMU are fully functional. The CIA is 
+functional with no support for devices on the "user" nor the "serial" port. 
+There is no SID (Sound Interface Device). There is no disk support. The so 
+called DE00 programs are not fully supported but it must be remembered that few 
+real C64s can run DE00 programs.
+
+

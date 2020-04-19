@@ -1,0 +1,206 @@
+Hoxs64 v1.0.25.0 (c) 2019 David Horrocks
+========================================
+Hoxs64 is an attempt to accurately emulate the Commodore 64 computer.
+
+Features
+========
+A cycle exact emulation.
+
+Pixel exact VIC emulation of a C64C (the grey dot bug is not emulated). 
+
+1541 floppy disk drive (read and write).
+
+Tape player (read only).
+
+State save.
+
+Debugger.
+
+Full screen display.
+
+Cartridge support is as follows:
+Action Reply
+Retro Reply
+Easy Flash (1MB)
+Ocean
+System 3
+Dinamic
+Magic Desk
+Super Games
+Zaxxon
+Fun Play
+Simons Basic
+
+
+Host PC Requirements
+====================
+Windows 10, Windows 7, Windows XP
+Core 2 Duo 1.5Ghz or Athlon 2Ghz or Pentium4 3Ghz.
+2 GB RAM.
+512 MB Graphics Card.
+DirectX 9 October 2006 or higher. 
+Uses d3dx9_31.dll (32 bit 2358KB) or d3dx9_31.dll (64 bit 3885KB)
+
+[For 64 bit Hoxs64]
+http://www.hoxs64.net/files/d3dx9_31_x64.zip
+Name: d3dx9_31.dll 
+Size: 3,977,496 bytes
+MD5: faaa0bb9cd2905b25334132e5ba093eb
+SHA1: d31aa0bd82d6c968b882c57091252190d74458a3
+CRC32: 03a60ea2
+
+
+[For 32 bit Hoxs64]
+http://www.hoxs64.net/files/d3dx9_31.zip
+Name: d3dx9_31.dll 
+Size: 2,414,360 bytes
+MD5: 797e24743937d67d69f28f2cf5052ee8
+SHA1: 7d39afbf94675487a9ff7e41d2dbb8daedf7ad00
+CRC32: a8f72bd8
+
+
+Installation
+============
+Install Microsoft Direct X. 
+Copy all files to the same directory. 
+
+
+How to use Hoxs64
+=================
+Use File / Auto Load to load a game file. Toggle full screen mode with the
+[Alt Enter] key combination. You need to be in windowed mode to access the 
+menu.
+
+NVidia G-Sync
+=============
+For best results, set host CPU usage to "aggressive". Use "Line Sync". Use a 
+monitor refresh rate that is substantially higher than 50 Hz. If you have a 
+high refresh rate monitor then use the 100Hz frame rate doubler option where
+possible to prevent IPS LCD pixel burn.
+
+The CPU "friendly" causes the application to over sleep and miss its frame 
+time slot. The application will try to catch up with fast frames that may 
+exceed the user selected G-Sync frame cap and cause either tearing or 
+stutter.
+
+
+Command Line Options
+====================
+Parameters including path names can optionally be double quoted. Double 
+quotes are required when path names include embedded spaces or double 
+quotes.
+
+
+-autoload <filename> {@<directoryitemnumber> | #<directoryprgnumber> | :<directoryitemname> }
+Loads a disk, cartridge or tape file and runs a C64 program.
+
+<filename> 
+The host PC file name. Supported files are D64 G64 P64 FDI CRT TAP PRG.
+
+<directoryitemnumber> 
+A zero based number that specifies which file in a 1541 
+disk to load.
+
+<directoryprgnumber> 
+A zero based number filtered on just PRG files that specifies which PRG in a
+1541 disk to load.
+
+<directoryitemname> 
+The CBM DOS name. A colon must precede the name with no space.
+
+Example
+hoxs64 -autoload D:\NoDoubleQuoteNeeded\demo.D64
+This will load and run the default file in demo.D64
+
+Example
+hoxs64 -autoload "D:\My Demos\demo.D64"
+This will load and run the default file in demo.D64
+
+Example
+hoxs64 -autoload "D:\My Demos\demo.D64" #3
+This will load and run the 4th PRG file in demo.D64
+
+Example
+hoxs64 -autoload "D:\My Demos\demo.D64" @3
+This will load and run the 4th file in demo.D64
+
+Example
+hoxs64 -autoload "D:\My Demos\demo.D64" ":chess"
+This will load and run the file called CHESS in demo.D64
+Uppercase A-Z will refer to C64 shifted graphical glyphs.
+
+-mountdisk <filename>
+Mounts a host PC disk file called <filename> but does not automatically load 
+any programs.
+
+
+-quickload
+Memory injects the PRG file. This currently does not simulate the exact 
+memory pattern that would be caused by real load from tape or disk.
+
+
+-fullscreen
+Start with a full screen display.
+
+
+-cia-new
+Use new CIA.
+
+
+-cia-old
+Use old CIA.
+
+
+-alignd64tracks
+Align D64 tracks.
+
+
+-debugcart
+Enable the debug cart. A write to IO $D7FF will cause the application to 
+return an exit code. The first byte written to $D7FF becomes the exit code. 
+The actual time of exit is deferred till the end of the current frame.
+
+
+-exitscreenshot <filename>
+Write a screen shot PNG file just before the application exits. <filename> 
+is the name of the file. Existing files are overwritten!
+
+Example
+hoxs64 -exitscreenshot D:\Pictures\Test.png
+
+
+-defaultsettings
+Load emulation defaults before applying other options. Drive enabled. New 
+CIA. D64 track skew. Track zero sensor. SID resample. Default keyboard 
+layout. Pepto colour palette. No Extra SID chips; one SID chip at D400.
+
+
+-window-hide
+Do not show an application Window and do not show message boxes. Runs in the
+background.
+
+
+-nomessagebox
+Prevent Windows message boxes.
+
+
+-nosound
+No SID sound will be sent to the sound driver.
+
+
+-limitcycles <n>
+Cause the application to exit after <n> number (a 32 bit number) of clock 
+cycles with exit code 1.
+
+
+-hlt-reset
+Reset the CPU upon freezing with HLT such as opcode $02 etc.
+
+
+-hlt-exit
+Main CPU HLT exits with exit code 255.
+
+
+-runfast
+Run at the fastest possible speed. Disables sound.
+
