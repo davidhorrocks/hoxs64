@@ -1272,3 +1272,9 @@ void CIA1::UpgradeStateV1ToV2(const SsCia1V1 &in, SsCia1V2 &out)
 	CIA::UpgradeStateV1ToV2(in.cia, out.cia);
 	out.nextKeyboardScanClock = in.nextKeyboardScanClock;
 }
+
+void CIA1::UpgradeStateV2ToV3(const SsCia1V2& in, SsCia1V2& out)
+{
+	out = {};
+	CIA::UpgradeStateV2ToV3(in.cia, out.cia);
+}

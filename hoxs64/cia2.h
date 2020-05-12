@@ -32,6 +32,7 @@ public:
 	void SetState(const SsCia2V2 &state);
 	static void UpgradeStateV0ToV1(const SsCia2V0 &in, SsCia2V1 &out);
 	static void UpgradeStateV1ToV2(const SsCia2V1 &in, SsCia2V2 &out);
+	static void UpgradeStateV2ToV3(const SsCia2V2& in, SsCia2V2& out);
 
 	CAppStatus* appStatus = nullptr;
 	CPU6510 *cpu = nullptr;

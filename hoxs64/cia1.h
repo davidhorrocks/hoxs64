@@ -60,6 +60,7 @@ public:
 	void SetState(const SsCia1V2 &state);
 	static void UpgradeStateV0ToV1(const SsCia1V0 &in, SsCia1V1 &out);
 	static void UpgradeStateV1ToV2(const SsCia1V1 &in, SsCia1V2 &out);
+	static void UpgradeStateV2ToV3(const SsCia1V2& in, SsCia1V2& out);
 
 	unsigned char c64KeyMap[256] = {};// array of windows keyboard scan codes indexed by the C64Keys::C64Key enumeration
 	ICLK nextKeyboardScanClock = 0;

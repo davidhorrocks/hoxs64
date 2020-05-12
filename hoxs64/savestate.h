@@ -48,7 +48,9 @@ namespace SsLib
 			C64SidChip5 = 35,
 			C64SidChip6 = 36,
 			C64SidChip7 = 37,
-			C64SidChip8 = 38
+			C64SidChip8 = 38,
+			C64Cia1V3 = 39,
+			C64Cia2V3 = 40,
 		};
 	}
 };
@@ -799,7 +801,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 6;
+    static const int VERSION = 7;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

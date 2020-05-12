@@ -233,6 +233,11 @@ void CIA2::UpgradeStateV1ToV2(const SsCia2V1 &in, SsCia2V2 &out)
 	ZeroMemory(&out, sizeof(SsCia2V2));
 	CIA::UpgradeStateV1ToV2(in.cia, out.cia);
 	out.c64_serialbus = in.c64_serialbus;
-	out.m_commandedVicBankIndex = in.m_commandedVicBankIndex;}
+	out.m_commandedVicBankIndex = in.m_commandedVicBankIndex;
+}
 
-
+void CIA2::UpgradeStateV2ToV3(const SsCia2V2& in, SsCia2V2& out)
+{
+	out = {};
+	CIA::UpgradeStateV2ToV3(in.cia, out.cia);
+}

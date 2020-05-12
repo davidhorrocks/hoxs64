@@ -282,4 +282,69 @@ private:
 	int exitCode = 0;
 	random_device rd;
 	mt19937 randengine_main;
+
+	struct StateLoadVars
+	{
+		SsHeader hdr;
+		SsDataChunkHeader chdr;
+		SsSectionHeader sh;
+		SsCpuMain sbCpuMain;
+		SsCia1V0 sbCia1V0;
+		SsCia1V1 sbCia1V1;
+		SsCia1V2 sbCia1V2;
+		SsCia1V2 sbCia1V3;
+		SsCia2V0 sbCia2V0;
+		SsCia2V1 sbCia2V1;
+		SsCia2V2 sbCia2V2;
+		SsCia2V2 sbCia2V3;
+		SsVic6569 sbVic6569;
+		SsSid sbSidV0;
+		SsSidV1 sbSidV1;
+		SsSidV2 sbSidV2;
+		SsSidV3 sbSidV3;
+		SsSidV4 sbSidV4Number1;
+		SsSidV4 sbSidV4Number2;
+		SsSidV4 sbSidV4Number3;
+		SsSidV4 sbSidV4Number4;
+		SsSidV4 sbSidV4Number5;
+		SsSidV4 sbSidV4Number6;
+		SsSidV4 sbSidV4Number7;
+		SsSidV4 sbSidV4Number8;
+		SsTape sbTapePlayer;
+		SsTapeData sbTapeDataHeader;
+		SsDiskInterfaceV0 sbDriveControllerV0;
+		SsDiskInterfaceV1 sbDriveControllerV1;
+		SsDiskInterfaceV2 sbDriveControllerV2;
+		SsVia1 sbDriveVia1;
+		SsVia2 sbDriveVia2;
+		SsCpuDisk sbCpuDisk;
+		SsTrackHeader trackHeader;
+	};
+
+	struct StateSaveVars
+	{
+		SsSectionHeader sh;
+		SsDataChunkHeader chdr;
+		SsHeader hdr;
+		SsCpuMain sbCpuMain;
+		SsCia1V2 sbCia1;
+		SsCia2V2 sbCia2;
+		SsVic6569 sbVic6569;
+		SsSidV4 sbSid1;
+		SsSidV4 sbSid2;
+		SsSidV4 sbSid3;
+		SsSidV4 sbSid4;
+		SsSidV4 sbSid5;
+		SsSidV4 sbSid6;
+		SsSidV4 sbSid7;
+		SsSidV4 sbSid8;
+		SsTape sbTapePlayer;
+		SsTapeData tapeDataHeader;
+		SsCpuDisk sbCpuDisk;
+		SsDiskInterfaceV2 sbDiskInterfaceV2;
+		SsVia1 sbVia1;
+		SsVia2 sbVia2;
+		SsTrackHeader th;
+
+	};
 };

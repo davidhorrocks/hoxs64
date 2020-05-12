@@ -2109,14 +2109,15 @@ constexpr p64_uint32_t MAXTIME = P64PulseSamplesPerRotation;
 
 HRESULT C64::SaveC64StateToFile(const TCHAR *filename)
 {
+StateSaveVars* pvars = new StateSaveVars();
+StateSaveVars& vars = *pvars;
 HRESULT hr;
 ULONG bytesToWrite;
 ULONG bytesWritten;
-SsSectionHeader sh;
 bit32 *pTrackBuffer = NULL;
 bit32 trackbufferLength = 0;
-SsDataChunkHeader chdr;
 bit32 dwordCount;
+
 
 	ClearError();
 	SynchroniseDevicesWithVIC();
@@ -2131,23 +2132,22 @@ bit32 dwordCount;
 			break;
 		}
 
-		SsHeader hdr;
-		ZeroMemory(&hdr, sizeof(hdr));
-		strcpy(hdr.Signature, SaveState::SIGNATURE);
-		strcpy(hdr.EmulatorName, SaveState::NAME);
-		hdr.Version = SaveState::VERSION;
-		hdr.HeaderSize = sizeof(hdr);
-		hr = pfs->Write(&hdr, sizeof(hdr), &bytesWritten);
+		ZeroMemory(&vars.hdr, sizeof(vars.hdr));
+		strcpy(vars.hdr.Signature, SaveState::SIGNATURE);
+		strcpy(vars.hdr.EmulatorName, SaveState::NAME);
+		vars.hdr.Version = SaveState::VERSION;
+		vars.hdr.HeaderSize = sizeof(vars.hdr);
+		hr = pfs->Write(&vars.hdr, sizeof(vars.hdr), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = SsLib::SectionType::C64Ram;
-		sh.size = sizeof(sh) + SaveState::SIZE64K;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = SsLib::SectionType::C64Ram;
+		vars.sh.size = sizeof(vars.sh) + SaveState::SIZE64K;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
@@ -2159,11 +2159,11 @@ bit32 dwordCount;
 			break;
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = SsLib::SectionType::C64ColourRam;
-		sh.size = sizeof(sh) + SaveState::SIZECOLOURAM;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = SsLib::SectionType::C64ColourRam;
+		vars.sh.size = sizeof(vars.sh) + SaveState::SIZECOLOURAM;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
@@ -2175,41 +2175,36 @@ bit32 dwordCount;
 			break;
 		}
 
-		SsCpuMain sbCpuMain;
-		this->cpu.GetState(sbCpuMain);
-		hr = SaveState::SaveSection(pfs, sbCpuMain, SsLib::SectionType::C64Cpu);
+		this->cpu.GetState(vars.sbCpuMain);
+		hr = SaveState::SaveSection(pfs, vars.sbCpuMain, SsLib::SectionType::C64Cpu);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsCia1V2 sbCia1;
-		this->cia1.GetState(sbCia1);
-		hr = SaveState::SaveSection(pfs, sbCia1, SsLib::SectionType::C64Cia1V2);
+		this->cia1.GetState(vars.sbCia1);
+		hr = SaveState::SaveSection(pfs, vars.sbCia1, SsLib::SectionType::C64Cia1V3);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsCia2V2 sbCia2;
-		this->cia2.GetState(sbCia2);
-		hr = SaveState::SaveSection(pfs, sbCia2, SsLib::SectionType::C64Cia2V2);
+		this->cia2.GetState(vars.sbCia2);
+		hr = SaveState::SaveSection(pfs, vars.sbCia2, SsLib::SectionType::C64Cia2V3);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsVic6569 sbVic6569;
-		this->vic.GetState(sbVic6569);
-		hr = SaveState::SaveSection(pfs, sbVic6569, SsLib::SectionType::C64Vic);
+		this->vic.GetState(vars.sbVic6569);
+		hr = SaveState::SaveSection(pfs, vars.sbVic6569, SsLib::SectionType::C64Vic);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsSidV4 sbSid1;
-		this->sid.sid1.GetState(sbSid1);
-		hr = SaveState::SaveSection(pfs, sbSid1, SsLib::SectionType::C64SidChip1);
+		this->sid.sid1.GetState(vars.sbSid1);
+		hr = SaveState::SaveSection(pfs, vars.sbSid1, SsLib::SectionType::C64SidChip1);
 		if (FAILED(hr))
 		{
 			break;
@@ -2219,9 +2214,8 @@ bit32 dwordCount;
 		{
 			if (sid.AddressOfSecondSID)
 			{
-				SsSidV4 sbSid2;
-				this->sid.sid2.GetState(sbSid2);
-				hr = SaveState::SaveSection(pfs, sbSid2, SsLib::SectionType::C64SidChip2);
+				this->sid.sid2.GetState(vars.sbSid2);
+				hr = SaveState::SaveSection(pfs, vars.sbSid2, SsLib::SectionType::C64SidChip2);
 				if (FAILED(hr))
 				{
 					break;
@@ -2230,9 +2224,8 @@ bit32 dwordCount;
 
 			if (sid.AddressOfThirdSID)
 			{
-				SsSidV4 sbSid3;
-				this->sid.sid3.GetState(sbSid3);
-				hr = SaveState::SaveSection(pfs, sbSid3, SsLib::SectionType::C64SidChip3);
+				this->sid.sid3.GetState(vars.sbSid3);
+				hr = SaveState::SaveSection(pfs, vars.sbSid3, SsLib::SectionType::C64SidChip3);
 				if (FAILED(hr))
 				{
 					break;
@@ -2241,9 +2234,8 @@ bit32 dwordCount;
 
 			if (sid.AddressOfFourthSID)
 			{
-				SsSidV4 sbSid4;
-				this->sid.sid4.GetState(sbSid4);
-				hr = SaveState::SaveSection(pfs, sbSid4, SsLib::SectionType::C64SidChip4);
+				this->sid.sid4.GetState(vars.sbSid4);
+				hr = SaveState::SaveSection(pfs, vars.sbSid4, SsLib::SectionType::C64SidChip4);
 				if (FAILED(hr))
 				{
 					break;
@@ -2252,9 +2244,8 @@ bit32 dwordCount;
 
 			if (sid.AddressOfFifthSID)
 			{
-				SsSidV4 sbSid5;
-				this->sid.sid5.GetState(sbSid5);
-				hr = SaveState::SaveSection(pfs, sbSid5, SsLib::SectionType::C64SidChip5);
+				this->sid.sid5.GetState(vars.sbSid5);
+				hr = SaveState::SaveSection(pfs, vars.sbSid5, SsLib::SectionType::C64SidChip5);
 				if (FAILED(hr))
 				{
 					break;
@@ -2263,9 +2254,8 @@ bit32 dwordCount;
 
 			if (sid.AddressOfSixthSID)
 			{
-				SsSidV4 sbSid6;
-				this->sid.sid6.GetState(sbSid6);
-				hr = SaveState::SaveSection(pfs, sbSid6, SsLib::SectionType::C64SidChip6);
+				this->sid.sid6.GetState(vars.sbSid6);
+				hr = SaveState::SaveSection(pfs, vars.sbSid6, SsLib::SectionType::C64SidChip6);
 				if (FAILED(hr))
 				{
 					break;
@@ -2274,9 +2264,8 @@ bit32 dwordCount;
 
 			if (sid.AddressOfSeventhSID)
 			{
-				SsSidV4 sbSid7;
-				this->sid.sid7.GetState(sbSid7);
-				hr = SaveState::SaveSection(pfs, sbSid7, SsLib::SectionType::C64SidChip7);
+				this->sid.sid7.GetState(vars.sbSid7);
+				hr = SaveState::SaveSection(pfs, vars.sbSid7, SsLib::SectionType::C64SidChip7);
 				if (FAILED(hr))
 				{
 					break;
@@ -2285,9 +2274,8 @@ bit32 dwordCount;
 
 			if (sid.AddressOfEighthSID)
 			{
-				SsSidV4 sbSid8;
-				this->sid.sid8.GetState(sbSid8);
-				hr = SaveState::SaveSection(pfs, sbSid8, SsLib::SectionType::C64SidChip8);
+				this->sid.sid8.GetState(vars.sbSid8);
+				hr = SaveState::SaveSection(pfs, vars.sbSid8, SsLib::SectionType::C64SidChip8);
 				if (FAILED(hr))
 				{
 					break;
@@ -2295,11 +2283,11 @@ bit32 dwordCount;
 			}
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = SsLib::SectionType::C64KernelRom;
-		sh.size = sizeof(sh) + SaveState::SIZEC64KERNEL;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = SsLib::SectionType::C64KernelRom;
+		vars.sh.size = sizeof(vars.sh) + SaveState::SIZEC64KERNEL;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
@@ -2311,11 +2299,11 @@ bit32 dwordCount;
 			break;
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = SsLib::SectionType::C64BasicRom;
-		sh.size = sizeof(sh) + SaveState::SIZEC64BASIC;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = SsLib::SectionType::C64BasicRom;
+		vars.sh.size = sizeof(vars.sh) + SaveState::SIZEC64BASIC;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
@@ -2327,11 +2315,11 @@ bit32 dwordCount;
 			break;
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = SsLib::SectionType::C64CharRom;
-		sh.size = sizeof(sh) + SaveState::SIZEC64CHARGEN;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = SsLib::SectionType::C64CharRom;
+		vars.sh.size = sizeof(vars.sh) + SaveState::SIZEC64CHARGEN;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
@@ -2343,9 +2331,8 @@ bit32 dwordCount;
 			break;
 		}
 
-		SsTape sbTapePlayer;
-		this->tape64.GetState(sbTapePlayer);
-		hr = SaveState::SaveSection(pfs, sbTapePlayer, SsLib::SectionType::C64Tape);
+		this->tape64.GetState(vars.sbTapePlayer);
+		hr = SaveState::SaveSection(pfs, vars.sbTapePlayer, SsLib::SectionType::C64Tape);
 		if (FAILED(hr))
 		{
 			break;
@@ -2367,19 +2354,18 @@ bit32 dwordCount;
 				break;
 			}
 
-			ZeroMemory(&sh, sizeof(sh));
-			sh.id = SsLib::SectionType::C64TapeData;
-			sh.size = 0;
-			sh.version = 0;
-			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			ZeroMemory(&vars.sh, sizeof(vars.sh));
+			vars.sh.id = SsLib::SectionType::C64TapeData;
+			vars.sh.size = 0;
+			vars.sh.version = 0;
+			hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
 			}
 
-			SsTapeData tapeDataHeader;
-			tapeDataHeader.tape_max_counter = tape64.tape_max_counter;
-			hr = pfs->Write(&tapeDataHeader, sizeof(tapeDataHeader), &bytesWritten);
+			vars.tapeDataHeader.tape_max_counter = tape64.tape_max_counter;
+			hr = pfs->Write(&vars.tapeDataHeader, sizeof(vars.tapeDataHeader), &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
@@ -2399,11 +2385,11 @@ bit32 dwordCount;
 				break;
 			}
 
-			chdr.byteCount = this->tape64.tape_max_counter * sizeof(bit32);
-			chdr.compressionType = HUFFCOMPRESSION;
+			vars.chdr.byteCount = this->tape64.tape_max_counter * sizeof(bit32);
+			vars.chdr.compressionType = HUFFCOMPRESSION;
 			dwordCount = this->tape64.tape_max_counter;
-			bytesToWrite = sizeof(chdr);
-			hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
+			bytesToWrite = sizeof(vars.chdr);
+			hr = pfs->Write(&vars.chdr, bytesToWrite, &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
@@ -2430,8 +2416,8 @@ bit32 dwordCount;
 				break;
 			bit32 sectionSize = (bit32)(pos_next.QuadPart - pos_current.QuadPart);
 			assert(sectionSize == compressed_size+sizeof(SsSectionHeader)+sizeof(SsTapeData)+sizeof(SsDataChunkHeader));
-			sh.size = sectionSize;
-			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			vars.sh.size = sectionSize;
+			hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
@@ -2444,11 +2430,11 @@ bit32 dwordCount;
 			}
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = SsLib::SectionType::DriveRam;
-		sh.size = sizeof(sh) + SaveState::SIZEDRIVERAM;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = SsLib::SectionType::DriveRam;
+		vars.sh.size = sizeof(vars.sh) + SaveState::SIZEDRIVERAM;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
@@ -2460,11 +2446,11 @@ bit32 dwordCount;
 			break;
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = SsLib::SectionType::DriveRom;
-		sh.size = sizeof(sh) + SaveState::SIZEDRIVEROM;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = SsLib::SectionType::DriveRom;
+		vars.sh.size = sizeof(vars.sh) + SaveState::SIZEDRIVEROM;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 			break;
 		hr = pfs->Write(this->diskdrive.m_pD1541_rom, SaveState::SIZEDRIVEROM, &bytesWritten);
@@ -2473,33 +2459,29 @@ bit32 dwordCount;
 			break;
 		}
 
-		SsCpuDisk sbCpuDisk;
-		this->diskdrive.cpu.GetState(sbCpuDisk);
-		hr = SaveState::SaveSection(pfs, sbCpuDisk, SsLib::SectionType::DriveCpu);
+		this->diskdrive.cpu.GetState(vars.sbCpuDisk);
+		hr = SaveState::SaveSection(pfs, vars.sbCpuDisk, SsLib::SectionType::DriveCpu);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsDiskInterfaceV2 sbDiskInterfaceV2;
-		this->diskdrive.GetState(sbDiskInterfaceV2);
-		hr = SaveState::SaveSection(pfs, sbDiskInterfaceV2, SsLib::SectionType::DriveControllerV2);
+		this->diskdrive.GetState(vars.sbDiskInterfaceV2);
+		hr = SaveState::SaveSection(pfs, vars.sbDiskInterfaceV2, SsLib::SectionType::DriveControllerV2);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsVia1 sbVia1;
-		this->diskdrive.via1.GetState(sbVia1);
-		hr = SaveState::SaveSection(pfs, sbVia1, SsLib::SectionType::DriveVia1);
+		this->diskdrive.via1.GetState(vars.sbVia1);
+		hr = SaveState::SaveSection(pfs, vars.sbVia1, SsLib::SectionType::DriveVia1);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
-		SsVia2 sbVia2;
-		this->diskdrive.via2.GetState(sbVia2);
-		hr = SaveState::SaveSection(pfs, sbVia2, SsLib::SectionType::DriveVia2);
+		this->diskdrive.via2.GetState(vars.sbVia2);
+		hr = SaveState::SaveSection(pfs, vars.sbVia2, SsLib::SectionType::DriveVia2);
 		if (FAILED(hr))
 		{
 			break;
@@ -2534,11 +2516,11 @@ bit32 dwordCount;
 				break;
 			}
 
-			ZeroMemory(&sh, sizeof(sh));
-			sh.id = SsLib::SectionType::DriveDiskImageV1;
-			sh.size = sizeof(sh);
-			sh.version = 0;
-			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			ZeroMemory(&vars.sh, sizeof(vars.sh));
+			vars.sh.id = SsLib::SectionType::DriveDiskImageV1;
+			vars.sh.size = sizeof(vars.sh);
+			vars.sh.version = 0;
+			hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
@@ -2561,13 +2543,12 @@ bit32 dwordCount;
 
 			for(int i=0; i < HOST_MAX_TRACKS; i++)
 			{
-				SsTrackHeader th;
-				ZeroMemory(&th, sizeof(th));
-				th.number = i;
-				th.size = sizeof(th);
-				th.version = 0;
-				th.gap_count = 0;
-				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
+				vars.th = {};
+				vars.th.number = i;
+				vars.th.size = sizeof(vars.th);
+				vars.th.version = 0;
+				vars.th.gap_count = 0;
+				hr = pfs->Write(&vars.th, sizeof(vars.th), &bytesWritten);
 				if (FAILED(hr))
 				{
 					break;
@@ -2587,11 +2568,11 @@ bit32 dwordCount;
 					break;
 				}
 
-				chdr.byteCount = pulses_plus_one * sizeof(bit32);
-				chdr.compressionType = HUFFCOMPRESSION;
+				vars.chdr.byteCount = pulses_plus_one * sizeof(bit32);
+				vars.chdr.compressionType = HUFFCOMPRESSION;
 				dwordCount = pulses_plus_one;
-				bytesToWrite = sizeof(chdr);
-				hr = pfs->Write(&chdr, bytesToWrite, &bytesWritten);
+				bytesToWrite = sizeof(vars.chdr);
+				hr = pfs->Write(&vars.chdr, bytesToWrite, &bytesWritten);
 				if (FAILED(hr))
 				{
 					break;
@@ -2618,9 +2599,9 @@ bit32 dwordCount;
 
 				bit32 sectionSize = (bit32)(pos_next_track_header.QuadPart - pos_current_track_header.QuadPart);
 				assert(sectionSize == compressed_size+sizeof(SsTrackHeader)+sizeof(SsDataChunkHeader));
-				th.size = sectionSize;
-				th.gap_count = pulses_plus_one;
-				hr = pfs->Write(&th, sizeof(th), &bytesWritten);
+				vars.th.size = sectionSize;
+				vars.th.gap_count = pulses_plus_one;
+				hr = pfs->Write(&vars.th, sizeof(vars.th), &bytesWritten);
 				if (FAILED(hr))
 				{
 					break;
@@ -2648,8 +2629,8 @@ bit32 dwordCount;
 				break;
 			}
 
-			sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
-			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			vars.sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
+			hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
@@ -2677,11 +2658,11 @@ bit32 dwordCount;
 				break;
 			}
 
-			ZeroMemory(&sh, sizeof(sh));
-			sh.id = SsLib::SectionType::Cart;
-			sh.size = sizeof(sh);
-			sh.version = 0;
-			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			ZeroMemory(&vars.sh, sizeof(vars.sh));
+			vars.sh.id = SsLib::SectionType::Cart;
+			vars.sh.size = sizeof(vars.sh);
+			vars.sh.version = 0;
+			hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
@@ -2705,12 +2686,13 @@ bit32 dwordCount;
 			{
 				break;
 			}
-			sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
-			hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+			vars.sh.size = (bit32)(pos_next_section_header.QuadPart - pos_current_section_header.QuadPart);
+			hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 			if (FAILED(hr))
 			{
 				break;
 			}
+
 			spos_next.QuadPart = pos_next_section_header.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
@@ -2719,67 +2701,46 @@ bit32 dwordCount;
 			}
 		}
 
-		ZeroMemory(&sh, sizeof(sh));
-		sh.id = 0;
-		sh.size = 0;
-		sh.version = 0;
-		hr = pfs->Write(&sh, sizeof(sh), &bytesWritten);
+		ZeroMemory(&vars.sh, sizeof(vars.sh));
+		vars.sh.id = 0;
+		vars.sh.size = 0;
+		vars.sh.version = 0;
+		hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 		if (FAILED(hr))
 		{
 			break;
 		}
 
 	} while (false);
+
 	if (pfs)
 	{
 		pfs->Release();
 		pfs = NULL;
 	}
+
 	if (pTrackBuffer)
 	{
 		GlobalFree(pTrackBuffer);
 		pTrackBuffer = NULL;
 	}
 	
+	if (pvars)
+	{
+		delete pvars;
+	}
+
 	return hr;
 }
 
 HRESULT C64::LoadC64StateFromFile(const TCHAR *filename)
 {
-SsDataChunkHeader chdr;
 HRESULT hr;
 ULONG bytesRead;
 ULONG bytesToRead;
-SsSectionHeader sh;
 STATSTG stat;
-SsCpuMain sbCpuMain;
-SsCia1V0 sbCia1V0;
-SsCia1V1 sbCia1V1;
-SsCia1V2 sbCia1V2;
-SsCia2V0 sbCia2V0;
-SsCia2V1 sbCia2V1;
-SsCia2V2 sbCia2V2;
-SsVic6569 sbVic6569;
-SsSid sbSidV0;
-SsSidV1 sbSidV1;
-SsSidV2 sbSidV2;
-SsSidV3 sbSidV3;
-SsSidV4 sbSidV4Number1;
-SsSidV4 sbSidV4Number2;
-SsSidV4 sbSidV4Number3;
-SsSidV4 sbSidV4Number4;
-SsSidV4 sbSidV4Number5;
-SsSidV4 sbSidV4Number6;
-SsSidV4 sbSidV4Number7;
-SsSidV4 sbSidV4Number8;
-SsTape sbTapePlayer;
-SsTapeData sbTapeDataHeader;
-SsDiskInterfaceV0 sbDriveControllerV0;
-SsDiskInterfaceV1 sbDriveControllerV1;
-SsDiskInterfaceV2 sbDriveControllerV2;
-SsVia1 sbDriveVia1;
-SsVia2 sbDriveVia2;
-SsCpuDisk sbCpuDisk;
+StateLoadVars* pvars = new StateLoadVars();
+StateLoadVars& vars = *pvars;
 bit8 *pC64Ram = NULL;
 bit8 *pC64ColourRam = NULL;
 bit8 *pC64KernelRom = NULL;
@@ -2836,8 +2797,7 @@ ULARGE_INTEGER pos_next_track_header;
 
 	ClearError();
 	diskdrive.WaitThreadReady();
-	SsHeader hdr;
-	ZeroMemory(&hdr, sizeof(hdr));
+	ZeroMemory(&vars.hdr, sizeof(vars.hdr));
 	spos_zero.QuadPart = 0;
 	IStream *pfs = NULL;
 	do
@@ -2855,8 +2815,8 @@ ULARGE_INTEGER pos_next_track_header;
 			break;
 		}
 
-		bytesToRead = sizeof(hdr);
-		hr = pfs->Read(&hdr, bytesToRead, &bytesRead);
+		bytesToRead = sizeof(vars.hdr);
+		hr = pfs->Read(&vars.hdr, bytesToRead, &bytesRead);
 		if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 		{
 			break;
@@ -2871,14 +2831,14 @@ ULARGE_INTEGER pos_next_track_header;
 			break;
 		}
 
-		if (strcmp(hdr.Signature, SaveState::SIGNATURE) != 0)
+		if (strcmp(vars.hdr.Signature, SaveState::SIGNATURE) != 0)
 		{
 			hr = E_FAIL;
 			break;
 		}
 
 		//Version 1.0.8.5 - 1.0.8.7 reads state version 0
-		if (hdr.Version > SaveState::VERSION)
+		if (vars.hdr.Version > SaveState::VERSION)
 		{			
 			hr = SetError(E_FAIL, TEXT("This state file was saved with a higher version the emulator and cannot be read by this version of the emulator."));
 			break;
@@ -2892,22 +2852,23 @@ ULARGE_INTEGER pos_next_track_header;
 		}
 		
 		P64ImageClear(&this->diskdrive.m_P64Image);
-		SsTrackHeader trackHeader;
 		while (!eof && !done)
 		{
-			if (pos_next_header.QuadPart + sizeof(sh) >= stat.cbSize.QuadPart)
+			if (pos_next_header.QuadPart + sizeof(vars.sh) >= stat.cbSize.QuadPart)
 			{
 				eof = true;
 				break;
 			}
+
 			spos_next.QuadPart = pos_next_header.QuadPart;
 			hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_dummy);
 			if (FAILED(hr))
 			{
 				break;
 			}
-			bytesToRead = sizeof(sh);
-			hr = pfs->Read(&sh, bytesToRead, &bytesRead);
+
+			bytesToRead = sizeof(vars.sh);
+			hr = pfs->Read(&vars.sh, bytesToRead, &bytesRead);
 			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 			{
 				break;
@@ -2917,18 +2878,23 @@ ULARGE_INTEGER pos_next_track_header;
 				eof = true;
 				break;
 			}
+
 			if (FAILED(hr))
-				break;
-			if (sh.size == 0)
 			{
 				break;
 			}
-			pos_next_header.QuadPart = pos_next_header.QuadPart + sh.size;
-			switch(sh.id)
+
+			if (vars.sh.size == 0)
+			{
+				break;
+			}
+
+			pos_next_header.QuadPart = pos_next_header.QuadPart + vars.sh.size;
+			switch(vars.sh.id)
 			{
 			case SsLib::SectionType::C64Cpu:
-				bytesToRead = sizeof(sbCpuMain);
-				hr = pfs->Read(&sbCpuMain, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCpuMain);
+				hr = pfs->Read(&vars.sbCpuMain, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -2938,8 +2904,12 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
+				}
+
 				bC64Cpu = true;
 				break;
 			case SsLib::SectionType::C64Ram:
@@ -2957,13 +2927,17 @@ ULARGE_INTEGER pos_next_track_header;
 						eof = true;
 						hr = E_FAIL;
 					}
+
 					if (FAILED(hr))
+					{
 						break;
+					}
 				}
 				else
 				{
 					hr = E_OUTOFMEMORY;
 				}
+
 				bC64Ram = true;
 				break;
 			case SsLib::SectionType::C64ColourRam:
@@ -2981,18 +2955,22 @@ ULARGE_INTEGER pos_next_track_header;
 						eof = true;
 						hr = E_FAIL;
 					}
+
 					if (FAILED(hr))
+					{
 						break;
+					}
 				}
 				else
 				{
 					hr = E_OUTOFMEMORY;
 				}
+
 				bC64ColourRam = true;
 				break;
 			case SsLib::SectionType::C64Cia1V0:
-				bytesToRead = sizeof(sbCia1V0);
-				hr = pfs->Read(&sbCia1V0, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCia1V0);
+				hr = pfs->Read(&vars.sbCia1V0, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3002,15 +2980,20 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
-				CIA1::UpgradeStateV0ToV1(sbCia1V0, sbCia1V1);
-				CIA1::UpgradeStateV1ToV2(sbCia1V1, sbCia1V2);
+				}
+
+				CIA1::UpgradeStateV0ToV1(vars.sbCia1V0, vars.sbCia1V1);
+				CIA1::UpgradeStateV1ToV2(vars.sbCia1V1, vars.sbCia1V2);
+				CIA1::UpgradeStateV2ToV3(vars.sbCia1V2, vars.sbCia1V3);
 				bC64Cia1 = true;
 				break;
 			case SsLib::SectionType::C64Cia1V1:
-				bytesToRead = sizeof(sbCia1V1);
-				hr = pfs->Read(&sbCia1V1, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCia1V1);
+				hr = pfs->Read(&vars.sbCia1V1, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3020,14 +3003,19 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
-				CIA1::UpgradeStateV1ToV2(sbCia1V1, sbCia1V2);
+				}
+
+				CIA1::UpgradeStateV1ToV2(vars.sbCia1V1, vars.sbCia1V2);
+				CIA1::UpgradeStateV2ToV3(vars.sbCia1V2, vars.sbCia1V3);
 				bC64Cia1 = true;
 				break;
 			case SsLib::SectionType::C64Cia1V2:
-				bytesToRead = sizeof(sbCia1V2);
-				hr = pfs->Read(&sbCia1V2, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCia1V2);
+				hr = pfs->Read(&vars.sbCia1V2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3037,13 +3025,38 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
+				}
+
+				CIA1::UpgradeStateV2ToV3(vars.sbCia1V2, vars.sbCia1V3);
+				bC64Cia1 = true;
+				break;
+			case SsLib::SectionType::C64Cia1V3:
+				bytesToRead = sizeof(vars.sbCia1V3);
+				hr = pfs->Read(&vars.sbCia1V2, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+
+				if (FAILED(hr))
+				{
+					break;
+				}
+
 				bC64Cia1 = true;
 				break;
 			case SsLib::SectionType::C64Cia2V0:
-				bytesToRead = sizeof(sbCia2V0);
-				hr = pfs->Read(&sbCia2V0, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCia2V0);
+				hr = pfs->Read(&vars.sbCia2V0, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3053,15 +3066,20 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
-				CIA2::UpgradeStateV0ToV1(sbCia2V0, sbCia2V1);
-				CIA2::UpgradeStateV1ToV2(sbCia2V1, sbCia2V2);
+				}
+
+				CIA2::UpgradeStateV0ToV1(vars.sbCia2V0, vars.sbCia2V1);
+				CIA2::UpgradeStateV1ToV2(vars.sbCia2V1, vars.sbCia2V2);
+				CIA2::UpgradeStateV2ToV3(vars.sbCia2V2, vars.sbCia2V3);
 				bC64Cia2 = true;
 				break;
 			case SsLib::SectionType::C64Cia2V1:
-				bytesToRead = sizeof(sbCia2V1);
-				hr = pfs->Read(&sbCia2V1, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCia2V1);
+				hr = pfs->Read(&vars.sbCia2V1, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3071,14 +3089,19 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
-				CIA2::UpgradeStateV1ToV2(sbCia2V1, sbCia2V2);
+				}
+
+				CIA2::UpgradeStateV1ToV2(vars.sbCia2V1, vars.sbCia2V2);
+				CIA2::UpgradeStateV2ToV3(vars.sbCia2V2, vars.sbCia2V3);
 				bC64Cia2 = true;
 				break;
 			case SsLib::SectionType::C64Cia2V2:
-				bytesToRead = sizeof(sbCia2V2);
-				hr = pfs->Read(&sbCia2V2, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCia2V2);
+				hr = pfs->Read(&vars.sbCia2V2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3088,13 +3111,38 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
+				}
+
+				CIA2::UpgradeStateV2ToV3(vars.sbCia2V2, vars.sbCia2V3);
+				bC64Cia2 = true;
+				break;
+			case SsLib::SectionType::C64Cia2V3:
+				bytesToRead = sizeof(vars.sbCia2V3);
+				hr = pfs->Read(&vars.sbCia2V2, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+
+				if (FAILED(hr))
+				{
+					break;
+				}
+
 				bC64Cia2 = true;
 				break;
 			case SsLib::SectionType::C64Vic:
-				bytesToRead = sizeof(sbVic6569);
-				hr = pfs->Read(&sbVic6569, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbVic6569);
+				hr = pfs->Read(&vars.sbVic6569, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3109,8 +3157,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64Vic6569 = true;
 				break;
 			case SsLib::SectionType::C64Sid:
-				bytesToRead = sizeof(sbSidV0);
-				hr = pfs->Read(&sbSidV0, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV0);
+				hr = pfs->Read(&vars.sbSidV0, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3125,15 +3173,15 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 
-				SidChip::UpgradeStateV0ToV1(sbSidV0, sbSidV1);
-				SidChip::UpgradeStateV1ToV2(sbSidV1, sbSidV2);
-				SidChip::UpgradeStateV2ToV3(sbSidV2, sbSidV3);
-				SidChip::UpgradeStateV3ToV4(sbSidV3, sbSidV4Number1);
+				SidChip::UpgradeStateV0ToV1(vars.sbSidV0, vars.sbSidV1);
+				SidChip::UpgradeStateV1ToV2(vars.sbSidV1, vars.sbSidV2);
+				SidChip::UpgradeStateV2ToV3(vars.sbSidV2, vars.sbSidV3);
+				SidChip::UpgradeStateV3ToV4(vars.sbSidV3, vars.sbSidV4Number1);
 				bC64SidNumber1 = true;
 				break;
 			case SsLib::SectionType::C64SidV1:
-				bytesToRead = sizeof(sbSidV1);
-				hr = pfs->Read(&sbSidV1, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV1);
+				hr = pfs->Read(&vars.sbSidV1, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3148,14 +3196,14 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 
-				SidChip::UpgradeStateV1ToV2(sbSidV1, sbSidV2);
-				SidChip::UpgradeStateV2ToV3(sbSidV2, sbSidV3);
-				SidChip::UpgradeStateV3ToV4(sbSidV3, sbSidV4Number1);
+				SidChip::UpgradeStateV1ToV2(vars.sbSidV1, vars.sbSidV2);
+				SidChip::UpgradeStateV2ToV3(vars.sbSidV2, vars.sbSidV3);
+				SidChip::UpgradeStateV3ToV4(vars.sbSidV3, vars.sbSidV4Number1);
 				bC64SidNumber1 = true;
 				break;
 			case SsLib::SectionType::C64SidV2:
-				bytesToRead = sizeof(sbSidV2);
-				hr = pfs->Read(&sbSidV2, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV2);
+				hr = pfs->Read(&vars.sbSidV2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3171,13 +3219,13 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 
-				SidChip::UpgradeStateV2ToV3(sbSidV2, sbSidV3);
-				SidChip::UpgradeStateV3ToV4(sbSidV3, sbSidV4Number1);
+				SidChip::UpgradeStateV2ToV3(vars.sbSidV2, vars.sbSidV3);
+				SidChip::UpgradeStateV3ToV4(vars.sbSidV3, vars.sbSidV4Number1);
 				bC64SidNumber1 = true;
 				break;
 			case SsLib::SectionType::C64SidV3:
-				bytesToRead = sizeof(sbSidV3);
-				hr = pfs->Read(&sbSidV3, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV3);
+				hr = pfs->Read(&vars.sbSidV3, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3192,12 +3240,12 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 
-				SidChip::UpgradeStateV3ToV4(sbSidV3, sbSidV4Number1);
+				SidChip::UpgradeStateV3ToV4(vars.sbSidV3, vars.sbSidV4Number1);
 				bC64SidNumber1 = true;
 				break;
 			case SsLib::SectionType::C64SidChip1:
-				bytesToRead = sizeof(sbSidV4Number1);
-				hr = pfs->Read(&sbSidV4Number1, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number1);
+				hr = pfs->Read(&vars.sbSidV4Number1, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3215,8 +3263,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber1 = true;
 				break;
 			case SsLib::SectionType::C64SidChip2:
-				bytesToRead = sizeof(sbSidV4Number2);
-				hr = pfs->Read(&sbSidV4Number2, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number2);
+				hr = pfs->Read(&vars.sbSidV4Number2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3234,8 +3282,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber2 = true;
 				break;
 			case SsLib::SectionType::C64SidChip3:
-				bytesToRead = sizeof(sbSidV4Number3);
-				hr = pfs->Read(&sbSidV4Number3, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number3);
+				hr = pfs->Read(&vars.sbSidV4Number3, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3253,8 +3301,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber3 = true;
 				break;
 			case SsLib::SectionType::C64SidChip4:
-				bytesToRead = sizeof(sbSidV4Number4);
-				hr = pfs->Read(&sbSidV4Number4, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number4);
+				hr = pfs->Read(&vars.sbSidV4Number4, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3272,8 +3320,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber4 = true;
 				break;
 			case SsLib::SectionType::C64SidChip5:
-				bytesToRead = sizeof(sbSidV4Number5);
-				hr = pfs->Read(&sbSidV4Number5, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number5);
+				hr = pfs->Read(&vars.sbSidV4Number5, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3291,8 +3339,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber5 = true;
 				break;
 			case SsLib::SectionType::C64SidChip6:
-				bytesToRead = sizeof(sbSidV4Number6);
-				hr = pfs->Read(&sbSidV4Number6, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number6);
+				hr = pfs->Read(&vars.sbSidV4Number6, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3310,8 +3358,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber6 = true;
 				break;
 			case SsLib::SectionType::C64SidChip7:
-				bytesToRead = sizeof(sbSidV4Number7);
-				hr = pfs->Read(&sbSidV4Number7, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number7);
+				hr = pfs->Read(&vars.sbSidV4Number7, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3329,8 +3377,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber7 = true;
 				break;
 			case SsLib::SectionType::C64SidChip8:
-				bytesToRead = sizeof(sbSidV4Number8);
-				hr = pfs->Read(&sbSidV4Number8, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbSidV4Number8);
+				hr = pfs->Read(&vars.sbSidV4Number8, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3420,8 +3468,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64CharRom = true;
 				break;
 			case SsLib::SectionType::C64Tape:
-				bytesToRead = sizeof(sbTapePlayer);
-				hr = pfs->Read(&sbTapePlayer, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbTapePlayer);
+				hr = pfs->Read(&vars.sbTapePlayer, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3433,7 +3481,7 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				if (FAILED(hr))
 					break;
-				if (sbTapePlayer.tape_max_counter > TAP64::MAX_COUNTERS && sbTapePlayer.tape_position >= sbTapePlayer.tape_max_counter)
+				if (vars.sbTapePlayer.tape_max_counter > TAP64::MAX_COUNTERS && vars.sbTapePlayer.tape_position >= vars.sbTapePlayer.tape_max_counter)
 				{
 					hr = E_FAIL;
 					break;
@@ -3446,9 +3494,9 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 					break;
 				}
-				ZeroMemory(&sbTapeDataHeader, sizeof(sbTapeDataHeader));				
-				bytesToRead = sizeof(sbTapeDataHeader);
-				hr = pfs->Read(&sbTapeDataHeader, bytesToRead, &bytesRead);
+				ZeroMemory(&vars.sbTapeDataHeader, sizeof(vars.sbTapeDataHeader));
+				bytesToRead = sizeof(vars.sbTapeDataHeader);
+				hr = pfs->Read(&vars.sbTapeDataHeader, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3462,17 +3510,17 @@ ULARGE_INTEGER pos_next_track_header;
 				{
 					break;
 				}
-				if (sbTapeDataHeader.tape_max_counter == 0)
+				if (vars.sbTapeDataHeader.tape_max_counter == 0)
 				{
 					break;
 				}
-				if (sbTapeDataHeader.tape_max_counter > TAP64::MAX_COUNTERS)
+				if (vars.sbTapeDataHeader.tape_max_counter > TAP64::MAX_COUNTERS)
 				{
 					hr = E_FAIL;
 					break;
 				}
 
-				pTapeData = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, sbTapeDataHeader.tape_max_counter * sizeof(bit32));
+				pTapeData = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, vars.sbTapeDataHeader.tape_max_counter * sizeof(bit32));
 				if (!pTapeData)
 				{
 					hr = E_OUTOFMEMORY;
@@ -3485,8 +3533,8 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 
-				bytesToRead = sizeof(chdr);
-				hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.chdr);
+				hr = pfs->Read(&vars.chdr, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3502,15 +3550,15 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 
-				if (chdr.byteCount != sbTapeDataHeader.tape_max_counter * sizeof(bit32))
+				if (vars.chdr.byteCount != vars.sbTapeDataHeader.tape_max_counter * sizeof(bit32))
 				{
 					hr = E_FAIL;
 					break;
 				}
 
-				if (chdr.compressionType == NOCOMPRESSION)
+				if (vars.chdr.compressionType == NOCOMPRESSION)
 				{
-					bytesToRead = chdr.byteCount;
+					bytesToRead = vars.chdr.byteCount;
 					hr = pfs->Read(pTapeData, bytesToRead, &bytesRead);
 					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 					{
@@ -3528,7 +3576,7 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				else
 				{
-					hr = hw.Decompress(sbTapeDataHeader.tape_max_counter, &pTapeData);
+					hr = hw.Decompress(vars.sbTapeDataHeader.tape_max_counter, &pTapeData);
 					if (FAILED(hr))
 					{
 						break;
@@ -3585,8 +3633,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bDriveRom = true;
 				break;
 			case SsLib::SectionType::DriveCpu:
-				bytesToRead = sizeof(sbCpuDisk);
-				hr = pfs->Read(&sbCpuDisk, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbCpuDisk);
+				hr = pfs->Read(&vars.sbCpuDisk, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3609,7 +3657,7 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				driveControllerVersion = 0;
 				bytesToRead = sizeof(SsDiskInterfaceV0);
-				hr = pfs->Read(&sbDriveControllerV0, bytesToRead, &bytesRead);
+				hr = pfs->Read(&vars.sbDriveControllerV0, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3623,8 +3671,8 @@ ULARGE_INTEGER pos_next_track_header;
 				{
 					break;
 				}
-				DiskInterface::UpgradeStateV0ToV1(sbDriveControllerV0, sbDriveControllerV1);
-				DiskInterface::UpgradeStateV1ToV2(sbDriveControllerV1, sbDriveControllerV2);
+				DiskInterface::UpgradeStateV0ToV1(vars.sbDriveControllerV0, vars.sbDriveControllerV1);
+				DiskInterface::UpgradeStateV1ToV2(vars.sbDriveControllerV1, vars.sbDriveControllerV2);
 				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveControllerV1:
@@ -3633,9 +3681,9 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 				driveControllerVersion = 1;
-				ZeroMemory(&sbDriveControllerV1, sizeof(sbDriveControllerV1));
+				ZeroMemory(&vars.sbDriveControllerV1, sizeof(vars.sbDriveControllerV1));
 				bytesToRead = sizeof(SsDiskInterfaceV1);
-				hr = pfs->Read(&sbDriveControllerV1, bytesToRead, &bytesRead);
+				hr = pfs->Read(&vars.sbDriveControllerV1, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3649,7 +3697,7 @@ ULARGE_INTEGER pos_next_track_header;
 				{
 					break;
 				}
-				DiskInterface::UpgradeStateV1ToV2(sbDriveControllerV1, sbDriveControllerV2);
+				DiskInterface::UpgradeStateV1ToV2(vars.sbDriveControllerV1, vars.sbDriveControllerV2);
 				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveControllerV2:
@@ -3658,9 +3706,9 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 				driveControllerVersion = 2;
-				ZeroMemory(&sbDriveControllerV2, sizeof(sbDriveControllerV2));
+				ZeroMemory(&vars.sbDriveControllerV2, sizeof(vars.sbDriveControllerV2));
 				bytesToRead = sizeof(SsDiskInterfaceV2);
-				hr = pfs->Read(&sbDriveControllerV2, bytesToRead, &bytesRead);
+				hr = pfs->Read(&vars.sbDriveControllerV2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3677,8 +3725,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveVia1:
-				bytesToRead = sizeof(sbDriveVia1);
-				hr = pfs->Read(&sbDriveVia1, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbDriveVia1);
+				hr = pfs->Read(&vars.sbDriveVia1, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3695,8 +3743,8 @@ ULARGE_INTEGER pos_next_track_header;
 				bDriveVia1 = true;
 				break;
 			case SsLib::SectionType::DriveVia2:
-				bytesToRead = sizeof(sbDriveVia2);
-				hr = pfs->Read(&sbDriveVia2, bytesToRead, &bytesRead);
+				bytesToRead = sizeof(vars.sbDriveVia2);
+				hr = pfs->Read(&vars.sbDriveVia2, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3729,7 +3777,7 @@ ULARGE_INTEGER pos_next_track_header;
 				{
 					break;
 				}
-				if (sh.id == SsLib::SectionType::DriveDiskImageV0)
+				if (vars.sh.id == SsLib::SectionType::DriveDiskImageV0)
 				{
 					numberOfHalfTracks = G64_MAX_TRACKS;
 				}
@@ -3763,8 +3811,8 @@ ULARGE_INTEGER pos_next_track_header;
 				}				
 				for (i=0; i < numberOfHalfTracks; i++)
 				{
-					bytesToRead = sizeof(trackHeader);
-					hr = pfs->Read(&trackHeader, bytesToRead, &bytesRead);
+					bytesToRead = sizeof(vars.trackHeader);
+					hr = pfs->Read(&vars.trackHeader, bytesToRead, &bytesRead);
 					if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 					{
 						break;
@@ -3778,19 +3826,19 @@ ULARGE_INTEGER pos_next_track_header;
 					{
 						break;
 					}
-					if (trackHeader.gap_count > P64PulseSamplesPerRotation || (trackHeader.number >= numberOfHalfTracks))
+					if (vars.trackHeader.gap_count > P64PulseSamplesPerRotation || (vars.trackHeader.number >= numberOfHalfTracks))
 					{
 						hr = E_FAIL;
 						break;
 					}
-					if (trackHeader.gap_count * sizeof(bit32) > trackbufferLength)
+					if (vars.trackHeader.gap_count * sizeof(bit32) > trackbufferLength)
 					{
 						if (pTrackBuffer != NULL)
 						{
 							GlobalFree(pTrackBuffer);
 							pTrackBuffer = NULL;
 						}
-						trackbufferLength = (trackHeader.gap_count * sizeof(bit32)) * 2;
+						trackbufferLength = (vars.trackHeader.gap_count * sizeof(bit32)) * 2;
 						pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, trackbufferLength);
 						if (!pTrackBuffer)
 						{
@@ -3798,12 +3846,12 @@ ULARGE_INTEGER pos_next_track_header;
 							break;
 						}
 					}
-					pos_next_track_header.QuadPart = pos_current_track_header.QuadPart + trackHeader.size;
-					TP64PulseStream& track = diskdrive.m_P64Image.PulseStreams[P64FirstHalfTrack + trackHeader.number];
-					if (trackHeader.gap_count > 1)
+					pos_next_track_header.QuadPart = pos_current_track_header.QuadPart + vars.trackHeader.size;
+					TP64PulseStream& track = diskdrive.m_P64Image.PulseStreams[P64FirstHalfTrack + vars.trackHeader.number];
+					if (vars.trackHeader.gap_count > 1)
 					{
-						bytesToRead = sizeof(chdr);
-						hr = pfs->Read(&chdr, bytesToRead, &bytesRead);
+						bytesToRead = sizeof(vars.chdr);
+						hr = pfs->Read(&vars.chdr, bytesToRead, &bytesRead);
 						if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 						{
 							break;
@@ -3817,14 +3865,14 @@ ULARGE_INTEGER pos_next_track_header;
 						{
 							break;
 						}
-						if (chdr.byteCount != trackHeader.gap_count * sizeof(bit32))
+						if (vars.chdr.byteCount != vars.trackHeader.gap_count * sizeof(bit32))
 						{
 							hr = E_FAIL;
 							break;
 						}
-						if (chdr.compressionType == NOCOMPRESSION)
+						if (vars.chdr.compressionType == NOCOMPRESSION)
 						{
-							bytesToRead = chdr.byteCount;
+							bytesToRead = vars.chdr.byteCount;
 							hr = pfs->Read(pTrackBuffer, bytesToRead, &bytesRead);
 							if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 							{
@@ -3842,13 +3890,13 @@ ULARGE_INTEGER pos_next_track_header;
 						}
 						else
 						{
-							hr = hw.Decompress(trackHeader.gap_count, &pTrackBuffer);
+							hr = hw.Decompress(vars.trackHeader.gap_count, &pTrackBuffer);
 							if (FAILED(hr))
 							{
 								break;
 							}
 						}
-						this->LoadTrackStateV0(i, pTrackBuffer, diskdrive.m_P64Image, trackHeader.gap_count);
+						this->LoadTrackStateV0(i, pTrackBuffer, diskdrive.m_P64Image, vars.trackHeader.gap_count);
 					}
 					spos_next.QuadPart = pos_next_track_header.QuadPart;
 					hr = pfs->Seek(spos_next, STREAM_SEEK_SET, &pos_current_track_header);
@@ -3892,7 +3940,7 @@ ULARGE_INTEGER pos_next_track_header;
 	}
 	if (SUCCEEDED(hr) && hasC64)
 	{
-		cpu.SetState(sbCpuMain);
+		cpu.SetState(vars.sbCpuMain);
 		if (ram.mMemory && pC64Ram)
 		{
 			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
@@ -3902,10 +3950,10 @@ ULARGE_INTEGER pos_next_track_header;
 			memcpy(ram.mColorRAM, pC64ColourRam, SaveState::SIZECOLOURAM);
 		}
 
-		cia1.SetState(sbCia1V2);
-		cia2.SetState(sbCia2V2);
-		appStatus->m_bTimerBbug = sbCia1V2.cia.bTimerBbug != 0;
-		if (sbCia1V2.cia.bEarlyIRQ)
+		cia1.SetState(vars.sbCia1V2);
+		cia2.SetState(vars.sbCia2V2);
+		appStatus->m_bTimerBbug = vars.sbCia1V2.cia.bTimerBbug != 0;
+		if (vars.sbCia1V2.cia.bEarlyIRQ)
 		{
 			appStatus->m_CIAMode = HCFG::CM_CIA6526A;
 		}
@@ -3915,92 +3963,92 @@ ULARGE_INTEGER pos_next_track_header;
 		}
 
 		appCommand->SetUserConfig(*appStatus);
-		vic.SetState(sbVic6569);
-		sid.sid1.SetState(sbSidV4Number1);
+		vic.SetState(vars.sbVic6569);
+		sid.sid1.SetState(vars.sbSidV4Number1);
 		bit16 sidAddress[7] = {0, 0, 0, 0, 0, 0, 0};
 		int extraSidCount = 0;
 		if (bC64SidNumber2)
 		{
-			sid.sid2.SetState(sbSidV4Number2);
-			sidAddress[extraSidCount++] = sbSidV4Number2.SidAddress;
+			sid.sid2.SetState(vars.sbSidV4Number2);
+			sidAddress[extraSidCount++] = vars.sbSidV4Number2.SidAddress;
 		}
 
 		if (bC64SidNumber3)
 		{
-			sid.sid3.SetState(sbSidV4Number3);
-			sidAddress[extraSidCount++] = sbSidV4Number3.SidAddress;
+			sid.sid3.SetState(vars.sbSidV4Number3);
+			sidAddress[extraSidCount++] = vars.sbSidV4Number3.SidAddress;
 		}
 
 		if (bC64SidNumber4)
 		{
-			sid.sid4.SetState(sbSidV4Number4);
-			sidAddress[extraSidCount++] = sbSidV4Number4.SidAddress;
+			sid.sid4.SetState(vars.sbSidV4Number4);
+			sidAddress[extraSidCount++] = vars.sbSidV4Number4.SidAddress;
 		}
 
 		if (bC64SidNumber5)
 		{
-			sid.sid5.SetState(sbSidV4Number5);
-			sidAddress[extraSidCount++] = sbSidV4Number5.SidAddress;
+			sid.sid5.SetState(vars.sbSidV4Number5);
+			sidAddress[extraSidCount++] = vars.sbSidV4Number5.SidAddress;
 		}
 
 		if (bC64SidNumber6)
 		{
-			sid.sid6.SetState(sbSidV4Number6);
-			sidAddress[extraSidCount++] = sbSidV4Number6.SidAddress;
+			sid.sid6.SetState(vars.sbSidV4Number6);
+			sidAddress[extraSidCount++] = vars.sbSidV4Number6.SidAddress;
 		}
 
 		if (bC64SidNumber7)
 		{
-			sid.sid7.SetState(sbSidV4Number7);
-			sidAddress[extraSidCount++] = sbSidV4Number7.SidAddress;
+			sid.sid7.SetState(vars.sbSidV4Number7);
+			sidAddress[extraSidCount++] = vars.sbSidV4Number7.SidAddress;
 		}
 
 		if (bC64SidNumber8)
 		{
-			sid.sid8.SetState(sbSidV4Number8);
-			sidAddress[extraSidCount++] = sbSidV4Number8.SidAddress;
+			sid.sid8.SetState(vars.sbSidV4Number8);
+			sidAddress[extraSidCount++] = vars.sbSidV4Number8.SidAddress;
 		}
 
 		sid.SetCurrentClock(sid.sid1.CurrentClock);
 		sid.SetSidChipAddressMap(extraSidCount, sidAddress[0], sidAddress[1], sidAddress[2], sidAddress[3], sidAddress[4], sidAddress[5], sidAddress[6]);
 		tape64.UnloadTAP();
-		if (bTapePlayer && bTapeData && sbTapeDataHeader.tape_max_counter > 0)
+		if (bTapePlayer && bTapeData && vars.sbTapeDataHeader.tape_max_counter > 0)
 		{
-			sbTapePlayer.tape_max_counter = sbTapeDataHeader.tape_max_counter;
+			vars.sbTapePlayer.tape_max_counter = vars.sbTapeDataHeader.tape_max_counter;
 			//sbTapePlayer.tape_position = min(sbTapePlayer.tape_position, sbTapeDataHeader.tape_max_counter - 1);
-			if (sbTapePlayer.tape_position >= sbTapeDataHeader.tape_max_counter)
+			if (vars.sbTapePlayer.tape_position >= vars.sbTapeDataHeader.tape_max_counter)
 			{
-				sbTapePlayer.tape_position = sbTapeDataHeader.tape_max_counter - 1;
+				vars.sbTapePlayer.tape_position = vars.sbTapeDataHeader.tape_max_counter - 1;
 			}
 
-			this->tape64.SetState(sbTapePlayer);
+			this->tape64.SetState(vars.sbTapePlayer);
 			this->tape64.pData = pTapeData;
 			pTapeData = NULL;
 		}
 		else if (bTapePlayer)
 		{
-			sbTapePlayer.tape_max_counter = 0;
-			sbTapePlayer.tape_position = 0;
-			this->tape64.SetState(sbTapePlayer);
+			vars.sbTapePlayer.tape_max_counter = 0;
+			vars.sbTapePlayer.tape_position = 0;
+			this->tape64.SetState(vars.sbTapePlayer);
 			this->tape64.pData = pTapeData;
 			pTapeData = NULL;
 		}
 
 		if (bDriveCpu)
 		{
-			diskdrive.cpu.SetState(sbCpuDisk);
+			diskdrive.cpu.SetState(vars.sbCpuDisk);
 		}
 		if (bDriveController)
 		{
-			diskdrive.SetState(sbDriveControllerV2);
+			diskdrive.SetState(vars.sbDriveControllerV2);
 		}
 		if (bDriveVia1)
 		{
-			diskdrive.via1.SetState(sbDriveVia1);
+			diskdrive.via1.SetState(vars.sbDriveVia1);
 		}
 		if (bDriveVia2)
 		{
-            diskdrive.via2.SetState(sbDriveVia2);
+            diskdrive.via2.SetState(vars.sbDriveVia2);
 		}
 
 		if (pC64KernelRom && ram.mKernal)
@@ -4024,7 +4072,7 @@ ULARGE_INTEGER pos_next_track_header;
 		{
 			memcpy(diskdrive.m_pD1541_rom, pDriveRom, SaveState::SIZEDRIVEROM);
 		}
-		ICLK c = sbCpuMain.common.CurrentClock;
+		ICLK c = vars.sbCpuMain.common.CurrentClock;
 		cart.AttachCart(spCartInterface);
 		if (cart.IsCartAttached())
 		{
@@ -4090,6 +4138,12 @@ ULARGE_INTEGER pos_next_track_header;
 		GlobalFree(pTapeData);
 		pTapeData = NULL;
 	}
+
+	if (pvars)
+	{
+		delete pvars;
+	}
+
 	return hr;
 }
 
