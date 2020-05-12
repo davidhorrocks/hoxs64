@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <assert.h>
 #include "boost2005.h"
 #include "defines.h"
 #include "bits.h"
@@ -67,6 +68,8 @@ void CIA::InitCommonReset(ICLK sysclock, bool poweronreset)
 	serial_shift_buffer=0;
 	serial_data_write_pending=false;
 	serial_data_write_loading=false;
+	serial_shiftregister_loaded = false;
+	serial_interrupt_on_direction_change = false;
 	cra=0;
 	crb=0;
 	ta_latch.word=0xffff;
@@ -310,15 +313,18 @@ ICLKS todclocks;
 				cra = (cra & 0xFE);
 				feed &= ~CountA2;
 			}	
+
 			if (cra & 0x40)//Generate serial interrupt after 16 timer a underflows.
 			{
 				//serial out
-				if (this->serial_data_write_loading && serial_int_count == 0)
+				if (serial_int_count == 0)
 				{
-					this->serial_data_write_loading = false;
-					this->serial_shift_buffer = this->serial_data_register;
-					serial_int_count = 16;
+					if (serial_shiftregister_loaded)
+					{
+						serial_int_count = 16;
+					}
 				}
+
 				if (serial_int_count)
 				{
 					delay |= SetCntFlip0;
@@ -344,18 +350,34 @@ ICLKS todclocks;
 				}
 			}
 		}
+
 		bool is_CNT_rising = false;
 		if (serial_int_count != 0 && (delay & SetCntFlip2) != 0 && (delay & SetCntFlip3) == 0)
 		{
 			if (this->SetSerialCntOut(!this->f_cnt_out))
 			{
-				is_CNT_rising = this->f_cnt_out;
-				serial_int_count--;
-				if (serial_int_count == 1)
+				// Check that CNT was low for one clock cycle.
+				is_CNT_rising = this->f_cnt_out && (delay & SetCnt0) == 0;
+				if (serial_int_count != 0)
 				{
-					serial_interrupt_delay = 1;
+					serial_int_count--;
+					if (serial_int_count == 1)
+					{
+						serial_interrupt_delay = 1;
+						if (serial_data_write_loading)
+						{
+							serial_data_write_loading = false;
+							serial_shift_buffer = serial_data_register;
+							serial_shiftregister_loaded = true;
+						}
+						else
+						{
+							serial_shiftregister_loaded = false;
+						}
+					}
 				}
 			}
+
 			if (this->f_cnt_out)
 			{
 				feed |= SetCnt0;
@@ -397,10 +419,19 @@ ICLKS todclocks;
 			}
 		}
 
-		if (this->serial_data_write_pending)
+		if (serial_data_write_pending)
 		{
-			this->serial_data_write_pending = false;
-			this->serial_data_write_loading = true;
+			if (!serial_shiftregister_loaded)
+			{
+				serial_shift_buffer = serial_data_register;
+				serial_shiftregister_loaded = true;
+			}
+			else
+			{
+				serial_data_write_loading = true;
+			}
+
+			serial_data_write_pending = false;
 		}
 
 		//TIMER B
@@ -728,14 +759,12 @@ void CIA::SetSerialSpOut(bool value)
 
 bool CIA::SetSerialCntOut(bool value)
 {
-	bool isChanged = false;
 	if ((cra & 0x40) != 0)
 	{
 		//Serial port output
 		if (value && !this->f_cnt_out)
 		{
 			//CNT rising
-			isChanged = true;
 			if (serial_int_count)
 			{
 				serial_shift_buffer = (serial_shift_buffer << 1) & 0xff;
@@ -744,13 +773,14 @@ bool CIA::SetSerialCntOut(bool value)
 		else if (!value && this->f_cnt_out)
 		{
 			//CNT falling
-			isChanged = true;
 			if (serial_int_count)
 			{				
 				this->SetSerialSpOut((serial_shift_buffer & 0x80) != 0);					
 			}
 		}
 	}
+
+	bool isChanged = this->f_cnt_out != value;
 	this->f_cnt_out = value;
 	return isChanged;
 }
@@ -1087,7 +1117,6 @@ bit8 data_old;
 	case 0x0C://serial data register
 		serial_data_register = data;
 		serial_data_write_pending = true;
-		serial_data_write_loading = false;
 		idle=false;
 		no_change_count=0;
 		break;
@@ -1196,17 +1225,52 @@ bit8 data_old;
 		if ((data ^ cra) & 0x40)
 		{
 			//serial direction changing
-			this->serial_int_count = 0;
-			this->serial_data_write_pending = false;
-			this->serial_data_write_loading = false;
-			if (this->SetSerialCntOut(true))
+			bool is_CNT_rising = false;
+			bool cnt_next;
+			if ((data & 0x40) == 0) // changed to input
 			{
-				if ((delay & SetCntFlip3) == 0)
+				if (this->bEarlyIRQ)
 				{
-					this->delay |= CountA0;
-					this->delay |= CountB0;
+					// New CIA
+					cnt_next = (delay & (SetCnt2 | SetCnt1)) == (SetCnt2 | SetCnt1);
+				}
+				else
+				{
+					// Old CIA
+					cnt_next = (delay & (SetCnt2 | SetCnt1 | SetCnt0)) == (SetCnt2 | SetCnt1 | SetCnt0);
+				}
+
+				if (cnt_next)
+				{
+					if (serial_int_count != 2 && ((this->delay & SetCntFlip2) != 0 && ((delay & SetCntFlip3) == 0)))
+					{
+						cnt_next = !cnt_next;
+					}
+				}
+
+				serial_interrupt_on_direction_change = !cnt_next;
+				if (this->SetSerialCntOut(true))
+				{
+					// Check that CNT was low for one clock cycle.
+					is_CNT_rising = (delay & SetCnt1) == 0;
 				}
 			}
+			else // changed to output
+			{
+				if (this->SetSerialCntOut(true))
+				{
+					// Check that CNT was low for one clock cycle.
+					is_CNT_rising = (delay & SetCnt1) == 0;
+				}
+
+				if (serial_interrupt_on_direction_change)
+				{
+					serial_interrupt_on_direction_change = false;
+					serial_interrupt_delay |= 1;
+				}
+			}
+
+			this->delay &= ~(SetCntFlip0 | SetCntFlip1 | SetCntFlip2 | SetCntFlip3);
 			if (this->f_cnt_out)
 			{
 				feed |= SetCnt0;
@@ -1217,7 +1281,17 @@ bit8 data_old;
 				feed &= ~SetCnt0;
 				delay &= ~SetCnt0;
 			}
-			this->delay &= ~(SetCntFlip0 | SetCntFlip1 | SetCntFlip2 | SetCntFlip3);
+
+			if (is_CNT_rising)
+			{
+				this->delay |= CountA0;
+				this->delay |= CountB0;
+			}
+
+			this->serial_int_count = 0;
+			this->serial_data_write_pending = false;
+			this->serial_data_write_loading = false;
+			this->serial_shiftregister_loaded = false;
 		}
 		
 		//Set PB6 high on Timer A start
@@ -1553,10 +1627,13 @@ void CIA::GetCommonState(SsCiaV2 &state)
 	state.serial_shift_buffer = serial_shift_buffer;
 	state.serial_data_write_pending = serial_data_write_pending;
 	state.serial_data_write_loading = serial_data_write_loading;
-	state.serial_other = 0;
+	state.serial_shiftregister_loaded = serial_shiftregister_loaded;
+	state.serial_interrupt_on_direction_change = serial_interrupt_on_direction_change;
+	state.int8_buffer0 = 0;
+	state.int8_buffer1 = 0;
+	state.int8_buffer2 = 0;
 	state.int32_buffer0 = 0;
 	state.int32_buffer1 = 0;
-	state.int32_buffer2 = 0;
 	state.f_sp_in = f_sp_in;
 	state.f_sp_out = f_sp_out;
 	state.f_cnt_in = f_cnt_in;
@@ -1618,10 +1695,8 @@ void CIA::SetCommonState(const SsCiaV2 &state)
 	serial_shift_buffer = state.serial_shift_buffer;
 	serial_data_write_pending = state.serial_data_write_pending != 0;
 	serial_data_write_loading = state.serial_data_write_loading != 0;
-	//state.serial_other;
-	//state.int32_buffer0;
-	//state.int32_buffer1;
-	//state.int32_buffer2;
+	serial_shiftregister_loaded = state.serial_shiftregister_loaded != 0;
+	serial_interrupt_on_direction_change = state.serial_interrupt_on_direction_change != 0;
 	f_sp_in = state.f_sp_in != 0;
 	f_sp_out = state.f_sp_out != 0;
 	f_cnt_in = state.f_cnt_in != 0;
@@ -1698,10 +1773,13 @@ void CIA::UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out)
 	out.serial_shift_buffer = in.serial_shift_buffer;
 	out.serial_data_write_pending = in.serial_data_write_pending != 0;
 	out.serial_data_write_loading = in.serial_data_write_loading != 0;
-	out.serial_other = in.serial_other;
+	out.serial_shiftregister_loaded = in.serial_shiftregister_loaded != 0;
+	out.serial_interrupt_on_direction_change = in.serial_interrupt_on_direction_change != 0;
+	out.int8_buffer0 = in.int8_buffer0;
+	out.int8_buffer1 = in.int8_buffer1;
+	out.int8_buffer2 = in.int8_buffer2;
 	out.int32_buffer0 = in.int32_buffer0;
 	out.int32_buffer1 = in.int32_buffer1;
-	out.int32_buffer2 = in.int32_buffer2;
 	out.f_sp_in = in.f_sp_in != 0;
 	out.f_sp_out = in.f_sp_out != 0;
 	out.f_cnt_in = in.f_cnt_in != 0;
@@ -1741,4 +1819,10 @@ void CIA::UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out)
 	out.bPB67TimerMode = in.bPB67TimerMode;
 	out.bPB67TimerOut = in.bPB67TimerOut;
 	out.bPB67Toggle = in.bPB67Toggle;
+}
+
+void CIA::UpgradeStateV2ToV3(const SsCiaV2& in, SsCiaV2& out)
+{
+	out.serial_shiftregister_loaded = in.serial_data_write_loading != 0;
+	out.serial_interrupt_on_direction_change = false;
 }

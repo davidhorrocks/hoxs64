@@ -164,7 +164,9 @@ public:
 	bit8 serial_int_count = 0;
 	bool serial_data_write_pending = false;
 	bool serial_data_write_loading = false;
+	bool serial_shiftregister_loaded = false;
 	bit32 serial_interrupt_delay = 0;
+	bool serial_interrupt_on_direction_change = false;
 	bool bEarlyIRQ = false;
 	bool bTimerBbug = false;
 	ICLK ClockReadICR = 0;
@@ -180,6 +182,7 @@ protected:
 	void SetCommonState(const SsCiaV2 &state);
 	static void UpgradeStateV0ToV1(const SsCiaV0 &in, SsCiaV1 &out);
 	static void UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out);
+	static void UpgradeStateV2ToV3(const SsCiaV2& in, SsCiaV2& out);
 
 	random_device rd;
 	mt19937 randengine;
