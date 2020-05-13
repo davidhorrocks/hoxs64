@@ -1,2 +1,2 @@
 #pragma once
-#define SERVICERELEASE 1
+#define SERVICERELEASE 0
