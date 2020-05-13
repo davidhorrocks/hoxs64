@@ -477,10 +477,12 @@ void CPU6510::GetCpuState(CPUState& state)
 	state.PortDataStored = cpu_io_data;
 }
 
-void CPU6510::SyncChips()
+void CPU6510::SyncChips(bool isWriteCycle)
 {
 	ICLK& curClock = CurrentClock;
+	this->m_bIsWriteCycle = isWriteCycle;
 	vic->ExecuteCycle(curClock);
+	this->m_bIsWriteCycle = false;
 	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <= 0)
 	{
 		cia1->ExecuteCycle(curClock);

@@ -66,7 +66,7 @@ HRESULT hr;
 	return S_OK;
 }
 
-void CPUDisk::SyncChips()
+void CPUDisk::SyncChips(bool isWriteCycle)
 {
 	via1->ExecuteCycle(CurrentClock);
 	via2->ExecuteCycle(CurrentClock);

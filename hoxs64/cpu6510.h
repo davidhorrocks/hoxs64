@@ -29,47 +29,50 @@ public:
 	void SetCassetteSense(bit8 sense);
 	void CheckPortFade(ICLK sysclock);	
 
-	virtual void Reset6510(ICLK sysclock, bool poweronreset);
-	virtual ICLK Get6510CurrentClock();
-	virtual void Set6510CurrentClock(ICLK sysclock);
-	virtual void Set_VIC_IRQ(ICLK sysclock);
-	virtual void Clear_VIC_IRQ();
-	virtual void Set_CIA_IRQ(ICLK sysclock);
-	virtual void Clear_CIA_IRQ();
-	virtual void Set_CRT_IRQ(ICLK sysclock);
-	virtual void Clear_CRT_IRQ();
-	virtual void Set_CIA_NMI(ICLK sysclock);
-	virtual void Clear_CIA_NMI();
-	virtual void Set_CRT_NMI(ICLK sysclock);
-	virtual void Clear_CRT_NMI();
-	virtual void ConfigureMemoryMap();
-	virtual bool Get_EnableDebugCart();
-	virtual void Set_EnableDebugCart(bool bEnable);
+	void Reset6510(ICLK sysclock, bool poweronreset) override;
+	ICLK Get6510CurrentClock() override;
+	void Set6510CurrentClock(ICLK sysclock) override;
+	void Set_VIC_IRQ(ICLK sysclock) override;
+	void Clear_VIC_IRQ() override;
+	void Set_CIA_IRQ(ICLK sysclock) override;
+	void Clear_CIA_IRQ() override;
+	void Set_CRT_IRQ(ICLK sysclock) override;
+	void Clear_CRT_IRQ() override;
+	void Set_CIA_NMI(ICLK sysclock) override;
+	void Clear_CIA_NMI() override;
+	void Set_CRT_NMI(ICLK sysclock) override;
+	void Clear_CRT_NMI() override;
+	void ConfigureMemoryMap() override;
+
+	bool Get_EnableDebugCart();
+	void Set_EnableDebugCart(bool bEnable);
 	void InitReset(ICLK sysclock, bool poweronreset);
 
 	//IRegister
-	virtual void Reset(ICLK sysclock, bool poweronreset);
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
-	virtual ICLK GetCurrentClock();
-	virtual void SetCurrentClock(ICLK sysclock);
+	void Reset(ICLK sysclock, bool poweronreset) override;
+	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
+	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock) override;
+	ICLK GetCurrentClock() override;
+	void SetCurrentClock(ICLK sysclock) override;
 
-	virtual bit8 ReadByte(bit16 address);
-	virtual void WriteByte(bit16 address, bit8 data);
+	bit8 ReadByte(bit16 address) override;
+	void WriteByte(bit16 address, bit8 data) override;
 
 	//IMonitorCpu
-	virtual bit8 MonReadByte(bit16 address, int memorymap);
-	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap);
-	virtual void GetCpuState(CPUState& state);
-	virtual void SetDdr(bit8 v);
-	virtual void SetData(bit8 v);
-	virtual int GetCurrentCpuMmuMemoryMap();
-	virtual MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
-	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
+	bit8 MonReadByte(bit16 address, int memorymap) override;
+	void MonWriteByte(bit16 address, bit8 data, int memorymap) override;
+	void GetCpuState(CPUState& state) override;
+	void SetDdr(bit8 v) override;
+	void SetData(bit8 v) override;
+
+	int GetCurrentCpuMmuMemoryMap()  override;
+	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap) override;
+	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap) override;
+
 	void AddClockDelay();
-	virtual void PreventClockOverflow();
-	virtual void OnHltInstruction();
+	void PreventClockOverflow() override;
+	void OnHltInstruction() override;
 	void cpu_port();
 	void GetState(SsCpuMain &state);
 	void SetState(const SsCpuMain &state);
@@ -108,10 +111,10 @@ private:
 	ICLK m_fade6clock = 0;
 	bool bEnableDebugCart = false;	
 
-	virtual void SyncChips();
-	virtual void check_interrupts1();
-	virtual void check_interrupts0();
-	virtual void CheckForCartFreeze();
+	void SyncChips(bool isWriteCycle) override;
+	void check_interrupts1() override;
+	void check_interrupts0() override;
+	void CheckForCartFreeze() override;
 	void write_cpu_io_data(bit8 data);
 	void write_cpu_io_ddr(bit8 data, ICLK sysclock);
 };

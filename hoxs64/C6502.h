@@ -630,7 +630,7 @@ protected:
 	bit8 code_cmp(unsigned int _a, unsigned int _s);
 	bit8 code_arr(unsigned int _a, unsigned int _s);
 
-	virtual void SyncChips() = 0;
+	virtual void SyncChips(bool isWriteCycle) = 0;
 	virtual void check_interrupts1();
 	virtual void check_interrupts0();
 	virtual void SyncVFlag();

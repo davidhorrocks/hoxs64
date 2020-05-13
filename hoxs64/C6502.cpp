@@ -2545,7 +2545,7 @@ unsigned int v;
 				++m_CurrentOpcodeClock;
 				break;
 			}
-			SyncChips();
+			SyncChips(false);
 			if (IRQ != 0 && m_bBALowInClock2OfSEI && (((ICLKS)(FirstIRQClock - FirstBALowClock)) >= 0))
 			{
 				fINTERRUPT = 1;
@@ -2922,7 +2922,7 @@ unsigned int v;
 			OnHltInstruction();
 			break;
 		case TAS_ABSOLUTEY://SHS
-			this->SyncChips();
+			this->SyncChips(true);
 			mSP = (mA & mX);
 			if (addr.byte.loByte < mY)
 			{
@@ -2947,7 +2947,7 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
 		case SAY_ABSOLUTEX://SHY
-			this->SyncChips();
+			this->SyncChips(true);
 			if (addr.byte.loByte < mX)
 			{
 				//page crossing
@@ -2969,7 +2969,7 @@ unsigned int v;
 			m_CurrentOpcodeClock = CurrentClock;
 			break;	
 		case XAS_ABSOLUTEY://SHX
-			this->SyncChips();
+			this->SyncChips(true);
 			if (addr.byte.loByte < mY)
 			{
 				//page crossing
@@ -2992,24 +2992,24 @@ unsigned int v;
 			break;	
 		case AXA_ABSOLUTEY://SHAAY
 		case AXA_INDIRECTY://SHAIY AHX
-			this->SyncChips();
+			this->SyncChips(true);
 			if (addr.byte.loByte < mY)
 			{
 				//page crossing
-				axa_byte = (addr.byte.hiByte) & mX;
+				axa_byte = (addr.byte.hiByte) & mX & mA;
 				addr.byte.hiByte = axa_byte;
 			}
 			else
 			{
-				axa_byte = (addr.byte.hiByte + 1) & mX;
+				axa_byte = (addr.byte.hiByte + 1) & mX & mA;
 			}
 
 			if (((ICLKS)(CurrentClock - this->LastBAHighClock)) == 1)
 			{
-				axa_byte = mX;
+				axa_byte = mX & mA;
 			}
 
-			WriteByte(addr.word, mA & axa_byte);
+			WriteByte(addr.word, axa_byte);
 			check_interrupts1();
 			m_cpu_sequence=C_FETCH_OPCODE;
 			m_CurrentOpcodeAddress = mPC;

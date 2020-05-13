@@ -32,32 +32,32 @@ public:
 	void Set_VIA2_IRQ(ICLK sysclock);
 	void Clear_VIA2_IRQ();
 
-	virtual void SyncChips();
-	virtual void check_interrupts1();
-	virtual void check_interrupts0();
+	void SyncChips(bool isWriteCycle) override;
+	void check_interrupts1() override;
+	void check_interrupts0() override;
 
 	void SyncVFlag();
 
 	void InitReset(ICLK sysclock, bool poweronreset);
+	
 	//IRegister
-	virtual void Reset(ICLK sysclock, bool poweronreset);
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-	virtual bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock);
-	virtual ICLK GetCurrentClock();
-	virtual void SetCurrentClock(ICLK sysclock);
+	void Reset(ICLK sysclock, bool poweronreset) override;
+	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
+	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock) override;
+	ICLK GetCurrentClock() override;
+	void SetCurrentClock(ICLK sysclock) override;
 
 	void GetState(SsCpuDisk &state);
 	void SetState(const SsCpuDisk &state);
 
-	//
-	virtual bit8 ReadByte(bit16 address);
-	virtual void WriteByte(bit16 address, bit8 data);
+	bit8 ReadByte(bit16 address) override;
+	void WriteByte(bit16 address, bit8 data) override;
 
 	//IMonitorCpu
-	virtual bit8 MonReadByte(bit16 address, int memorymap);
-	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap);
-	virtual int GetCurrentCpuMmuMemoryMap();
-	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
-	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);	
+	bit8 MonReadByte(bit16 address, int memorymap) override;
+	void MonWriteByte(bit16 address, bit8 data, int memorymap) override;
+	int GetCurrentCpuMmuMemoryMap() override;
+	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap) override;
+	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap) override;
 };
