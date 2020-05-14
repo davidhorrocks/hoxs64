@@ -1,3 +1,8 @@
+14 May 2020 v1.1.0.1
+====================
+1) Fix missing XInput1_4.dll error on Windows 7.
+
+
 13 May 2020 v1.1.0.0
 ====================
 1) New DirectX 11.1 graphics implementation to replace the old DirectX 9 
