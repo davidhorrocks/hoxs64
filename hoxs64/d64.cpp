@@ -4,6 +4,7 @@
 #include <math.h>
 #include <assert.h>
 #include "boost2005.h"
+#include "wfs.h"
 #include <winuser.h>
 #include <commctrl.h>
 #include "bits.h"
@@ -2878,17 +2879,19 @@ HANDLE hfile=0;
 HRESULT hr;
 
 	hfile=0;
-	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL,TEXT("Could not open %s."),filename);
 	}
+
 	hr= LoadP64FromFileHandle(hfile, filename);
 	if (FAILED(hr))
 	{
 		CloseHandle(hfile);
 		return hr;
 	}
+
 	CloseHandle(hfile);
 	return hr;
 }
@@ -2899,17 +2902,19 @@ HANDLE hfile=0;
 HRESULT hr;
 
 	hfile=0;
-	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
 	}
+
 	hr= LoadFDIFromFileHandle(hfile, filename);
 	if (FAILED(hr))
 	{
 		CloseHandle(hfile);
 		return hr;
 	}
+
 	CloseHandle(hfile);
 	return hr;
 }
@@ -2921,7 +2926,7 @@ HRESULT hr;
 
 	ClearError();
 	hfile=0;
-	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL,TEXT("Could not open %s."),filename);
@@ -2935,7 +2940,6 @@ HRESULT hr;
 	}
 
 	CloseHandle(hfile);
-
 	return S_OK;
 }
 
@@ -2949,7 +2953,7 @@ HRESULT hr = S_OK;
 	ClearError();
 	P64ImageClear(&m_P64Image);
 	hfile=0;
-	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL,TEXT("Could not open %s."),filename);
@@ -3043,11 +3047,12 @@ CRC32Alloc crc;
 	}
 
 	crc.pCRC32->Init(CRC32POLY,0xffffffff,0xffffffff, true);
-	hFile=CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL); 
+	hFile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL,TEXT("Could not save %s."), filename);
 	}
+
 	hr = hw.SetFile(hFile, true);
 	if (FAILED(hr))
 	{
@@ -3336,13 +3341,14 @@ DWORD bytesWritten;
 		P64MemoryStreamCreate(&P64MemoryStreamInstance);
 		if (P64ImageWriteToStream(&this->m_P64Image, &P64MemoryStreamInstance))
 		{
-			hFile = CreateFile(filename, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL); 
+			hFile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 			if (hFile == INVALID_HANDLE_VALUE)
 			{
 				errorbuffer = StringConverter::MallocFormattedString(TEXT("Could not open %s."), filename);
 				hr = this->SetErrorFromGetLastError(::GetLastError(), errorbuffer);
 				break;
 			}
+
 			if (!WriteFile(hFile, P64MemoryStreamInstance.Data, P64MemoryStreamInstance.Size, &bytesWritten, NULL))
 			{
 				errorbuffer = StringConverter::MallocFormattedString(TEXT("Could not write to %s."), filename);
@@ -3410,10 +3416,10 @@ HRESULT hr;
 	r = ConvertGCRToD64(tracks);
 	if (FAILED(r))
 	{
-		hr = TRUE;
+		hr = S_FALSE;
 	}
 
-	hfile=CreateFile(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL ,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL,TEXT("Could not save %s"), filename);

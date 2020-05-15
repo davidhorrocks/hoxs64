@@ -1649,7 +1649,7 @@ bit32 start,code_size,s;
 const TCHAR *p;
 
 	ClearError();
-	hfile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile == INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL, TEXT("Could not open %s."), filename);

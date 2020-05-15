@@ -8,6 +8,7 @@
 #include <memory.h>
 #include <assert.h>
 #include "boost2005.h"
+#include "wfs.h"
 #include "defines.h"
 #include "mlist.h"
 #include "carray.h"
@@ -96,7 +97,7 @@ HRESULT hr;
 	numItems=0;
 	hfile=0;
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL, TEXT("Could not open %s."), &filename[0]);
@@ -250,7 +251,7 @@ DWORD bytes_read,file_size,byteCount;
 	}
 
 	hfile=0;
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return SetError(E_FAIL, TEXT("Could not open %s."), filename);

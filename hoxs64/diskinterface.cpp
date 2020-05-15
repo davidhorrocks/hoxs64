@@ -251,7 +251,7 @@ HRESULT DiskInterface::Init(CAppStatus* appStatus, IC64* pIC64, IC64Event* pIC64
 	BOOL r;
 	DWORD bytes_read;
 	std::wstring wsRomPath;
-	static const wchar_t ROM_NAME_DOS[] = L"C1541.rom";
+	static const wchar_t ROM_NAME_DOS[] = L"c1541.rom";
 	HRESULT hr;
 
 	ClearError();
@@ -294,13 +294,13 @@ HRESULT DiskInterface::Init(CAppStatus* appStatus, IC64* pIC64, IC64Event* pIC64
 	hfile = CreateFile(Wfs::EnsureLongNamePrefix(wsRomPath).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile == INVALID_HANDLE_VALUE)
 	{
-		hfile = CreateFile(TEXT("C1541.rom"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		hfile = CreateFile(ROM_NAME_DOS, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	}
 
 	if (hfile == INVALID_HANDLE_VALUE)
 	{
 		Cleanup();
-		return SetError(E_FAIL, TEXT("Could not open C1541.rom"));
+		return SetError(E_FAIL, TEXT("Could not open c1541.rom"));
 	}
 
 	r = ReadFile(hfile, m_pD1541_rom, 0x4000, &bytes_read, NULL);
@@ -308,13 +308,13 @@ HRESULT DiskInterface::Init(CAppStatus* appStatus, IC64* pIC64, IC64Event* pIC64
 	if (r == 0)
 	{
 		Cleanup();
-		return SetError(E_FAIL, TEXT("Could not read from C1541.rom"));
+		return SetError(E_FAIL, TEXT("Could not read from c1541.rom"));
 	}
 
 	if (bytes_read != 0x4000)
 	{
 		Cleanup();
-		return SetError(E_FAIL, TEXT("Could not read 0x4000 bytes from C1541.rom"));
+		return SetError(E_FAIL, TEXT("Could not read 0x4000 bytes from c1541.rom"));
 	}
 
 	m_pIndexedD1541_rom = m_pD1541_rom - 0xC000;

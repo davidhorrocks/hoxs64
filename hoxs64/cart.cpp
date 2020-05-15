@@ -7,6 +7,7 @@
 #include "boost2005.h"
 #include "user_message.h"
 #include "defines.h"
+#include "wfs.h"
 #include "mlist.h"
 #include "carray.h"
 #include "cevent.h"
@@ -1085,7 +1086,7 @@ __int64 iFileIndex = 0;
 		bool ok = true;
 		do
 		{
-			hFile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+			hFile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 			if (hFile == INVALID_HANDLE_VALUE)
 			{
 				hr =  SetError(E_FAIL, TEXT("Could not open crt file %s."), filename);

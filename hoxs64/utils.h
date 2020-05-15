@@ -60,7 +60,7 @@ public:
 	static void AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int maxHeight);
 	static HRESULT GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
 	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID *pId);
-	static void DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) noexcept; 
+	static void DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType); 
 	static void InitOfn(OPENFILENAME& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile);
 	static void RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h);
 	static BOOL DrawDefText(HDC hdc, int x, int y, LPCTSTR text, int len, int* nextx, int* nexty);

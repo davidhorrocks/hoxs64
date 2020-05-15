@@ -109,9 +109,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	}
 
 	SetUnhandledExceptionFilter(unhandled_handler);
-	//ErrorLogger::LogInfo("In wWinMain()");
 	CApp* app = new CApp();
-	//ErrorLogger::LogInfo("new CApp()");
 	int r = E_FAIL;
 	try
 	{
@@ -255,7 +253,6 @@ void CApp::CloseImGuiContext() noexcept
 
 int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
-	//ErrorLogger::LogInfo("CApp::Run");
 	MSG msg;
 	HRESULT hRet;
 	ULARGE_INTEGER frequency, last_counter, new_counter, tSlice;
@@ -281,9 +278,7 @@ int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int
 	}
 #endif
 	
-	//ErrorLogger::LogInfo("Before ImGui_ImplWin32_EnableDpiAwareness");
 	ImGui_ImplWin32_EnableDpiAwareness();
-	//ErrorLogger::LogInfo("After ImGui_ImplWin32_EnableDpiAwareness");
 
 	m_hInstance = hInstance;
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
@@ -326,7 +321,6 @@ int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int
 	int framesSkipped = 0;
 	G::EnsureWindowPosition(m_pWinAppWindow->GetHwnd());
 
-	ErrorLogger::LogInfo("Start The Message Pump");
     //-------------------------------------------------------------------------
     //                          The Message Pump
     //-------------------------------------------------------------------------
@@ -884,12 +878,10 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	{
 		if (caWindowHide)
 		{
-			//ErrorLogger::LogInfo("ErrorLogger::HideWindow");
 			nCmdShow = SW_HIDE;
 			ErrorLogger::HideWindow = true;
 		}
 
-		//ErrorLogger::LogInfo("ErrorLogger::HideMessageBox");
 		ErrorLogger::HideMessageBox = true;
 	}
 	else if (caStartFullscreen)
@@ -976,9 +968,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	}
 
 	//Apply the users settings.
-	//ErrorLogger::LogInfo("Before::ApplyConfig");
 	ApplyConfig(mainCfg);
-	//ErrorLogger::LogInfo("After::ApplyConfig");
 	m_hAccelTable = LoadAccelerators (m_hInstance, wsAppName.c_str());
 	try
 	{
@@ -1024,7 +1014,6 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 
 	CreateImGuiContext();
 
-	//ErrorLogger::LogInfo("Before Initialise Direct 3D");
 	// Initialise Direct 3D
 	hr = gx.Initialize(&c64, thisAppCommand, thisAppStatus);
 	if (FAILED(hr))
@@ -1034,7 +1023,6 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		return E_FAIL;
 	}
 	
-	//ErrorLogger::LogInfo("Before Initialise Direct Input");
 	// Initialise Direct Input
 	hr = dx.OpenDirectInput(m_hInstance, hWndMain);
 	if (FAILED(hr))
@@ -1058,7 +1046,6 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		}
 	}
 
-	//ErrorLogger::LogInfo("Before Initialise the c64 emulation.");
 	//Initialise the c64 emulation.
 	if (S_OK != c64.Init(thisAppCommand, thisAppStatus, thisC64Event, &gx, &dx, wsAppDirectory.c_str()))
 	{
@@ -1067,11 +1054,9 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		return E_FAIL;
 	}
 
-	//ErrorLogger::LogInfo("Call ApplyConfig a second time to push settings to the C64");
 	// Call ApplyConfig a second time to push settings to the C64.
 	ApplyConfig(mainCfg);
 
-	ErrorLogger::LogInfo("SetWindowedMode");
 	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen);
 	if (FAILED(hr))
 	{
@@ -1079,8 +1064,6 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
-
-	ErrorLogger::LogInfo("SetWindowedMode succeeded");
 
 	//Initialise joysticks
 	dx.InitJoys(hWndMain, m_joy1config, m_joy2config);
@@ -1142,7 +1125,6 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		systemWarm = true;
 	}
 
-	ErrorLogger::LogInfo("Reset C64");
 	//Reset the C64
 	c64.Reset(0, true);
 	if (systemWarm)
@@ -1200,7 +1182,6 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		}
 	}
 
-	ErrorLogger::LogInfo("fix SPI_GETSTICKYKEYS");
 	SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
     SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &m_StartupToggleKeys, 0);
     SystemParametersInfo(SPI_GETFILTERKEYS, sizeof(FILTERKEYS), &m_StartupFilterKeys, 0);

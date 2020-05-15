@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <tchar.h>
 #include "filestream.h"
+#include "wfs.h"
 
 FileStream::FileStream(HANDLE hFile, bool bOwnFileHandle) 
 {
@@ -22,7 +23,7 @@ FileStream::~FileStream()
 
 HRESULT FileStream::CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite)
 {
-	HANDLE hFile = ::CreateFile(pName, fWrite ? GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,
+	HANDLE hFile = ::CreateFile(Wfs::EnsureLongNamePrefix(pName).c_str(), fWrite ? GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,
 		NULL, fWrite ? CREATE_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (hFile == INVALID_HANDLE_VALUE)

@@ -386,7 +386,7 @@ BOOL G::CenterWindow (HWND hwndChild, HWND hwndParent)
 	return SetWindowPos (hwndChild, NULL, xNew, yNew, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
-void G::DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) noexcept
+void G::DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType)
 {
 	ErrorLogger::Log(hWnd, lpText, lpCaption, uType);
 }

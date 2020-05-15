@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include "boost2005.h"
 #include "defines.h"
+#include "wfs.h"
 #include "CDPI.h"
 #include "tchar.h"
 #include "bits.h"
@@ -75,7 +76,7 @@ const int sizeheader = 2;
 	IsRSID=false;
 	IsRSID_BASIC=false;
 
-	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		hr = SetError(E_FAIL,TEXT("Could not open %s."),filename);

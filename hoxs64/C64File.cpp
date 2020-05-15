@@ -679,7 +679,7 @@ HRESULT C64File::IsFDI(const TCHAR filename[], bool &result)
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -736,7 +736,7 @@ HRESULT C64File::IsT64(const TCHAR filename[], bool &result)
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -782,7 +782,7 @@ HRESULT C64File::IsSID(const TCHAR filename[], bool &result)
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -836,7 +836,7 @@ HRESULT C64File::IsD64(const TCHAR filename[], bool &result)
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -878,7 +878,7 @@ HRESULT C64File::IsG64(const TCHAR filename[], bool &result)
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -923,7 +923,7 @@ HRESULT C64File::IsP64(const TCHAR filename[], bool &result)
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -966,7 +966,7 @@ HRESULT C64File::IsTAP(const TCHAR filename[], bool &result)
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -1015,7 +1015,7 @@ HANDLE hfile=0;
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;
@@ -1051,7 +1051,7 @@ P00Header header;
 		return S_OK;
 	}
 
-	hfile=CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL); 
+	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
 		return E_FAIL;

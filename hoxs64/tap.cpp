@@ -9,6 +9,7 @@
 #include <assert.h>
 #include "filestream.h"
 #include "memorystream.h"
+#include "wfs.h"
 #include "boost2005.h"
 #include "defines.h"
 #include "mlist.h"
@@ -61,7 +62,7 @@ IStream *stmtap = NULL;
 	ClearError();
 	do
 	{
-		hfile = CreateFile(filename,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
+		hfile = CreateFileW(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 		if (hfile == INVALID_HANDLE_VALUE)
 		{
 			hr = SetError(E_FAIL,TEXT("Could not open tape file %s.\n\n%s"), filename, this->GetLastWindowsErrorString());
