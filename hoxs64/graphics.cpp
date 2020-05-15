@@ -321,24 +321,14 @@ void Graphics::Cleanup() noexcept
 
 void Graphics::FillAdapters(std::vector<Microsoft::WRL::ComPtr<IDXGIAdapter1>>& vAdapters)
 {
-	IDXGIFactory1 *pDxgifac1;
 	if (dxgifactory1 == nullptr)
 	{
 		return;
 	}
 
-	if (dxgifactory2 != nullptr)
-	{
-		pDxgifac1 = dxgifactory2.Get();
-	}
-	else
-	{
-		pDxgifac1 = dxgifactory1.Get();
-	}
-
 	UINT i = 0;
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;	
-	while (pDxgifac1->EnumAdapters1(i, adapter.GetAddressOf()) != DXGI_ERROR_NOT_FOUND)
+	while (dxgifactory1->EnumAdapters1(i, adapter.GetAddressOf()) != DXGI_ERROR_NOT_FOUND)
 	{
 		vAdapters.push_back(adapter);
 		adapter.Detach();
@@ -389,12 +379,6 @@ HRESULT Graphics::InitializeDirectX()
 		if (useDefaultAdapter)
 		{
 			hmonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
-			if (hmonitor == nullptr)
-			{
-				hr = E_FAIL;
-				COM_ERROR_IF_FAILED(hr, "MonitorFromWindow returned NULL.");
-			}
-
 			MONITORINFOEXW monitorInfo = {};
 			monitorInfo.cbSize = sizeof(monitorInfo);
 			if (GetMonitorInfoW(hmonitor, &monitorInfo))
@@ -483,14 +467,18 @@ HRESULT Graphics::InitializeDirectX()
 
 		wantFullScreenBorderlessWindow = false;
 		enableFullScreenBorderlessTearing = false;
-		BOOL allowTearing;
-		if (SUCCEEDED(dxgifactory5->CheckFeatureSupport(DXGI_FEATURE::DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing))))
+		this->isTearingSupported = false;
+		if (dxgifactory5)
 		{
-			this->isTearingSupported = allowTearing != FALSE;
-		}
-		else
-		{
-			this->isTearingSupported = false;
+			BOOL allowTearing;
+			if (SUCCEEDED(dxgifactory5->CheckFeatureSupport(DXGI_FEATURE::DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing))))
+			{
+				this->isTearingSupported = allowTearing != FALSE;
+			}
+			else
+			{
+				this->isTearingSupported = false;
+			}
 		}
 
 		vOutputs.clear();
