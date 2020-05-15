@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <Dbghelp.h>
 #include <tchar.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -58,18 +59,75 @@
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+LONG CALLBACK unhandled_handler(EXCEPTION_POINTERS* e);
+bool applicationWantFullMemoryCrashDump = false;
+TCHAR applicationVersionString[60];
+VS_FIXEDFILEINFO applicationVersionInformation;
+std::wstring applicationFullPathString;
+
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
+	ZeroMemory(&applicationVersionString[0], _countof(applicationVersionString));
+	ZeroMemory(&applicationVersionInformation, sizeof(applicationVersionInformation));
+	
+	if (!GraphicsHelper::GetAppFilename(applicationFullPathString))
+	{
+		ErrorLogger::Log("Cannot get the application full path string.");
+		return E_FAIL;
+	}
+
+	int applicationServiceVersion = 0;
+#if defined(SERVICERELEASE) && (SERVICERELEASE > 0)
+	applicationServiceVersion = SERVICERELEASE;
+#endif
+
+	if (SUCCEEDED(G::GetVersion_Res(applicationFullPathString.c_str(), &applicationVersionInformation)))
+	{
+		if (applicationServiceVersion > 0)
+		{
+			applicationServiceVersion = SERVICERELEASE;
+			_sntprintf_s(applicationVersionString, _countof(applicationVersionString), _TRUNCATE, TEXT("%d.%d.%d.%d SR %d")
+				, (int)(applicationVersionInformation.dwProductVersionMS >> 16 & 0xFF)
+				, (int)(applicationVersionInformation.dwProductVersionMS & 0xFF)
+				, (int)(applicationVersionInformation.dwProductVersionLS >> 16 & 0xFF)
+				, (int)(applicationVersionInformation.dwProductVersionLS & 0xFF)
+				, (int)SERVICERELEASE);
+		}
+		else
+		{
+			applicationServiceVersion = 0;
+			_sntprintf_s(applicationVersionString, _countof(applicationVersionString), _TRUNCATE, TEXT("%d.%d.%d.%d")
+				, (int)(applicationVersionInformation.dwProductVersionMS >> 16 & 0xFF)
+				, (int)(applicationVersionInformation.dwProductVersionMS & 0xFF)
+				, (int)(applicationVersionInformation.dwProductVersionLS >> 16 & 0xFF)
+				, (int)(applicationVersionInformation.dwProductVersionLS & 0xFF));
+		}
+	}
+	else
+	{
+		applicationVersionString[0] = L'0';
+	}
+
+	SetUnhandledExceptionFilter(unhandled_handler);
+	//ErrorLogger::LogInfo("In wWinMain()");
 	CApp* app = new CApp();
-	int r = app->Run(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+	//ErrorLogger::LogInfo("new CApp()");
+	int r = E_FAIL;
+	try
+	{
+		r = app->Run(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+	}
+	catch(std::exception e)
+	{
+		ErrorLogger::Log(e.what());
+	}
+
 	delete app;
 	return r;
 }
 
 CApp::CApp() noexcept(false)
 {
-	ZeroMemory(&m_Vinfo, sizeof(m_Vinfo));
-
 	wsAppName = APPNAME;
 	wsMainWndClsName = HOXS_MAIN_WND_CLASS;
 	wsMonitorWndClsName = HOXS_MONITOR_WND_CLASS;
@@ -197,6 +255,7 @@ void CApp::CloseImGuiContext() noexcept
 
 int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
+	//ErrorLogger::LogInfo("CApp::Run");
 	MSG msg;
 	HRESULT hRet;
 	ULARGE_INTEGER frequency, last_counter, new_counter, tSlice;
@@ -222,7 +281,9 @@ int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int
 	}
 #endif
 	
+	//ErrorLogger::LogInfo("Before ImGui_ImplWin32_EnableDpiAwareness");
 	ImGui_ImplWin32_EnableDpiAwareness();
+	//ErrorLogger::LogInfo("After ImGui_ImplWin32_EnableDpiAwareness");
 
 	m_hInstance = hInstance;
 	if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
@@ -265,6 +326,7 @@ int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int
 	int framesSkipped = 0;
 	G::EnsureWindowPosition(m_pWinAppWindow->GetHwnd());
 
+	ErrorLogger::LogInfo("Start The Message Pump");
     //-------------------------------------------------------------------------
     //                          The Message Pump
     //-------------------------------------------------------------------------
@@ -739,19 +801,19 @@ HRESULT hr;
 	return S_OK;
 }
 
-const wchar_t *CApp::GetAppTitle()
+const wchar_t* CApp::GetAppTitle()
 {
-	return wsTitle.c_str(); 
+	return wsTitle.c_str();
 }
 
 const wchar_t* CApp::GetAppName()
 {
-	return wsAppName.c_str(); 
+	return wsAppName.c_str();
 }
 
-VS_FIXEDFILEINFO *CApp::GetVersionInfo()
+VS_FIXEDFILEINFO* CApp::GetVersionInfo()
 {
-	return &m_Vinfo;
+	return &applicationVersionInformation;
 }
 
 HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
@@ -760,10 +822,9 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	HRESULT hr;
 	DWORD lr;
 	HWND hWndMain;
-	TCHAR t[60];
-	CConfig *thisCfg = this;
-	CAppStatus *thisAppStatus = this;
-	IC64Event *thisC64Event = this;
+	CConfig* thisCfg = this;
+	CAppStatus* thisAppStatus = this;
+	IC64Event* thisC64Event = this;
 	IAppCommand* thisAppCommand = this;
 	int minWidth;
 	int minHeight;
@@ -775,15 +836,30 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 
 	ClearError();
 	lr = GetModuleFileName(NULL, maxpathbuffer, _countof(maxpathbuffer) - 1);
-	if (lr==0) 
+	if (lr == 0)
 	{
 		return E_FAIL;
 	}
 
 	wsAppFullPath = maxpathbuffer;
-	
+
 	//Process command line arguments.
 	CParseCommandArg cmdArgs(lpCmdLine);
+	CommandArg* caCrashDump = cmdArgs.FindOption(TEXT("-crashdump"));
+	if (caCrashDump)
+	{
+		if (caCrashDump->ParamCount >= 1)
+		{
+			if (caCrashDump->pParam[0] != nullptr)
+			{
+				if (caCrashDump->pParam[0][0] == L'2')
+				{
+					applicationWantFullMemoryCrashDump = true;
+				}
+			}
+		}
+	}
+
 	CommandArg *caAutoLoad = cmdArgs.FindOption(TEXT("-AutoLoad"));
 	CommandArg *caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
 	CommandArg *caAlignD64Tracks= cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
@@ -802,16 +878,18 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	CommandArg *caDefaultSettings = cmdArgs.FindOption(TEXT("-defaultsettings"));
 	CommandArg *caSoundOff= cmdArgs.FindOption(TEXT("-nosound"));
 	CommandArg *caSystemWarm = cmdArgs.FindOption(TEXT("-system-warm"));
-	CommandArg *caSystemCold = cmdArgs.FindOption(TEXT("-system-cold"));
+	CommandArg *caSystemCold = cmdArgs.FindOption(TEXT("-system-cold"));	
 
 	if (caNoMessageBox || caWindowHide)
 	{
 		if (caWindowHide)
 		{
+			//ErrorLogger::LogInfo("ErrorLogger::HideWindow");
 			nCmdShow = SW_HIDE;
 			ErrorLogger::HideWindow = true;
 		}
 
+		//ErrorLogger::LogInfo("ErrorLogger::HideMessageBox");
 		ErrorLogger::HideMessageBox = true;
 	}
 	else if (caStartFullscreen)
@@ -836,24 +914,8 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		wsMonitorTitle = maxpathbuffer;
 	}
 
-	if (SUCCEEDED(G::GetVersion_Res(wsAppFullPath.c_str(), &m_Vinfo)))
-	{
-#if defined(SERVICERELEASE) && (SERVICERELEASE > 0)
-		_sntprintf_s(t, _countof(t), _TRUNCATE, TEXT("    V %d.%d.%d.%d SR %d")
-			, (int)(m_Vinfo.dwProductVersionMS>>16 & 0xFF)
-			, (int)(m_Vinfo.dwProductVersionMS & 0xFF)
-			, (int)(m_Vinfo.dwProductVersionLS>>16 & 0xFF)
-			, (int)(m_Vinfo.dwProductVersionLS & 0xFF)
-			, (int)SERVICERELEASE);
-#else
-		_sntprintf_s(t, _countof(t), _TRUNCATE, TEXT("    V %d.%d.%d.%d")
-			, (int)(m_Vinfo.dwProductVersionMS>>16 & 0xFF)
-			, (int)(m_Vinfo.dwProductVersionMS & 0xFF)
-			, (int)(m_Vinfo.dwProductVersionLS>>16 & 0xFF)
-			, (int)(m_Vinfo.dwProductVersionLS & 0xFF));
-#endif
-		wsTitle.append(t);
-	}
+	wsTitle.append(L"    V ");
+	wsTitle.append(applicationVersionString);
 
 	//Set up some late bound OS DLL calls
 	G::InitRandomSeed();
@@ -914,7 +976,9 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	}
 
 	//Apply the users settings.
+	//ErrorLogger::LogInfo("Before::ApplyConfig");
 	ApplyConfig(mainCfg);
+	//ErrorLogger::LogInfo("After::ApplyConfig");
 	m_hAccelTable = LoadAccelerators (m_hInstance, wsAppName.c_str());
 	try
 	{
@@ -960,6 +1024,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 
 	CreateImGuiContext();
 
+	//ErrorLogger::LogInfo("Before Initialise Direct 3D");
 	// Initialise Direct 3D
 	hr = gx.Initialize(&c64, thisAppCommand, thisAppStatus);
 	if (FAILED(hr))
@@ -969,6 +1034,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		return E_FAIL;
 	}
 	
+	//ErrorLogger::LogInfo("Before Initialise Direct Input");
 	// Initialise Direct Input
 	hr = dx.OpenDirectInput(m_hInstance, hWndMain);
 	if (FAILED(hr))
@@ -992,6 +1058,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		}
 	}
 
+	//ErrorLogger::LogInfo("Before Initialise the c64 emulation.");
 	//Initialise the c64 emulation.
 	if (S_OK != c64.Init(thisAppCommand, thisAppStatus, thisC64Event, &gx, &dx, wsAppDirectory.c_str()))
 	{
@@ -1000,9 +1067,11 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		return E_FAIL;
 	}
 
+	//ErrorLogger::LogInfo("Call ApplyConfig a second time to push settings to the C64");
 	// Call ApplyConfig a second time to push settings to the C64.
 	ApplyConfig(mainCfg);
 
+	ErrorLogger::LogInfo("SetWindowedMode");
 	hr = m_pWinAppWindow->SetWindowedMode(!m_bStartFullScreen);
 	if (FAILED(hr))
 	{
@@ -1010,6 +1079,8 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		DestroyWindow(hWndMain);
 		return E_FAIL;
 	}
+
+	ErrorLogger::LogInfo("SetWindowedMode succeeded");
 
 	//Initialise joysticks
 	dx.InitJoys(hWndMain, m_joy1config, m_joy2config);
@@ -1071,6 +1142,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		systemWarm = true;
 	}
 
+	ErrorLogger::LogInfo("Reset C64");
 	//Reset the C64
 	c64.Reset(0, true);
 	if (systemWarm)
@@ -1128,7 +1200,8 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		}
 	}
 
-    SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
+	ErrorLogger::LogInfo("fix SPI_GETSTICKYKEYS");
+	SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &m_StartupStickyKeys, 0);
     SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &m_StartupToggleKeys, 0);
     SystemParametersInfo(SPI_GETFILTERKEYS, sizeof(FILTERKEYS), &m_StartupFilterKeys, 0);
 	if (dx.pSecondarySoundBuffer)
@@ -2479,4 +2552,73 @@ void CApp::AllowAccessibilityShortcutKeys( bool bAllowKeys )
 void CApp::VicCursorMove(int cycle, int line)
 {
 	this->EsVicCursorMove.Raise(this, VicCursorMoveEventArgs(cycle, line));
+}
+
+void make_minidump(EXCEPTION_POINTERS* e)
+{
+	auto hDbgHelp = LoadLibraryA("dbghelp");
+	if (hDbgHelp == nullptr)
+	{
+		return;
+	}
+
+	auto pMiniDumpWriteDump = (decltype(&MiniDumpWriteDump))GetProcAddress(hDbgHelp, "MiniDumpWriteDump");
+	if (pMiniDumpWriteDump == nullptr)
+	{
+		return;
+	}
+	
+	wchar_t name[5 * MAX_PATH + 1];
+	{
+		int applicationServiceVersion = 0;
+#if defined(SERVICERELEASE) && (SERVICERELEASE > 0)
+		applicationServiceVersion = SERVICERELEASE;
+#endif
+		auto len = GetModuleFileNameW(GetModuleHandleW(0), name, _countof(name));
+
+		auto nameEnd = name + GetModuleFileNameW(GetModuleHandleW(0), name, _countof(name));
+		SYSTEMTIME t;
+		GetSystemTime(&t);
+		wsprintf(nameEnd - wcslen(L".exe"), L"_%d_%4d%02d%02d_%02d%02d%02d.dmp", applicationServiceVersion, t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
+	}
+
+	auto hFile = CreateFileW(name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		return;
+	}
+
+	MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
+	exceptionInfo.ThreadId = GetCurrentThreadId();
+	exceptionInfo.ExceptionPointers = e;
+	exceptionInfo.ClientPointers = FALSE;
+
+	MINIDUMP_TYPE dumptype;
+	if (applicationWantFullMemoryCrashDump)
+	{
+		dumptype = (MINIDUMP_TYPE)(MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory | MiniDumpWithFullMemory);
+	}
+	else
+	{
+		dumptype = (MINIDUMP_TYPE)(MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory);
+	}
+
+	auto dumped = pMiniDumpWriteDump(
+		GetCurrentProcess(),
+		GetCurrentProcessId(),
+		hFile,
+		dumptype,
+		e ? &exceptionInfo : nullptr,
+		nullptr,
+		nullptr);
+
+	CloseHandle(hFile);
+
+	return;
+}
+
+LONG CALLBACK unhandled_handler(EXCEPTION_POINTERS* e)
+{
+	make_minidump(e);
+	return EXCEPTION_CONTINUE_SEARCH;
 }

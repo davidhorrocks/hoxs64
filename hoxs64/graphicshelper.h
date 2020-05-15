@@ -32,6 +32,7 @@ public:
 	static bool IsAcceptableMode(UINT Width, UINT Height, DXGI_FORMAT Format) noexcept;
 	static bool IsAcceptableFormat(DXGI_FORMAT format) noexcept;
 	static bool GetAppDir(std::wstring& str);
+	static bool GetAppFilename(std::wstring& str);
 	static bool GetAppFileFullPath(const wchar_t* filename, std::wstring& str);
     static HRESULT GetPreferredMode(ID3D11Device *device, IDXGIOutput* pOutput, const DXGI_MODE_DESC* pRequestedMode, DXGI_MODE_DESC* pPreferredMode);
 private:

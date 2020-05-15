@@ -1,4 +1,6 @@
+#include <Windows.h>
 #include <math.h>
+#include "wfs.h"
 #include "graphicshelper.h"
 #include "../dxsdk/d3dx_dxgiformatconvert.inl"
 
@@ -493,43 +495,108 @@ bool GraphicsHelper::IsAcceptableFormat(DXGI_FORMAT format) noexcept
 	return false;
 }
 
-bool GraphicsHelper::GetAppDir(std::wstring &str)
+bool GraphicsHelper::GetAppFilename(std::wstring& str)
 {
+	bool r = true;
+	wchar_t* pszAppFullPath = nullptr;
 	try
 	{
 		str.clear();
-		wchar_t szAppDirectory[MAX_PATH + 1];
-		wchar_t szAppFullPath[MAX_PATH + 1];
-		wchar_t drive[_MAX_DRIVE + 1];
-		wchar_t dir[_MAX_DIR + 1];
-		wchar_t fname[_MAX_FNAME + 1];
-		wchar_t ext[_MAX_EXT + 1];
-		DWORD dw = GetModuleFileNameW(NULL, szAppFullPath, _countof(szAppFullPath));
-		if (dw == 0)
+		wchar_t buffer[MAX_PATH + 1];
+		DWORD dw;
+		DWORD len = _countof(buffer);
+		wchar_t* psz;
+		for (int i = 0;;i++)
 		{
-			return false;
-		}
-
-		if (_wsplitpath_s(szAppFullPath, drive, _countof(drive), dir, _countof(dir), fname, _countof(fname), ext, _countof(ext)) == 0)
-		{
-			szAppDirectory[0] = 0;
-			if (_wmakepath_s(szAppDirectory, _countof(szAppDirectory), drive, dir, 0, 0) != 0)
+			if (i == 0)
 			{
-				szAppDirectory[0] = 0;
+				len = _countof(buffer);
+				psz = &buffer[0];
+			}
+			else
+			{
+				pszAppFullPath = (wchar_t*)malloc(len * sizeof(wchar_t));
+				psz = pszAppFullPath;
+			}
+
+			dw = GetModuleFileNameW(GetModuleHandleW(0), psz, len);
+			if (dw < len || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+			{
+				len = dw + 1;
+				break;
 			}
 		}
-		else
-		{
-			szAppDirectory[0] = 0;
-		}
 
-		str.assign(szAppDirectory);
+		str = psz;
 		return true;
 	}
 	catch (std::exception)
 	{
-		return false;
+		r = false;
 	}
+
+	if (pszAppFullPath)
+	{
+		free(pszAppFullPath);
+		pszAppFullPath = nullptr;
+	}
+
+	return r;
+}
+
+bool GraphicsHelper::GetAppDir(std::wstring &str)
+{
+	bool r = true;
+	wchar_t* pszAppFullPath = nullptr;
+	try
+	{
+		str.clear();
+		wchar_t buffer[MAX_PATH + 1];
+		DWORD dw;
+		DWORD len = _countof(buffer);
+		wchar_t* psz;
+		for (int i = 0;; i++)
+		{
+			if (i == 0)
+			{
+				len = _countof(buffer);
+				psz = &buffer[0];
+			}
+			else
+			{
+				pszAppFullPath = (wchar_t*)malloc(len * sizeof(wchar_t));
+				psz = pszAppFullPath;
+			}
+
+			dw = GetModuleFileNameW(GetModuleHandleW(0), psz, len);
+			if (dw < len || GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+			{
+				break;
+			}
+
+			len = dw + 1;
+		}
+
+		std::wstring path = psz;
+		std::wstring root;
+		std::wstring directorypath;
+		std::wstring filename;
+		Wfs::SplitRootPath(path, root, directorypath, filename);
+		str = root + directorypath;
+		return true;
+	}
+	catch (std::exception)
+	{
+		r= false;
+	}
+
+	if (pszAppFullPath)
+	{
+		free(pszAppFullPath);
+		pszAppFullPath = nullptr;
+	}
+
+	return r;
 }
 
 bool GraphicsHelper::GetAppFileFullPath(const wchar_t *filename, std::wstring& str)

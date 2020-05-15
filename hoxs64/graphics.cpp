@@ -64,6 +64,11 @@ HRESULT Graphics::Initialize(IC64 *c64, IAppCommand* appCommand, CAppStatus* app
 
 bool Graphics::IsFullscreen()
 {
+	if (swapChain == nullptr)
+	{
+		return false;
+	}
+
 	Microsoft::WRL::ComPtr<IDXGIOutput> outputExistingFullscreen;
 	BOOL isCurrentlyFullscreen = FALSE;
 	HRESULT hr = this->swapChain->GetFullscreenState(&isCurrentlyFullscreen, outputExistingFullscreen.GetAddressOf());
@@ -91,6 +96,11 @@ HRESULT Graphics::GoFullscreen()
 {
 	HRESULT hr;
 	if (!this->isInitOK)
+	{
+		return E_FAIL;
+	}
+
+	if (swapChain == nullptr)
 	{
 		return E_FAIL;
 	}
@@ -250,6 +260,7 @@ HRESULT Graphics::SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outpu
 	SetVsyncMode(syncMode);
 	do
 	{
+		ErrorLogger::LogInfo("InitializeDirectX");
 		hr = InitializeDirectX();
 		if (FAILED(hr))
 		{
@@ -257,6 +268,7 @@ HRESULT Graphics::SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outpu
 			break;
 		}
 
+		ErrorLogger::LogInfo("InitializeShaders");
 		hr = InitializeShaders();
 		if (FAILED(hr))
 		{
@@ -264,6 +276,7 @@ HRESULT Graphics::SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outpu
 			break;
 		}
 
+		ErrorLogger::LogInfo("InitializeScene");
 		hr = InitializeScene();
 		if (FAILED(hr))
 		{
@@ -379,6 +392,13 @@ HRESULT Graphics::InitializeDirectX()
 		if (useDefaultAdapter)
 		{
 			hmonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
+			if (hmonitor == nullptr)
+			{
+				hr = E_FAIL;
+				ErrorLogger::LogInfo("MonitorFromWindow returned NULL");
+				COM_ERROR_IF_FAILED(hr, "MonitorFromWindow returned NULL.");
+			}
+
 			MONITORINFOEXW monitorInfo = {};
 			monitorInfo.cbSize = sizeof(monitorInfo);
 			if (GetMonitorInfoW(hmonitor, &monitorInfo))
@@ -455,6 +475,8 @@ HRESULT Graphics::InitializeDirectX()
 			if (pMsgBuffer != nullptr)
 			{
 				message.append(pMsgBuffer);
+				free(pMsgBuffer);
+				pMsgBuffer = nullptr;
 				COM_ERROR_IF_FAILED(hr, message);
 			}
 			else
@@ -476,6 +498,7 @@ HRESULT Graphics::InitializeDirectX()
 		}
 
 		vOutputs.clear();
+		ErrorLogger::LogInfo("FillOutputs");
 		FillOutputs(adapter.Get(), this->vOutputs);
 		if (this->outputNumber >= vOutputs.size())
 		{
@@ -502,6 +525,7 @@ HRESULT Graphics::InitializeDirectX()
 		{
 			// TODO D3D11_CREATE_DEVICE_SINGLETHREADED
 			D3D_FEATURE_LEVEL featureLevel;
+			ErrorLogger::LogInfo("D3D11CreateDevice try 1");
 			hr = D3D11CreateDevice(
 				adapter.Get()
 				, D3D_DRIVER_TYPE_UNKNOWN
@@ -517,6 +541,7 @@ HRESULT Graphics::InitializeDirectX()
 
 			if (hr == E_INVALIDARG)
 			{
+				ErrorLogger::LogInfo("D3D11CreateDevice try 2");
 				hr = D3D11CreateDevice(
 					adapter.Get()
 					, D3D_DRIVER_TYPE_UNKNOWN
@@ -537,12 +562,14 @@ HRESULT Graphics::InitializeDirectX()
 		DXGI_MODE_DESC selectedFullScreenModeDesc = {};
 		if (!bWindowedMode)
 		{
+			ErrorLogger::LogInfo("GetPreferredMode");
 			hr = GraphicsHelper::GetPreferredMode(device.Get(), pOutput.Get(), &requestedMode, &selectedFullScreenModeDesc);
 			COM_ERROR_IF_FAILED(hr, "Unable to find a fullscreen matching mode.");
 		}
 
 		if (dxgifactory2)
 		{
+			ErrorLogger::LogInfo("DirectX 11.1 system");
 			// DirectX 11.1 systems
 			DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pSwapFullDesc = nullptr;
 			DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapFullDesc;
@@ -607,6 +634,7 @@ HRESULT Graphics::InitializeDirectX()
 		}
 		else
 		{
+			ErrorLogger::LogInfo("DirectX 11.0 system");
 			// DirectX 11.0 systems
 			DXGI_SWAP_CHAIN_DESC sd = {};
 			sd.BufferCount = bWindowedMode ? 1 : 2;
@@ -637,6 +665,8 @@ HRESULT Graphics::InitializeDirectX()
 			hr = dxgifactory1->CreateSwapChain(device.Get(), &sd, swapChain.ReleaseAndGetAddressOf());
 			COM_ERROR_IF_FAILED(hr, "CreateSwapChain failed.");
 		}
+
+		ErrorLogger::LogInfo("CreateSwapChain success");
 
 		dxgifactory1->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
 		assignedWidth = 0;
@@ -815,12 +845,14 @@ void Graphics::ImGuiStart()
 {
 	if (!isStartedImGuiDx11)
 	{
+		ErrorLogger::LogInfo("ImGuiStart");
 		isStartedImGuiDx11 = true;
 		ImGui_ImplWin32_Init(this->hWnd);
 		ImGui_ImplDX11_Init(device.Get(), deviceContext.Get());
 		ImGuiIO& io = ImGui::GetIO();
 		//io.DisplaySize.x = this->assignedWidth;
 		//io.DisplaySize.y = this->assignedHeight;
+		ErrorLogger::LogInfo("ImGuiStart done");
 	}
 }
 
@@ -863,12 +895,13 @@ HRESULT Graphics::InitializeShaders()
 		return E_FAIL;
 	}
 
+	ErrorLogger::LogInfo("vertex_shader_2d ok");
 	if (!this->pixel_shader_2d.Initialize(this->device.Get(), pixelShaderFilename.c_str()))
 	{
 		return E_FAIL;
 	}
 
-
+	ErrorLogger::LogInfo("pixel_shader_2d ok.");
 	return S_OK;
 }
 

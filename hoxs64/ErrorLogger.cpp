@@ -8,11 +8,26 @@ bool ErrorLogger::HideMessageBox = false;
 
 bool ErrorLogger::HideWindow = false;
 
-void ErrorLogger::Log(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) noexcept
+void ErrorLogger::LogToStdOut(PCWSTR pszCaption, PCWSTR pszMessage)
+{
+	fwprintf(stdout, L"%s: %s\r\n", pszCaption, pszMessage);
+}
+
+void ErrorLogger::LogToStdOut(LPCSTR pszCaption, LPCSTR pszMessage)
+{
+	fprintf(stdout, "%s: %s\r\n", pszCaption, pszMessage);
+}
+
+void ErrorLogger::LogInfo(LPCSTR message)
+{
+	//MessageBoxA(NULL, message, "Info", 0L);
+}
+
+void ErrorLogger::Log(HWND hWnd, PCWSTR lpText, PCWSTR lpCaption, UINT uType)
 {
 	if (ErrorLogger::HideMessageBox)
 	{
-		_ftprintf(stdout, TEXT("%s: %s\r\n"), lpCaption, lpText);
+		LogToStdOut(lpCaption, lpText);
 	}
 	else
 	{
@@ -20,61 +35,61 @@ void ErrorLogger::Log(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) 
 	}
 }
 
-void ErrorLogger::Log(std::string message) noexcept
+void ErrorLogger::Log(const std::string message)
 {
-	try
+	if (ErrorLogger::HideMessageBox)
+	{
+		LogToStdOut("Error", message.c_str());
+	}
+	else
 	{
 		std::string error_message = "Error:" + message;
 		MessageBoxA(nullptr, error_message.c_str(), "Error", MB_ICONERROR);
 	}
-	catch (std::exception)
-	{
-		MessageBoxA(nullptr, message.c_str(), "Error", MB_ICONERROR);
-	}
 }
 
-void ErrorLogger::Log(std::wstring message) noexcept
+void ErrorLogger::Log(const std::wstring message)
 {
-	try
+	if (ErrorLogger::HideMessageBox)
+	{
+		LogToStdOut(L"Error", message.c_str());
+	}
+	else
 	{
 		std::wstring error_message = L"Error:" + message;
 		MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
 	}
-	catch (std::exception)
-	{
-		MessageBoxW(nullptr, message.c_str(), L"Error", MB_ICONERROR);
-	}
 }
 
-void ErrorLogger::Log(HRESULT hr, std::string message) noexcept
+void ErrorLogger::Log(HRESULT hr, const std::string message)
 {
-	try
+	if (ErrorLogger::HideMessageBox)
+	{
+		LogToStdOut("Error", message.c_str());
+	}
+	else
 	{
 		_com_error error(hr);
 		std::wstring error_message = L"Error:" + StringConverter::StringToWideString(message) + L"\n" + error.ErrorMessage();
 		MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
 	}
-	catch (std::exception)
-	{
-		MessageBoxA(nullptr, message.c_str(), "Error", MB_ICONERROR);
-	}
 }
 
-void ErrorLogger::Log(HRESULT hr, std::wstring message) noexcept
+void ErrorLogger::Log(HRESULT hr, const std::wstring message)
 {
-	try
+	if (ErrorLogger::HideMessageBox)
+	{
+		LogToStdOut(L"Error", message.c_str());
+	}
+	else
 	{
 		_com_error error(hr);
 		std::wstring error_message = L"Error:" + message + L"\n" + error.ErrorMessage();
 		MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
 	}
-	catch (std::exception)
-	{
-		MessageBoxW(nullptr, message.c_str(), L"Error", MB_ICONERROR);
-	}
 }
 
-void ErrorLogger::Log(COMException& exception) noexcept
+void ErrorLogger::Log(const COMException& exception)
 {
 	std::wstring error_message = exception.what();
 	MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);

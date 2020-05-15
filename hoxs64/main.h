@@ -144,7 +144,6 @@ public:
 	std::wstring wsAppConfigPath;
 	std::wstring wsAppFullPath;
 	std::wstring wsAppDirectory;
-	VS_FIXEDFILEINFO m_Vinfo = {};
 	bool m_bStartFullScreen = false;
 	CDX9 dx;
 	Graphics gx;

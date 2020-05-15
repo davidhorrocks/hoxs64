@@ -13,15 +13,21 @@ public:
 
 	static bool HideWindow;
 
-	static void Log(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) noexcept;
+	static void Log(HWND hWnd, PCWSTR lpText, PCWSTR lpCaption, UINT uType);
 
-	static void Log(std::string message) noexcept;
+	static void Log(const std::string message);
 
-	static void Log(std::wstring message) noexcept;
+	static void Log(const std::wstring message);
 
-	static void Log(HRESULT hr, std::string message) noexcept;
+	static void Log(HRESULT hr, const std::string message);
 
-	static void Log(HRESULT hr, std::wstring message) noexcept;
+	static void Log(HRESULT hr, const std::wstring message);
 
-	static void Log(COMException& exception) noexcept;
+	static void Log(const COMException& exception);
+
+	static void LogInfo(LPCSTR message);
+
+private:
+	static void LogToStdOut(PCWSTR pszCaption, PCWSTR pszMessage);
+	static void LogToStdOut(LPCSTR pszCaption, LPCSTR pszMessage);
 };

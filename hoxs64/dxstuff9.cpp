@@ -423,7 +423,7 @@ HRESULT CDX9::InitJoy(HWND hWnd, int joyindex, struct joyconfig &joycfg)
 	unsigned int j;
 
 	ClearError();
-	if (hWnd==0)
+	if (hWnd == 0 || this->DIHinst == nullptr || this->pDI == nullptr)
 	{
 		return E_FAIL;
 	}
@@ -618,7 +618,7 @@ HRESULT CDX9::InitJoys(HWND hWnd, struct joyconfig &joy1config,struct joyconfig 
 {
 	ClearError();
 	ReleaseJoy();
-	if (hWnd==0)
+	if (hWnd == 0 || this->DIHinst == nullptr || this->pDI == nullptr)
 	{
 		return E_FAIL;
 	}
