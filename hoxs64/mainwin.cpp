@@ -1207,6 +1207,20 @@ LRESULT lr = 0;
 		}
 
 		break;
+	case WM_MOUSEHOVER:
+		if (OnMouseHover(hWnd, wParam, lParam))
+		{
+			return 0;
+		}
+
+		break;
+	case WM_MOUSELEAVE:
+		if (OnMouseLeave(hWnd, wParam, lParam))
+		{
+			return 0;
+		}
+
+		break;
 	case WM_SIZE:
 		if (OnSize(hWnd, wParam, lParam))
 		{
@@ -1560,6 +1574,9 @@ HRESULT CAppWindow::SetWindowedMode(bool wantWindowed)
 	if (!pGx->IsFullscreen())
 	{
 		SetWindowedStyle(true);
+		DrawMenuBar(hwndMainWindow);
+		RedrawWindow(hwndMainWindow, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_NOERASE);
+		RedrawWindow(hwndMainWindow, NULL, NULL, RDW_NOFRAME | RDW_VALIDATE | RDW_NOERASE);
 	}
 
 	return hr;
@@ -1925,6 +1942,27 @@ bool CAppWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	int x = GET_X_LPARAM(lParam);
 	int y = GET_Y_LPARAM(lParam);
+	RECT rcClient;
+	if (GetClientRect(hWnd, &rcClient))
+	{
+		appCommand->SetIsMouseOverClientArea(true);
+		if (!isMouseTracking)
+		{
+			TRACKMOUSEEVENT tme;
+			tme.cbSize = sizeof(tme);
+			tme.dwFlags = TME_LEAVE;
+			tme.dwHoverTime = HOVER_DEFAULT;
+			tme.hwndTrack = hWnd;
+			if (TrackMouseEvent(&tme))
+			{
+				isMouseTracking = true;
+			}
+		}
+		else if (!isMouseTracking)
+		{
+			appCommand->SetIsMouseOverClientArea(false);
+		}
+	}
 
 	appCommand->SetLastMousePosition(&x, &y);
 	if (appStatus->m_bWindowed && m_bDrawCycleCursor)
@@ -1940,6 +1978,18 @@ bool CAppWindow::OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 
+	return true;
+}
+
+bool CAppWindow::OnMouseHover(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	return false;
+}
+
+bool CAppWindow::OnMouseLeave(HWND hWnd, WPARAM wParam, LPARAM lParam)
+{
+	appCommand->SetIsMouseOverClientArea(false);
+	isMouseTracking = false;
 	return true;
 }
 

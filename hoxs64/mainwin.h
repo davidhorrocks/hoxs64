@@ -79,6 +79,7 @@ private:
 	INotify* m_pINotify;
 	HBRUSH m_hBrushBrkInner;
 	HBRUSH m_hBrushBrkOuter;
+	bool isMouseTracking = false;
 
 	void ResizeGraphics(HWND hWnd, int width, int height);
 	bool OnCreate(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);
@@ -103,6 +104,8 @@ private:
 	HRESULT RenderWindow();
 	void OnLButtonDown(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool OnMouseMove(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool OnMouseHover(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	bool OnMouseLeave(HWND hWnd, WPARAM wParam, LPARAM lParam);
 	void OnLButtonUp(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void SetCursorAtClientPosition(int x, int y);
 	void DrawCursorAtVicPosition(HDC hdc, int cycle, int line);

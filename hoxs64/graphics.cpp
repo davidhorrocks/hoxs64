@@ -1020,29 +1020,37 @@ void Graphics::DrawGui()
 		int mouseX;
 		int mouseY;
 		currentDrawFrameCounter++;
-		appCommand->GetLastMousePosition(&mouseX, &mouseY);
-		constexpr int MouseCapturePeriod = 10;
-		constexpr int KeepAliveCount = 10;
-		if (currentDrawFrameCounter - mouseSnapShotFrameCounter > MouseCapturePeriod)
+		if (appCommand->GetIsMouseOverClientArea())
 		{
-			mouseSnapShotFrameCounter = currentDrawFrameCounter;
-			if (abs(mouseX - lastMouseX) > mouseActiveDistance || abs(mouseY - lastMouseY) > mouseActiveDistance || mouseY < menukeepAliveHeight)
+			appCommand->GetLastMousePosition(&mouseX, &mouseY);
+			constexpr int MouseCapturePeriod = 10;
+			constexpr int KeepAliveCount = 10;
+			if (currentDrawFrameCounter - mouseSnapShotFrameCounter > MouseCapturePeriod)
 			{
-				keep_alive_show_main_menu = KeepAliveCount;
-			}
+				mouseSnapShotFrameCounter = currentDrawFrameCounter;
+				if (abs(mouseX - lastMouseX) > mouseActiveDistance || abs(mouseY - lastMouseY) > mouseActiveDistance || mouseY < menukeepAliveHeight)
+				{
+					keep_alive_show_main_menu = KeepAliveCount;
+				}
 
-			if (keep_alive_show_main_menu > 0)
-			{
-				show_main_menu = true;
-				keep_alive_show_main_menu--;
-			}
-			else
-			{
-				show_main_menu = false;
-			}
+				if (keep_alive_show_main_menu > 0)
+				{
+					show_main_menu = true;
+					keep_alive_show_main_menu--;
+				}
+				else
+				{
+					show_main_menu = false;
+				}
 
-			lastMouseX = mouseX;
-			lastMouseY = mouseY;
+				lastMouseX = mouseX;
+				lastMouseY = mouseY;
+			}
+		}
+		else
+		{
+			show_main_menu = false;
+			keep_alive_show_main_menu = -1;
 		}
 
 		if (show_file_open)
@@ -1125,11 +1133,21 @@ void Graphics::DrawGui()
 				directoryViewer.Fill();
 				ImGui::OpenPopup(title);
 			}
-
-			ImGui::SetNextWindowSizeConstraints(ImVec2(500, 100), ImVec2(FLT_MAX, FLT_MAX));
+			
+			RECT rcWindow;
+			GetClientRect(hWnd, &rcWindow);
 			ImGui::SetNextWindowSize(ImVec2((float)(this->assignedWidth / 1.2f), (float)(this->assignedHeight / 2)), ImGuiCond_FirstUseEver);
 			if (ImGui::BeginPopupModal(title))
 			{
+				ImGuiStyle style = ImGui::GetStyle();
+				ImVec2 size = ImGui::GetWindowSize();
+				ImVec2 pos = ImGui::GetWindowPos();
+				if (pos.y + size.y > rcWindow.bottom || pos.x + size.x > rcWindow.right || pos.y < rcWindow.top || pos.x < rcWindow.left)
+				{
+					ImGui::SetWindowSize(ImVec2((float)(rcWindow.right - rcWindow.left) / 1.2f, (float)(rcWindow.bottom - rcWindow.top) / 1.2f), ImGuiCond_Always);
+					ImGui::SetWindowPos(ImVec2(style.WindowPadding.x, style.WindowPadding.y + ImGui::GetFontSize()), ImGuiCond_Always);
+				}
+
 				bool wantOpen = false;
 				bool wantInsert = false;
 				bool wantClose = false;
@@ -1140,7 +1158,6 @@ void Graphics::DrawGui()
 				int wantChangeParentDirectoryIndex = -1;
 				int wantOpenFileIndex = -1;
 				int wantCbmDirectoryItem = -1;
-				ImGuiStyle style = ImGui::GetStyle();
 				ImGui::BeginChild("header pane", ImVec2(ImGui::GetWindowContentRegionWidth(), ImGui::GetFontSize() + style.ItemSpacing.y + style.ScrollbarSize + 2.0f * (style.ChildBorderSize + style.WindowPadding.y + style.FramePadding.y)), true, ImGuiWindowFlags_AlwaysHorizontalScrollbar);
 				{
 					std::string name;
@@ -1735,7 +1752,7 @@ HRESULT Graphics::ResizeBuffers(unsigned int width, unsigned int height)
 void Graphics::SetMenuKeepAliveHeightFromScreenHeight(int screenHeight)
 {
 	menukeepAliveHeight = (int)(screenHeight * KeepAliveTopPercentage / 100);
-	mouseActiveDistance = dpi.ScaleY(20);
+	mouseActiveDistance = dpi.ScaleY(40);
 }
 
 void Graphics::SetPixelFilter(bool usePointFilter)

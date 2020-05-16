@@ -88,6 +88,8 @@ public:
 	void IAppCommand::SetRadixDecimal() override;
 	void IAppCommand::GetLastMousePosition(int* x, int* y) override;
 	void IAppCommand::SetLastMousePosition(const int* x, const int* y) override;
+	bool IAppCommand::GetIsMouseOverClientArea() override;
+	void IAppCommand::SetIsMouseOverClientArea(bool isMouseOver) override;
 	void IAppCommand::PostCloseMainWindow() override;
 	void IAppCommand::PostToggleFullscreen() override;
 	bool IAppCommand::PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload) override;
@@ -151,4 +153,5 @@ private:
 	POINT GetCenteredPos(int w, int h);
 	int lastMouseX = 0;
 	int lastMouseY = 0;
+	bool isMouseOverClientArea = false;
 };

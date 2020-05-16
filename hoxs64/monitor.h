@@ -75,6 +75,8 @@ public:
 	virtual void SetRadixDecimal() = 0;
 	virtual void GetLastMousePosition(int *x, int *y) = 0;
 	virtual void SetLastMousePosition(const int* x, const int* y) = 0;
+	virtual bool GetIsMouseOverClientArea() = 0;
+	virtual void SetIsMouseOverClientArea(bool isMouseOver) = 0;
 	virtual void PostCloseMainWindow() = 0;
 	virtual void PostToggleFullscreen() = 0;
 	virtual bool PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload) = 0;

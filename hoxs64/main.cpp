@@ -2386,6 +2386,16 @@ void CApp::SetLastMousePosition(const int* x, const int* y)
 	lastMouseY = *y;
 }
 
+bool CApp::GetIsMouseOverClientArea()
+{
+	return isMouseOverClientArea;
+}
+
+void CApp::SetIsMouseOverClientArea(bool isMouseOver)
+{
+	isMouseOverClientArea = isMouseOver;
+}
+
 void CApp::PostCloseMainWindow()
 {
 	::PostMessage(this->GetMainFrameWindow(), WM_CLOSE, 0, 0);
