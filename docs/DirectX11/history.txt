@@ -1,3 +1,13 @@
+16 May 2020 v1.1.0.2
+====================
+1) Fix null pointer access start up crash on Windows 7.
+
+2) Automatically position the ImgUI popup when out of bounds.
+
+3) Automatic mini-dump file creation with the application folder for 
+application crashes.
+
+
 14 May 2020 v1.1.0.1
 ====================
 1) Fix missing XInput1_4.dll error on Windows 7.
