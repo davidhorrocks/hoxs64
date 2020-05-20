@@ -596,7 +596,18 @@ HRESULT Graphics::InitializeDirectX()
 			{
 				swapWindowedDesc.Width = selectedFullScreenModeDesc.Width;
 				swapWindowedDesc.Height = selectedFullScreenModeDesc.Height;
-				swapWindowedDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+				if (IsWindows10OrGreater())
+				{
+					swapWindowedDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+				}
+				else if (IsWindows8OrGreater())
+				{
+					swapWindowedDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+				}
+				else
+				{
+					swapWindowedDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+				}
 			}
 
 			hr = dxgifactory2->CreateSwapChainForHwnd(
@@ -951,6 +962,7 @@ HRESULT Graphics::RenderFrame()
 		return E_FAIL;
 	}
 
+	deviceContext->OMSetRenderTargets(1, this->renderTargetView.GetAddressOf(), this->depthStencilView.Get());
 	deviceContext->ClearRenderTargetView(renderTargetView.Get(), bgcolor);
 	deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
