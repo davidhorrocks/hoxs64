@@ -15,7 +15,7 @@ public:
 	};
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	virtual void WindowRelease() override;
+	void WindowRelease() override;
 	void Cleanup();
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) override;
 	CAppStatus *appStatus;

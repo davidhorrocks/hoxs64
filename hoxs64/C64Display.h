@@ -64,7 +64,7 @@ public:
 	void DrawCursorAtVicPosition(const XMMATRIX& orthoMatrix, int cycle, int line);
 	void EnableVicCursorSprites(bool enabled);
 	void ClearVicCursorSprites();
-	void InsertCursorSprite(VicCursorPosition&& viccursor);
+	void InsertCursorSprite(const VicCursorPosition&& viccursor);
 private:
 	void UpdateMatrix() override;
 	void SetClearingRects(D3D11_RECT rects[], unsigned int count);

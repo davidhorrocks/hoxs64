@@ -704,7 +704,7 @@ void C64Display::ClearVicCursorSprites()
 	this->listVicCursorPosition.clear();
 }
 
-void C64Display::InsertCursorSprite(VicCursorPosition&& viccursor)
+void C64Display::InsertCursorSprite(const VicCursorPosition&& viccursor)
 {
 	this->listVicCursorPosition.push_back(viccursor);
 }
