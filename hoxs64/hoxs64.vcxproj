@@ -195,7 +195,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX86.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Library|Win32'">
@@ -254,7 +254,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX86.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -311,7 +311,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX64.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Library|x64'">
@@ -368,7 +368,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX64.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -423,7 +423,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX86.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Library|Win32'">
@@ -477,7 +477,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX86.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -532,7 +532,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX64.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Library|x64'">
@@ -587,7 +587,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
 </Command>
     </PostBuildEvent>
     <Manifest>
-      <AdditionalManifestFiles>DeclareDPIAware.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>DeclareDPIAware.manifest;ApplicationX64.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
