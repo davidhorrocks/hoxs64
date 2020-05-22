@@ -181,6 +181,16 @@ unsigned int cartstatesize, cartfullstatesize;
 				break;
 			}
 
+			LARGE_INTEGER pos_in;
+			ULARGE_INTEGER pos_out;
+			pos_in.QuadPart = 0;
+			pos_out.QuadPart = 0;
+			hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
+			if (FAILED(hr))
+			{
+				break;
+			}
+
 			pZeroBankData = &pCartData[Cart::ZEROBANKOFFSET];
 			plstBank = new CrtBankList();
 			plstBank->resize(Cart::MAXBANKS);
@@ -202,13 +212,9 @@ unsigned int cartstatesize, cartfullstatesize;
 				break;
 			}
 
-			LARGE_INTEGER pos_in;
-			ULARGE_INTEGER pos_out;
-			pos_in.QuadPart = 0;
-			pos_out.QuadPart = 0;
-			hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
-			if (FAILED(hr))
+			if (cartfullstatesize < sizeof(bit32))
 			{
+				hr = E_FAIL;
 				break;
 			}
 			
@@ -221,6 +227,11 @@ unsigned int cartstatesize, cartfullstatesize;
 
 			memset(pstate, 0, cartstatesize);
 			bytesToRead = cartstatesize;
+			if (cartfullstatesize - sizeof(bit32) < cartstatesize )
+			{
+				bytesToRead = cartfullstatesize - sizeof(bit32);
+			}
+
 			hr = pfs->Read(pstate, bytesToRead, &bytesRead);
 			if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 			{
@@ -237,14 +248,12 @@ unsigned int cartstatesize, cartfullstatesize;
 				break;
 			}
 
-			if (cartfullstatesize > cartstatesize + sizeof(bit32))
+			pos_in.QuadPart = pos_out.QuadPart;
+			pos_in.QuadPart += cartfullstatesize;
+			hr = pfs->Seek(pos_in, STREAM_SEEK_SET, &pos_out);
+			if (FAILED(hr))
 			{
-				pos_in.QuadPart = cartfullstatesize - cartstatesize - sizeof(bit32);
-				hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_out);
-				if (FAILED(hr))
-				{
-					break;
-				}
+				break;
 			}
 		
 			SsCartMemoryHeader memoryheader;
