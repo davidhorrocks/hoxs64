@@ -555,7 +555,7 @@ msgloop:
 							hRet = gx.PresentFrame();
 							if (SUCCEEDED(hRet))
 							{
-								if (this->m_syncModeFullscreen == HCFG::FSSM_FRAME_DOUBLER && !this->m_bWindowed)
+								if (this->m_syncModeFullscreen == HCFG::FSSM_FRAME_DOUBLER && !this->m_bWindowed && !this->m_bMaxSpeed)
 								{
 									ULARGE_INTEGER last_present_counter;
 									QueryPerformanceCounter((PLARGE_INTEGER)&last_present_counter);
