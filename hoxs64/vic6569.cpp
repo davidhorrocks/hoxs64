@@ -2653,24 +2653,30 @@ HRESULT VIC6569::UpdateBackBuffer()
 
 void VIC6569::SpriteArm(int spriteNo)
 {
-	VICSprite& sprite = vicSprite[spriteNo];
-	
+	VICSprite& sprite = vicSprite[spriteNo];	
 	if (sprite.shiftStatus == VICSprite::srsIdle)
 	{
 		sprite.shiftStatus = VICSprite::srsArm;
 		vicSpriteArmedOrActive = vicSpriteArmedOrActive | (bit16)sprite.spriteBit;
-		if ((vicSpriteDisplay & (1 << spriteNo)) == 0)
-		{
-			//If the sprite display was off then any sprite at x==0x163 gets drawn at 0x164
-			if (sprite.xPos == SPRITE_DISPLAY_CHECK_XPOS - 1)
-			{
-				sprite.InitDraw(SPRITE_DISPLAY_CHECK_XPOS, SPRITE_DISPLAY_CHECK_XPOS, sprite.xPixelInit + 1);
-				sprite.shiftStatus = VICSprite::srsActiveXChange;
-			}
-		}
+
+		// Mariusz discovered that a VIC bug such that a sprite with x-position 0x163 gets drawn at 0x164.
+		// My main C64C with separate colour SRAM machine once exhibited this bug some years ago but I cannot reproduce it on that same machine now.
+		// A another C64 with old VIC 6569 does not have the bug. Of two C64's each with a new VIC 8565, only one of them has the bug.
+		// A recent VICE test VICII\sb_sprite_fetch\sbsprf24-163.prg indicates that the bug may not be the norm.
+		// Therefore I will remove this possibly uncommon bug until it is determinded that the bug is the preferred normal.
+
+		//if ((vicSpriteDisplay & (1 << spriteNo)) == 0)
+		//{
+		//	//If the sprite display was off then any sprite at x==0x163 gets drawn at 0x164
+		//	if (sprite.xPos == SPRITE_DISPLAY_CHECK_XPOS - 1)
+		//	{
+		//		sprite.InitDraw(SPRITE_DISPLAY_CHECK_XPOS, SPRITE_DISPLAY_CHECK_XPOS, sprite.xPixelInit + 1);
+		//		sprite.shiftStatus = VICSprite::srsActiveXChange;
+		//	}
+		//}
 	}
+
 	sprite.armDelay=0;
-	
 }
 
 void VIC6569::SpriteIdle(int spriteNo)
