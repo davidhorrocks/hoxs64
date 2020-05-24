@@ -9,6 +9,7 @@ public:
 	static const std::wstring ShortNamePrefixUnc;
 	static const std::wstring RootPrefix;
 
+	static bool IsAbsolutePath(const std::wstring& path);
 	static std::wstring EnsureLongNamePrefix(const std::wstring& path);
 	static std::wstring EnsureRemoveLongNamePrefix(const std::wstring& path);
 	static void EnsureTrailingBackslash(std::wstring& s);

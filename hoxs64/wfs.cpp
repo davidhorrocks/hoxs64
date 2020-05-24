@@ -8,9 +8,40 @@ const std::wstring Wfs::LongNamePrefix(L"\\\\?\\");
 const std::wstring Wfs::ShortNamePrefixUnc(L"\\\\");
 const std::wstring Wfs::RootPrefix(L"\\");
 
+bool Wfs::IsAbsolutePath(const std::wstring& path)
+{
+    if (StringConverter::IsEmptyOrWhiteSpace(path))
+    {
+        return false;
+    }
+
+    if (path.find(L"\\") == 0 || path.find(L"/") == 0)
+    {
+        return true;
+    }
+
+    size_t i = path.find(L":");
+    if (i > 0)
+    {
+        if (path.length() > i + 1)
+        {
+            if (path[i + 1] == L'/' || path[i + 1] == L'\\')
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 std::wstring Wfs::EnsureLongNamePrefix(const std::wstring& path)
 {
-    if (StringConverter::IsEmptyOrWhiteSpace(path) || path.find(Wfs::LongNamePrefixUnc) == 0 || path.find(Wfs::LongNamePrefix) == 0)
+    if (!IsAbsolutePath(path))
+    {
+        return std::wstring(path);
+    }
+    else if (StringConverter::IsEmptyOrWhiteSpace(path) || path.find(Wfs::LongNamePrefixUnc) == 0 || path.find(Wfs::LongNamePrefix) == 0)
     {
         return std::wstring(path);
     }
