@@ -1,3 +1,15 @@
+25 May 2020 v1.1.0.3
+====================
+1) Fix broken command line relative path handling.
+
+2) Improved performance of quickspeed from the 100Hz mode.
+
+3) Remove possibly uncommon VIC bug such that a sprite with x-position 0x163
+gets drawn at 0x164. Some but not all real C64s have this bug.
+
+4) Use the new DirectX flip model if using Windows 10.
+
+
 16 May 2020 v1.1.0.2
 ====================
 1) Fix null pointer access start up crash on Windows 7.

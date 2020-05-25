@@ -1,4 +1,4 @@
-Hoxs64 v1.1.0.2 (c) 2020 David Horrocks
+Hoxs64 v1.1.0.3 (c) 2020 David Horrocks
 ========================================
 Hoxs64 is an attempt to accurately emulate the Commodore 64 computer.
 
@@ -35,7 +35,7 @@ Simons Basic
 Host PC Requirements
 ====================
 Windows 10
-Windows 7 service pack 1 plus the Platform Update for service pack 1
+Windows 7
 DirectX 11.1
 Microsoft Visual C++ 2019 runtime installation.
 Intel or AMD 3 GHz (4.0 to 5.0 GHz recommended for some features.)
