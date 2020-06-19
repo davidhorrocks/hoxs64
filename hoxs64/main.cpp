@@ -230,7 +230,8 @@ void CApp::CreateImGuiContext()
 	//io.ConfigDocking
 
 	// Setup Platform/Renderer bindings
-	//ImGui_ImplWin32_Init(m_pWinAppWindow->GetHwnd());
+	ImGui_ImplWin32_Init(m_pWinAppWindow->GetHwnd());
+	io.IniFilename = nullptr;
 	isImGuiStarted = true;
 }
 
