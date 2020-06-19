@@ -3,7 +3,7 @@
     <assemblyIdentity
         type="win32"
         name="Hoxs64"
-        version="1.1.0.3"
+        version="1.1.0.4"
         processorArchitecture="x86"
     />
     <description>Hoxs64 Commodore 64 Emulator</description>
