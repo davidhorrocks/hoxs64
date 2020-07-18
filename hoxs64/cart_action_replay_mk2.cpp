@@ -62,7 +62,7 @@ bit16 addr;
 void CartActionReplayMk2::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 bit8 t;
-	if (address >= 0xDE00 || address < 0xE000)
+	if (address >= 0xDE00 && address < 0xE000)
 	{
 		m_iActionReplayMk2DisableRomCounter = 0;
 		if (((ICLKS)(sysclock - m_clockLastDE00Write)) <= ACTIONREPLAYMK2ENABLEROMCOUNT)

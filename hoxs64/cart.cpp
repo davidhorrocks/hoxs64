@@ -737,7 +737,6 @@ void CartCommon::BankRom()
 {
 	m_ipROML = m_pZeroBankData;
 	m_ipROMH = m_pZeroBankData;
-	m_ipROMH = m_pZeroBankData;
 	SIZE_T i = m_iSelectedBank;
 	if (i < m_plstBank->size())
 	{
@@ -756,12 +755,10 @@ void CartCommon::BankRom()
 				{
 					m_ipROML = pL->pData;
 					m_ipROMH = &pL->pData[0x2000];
-					m_ipROMH = &pL->pData[0x2000];
 				}
 			}
 			if (pH->chip.ROMImageSize != 0)
 			{
-				m_ipROMH = pH->pData;
 				m_ipROMH = pH->pData;
 			}
 		}
