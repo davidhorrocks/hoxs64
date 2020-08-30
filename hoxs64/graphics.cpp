@@ -702,17 +702,17 @@ HRESULT Graphics::InitializeDirectX()
 		//Create sampler description for sampler state
 		CD3D11_SAMPLER_DESC linearSampDesc(D3D11_DEFAULT);
 		linearSampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		linearSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		linearSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		linearSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		linearSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 		hr = this->device->CreateSamplerState(&linearSampDesc, this->linearSamplerState.ReleaseAndGetAddressOf()); //Create sampler state
 		COM_ERROR_IF_FAILED(hr, "Failed to create sampler state.");
 
 		CD3D11_SAMPLER_DESC pointSampDesc(D3D11_DEFAULT);
 		pointSampDesc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_POINT;
-		pointSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		pointSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		pointSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		pointSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		pointSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		pointSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 		hr = this->device->CreateSamplerState(&pointSampDesc, this->pointSamplerState.ReleaseAndGetAddressOf()); //Create sampler state
 		COM_ERROR_IF_FAILED(hr, "Failed to create sampler state.");
 		hr = S_OK;
