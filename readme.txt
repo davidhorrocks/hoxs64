@@ -21,6 +21,7 @@ Execute the following commands in a Visual Studio 2019 an elevated command promp
 .\vcpkg install assimp:x86-windows
 .\vcpkg install assimp:x64-windows
 
+The hoxs64_2019.sln solution should in theory now build in Microsoft Visual Studio 2019.
 
 License
 
