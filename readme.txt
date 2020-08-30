@@ -1,9 +1,31 @@
+Building
+
+1) Install Microsoft Visual Studio 2019.
+
+2) git clone the hoxs64 source repository. The build process does not like spaces in the source directory path. Choose a path with no spaces.
+
+3) Install Microsoft Vcpkg from here https://github.com/Microsoft/vcpkg
+
+4) Use Vcpkg to download, compile and configure the dependent libraries.
+
+Execute the following commands in a Visual Studio 2019 an elevated command prompt. The "integrate install" commnand option requires an elevated command prompt.
+
+.\vcpkg\vcpkg integrate install
+
+.\vcpkg install DirectXTK:x86-windows
+.\vcpkg install DirectXTK:x64-windows
+
+.\vcpkg install libpng:x86-windows
+.\vcpkg install libpng:x64-windows
+
+.\vcpkg install assimp:x86-windows
+.\vcpkg install assimp:x64-windows
+
+
+License
+
 Hoxs64 Commodore 64 Emulator for Windows
 Copyright (C) 1999  David Horrocks
-
-Web: http://www.hoxs64.net
-Email: davidhorrocks@btinternet.com
-Email: support@hoxs64.net
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,3 +50,6 @@ present in the following files.
     C1541.rom
     C1541.rom.1541-c2.rom
 End of Exclusions
+
+Web: http://www.hoxs64.net
+Email: support@hoxs64.net
