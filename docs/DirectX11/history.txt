@@ -1,3 +1,13 @@
+30 August 2020 v1.1.0.5
+=======================
+1) issue #4: cartridge system 3 fix plus other related cartridge register
+address comparison fixes.
+
+2) Corrected DirectX pixel sampler mode from D3D11_TEXTURE_ADDRESS_WRAP to
+use D3D11_TEXTURE_ADDRESS_CLAMP to fix graphical artifacts seen at the 
+boundaries of the display area.
+
+
 19 June 2020 v1.1.0.4
 =====================
 1) Prevent ImGUI from saving imgui.ini text files everywhere.
