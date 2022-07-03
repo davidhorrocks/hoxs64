@@ -8,7 +8,7 @@ Building
 
 4) Use Vcpkg to download, compile and configure the dependent libraries.
 
-Execute the following commands in a Visual Studio 2019 an elevated command prompt. The "integrate install" commnand option requires an elevated command prompt.
+Execute the following commands in a Visual Studio 2019 elevated command prompt. The "integrate install" commnand option requires an elevated command prompt.
 
 .\vcpkg\vcpkg integrate install
 
