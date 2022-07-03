@@ -1237,7 +1237,7 @@ bit8 data_old;
 				else
 				{
 					// Old CIA
-					cnt_next = (delay & (SetCnt2 | SetCnt1 | SetCnt0)) == (SetCnt2 | SetCnt1 | SetCnt0);
+					cnt_next = (delay & (SetCnt2 | SetCnt1 )) == (SetCnt2 | SetCnt1);
 				}
 
 				if (cnt_next)
