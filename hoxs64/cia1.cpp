@@ -61,7 +61,18 @@ void CIA1::UpdateKeyMap()
 {
 	if (appStatus != nullptr)
 	{
-		CopyMemory(&this->c64KeyMap[0], &appStatus->m_KeyMap[0], sizeof(this->c64KeyMap));
+		unsigned int i;
+		for (i = 0; i < _countof(c64KeyMap); i++)
+		{
+			if (i < _countof(appStatus->m_KeyMap))
+			{
+				this->c64KeyMap[i] = appStatus->m_KeyMap[i];
+			}
+			else
+			{
+				this->c64KeyMap[i] = 0;
+			}
+		}
 	}
 }
 

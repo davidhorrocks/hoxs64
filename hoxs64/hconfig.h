@@ -282,7 +282,7 @@ public:
 	CConfig(CConfig&&) = default;
 	CConfig& operator=(const CConfig&) = default;
 	CConfig& operator=(CConfig&&) = default;
-	static LONG RegReadDWordOrStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD dwValue);
+	static LONG RegReadDWordOrStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD dwValue) noexcept;
 	static LONG RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
 	static HRESULT SaveMDIWindowSetting(HWND hWnd);
 	static HRESULT LoadMDIWindowSetting(POINT& pos, SIZE& size);

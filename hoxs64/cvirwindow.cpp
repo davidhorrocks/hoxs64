@@ -851,7 +851,7 @@ BOOL CTabDialog::OnSelChanged(HWND hwndDlg)
 	if (IsWindow(m_hwndDisplay))
 	{
 		ShowWindow(m_hwndDisplay, SW_HIDE);
-		UpdateWindow(m_hwndDisplay);
+		//UpdateWindow(m_hwndDisplay);
 	}
 	m_hwndDisplay = NULL;
 
@@ -890,7 +890,7 @@ BOOL CTabDialog::OnSelChanged(HWND hwndDlg)
 			}
 		}
 		ShowWindow(m_hwndDisplay, SW_SHOW);
-		UpdateWindow(m_hwndDisplay);
+		//UpdateWindow(m_hwndDisplay);
 	}
 
 	if (m_hwndDisplay)

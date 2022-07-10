@@ -2599,7 +2599,7 @@ int CConfig::GetKeyScanCode(UINT ch)
 	return MapVirtualKey(ch, 0);
 }
 
-LONG CConfig::RegReadDWordOrStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD dwValue)
+LONG CConfig::RegReadDWordOrStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD dwValue) noexcept
 {
 LONG lRetCode;
 DWORD type;

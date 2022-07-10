@@ -4,6 +4,7 @@
 #include "dx_version.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <winuser.h>
 #include <commctrl.h>
 #include <tchar.h>
@@ -27,14 +28,6 @@
 
 #define IDT_TIMER1 1001
 
-CDiagKeyboard::CDiagKeyboard()
-{
-}
-
-CDiagKeyboard::~CDiagKeyboard()
-{
-}
-
 HRESULT CDiagKeyboard::Init(CDX9 *pDX, const CConfig *currentCfg)
 {
 	ClearError();
@@ -49,12 +42,34 @@ HRESULT CDiagKeyboard::Init(CDX9 *pDX, const CConfig *currentCfg)
 
 void CDiagKeyboard::loadconfig(const CConfig *cfg)
 {
-	CopyMemory(&keymap[0], &cfg->m_KeyMap[0], sizeof(keymap));
+	unsigned int i;
+	for (i = 0; i < _countof(keymap); i++)
+	{
+		if (i < _countof(cfg->m_KeyMap))
+		{
+			keymap[i] = cfg->m_KeyMap[i];
+		}
+		else
+		{
+			keymap[i] = 0;
+		}
+	}
 }
 
 void CDiagKeyboard::saveconfig(CConfig *cfg)
 {
-	CopyMemory(&cfg->m_KeyMap[0], &keymap[0], sizeof(cfg->m_KeyMap));
+	unsigned int i;
+	for (i = 0; i < _countof(cfg->m_KeyMap); i++)
+	{
+		if (i < _countof(keymap))
+		{
+			cfg->m_KeyMap[i] = keymap[i];
+		}
+		else
+		{
+			cfg->m_KeyMap[i] = 0;
+		}
+	}
 }
 
 BOOL CDiagKeyboard::DialogProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam) 
@@ -108,12 +123,12 @@ LPNMHDR lpnmhdr;
 
 			if (m_b_scanningkey)
 			{
-				hr = ReadScanCode(&m_scancode);
+				hr = ReadScanCode(&m_scancode, &m_KeyboardState[0], sizeof(m_KeyboardState));
 				if (hr == S_OK)
 				{
 					lstrcpy(m_szkeyname, TEXT(""));
-					GetKeyName(m_scancode, m_szkeyname, sizeof(m_szkeyname));
-					AssignKey(keycontrol[m_current_c64key].control_id,m_current_c64key);
+					GetKeyName(m_scancode, m_szkeyname, _countof(m_szkeyname), &m_KeyboardState[0]);
+					AssignKey(keycontrol[m_current_c64key].control_id, m_current_c64key, m_scancode);
 					SendMessage(keycontrol[m_current_c64key].hwnd, WM_KEYCAPTURE, FALSE, 0);
 					m_bKeyCapture = false;
 				}
@@ -127,7 +142,7 @@ LPNMHDR lpnmhdr;
 			}
 			else
 			{
-				hr = ReadScanCode(&m_scancode);
+				hr = ReadScanCode(&m_scancode, &m_KeyboardState[0], sizeof(m_KeyboardState));
 				if (hr == S_FALSE)
 				{
 					m_b_scanningkey = true;
@@ -157,8 +172,9 @@ LPNMHDR lpnmhdr;
 			case TCN_SELCHANGE: 
 				OnSelChanged(hwndDlg);
 				ResetKeyCapture();
-				UpdatePage(m_current_page_index, hwndDlg);
 				SetDefaultFocusForPage(m_current_page_index, hwndDlg);
+				UpdatePage(m_current_page_index, m_hwndDisplay);
+				UpdateWindow(hwndDlg);
 				return TRUE;
 			}
 		} 
@@ -179,40 +195,43 @@ LPNMHDR lpnmhdr;
 	return FALSE;
 }
 
-void CDiagKeyboard::AssignKey(int label, int c64key)
+void CDiagKeyboard::AssignKey(int label, int c64key, UINT scancode)
 {
-int i;
-BOOL bReplace;
-	keymap[c64key] = m_scancode;			
-	if (keymap[c64key] != 0)
+	int i;
+	bool bReplace = false;
+	if (c64key >= 0 && c64key < _countof(keymap))
 	{
-		bReplace=FALSE;
-		for (i = 0; i<256; i++)
+		keymap[c64key] = (BYTE)(scancode & 0xff);
+		if (keymap[c64key] != 0)
 		{
-			if (i!=c64key && keymap[i] == m_scancode)
+			bReplace = false;
+			for (i = 0; i < 256; i++)
 			{
-				keymap[i] =0;
-				bReplace=TRUE;
-				break;
+				if (i != c64key && keymap[i] == (BYTE)(scancode & 0xff))
+				{
+					keymap[i] = 0;
+					bReplace = true;
+					break;
+				}
 			}
 		}
-	}
 
-	if (IsWindow(m_hwndDisplay))
-	{
-		if (bReplace)
+		if (IsWindow(m_hwndDisplay))
 		{
-			UpdatePage(m_current_page_index, m_hwndDisplay);
-		}
-		else
-		{
-			if (keymap[c64key]==0)
+			if (bReplace)
 			{
-				SetDlgItemText(m_hwndDisplay, label, TEXT(""));
+				UpdatePage(m_current_page_index, m_hwndDisplay);
 			}
 			else
 			{
-				SetDlgItemText(m_hwndDisplay, label, m_szkeyname);
+				if (keymap[c64key] == 0)
+				{
+					SetDlgItemText(m_hwndDisplay, label, TEXT(""));
+				}
+				else
+				{
+					SetDlgItemText(m_hwndDisplay, label, m_szkeyname);
+				}
 			}
 		}
 	}
@@ -235,6 +254,8 @@ HWND hWnd = 0;
 	case 3:
 		hWnd = keycontrol[C64Keys::C64K_JOY1FIRE].hwnd;
 		break;
+	default:
+		break;
 	}
 
 	if (hWnd)
@@ -248,6 +269,11 @@ HWND hWnd = 0;
 
 void CDiagKeyboard::UpdatePage(int pageno, HWND hwndDlg)
 {
+	if (hwndDlg == nullptr)
+	{
+		return;
+	}
+
 	switch (pageno)
 	{
 	case 0:
@@ -262,6 +288,8 @@ void CDiagKeyboard::UpdatePage(int pageno, HWND hwndDlg)
 	case 3:
 		UpdatePage4(hwndDlg);
 		break;
+	default:
+		break;
 	}
 }
 
@@ -269,85 +297,99 @@ void CDiagKeyboard::UpdatePage1(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
 
-	GetKeyName(keymap[C64Keys::C64K_HOME], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_HOME], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_HOME, szBuffer);	
 
-	GetKeyName(keymap[C64Keys::C64K_ASTERISK], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_ASTERISK], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_ASTERISK, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_SLASH], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_SLASH], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_SLASH, szBuffer);
 	
-	GetKeyName(keymap[C64Keys::C64K_ARROWUP], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_ARROWUP], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_ARROWUP, szBuffer);
 	
-	GetKeyName(keymap[C64Keys::C64K_ARROWLEFT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_ARROWLEFT], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_ARROWLEFT, szBuffer);
 	
-	GetKeyName(keymap[C64Keys::C64K_CONTROL], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_CONTROL], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_CONTROL, szBuffer);
 	
-	GetKeyName(keymap[C64Keys::C64K_STOP], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_STOP], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_STOP, szBuffer);
 	
-	GetKeyName(keymap[C64Keys::C64K_COMMODORE], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_COMMODORE], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_COMMODORE, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_DEL], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_DEL], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_DEL, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_PLUS], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_PLUS], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_PLUS, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_MINUS], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_MINUS], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_MINUS, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_EQUAL], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_EQUAL], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_EQUAL, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_POUND], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_POUND], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_POUND, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_AT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_AT], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_AT, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_COLON], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_COLON], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_COLON, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_SEMICOLON], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_SEMICOLON], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_SEMICOLON, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_CURSORRIGHT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_CURSORRIGHT], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_CURSORRIGHT, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_CURSORDOWN], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_CURSORDOWN], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_CURSORDOWN, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_LEFTSHIFT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_LEFTSHIFT], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_LEFTSHIFT, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_RIGHTSHIFT], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_RIGHTSHIFT], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_RIGHTSHIFT, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_RESTORE], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_RESTORE], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_RESTORE, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_SPACE], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_SPACE], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_SPACE, szBuffer);
 
-	GetKeyName(keymap[C64Keys::C64K_RETURN], szBuffer, sizeof(szBuffer));
+	GetKeyName(keymap[C64Keys::C64K_RETURN], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_RETURN, szBuffer);
 }
 
 
-#define _updatekeypage(n) GetKeyName(keymap[C64Keys::C64K_##n], szBuffer, sizeof(szBuffer));\
+#define _updatekeypage(n) GetKeyName(keymap[C64Keys::C64K_##n], szBuffer, _countof(szBuffer));\
 	SetDlgItemText(hwndDlg, IDC_TXT_##n, szBuffer);
 
 void CDiagKeyboard::UpdatePage2(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
+BOOL br = FALSE;
+int t;
 
-	_updatekeypage(A);
+	GetKeyName(keymap[C64Keys::C64K_A], szBuffer, _countof(szBuffer));
+	br = SetDlgItemText(hwndDlg, IDC_TXT_A, szBuffer);
+	if (!br)
+	{
+		t = 0;//OK
+	}
+	else
+	{
+		t = 1;//FAIL
+	}
+	InvalidateRect(keycontrol[C64Keys::C64K_A].hwnd, NULL, TRUE);
+	UpdateWindow(hwndDlg);
+	//pdatekeypage(A);
 	_updatekeypage(B);
 	_updatekeypage(C);
 	_updatekeypage(D);
@@ -423,8 +465,8 @@ void CDiagKeyboard::clear_keypress_contols()
 {
 int i;
 
-	m_current_c64key=0;
-	m_bKeyCapture=false;
+	m_current_c64key = 0;
+	m_bKeyCapture = false;
 	for(i=0 ; i < _countof(keycontrol) ; i++)
 	{
 		keycontrol[i].control_id=0;
@@ -447,6 +489,8 @@ HRESULT CDiagKeyboard::initkeycapturecontrols(int pageno, HWND hwndDlg)
 		return initkeycapturecontrols3(hwndDlg);
 	case 3:
 		return initkeycapturecontrols4(hwndDlg);
+	default:
+		break;
 	}
 
 	return E_FAIL;
@@ -499,6 +543,8 @@ HWND parentHwnd;
 	}
 }
 
+typedef std::basic_string<TCHAR> tstring;
+
 LRESULT CDiagKeyboard::OnEventKeyControl(
 HWND hwnd,      // handle to window
 UINT uMsg,      // message identifier
@@ -506,41 +552,41 @@ WPARAM wParam,  // first message parameter
 LPARAM lParam   // second message parameter
 )
 {
-int id;
-int i;
-int c64key=-1;
-LPMSG lpmsg;
-HDC hdc;
-RECT rc;
-PAINTSTRUCT ps; 
-LOGBRUSH lb; 
-HPEN hPenOld,hPen,hPen_highlight,hPen_shadow,hPen_darkshadow;
-COLORREF textcolor_old,backcolor_old;
-
-	id=GetDlgCtrlID(hwnd);
-	if (id==0)
+	int id;
+	int i;
+	int c64key = -1;
+	LPMSG lpmsg;
+	HDC hdc;
+	RECT rc;
+	PAINTSTRUCT ps; 
+	LOGBRUSH lb; 
+	HPEN hPenOld,hPen,hPen_highlight,hPen_shadow,hPen_darkshadow;
+	COLORREF textcolor_old,backcolor_old;
+	LPTSTR returnString;
+	id = GetDlgCtrlID(hwnd);
+	if (id == 0)
 	{
-		return DefWindowProc(hwnd,uMsg,wParam,lParam);
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
-	for (i=0 ; i < _countof(keycontrol) ; i++)
+	for (i = 0; i < _countof(keycontrol); i++)
 	{
 		if (id == keycontrol[i].control_id)
 		{
-			c64key=i;
+			c64key = i;
 			break;
 		}
 	}
 
-	if (c64key<0)
+	if (c64key < 0 && c64key >= _countof(keycontrol))
 	{
-		return DefWindowProc(hwnd,uMsg,wParam,lParam);
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
 	switch (uMsg)
 	{
 	case WM_SETTEXT:
-		lstrcpyn(keycontrol[c64key].text, (LPCTSTR) lParam, sizeof(keycontrol[c64key].text)-1);
+		returnString = lstrcpyn(keycontrol[c64key].text, (LPCTSTR)lParam, _countof(keycontrol[c64key].text) - 1);
 		InvalidateRect(hwnd, NULL, TRUE);
 		return 0;
 	case WM_LBUTTONDOWN:
@@ -571,6 +617,9 @@ COLORREF textcolor_old,backcolor_old;
 			ResetKeyCapture();
 		}
 		return 0;
+	case WM_KEYCLEAR:
+		AssignKey(keycontrol[c64key].control_id, c64key, 0);
+		return 0;
 	case WM_GETDLGCODE:
 		if (keycontrol[c64key].state == kcs_getkey)
 		{
@@ -590,7 +639,14 @@ COLORREF textcolor_old,backcolor_old;
 					case VK_SPACE:
 						SendMessage(hwnd, WM_KEYCAPTURE, TRUE, 0);
 						return DLGC_WANTCHARS | DLGC_WANTMESSAGE | DLGC_UNDEFPUSHBUTTON;
+					case VK_DELETE:
+						SendMessage(hwnd, WM_KEYCLEAR, TRUE, 0);
+						return DLGC_WANTCHARS | DLGC_WANTMESSAGE | DLGC_UNDEFPUSHBUTTON;
+					default:
+						break;
 					}
+				default:
+					break;
 				}
 			}
 			return DLGC_UNDEFPUSHBUTTON;
@@ -707,35 +763,44 @@ COLORREF textcolor_old,backcolor_old;
 
 void CDiagKeyboard::SetKeyCapture(int c64key)
 {
-int i;
+	int i;
+	if (c64key < 0 && c64key >= _countof(keycontrol))
+	{
+		ResetKeyCapture();
+		return;
+	}
+
 	m_current_c64key = c64key;
 	m_bKeyCapture = true;
 	m_bBeginKeyScan = true;
-	for (i=0 ; i < _countof(keycontrol) ; i++)
+	for (i = 0; i < _countof(keycontrol); i++)
 	{
-		if (m_current_c64key!=i && keycontrol[i].state!=kcs_display)
+		if (m_current_c64key != i && keycontrol[i].state != kcs_display)
 		{
-			keycontrol[i].state=kcs_display;
+			keycontrol[i].state = kcs_display;
 			InvalidateRect(keycontrol[i].hwnd, NULL, TRUE);
 		}
 	}
 
-	keycontrol[m_current_c64key].state = kcs_getkey;
-	if (keycontrol[m_current_c64key].hwnd != 0)
+	if (m_current_c64key < 0 && m_current_c64key >= _countof(keycontrol))
 	{
-		InvalidateRect(keycontrol[m_current_c64key].hwnd, NULL, TRUE);
+		keycontrol[m_current_c64key].state = kcs_getkey;
+		if (keycontrol[m_current_c64key].hwnd != 0)
+		{
+			InvalidateRect(keycontrol[m_current_c64key].hwnd, NULL, TRUE);
+		}
 	}
 }
 
 void CDiagKeyboard::ResetKeyCapture()
 {
-int i;
-	m_bKeyCapture=false;
-	for (i=0 ; i < _countof(keycontrol) ; i++)
+	int i;
+	m_bKeyCapture = false;
+	for (i = 0; i < _countof(keycontrol); i++)
 	{
-		if (keycontrol[i].state!=kcs_display)
+		if (keycontrol[i].state != kcs_display)
 		{
-			keycontrol[i].state=kcs_display;
+			keycontrol[i].state = kcs_display;
 			if (keycontrol[i].hwnd != 0)
 			{
 				InvalidateRect(keycontrol[i].hwnd, NULL, TRUE);
@@ -915,15 +980,14 @@ void CDiagKeyboard::SetAcquire()
     }
 }
 
-HRESULT CDiagKeyboard::ReadScanCode(BYTE *scancode)
+HRESULT CDiagKeyboard::ReadScanCode(LPUINT scancode, LPBYTE keyboardState, SIZE_T sizeKeyboardState)
 {
-char     buffer[256]; 
-int i;
+UINT i;
 HRESULT  hr; 
 #define KEYDOWN(name,key) (name[key] & 0x80) 
 
 	hr = S_FALSE;
-	hr = pDX->pKeyboard->GetDeviceState(sizeof(buffer),(LPVOID)&buffer); 
+	hr = pDX->pKeyboard->GetDeviceState((DWORD)sizeKeyboardState, (LPVOID)keyboardState);
 	if FAILED(hr) 
 	{ 
 		if (hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST )
@@ -934,7 +998,7 @@ HRESULT  hr;
 				return hr;
 			}
 
-			hr = pDX->pKeyboard->GetDeviceState(sizeof(buffer), (LPVOID)&buffer); 
+			hr = pDX->pKeyboard->GetDeviceState((DWORD)sizeKeyboardState, (LPVOID)keyboardState);
 			if FAILED(hr) 
 			{
 				return hr;
@@ -959,7 +1023,7 @@ HRESULT  hr;
 	} 
 
 	hr = S_FALSE;// S_FALSE: no key was pressed. S_OK: A key was pressed.
-	for (i=0 ; i<256 ; i++)
+	for (i = 0; i < 256 && i < (UINT)sizeKeyboardState; i++)
 	{
 		switch (i)
 		{
@@ -1109,9 +1173,13 @@ HRESULT  hr;
 		case DIK_MYCOMPUTER:    /* My Computer */
 		case DIK_MAIL:    /* Mail */
 		case DIK_MEDIASELECT:    /* Media Select */
-			if (KEYDOWN(buffer , i))
+			if (KEYDOWN(keyboardState, i))
 			{
-				*scancode = i;
+				if (scancode != nullptr)
+				{
+					*scancode = i;
+				}
+
 				hr = S_OK;
 				return hr;
 			}
@@ -1124,381 +1192,400 @@ HRESULT  hr;
 }
 
 
-void GetKeyName(BYTE scancode,TCHAR *buffer,int bufferTCharSize)
+void CDiagKeyboard::GetKeyName(UINT scancode, TCHAR *buffer, int cchBuffersize, LPBYTE keyboardState)
 {
 int vk,i;
-BYTE KeyState[256];
-BYTE ch[2];
+BYTE defaultKeyState[256];
+TCHAR tch[50];
+LPTSTR returnString;
 	switch (scancode)
 	{
 	case 0:
-		if (bufferTCharSize > 0)
-			buffer[0]=0;
-		return;
-	case DIK_1:
-	case DIK_2:
-	case DIK_3:
-	case DIK_4:
-	case DIK_5:
-	case DIK_6:
-	case DIK_7:
-	case DIK_8:
-	case DIK_9:
-	case DIK_0:
-	case DIK_MINUS:    /* - on main keyboard */
-	case DIK_EQUALS:
-	case DIK_Q:
-	case DIK_W:
-	case DIK_E:
-	case DIK_R:
-	case DIK_T:
-	case DIK_Y:
-	case DIK_U:
-	case DIK_I:
-	case DIK_O:
-	case DIK_P:
-	case DIK_LBRACKET:
-	case DIK_RBRACKET:
-	case DIK_A:
-	case DIK_S:
-	case DIK_D:
-	case DIK_F:
-	case DIK_G:
-	case DIK_H:
-	case DIK_J:
-	case DIK_K:
-	case DIK_L:
-	case DIK_SEMICOLON:
-	case DIK_APOSTROPHE:
-	case DIK_GRAVE:    /* accent grave */
-	case DIK_BACKSLASH:
-	case DIK_Z:
-	case DIK_X:
-	case DIK_C:
-	case DIK_V:
-	case DIK_B:
-	case DIK_N:
-	case DIK_M:
-	case DIK_COMMA:
-	case DIK_PERIOD:    /* . on main keyboard */
-	case DIK_SLASH:    /* / on main keyboard */
-		ZeroMemory(&KeyState[0], sizeof(KeyState));
-		lstrcpyn(buffer,TEXT("Unknown"), bufferTCharSize);
-
-		vk = MapVirtualKey(scancode, 1);
-		if (vk!=0)
+		if (cchBuffersize > 0)
 		{
-			i = ToAscii(vk, scancode, KeyState, (LPWORD) &ch[0], 0);
-			if (i==1)
-			{
-				ch[1] = 0;
-				CharUpper((LPTSTR)&ch[0]);
-#ifdef UNICODE
-				int chOut;
-				if (SUCCEEDED(StringConverter::AnsiToUc((LPCSTR) &ch[0], &buffer[0], 1, chOut)))
-				{
-					buffer[chOut] = 0;
-				}
-#else
-				buffer[0] = ch[0];//Little endian
-				buffer[1] = 0;
-#endif
-			}
+			buffer[0] = 0;
 		}
-		break;
+
+		return;
+	//case DIK_1:
+	//case DIK_2:
+	//case DIK_3:
+	//case DIK_4:
+	//case DIK_5:
+	//case DIK_6:
+	//case DIK_7:
+	//case DIK_8:
+	//case DIK_9:
+	//case DIK_0:
+	//case DIK_MINUS:    /* - on main keyboard */
+	//case DIK_EQUALS:
+	//case DIK_Q:
+	//case DIK_W:
+	//case DIK_E:
+	//case DIK_R:
+	//case DIK_T:
+	//case DIK_Y:
+	//case DIK_U:
+	//case DIK_I:
+	//case DIK_O:
+	//case DIK_P:
+	//case DIK_LBRACKET:
+	//case DIK_RBRACKET:
+	//case DIK_A:
+	//case DIK_S:
+	//case DIK_D:
+	//case DIK_F:
+	//case DIK_G:
+	//case DIK_H:
+	//case DIK_J:
+	//case DIK_K:
+	//case DIK_L:
+	//case DIK_SEMICOLON:
+	//case DIK_APOSTROPHE:
+	//case DIK_GRAVE:    /* accent grave */
+	//case DIK_BACKSLASH:
+	//case DIK_Z:
+	//case DIK_X:
+	//case DIK_C:
+	//case DIK_V:
+	//case DIK_B:
+	//case DIK_N:
+	//case DIK_M:
+	//case DIK_COMMA:
+	//case DIK_PERIOD:    /* . on main keyboard */
+	//case DIK_SLASH:    /* / on main keyboard */
 	case DIK_RETURN:
-		lstrcpyn(buffer,TEXT("RETURN"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("RETURN"), cchBuffersize);
 		break;
 	case DIK_TAB:
-		lstrcpyn(buffer,TEXT("TAB"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("TAB"), cchBuffersize);
 		break;
 	case DIK_F1:
-		lstrcpyn(buffer,TEXT("F1"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F1"), cchBuffersize);
 		break;
 	case DIK_F2:
-		lstrcpyn(buffer,TEXT("F2"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F2"), cchBuffersize);
 		break;
 	case DIK_F3:
-		lstrcpyn(buffer,TEXT("F3"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F3"), cchBuffersize);
 		break;
 	case DIK_F4:
-		lstrcpyn(buffer,TEXT("F4"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F4"), cchBuffersize);
 		break;
 	case DIK_F5:
-		lstrcpyn(buffer,TEXT("F5"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F5"), cchBuffersize);
 		break;
 	case DIK_F6:
-		lstrcpyn(buffer,TEXT("F6"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F6"), cchBuffersize);
 		break;
 	case DIK_F7:
-		lstrcpyn(buffer,TEXT("F7"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F7"), cchBuffersize);
 		break;
 	case DIK_F8:
-		lstrcpyn(buffer,TEXT("F8"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F8"), cchBuffersize);
 		break;
 	case DIK_F9:
-		lstrcpyn(buffer,TEXT("F9"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F9"), cchBuffersize);
 		break;
 	case DIK_F10:
-		lstrcpyn(buffer,TEXT("F10"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F10"), cchBuffersize);
 		break;
 	case DIK_F11:
-		lstrcpyn(buffer,TEXT("F11"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F11"), cchBuffersize);
 		break;
 	case DIK_F12:
-		lstrcpyn(buffer,TEXT("F12"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F12"), cchBuffersize);
 		break;
 	case DIK_F13:    /*                     (NEC PC98) */
-		lstrcpyn(buffer,TEXT("F13"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F13"), cchBuffersize);
 		break;
 	case DIK_F14:    /*                     (NEC PC98) */
-		lstrcpyn(buffer,TEXT("F14"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F14"), cchBuffersize);
 		break;
 	case DIK_F15:    /*                     (NEC PC98) */
-		lstrcpyn(buffer,TEXT("F15"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("F15"), cchBuffersize);
 		break;
 	case DIK_BACK:/* backspace */
-		lstrcpyn(buffer,TEXT("BACK"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("BACK"), cchBuffersize);
 		break;
 	case DIK_ESCAPE:
-		lstrcpyn(buffer,TEXT("ESCAPE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("ESCAPE"), cchBuffersize);
 		break;
 	case DIK_LMENU:    /* left Alt */
-		lstrcpyn(buffer,TEXT("LMENU"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("LMENU"), cchBuffersize);
 		break;
 	case DIK_LCONTROL:
-		lstrcpyn(buffer,TEXT("LEFT CONTROL"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("LEFT CONTROL"), cchBuffersize);
 		break;
 	case DIK_RCONTROL:
-		lstrcpyn(buffer,TEXT("RIGHT CONTROL"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("RIGHT CONTROL"), cchBuffersize);
 		break;
 	case DIK_LSHIFT:
-		lstrcpyn(buffer,TEXT("LEFT SHIFT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("LEFT SHIFT"), cchBuffersize);
 		break;
 	case DIK_RSHIFT:
-		lstrcpyn(buffer,TEXT("RIGHT SHIFT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("RIGHT SHIFT"), cchBuffersize);
 		break;
 	case DIK_MULTIPLY:    /* on numeric keypad */
-		lstrcpyn(buffer,TEXT("NUM MULTIPLY"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUM MULTIPLY"), cchBuffersize);
 		break;
 	case DIK_SPACE:
-		lstrcpyn(buffer,TEXT("SPACE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("SPACE"), cchBuffersize);
 		break;
 	case DIK_CAPITAL:
-		lstrcpyn(buffer,TEXT("CAPITAL"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("CAPITAL"), cchBuffersize);
 		break;
 	case DIK_NUMLOCK:
-		lstrcpyn(buffer,TEXT("NUMLOCK"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMLOCK"), cchBuffersize);
 		break;
 	case DIK_SCROLL:    /* Scroll Lock */
-		lstrcpyn(buffer,TEXT("SCROLL"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("SCROLL"), cchBuffersize);
 		break;
 	case DIK_NUMPAD7:
-		lstrcpyn(buffer,TEXT("NUMPAD 7"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 7"), cchBuffersize);
 		break;
 	case DIK_NUMPAD8:
-		lstrcpyn(buffer,TEXT("NUMPAD 8"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 8"), cchBuffersize);
 		break;
 	case DIK_NUMPAD9:
-		lstrcpyn(buffer,TEXT("NUMPAD 9"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 9"), cchBuffersize);
 		break;
 	case DIK_SUBTRACT:    /* - on numeric keypad */
-		lstrcpyn(buffer,TEXT("NUMPAD MINUS"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD MINUS"), cchBuffersize);
 		break;
 	case DIK_NUMPAD4:
-		lstrcpyn(buffer,TEXT("NUMPAD 4"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 4"), cchBuffersize);
 		break;
 	case DIK_NUMPAD5:
-		lstrcpyn(buffer,TEXT("NUMPAD 5"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 5"), cchBuffersize);
 		break;
 	case DIK_NUMPAD6:
-		lstrcpyn(buffer,TEXT("NUMPAD 6"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 6"), cchBuffersize);
 		break;
 	case DIK_ADD:    /* + on numeric keypad */
-		lstrcpyn(buffer,TEXT("NUMPAD +"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD +"), cchBuffersize);
 		break;
 	case DIK_NUMPAD1:
-		lstrcpyn(buffer,TEXT("NUMPAD 1"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 1"), cchBuffersize);
 		break;
 	case DIK_NUMPAD2:
-		lstrcpyn(buffer,TEXT("NUMPAD 2"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 2"), cchBuffersize);
 		break;
 	case DIK_NUMPAD3:
-		lstrcpyn(buffer,TEXT("NUMPAD 3"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 3"), cchBuffersize);
 		break;
 	case DIK_NUMPAD0:
-		lstrcpyn(buffer,TEXT("NUMPAD 0"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD 0"), cchBuffersize);
 		break;
 	case DIK_DECIMAL:    /* . on numeric keypad */
-		lstrcpyn(buffer,TEXT("NUMPAD ."), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD ."), cchBuffersize);
 		break;
 	case DIK_OEM_102:    /* < > | on UK/Germany keyboards */
-		lstrcpyn(buffer,TEXT("OEM 102"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("OEM 102"), cchBuffersize);
 		break;
 	case DIK_KANA:    /* (Japanese keyboard)            */
-		lstrcpyn(buffer,TEXT("KANA"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("KANA"), cchBuffersize);
 		break;
 	case DIK_ABNT_C1:    /* / ? on Portugese (Brazilian) keyboards */
-		lstrcpyn(buffer,TEXT("ABNT_C1"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("ABNT_C1"), cchBuffersize);
 		break;
 	case DIK_CONVERT:    /* (Japanese keyboard)            */
-		lstrcpyn(buffer,TEXT("CONVERT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("CONVERT"), cchBuffersize);
 		break;
 	case DIK_NOCONVERT:    /* (Japanese keyboard)            */
-		lstrcpyn(buffer,TEXT("NOCONVERT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NOCONVERT"), cchBuffersize);
 		break;
 	case DIK_YEN:    /* (Japanese keyboard)            */
-		lstrcpyn(buffer,TEXT("YEN"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("YEN"), cchBuffersize);
 		break;
 	case DIK_ABNT_C2:    /* Numpad . on Portugese (Brazilian) keyboards */
-		lstrcpyn(buffer,TEXT("ABNT_C2"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("ABNT_C2"), cchBuffersize);
 		break;
 	case DIK_NUMPADEQUALS:    /* = on numeric keypad (NEC PC98) */
-		lstrcpyn(buffer,TEXT("NUMPAD ="), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD ="), cchBuffersize);
 		break;
 	case DIK_PREVTRACK:    /* Previous Track (DIK_CIRCUMFLEX on Japanese keyboard) */
-		lstrcpyn(buffer,TEXT("PREVTRACK"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("PREVTRACK"), cchBuffersize);
 		break;
 	case DIK_AT:    /*                     (NEC PC98) */
-		lstrcpyn(buffer,TEXT("AT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("AT"), cchBuffersize);
 		break;
 	case DIK_COLON:    /*                     (NEC PC98) */
-		lstrcpyn(buffer,TEXT("COLON"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("COLON"), cchBuffersize);
 		break;
 	case DIK_UNDERLINE:    /*                     (NEC PC98) */
-		lstrcpyn(buffer,TEXT("UNDERLINE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("UNDERLINE"), cchBuffersize);
 		break;
 	case DIK_KANJI:    /* (Japanese keyboard)            */
-		lstrcpyn(buffer,TEXT("KANJI"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("KANJI"), cchBuffersize);
 		break;
 	case DIK_STOP:    /*                     (NEC PC98) */
-		lstrcpyn(buffer,TEXT("STOP"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("STOP"), cchBuffersize);
 		break;
 	case DIK_AX:    /*                     (Japan AX) */
-		lstrcpyn(buffer,TEXT("AX"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("AX"), cchBuffersize);
 		break;
 	case DIK_UNLABELED:    /*                        (J3100) */
-		lstrcpyn(buffer,TEXT("UNLABELED"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("UNLABELED"), cchBuffersize);
 		break;
 	case DIK_NEXTTRACK:    /* Next Track */
-		lstrcpyn(buffer,TEXT("NEXTTRACK"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NEXTTRACK"), cchBuffersize);
 		break;
 	case DIK_NUMPADENTER:    /* Enter on numeric keypad */
-		lstrcpyn(buffer,TEXT("NUMPAD ENTER"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD ENTER"), cchBuffersize);
 		break;
 	case DIK_MUTE:    /* Mute */
-		lstrcpyn(buffer,TEXT("MUTE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("MUTE"), cchBuffersize);
 		break;
 	case DIK_CALCULATOR:    /* Calculator */
-		lstrcpyn(buffer,TEXT("CALC"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("CALC"), cchBuffersize);
 		break;
 	case DIK_PLAYPAUSE:    /* Play / Pause */
-		lstrcpyn(buffer,TEXT("PLAY"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("PLAY"), cchBuffersize);
 		break;
 	case DIK_MEDIASTOP:    /* Media Stop */
-		lstrcpyn(buffer,TEXT("MEDIA STOP"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("MEDIA STOP"), cchBuffersize);
 		break;
 	case DIK_VOLUMEDOWN:    /* Volume - */
-		lstrcpyn(buffer,TEXT("VOLUME DOWN"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("VOLUME DOWN"), cchBuffersize);
 		break;
 	case DIK_VOLUMEUP:    /* Volume + */
-		lstrcpyn(buffer,TEXT("VOLUME UP"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("VOLUME UP"), cchBuffersize);
 		break;
 	case DIK_WEBHOME:    /* Web home */
-		lstrcpyn(buffer,TEXT("WEB HOME"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WEB HOME"), cchBuffersize);
 		break;
 	case DIK_NUMPADCOMMA:    /* , on numeric keypad (NEC PC98) */
-		lstrcpyn(buffer,TEXT("NUMPAD COMMA"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD COMMA"), cchBuffersize);
 		break;
 	case DIK_DIVIDE:    /* / on numeric keypad */
-		lstrcpyn(buffer,TEXT("NUMPAD DIVIDE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NUMPAD DIVIDE"), cchBuffersize);
 		break;
 	case DIK_SYSRQ:
-		lstrcpyn(buffer,TEXT("SYSRQ"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("SYSRQ"), cchBuffersize);
 		break;
 	case DIK_RMENU:    /* right Alt */
-		lstrcpyn(buffer,TEXT("RIGHT MENU"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("RIGHT MENU"), cchBuffersize);
 		break;
 	case DIK_PAUSE:    /* Pause */
-		lstrcpyn(buffer,TEXT("PAUSE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("PAUSE"), cchBuffersize);
 		break;
 	case DIK_HOME:    /* Home on arrow keypad */
-		lstrcpyn(buffer,TEXT("HOME"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("HOME"), cchBuffersize);
 		break;
 	case DIK_UP:    /* UpArrow on arrow keypad */
-		lstrcpyn(buffer,TEXT("UP"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("UP"), cchBuffersize);
 		break;
 	case DIK_PRIOR:    /* PgUp on arrow keypad */
-		lstrcpyn(buffer,TEXT("PRIOR"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("PRIOR"), cchBuffersize);
 		break;
 	case DIK_LEFT:    /* LeftArrow on arrow keypad */
-		lstrcpyn(buffer,TEXT("LEFT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("LEFT"), cchBuffersize);
 		break;
 	case DIK_RIGHT:    /* RightArrow on arrow keypad */
-		lstrcpyn(buffer,TEXT("RIGHT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("RIGHT"), cchBuffersize);
 		break;
 	case DIK_END:    /* End on arrow keypad */
-		lstrcpyn(buffer,TEXT("END"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("END"), cchBuffersize);
 		break;
 	case DIK_DOWN:    /* DownArrow on arrow keypad */
-		lstrcpyn(buffer,TEXT("DOWN"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("DOWN"), cchBuffersize);
 		break;
 	case DIK_NEXT:    /* PgDn on arrow keypad */
-		lstrcpyn(buffer,TEXT("NEXT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("NEXT"), cchBuffersize);
 		break;
 	case DIK_INSERT:    /* Insert on arrow keypad */
-		lstrcpyn(buffer,TEXT("INSERT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("INSERT"), cchBuffersize);
 		break;
 	case DIK_DELETE:    /* Delete on arrow keypad */
-		lstrcpyn(buffer,TEXT("DELETE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("DELETE"), cchBuffersize);
 		break;
 	case DIK_LWIN:    /* Left Windows key */
-		lstrcpyn(buffer,TEXT("LWIN"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("LWIN"), cchBuffersize);
 		break;
 	case DIK_RWIN:    /* Right Windows key */
-		lstrcpyn(buffer,TEXT("RWIN"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("RWIN"), cchBuffersize);
 		break;
 	case DIK_APPS:    /* AppMenu key */
-		lstrcpyn(buffer,TEXT("APPS"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("APPS"), cchBuffersize);
 		break;
 	case DIK_POWER:    /* System Power */
-		lstrcpyn(buffer,TEXT("PWR"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("PWR"), cchBuffersize);
 		break;
 	case DIK_SLEEP:    /* System Sleep */
-		lstrcpyn(buffer,TEXT("SLEEP"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("SLEEP"), cchBuffersize);
 		break;
 	case DIK_WAKE:    /* System Wake */
-		lstrcpyn(buffer,TEXT("WAKE"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WAKE"), cchBuffersize);
 		break;
 	case DIK_WEBSEARCH:    /* Web Search */
-		lstrcpyn(buffer,TEXT("WEB SEARCH"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WEB SEARCH"), cchBuffersize);
 		break;
 	case DIK_WEBFAVORITES:    /* Web Favorites */
-		lstrcpyn(buffer,TEXT("WEB FAVORITES"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WEB FAVORITES"), cchBuffersize);
 		break;
 	case DIK_WEBREFRESH:    /* Web Refresh */
-		lstrcpyn(buffer,TEXT("WEB REFRESH"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WEB REFRESH"), cchBuffersize);
 		break;
 	case DIK_WEBSTOP:    /* Web Stop */
-		lstrcpyn(buffer,TEXT("WEB STOP"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WEB STOP"), cchBuffersize);
 		break;
 	case DIK_WEBFORWARD:    /* Web Forward */
-		lstrcpyn(buffer,TEXT("WEB FORWARD"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WEB FORWARD"), cchBuffersize);
 		break;
 	case DIK_WEBBACK:    /* Web Back */
-		lstrcpyn(buffer,TEXT("WEB BACK"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("WEB BACK"), cchBuffersize);
 		break;
 	case DIK_MYCOMPUTER:    /* My Computer */
-		lstrcpyn(buffer,TEXT("MY COMPUTER"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("MY COMPUTER"), cchBuffersize);
 		break;
 	case DIK_MAIL:    /* Mail */
-		lstrcpyn(buffer,TEXT("MAIL"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("MAIL"), cchBuffersize);
 		break;
 	case DIK_MEDIASELECT:    /* Media Select */
-		lstrcpyn(buffer,TEXT("MEDIA SELECT"), bufferTCharSize);
+		returnString = lstrcpyn(buffer,TEXT("MEDIA SELECT"), cchBuffersize);
 		break;
-	default:
-		lstrcpyn(buffer,TEXT("Unknown"), bufferTCharSize);
+	default:		
+		returnString = lstrcpyn(buffer, TEXT("Unknown"), cchBuffersize);
+		vk = MapVirtualKey(scancode, 1);
+		if (vk != 0)
+		{
+			LPBYTE p_keystate;
+			if (keyboardState == nullptr)
+			{
+				ZeroMemory(&defaultKeyState[0], sizeof(defaultKeyState));
+				p_keystate = &defaultKeyState[0];
+			}
+			else
+			{
+				p_keystate = keyboardState;
+			}
+
+#ifdef UNICODE
+			i = ToUnicode(vk, scancode, p_keystate, &tch[0], _countof(tch), 0);
+			if (i == 1)
+			{
+				CharUpper((LPTSTR)&tch[0]);
+				buffer[0] = tch[0];
+				buffer[1] = 0;
+			}
+			else if (i == 2)
+			{
+				buffer[0] = tch[0];
+				buffer[1] = tch[1];
+				buffer[0] = 0;
+			}
+#else
+			i = ToAscii(vk, scancode, p_keystate, (LPWORD)&tch[0], 0);
+			if (i == 1)
+			{
+				CharUpper((LPSTR)&tch[0]);
+				buffer[0] = tch[0];//Little endian
+				buffer[1] = 0;
+			}
+#endif
+		}
+
 		break;
 	}
 }
