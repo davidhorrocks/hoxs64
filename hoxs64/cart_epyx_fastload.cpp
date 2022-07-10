@@ -4,8 +4,10 @@
 #define CAPACITORCHARGELIMIT (1024)
 #define CAPACITORDISCHARGERATE (50)
 
-CartEpyxFastLoad::CartEpyxFastLoad(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartEpyxFastLoad::CartEpyxFastLoad(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory),
+	m_iCapacitorCharge(m_stateuint[0]),
+	m_bCapacitorCharged(m_statebool[1])
 {
 }
 

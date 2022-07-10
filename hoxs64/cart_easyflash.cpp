@@ -1,7 +1,7 @@
 #include "cart.h"
 
-CartEasyFlash::CartEasyFlash(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartEasyFlash::CartEasyFlash(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 
 }
@@ -12,7 +12,7 @@ CartEasyFlash::~CartEasyFlash()
 	m_EasyFlashChipROMH.Detach();
 }
 
-HRESULT CartEasyFlash::InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData)
+HRESULT CartEasyFlash::InitCart(unsigned int amountOfExtraRAM, bit8 *pCartData, CrtBankList *plstBank, bit8 *pZeroBankData)
 {
 HRESULT hr=E_FAIL;
 
@@ -23,28 +23,38 @@ HRESULT hr=E_FAIL;
 			m_plstBank = plstBank;
 			m_pCartData = pCartData;
 			m_pZeroBankData = pZeroBankData;
+			m_amountOfExtraRAM = amountOfExtraRAM;
 			if (plstBank->size() < EasyFlashChip::MAXEASYFLASHBANKS)
 			{
 				plstBank->resize(EasyFlashChip::MAXEASYFLASHBANKS);
 			}
+
 			hr = m_EasyFlashChipROML.Init(this, 0);
 			if (FAILED(hr))
+			{
 				break;
+			}
+
 			hr = m_EasyFlashChipROMH.Init(this, 1);
 			if (FAILED(hr))
+			{
 				break;
+			}
 		} while (false);
 	}
 	catch (std::exception&)
 	{
 		hr = E_FAIL;
 	}
+
 	if (FAILED(hr))
 	{
 		m_plstBank = NULL;
 		m_pCartData = NULL;
 		m_pZeroBankData = NULL;
+		m_amountOfExtraRAM = 0;
 	}
+
 	return hr;
 }
 
@@ -210,52 +220,65 @@ ICLK v = sysclock - this->m_pCpu->Get6510CurrentClock();
 	m_EasyFlashChipROMH.SetCurrentClock(sysclock);
 }
 
-unsigned int CartEasyFlash::GetStateBytes(void *pstate)
+unsigned int CartEasyFlash::GetStateBytes(int version, void *pstate)
 {
 int k, c;
 bit8 *p = (bit8 *)pstate;
 
 	c = 0;
-	k = CartCommon::GetStateBytes(p);
+	k = CartCommon::GetStateBytes(version, p);
 	if (p)
+	{
 		p += k;
+	}
+
 	c += k;
 	k = m_EasyFlashChipROML.GetStateBytes(p);
 	if (p)
+	{
 		p += k;
+	}
+
 	c += k;
 	k = m_EasyFlashChipROMH.GetStateBytes(p);
 	c += k;
 	return c;
 }
 
-HRESULT CartEasyFlash::SetStateBytes(void *pstate, unsigned int size)
+HRESULT CartEasyFlash::SetStateBytes(int version, void* pstate, unsigned int size)
 {
-HRESULT hr;
-unsigned int k;
-	int totalsize = GetStateBytes(NULL);
+	HRESULT hr;
+	unsigned int k;
 
-	if (!pstate || size != totalsize)
+	int totalsize = GetStateBytes(LatestVersion, NULL);
+	if (totalsize == 0 || !pstate || size != totalsize)
+	{
 		return E_FAIL;
+	}
 
-	bit8 *p = (bit8 *)pstate;
-
-	k = CartCommon::GetStateBytes(NULL);
-	hr = CartCommon::SetStateBytes(p, k);
+	bit8* p = (bit8*)pstate;
+	k = CartCommon::GetStateBytes(LatestVersion, NULL);
+	hr = CartCommon::SetStateBytes(version, p, k);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
-	p+=k;
+	p += k;
 	k = m_EasyFlashChipROML.GetStateBytes(NULL);
 	hr = m_EasyFlashChipROML.SetStateBytes(p, k);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
-	p+=k;
+	p += k;
 	k = m_EasyFlashChipROMH.GetStateBytes(NULL);
 	hr = m_EasyFlashChipROMH.SetStateBytes(p, k);
 	if (FAILED(hr))
+	{
 		return hr;
+	}
 
 	return S_OK;
 }

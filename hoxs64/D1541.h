@@ -51,7 +51,7 @@ public:
 	void GetState(SsCpuDisk &state);
 	void SetState(const SsCpuDisk &state);
 
-	bit8 ReadByte(bit16 address) override;
+	bool ReadByte(bit16 address, bit8& data) override;
 	void WriteByte(bit16 address, bit8 data) override;
 
 	//IMonitorCpu

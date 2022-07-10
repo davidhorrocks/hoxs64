@@ -1,7 +1,7 @@
 #include "cart.h"
 
-CartMagicDesk::CartMagicDesk(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartMagicDesk::CartMagicDesk(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 }
 
@@ -33,9 +33,10 @@ void CartMagicDesk::UpdateIO()
 	}
 	else
 	{
-		GAME = m_crtHeader.GAME;
-		EXROM = m_crtHeader.EXROM;
+		GAME = 1;
+		EXROM = 0;
 	}
+
 	m_bIsCartIOActive = true;
 	BankRom();
 }

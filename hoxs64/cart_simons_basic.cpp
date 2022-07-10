@@ -1,7 +1,8 @@
 #include "cart.h"
 
-CartSimonsBasic::CartSimonsBasic(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartSimonsBasic::CartSimonsBasic(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory),
+	m_bSimonsBasic16K(m_statebool[0])
 {
 }
 
@@ -45,8 +46,8 @@ void CartSimonsBasic::UpdateIO()
 	}
 	else
 	{
-		GAME = m_crtHeader.GAME;
-		EXROM = m_crtHeader.EXROM;
+		GAME = 1;
+		EXROM = 0;
 	}
 	m_bIsCartIOActive = true;
 	BankRom();

@@ -1,7 +1,7 @@
 #include "cart.h"
 
-CartActionReplayMk4::CartActionReplayMk4(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartActionReplayMk4::CartActionReplayMk4(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartActionReplay(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 }
 
@@ -84,6 +84,8 @@ void CartActionReplayMk4::UpdateIO()
 			break;
 		case 3://GAME=1 EXROM=0
 			m_ipROMH = m_ipROML;
+			break;
+		default:
 			break;
 		}
 	}			

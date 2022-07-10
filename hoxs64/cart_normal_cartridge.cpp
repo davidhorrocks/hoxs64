@@ -1,7 +1,7 @@
 #include "cart.h"
 
-CartNormalCartridge::CartNormalCartridge(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartNormalCartridge::CartNormalCartridge(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 }
 

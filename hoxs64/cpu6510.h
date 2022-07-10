@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning (disable: 4250)
 class CPU6510;
 class CIA1;
 class CIA2;
@@ -17,12 +18,15 @@ public:
 	CPU6510(CPU6510&&) = delete;
 	CPU6510& operator=(CPU6510&&) = delete;
 
-	bit8 IRQ_VIC = 0;	
+	bit8 IRQ_VIC = 0;
 	bit8 IRQ_CIA = 0;
 	bit8 IRQ_CRT = 0;
 	bit8 NMI_CIA = 0;
 	bit8 NMI_CRT = 0;
-	bool m_bIsWriteCycle = false;
+	bit8 RDY_VIC = 0;
+	bit8 RDY_CRT = 0;
+	bool forceReadByteToGetData = false;
+	bool m_bIsVicNotifyCpuWriteCycle = false;
 	bool bExitOnHltInstruction = false;
 
 	HRESULT Init(IC64 *pIC64, IC64Event *pIC64Event, int ID, CIA1 *cia1, CIA2 *cia2, VIC6569 *vic, ISid64 *sid, Cart *cart, RAM64 *ram, ITape *tape, IBreakpointManager *pIBreakpointManager);
@@ -42,6 +46,10 @@ public:
 	void Clear_CIA_NMI() override;
 	void Set_CRT_NMI(ICLK sysclock) override;
 	void Clear_CRT_NMI() override;
+	void SetVicRdyHigh(ICLK sysclock) override;
+	void SetVicRdyLow(ICLK sysclock) override;
+	void SetCartridgeRdyHigh(ICLK sysclock) override;
+	void SetCartridgeRdyLow(ICLK sysclock) override;
 	void ConfigureMemoryMap() override;
 
 	bool Get_EnableDebugCart();
@@ -56,8 +64,10 @@ public:
 	ICLK GetCurrentClock() override;
 	void SetCurrentClock(ICLK sysclock) override;
 
-	bit8 ReadByte(bit16 address) override;
+	bool ReadByte(bit16 address, bit8& data) override;
 	void WriteByte(bit16 address, bit8 data) override;
+	bit8 ReadDmaByte(bit16 address) override;
+	void WriteDmaByte(bit16 address, bit8 data) override;
 
 	//IMonitorCpu
 	bit8 MonReadByte(bit16 address, int memorymap) override;
@@ -70,12 +80,19 @@ public:
 	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap) override;
 	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap) override;
 
-	void AddClockDelay();
+	bool IsVicNotifyCpuWriteCycle() override;
+	bit8 Get_IRQ_VIC() override;
+	bit8 Get_IRQ_CIA() override;
+	bit8 Get_IRQ_CRT() override;
+	bit8 Get_NMI_CIA() override;
+	bit8 Get_NMI_CRT() override;
+
 	void PreventClockOverflow() override;
 	void OnHltInstruction() override;
 	void cpu_port();
-	void GetState(SsCpuMain &state);
-	void SetState(const SsCpuMain &state);
+	void GetState(SsCpuMainV1 &state);
+	void SetState(const SsCpuMainV1 &state);
+	static void UpgradeStateV0ToV1(const SsCpuMainV0& in, SsCpuMainV1& out);
 private:
 	CIA1* pCia1 = nullptr;
 	CIA2 *pCia2 = nullptr;
@@ -89,9 +106,9 @@ private:
 	//devices
 	IRegister *cia1 = nullptr;
 	IRegister *cia2 = nullptr;
-	IRegister *vic = nullptr;
+	IVic *vic = nullptr;
 	ISid64 *sid = nullptr;
-	IRegister *cart = nullptr;
+	ICartInterface *cart = nullptr;
 
 	bit8 **m_ppMemory_map_read = nullptr;
 	bit8 **m_ppMemory_map_write = nullptr;
@@ -116,5 +133,5 @@ private:
 	void check_interrupts0() override;
 	void CheckForCartFreeze() override;
 	void write_cpu_io_data(bit8 data);
-	void write_cpu_io_ddr(bit8 data, ICLK sysclock);
+	void write_cpu_io_ddr(bit8 data, ICLK sysclock);	
 };

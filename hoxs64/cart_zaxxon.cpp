@@ -20,8 +20,8 @@
 #include "register.h"
 #include "cart.h"
 
-CartZaxxon::CartZaxxon(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartZaxxon::CartZaxxon(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 }
 
@@ -75,7 +75,7 @@ bit8 CartZaxxon::ReadUltimaxROML(bit16 address)
 void CartZaxxon::UpdateIO()
 {
 	m_bIsCartIOActive = true;
-	GAME = m_crtHeader.GAME;
-	EXROM = m_crtHeader.EXROM;
+	GAME = 0;
+	EXROM = 0;
 	BankRom();
 }

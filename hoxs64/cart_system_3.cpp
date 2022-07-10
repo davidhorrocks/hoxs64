@@ -1,7 +1,7 @@
 #include "cart.h"
 
-CartSystem3::CartSystem3(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartSystem3::CartSystem3(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 }
 
@@ -29,8 +29,8 @@ void CartSystem3::UpdateIO()
 {
 	if (m_bIsCartIOActive)
 	{
-		GAME = m_crtHeader.GAME;
-		EXROM = m_crtHeader.EXROM;
+		GAME = 1;
+		EXROM = 0;
 	}
 	else
 	{

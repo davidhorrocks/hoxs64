@@ -4,6 +4,15 @@ EasyFlashChip::EasyFlashChip()
 {
 	m_chipNumber = 0;
 	m_vecPendingSectorErase.reserve(MAXEASYFLASHBANKS);
+	m_pCartEasyFlash = nullptr;
+	m_iLastCommandWriteClock = 0;
+	m_iCommandByte = 0;
+	m_iCommandCycle = 0;
+	m_iStatus = 0;
+	m_iByteWritten = 0;
+	m_mode = EasyFlashChip::Read;
+	m_plstBank = nullptr;
+	m_pBlankData = nullptr;
 }
 
 EasyFlashChip::~EasyFlashChip()
@@ -26,8 +35,6 @@ bit8 *p;
 		s->m_iCommandCycle = m_iCommandCycle;
 		s->m_iStatus = m_iStatus;
 		s->m_iByteWritten = m_iByteWritten;
-		//s->m_iAddressWrite = m_iAddressWrite;
-		//s->m_iSectorWrite = m_iSectorWrite;
 		s->m_mode = m_mode;
 		
 		p = &(((bit8 *)s)[sizeof(SsState)]);
@@ -76,12 +83,12 @@ SsState *s;
 
 }
 
-void EasyFlashChip::Detach()
+void EasyFlashChip::Detach() noexcept
 {
 	CleanUp();
 }
 
-void EasyFlashChip::CleanUp()
+void EasyFlashChip::CleanUp() noexcept
 {
 
 }
@@ -90,10 +97,10 @@ HRESULT EasyFlashChip::Init(CartEasyFlash *pCartEasyFlash, int chipNumber)
 {
 /*
 	Easy Flash has two 512 KB chips that provide a total of 1 MB.
-	Each 512 KB chip as 64 banks and each bank provides 8 KB.
+	Each 512 KB chip has 64 banks and each bank provides 8 KB.
 */
 int i;
-const int BANKSIZE = 0x2000;
+constexpr int BANKSIZE = 0x2000;
 HRESULT hr = E_FAIL;
 
 	try

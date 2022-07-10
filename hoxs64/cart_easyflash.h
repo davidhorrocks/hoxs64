@@ -17,11 +17,16 @@ public:
 		ChipEraseSuspend = 6,
 	};
 	EasyFlashChip();
-	~EasyFlashChip();
+	virtual ~EasyFlashChip();
+	EasyFlashChip(const EasyFlashChip&) = delete;
+	EasyFlashChip& operator=(const EasyFlashChip&) = delete;
+	EasyFlashChip(EasyFlashChip&&) = delete;
+	EasyFlashChip& operator=(EasyFlashChip&&) = delete;
+
 	static const int MAXEASYFLASHBANKS = 64;
 	HRESULT Init(CartEasyFlash *pCartEasyFlash, int chipNumber);
-	void CleanUp();
-	void Detach();
+	void CleanUp() noexcept;
+	void Detach() noexcept;
 	void Reset(ICLK sysclock);
 	bit8 ReadByte(bit16 address);
 	void WriteByte(bit16 address, bit8 data);
@@ -41,13 +46,7 @@ protected:
 		bit8 m_iCommandCycle;
 		bit8 m_iStatus;
 		bit8 m_iByteWritten;
-		//bit16 m_iAddressWrite;
-		//bit8 m_iSectorWrite;
 		bit8 m_mode;
-		//vector<bit8> m_vecPendingSectorErase;
-		//CrtBankList *m_plstBank;
-		//int m_chipNumber;
-		//bit8 *m_pBlankData;
 	};
 	virtual unsigned int GetStateBytes(void *pstate);
 	virtual HRESULT SetStateBytes(void *pstate, unsigned int size);
@@ -59,8 +58,6 @@ private:
 	bit8 m_iCommandCycle;
 	bit8 m_iStatus;
 	bit8 m_iByteWritten;
-	//bit16 m_iAddressWrite;
-	//bit8 m_iSectorWrite;
 	EEasyFlashMode m_mode;
 	vector<bit8> m_vecPendingSectorErase;
 	CrtBankList *m_plstBank;
@@ -74,44 +71,51 @@ private:
 class CartEasyFlash : public CartCommon
 {
 public:
-	CartEasyFlash(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory);
-	~CartEasyFlash();
-	virtual void Reset(ICLK sysclock, bool poweronreset);
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
+	CartEasyFlash(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory);
+	virtual ~CartEasyFlash();
 
-	virtual bit8 ReadROML(bit16 address);
-	virtual bit8 ReadROMH(bit16 address);
-	virtual bit8 ReadUltimaxROML(bit16 address);
-	virtual bit8 ReadUltimaxROMH(bit16 address);
+	CartEasyFlash() = delete;
+	CartEasyFlash(const CartEasyFlash&) = delete;
+	CartEasyFlash& operator=(const CartEasyFlash&) = delete;
+	CartEasyFlash(CartEasyFlash&&) = delete;
+	CartEasyFlash& operator=(CartEasyFlash&&) = delete;
 
-	virtual void WriteROML(bit16 address, bit8 data);
-	virtual void WriteROMH(bit16 address, bit8 data);
-	virtual void WriteUltimaxROML(bit16 address, bit8 data);
-	virtual void WriteUltimaxROMH(bit16 address, bit8 data);
+	void Reset(ICLK sysclock, bool poweronreset) override;
+	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
+	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
 
-	virtual bit8 MonReadROML(bit16 address);
-	virtual bit8 MonReadROMH(bit16 address);
-	virtual bit8 MonReadUltimaxROML(bit16 address);
-	virtual bit8 MonReadUltimaxROMH(bit16 address);
+	bit8 ReadROML(bit16 address) override;
+	bit8 ReadROMH(bit16 address) override;
+	bit8 ReadUltimaxROML(bit16 address) override;
+	bit8 ReadUltimaxROMH(bit16 address) override;
 
-	virtual void MonWriteROML(bit16 address, bit8 data);
-	virtual void MonWriteROMH(bit16 address, bit8 data);
-	virtual void MonWriteUltimaxROML(bit16 address, bit8 data);
-	virtual void MonWriteUltimaxROMH(bit16 address, bit8 data);
+	void WriteROML(bit16 address, bit8 data) override;
+	void WriteROMH(bit16 address, bit8 data) override;
+	void WriteUltimaxROML(bit16 address, bit8 data) override;
+	void WriteUltimaxROMH(bit16 address, bit8 data) override;
 
-	virtual void PreventClockOverflow();
+	bit8 MonReadROML(bit16 address) override;
+	bit8 MonReadROMH(bit16 address) override;
+	bit8 MonReadUltimaxROML(bit16 address) override;
+	bit8 MonReadUltimaxROMH(bit16 address) override;
 
-	virtual ICLK GetCurrentClock();
-	virtual void SetCurrentClock(ICLK sysclock);
+	void MonWriteROML(bit16 address, bit8 data) override;
+	void MonWriteROMH(bit16 address, bit8 data) override;
+	void MonWriteUltimaxROML(bit16 address, bit8 data) override;
+	void MonWriteUltimaxROMH(bit16 address, bit8 data) override;
 
-	virtual HRESULT InitCart(CrtBankList *plstBank, bit8 *pCartData, bit8 *pZeroBankData);
+	void PreventClockOverflow() override;
 
-	virtual unsigned int GetStateBytes(void *pstate);
-	virtual HRESULT SetStateBytes(void *pstate, unsigned int size);
+	ICLK GetCurrentClock() override;
+	void SetCurrentClock(ICLK sysclock) override;
+
+	HRESULT InitCart(unsigned int amountOfExtraRAM, bit8* pCartData, CrtBankList* plstBank, bit8* pZeroBankData) override;
+
+	unsigned int GetStateBytes(int version, void* pstate) override;
+	HRESULT SetStateBytes(int version, void* pstate, unsigned int size) override;
 
 protected:
-	virtual void UpdateIO();
+	void UpdateIO() override;
 private:
 
 	EasyFlashChip m_EasyFlashChipROML;

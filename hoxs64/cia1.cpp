@@ -40,7 +40,7 @@ CIA1::CIA1()
 	ZeroMemory(&this->js, sizeof(this->js));
 }
 
-HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, IMonitorVic* vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad)
+HRESULT CIA1::Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, IVic* vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad)
 {
 	ClearError();
 	this->ID = 1;

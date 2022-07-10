@@ -2034,18 +2034,18 @@ bit8 a_color4[4];
 
 VIC6569::VIC6569()
 {
-int i;
+	int i;
 	for (i = 0; i < VicIIPalette::NumColours; i++)
 	{
 		vic_color_array[i] = (bit32)VicIIPalette::Pepto[i];
 	}
 
-	ram=NULL;
-	cpu=NULL;
-	pGx=NULL;
-	appStatus=NULL;
-	vic_pixelbuffer=NULL;
-	for (int i=0; i < 8; i++)
+	ram = NULL;
+	cpu = NULL;
+	pGx = NULL;
+	appStatus = NULL;
+	vic_pixelbuffer = NULL;
+	for (i = 0; i < 8; i++)
 	{
 		vicSprite[i].vic = this;
 	}
@@ -2062,12 +2062,16 @@ bit32 initial_raster_line = PAL_MAX_LINE;
 
 	CurrentClock = sysclock;
 	frameNumber = 0;
-	lastBackedUpFrameNumber = -1;
+	lastBackedUpFrameNumber = 0;
+	lastBackedUpFrameNumber--;
 	vicMemoryBankIndex = 0;
 	LP_TRIGGER=0;
 	vicLightPen=1;
 	vic_check_irq_in_cycle2=false;
 	vicAEC=3;
+	vicBA = 1;
+	clockBALow = 0;
+	clockBAHigh = 0;
 	vicMainBorder=1;
 	vicVerticalBorder=1;
 	vicCharDataOutputDisabled=1;
@@ -2238,12 +2242,29 @@ void VIC6569::PreventClockOverflow()
 	}
 
 	if ((ICLKS)(CurrentClock - clockReadSpriteDataCollision) > CLOCKSYNCBAND_FAR)
+	{
 		clockReadSpriteDataCollision = ClockBehindNear;
+	}
+
 	if ((ICLKS)(CurrentClock - clockReadSpriteSpriteCollision) > CLOCKSYNCBAND_FAR)
+	{
 		clockReadSpriteSpriteCollision = ClockBehindNear;
+	}
 
 	if ((ICLKS)(CurrentClock - clockFirstForcedBadlineCData) > CLOCKSYNCBAND_FAR)
+	{
 		clockFirstForcedBadlineCData = ClockBehindNear;
+	}
+
+	if ((ICLKS)(CurrentClock - clockBALow) > CLOCKSYNCBAND_FAR)
+	{
+		clockBALow = ClockBehindNear;
+	}
+
+	if ((ICLKS)(CurrentClock - clockBAHigh) > CLOCKSYNCBAND_FAR)
+	{
+		clockBAHigh = ClockBehindNear;
+	}	
 }
 
 ICLK VIC6569::GetCurrentClock()
@@ -2268,7 +2289,7 @@ VIC6569::~VIC6569()
 	Cleanup();
 }
 
-HRESULT VIC6569::Init(CAppStatus *appStatus, Graphics* pGx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager)
+HRESULT VIC6569::Init(CAppStatus *appStatus, Graphics* pGx, RAM64 *ram, IC6510 *cpu, ICartInterface* cart, IBreakpointManager *pIBreakpointManager)
 {
 	Cleanup();
 
@@ -2276,6 +2297,7 @@ HRESULT VIC6569::Init(CAppStatus *appStatus, Graphics* pGx, RAM64 *ram, CPU6510 
 	this->pGx = pGx;
 	this->ram = ram;
 	this->cpu = cpu;
+	this->cart = cart;
 	this->m_pIBreakpointManager = pIBreakpointManager;
 	SetMMU(0);
 	setup_multicolor_mask_table();
@@ -2695,23 +2717,34 @@ void VIC6569::SetBA(ICLK &cycles, bit8 cycle)
 	bit8 ba = (*vic_address_line_info)[cycle];
 	if (ba)
 	{
-		cpu->SetBAHigh(CurrentClock);
-		vicAEC = 3;
+		if (ba != vicBA)
+		{
+			vicBA = ba;
+			clockBAHigh = CurrentClock;
+			cpu->SetVicRdyHigh(CurrentClock);
+			vicAEC = 3;
+		}
 	}
 	else
 	{
-		cpu->SetBALow(CurrentClock);
+		if (ba != vicBA)
+		{
+			vicBA = ba;
+			clockBALow = CurrentClock;
+			cpu->SetVicRdyLow(CurrentClock);
+		}
+
 		if (vicAEC >= 0)
 		{
 			--vicAEC;
 		}
 
-		// If cpu->m_bIsWriteCycle == false or cycles != 0 then it means that the cpu has recently executed a read cycle which should have caused a cpu BA delay.
+		// If cpu->IsVicNotifyCpuWriteCycle() == false or cycles != 0 then it means that the cpu has recently executed a read cycle which should have caused a cpu BA delay.
 		// We synchronise the vic with all cpu-write cycles but allow the cpu to run ahead with reads from RAM.
 		// If we call here on a cpu write cycle then 'cycles' will be zero though 'cycles' may be zero for cpu read cycles too.
-		if (!cpu->m_bDebug)
+		if (!cpu->IsDebug())
 		{
-			if (!cpu->m_bIsWriteCycle || cycles != 0)
+			if (!cpu->IsVicNotifyCpuWriteCycle() || cycles != 0)
 			{
 				cpu->AddClockDelay();
 				++cycles;
@@ -3194,11 +3227,12 @@ bit8 data8;
 			draw_40_col_left_border1(cycle); // uses vic_border_part_40
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
 			SetBA(clocks, cycle);
+			vicSpriteDMAPrev = vicSpriteDMA;
 			vicMainBorder_old = vicMainBorder;
 			vicLastCDataPrev2 = vicLastCDataPrev;
 			vicLastGDataPrev2 = vicLastGDataPrev;
 			vicLastCDataPrev = vicLastCData;
-			vicLastGDataPrev = vicLastGData;
+			vicLastGDataPrev = vicLastGData;			
 			vicLastGData = G_ACCESS(vicECM_BMM_MCM_prev, vicLastCData);
 			C_ACCESS();
 			break;
@@ -3283,6 +3317,7 @@ bit8 data8;
 			DRAW_BORDER(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
 			vic_allow_c_access = false;
+			vicSpriteDMAPrev = vicSpriteDMA;
 			vicSpriteYMatch=0;
 			ff_YP= ((~ff_YP) & vicSpriteYExpand) | (~vicSpriteYExpand & ff_YP);
 			for (ibit8=1,i=0 ; i < 8 ; i++)
@@ -3325,6 +3360,7 @@ bit8 data8;
 			check_38_col_right_border();
 			draw_38_col_right_border1(cycle);
 			COLOR_FOREGROUND(vicBackgroundColor, cycle);
+			vicSpriteDMAPrev = vicSpriteDMA;
 			for (ibit8=1,i=0 ; i < 8 ; i++,ibit8<<=1)
 			{
 				if ((~vicSpriteDMA & vicSpriteEnable & ibit8)!=0 && vicSpriteY[i]==(vic_raster_line & 0xFF))
@@ -3356,6 +3392,7 @@ bit8 data8;
 			//Hacky 9 pixel in the border accommodation; FIXME
 			DrawForegroundEx(0, vicXSCROLL_Cycle57, vicLastCData, vicECM_BMM_MCM, 0, vicCharDataOutputDisabled, 0, 8-vicXSCROLL_Cycle57+vicXSCROLL, cycle);
 			vicXSCROLL_Cycle57 = vicXSCROLL;
+			vicSpriteDMAPrev = vicSpriteDMA;
 			if (vicSpriteArmedOrActive != 0)
 			{
 				DrawSprites(cyclePrev);
@@ -3565,6 +3602,8 @@ bit8 data8;
 			m_bVicBankChanging = false;
 			SetMMU(vicBankChangeByte);
 		}
+
+		cart->ExecuteCycle(CurrentClock);
 	}
 }
 
@@ -3671,7 +3710,7 @@ bit8 data;
 		data =  (bit8)(vicMemptrVM>>6 | vicMemptrCB>>10 | 1);
 		break;
 	case 0x19:	//interrupt status
-		data = ((bit8)vicINTERRUPT_STATUS  & 0xF) | 0x70 | ((bit8)cpu->IRQ_VIC & 1)<<7;
+		data = ((bit8)vicINTERRUPT_STATUS  & 0xF) | 0x70 | ((bit8)cpu->Get_IRQ_VIC() & 1)<<7;
 		break;
 	case 0x1a:	//interrupt enable
 		data = (bit8)vicINTERRUPT_ENABLE | 0xF0;
@@ -4096,7 +4135,7 @@ bit8 modeOld;
 			vicCDataCarry=0;
 
 			// Reads from the system 1 clock too soon. This is fine for reading RAM or ROM.
-			cpu_next_op_code = cpu->MonReadByte(cpu->mPC.word, -1);			
+			cpu_next_op_code = cpu->MonReadByte(cpu->GetPC(), -1);			
 			vicIDLE=0;
 			vic_address_line_info = &BA_line_info[vicSpriteDMA][1];
 		}
@@ -5108,9 +5147,60 @@ int i = -1;
 	}
 
 	return i;
-} 
+}
 
-void VIC6569::GetState(SsVic6569 &state)
+bool VIC6569::Get_BA()
+{
+	return vicBA;
+}
+
+ICLK VIC6569::Get_ClockBALow()
+{
+	return clockBALow;
+}
+
+ICLK VIC6569::Get_ClockBAHigh()
+{
+	return clockBAHigh;
+}
+
+ICLK VIC6569::Get_CountBALow()
+{
+	if (vicBA != 0)
+	{
+		return 0;
+	}
+	else
+	{
+		return CurrentClock - clockBALow + 1;
+	}
+}
+
+ICLK VIC6569::Get_CountBAHigh()
+{
+	if (vicBA == 0)
+	{
+		return 0;
+	}
+	else
+	{
+		return CurrentClock - clockBAHigh + 1;
+	}
+}
+
+bit8 VIC6569::GetDExxByte(ICLK sysclock)
+{
+	ExecuteCycle(sysclock);
+	return de00_byte;
+}
+
+bit8 VIC6569::SpriteDMATurningOn()
+{
+	return vicSpriteDMA & ~vicSpriteDMAPrev;
+}
+
+
+void VIC6569::GetState(SsVic6569V1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
@@ -5172,6 +5262,7 @@ void VIC6569::GetState(SsVic6569 &state)
 	state.vicVCBASE = vicVCBASE;
 	state.vicVMLI = vicVMLI;
 	state.vicAEC = vicAEC;
+	state.vicBA = vicBA;
 	state.vicIDLE = vicIDLE;
 	state.vicIDLE_DELAY = vicIDLE_DELAY;
 	state.vicLastCData = vicLastCData;
@@ -5228,7 +5319,7 @@ void VIC6569::GetState(SsVic6569 &state)
 	memcpy_s(state.VideoMatrix, sizeof(state.VideoMatrix), VideoMatrix, sizeof(VideoMatrix));
 }
 
-void VIC6569::SetState(const SsVic6569 &state)
+void VIC6569::SetState(const SsVic6569V1 &state)
 {
 	CurrentClock = state.CurrentClock;
 	cpu_next_op_code = state.cpu_next_op_code;
@@ -5289,6 +5380,8 @@ void VIC6569::SetState(const SsVic6569 &state)
 	vicVCBASE = state.vicVCBASE;
 	vicVMLI = state.vicVMLI <= NUM_SCREEN_COLUMNS ? state.vicVMLI : NUM_SCREEN_COLUMNS;
 	vicAEC = state.vicAEC;
+	vicBA = state.vicBA;
+	clockBALow = state.clockBALow;
 	vicIDLE = state.vicIDLE;
 	vicIDLE_DELAY = state.vicIDLE_DELAY;
 	vicLastCData = state.vicLastCData;
@@ -5343,4 +5436,15 @@ void VIC6569::SetState(const SsVic6569 &state)
 	memcpy_s(pixelMaskBuffer, sizeof(pixelMaskBuffer), state.pixelMaskBuffer, sizeof(state.pixelMaskBuffer));
 	memcpy_s(vic_sprite_collision_line, sizeof(vic_sprite_collision_line), state.vic_sprite_collision_line, sizeof(state.vic_sprite_collision_line));
 	memcpy_s(VideoMatrix, sizeof(VideoMatrix), state.VideoMatrix, sizeof(state.VideoMatrix));
+}
+
+
+void VIC6569::UpgradeStateV0ToV1(const SsVic6569V0& in, SsVic6569V1& out)
+{
+	ZeroMemory(&out, sizeof(SsVic6569V1));
+	*((SsVic6569V0*)&out) = in;
+	out.Version = 0;// Let C64::LoadC64StateFromFile know that vicBA needs fixing up to match the CPU RDY signal.
+	out.vicBA = 1; // The BA signal is now separate from RDY and will need a fix up.
+	out.clockBALow = 0;
+	out.clockBAHigh = 0;
 }

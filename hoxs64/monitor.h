@@ -96,6 +96,7 @@ public:
 	virtual void ToggleMaxSpeed() = 0;
 	virtual void InsertTapeDialog(HWND hWnd) = 0;
 	virtual void LoadCrtFileDialog(HWND hWnd) = 0;
+	virtual void LoadReu1750(HWND hWnd) = 0;
 	virtual void LoadC64ImageDialog(HWND hWnd) = 0;
 	virtual void LoadT64Dialog(HWND hWnd) = 0;
 	virtual void AutoLoadDialog(HWND hWnd) = 0;

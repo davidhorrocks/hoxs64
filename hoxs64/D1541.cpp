@@ -96,32 +96,34 @@ void CPUDisk::SyncVFlag()
 	}
 }
 
-bit8 CPUDisk::ReadByte(bit16 address)
+bool CPUDisk::ReadByte(bit16 address, bit8& data)
 {	
 	if (address >= 0x8000)
 	{
-		return pMappedROM[address | 0xC000];
+		data = pMappedROM[address | 0xC000];
 	}
 	else
 	{
 		address = address & 0x1fff;
 		if (address < 0x0800)
 		{
-			return pMappedRAM[address];
+			data = pMappedRAM[address];
 		}
 		else if (address >= 0x1c00)
 		{
-			return via2->ReadRegister(address, CurrentClock);
+			data = via2->ReadRegister(address, CurrentClock);
 		}
 		else if (address >= 0x1800)
 		{
-			return via1->ReadRegister(address, CurrentClock);
+			data = via1->ReadRegister(address, CurrentClock);
 		}
 		else
 		{
-			return address >> 8;
+			data = address >> 8;
 		}
 	}
+
+	return true;
 }
 
 bit8 CPUDisk::MonReadByte(bit16 address, int memorymap)

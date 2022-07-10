@@ -497,7 +497,7 @@ typedef struct {
 
 //using namespace std;
 
-class CPU6502 : public IRegister, public IMonitorCpu, public ErrorMsg
+class CPU6502 : public virtual IC6502, public IMonitorCpu, public ErrorMsg
 {
 public:
 	CPU6502() noexcept;
@@ -510,7 +510,7 @@ public:
 	HRESULT Init(int ID, IBreakpointManager* pIBreakpointManager);
 	void Cleanup();
 
-	virtual bit8 ReadByte(bit16 address) = 0;
+	virtual bool ReadByte(bit16 address, bit8& data) = 0;
 	virtual void WriteByte(bit16 address, bit8 data) = 0;
 
 	//IMonitorCpu
@@ -560,10 +560,13 @@ public:
 	virtual void ClearNMI();
 	virtual void ConfigureMemoryMap();
 
-	void SetBALow(ICLK sysclock);
-	void SetBAHigh(ICLK sysclock);
+	void SetRdyLow(ICLK sysclock) override;
+	void SetRdyHigh(ICLK sysclock) override;
+	void AddClockDelay() override;
+	bool IsDebug() override;
+	bit16 GetPC() override;
 	virtual void PreventClockOverflow();
-	virtual void OnHltInstruction();
+	virtual void OnHltInstruction();	
 
 	bit16 decode_array[256] = {};
 	bit16u mPC = {};
@@ -582,13 +585,14 @@ public:
 
 	unsigned int m_cpu_sequence = 0;
 	unsigned int m_cpu_final_sequence = 0;
-	unsigned int m_op_code = 0;
+	bit8         m_op_code = 0;
+	bit8         m_not_used = 0;
 
 	bit8 PROCESSOR_INTERRUPT = 0;
 	bit8 IRQ = 0;
 	bit8 NMI = 0;
 	bit8 NMI_TRIGGER = 0;
-	bit8 BA = 0;
+	bit8 RDY = 0;
 	bit16u m_CurrentOpcodeAddress = {};
 	bool SOTrigger = false;
 	ICLK SOTriggerClock = 0;
@@ -609,14 +613,14 @@ public:
 
 	static const InstructionInfo AssemblyData[256];
 
-protected:
 	ICLK FirstIRQClock = 0;
 	ICLK FirstNMIClock = 0;
 	ICLK RisingIRQClock = 0;
-	ICLK FirstBALowClock = 0;
-	ICLK LastBAHighClock = 0;
+	ICLK FirstRdyLowClock = 0;
+	ICLK LastRdyHighClock = 0;
 	ICLK m_CurrentOpcodeClock = 0;
-	bool m_bBALowInClock2OfSEI = false;
+protected:
+	bool m_bRdyLowInClock2OfSEI = false;
 
 	bit16u addr = {};
 	bit16u ptr = {};

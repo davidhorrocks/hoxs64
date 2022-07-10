@@ -1,8 +1,10 @@
 #include "cart.h"
 
-CartRetroReplay::CartRetroReplay(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartRetroReplay::CartRetroReplay(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory),
+	m_bDE01WriteDone(m_statebool[0])
 {
+	m_bDE01WriteDone = false;
 }
 
 void CartRetroReplay::Reset(ICLK sysclock, bool poweronreset)
@@ -14,10 +16,13 @@ void CartRetroReplay::Reset(ICLK sysclock, bool poweronreset)
 
 bit8 CartRetroReplay::ReadRegister(bit16 address, ICLK sysclock)
 {
-bit16 addr;
+	bit16 addr;
 
 	if (!IsCartAttached())
+	{
 		return 0;
+	}
+
 	if ((address == 0xDE00 || address == 0xDE01))
 	{
 		return (reg1 & 0xB8) | (reg2 & 0x42);
@@ -54,7 +59,10 @@ bit16 addr;
 void CartRetroReplay::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
 	if (!IsCartAttached())
+	{
 		return;
+	}
+
 	if (address == 0xDE00)
 	{
 		if (m_bFreezeMode)
@@ -65,6 +73,7 @@ void CartRetroReplay::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 				m_bFreezeMode = false;
 			}
 		}
+
 		reg1 = data;
 		ConfigureMemoryMap();
 	}
@@ -96,6 +105,66 @@ void CartRetroReplay::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 			m_pCartData[address - 0xDF00 + 0x1F00 + m_iRamBankOffsetIO] = data;
 		}
 	}
+}
+
+bit8 CartRetroReplay::ReadROML(bit16 address)
+{
+	if (m_bEnableRAM)
+	{
+		return m_pCartData[(address & 0x1fff) + m_iRamBankOffsetRomL];
+	}
+	else
+	{
+		return m_ipROML[address & 0x1fff];
+	}
+}
+
+bit8 CartRetroReplay::ReadROMH(bit16 address)
+{
+	return m_ipROMH[address & 0x1fff];
+}
+
+bit8 CartRetroReplay::ReadUltimaxROML(bit16 address)
+{
+	return ReadROML(address);
+}
+
+bit8 CartRetroReplay::ReadUltimaxROMH(bit16 address)
+{
+	return ReadROMH(address);
+}
+
+void CartRetroReplay::WriteROML(bit16 address, bit8 data)
+{
+	if (m_bEnableRAM)
+	{
+		m_pCartData[(address & 0x1fff) + m_iRamBankOffsetRomL] = data;
+	}
+
+	m_pC64RamMemory[address] = data;
+}
+
+void CartRetroReplay::WriteROMH(bit16 address, bit8 data)
+{
+	m_pC64RamMemory[address] = data;
+}
+
+void CartRetroReplay::WriteUltimaxROML(bit16 address, bit8 data)
+{
+	if (m_bEnableRAM)
+	{
+		m_pCartData[(address & 0x1fff) + m_iRamBankOffsetRomL] = data;
+	}
+}
+
+void CartRetroReplay::WriteUltimaxROMH(bit16 address, bit8 data)
+{
+
+}
+
+bool CartRetroReplay::IsCartIOActive(bit16 address, bool isWriting)
+{
+	return m_bIsCartIOActive && (((address & 0xFF00) == 0xDE00) || (!m_bREUcompatible && (address & 0xFF00) == 0xDF00));
 }
 
 void CartRetroReplay::CartFreeze()

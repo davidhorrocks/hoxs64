@@ -237,7 +237,7 @@ int i = -1;
 
 	if (m_bEnableStepOutWithRtsRtiPlaPlpTxs)
 	{
-		if (this->BA != 0)
+		if (this->RDY != 0)
 		{
 			if (this->m_cpu_sequence == C_RTS_5 || this->m_cpu_sequence == C_RTI_5)
 			{
@@ -265,7 +265,7 @@ int i = -1;
 
 	if (m_bEnableStepOutWithRtsRti)
 	{
-		if (this->BA != 0)
+		if (this->RDY != 0)
 		{
 			if (this->m_cpu_sequence == C_RTS_5 || this->m_cpu_sequence == C_RTI_5)
 			{

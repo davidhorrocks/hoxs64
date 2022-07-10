@@ -1,7 +1,7 @@
 #include "cart.h"
 
-CartActionReplayMk3::CartActionReplayMk3(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartActionReplayMk3::CartActionReplayMk3(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartActionReplay(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 }
 
@@ -69,7 +69,6 @@ void CartActionReplayMk3::UpdateIO()
 		EXROM = (~reg1 >> 3) & 1;
 		m_bIsCartIOActive = (reg1 & 0x4) == 0;
 		BankRom();
-		m_ipROMH = m_ipROML;
 		m_ipROMH = m_ipROML;
 	}			
 }

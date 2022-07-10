@@ -5,12 +5,12 @@ class Cart;
 class CartOcean1 : public CartCommon
 {
 public:
-	CartOcean1(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory);
+	CartOcean1(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory);
 
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-
+	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
+	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	bool IsCartIOActive(bit16 address, bool isWriting) override;
 protected:
-	virtual void UpdateIO();
+	virtual void UpdateIO() override;
 private:
 };

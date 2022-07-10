@@ -12,10 +12,10 @@ namespace SsLib
 		{
 			C64Ram = 0,
 			C64ColourRam = 1,
-			C64Cpu = 2,
+			C64CpuV0 = 2,
 			C64Cia1V0 = 3,
 			C64Cia2V0 = 4,
-			C64Vic = 5,
+			C64VicV0 = 5,
 			C64Sid = 6,
 			C64KernelRom = 7,
 			C64BasicRom = 8,
@@ -51,6 +51,8 @@ namespace SsLib
 			C64SidChip8 = 38,
 			C64Cia1V3 = 39,
 			C64Cia2V3 = 40,
+			C64VicV1 = 41,
+			C64CpuV1 = 42
 		};
 	}
 };
@@ -114,8 +116,8 @@ struct SsCpuCommon
 	bit32 FirstIRQClock;
 	bit32 FirstNMIClock;
 	bit32 RisingIRQClock;
-	bit32 FirstBALowClock;
-	bit32 LastBAHighClock;
+	bit32 FirstRdyLowClock;
+	bit32 LastRdyHighClock;
 	bit32 m_CurrentOpcodeClock;
 	bit32 m_cpu_sequence;
 	bit32 m_cpu_final_sequence;
@@ -125,15 +127,15 @@ struct SsCpuCommon
 	bit16 ptr;
 	bit8 databyte;
 	bit8 SOTrigger;
-	bit8 m_bBALowInClock2OfSEI;
-	bit8 BA;
+	bit8 m_bRdyLowInClock2OfSEI;
+	bit8 RDY;
 	bit8 PROCESSOR_INTERRUPT;
 	bit8 IRQ;
 	bit8 NMI;
 	bit8 NMI_TRIGGER;
 };
 
-struct SsCpuMain
+struct SsCpuMainV0
 {
 	SsCpuCommon common;
 	bit32 m_fade7clock;
@@ -153,6 +155,12 @@ struct SsCpuMain
 	bit8 CASSETTE_WRITE;
 	bit8 CASSETTE_MOTOR;
 	bit8 CASSETTE_SENSE;
+};
+
+struct SsCpuMainV1 : SsCpuMainV0
+{
+	bit8 RDY_VIC;
+	bit8 RDY_CRT;
 };
 
 struct SsCpuDisk
@@ -191,7 +199,7 @@ struct SsVicSprite
 	bit8 spriteBit;
 };
 
-struct SsVic6569
+struct SsVic6569V0
 {
 	bit32 CurrentClock;
 	bit8 cpu_next_op_code;
@@ -320,7 +328,15 @@ struct SsVic6569
 
 	bit8 vicMemoryBankIndex;
 
-	int lastBackedUpFrameNumber;
+	bit32 lastBackedUpFrameNumber;
+};
+
+struct SsVic6569V1 : SsVic6569V0
+{
+	bit32 Version;
+	bit8 vicBA;
+	bit32 clockBALow;
+	bit32 clockBAHigh;
 };
 
 struct SsCiaV0
@@ -801,7 +817,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 7;
+    static const int VERSION = 8;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

@@ -68,7 +68,7 @@ HRESULT C64::Init(IAppCommand* appCommand, CAppStatus *appStatus, IC64Event *pIC
 		return SetError(cpu);
 	}
 
-	cart.Init(&cpu, ram.mMemory);
+	cart.Init(&cpu, &vic, ram.mMemory);
 	if (cia1.Init(appStatus, this, &cpu, &vic, &sid.sid1, &tape64, dx, this)!=S_OK)
 	{
 		return SetError(cia1);
@@ -79,7 +79,7 @@ HRESULT C64::Init(IAppCommand* appCommand, CAppStatus *appStatus, IC64Event *pIC
 		return SetError(cia2);
 	}
 
-	if (vic.Init(appStatus, pGx, &ram, &cpu, &mon)!=S_OK)
+	if (vic.Init(appStatus, pGx, &ram, &cpu, &cart, &mon)!=S_OK)
 	{
 		return SetError(vic);
 	}
@@ -441,7 +441,7 @@ bool bBreak;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
-		cpu.ExecuteCycle(sysclock); 
+		cpu.ExecuteCycle(sysclock);
 
 		if (cpu.IsOpcodeFetch() && !bWasC64CpuOpCodeFetch)
 		{
@@ -542,7 +542,7 @@ int result = 0;
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
-		cpu.ExecuteCycle(sysclock); 
+		cpu.ExecuteCycle(sysclock);
 
 		if (vic.CheckBreakpointRasterCompare(vic.GetNextRasterLine(), vic.GetNextRasterCycle(), true) == 0)
 		{
@@ -696,7 +696,7 @@ int result = 0;
 	cpu.ExecuteCycle(sysclock);	
 	vic.ExecuteCycle(sysclock);
 	cia1.ExecuteCycle(sysclock);
-	cia2.ExecuteCycle(sysclock);	
+	cia2.ExecuteCycle(sysclock);
 	if (bIsDiskEnabled)
 	{
 		if (bIsDiskThreadEnabled && !appStatus->m_bSerialTooBusyForSeparateThread)
@@ -1416,7 +1416,7 @@ const TCHAR CouldNotGenerateParam1[] = TEXT("Could not generate the PNG file %s"
 
 void C64::DiskReset()
 {
-	diskdrive.Reset(cpu.CurrentClock, true);
+	diskdrive.Reset(cpu.CurrentClock, false);
 }
 
 void C64::DetachCart()
@@ -1770,6 +1770,22 @@ HRESULT hr = E_FAIL;
 		cart.AttachCart();
 		this->HardReset(true);
 	}
+
+	this->SetError(cart);
+	return hr;
+}
+
+HRESULT C64::LoadReu1750()
+{
+	HRESULT hr = E_FAIL;
+	ClearError();
+	hr = cart.LoadReu1750();
+	if (SUCCEEDED(hr))
+	{
+		cart.AttachCart();
+		this->HardReset(true);
+	}
+
 	this->SetError(cart);
 	return hr;
 }
@@ -2176,7 +2192,7 @@ bit32 dwordCount;
 		}
 
 		this->cpu.GetState(vars.sbCpuMain);
-		hr = SaveState::SaveSection(pfs, vars.sbCpuMain, SsLib::SectionType::C64Cpu);
+		hr = SaveState::SaveSection(pfs, vars.sbCpuMain, SsLib::SectionType::C64CpuV1);
 		if (FAILED(hr))
 		{
 			break;
@@ -2197,7 +2213,7 @@ bit32 dwordCount;
 		}
 
 		this->vic.GetState(vars.sbVic6569);
-		hr = SaveState::SaveSection(pfs, vars.sbVic6569, SsLib::SectionType::C64Vic);
+		hr = SaveState::SaveSection(pfs, vars.sbVic6569, SsLib::SectionType::C64VicV1);
 		if (FAILED(hr))
 		{
 			break;
@@ -2661,7 +2677,7 @@ bit32 dwordCount;
 			ZeroMemory(&vars.sh, sizeof(vars.sh));
 			vars.sh.id = SsLib::SectionType::Cart;
 			vars.sh.size = sizeof(vars.sh);
-			vars.sh.version = 0;
+			vars.sh.version = 1;
 			hr = pfs->Write(&vars.sh, sizeof(vars.sh), &bytesWritten);
 			if (FAILED(hr))
 			{
@@ -2892,9 +2908,30 @@ ULARGE_INTEGER pos_next_track_header;
 			pos_next_header.QuadPart = pos_next_header.QuadPart + vars.sh.size;
 			switch(vars.sh.id)
 			{
-			case SsLib::SectionType::C64Cpu:
-				bytesToRead = sizeof(vars.sbCpuMain);
-				hr = pfs->Read(&vars.sbCpuMain, bytesToRead, &bytesRead);
+			case SsLib::SectionType::C64CpuV0:
+				bytesToRead = sizeof(vars.sbCpuMainV0);
+				hr = pfs->Read(&vars.sbCpuMainV0, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+
+				if (FAILED(hr))
+				{
+					break;
+				}
+
+				CPU6510::UpgradeStateV0ToV1(vars.sbCpuMainV0, vars.sbCpuMainV1);
+				bC64Cpu = true;
+				break;
+			case SsLib::SectionType::C64CpuV1:
+				bytesToRead = sizeof(vars.sbCpuMainV1);
+				hr = pfs->Read(&vars.sbCpuMainV1, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3140,9 +3177,9 @@ ULARGE_INTEGER pos_next_track_header;
 
 				bC64Cia2 = true;
 				break;
-			case SsLib::SectionType::C64Vic:
-				bytesToRead = sizeof(vars.sbVic6569);
-				hr = pfs->Read(&vars.sbVic6569, bytesToRead, &bytesRead);
+			case SsLib::SectionType::C64VicV0:
+				bytesToRead = sizeof(vars.sbVic6569V0);
+				hr = pfs->Read(&vars.sbVic6569V0, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
 					break;
@@ -3152,8 +3189,33 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
+				}
+
+				VIC6569::UpgradeStateV0ToV1(vars.sbVic6569V0, vars.sbVic6569V1);
+				bC64Vic6569 = true;
+				break;
+			case SsLib::SectionType::C64VicV1:
+				bytesToRead = sizeof(vars.sbVic6569V1);
+				hr = pfs->Read(&vars.sbVic6569V1, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+
+				if (FAILED(hr))
+				{
+					break;
+				}
+
 				bC64Vic6569 = true;
 				break;
 			case SsLib::SectionType::C64Sid:
@@ -3912,7 +3974,7 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				break;
 			case SsLib::SectionType::Cart:
-				hr = cart.LoadCartInterface(pfs, spCartInterface);
+				hr = cart.LoadCartInterface(pfs, vars.sh.version, spCartInterface);
 				if (FAILED(hr))
 				{
 					break;
@@ -3940,7 +4002,7 @@ ULARGE_INTEGER pos_next_track_header;
 	}
 	if (SUCCEEDED(hr) && hasC64)
 	{
-		cpu.SetState(vars.sbCpuMain);
+		cpu.SetState(vars.sbCpuMainV1);
 		if (ram.mMemory && pC64Ram)
 		{
 			memcpy(ram.mMemory, pC64Ram, SaveState::SIZE64K);
@@ -3963,7 +4025,14 @@ ULARGE_INTEGER pos_next_track_header;
 		}
 
 		appCommand->SetUserConfig(*appStatus);
-		vic.SetState(vars.sbVic6569);
+		if (vars.sbVic6569V1.Version == 0)
+		{
+			vars.sbVic6569V1.vicBA = cpu.RDY;
+			vars.sbVic6569V1.Version = 0;
+			vars.sbVic6569V1.clockBALow = cpu.FirstRdyLowClock;
+		}
+
+		vic.SetState(vars.sbVic6569V1);
 		sid.sid1.SetState(vars.sbSidV4Number1);
 		bit16 sidAddress[7] = {0, 0, 0, 0, 0, 0, 0};
 		int extraSidCount = 0;
@@ -4072,15 +4141,22 @@ ULARGE_INTEGER pos_next_track_header;
 		{
 			memcpy(diskdrive.m_pD1541_rom, pDriveRom, SaveState::SIZEDRIVEROM);
 		}
-		ICLK c = vars.sbCpuMain.common.CurrentClock;
-		cart.AttachCart(spCartInterface);
-		if (cart.IsCartAttached())
+
+		ICLK clockCpu = vars.sbCpuMainV1.common.CurrentClock;
+		ICLK clockVIC = vars.sbVic6569V1.CurrentClock;
+		cart.DetachCart();
+		if (spCartInterface)
 		{
-			cart.ConfigureMemoryMap();
-		}
-		else
-		{
-			cpu.ConfigureMemoryMap();
+			spCartInterface->SetCurrentClock(clockVIC);
+			cart.AttachCart(spCartInterface);
+			if (cart.IsCartAttached())
+			{
+				cart.ConfigureMemoryMap();
+			}
+			else
+			{
+				cpu.ConfigureMemoryMap();
+			}
 		}
 
 		this->PreventClockOverflow();

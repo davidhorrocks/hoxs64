@@ -618,6 +618,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClCompile Include="cart_normal_cartridge.cpp" />
     <ClCompile Include="cart_ocean1.cpp" />
     <ClCompile Include="cart_retro_replay.cpp" />
+    <ClCompile Include="cart_reu_1750.cpp" />
     <ClCompile Include="cart_super_games.cpp" />
     <ClCompile Include="cart_system_3.cpp" />
     <ClCompile Include="cart_zaxxon.cpp" />
@@ -997,6 +998,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClInclude Include="cart_easyflash.h" />
     <ClInclude Include="cart_normal_cartridge.h" />
     <ClInclude Include="cart_retro_replay.h" />
+    <ClInclude Include="cart_reu_1750.h" />
     <ClInclude Include="cart_super_games.h" />
     <ClInclude Include="cart_system_3.h" />
     <ClInclude Include="cart_zaxxon.h" />

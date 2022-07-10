@@ -41,6 +41,7 @@ public:
 	void IAppCommand::ToggleMaxSpeed() override;
 	void IAppCommand::InsertTapeDialog(HWND hWnd) override;
 	void IAppCommand::LoadCrtFileDialog(HWND hWnd) override;
+	void IAppCommand::LoadReu1750(HWND hWnd) override;
 	void IAppCommand::LoadC64ImageDialog(HWND hWnd) override;
 	void IAppCommand::LoadT64Dialog(HWND hWnd) override;
 	void IAppCommand::AutoLoadDialog(HWND hWnd) override;

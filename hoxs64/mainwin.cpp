@@ -620,7 +620,14 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 		appCommand->SoundHalt();
 		appCommand->LoadCrtFileDialog(hWnd);
 		appCommand->SoundResume();
+		lresult = 0;
 		return 0;
+	case IDM_CART_ATTACH1750REU:
+		appCommand->SoundHalt();
+		appCommand->LoadReu1750(hWnd);
+		appCommand->SoundResume();
+		lresult = 0;
+		return true;
 	case IDM_CART_FREEZE:
 		c64->CartFreeze(true);
 		lresult = 0;

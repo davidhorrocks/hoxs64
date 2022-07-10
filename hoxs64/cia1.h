@@ -20,7 +20,7 @@ public:
 	CIA1& operator=(const CIA1&) = delete;
 	CIA1(CIA1&&) = delete;
 	CIA1& operator=(CIA1&&) = delete;	
-	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, IMonitorVic *vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad);
+	HRESULT Init(CAppStatus *appStatus, IC64 *pIC64, CPU6510 *cpu, IVic *vic, ISid *sid, Tape64 *tape64, CDX9 *dx, IAutoLoad* pAutoLoad);
 	void UpdateKeyMap();
 	void InitReset(ICLK sysclock, bool poweronreset);
 	void Reset(ICLK sysclock, bool poweronreset) override;
@@ -66,7 +66,7 @@ public:
 	ICLK nextKeyboardScanClock = 0;
 
 	CPU6510 *cpu = nullptr;
-	IMonitorVic *vic = nullptr;
+	IVic* vic = nullptr;
 	ISid *sid = nullptr;
 	Tape64 *tape64 = nullptr;
 	IC64 *pIC64 = nullptr;

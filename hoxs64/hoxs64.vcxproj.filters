@@ -310,12 +310,6 @@
     <ClCompile Include="cart_dinamic.cpp">
       <Filter>Source Files\cart</Filter>
     </ClCompile>
-    <ClCompile Include="cart_zaxxon.cpp">
-      <Filter>Header Files\cart</Filter>
-    </ClCompile>
-    <ClCompile Include="cart_magic_desk.cpp">
-      <Filter>Header Files\cart</Filter>
-    </ClCompile>
     <ClCompile Include="cart_epyx_fastload.cpp">
       <Filter>Source Files\cart</Filter>
     </ClCompile>
@@ -480,6 +474,15 @@
     </ClCompile>
     <ClCompile Include="directoryviewer.cpp">
       <Filter>Source Files\filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_reu_1750.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_zaxxon.cpp">
+      <Filter>Source Files\cart</Filter>
+    </ClCompile>
+    <ClCompile Include="cart_magic_desk.cpp">
+      <Filter>Source Files\cart</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -947,6 +950,9 @@
     </ClInclude>
     <ClInclude Include="directoryviewer.h">
       <Filter>Header Files\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="cart_reu_1750.h">
+      <Filter>Header Files\cart</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

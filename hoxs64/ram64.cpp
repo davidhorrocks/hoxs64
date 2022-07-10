@@ -1059,6 +1059,23 @@ void RAM64::ConfigureMMU(bit8 index, bit8 ***p_memory_map_read, bit8 ***p_memory
 }
 
 
+/*
+* From https://www.floodgap.com/retrobits/ckb/secret/ultimax.html
+* 
+The Max Machine's price, anaemic RAM and fierce market competition doomed it to failure -- what happened next to Commodore Japan is in the entry for the 
+Japanese 64. That wasn't the end of the story, however; as the simultaneous introduction would imply, Commodore wanted to make sure that the Max could be a 
+springboard to the 64 and the Ultimax even now haunts the 64 and 128's memory mapping schemes. To allow the 64 to use Ultimax cartridges, if you pull -GAME low 
+and leave -EXROM alone, the 64 plops into Ultimax mode (as described in the Programmer's Reference Guide). 4K of RAM is mapped into $0000-$0FFF; low ROM into 
+$8000-9FFF (on the Max, this was undoubtedly where MiniBASIC resided); and I/O and high ROM at $D000 and $E000 as usual, with most Ultimax cartridges natively 
+living in the $E000 range. The VIC-II, however, sees all 64K in its usual 16K clumps, with ROM banked into the upper 4K of its current "slice" 
+(meaning $F000-$FFFF of the cartridge ROM actually "appears" at $3000-$3FFF in the default VIC addressing space as well). LORAM, HIRAM and CHAREN signals are 
+ignored, though the VIC-II's VA14/15 banking bits still have some effect. This is the only mode where the VIC-II can access external memory 
+(i.e., memory outside of its default 16K slice), engineered to allow the cartridge's sprite and character data to be visible to the VIC-II without copying it 
+and wasting what little RAM is present -- particularly important since the Ultimax has no built-in character set! (However, because of the processor's 
+restrictions it would be very stupid for software to attempt to use memory higher than $1000.) Because of this complex little internal hackery, you must also 
+copy $F000-$FFFF to $3000-$3FFF before running an Ultimax cartridge dump or the game will have scrambled graphics. The character generator can be also turned 
+off in Ultimax mode and replaced either by low ROM, high ROM, or bytes fetched by the processor; the -ROML and -ROMH signals control this feature.
+*/
 void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_vic_3fff_ptr)
 {
 	if (m_pCart->IsUltimax())
@@ -1082,6 +1099,7 @@ void RAM64::ConfigureVICMMU(bit8 index, bit8 ***p_vic_memory_map_read, bit8 **p_
 		VicMMU_read[0x0][0x1] = mCharGen;
 		VicMMU_read[0x2][0x1] = mCharGen;
 	}
+
 	*p_vic_memory_map_read = VicMMU_read[index & 3];
 	*p_vic_3fff_ptr = &(*p_vic_memory_map_read)[3][0x0fff];
 }

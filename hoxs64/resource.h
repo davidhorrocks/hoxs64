@@ -451,13 +451,14 @@
 #define IDM_BREAKPOINTOPTIONS_DECIMAL   40088
 #define IDM_SETTINGS_SIDSTEREO          40089
 #define IDM_SETTINGS_LOCKASPECTRATIO    40090
+#define IDM_CART_ATTACH1750REU          40091
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         40090
+#define _APS_NEXT_COMMAND_VALUE         40092
 #define _APS_NEXT_CONTROL_VALUE         1376
 #define _APS_NEXT_SYMED_VALUE           164
 #endif

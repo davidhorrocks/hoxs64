@@ -1,8 +1,8 @@
 #include "cart.h"
 
-CartSuperGames::CartSuperGames(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory),
-	 regDisabled(m_state0)
+CartSuperGames::CartSuperGames(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory),
+	regDisabled(m_statebool[0])
 {
 }
 

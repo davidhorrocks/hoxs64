@@ -65,6 +65,7 @@ TCHAR applicationVersionString[60];
 VS_FIXEDFILEINFO applicationVersionInformation;
 std::wstring applicationFullPathString;
 
+CApp* app = nullptr;
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
 	ZeroMemory(&applicationVersionString[0], _countof(applicationVersionString));
@@ -109,7 +110,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	}
 
 	SetUnhandledExceptionFilter(unhandled_handler);
-	CApp* app = new CApp();
+	app = new CApp();
 	int r = E_FAIL;
 	try
 	{
@@ -1298,6 +1299,20 @@ BOOL b;
 		{
 			c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
 		}
+	}
+}
+
+void CApp::LoadReu1750(HWND hWnd)
+{
+	HRESULT hr = c64.LoadReu1750();
+	if (SUCCEEDED(hr))
+	{
+		UpdateApplication();
+		Reset();
+	}
+	else
+	{
+		c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
 	}
 }
 

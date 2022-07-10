@@ -41,16 +41,19 @@ public:
 	ICLK CurrentClock;
 };
 
-class IC6510
+class IC6502 : public virtual IRegister
 {
 public:
-	IC6510() = default;
-	virtual ~IC6510() noexcept {};
-	IC6510(const IC6510&) = delete;
-	IC6510& operator=(const IC6510&) = delete;
-	IC6510(IC6510&&) = delete;
-	IC6510& operator=(IC6510&&) = delete;
+	virtual bit16 GetPC() = 0;
+	virtual void AddClockDelay() = 0;
+	virtual void SetRdyLow(ICLK sysclock) = 0;
+	virtual void SetRdyHigh(ICLK sysclock) = 0;
+	virtual bool IsDebug() = 0;
+};
 
+class IC6510 : public virtual IC6502
+{
+public:
 	virtual void Reset6510(ICLK sysclock, bool poweronreset) = 0;
 	virtual ICLK Get6510CurrentClock() = 0;
 	virtual void Set6510CurrentClock(ICLK sysclock) = 0;
@@ -64,7 +67,23 @@ public:
 	virtual void Clear_CIA_NMI() = 0;
 	virtual void Set_CRT_NMI(ICLK sysclock) = 0;
 	virtual void Clear_CRT_NMI() = 0;
+	virtual void SetVicRdyHigh(ICLK sysclock) = 0;
+	virtual void SetVicRdyLow(ICLK sysclock) = 0;
+	virtual void SetCartridgeRdyHigh(ICLK sysclock) = 0;
+	virtual void SetCartridgeRdyLow(ICLK sysclock) = 0;
+	virtual bit8 Get_IRQ_VIC() = 0;
+	virtual bit8 Get_IRQ_CIA() = 0;
+	virtual bit8 Get_IRQ_CRT() = 0;
+	virtual bit8 Get_NMI_CIA() = 0;
+	virtual bit8 Get_NMI_CRT() = 0;
 	virtual void ConfigureMemoryMap() = 0;
+	virtual bool IsVicNotifyCpuWriteCycle() = 0;
+	virtual bool ReadByte(bit16 address, bit8& data) = 0;
+	virtual void WriteByte(bit16 address, bit8 data) = 0;
+	virtual bit8 ReadDmaByte(bit16 address) = 0;
+	virtual void WriteDmaByte(bit16 address, bit8 data) = 0;
+	virtual bit8 MonReadByte(bit16 address, int memorymap) = 0;
+	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap) = 0;
 };
 
 class ISid64 : public IRegister
@@ -151,9 +170,9 @@ struct CPUState
 	bit8 PortDataStored;
 	int processor_interrupt;
 	int cpu_sequence;
-	bit8 BA;
+	bit8 RDY;
 	ICLK clock;
-	int opcode;
+	bit8 opcode;
 	int cycle;
 	bool IsInterruptInstruction;
 };
@@ -205,19 +224,31 @@ public:
 	virtual void SetData(bit8 v) = 0;
 };
 
-class IMonitorVic : public IRegister
+class IVic : public IRegister
 {
 public:
+	virtual bool Get_BA() = 0;
+	virtual ICLK Get_ClockBALow() = 0;
+	virtual ICLK Get_CountBALow() = 0;
+	virtual ICLK Get_ClockBAHigh() = 0;
+	virtual ICLK Get_CountBAHigh() = 0;
+	virtual bit8 GetDExxByte(ICLK sysclock) = 0;
 	virtual unsigned int GetFrameCounter() = 0;
 	virtual bit16 GetCurrentRasterLine() = 0;
 	virtual bit8 GetCurrentRasterCycle() = 0;
 	virtual bit16 GetNextRasterLine() = 0;
 	virtual bit8 GetNextRasterCycle() = 0;
+	virtual void SetLPLine(bit8 lineState) = 0;
+	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState) = 0;
+	virtual bit8 SpriteDMATurningOn() = 0;
+};
+
+class IMonitorVic : public IVic
+{
+public:
 	virtual bool GetBreakpointRasterCompare(int line, int cycle, BreakpointItem& breakpoint) = 0;
 	virtual bool SetBreakpointRasterCompare(int line, int cycle, bool enabled, int initialSkipOnHitCount, int currentSkipOnHitCount) = 0;
 	virtual int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt) = 0;
-	virtual void SetLPLine(bit8 lineState) = 0;
-	virtual void SetLPLineClk(ICLK sysclock, bit8 lineState) = 0;
 };
 
 class IMonitorDisk

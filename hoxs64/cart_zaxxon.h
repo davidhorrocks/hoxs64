@@ -5,12 +5,12 @@ class Cart;
 class CartZaxxon : public CartCommon
 {
 public:
-	CartZaxxon(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory);
+	CartZaxxon(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory);
 
-	virtual bit8 ReadRegister(bit16 address, ICLK sysclock);
-	virtual void WriteRegister(bit16 address, ICLK sysclock, bit8 data);
-	virtual bit8 ReadROML(bit16 address);
-	virtual bit8 ReadUltimaxROML(bit16 address);
+	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
+	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	bit8 ReadROML(bit16 address) override;
+	bit8 ReadUltimaxROML(bit16 address) override;
 
 protected:
 	virtual void UpdateIO();

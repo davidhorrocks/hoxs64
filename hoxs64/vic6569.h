@@ -122,7 +122,8 @@ public:
 	Graphics *pGx = nullptr;
 	CAppStatus *appStatus = nullptr;
 	RAM64 *ram = nullptr;
-	CPU6510 *cpu = nullptr;
+	IC6510 *cpu = nullptr;
+	ICartInterface* cart = nullptr;
 	bit8 cpu_next_op_code =0;
 
 	// control reg 1
@@ -194,11 +195,14 @@ public:
 	ICLK clockReadSpriteDataCollision = 0;
 	ICLK clockReadSpriteSpriteCollision = 0;
 	ICLK clockFirstForcedBadlineCData = 0;
+	ICLK clockBALow = 0;
+	ICLK clockBAHigh = 0;
 	bit16 vicVC = 0;
 	bit16 vicRC = 0;
 	bit16 vicVCBASE = 0;
 	bit8 vicVMLI = 0;
 	bit8s vicAEC = 0;
+	bit8 vicBA = 0;
 	bit8 vicIDLE = 0;
 	bit8 vicIDLE_DELAY = 0;
 	bit32 vicLastCData = 0;
@@ -223,6 +227,8 @@ public:
 	void ExecuteCycle(ICLK sysclock) override;
 	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
 	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	bit8 GetDExxByte(ICLK sysclock) override;
+	bit8 SpriteDMATurningOn() override;
 	bit8 ReadRegister_no_affect(bit16 address, ICLK sysclock) override;
 	ICLK GetCurrentClock() override;
 	void SetCurrentClock(ICLK sysclock) override;
@@ -238,8 +244,14 @@ public:
 	int CheckBreakpointRasterCompare(int line, int cycle, bool bHitIt) override;
 	void SetLPLine(bit8 lineState) override;
 	void SetLPLineClk(ICLK sysclock, bit8 lineState) override;
+	bool Get_BA() override;
+	ICLK Get_ClockBALow() override;
+	ICLK Get_CountBALow() override;
+	ICLK Get_ClockBAHigh() override;
+	ICLK Get_CountBAHigh() override;
+	
 
-	HRESULT Init(CAppStatus *, Graphics* pGx, RAM64 *ram, CPU6510 *cpu, IBreakpointManager *pIBreakpointManager);
+	HRESULT Init(CAppStatus *, Graphics* pGx, RAM64 *ram, IC6510 *cpu, ICartInterface *cart, IBreakpointManager *pIBreakpointManager);
 	void Cleanup();
 	void setup_color_tables();
 	void SetMMU(bit8 index);
@@ -252,11 +264,12 @@ public:
 	bit8 ScreenPixelBuffer[PIXELBUFFER_COUNT][PAL_MAX_LINE + 1][PIXELBUFFER_SIZE + 1] = {};
 	bit8 LinePixelBuffer[PIXELBUFFER_COUNT][PIXELBUFFER_SIZE + 1] = {};
 	int currentPixelBufferNumber = 0;
-	int frameNumber = 0;
+	unsigned int frameNumber = 0;
 
 	void BackupMainPixelBuffers();
-	void GetState(SsVic6569 &state);
-	void SetState(const SsVic6569 &state);
+	void GetState(SsVic6569V1 &state);
+	void SetState(const SsVic6569V1 &state);
+	static void UpgradeStateV0ToV1(const SsVic6569V0& in, SsVic6569V1& out);
 
 	static bit32 vic_color_array[256];
 	static bit32 vic_color_array32[256];

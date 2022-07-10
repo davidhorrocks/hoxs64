@@ -1,7 +1,7 @@
 #include "cart.h"
 
-CartOcean1::CartOcean1(const CrtHeader &crtHeader, IC6510 *pCpu, bit8 *pC64RamMemory)
-	: CartCommon(crtHeader, pCpu, pC64RamMemory)
+CartOcean1::CartOcean1(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
+	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory)
 {
 }
 
@@ -23,11 +23,16 @@ void CartOcean1::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	}
 }
 
+bool CartOcean1::IsCartIOActive(bit16 address, bool isWriting)
+{
+	return isWriting && address == 0xDE00;
+}
+
 void CartOcean1::UpdateIO()
 {
 	m_iSelectedBank = reg1 & 0x3f;
-	GAME = m_crtHeader.GAME;
-	EXROM = m_crtHeader.EXROM;
+	GAME = 0;
+	EXROM = 0;
 	m_bIsCartIOActive = true;
 	BankRom();
 }

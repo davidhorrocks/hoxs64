@@ -37,7 +37,7 @@ CPU6510::CPU6510()
 	ram = NULL;
 	tape = NULL;
 	cart = NULL;
-	m_bIsWriteCycle = false;
+	m_bIsVicNotifyCpuWriteCycle = false;
 	bExitOnHltInstruction = false;
 	bEnableDebugCart = false;
 }
@@ -51,13 +51,14 @@ void CPU6510::InitReset(ICLK sysclock, bool poweronreset)
 	CPU6502::InitReset(sysclock, poweronreset);
 	m_fade7clock = sysclock;
 	m_fade6clock = sysclock;
-	m_bIsWriteCycle = false;
+	m_bIsVicNotifyCpuWriteCycle = false;
 	IRQ_VIC=0;	
 	IRQ_CIA=0;
 	IRQ_CRT=0;
 	NMI_CIA=0;
 	NMI_TRIGGER=0;
-
+	RDY_VIC = 1;
+	RDY_CRT = 1;
 	LORAM=0;
 	HIRAM=0;
 	CHAREN=0;
@@ -103,29 +104,42 @@ HRESULT hr;
 	pCart = (cart);
 
 	if (ram->miIO == NULL)
+	{
 		return SetError(E_FAIL, TEXT("Please call ram->Init() before calling cpu6510->Init()"));
+	}
 
 	ram->ConfigureMMU(0, &m_ppMemory_map_read, &m_ppMemory_map_write);
-
 	m_piColourRAM = ram->miIO;
 	return S_OK;
 }
 
-bit8 CPU6510::ReadByte(bit16 address)
+bool CPU6510::ReadByte(bit16 address, bit8& data)
 {
-bit8 *t;
-	t=m_ppMemory_map_read[address >> 12];
+	// Performance hack: 
+	// If not in debug mode, then the our CPU hack will run ahead on reads from local RAM or ROM even while BA is low.
+	// We can get away with this trick because the VIC does to write to RAM.
+	// We cannot use this CPU run ahead trick if the CPU needs to read from an IO chip or other timing sensitive register.
+	// The function VIC ExecuteCycle should return with BA left high (if not in debug mode), however DMA and RDY could still be left low.
+	// If a cartridge is holding DMA low which means RDY is low then we have to hold the CPU because a cartridge could write to RAM or a register.
+	bit8 *t;
+	
+	vic->ExecuteCycle(CurrentClock);
+	if (this->RDY == 0 && !forceReadByteToGetData)
+	{
+		return false;
+	}
+
+	t = m_ppMemory_map_read[address >> 12];
 	if (t)
 	{
 		if (address > 1)
 		{
-			return t[address];
+			data = t[address];
 		}
 		else 
 		{
-			vic->ExecuteCycle(CurrentClock);
-			return ReadRegister(address, CurrentClock);
-		}
+			data = ReadRegister(address, CurrentClock);
+		}		
 	}
 	else
 	{
@@ -135,161 +149,342 @@ bit8 *t;
 		case 0xD1:
 		case 0xD2:
 		case 0xD3:
-			return vic->ReadRegister(address, CurrentClock);
+			data = vic->ReadRegister(address, CurrentClock);
+			break;
 		case 0xD4:
 		case 0xD5:
 		case 0xD6:
 		case 0xD7:
-			vic->ExecuteCycle(CurrentClock);
-			return sid->ReadRegister(address, CurrentClock);
+			data = sid->ReadRegister(address, CurrentClock);
+			break;
 		case 0xD8:
 		case 0xD9:
 		case 0xDA:
 		case 0xDB:
-			return m_piColourRAM[address] | (vic->ReadRegister(0xDE00, CurrentClock) & 0xF0);
+			data = m_piColourRAM[address] | (vic->GetDExxByte(CurrentClock) & 0xF0);
+			break;
 		case 0xDC:
-			vic->ExecuteCycle(CurrentClock);
-			return cia1->ReadRegister(address, CurrentClock);
+			data = cia1->ReadRegister(address, CurrentClock);
+			break;
 		case 0xDD:
-			vic->ExecuteCycle(CurrentClock);
-			return cia2->ReadRegister(address, CurrentClock);
+			data = cia2->ReadRegister(address, CurrentClock);
+			break;
 		case 0xDE:
 		case 0xDF:
-			if (pCart->IsCartIOActive())
+			if (pCart->IsCartIOActive(address, false))
 			{
-				vic->ExecuteCycle(CurrentClock);
-				return pCart->ReadRegister(address, CurrentClock);
+				data = pCart->ReadRegister(address, CurrentClock);
 			}
 			else if (sid->SidAtDE00toDF00)
 			{
-				return sid->ReadRegister(address, CurrentClock);
+				data = sid->ReadRegister(address, CurrentClock);
 			}
 			else
 			{
-				return vic->ReadRegister(address, CurrentClock);
+				data = vic->GetDExxByte(CurrentClock);
 			}
-		}
 
-		if (pCart->IsCartAttached())
-		{
-			switch(ram->GetCpuMmuReadMemoryType(address, -1))
+			break;
+		default:
+			if (pCart->IsCartAttached())
 			{
-			case MT_ROML:
-				return pCart->ReadROML(address);
-			case MT_ROMH:
-				return pCart->ReadROMH(address);
-			case MT_ROML_ULTIMAX:
-				return pCart->ReadUltimaxROML(address);
-			case MT_ROMH_ULTIMAX:
-				return pCart->ReadUltimaxROMH(address);
-			case MT_EXRAM:
-				return vic->ReadRegister(0xde00, CurrentClock);
-			default:
-				return 0;
+				switch (ram->GetCpuMmuReadMemoryType(address, -1))
+				{
+				case MT_ROML:
+					data = pCart->ReadROML(address);
+					break;
+				case MT_ROMH:
+					data = pCart->ReadROMH(address);
+					break;
+				case MT_ROML_ULTIMAX:
+					data = pCart->ReadUltimaxROML(address);
+					break;
+				case MT_ROMH_ULTIMAX:
+					data = pCart->ReadUltimaxROMH(address);
+					break;
+				case MT_EXRAM:
+					data = vic->GetDExxByte(CurrentClock);
+					break;
+				default:
+					data = 0;
+					break;
+				}
 			}
-		}
-		else
+			else
+			{
+				data = 0;
+			}
+		}		
+	}
+
+	return this->RDY != 0;
+}
+
+bit8 CPU6510::ReadDmaByte(bit16 address)
+{
+	bit8* t;
+	bit8 data;
+	ICLK vic_clock = vic->CurrentClock;
+	t = m_ppMemory_map_read[address >> 12];
+	if (t)
+	{
+		data = t[address];
+	}
+	else
+	{
+		switch (address >> 8)
 		{
-			return 0;
+		case 0xD0:
+		case 0xD1:
+		case 0xD2:
+		case 0xD3:
+			data = vic->ReadRegister(address, vic_clock);
+			break;
+		case 0xD4:
+		case 0xD5:
+		case 0xD6:
+		case 0xD7:
+			data = sid->ReadRegister(address, vic_clock);
+			break;
+		case 0xD8:
+		case 0xD9:
+		case 0xDA:
+		case 0xDB:
+			data = m_piColourRAM[address] | (vic->GetDExxByte(vic_clock) & 0xF0);
+			break;
+		case 0xDC:
+			data = cia1->ReadRegister(address, vic_clock);
+			break;
+		case 0xDD:
+			data = cia2->ReadRegister(address, vic_clock);
+			break;
+		case 0xDE:
+		case 0xDF:
+			if (pCart->IsCartIOActive(address, false))
+			{
+				data = pCart->ReadRegister(address, vic_clock);
+			}
+			else if (sid->SidAtDE00toDF00)
+			{
+				data = sid->ReadRegister(address, CurrentClock);
+			}
+			else
+			{
+				data = vic->GetDExxByte(vic_clock);
+			}
+
+			break;
+		default:
+			if (pCart->IsCartAttached())
+			{
+				switch (ram->GetCpuMmuReadMemoryType(address, -1))
+				{
+				case MT_ROML:
+					data = pCart->ReadROML(address);
+					break;
+				case MT_ROMH:
+					data = pCart->ReadROMH(address);
+					break;
+				case MT_ROML_ULTIMAX:
+					data = pCart->ReadUltimaxROML(address);
+					break;
+				case MT_ROMH_ULTIMAX:
+					data = pCart->ReadUltimaxROMH(address);
+					break;
+				case MT_EXRAM:
+					data = vic->GetDExxByte(vic_clock);
+					break;
+				default:
+					data = 0;
+					break;
+				}
+			}
+			else
+			{
+				data = 0;
+			}
 		}
 	}
+
+	return data;
 }
 
 void CPU6510::WriteByte(bit16 address, bit8 data)
 {
 bit8 *t;
-
-	m_bIsWriteCycle = true;
+	
+	m_bIsVicNotifyCpuWriteCycle = true;
 	vic->ExecuteCycle(CurrentClock);
-	m_bIsWriteCycle = false;
-	if (address > 1)
+	if (cart->SnoopWrite(address, data))
 	{
-		t=m_ppMemory_map_write[address >> 12];
-		if (t)
+		if (address > 1)
 		{
-			t[address]=data;
+			t = m_ppMemory_map_write[address >> 12];
+			if (t)
+			{
+				t[address] = data;
+			}
+			else
+			{
+				switch (address >> 8)
+				{
+				case 0xD0:
+				case 0xD1:
+				case 0xD2:
+				case 0xD3:
+					vic->WriteRegister(address, CurrentClock, data);
+					break;
+				case 0xD4:
+				case 0xD5:
+				case 0xD6:
+				case 0xD7:
+					if (this->bEnableDebugCart)
+					{
+						if (address == 0xd7ff)
+						{
+							this->pIC64->WriteOnceExitCode(data);
+						}
+					}
+
+					sid->WriteRegister(address, CurrentClock, data);
+					break;
+				case 0xD8:
+				case 0xD9:
+				case 0xDA:
+				case 0xDB:
+					m_piColourRAM[address] = (data & 0x0f);
+					break;
+				case 0xDC:
+					cia1->WriteRegister(address, CurrentClock, data);
+					break;
+				case 0xDD:
+					cia2->WriteRegister(address, CurrentClock, data);
+					break;
+				case 0xDE:
+				case 0xDF:
+					if (pCart->IsCartIOActive(address, true))
+					{
+						pCart->WriteRegister(address, CurrentClock, data);
+					}
+					else if (sid->SidAtDE00toDF00)
+					{
+						sid->WriteRegister(address, CurrentClock, data);
+					}
+
+					break;
+				default:
+					if (pCart->IsCartAttached())
+					{
+						switch (ram->GetCpuMmuWriteMemoryType(address, -1))
+						{
+						case MT_ROML:
+							pCart->WriteROML(address, data);
+							break;
+						case MT_ROMH:
+							pCart->WriteROMH(address, data);
+							break;
+						case MT_ROML_ULTIMAX:
+							pCart->WriteUltimaxROML(address, data);
+							break;
+						case MT_ROMH_ULTIMAX:
+							pCart->WriteUltimaxROMH(address, data);
+							break;
+						case MT_EXRAM:
+							break;
+						}
+					}
+
+					break;
+				}
+			}
 		}
 		else
 		{
-			switch (address >> 8)
-			{
-			case 0xD0:
-			case 0xD1:
-			case 0xD2:
-			case 0xD3:
-				m_bIsWriteCycle = true;
-				vic->WriteRegister(address, CurrentClock, data);
-				m_bIsWriteCycle = false;
-				break;
-			case 0xD4:
-			case 0xD5:
-			case 0xD6:
-			case 0xD7:
-				if (this->bEnableDebugCart)
-				{
-					if (address == 0xd7ff)
-					{
-						this->pIC64->WriteOnceExitCode(data);
-					}
-				}
-
-				sid->WriteRegister(address, CurrentClock, data);
-				break;
-			case 0xD8:
-			case 0xD9:
-			case 0xDA:
-			case 0xDB:
-				m_piColourRAM[address] = (data & 0x0f);
-				break;
-			case 0xDC:
-				cia1->WriteRegister(address, CurrentClock, data);
-				break;
-			case 0xDD:
-				cia2->WriteRegister(address, CurrentClock, data);
-				break;
-			case 0xDE:
-			case 0xDF:
-				if (pCart->IsCartIOActive())
-				{
-					pCart->WriteRegister(address, CurrentClock, data);
-				}
-				else if (sid->SidAtDE00toDF00)
-				{
-					sid->WriteRegister(address, CurrentClock, data);
-				}
-
-				break;
-			default:
-				if (pCart->IsCartAttached())
-				{
-					switch(ram->GetCpuMmuWriteMemoryType(address, -1))
-					{
-					case MT_ROML:
-						pCart->WriteROML(address, data);
-						break;
-					case MT_ROMH:
-						pCart->WriteROMH(address, data);
-						break;
-					case MT_ROML_ULTIMAX:
-						pCart->WriteUltimaxROML(address, data);
-						break;
-					case MT_ROMH_ULTIMAX:
-						pCart->WriteUltimaxROMH(address, data);
-						break;
-					case MT_EXRAM:
-						break;
-					}
-				}
-
-				break;
-			}
+			WriteRegister(address, CurrentClock, data);
+			ram->miMemory[address & 1] = pVic->de00_byte;
 		}
+	}
+
+	m_bIsVicNotifyCpuWriteCycle = false;
+}
+
+void CPU6510::WriteDmaByte(bit16 address, bit8 data)
+{
+	bit8* t;
+	m_bIsVicNotifyCpuWriteCycle = true;
+	ICLK vic_clock = vic->CurrentClock;
+	t = m_ppMemory_map_write[address >> 12];
+	if (t)
+	{
+		t[address] = data;
 	}
 	else
 	{
-		WriteRegister(address, CurrentClock, data);
-		ram->miMemory[address & 1] = pVic->de00_byte;
+		switch (address >> 8)
+		{
+		case 0xD0:
+		case 0xD1:
+		case 0xD2:
+		case 0xD3:
+			vic->WriteRegister(address, vic_clock, data);
+			break;
+		case 0xD4:
+		case 0xD5:
+		case 0xD6:
+		case 0xD7:
+			sid->WriteRegister(address, vic_clock, data);
+			break;
+		case 0xD8:
+		case 0xD9:
+		case 0xDA:
+		case 0xDB:
+			m_piColourRAM[address] = (data & 0x0f);
+			break;
+		case 0xDC:
+			cia1->WriteRegister(address, vic_clock, data);
+			break;
+		case 0xDD:
+			cia2->WriteRegister(address, vic_clock, data);
+			break;
+		case 0xDE:
+		case 0xDF:
+			if (pCart->IsCartIOActive(address, true))
+			{
+				pCart->WriteRegister(address, vic_clock, data);
+			}
+			else if (sid->SidAtDE00toDF00)
+			{
+				sid->WriteRegister(address, vic_clock, data);
+			}
+
+			break;
+		default:
+			if (pCart->IsCartAttached())
+			{
+				switch (ram->GetCpuMmuWriteMemoryType(address, -1))
+				{
+				case MT_ROML:
+					pCart->WriteROML(address, data);
+					break;
+				case MT_ROMH:
+					pCart->WriteROMH(address, data);
+					break;
+				case MT_ROML_ULTIMAX:
+					pCart->WriteUltimaxROML(address, data);
+					break;
+				case MT_ROMH_ULTIMAX:
+					pCart->WriteUltimaxROMH(address, data);
+					break;
+				case MT_EXRAM:
+					break;
+				}
+			}
+
+			break;
+		}
 	}
+
+	m_bIsVicNotifyCpuWriteCycle = false;
 }
 
 bit8 CPU6510::MonReadByte(bit16 address, int memorymap)
@@ -333,14 +528,14 @@ bit8 *t;
 		case 0xD9:
 		case 0xDA:
 		case 0xDB:
-			return m_piColourRAM[address] | (vic->ReadRegister(address, CurrentClock) & 0xF0);
+			return m_piColourRAM[address] | (vic->GetDExxByte(CurrentClock) & 0xF0);
 		case 0xDC:
 			return cia1->ReadRegister_no_affect(address, CurrentClock);
 		case 0xDD:
 			return cia2->ReadRegister_no_affect(address, CurrentClock);
 		case 0xDE:
 		case 0xDF:
-			if (pCart->IsCartIOActive())
+			if (pCart->IsCartIOActive(address, false))
 			{
 				return pCart->ReadRegister_no_affect(address, CurrentClock);
 			}
@@ -350,7 +545,7 @@ bit8 *t;
 			}
 			else
 			{
-				return vic->ReadRegister_no_affect(address, CurrentClock);
+				return vic->GetDExxByte(CurrentClock);
 			}
 		}
 
@@ -406,9 +601,9 @@ bit8 *t;
 			case 0xD1:
 			case 0xD2:
 			case 0xD3:
-				m_bIsWriteCycle = true;
+				m_bIsVicNotifyCpuWriteCycle = true;
 				vic->WriteRegister(address, CurrentClock, data);
-				m_bIsWriteCycle = false;
+				m_bIsVicNotifyCpuWriteCycle = false;
 				break;
 			case 0xD4:
 			case 0xD5:
@@ -430,7 +625,7 @@ bit8 *t;
 				break;
 			case 0xDE:
 			case 0xDF:
-				if (pCart->IsCartIOActive())
+				if (pCart->IsCartIOActive(address, true))
 				{
 					pCart->WriteRegister(address, CurrentClock, data);
 				}
@@ -480,9 +675,9 @@ void CPU6510::GetCpuState(CPUState& state)
 void CPU6510::SyncChips(bool isWriteCycle)
 {
 	ICLK& curClock = CurrentClock;
-	this->m_bIsWriteCycle = isWriteCycle;
+	this->m_bIsVicNotifyCpuWriteCycle = isWriteCycle;
 	vic->ExecuteCycle(curClock);
-	this->m_bIsWriteCycle = false;
+	this->m_bIsVicNotifyCpuWriteCycle = false;
 	if ((ICLKS)(pCia1->ClockNextWakeUpClock - curClock) <= 0)
 	{
 		cia1->ExecuteCycle(curClock);
@@ -492,12 +687,6 @@ void CPU6510::SyncChips(bool isWriteCycle)
 	{
 		cia2->ExecuteCycle(curClock);
 	}
-}
-
-void CPU6510::AddClockDelay()
-{
-	++CurrentClock;
-	++m_CurrentOpcodeClock;
 }
 
 void CPU6510::check_interrupts1()
@@ -736,27 +925,44 @@ int CPU6510::GetCurrentCpuMmuMemoryMap()
 void CPU6510::ConfigureMemoryMap()
 {
 	if (cpu_io_ddr & 0x01)
-		LORAM=cpu_io_data & 0x01;
+	{
+		LORAM = cpu_io_data & 0x01;
+	}
 	else
-		LORAM=1;
+	{
+		LORAM = 1;
+	}
 
 	if (cpu_io_ddr & 0x02)
-		HIRAM=(cpu_io_data & 0x02)>>1;	
+	{
+		HIRAM = (cpu_io_data & 0x02) >> 1;
+	}
 	else
-		HIRAM=1;
+	{
+		HIRAM = 1;
+	}
 
 	if (cpu_io_ddr & 0x04)
-		CHAREN=(cpu_io_data & 0x04)>>2;
+	{
+		CHAREN = (cpu_io_data & 0x04) >> 2;
+	}
 	else
-		CHAREN=1;
+	{
+		CHAREN = 1;
+	}
 
 	if (pCart->IsCartAttached())
-		ram->ConfigureMMU((((pCart->Get_GAME() << 1) | pCart->Get_EXROM()) & 0x3) | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+	{
+		ram->ConfigureMMU((((pCart->Get_GAME() << 1) | pCart->Get_EXROM()) & 0x3) | LORAM << 3 | HIRAM << 2 | CHAREN << 4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+	}
 	else
-		ram->ConfigureMMU(3 | LORAM<<3 | HIRAM<<2 | CHAREN<<4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+	{
+		ram->ConfigureMMU(3 | LORAM << 3 | HIRAM << 2 | CHAREN << 4, &m_ppMemory_map_read, &m_ppMemory_map_write);
+	}
 
 	pVic->SetMMU(pVic->vicMemoryBankIndex);
 }
+
 void CPU6510::SetCassetteSense(bit8 sense)
 {
 	CASSETTE_SENSE = sense;
@@ -770,8 +976,11 @@ void CPU6510::Set_VIC_IRQ(ICLK sysclock)
 }
 void CPU6510::Clear_VIC_IRQ()
 {
-	if (IRQ_CIA==0 && IRQ_CRT==0)
+	if (IRQ_CIA == 0 && IRQ_CRT == 0)
+	{
 		ClearSlowIRQ();
+	}
+
 	IRQ_VIC = 0;
 }
 
@@ -783,8 +992,11 @@ void CPU6510::Set_CIA_IRQ(ICLK sysclock)
 
 void CPU6510::Clear_CIA_IRQ()
 {
-	if (IRQ_VIC==0 && IRQ_CRT==0)
+	if (IRQ_VIC == 0 && IRQ_CRT == 0)
+	{
 		ClearSlowIRQ();
+	}
+
 	IRQ_CIA = 0;
 }
 
@@ -796,8 +1008,11 @@ void CPU6510::Set_CRT_IRQ(ICLK sysclock)
 
 void CPU6510::Clear_CRT_IRQ()
 {
-	if (IRQ_VIC==0 && IRQ_CIA==0)
+	if (IRQ_VIC == 0 && IRQ_CIA == 0)
+	{
 		ClearSlowIRQ();
+	}
+		
 	IRQ_CRT = 0;
 }
 
@@ -810,7 +1025,10 @@ void CPU6510::Set_CIA_NMI(ICLK sysclock)
 void CPU6510::Clear_CIA_NMI()
 {
 	if (NMI_CRT==0)
+	{
 		ClearNMI();
+	}
+		
 	NMI_CIA = 0;
 }
 
@@ -823,9 +1041,56 @@ void CPU6510::Set_CRT_NMI(ICLK sysclock)
 void CPU6510::Clear_CRT_NMI()
 {
 	if (NMI_CIA==0)
+	{
 		ClearNMI();
+	}
+	
 	NMI_CRT = 0;
 }
+
+void CPU6510::SetVicRdyHigh(ICLK sysclock)
+{
+	if (RDY_VIC == 0)
+	{
+		RDY_VIC = 1;
+		if (RDY_CRT != 0)
+		{
+			SetRdyHigh(sysclock);
+		}
+	}
+}
+
+void CPU6510::SetVicRdyLow(ICLK sysclock)
+{
+	if (RDY_VIC != 0)
+	{
+		RDY_VIC = 0;
+		SetRdyLow(sysclock);
+	}
+}
+
+void CPU6510::SetCartridgeRdyHigh(ICLK sysclock)
+{
+	if (RDY_CRT == 0)
+	{
+		RDY_CRT = 1;
+		if (RDY_VIC != 0)
+		{
+			SetRdyHigh(sysclock);
+		}
+	}
+}
+
+void CPU6510::SetCartridgeRdyLow(ICLK sysclock)
+{
+	if (RDY_CRT != 0)
+	{
+		RDY_CRT = 0;
+		SetRdyLow(sysclock);
+	}
+
+}
+
 
 void CPU6510::SetDdr(bit8 v)
 {
@@ -837,7 +1102,37 @@ void CPU6510::SetData(bit8 v)
 	write_cpu_io_data(v);
 }
 
-void CPU6510::GetState(SsCpuMain &state)
+bool CPU6510::IsVicNotifyCpuWriteCycle()
+{
+	return m_bIsVicNotifyCpuWriteCycle != 0;
+}
+
+bit8 CPU6510::Get_IRQ_VIC()
+{
+	return IRQ_VIC;
+}
+
+bit8 CPU6510::Get_IRQ_CIA()
+{
+	return IRQ_CIA;
+}
+
+bit8 CPU6510::Get_IRQ_CRT()
+{
+	return IRQ_CRT;
+}
+
+bit8 CPU6510::Get_NMI_CIA()
+{
+	return NMI_CIA;
+}
+
+bit8 CPU6510::Get_NMI_CRT()
+{
+	return NMI_CRT;
+}
+
+void CPU6510::GetState(SsCpuMainV1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	CPU6502::GetState(state.common);
@@ -847,6 +1142,8 @@ void CPU6510::GetState(SsCpuMain &state)
 	state.IRQ_CRT = IRQ_CRT;
 	state.NMI_CIA = NMI_CIA;
 	state.NMI_CRT = NMI_CRT;
+	state.RDY_VIC = RDY_VIC;
+	state.RDY_CRT = RDY_CRT;
 	state.cpu_io_data = cpu_io_data;
 	state.cpu_io_ddr = cpu_io_ddr;
 	state.cpu_io_output = cpu_io_output;
@@ -861,7 +1158,7 @@ void CPU6510::GetState(SsCpuMain &state)
 	state.m_fade6clock = m_fade6clock;
 }
 
-void CPU6510::SetState(const SsCpuMain &state)
+void CPU6510::SetState(const SsCpuMainV1 &state)
 {
 	CPU6502::SetState(state.common);
 	
@@ -870,6 +1167,8 @@ void CPU6510::SetState(const SsCpuMain &state)
 	IRQ_CRT = state.IRQ_CRT;
 	NMI_CIA = state.NMI_CIA;
 	NMI_CRT = state.NMI_CRT;
+	RDY_VIC = state.RDY_VIC;
+	RDY_CRT = state.RDY_CRT;
 	cpu_io_data = state.cpu_io_data;
 	cpu_io_ddr = state.cpu_io_ddr;
 	cpu_io_output = state.cpu_io_output;
@@ -883,3 +1182,12 @@ void CPU6510::SetState(const SsCpuMain &state)
 	m_fade7clock = state.m_fade7clock;
 	m_fade6clock = state.m_fade6clock;
 }
+
+void CPU6510::UpgradeStateV0ToV1(const SsCpuMainV0& in, SsCpuMainV1& out)
+{
+	ZeroMemory(&out, sizeof(SsCpuMainV1));
+	*((SsCpuMainV0*)&out) = in;
+	out.RDY_VIC = in.common.RDY;
+	out.RDY_CRT = 1;
+}
+

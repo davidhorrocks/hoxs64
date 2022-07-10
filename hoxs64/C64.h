@@ -92,6 +92,7 @@ public:
 	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks);
 	static HRESULT CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength);
 	HRESULT LoadCrtFile(const TCHAR *filename);
+	HRESULT LoadReu1750();
 	HRESULT LoadImageFile(const TCHAR *filename, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadT64ImageFile(const TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadTAPFile(const TCHAR *filename);
@@ -288,7 +289,8 @@ private:
 		SsHeader hdr;
 		SsDataChunkHeader chdr;
 		SsSectionHeader sh;
-		SsCpuMain sbCpuMain;
+		SsCpuMainV0 sbCpuMainV0;
+		SsCpuMainV1 sbCpuMainV1;
 		SsCia1V0 sbCia1V0;
 		SsCia1V1 sbCia1V1;
 		SsCia1V2 sbCia1V2;
@@ -297,7 +299,8 @@ private:
 		SsCia2V1 sbCia2V1;
 		SsCia2V2 sbCia2V2;
 		SsCia2V2 sbCia2V3;
-		SsVic6569 sbVic6569;
+		SsVic6569V0 sbVic6569V0;
+		SsVic6569V1 sbVic6569V1;
 		SsSid sbSidV0;
 		SsSidV1 sbSidV1;
 		SsSidV2 sbSidV2;
@@ -326,10 +329,10 @@ private:
 		SsSectionHeader sh;
 		SsDataChunkHeader chdr;
 		SsHeader hdr;
-		SsCpuMain sbCpuMain;
+		SsCpuMainV1 sbCpuMain;
 		SsCia1V2 sbCia1;
 		SsCia2V2 sbCia2;
-		SsVic6569 sbVic6569;
+		SsVic6569V1 sbVic6569;
 		SsSidV4 sbSid1;
 		SsSidV4 sbSid2;
 		SsSidV4 sbSid3;
