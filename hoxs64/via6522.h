@@ -57,11 +57,15 @@
 #define VIAShift2     (1ULL << 36)
 #define VIAShift3     (1ULL << 37)
 #define VIAShift4     (1ULL << 38)
-#define VIAMaskMSB    (1ULL << 39)
+#define VIATimer1Timeout0 (1ULL << 39)
+#define VIATimer1Timeout1 (1ULL << 40)
+#define VIATimer2Timeout0 (1ULL << 41)
+#define VIATimer2Timeout1 (1ULL << 42)
+#define VIAMaskMSB    (1ULL << 43)
 
 #define VIADelayMask ~(VIAMaskMSB | VIACountA0 | VIACountB0 | VIALoadA0 | VIALoadB0 | VIACA2Low0 | VIACB2Low0 | \
 	VIAPB7Low0 | VIAInterrupt0 | VIAOneShotA0 | VIAOneShotB0 | VIAPostOneShotA0 | VIAPostOneShotB0 | \
-	VIACA1Trans0 | VIACA2Trans0 | VIACB1Trans0 | VIACB2Trans0 | VIAShift0)
+	VIACA1Trans0 | VIACA2Trans0 | VIACB1Trans0 | VIACB2Trans0 | VIAShift0 | VIATimer1Timeout0 | VIATimer2Timeout0)
 
 #define VIATrans1 (VIACA1Trans1 | VIACA2Trans1 | VIACB1Trans1 | VIACB2Trans1)
 

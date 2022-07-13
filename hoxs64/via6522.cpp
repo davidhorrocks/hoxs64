@@ -147,17 +147,17 @@ bit8 shiftmsb;
 		{
             if ((acr & 0x40) != 0 && (feed & VIAPostOneShotA0) == 0)
 			{
-				//Continuous; Free running; Square wave if PB7 out is enabled; nnnn ... 0001 0000 FFFF nnnn
+				//Continuous; Free running; Square wave if PB7 out is enabled; nnnn ... 0001 0000 FFFF nnnn ... 0001 0000 FFFF nnnn ...
 				delay |= VIALoadA0;
-				new_ifr |= VIA_INT_T1;
+				delay |= VIATimer1Timeout0;
 				bPB7Toggle = bPB7Toggle ^ 0x80;
 			}
 			else
 			{
-				//One shot; Timed interrupt; Underflow nnnn ... 0001 0000 FFFF nnnn
+				//One shot; Timed interrupt; Underflow nnnn ... 0001 0000 FFFF FFFE FFFD ... 0000 FFFF FFFE FFFD
 				if ((delay & VIAPostOneShotA0) == 0)
                 {
-					new_ifr |= VIA_INT_T1;
+					delay |= VIATimer1Timeout0;
                     bPB7Toggle = bPB7Toggle ^ 0x80;
                 }
 
@@ -170,6 +170,11 @@ bit8 shiftmsb;
 				//timer 1 to PB7 enabled
 				bPB7TimerOut = bPB7Toggle;
 			}
+		}
+
+		if ((delay & VIATimer1Timeout1) != 0)
+		{
+			new_ifr |= VIA_INT_T1;
 		}
 
 		if (delay & VIALoadB2)
@@ -187,7 +192,7 @@ bit8 shiftmsb;
 		{
 			if ((delay & VIAPostOneShotB0) == 0)
 			{
-				new_ifr |= VIA_INT_T2;
+				delay |= VIATimer2Timeout0;
 			}
 
 			feed |= VIAPostOneShotB0;
@@ -197,6 +202,11 @@ bit8 shiftmsb;
 		if (timer2_counter.byte.loByte==0 && (delay & VIACountB2))
 		{
 			timer2LowTimeout = true;			
+		}
+
+		if ((delay & VIATimer2Timeout1) != 0)
+		{
+			new_ifr |= VIA_INT_T2;
 		}
 
 		// The shift register control
@@ -1339,7 +1349,11 @@ void VIA::ActiveTransitionCB1()
 		WakeUp();
 	}
 
-	ifr |= VIA_INT_CB1;
+	if (shiftRegisterMode != 4)
+	{
+		//is not: SHIFT OUT FREE-RUNNING AT T2 RATE
+		ifr |= VIA_INT_CB1;
+	}
 
 	if (VIA_INT_CB1 & ier)
 	{
@@ -1423,7 +1437,12 @@ void VIA::SetCB1Input(bool value, int phase)
 	{
 		if (cb1_in_prev != value)
 		{
-			delay = (delay & ~(VIACB1Trans0 | VIACB1Trans1)) | VIACB1Trans1;
+			delay = (delay & ~(VIACB1Trans0 | VIACB1Trans1));
+			if (shiftRegisterMode != 4)
+			{
+				//is not: SHIFT OUT FREE-RUNNING AT T2 RATE
+				delay |= VIACB1Trans1;
+			}
 		}
 		else
 		{
@@ -1435,7 +1454,11 @@ void VIA::SetCB1Input(bool value, int phase)
 		bool next_in = (delay & VIACB1Trans1) ? !cb1_in_prev : cb1_in_prev;
 		if (next_in != value)
 		{
-			delay|=VIACB1Trans0;
+			if (shiftRegisterMode != 4)
+			{
+				//is not: SHIFT OUT FREE-RUNNING AT T2 RATE
+				delay |= VIACB1Trans0;
+			}
 		}
 		else
 		{
