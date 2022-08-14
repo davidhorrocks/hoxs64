@@ -103,3 +103,24 @@ protected:
 private:
 	ICommandResult *m_pCommandResult;
 };
+
+class RunCommandStep : public IRunCommand
+{
+public:
+	RunCommandStep() = default;
+	virtual ~RunCommandStep() = default;
+	RunCommandStep(const RunCommandStep&) = delete;
+	RunCommandStep& operator=(const RunCommandStep&) = delete;
+	RunCommandStep(RunCommandStep&&) = delete;
+	RunCommandStep& operator=(RunCommandStep&&) = delete;
+
+	RunCommandStep(ICommandResult* pCommandResult, DBGSYM::CliCpuMode::CliCpuMode cpumode, bit64s countClocks);
+protected:
+	HRESULT Run() override;
+
+	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
+	bit64s stepClocks;
+	std::basic_string<TCHAR> m_sLineBuffer;
+private:
+	ICommandResult* m_pCommandResult;
+};

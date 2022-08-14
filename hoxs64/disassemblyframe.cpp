@@ -1026,7 +1026,7 @@ bool CDisassemblyFrame::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 	if (pn->hwndFrom == this->m_hWndRebar)
 	{
-		if (pn->code == RBN_HEIGHTCHANGE)
+		if (pn->code == (UINT)(RBN_HEIGHTCHANGE))
 		{
 			return OnReBarHeightChange((LPNMHDR)lParam);
 		}
@@ -1037,6 +1037,8 @@ bool CDisassemblyFrame::OnNotify(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 		{
 			case TBN_GETINFOTIP:
 				return OnToolBarInfo((LPNMTBGETINFOTIP)lParam);
+			default:
+				break;
 		}
 	}
 

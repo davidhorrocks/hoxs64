@@ -526,6 +526,8 @@ public:
 	bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, BreakpointItem& breakpoint) override;
 	void SetBreakOnInterruptTaken() noexcept override;
 	void ClearBreakOnInterruptTaken() noexcept override;
+	void SetStepCountBreakpoint(bit64 stepCount) noexcept override;
+	void ClearStepCountBreakpoint() noexcept override;
 	void SetStepOverBreakpoint() noexcept override;
 	void ClearStepOverBreakpoint() noexcept override;
 	void SetStepOutWithRtsRtiPlaTsx() noexcept override;
@@ -644,6 +646,9 @@ protected:
 	void SetState(const SsCpuCommon& state);
 private:
 	void InitDecoder() noexcept;
+	bool m_bEnableStepCountBreakpoint = false;
+	bit64 m_StepCountRemaining = 0;
+	bool m_bHasStepped = false;
 	bool m_bEnableStepOverBreakpoint = false;
 	bool m_bStepOverGotNextAddress = false;
 	bit16 m_stepOverAddressBreakpoint = 0;

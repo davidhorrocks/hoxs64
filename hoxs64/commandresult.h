@@ -6,35 +6,40 @@
 class CommandResult : public ICommandResult, public enable_shared_from_this<CommandResult>
 {
 public:
-	CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress);
+	CommandResult(IMonitor* pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress);
 	virtual ~CommandResult();
 	DBGSYM::CliCommand::CliCommand cmd;
 	DBGSYM::CliCommandStatus::CliCommandStatus m_status;
+	bool WantTrace = false;
+	bit64 StepCount = 0;
 
 	//ICommandResult
-	virtual HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id);
-	virtual HRESULT Quit();
-	virtual bool IsQuit();
-	virtual DWORD WaitLinesTakenOrQuit(DWORD timeout);
-	virtual DWORD WaitAllLinesTakenOrQuit(DWORD timeout);
-	virtual DWORD WaitResultDataTakenOrQuit(DWORD timeout);
-	virtual DWORD WaitDataReady(DWORD timeout);
-	virtual DWORD WaitFinished(DWORD timeout);
-	virtual DBGSYM::CliCommandStatus::CliCommandStatus GetStatus();
-	virtual void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status);
-	virtual void SetHwnd(HWND hWnd);
-	virtual void Reset();
-	virtual void AddLine(LPCTSTR pszLine);
-	virtual HRESULT GetNextLine(LPCTSTR *ppszLine);
-	virtual void SetDataTaken();
-	virtual void SetAllLinesTaken();
-	virtual size_t CountUnreadLines();
-	virtual int GetId();
-	virtual IMonitor* GetMonitor();
-	virtual CommandToken* GetToken();
-	virtual IRunCommand* GetRunCommand();
+	HRESULT Start(HWND hWnd, LPCTSTR pszCommandString, int id) override;
+	HRESULT Quit() override;
+	bool IsQuit() override;
+	DWORD WaitLinesTakenOrQuit(DWORD timeout) override;
+	DWORD WaitAllLinesTakenOrQuit(DWORD timeout) override;
+	DWORD WaitResultDataTakenOrQuit(DWORD timeout) override;
+	DWORD WaitDataReady(DWORD timeout) override;
+	DWORD WaitFinished(DWORD timeout) override;
+	DBGSYM::CliCommandStatus::CliCommandStatus GetStatus() override;
+	void SetStatus(DBGSYM::CliCommandStatus::CliCommandStatus status) override;
+	void SetHwnd(HWND hWnd) override;
+	void Reset() override;
+	void AddLine(LPCTSTR pszLine)override;
+	HRESULT GetNextLine(LPCTSTR* ppszLine)override;
+	void SetDataTaken() override;
+	void SetAllLinesTaken() override;
+	size_t CountUnreadLines()override;
+	int GetId()override;
+	IMonitor* GetMonitor()override;
+	CommandToken* GetToken()override;
+	IRunCommand* GetRunCommand()override;
+	void SetTraceStepCount(const TraceStepInfo& stepInfo) override;
+	bool GetTraceStepCount(TraceStepInfo& stepInfo) override;
+
 protected:
-	HRESULT CreateRunCommand(CommandToken *pCommandToken, IRunCommand **ppRunCommand);
+	HRESULT CreateRunCommand(CommandToken* pCommandToken, IRunCommand** ppRunCommand);
 	virtual HRESULT Run();
 	static DWORD WINAPI ThreadProc(LPVOID lpThreadParameter);
 	bool PostFinished();
@@ -50,20 +55,21 @@ protected:
 	HANDLE m_mux;
 	DWORD m_dwThreadId;
 	int m_id;
-	IMonitor *m_pIMonitor;
+	IMonitor* m_pIMonitor;
 	DBGSYM::CliCpuMode::CliCpuMode m_cpumode;
 	int m_iDebuggerMmuIndex;
 	bit16 m_iDefaultAddress;
-	CommandToken *m_pCommandToken;
-	IRunCommand *m_pIRunCommand;
+	CommandToken* m_pCommandToken;
+	IRunCommand* m_pIRunCommand;
 private:
-    CommandResult(CommandResult const &);
-    CommandResult & operator=(CommandResult const &);
+	CommandResult(CommandResult const&);
+	CommandResult& operator=(CommandResult const&);
 
-	std::basic_string<TCHAR> m_sCommandLine;
-	bool m_bIsQuit;
-	bool m_bIsFinished;
 	void InitVars();
 	void Cleanup();
 	void CleanThreadAllocations();
+	std::basic_string<TCHAR> m_sCommandLine;
+	bool m_bIsQuit;
+	bool m_bIsFinished;
+	TraceStepInfo traceStepResult;
 };

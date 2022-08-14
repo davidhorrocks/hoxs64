@@ -1327,6 +1327,9 @@ LRESULT lr = 0;
 		appCommand->FreeDirectX();
 		PostQuitMessage(0);
 		return 0;
+	case WM_MONITOR_START_TRACE:
+		OnTraceSystemClocks(hWnd, uMsg, wParam, lParam);
+		return 0;
 	case WM_MONITOR_BREAK_CPU64:
 		OnBreakCpu64(hWnd, uMsg, wParam, lParam);
 		return 0;
@@ -1353,6 +1356,17 @@ LRESULT lr = 0;
 void CAppWindow::CloseWindow()
 {	
 	PostMessage(this->m_hWnd, WM_CLOSE, 0, 0);
+}
+
+void CAppWindow::OnTraceSystemClocks(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	TraceStepInfo* p = (TraceStepInfo * )lParam;
+	if (p)
+	{
+		TraceStepInfo v = *p;
+		appCommand->DeleteOneWaitingWinProcMessage(lParam);
+		appCommand->TraceSystemClocks(v);
+	}
 }
 
 void CAppWindow::OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

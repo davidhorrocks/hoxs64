@@ -350,12 +350,13 @@ SIZE sz;
 	int min_w = m_dpi.ScaleX(WIDTH_LEFTBAR_96);
 	int min_h = GetSystemMetrics(SM_CYVTHUMB) * 2 + GetSystemMetrics(SM_CYVTHUMB);
 	min_w += WIDTH_LEFTBAR2 + m_dpi.ScaleX(PADDING_LEFT_96) + m_dpi.ScaleX(PADDING_RIGHT_96);			
+	min_w += GetSystemMetrics(SM_CXVSCROLL);
 	TCHAR *s;
-	if (radix == DBGSYM::MonitorOption::Hex)
-	{
-		s = TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
-	}
-	else
+	//if (radix == DBGSYM::MonitorOption::Hex)
+	//{
+	//	s = TEXT("$ABCDxxABxABxABxxLDA $ABCD,X");
+	//}
+	//else
 	{
 		s = TEXT(".65535xx255x255x255xxLDA 65535,X");
 	}
@@ -814,6 +815,10 @@ bool bHasPrevAddress;
 	if (hWnd)
 	{
 		::SetFocus(hWnd);
+	}
+	else
+	{
+		return false;
 	}
 
 	int xPos = GET_X_LPARAM(lParam); 

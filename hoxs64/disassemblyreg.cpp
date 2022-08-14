@@ -97,11 +97,11 @@ HRESULT hr = E_FAIL;
 						TCHAR *s;
 						//if (radix == DBGSYM::MonitorOption::Hex)
 						//{
-						//	s = TEXT("ABCD AB AB AB NV-BDIZC AB AB AB LINE CYC");
+						//	s = TEXT("ABCD  AB AB AB NV-BDIZC AB AB AB LINE CYC");
 						//}
 						//else
 						{
-							s = TEXT("65535 255 255 255 NV-BDIZC 255 255 255 LINExCYC");
+							s = TEXT("65535  255 255 255 NV-BDIZC 255 255 255 LINExCYC");
 						}
 
 						int slen = lstrlen(s);
@@ -117,11 +117,11 @@ HRESULT hr = E_FAIL;
 						TCHAR *s;
 						//if (radix == DBGSYM::MonitorOption::Hex)
 						//{
-						//	s = TEXT("ABCD AB AB AB NV-BDIZC 42.5");
+						//	s = TEXT("ABCD  AB AB AB NV-BDIZC 42.5");
 						//}
 						//else
 						{
-							s = TEXT("65535 255 255 255 NV-BDIZC 42.5");
+							s = TEXT("65535  255 255 255 NV-BDIZC 42.5");
 						}
 
 						int slen = lstrlen(s);

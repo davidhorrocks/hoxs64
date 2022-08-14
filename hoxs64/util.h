@@ -192,6 +192,7 @@ namespace DBGSYM
 		enum CliCommand
 		{
 			ClearScreen,
+			StepSystem,
 			Disassemble,
 			Assemble,
 			Help,

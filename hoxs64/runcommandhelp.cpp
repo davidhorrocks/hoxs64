@@ -78,6 +78,14 @@ HRESULT RunCommandHelp::Run()
 		this->m_pCommandResult->AddLine(TEXT("Tie to C64 map: map c64\r"));
 		this->m_pCommandResult->AddLine(TEXT("Select RAM: map ram\r"));
 	}
+	else if (_tcsicmp(this->m_pCommandResult->GetToken()->text.c_str(), TEXT("t")) == 0)
+	{
+		this->m_pCommandResult->AddLine(TEXT("Trace atmost a specifed count of CPU clock cycles until a breakpoint. Clocks while the CPU paused with its RDY pin held low are counted too.\r"));
+		this->m_pCommandResult->AddLine(TEXT("Usage: t [count]\r"));
+		this->m_pCommandResult->AddLine(TEXT("Examples\r"));
+		this->m_pCommandResult->AddLine(TEXT("Trace until a breakpoint:\rt\r"));
+		this->m_pCommandResult->AddLine(TEXT("Trace atmost 64 clocks until breakpoint:\rt .64\rt $40\r"));
+	}
 	else
 	{	
 		this->m_pCommandResult->AddLine(TEXT("Command Summary\r"));
@@ -89,6 +97,7 @@ HRESULT RunCommandHelp::Run()
 		this->m_pCommandResult->AddLine(TEXT("m          - Read memory.\r"));
 		this->m_pCommandResult->AddLine(TEXT("map        - Map memory.\r"));
 		this->m_pCommandResult->AddLine(TEXT("r          - CPU registers.\r"));
+		this->m_pCommandResult->AddLine(TEXT("t          - Trace atmost a specifed count of CPU clock cycles until a breakpoint.\r"));
 	}
 	return S_OK;
 }

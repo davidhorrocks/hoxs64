@@ -335,6 +335,7 @@ msgloop:
 			bRet = GetMessage(&msg, NULL, 0, 0 );
 			if (bRet==-1 || bRet==0)
 			{
+				CleanWaitingWinProcMessages();
 				goto finish;
 			}
 			if (!m_pWinAppWindow->m_pMDIDebugger.expired())
@@ -2101,9 +2102,55 @@ void CApp::ClearAllTemporaryBreakpoints()
 	this->c64.ClearAllTemporaryBreakpoints();
 }
 
+void CApp::TraceSystemClocks(const TraceStepInfo& traceStepInfo)
+{
+	constexpr int MaxFramesToTryBeforeEnteringNormalTrace = 5;
+	EventArgs e;
+	BreakpointResult breakpointResult;
+	bool breakPoint = false;
+	int i;
+
+	//c64.GetMon()->QuitCommands();
+	c64.ClearAllTemporaryBreakpoints();
+	if (((bit64s)traceStepInfo.StepCount) > 0)
+	{
+		if (traceStepInfo.CpuMode == CPUID_MAIN)
+		{
+			c64.cpu.SetStepCountBreakpoint(traceStepInfo.StepCount);
+		}
+		else
+		{
+			c64.diskdrive.cpu.SetStepCountBreakpoint(traceStepInfo.StepCount);
+		}
+	}
+
+	// Try a few frames to help cut down on screen flicker
+	for (i = 0; i < MaxFramesToTryBeforeEnteringNormalTrace; i++)
+	{
+		m_fskip = -1;
+		breakPoint = c64.ExecuteDebugFrame(traceStepInfo.CpuMode, breakpointResult);
+		if (breakPoint)
+		{
+			break;
+		}
+	}
+
+	if (breakPoint)
+	{
+		EsTrace.Raise(this, e);
+	}
+	else
+	{
+		// If a breakpoint has not occurred after trying a few frames then 
+		// enable user interaction of the emulator main window by 
+		// tracing via the application message loop.
+		TraceWithTemporaryBreakpoints(traceStepInfo.CpuMode);
+	}
+}
+
 void CApp::TraceStepOver(int cpuId)
 {
-const int MaxFramesToTryBeforeEnteringNormalTrace = 5;
+constexpr int MaxFramesToTryBeforeEnteringNormalTrace = 5;
 EventArgs e;
 BreakpointResult breakpointResult;
 bool breakPoint = false;
@@ -2437,6 +2484,46 @@ bool CApp::PostAutoLoadFile(const wchar_t *pszFilename, int directoryIndex, bool
 	}
 
 	return false;
+}
+
+void CApp::PostStartTrace(const TraceStepInfo& traceStepInfo)
+{
+	TraceStepInfo* msgCopy = new TraceStepInfo(traceStepInfo);
+	
+	// The msgCopy should be delete either in the Window message callback handler or application clean up.
+	LPARAM lparam = (LPARAM)msgCopy;
+	waitingWinProcMessages.push_back(lparam);
+	BOOL br = ::PostMessage(this->GetMainFrameWindow(), WM_MONITOR_START_TRACE, 0, lparam);
+	if (!br)
+	{
+		waitingWinProcMessages.pop_back();
+		delete msgCopy;
+	}
+}
+
+void CApp::CleanWaitingWinProcMessages()
+{
+	for (vector<LPARAM>::const_iterator it = waitingWinProcMessages.cbegin(); it != waitingWinProcMessages.cend(); it++)
+	{
+		void* p = (void*)*it;
+		if (p)
+		{
+			delete p;
+		}
+	}
+
+	waitingWinProcMessages.clear();
+}
+
+void CApp::DeleteOneWaitingWinProcMessage(LPARAM lparam)
+{
+	if (lparam == 0)
+	{
+		return;
+	}
+
+	LPARAM item_to_remove = lparam;
+	waitingWinProcMessages.erase(std::remove(waitingWinProcMessages.begin(), waitingWinProcMessages.end(), item_to_remove), waitingWinProcMessages.end());
 }
 
 bool CApp::InsertDiskImageFromFile(const wchar_t* pszFilename)

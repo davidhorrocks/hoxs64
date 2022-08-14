@@ -484,6 +484,9 @@
     <ClCompile Include="cart_magic_desk.cpp">
       <Filter>Source Files\cart</Filter>
     </ClCompile>
+    <ClCompile Include="runcommandstep.cpp">
+      <Filter>Source Files\debugger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">

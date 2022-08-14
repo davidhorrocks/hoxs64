@@ -222,27 +222,27 @@ LRESULT WpcCli::OnNotify(HWND hWnd, int idCtrl, LPNMHDR pnmh, bool &handled)
 
 void WpcCli::OnCommandResultCompleted(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-RunCommandMapMemory *pRunCommandMapMemory;
-RunCommandDisassembly *pRunCommandDisassembly;
-RunCommandReadMemory *pRunCommandReadMemory;
-EventArgs argChanged;
+	RunCommandMapMemory* pRunCommandMapMemory;
+	RunCommandDisassembly* pRunCommandDisassembly;
+	RunCommandReadMemory* pRunCommandReadMemory;
+	EventArgs argChanged;
 	if (m_bClosing)
 		return;
 	if (!m_pICommandResult)
 		return;
 	if (!lParam)
 		return;
-	if (m_pICommandResult.get() != (ICommandResult *)lParam)
+	if (m_pICommandResult.get() != (ICommandResult*)lParam)
 		return;
 	if (m_pICommandResult->GetId() != (int)wParam)
 		return;
 	if (m_pICommandResult->GetStatus() == DBGSYM::CliCommandStatus::CompletedOK)
 	{
-		const CommandToken *pToken = m_pICommandResult->GetToken();
+		const CommandToken* pToken = m_pICommandResult->GetToken();
 		if (pToken)
 		{
 			DBGSYM::CliCpuMode::CliCpuMode cpumode = DBGSYM::CliCpuMode::C64;
-			switch(pToken->cmd)
+			switch (pToken->cmd)
 			{
 			case DBGSYM::CliCommand::SelectCpu:
 				if (pToken->bViewCurrent)
@@ -257,12 +257,12 @@ EventArgs argChanged;
 
 				switch (cpumode)
 				{
-					case DBGSYM::CliCpuMode::C64:
-						m_pICommandResult->AddLine(TEXT("C64\r"));
-						break;
-					case DBGSYM::CliCpuMode::Disk:
-						m_pICommandResult->AddLine(TEXT("Disk\r"));
-						break;
+				case DBGSYM::CliCpuMode::C64:
+					m_pICommandResult->AddLine(TEXT("C64\r"));
+					break;
+				case DBGSYM::CliCpuMode::Disk:
+					m_pICommandResult->AddLine(TEXT("Disk\r"));
+					break;
 				}
 
 				m_iDefaultAddress = GetDefaultCpuPcAddress();
@@ -270,8 +270,11 @@ EventArgs argChanged;
 			case DBGSYM::CliCommand::ClearScreen:
 				this->m_pITextDocument->New();
 				break;
+			case DBGSYM::CliCommand::StepSystem:
+				StartTrace();
+				break;
 			case DBGSYM::CliCommand::MapMemory:
-				pRunCommandMapMemory = (RunCommandMapMemory *)m_pICommandResult->GetRunCommand();
+				pRunCommandMapMemory = (RunCommandMapMemory*)m_pICommandResult->GetRunCommand();
 				if (pRunCommandMapMemory)
 				{
 					if (!pRunCommandMapMemory->m_bViewDebuggerC64Mmu)
@@ -289,7 +292,7 @@ EventArgs argChanged;
 
 				break;
 			case DBGSYM::CliCommand::Disassemble:
-				pRunCommandDisassembly = (RunCommandDisassembly *)m_pICommandResult->GetRunCommand();
+				pRunCommandDisassembly = (RunCommandDisassembly*)m_pICommandResult->GetRunCommand();
 				if (pRunCommandDisassembly)
 				{
 					this->m_iDefaultAddress = pRunCommandDisassembly->m_currentAddress;
@@ -297,7 +300,7 @@ EventArgs argChanged;
 
 				break;
 			case DBGSYM::CliCommand::ReadMemory:
-				pRunCommandReadMemory = (RunCommandReadMemory *)m_pICommandResult->GetRunCommand();
+				pRunCommandReadMemory = (RunCommandReadMemory*)m_pICommandResult->GetRunCommand();
 				if (pRunCommandReadMemory)
 				{
 					this->m_iDefaultAddress = pRunCommandReadMemory->m_currentAddress;
@@ -319,6 +322,16 @@ EventArgs argChanged;
 	if (m_pICommandResult)
 	{
 		m_pICommandResult->SetDataTaken();
+	}
+}
+
+void WpcCli::StartTrace()
+{
+	TraceStepInfo traceStepInfo;
+	bool wantTrace = m_pICommandResult->GetTraceStepCount(traceStepInfo);
+	if (wantTrace)
+	{		
+		this->m_pIAppCommand->PostStartTrace(traceStepInfo);
 	}
 }
 
@@ -358,7 +371,12 @@ HRESULT hr;
 	LPCTSTR pline = 0;
 	if (m_pICommandResult->IsQuit())
 	{
-		WriteCommandResponse(m_pRange, TEXT("*break*\r"));
+		TraceStepInfo stepInfo;
+		if (!m_pICommandResult->GetTraceStepCount(stepInfo))
+		{
+			WriteCommandResponse(m_pRange, TEXT("*cancel*\r"));
+		}
+
 		m_pRange->Collapse(tomEnd);
 		if (!isRangeInView(m_pRange))
 		{

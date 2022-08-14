@@ -136,6 +136,13 @@ public:
 	virtual void EndOfTape(ICLK sysclock) = 0;
 };
 
+struct TraceStepInfo
+{
+	bool Enable = false;
+	bit64 StepCount = 0;
+	DBGSYM::CliCpuMode::CliCpuMode CpuMode = DBGSYM::CliCpuMode::C64;
+};
+
 class IBreakpointManager
 {
 public:
@@ -207,6 +214,8 @@ public:
 	virtual bool GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16 address, BreakpointItem& breakpoint) = 0;
 	virtual void SetBreakOnInterruptTaken() = 0;
 	virtual void ClearBreakOnInterruptTaken() = 0;
+	virtual void SetStepCountBreakpoint(bit64 stepCount) = 0;
+	virtual void ClearStepCountBreakpoint() = 0;
 	virtual void SetStepOverBreakpoint() = 0;
 	virtual void ClearStepOverBreakpoint() = 0;
 	virtual void SetStepOutWithRtsRtiPlaTsx() = 0;
@@ -294,6 +303,7 @@ public:
 	void SetTokenDisassembly(bit16 startaddress, bit16 finishaddress);
 	void SetTokenError(LPCTSTR pszErrortext);
 	void SetTokenAssemble(bit16 address, bit8* pData, unsigned int bufferSize);
+	void SetTokenStep(bit64 stepCount);
 	void SetTokenReadMemory();
 	void SetTokenReadMemory(bit16 startaddress);
 	void SetTokenReadMemory(bit16 startaddress, bit16 finishaddress);
@@ -311,6 +321,7 @@ public:
 
 	DBGSYM::CliCommand::CliCommand cmd;
 
+	bit64s stepClocks;
 	bit16 startaddress;
 	bit16 finishaddress;
 	bool bHasStartAddress;
@@ -349,6 +360,8 @@ public:
 	virtual IMonitor* GetMonitor() = 0;
 	virtual CommandToken* GetToken() = 0;
 	virtual IRunCommand* GetRunCommand() = 0;
+	virtual void SetTraceStepCount(const TraceStepInfo& stepInfo) = 0;
+	virtual bool GetTraceStepCount(TraceStepInfo& stepInfo) = 0;
 };
 
 class IRunCommand

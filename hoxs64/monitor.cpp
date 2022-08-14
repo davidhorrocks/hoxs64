@@ -715,36 +715,42 @@ void Monitor::QuitCommands()
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		for(list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it!=m_lstCommandResult.end(); it++)
+		try
 		{
-			(*it)->Quit();
-		}
+			for (list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin(); it != m_lstCommandResult.end(); it++)
+			{
+				(*it)->Quit();
+			}
 
-		ReleaseMutex(m_mux);
-		while (true)
-		{
-			rm = WaitForSingleObject(m_mux, INFINITE);
-			if(rm == WAIT_OBJECT_0)
+			shared_ptr<ICommandResult> k;
+			try
 			{
 				list<shared_ptr<ICommandResult>>::iterator it = m_lstCommandResult.begin();
-				if (it == m_lstCommandResult.end())
+				if (it != m_lstCommandResult.end())
 				{
-					ReleaseMutex(m_mux);
-					break;
+					k = *it;
+					m_lstCommandResult.erase(it);
 				}
-
-				shared_ptr<ICommandResult> k = *it;
-				m_lstCommandResult.erase(it);
+			}
+			catch (std::exception& ex)
+			{
 				ReleaseMutex(m_mux);
+				throw ex;
+			}
+
+			ReleaseMutex(m_mux);
+			if (k)
+			{
 				k->Quit();
 				k->WaitFinished(INFINITE);
 				k->Reset();
 			}
-			else
-			{
-				break;
-			}
 		}
+		catch (std::exception& ex)
+		{
+			ReleaseMutex(m_mux);
+			throw ex;
+		}		
 	}
 }
 

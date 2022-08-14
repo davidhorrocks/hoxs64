@@ -143,6 +143,18 @@ bool CPU6502::GetBreakOnInterruptTaken() noexcept
 	return m_bBreakOnInterruptTaken;
 }
 
+void CPU6502::SetStepCountBreakpoint(bit64 stepCount) noexcept
+{
+	m_bEnableStepCountBreakpoint = true;
+	m_StepCountRemaining = stepCount;
+}
+
+void CPU6502::ClearStepCountBreakpoint() noexcept
+{
+	m_bEnableStepCountBreakpoint = false;
+	m_StepCountRemaining = 0;
+}
+
 void CPU6502::SetStepOverBreakpoint() noexcept
 {
     m_bEnableStepOverBreakpoint = true;
@@ -157,6 +169,7 @@ void CPU6502::ClearStepOverBreakpoint()  noexcept
 	m_bStepOverGotNextAddress = false;
 	m_stepOverAddressBreakpoint = 0;
 	m_bStepOverBreakNextInstruction = false;
+	m_bHasStepped = false;
 }
 
 void CPU6502::SetStepOutWithRtsRtiPlaTsx() noexcept
@@ -185,6 +198,7 @@ void CPU6502::ClearStepOutWithRtsRti() noexcept
 
 void CPU6502::ClearTemporaryBreakpoints() noexcept
 {
+	this->ClearStepCountBreakpoint();
 	this->ClearStepOverBreakpoint();
 	this->ClearBreakOnInterruptTaken();
 	this->ClearStepOutWithRtsRtiPlaTsx();
@@ -208,7 +222,21 @@ bool CPU6502::GetBreakpoint(DBGSYM::BreakpointType::BreakpointType bptype, bit16
 // 0: An execute breakpoint is hit.
 int CPU6502::CheckExecute(bit16 address, bool bHitIt)
 {
-int i = -1;
+	int i = -1;
+
+	if (m_bEnableStepCountBreakpoint)
+	{
+		if (m_StepCountRemaining > 0)
+		{
+			--m_StepCountRemaining;
+		}
+
+		if (m_StepCountRemaining == 0)
+		{
+			m_bEnableStepCountBreakpoint = false;
+			return 0;
+		}
+	}
 
 	if (m_bEnableStepOverBreakpoint)
 	{

@@ -11,8 +11,7 @@ AssemblyToken::AssemblyToken()
 {
 	TokenType = AssemblyToken::EndOfInput;
 	IdentifierText[0] = 0;
-	Value8=0;
-	Value16=0;
+	Value = 0;
 	SymbolChar = 0;
 }
 
@@ -101,7 +100,7 @@ HRESULT Assembler::ParseAddress16(LPCTSTR pszText, bit16 *piAddress)
 		return hr;
 	}
 
-	hr = _ParseNumber16(piAddress);
+	hr = ParseNumber16(piAddress);
 	if (SUCCEEDED(hr))
 	{
 		if (m_CurrentToken.TokenType != AssemblyToken::EndOfInput)
@@ -152,7 +151,7 @@ bool is16bit = false;
 
 	for (i = 0; i < iBuffersize && m_CurrentToken.TokenType != AssemblyToken::EndOfInput; i++)
 	{
-		hr = _ParseNumber16(&v, &is16bit);
+		hr = ParseNumber16(&v, &is16bit);
 		if (SUCCEEDED(hr))
 		{
 			if (is16bit)
@@ -274,7 +273,7 @@ unsigned int iValue = 0;
 		}
 		else if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 		{
-			num8 = m_CurrentToken.Value8;
+			num8 = (bit8)m_CurrentToken.Value;
 			GetNextToken();			
 			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 			{
@@ -327,7 +326,7 @@ unsigned int iValue = 0;
 		}
 		else if (m_CurrentToken.TokenType == AssemblyToken::Number16)
 		{
-			num16 = m_CurrentToken.Value16;
+			num16 = (bit16)m_CurrentToken.Value;
 			GetNextToken();
 			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
 			{
@@ -393,11 +392,11 @@ unsigned int iValue = 0;
 				{
 					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 					{
-						iValue = m_CurrentToken.Value8;
+						iValue = (bit8)m_CurrentToken.Value;
 					}
 					else
 					{
-						iValue = m_CurrentToken.Value16;
+						iValue = (bit16)m_CurrentToken.Value;
 					}
 
 					GetNextToken();
@@ -426,11 +425,11 @@ unsigned int iValue = 0;
 				{
 					if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 					{
-						iValue = m_CurrentToken.Value8;
+						iValue = (bit8)m_CurrentToken.Value;
 					}
 					else
 					{
-						iValue = m_CurrentToken.Value16;
+						iValue = (bit16)m_CurrentToken.Value;
 					}
 
 					GetNextToken();
@@ -891,7 +890,7 @@ TCHAR ch;
 			{
 				m_bufNumber = m_bufNumber * 10;
 				m_bufNumber = m_bufNumber + (int)(ch - _T('0'));
-				if (m_bufNumber > 0xffff)
+				if (m_bufNumber > MaxAllowedNumber)
 				{
 					//Number too big
 					AssemblyToken::SetError(&m_NextToken);
@@ -905,15 +904,25 @@ TCHAR ch;
 			else
 			{
 				m_NextToken = AssemblyToken();
+				if (m_bufNumber > 0xffffffff)
+				{
+					m_NextToken.TokenType = AssemblyToken::Number64;
+					m_NextToken.Value = m_bufNumber;
+				}
+				if (m_bufNumber > 0xffff)
+				{
+					m_NextToken.TokenType = AssemblyToken::Number32;
+					m_NextToken.Value = m_bufNumber;
+				}
 				if (m_bufNumber > 0xff)
 				{
 					m_NextToken.TokenType = AssemblyToken::Number16;
-					m_NextToken.Value16 = m_bufNumber;
+					m_NextToken.Value = m_bufNumber;
 				}
 				else
 				{
 					m_NextToken.TokenType = AssemblyToken::Number8;
-					m_NextToken.Value8 = m_bufNumber;
+					m_NextToken.Value = m_bufNumber;
 				}
 
 				return;
@@ -938,7 +947,7 @@ TCHAR ch;
 					m_bufNumber = m_bufNumber + (int)(ch - _T('a')) + 10;
 				}
 
-				if (m_bufNumber > 0xffff)
+				if (m_bufNumber > MaxAllowedNumber)
 				{
 					//Number too big
 					AssemblyToken::SetError(&m_NextToken);
@@ -952,15 +961,25 @@ TCHAR ch;
 			else
 			{
 				m_NextToken = AssemblyToken();
-				if (m_bufNumber > 0xff || iHexDigitCount > 2)
+				if (m_bufNumber > 0xffffffff || iHexDigitCount > 8)
+				{
+					m_NextToken.TokenType = AssemblyToken::Number64;
+					m_NextToken.Value = m_bufNumber;
+				}
+				if (m_bufNumber > 0xffff || iHexDigitCount > 4)
+				{
+					m_NextToken.TokenType = AssemblyToken::Number32;
+					m_NextToken.Value = m_bufNumber;
+				}
+				else if (m_bufNumber > 0xff || iHexDigitCount > 2)
 				{
 					m_NextToken.TokenType = AssemblyToken::Number16;
-					m_NextToken.Value16 = m_bufNumber;
+					m_NextToken.Value = m_bufNumber;
 				}
 				else
 				{
 					m_NextToken.TokenType = AssemblyToken::Number8;
-					m_NextToken.Value8 = m_bufNumber;
+					m_NextToken.Value = m_bufNumber;
 				}
 
 				_tcsncpy_s(m_NextToken.IdentifierText, _countof(m_NextToken.IdentifierText), m_bufIdentifierString, _countof(m_bufIdentifierString));
@@ -974,6 +993,7 @@ TCHAR ch;
 			return;
 		}
 	}
+
 	return;
 }
 
@@ -996,15 +1016,15 @@ HRESULT Assembler::GetNextChar()
 	return S_OK;
 }
 
-HRESULT Assembler::_ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress)
+HRESULT Assembler::ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress)
 {
-	if SUCCEEDED(_ParseAddress(piStartAddress))
+	if SUCCEEDED(ParseAddress(piStartAddress))
 	{
 		if (m_CurrentToken.TokenType == AssemblyToken::Symbol)
 		{
 			GetNextToken();
 		}
-		if SUCCEEDED(_ParseAddress(piEndAddress))
+		if SUCCEEDED(ParseAddress(piEndAddress))
 		{
 			return S_OK;
 		}
@@ -1012,18 +1032,18 @@ HRESULT Assembler::_ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress
 	return E_FAIL;
 }
 
-HRESULT Assembler::_ParseAddress(bit16 *piAddress)
+HRESULT Assembler::ParseAddress(bit16 *piAddress)
 {
-	return _ParseNumber16(piAddress);
+	return ParseNumber16(piAddress);
 }
 
-HRESULT Assembler::_ParseNumber16(bit16 *piNumber)
+HRESULT Assembler::ParseNumber16(bit16 *piNumber)
 {
 	bool is16bit;
-	return _ParseNumber16(piNumber, &is16bit);
+	return ParseNumber16(piNumber, &is16bit);
 }
 
-HRESULT Assembler::_ParseNumber16(bit16 *piNumber, bool *pIs16bit)
+HRESULT Assembler::ParseNumber16(bit16 *piNumber, bool *pIs16bit)
 {
 	if (pIs16bit)
 	{
@@ -1034,7 +1054,7 @@ HRESULT Assembler::_ParseNumber16(bit16 *piNumber, bool *pIs16bit)
 	{
 		if (piNumber)
 		{			
-			*piNumber = m_CurrentToken.Value8;
+			*piNumber = (bit8)m_CurrentToken.Value;
 		}
 
 		GetNextToken();
@@ -1044,7 +1064,7 @@ HRESULT Assembler::_ParseNumber16(bit16 *piNumber, bool *pIs16bit)
 	{
 		if (piNumber)
 		{			
-			*piNumber = m_CurrentToken.Value16;
+			*piNumber = (bit16)m_CurrentToken.Value;
 		}
 
 		if (pIs16bit)
@@ -1069,7 +1089,7 @@ HRESULT Assembler::_ParseNumber16(bit16 *piNumber, bool *pIs16bit)
 		}
 
 		bit16 v;
-		ok = TryParseHexWord(m_CurrentToken.IdentifierText, &v);
+		ok = TryParseHexWord(m_CurrentToken.IdentifierText, v);
 		if (ok)
 		{
 			if (piNumber)
@@ -1090,14 +1110,44 @@ HRESULT Assembler::_ParseNumber16(bit16 *piNumber, bool *pIs16bit)
 	return E_FAIL;
 }
 
-bool Assembler::TryParseHexWord(LPCTSTR str, bit16 *pvalue)
+HRESULT Assembler::ParseNumber(bit64& result)
+{
+	result = 0;
+	switch (m_CurrentToken.TokenType)
+	{
+	case AssemblyToken::Number8:
+	case AssemblyToken::Number16:
+	case AssemblyToken::Number32:
+	case AssemblyToken::Number64:
+		result = m_CurrentToken.Value;
+		GetNextToken();
+		return S_OK;
+	default:
+		break;
+	}
+
+	if (m_CurrentToken.TokenType == AssemblyToken::IdentifierString && this->radix == DBGSYM::MonitorOption::Hex)
+	{
+		bit64 v = 0;
+		if (TryParseHex(m_CurrentToken.IdentifierText, v))
+		{
+			result = v;
+			GetNextToken();
+			return S_OK;
+		}
+	}
+
+	return E_FAIL;
+}
+
+bool Assembler::TryParseHex(LPCTSTR str, bit64& result)
 {
 	bool ok = false;
-	unsigned int v = 0;
+	bit64 v = 0;
 	if (str != NULL)
 	{
 		unsigned int len = lstrlen(str);
-		if (len > 0 && len <= 4)
+		if (len > 0 && len <= 16)
 		{
 			ok = true;
 			unsigned int i;
@@ -1127,32 +1177,52 @@ bool Assembler::TryParseHexWord(LPCTSTR str, bit16 *pvalue)
 		}
 	}
 
-	if (pvalue != NULL)
+	result = v;
+	return true;
+}
+
+bool Assembler::TryParseHexWord(LPCTSTR str, bit16& result)
+{
+	bit64 v = 0;
+	result = 0;
+	if (TryParseHex(str, v))
 	{
-		*pvalue = (bit16)(v & 0xffff);
+		if (v <= 0xffff)
+		{
+			result = (bit16)v;
+			return true;
+		}
 	}
 
-	return ok;
+	return false;
 }
 
 bool Assembler::TryConvertIdentifierTokenToHexNumber(AssemblyToken &token)
 {
 	if (this->radix == DBGSYM::MonitorOption::Hex && token.TokenType == AssemblyToken::IdentifierString)
 	{
-		bit16 v;
-		if (TryParseHexWord(token.IdentifierText, &v))
+		bit64 v;
+		if (TryParseHex(token.IdentifierText, v))
 		{
+			if (lstrlen(token.IdentifierText) > 8)
+			{
+				token.TokenType = AssemblyToken::Number64;
+				token.Value = v;
+			}
+			if (lstrlen(token.IdentifierText) > 4)
+			{
+				token.TokenType = AssemblyToken::Number32;
+				token.Value = v;
+			}
 			if (lstrlen(token.IdentifierText) > 2)
 			{
 				token.TokenType = AssemblyToken::Number16;
-				token.Value16 = v;
-				token.Value8 = 0;
+				token.Value = v;
 			}
 			else
 			{
 				token.TokenType = AssemblyToken::Number8;
-				token.Value16 = 0;
-				token.Value8 = (bit8)(v & 0xff);
+				token.Value = v;
 			}
 
 			return true;
@@ -1201,6 +1271,10 @@ CommandToken *pcr = NULL;
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("M")) == 0)
 			{
 				pcr = GetCommandTokenReadMemory();
+			}
+			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("T")) == 0)
+			{
+				pcr = GetCommandTokenStep();
 			}
 			else if (_tcsicmp(m_CurrentToken.IdentifierText, TEXT("A")) == 0)
 			{
@@ -1311,9 +1385,9 @@ CommandToken *Assembler::GetCommandTokenCpu()
 		{
 			if (m_CurrentToken.TokenType == AssemblyToken::Number8)
 			{
-				if (m_CurrentToken.Value8 >=0 && m_CurrentToken.Value8 <=1)
+				if (m_CurrentToken.Value >= 0 && m_CurrentToken.Value <= 1)
 				{
-					cpumode = (DBGSYM::CliCpuMode::CliCpuMode)m_CurrentToken.Value8;
+					cpumode = (DBGSYM::CliCpuMode::CliCpuMode)m_CurrentToken.Value;
 					bViewCpu = false;
 					bOk = true;
 					GetNextToken();
@@ -1388,7 +1462,7 @@ bit16 finishaddress;
 		}
 		else
 		{
-			hr = _ParseNumber16(&startaddress);
+			hr = ParseNumber16(&startaddress);
 			if (SUCCEEDED(hr))
 			{
 				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
@@ -1400,7 +1474,7 @@ bit16 finishaddress;
 					if (m_CurrentToken.TokenType == AssemblyToken::Symbol && m_CurrentToken.SymbolChar == TEXT('-'))
 					{
 						GetNextToken();
-						hr = _ParseNumber16(&finishaddress);
+						hr = ParseNumber16(&finishaddress);
 						if (FAILED(hr))
 						{
 							pcr->SetTokenError(TEXT("Invalid finish-address.\r"));
@@ -1408,7 +1482,7 @@ bit16 finishaddress;
 					}
 					else
 					{
-						hr = _ParseNumber16(&length);
+						hr = ParseNumber16(&length);
 						if (SUCCEEDED(hr))
 						{
 							if (length == 0)
@@ -1481,7 +1555,7 @@ unsigned int w;
 		}
 		else
 		{
-			hr = _ParseNumber16(&address);
+			hr = ParseNumber16(&address);
 			if (SUCCEEDED(hr))
 			{
 				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
@@ -1598,6 +1672,58 @@ CommandToken *Assembler::GetCommandTokenMapMemory()
 	}
 }
 
+CommandToken* Assembler::GetCommandTokenStep()
+{
+	HRESULT hr;
+	bit64 count;
+
+	CommandToken* pcr = NULL;
+	try
+	{
+		pcr = new CommandToken();
+		if (pcr == 0)
+		{
+			throw std::bad_alloc();
+		}
+
+		GetNextToken();
+		if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+		{
+			pcr->SetTokenStep((bit64)-1);
+		}
+		else
+		{
+			hr = ParseNumber(count);
+			if (SUCCEEDED(hr))
+			{
+				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
+				{
+					pcr->SetTokenStep(count);
+				}
+				else
+				{
+					pcr->SetTokenError(TEXT("Too many parameters.\r"));
+				}
+			}
+			else
+			{
+				pcr->SetTokenError(TEXT("Invalid step count.\r"));
+			}
+		}
+
+		return pcr;
+	}
+	catch (std::exception&)
+	{
+		if (pcr)
+		{
+			delete pcr;
+		}
+
+		throw;
+	}
+}
+
 CommandToken *Assembler::GetCommandTokenReadMemory()
 {
 HRESULT hr;
@@ -1621,7 +1747,7 @@ bit16 finishaddress;
 		}
 		else
 		{
-			hr = _ParseNumber16(&startaddress);
+			hr = ParseNumber16(&startaddress);
 			if (SUCCEEDED(hr))
 			{
 				if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
@@ -1633,7 +1759,7 @@ bit16 finishaddress;
 					if (m_CurrentToken.TokenType == AssemblyToken::Symbol && m_CurrentToken.SymbolChar == TEXT('-'))
 					{
 						GetNextToken();
-						hr = _ParseNumber16(&finishaddress);
+						hr = ParseNumber16(&finishaddress);
 						if (FAILED(hr))
 						{
 							pcr->SetTokenError(TEXT("Invalid finish-address.\r"));
@@ -1641,7 +1767,7 @@ bit16 finishaddress;
 					}
 					else
 					{
-						hr = _ParseNumber16(&length);
+						hr = ParseNumber16(&length);
 						if (SUCCEEDED(hr))
 						{
 							if (length == 0)
@@ -1708,7 +1834,7 @@ unsigned int w;
 		}
 
 		GetNextToken();
-		hr = _ParseNumber16(&address);
+		hr = ParseNumber16(&address);
 		if (SUCCEEDED(hr))
 		{
 			if (m_CurrentToken.TokenType == AssemblyToken::EndOfInput)
@@ -1864,6 +1990,12 @@ void CommandToken::SetTokenShowVia2Registers()
 void CommandToken::SetTokenClearScreen()
 {
 	cmd = DBGSYM::CliCommand::ClearScreen;
+}
+
+void CommandToken::SetTokenStep(bit64 stepClocks)
+{
+	cmd = DBGSYM::CliCommand::StepSystem;
+	this->stepClocks = stepClocks;
 }
 
 void CommandToken::SetTokenReadMemory()

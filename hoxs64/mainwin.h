@@ -96,6 +96,7 @@ private:
 	bool OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);
 	bool OnSysCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresult);
 	bool OnPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lresult);
+	void OnTraceSystemClocks(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnBreakCpu64(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnBreakCpuDisk(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnBreakVic(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

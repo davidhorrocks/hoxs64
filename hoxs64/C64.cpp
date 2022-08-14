@@ -500,6 +500,8 @@ int result = 0;
 	bBreakC64 = false;
 	bBreakDisk = false;
 	bBreakVic = false;
+	unsigned int initial_cpu_sequence = cpu.m_cpu_sequence;
+	bool is_changed_cpu_sequence = false;
 	while ((cycles > 0) && (!autoExitEnabled || ((ICLKS)autoexitcountdown > 0 || autoexitcountdown > PAL_CLOCKS_PER_FRAME)))
 	{
 		cycles--;
@@ -537,12 +539,12 @@ int result = 0;
 			}
 		}
 
-		bool bWasC64CpuOpCodeFetch = cpu.IsOpcodeFetch();
 		bool bWasC64CpuOnInt = cpu.IsInterruptInstruction();
 		vic.ExecuteCycle(sysclock);
 		cia1.ExecuteCycle(sysclock);
 		cia2.ExecuteCycle(sysclock);
 		cpu.ExecuteCycle(sysclock);
+		is_changed_cpu_sequence |= initial_cpu_sequence != cpu.m_cpu_sequence;
 
 		if (vic.CheckBreakpointRasterCompare(vic.GetNextRasterLine(), vic.GetNextRasterCycle(), true) == 0)
 		{
@@ -550,7 +552,7 @@ int result = 0;
 		}
 
 		// Check for an execute breakpoint for the CPU program counter.
-		if (cpu.CheckExecute(cpu.mPC.word, true) == 0 && !bWasC64CpuOpCodeFetch)
+		if (cpu.CheckExecute(cpu.mPC.word, true) == 0 && is_changed_cpu_sequence)
 		{
 			bBreakC64 = true;
 		}

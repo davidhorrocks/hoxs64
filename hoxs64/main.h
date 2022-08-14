@@ -66,6 +66,7 @@ public:
 	void IAppCommand::Trace(int cpuId) override;
 	void IAppCommand::TraceWithTemporaryBreakpoints(int cpuId) override;
 	void IAppCommand::TraceFrame(int cpuId) override;
+	void IAppCommand::TraceSystemClocks(const TraceStepInfo& traceStepInfo) override;
 	void IAppCommand::TraceStepOver(int cpuId) override;
 	void IAppCommand::TraceStepOut(int cpuId, bool requireRtsRti) override;
 	void IAppCommand::ClearAllTemporaryBreakpoints() override;
@@ -94,6 +95,8 @@ public:
 	void IAppCommand::PostCloseMainWindow() override;
 	void IAppCommand::PostToggleFullscreen() override;
 	bool IAppCommand::PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload) override;
+	void IAppCommand::PostStartTrace(const TraceStepInfo& traceStepInfo) override;
+	void IAppCommand::DeleteOneWaitingWinProcMessage(LPARAM lparam) override;
 	bool IAppCommand::InsertDiskImageFromFile(const wchar_t* pszFilename) override;
 	bool IAppCommand::InsertTapeImageFromFile(const wchar_t* pszFilename) override;
 	void IAppCommand::EnableC64Input(bool enabled) override;
@@ -122,6 +125,7 @@ public:
 	void UpdateConfigFromSid(CConfig& cfg);
 	void CreateImGuiContext();
 	void CloseImGuiContext() noexcept;
+	void CleanWaitingWinProcMessages();
 
 	// mainCfg is a CConfig that holds the user preferred settings.
 	// CApp derives from CConfig and holds the transient in-play setting. The transient in-play setting in (CConfig)CApp can differ from the user preferred setting in CApp::mainCfg
@@ -147,6 +151,7 @@ public:
 	std::wstring wsAppConfigPath;
 	std::wstring wsAppFullPath;
 	std::wstring wsAppDirectory;
+	std::vector<LPARAM> waitingWinProcMessages;
 	bool m_bStartFullScreen = false;
 	CDX9 dx;
 	Graphics gx;

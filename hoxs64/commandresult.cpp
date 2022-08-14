@@ -38,6 +38,7 @@ void CommandResult::InitVars()
 	m_pCommandToken = 0;
 	m_bIsQuit = false;
 	m_pIRunCommand = NULL;
+	traceStepResult = {};
 }
 
 CommandResult::CommandResult(IMonitor *pIMonitor, DBGSYM::CliCpuMode::CliCpuMode cpumode, int iDebuggerMmuIndex, bit16 iDefaultAddress)
@@ -186,6 +187,7 @@ HRESULT CommandResult::Run()
 	{
 		hr = E_FAIL;
 	}
+
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
@@ -199,8 +201,10 @@ HRESULT CommandResult::Run()
 			SetStatus(DBGSYM::CliCommandStatus::Failed);
 			PostFinished();
 		}
+
 		ReleaseMutex(m_mux);
 	}
+
 	SetEvent(m_hevtResultDataReady);
 	WaitResultDataTakenOrQuit(INFINITE);
 	SetStatus(DBGSYM::CliCommandStatus::Finished);
@@ -214,14 +218,17 @@ HRESULT CommandResult::CreateRunCommand(CommandToken *pCommandToken, IRunCommand
 {
 	HRESULT hr = E_FAIL;
 	IRunCommand *pcr = 0;
-	const bit16 DEFAULTDISASSEMBLEBYTES = 0xf;
-	const bit16 DEFAULTMEMORYBYTES = 0xff;
+	constexpr bit16 DEFAULTDISASSEMBLEBYTES = 0xf;
+	constexpr bit16 DEFAULTMEMORYBYTES = 0xff;
 	try
 	{
 		switch(pCommandToken->cmd)
 		{
 		case DBGSYM::CliCommand::Help:
 			pcr = new RunCommandHelp(this);
+			break;
+		case DBGSYM::CliCommand::StepSystem:
+			pcr = new RunCommandStep(this, m_cpumode, pCommandToken->stepClocks);
 			break;
 		case DBGSYM::CliCommand::MapMemory:
 			pcr = new RunCommandMapMemory(this, m_iDebuggerMmuIndex, pCommandToken->mapmemory);
@@ -429,12 +436,12 @@ HRESULT CommandResult::Start(HWND hWnd, LPCTSTR pszCommandString, int id)
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{
-		m_bIsQuit = false;
-		ResetEvent(m_hevtQuit);
-		ResetEvent(m_hevtResultDataReady);
-		ResetEvent(m_hevtResultDataTaken);
 		try
 		{
+			m_bIsQuit = false;
+			ResetEvent(m_hevtQuit);
+			ResetEvent(m_hevtResultDataReady);
+			ResetEvent(m_hevtResultDataTaken);
 			m_sCommandLine.clear();
 			m_sCommandLine.append(pszCommandString);
 			m_hWnd = hWnd;
@@ -547,6 +554,28 @@ IRunCommand *CommandResult::GetRunCommand()
 	return s;
 }
 
+void CommandResult::SetTraceStepCount(const TraceStepInfo& stepInfo)
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		traceStepResult = stepInfo;
+		ReleaseMutex(m_mux);
+	}	
+}
+
+bool CommandResult::GetTraceStepCount(TraceStepInfo& stepInfo)
+{
+	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
+	if (rm == WAIT_OBJECT_0)
+	{
+		stepInfo = traceStepResult;
+		ReleaseMutex(m_mux);
+	}
+
+	return stepInfo.Enable;
+}
+
 bool CommandResult::IsQuit()
 {
 	bool s= false;
@@ -625,9 +654,9 @@ void CommandResult::SetAllLinesTaken()
 
 HRESULT CommandResult::Quit()
 {
-DWORD r = 0;
-HRESULT hr = E_FAIL;
-HANDLE hThread = 0;
+	DWORD r = 0;
+	HRESULT hr = E_FAIL;
+	HANDLE hThread = 0;
 	DWORD rm = WaitForSingleObject(m_mux, INFINITE);
 	if (rm == WAIT_OBJECT_0)
 	{

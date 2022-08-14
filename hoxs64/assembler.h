@@ -11,14 +11,15 @@ struct AssemblyToken
 		IdentifierString,
 		Number8,
 		Number16,
+		Number32,
+		Number64,
 		Symbol,
 		Error
 	};
 	tagTType TokenType;
 	TCHAR IdentifierText[MAX_IDENTIFIER_SIZE];
 	TCHAR SymbolChar;
-	bit8 Value8;
-	bit16 Value16;
+	bit64 Value;
 
 	static void SetEOF(AssemblyToken* t);
 	static void SetError(AssemblyToken* t);
@@ -34,6 +35,7 @@ public:
 	HRESULT ParseAddress16(LPCTSTR pszText, bit16 *piAddress);
 	HRESULT CreateCliCommandToken(LPCTSTR pszText, CommandToken **ppcmdr);
 	CommandToken *GetCommandTokenAssembleLine();
+	CommandToken* GetCommandTokenStep();
 	CommandToken *GetCommandTokenReadMemory();
 	CommandToken *GetCommandTokenWriteMemory();
 	CommandToken *GetCommandTokenMapMemory();
@@ -41,7 +43,7 @@ public:
 	CommandToken *GetCommandTokenCpu();
 	CommandToken *GetCommandTokenShowCpu();
 	void SetRadix(DBGSYM::MonitorOption::Radix radix);
-	DBGSYM::MonitorOption::Radix GetRadix();
+	//DBGSYM::MonitorOption::Radix GetRadix();
 	static HRESULT TryParseAddress16(LPCTSTR pszText, DBGSYM::MonitorOption::Radix radix, bit16 *piAddress);
 private:
 	struct LexState
@@ -57,6 +59,8 @@ private:
 		} ELexState;
 	};
 
+	static __int64 constexpr MaxAllowedNumber = 0xffffffffffff;
+
 	TCHAR m_CurrentCh;
 	TCHAR m_NextCh;
 	bool m_bCurrentEOF;
@@ -71,7 +75,7 @@ private:
 	int m_pos;
 	TCHAR m_bufIdentifierString[AssemblyToken::MAX_IDENTIFIER_SIZE];
 	int m_ibufPos;
-	int m_bufNumber;
+	__int64 m_bufNumber;
 	DBGSYM::MonitorOption::Radix radix;
 
 	HRESULT InitParser(LPCTSTR pszText);
@@ -113,9 +117,11 @@ private:
 
 	HRESULT AssembleRelative(LPCTSTR pszMnemonic, bit8 arg, bit8 *pCode, unsigned int iBuffersize, unsigned int *piBytesWritten);
 
-	HRESULT _ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress);
-	HRESULT _ParseAddress(bit16 *piAddress);
-	HRESULT _ParseNumber16(bit16 *piNumber);
-	HRESULT _ParseNumber16(bit16 *piNumber, bool *pIs16bit);
-	bool TryParseHexWord(LPCTSTR str, bit16 *pvalue);
+	HRESULT ParseAddressRange(bit16 *piStartAddress, bit16 *piEndAddress);
+	HRESULT ParseAddress(bit16 *piAddress);
+	HRESULT ParseNumber16(bit16 *piNumber);
+	HRESULT ParseNumber16(bit16 *piNumber, bool *pIs16bit);
+	bool TryParseHexWord(LPCTSTR str, bit16& result);
+	bool TryParseHex(LPCTSTR str, bit64& result);
+	HRESULT ParseNumber(bit64& result);
 };

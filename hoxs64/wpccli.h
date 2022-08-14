@@ -22,6 +22,7 @@ public:
 	shared_ptr<WpcCli> keepAlive;
 	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) override;
 	void WindowRelease() override;
+	void StartTrace();
 protected:
 	LRESULT WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 	HRESULT OnCreate(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

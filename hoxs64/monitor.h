@@ -48,38 +48,41 @@ public:
 class IAppCommand
 {
 public:
-	virtual void Resume()=0;
-	virtual void Trace(int cpuId)=0;
-	virtual void TraceWithTemporaryBreakpoints(int cpuId)=0;
-	virtual void TraceFrame(int cpuId)=0;
-	virtual void TraceStepOver(int cpuId)=0;
-	virtual void TraceStepOut(int cpuId, bool requireRtsRti)=0;
-	virtual void ClearAllTemporaryBreakpoints()=0;
-	virtual void ExecuteC64Clock()=0;
-	virtual void ExecuteDiskClock()=0;
-	virtual void ExecuteC64Instruction()=0;
-	virtual void ExecuteDiskInstruction()=0;
-	virtual void UpdateApplication()=0;
+	virtual void Resume() = 0;
+	virtual void Trace(int cpuId) = 0;
+	virtual void TraceWithTemporaryBreakpoints(int cpuId) = 0;
+	virtual void TraceFrame(int cpuId) = 0;
+	virtual void TraceSystemClocks(const TraceStepInfo& traceStepInfo) = 0;
+	virtual void TraceStepOver(int cpuId) = 0;
+	virtual void TraceStepOut(int cpuId, bool requireRtsRti) = 0;
+	virtual void ClearAllTemporaryBreakpoints() = 0;
+	virtual void ExecuteC64Clock() = 0;
+	virtual void ExecuteDiskClock() = 0;
+	virtual void ExecuteC64Instruction() = 0;
+	virtual void ExecuteDiskInstruction() = 0;
+	virtual void UpdateApplication() = 0;
 	virtual void UpdateEmulationDisplay() = 0;
 	virtual HWND ShowDevelopment() = 0;
-	virtual bool IsRunning()=0;
-	virtual void SoundOff()=0;
-	virtual void SoundOn()=0;
-	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address)=0;
+	virtual bool IsRunning() = 0;
+	virtual void SoundOff() = 0;
+	virtual void SoundOn() = 0;
+	virtual void ShowCpuDisassembly(int cpuid, DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) = 0;
 	virtual HWND GetMainFrameWindow() = 0;
 	virtual void DisplayVicCursor(bool bEnabled) = 0;
 	virtual void DisplayVicRasterBreakpoints(bool bEnabled) = 0;
 	virtual void SetVicCursorPos(int iCycle, int iLine) = 0;
-	virtual void GetVicCursorPos(int *piCycle, int *piLine) = 0;
+	virtual void GetVicCursorPos(int* piCycle, int* piLine) = 0;
 	virtual void SetRadixHexadecimal() = 0;
 	virtual void SetRadixDecimal() = 0;
-	virtual void GetLastMousePosition(int *x, int *y) = 0;
+	virtual void GetLastMousePosition(int* x, int* y) = 0;
 	virtual void SetLastMousePosition(const int* x, const int* y) = 0;
 	virtual bool GetIsMouseOverClientArea() = 0;
 	virtual void SetIsMouseOverClientArea(bool isMouseOver) = 0;
 	virtual void PostCloseMainWindow() = 0;
 	virtual void PostToggleFullscreen() = 0;
 	virtual bool PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload) = 0;
+	virtual void PostStartTrace(const TraceStepInfo& traceStepInfo) = 0;
+	virtual void DeleteOneWaitingWinProcMessage(LPARAM lparam) = 0;
 	virtual bool InsertDiskImageFromFile(const wchar_t* pszFilename) = 0;
 	virtual bool InsertTapeImageFromFile(const wchar_t* pszFilename) = 0;
 	virtual void EnableC64Input(bool enabled) = 0;
@@ -114,7 +117,7 @@ public:
 	virtual void ApplyConfig(const CConfig& newcfg) = 0;
 	virtual void SetSidChipAddressMap(int numberOfExtraSidChips, bit16 addressOfSecondSID, bit16 addressOfThirdSID, bit16 addressOfFourthSID, bit16 addressOfFifthSID, bit16 addressOfSixthSID, bit16 addressOfSeventhSID, bit16 addressOfEighthSID) = 0;
 	virtual void ResetSidChipAddressMap() = 0;
-	virtual void UpdateUserConfigFromSid() = 0;	
+	virtual void UpdateUserConfigFromSid() = 0;
 
 	EventSource<EventArgs> EsResume;
 	EventSource<EventArgs> EsTrace;
@@ -142,7 +145,7 @@ public:
 	EventSource<BreakpointChangedEventArgs> EsBreakpointChanged;
 	EventSource<VicCursorMoveEventArgs> EsVicCursorMove;
 	EventSource<EventArgs> EsMemoryChanged;
-	EventSource<RadixChangedEventArgs> EsRadixChanged;	
+	EventSource<RadixChangedEventArgs> EsRadixChanged;
 };
 
 class Monitor : public IMonitor
