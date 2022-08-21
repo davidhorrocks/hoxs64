@@ -817,7 +817,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 8;
+    static const int VERSION = 9;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

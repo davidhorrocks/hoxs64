@@ -5199,6 +5199,7 @@ bit8 VIC6569::SpriteDMATurningOn()
 void VIC6569::GetState(SsVic6569V1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
+	state.Version = 0;
 	state.CurrentClock = CurrentClock;
 	state.cpu_next_op_code = cpu_next_op_code;
 	state.vicECM = vicECM;
@@ -5313,6 +5314,8 @@ void VIC6569::GetState(SsVic6569V1 &state)
 	memcpy_s(state.pixelMaskBuffer, sizeof(state.pixelMaskBuffer), pixelMaskBuffer, sizeof(pixelMaskBuffer));
 	memcpy_s(state.vic_sprite_collision_line, sizeof(state.vic_sprite_collision_line), vic_sprite_collision_line, sizeof(vic_sprite_collision_line));
 	memcpy_s(state.VideoMatrix, sizeof(state.VideoMatrix), VideoMatrix, sizeof(VideoMatrix));
+	state.clockBALow = clockBALow;
+	state.clockBAHigh = clockBAHigh;
 }
 
 void VIC6569::SetState(const SsVic6569V1 &state)
@@ -5432,6 +5435,8 @@ void VIC6569::SetState(const SsVic6569V1 &state)
 	memcpy_s(pixelMaskBuffer, sizeof(pixelMaskBuffer), state.pixelMaskBuffer, sizeof(state.pixelMaskBuffer));
 	memcpy_s(vic_sprite_collision_line, sizeof(vic_sprite_collision_line), state.vic_sprite_collision_line, sizeof(state.vic_sprite_collision_line));
 	memcpy_s(VideoMatrix, sizeof(VideoMatrix), state.VideoMatrix, sizeof(state.VideoMatrix));
+	clockBALow = state.clockBALow;
+	clockBAHigh = state.clockBAHigh;
 }
 
 

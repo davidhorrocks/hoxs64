@@ -4165,6 +4165,7 @@ ULARGE_INTEGER pos_next_track_header;
 
 		ICLK clockCpu = vars.sbCpuMainV1.common.CurrentClock;
 		ICLK clockVIC = vars.sbVic6569V1.CurrentClock;
+		vic.vicBA = cpu.RDY;
 		cart.DetachCart();
 		if (spCartInterface)
 		{
@@ -4178,6 +4179,10 @@ ULARGE_INTEGER pos_next_track_header;
 			{
 				cpu.ConfigureMemoryMap();
 			}
+		}
+		else
+		{
+			cpu.ConfigureMemoryMap();
 		}
 
 		this->PreventClockOverflow();
