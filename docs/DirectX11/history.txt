@@ -1,4 +1,4 @@
-21 August 2022 v1.1.0.7
+21 August 2022 v1.1.0.8
 =======================
 1) Save state file fix.
 
