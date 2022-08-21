@@ -89,10 +89,11 @@ public:
 	void EnterDebugRun(bool bWithSound);
 	void FinishDebugRun();
 	void SetBasicProgramEndAddress(bit16 last_byte);
-	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks);
+	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool bReu);
 	static HRESULT CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength);
 	HRESULT LoadCrtFile(const TCHAR *filename);
-	HRESULT LoadReu1750();
+	HRESULT LoadReu1750() override;
+	bool IsReuAttached() override;
 	HRESULT LoadImageFile(const TCHAR *filename, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadT64ImageFile(const TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
 	HRESULT LoadTAPFile(const TCHAR *filename);
@@ -207,6 +208,7 @@ protected:
 		bool bIndexOnlyPrgFiles = false;
 		bool bQuickLoad = false;
 		bool bAlignD64Tracks = false;
+		bool bReu = false;
 		bit8 *pImageData = nullptr;
 		class SIDLoader *pSidFile = nullptr;
 		ICLK startclock = 0;

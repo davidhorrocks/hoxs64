@@ -1481,7 +1481,7 @@ void C64::EndOfTape(ICLK sysclock)
 	TapePressStop();
 }
 
-HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64FileName[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks)
+HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64FileName[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool bReu)
 {
 	HRESULT hr = S_OK;
 	C64File c64file;
@@ -1497,6 +1497,7 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 	autoLoadCommand.directoryIndex = directoryIndex;
 	autoLoadCommand.bQuickLoad = bQuickLoad;
 	autoLoadCommand.bAlignD64Tracks =  bAlignD64Tracks;
+	autoLoadCommand.bReu = bReu;
 	autoLoadCommand.bIndexOnlyPrgFiles =bIndexOnlyPrgFiles; 
 	autoLoadCommand.startclock = vic.CurrentClock;
 	if (c64FileName == NULL)
@@ -1603,6 +1604,12 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 				autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
 				appStatus->m_bAutoload = true;
 				cart.DetachCart();
+				if (bReu)
+				{
+					cart.LoadReu1750();
+					cart.AttachCart();
+				}
+
 				Reset(cpu.CurrentClock, true);
 				return hr;
 			}
@@ -1637,7 +1644,14 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 	{
 		return SetError(E_FAIL,TEXT("Unknown file type."));
 	}
+
 	cart.DetachCart();
+	if (bReu)
+	{
+		cart.LoadReu1750();
+		cart.AttachCart();
+	}
+
 	Reset(cpu.CurrentClock, true);
 	return S_OK;
 }
@@ -1790,6 +1804,11 @@ HRESULT C64::LoadReu1750()
 
 	this->SetError(cart);
 	return hr;
+}
+
+bool C64::IsReuAttached()
+{
+	return cart.IsREU();
 }
 
 HRESULT C64::LoadTAPFile(const TCHAR *filename)

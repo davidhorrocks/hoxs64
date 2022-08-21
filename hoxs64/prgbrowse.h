@@ -7,15 +7,20 @@ typedef class CArray<struct C64Filename> CDirectoryArray;
 class CPRGBrowse : public ErrorMsg
 {
 public:
-	CPRGBrowse();
-	~CPRGBrowse();
+	CPRGBrowse() noexcept;
+	CPRGBrowse(const CPRGBrowse&) = default;
+	CPRGBrowse(CPRGBrowse&&) = delete;
+	CPRGBrowse& operator= (CPRGBrowse&) = delete;
+	CPRGBrowse& operator= (CPRGBrowse&&) = delete;
+	virtual ~CPRGBrowse();
+
 	class FileTypeFlag
 	{
 	public:
 		enum filetype {ALL=0,FDI=1,G64=2,D64=4,TAP=8,T64=16,PRG=32,P00=64,SID=128,P64=256};
 	};
 
-	HRESULT Init(bit8 *charGen);
+	HRESULT Init(bit8 *charGen, IC64* c64);
 	BOOL Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum FileTypeFlag::filetype filetypes);
 	LRESULT ChildDialogProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 	void PopulateList(HWND hDlg);
@@ -32,6 +37,7 @@ public:
 	bool SelectedAlignD64Tracks;
 	bit8 SelectedC64FileName[C64DISKFILENAMELENGTH];
 	int SelectedC64FileNameLength;
+	bool SelectedWantReu;
 
 	enum FileTypeFlag::filetype mAllowTypes;
 	static const int HEADERLINES = 1;
@@ -64,7 +70,8 @@ private:
 
 	HBRUSH m_hbrush;
 	void ReSize(HWND hDlg, LONG w, LONG h);
-	void CleanUp();
+	void CleanUp() noexcept;
+	IC64* m_pC64;
 	bit8 *m_pCharGen;
 	C64File m_c64file;
 	HWND m_hParent;
@@ -72,6 +79,7 @@ private:
 	HWND m_hListBox;
 	HWND m_hCheckQuickLoad;
 	HWND m_hCheckAlignD64Tracks;
+	HWND m_hCheckReu;
 	int m_width_custom;
 	int mgapTop;
 	int mgapBottom;

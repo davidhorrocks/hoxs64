@@ -121,6 +121,7 @@
 #define IDC_TXT_D                       1117
 #define IDC_TXT_JOY1FIRE                1118
 #define IDC_TXT_E                       1119
+#define IDD_BROWSE_FILE                 1119
 #define IDC_TXT_JOY1UP                  1120
 #define IDC_TXT_F                       1121
 #define IDC_TXT_JOY1DOWN                1122
@@ -377,6 +378,7 @@
 #define IDC_CBO_JOY2BUTTONKEY6          1373
 #define IDC_BTN_CFG_JOY2KEY6            1374
 #define IDC_LINESYNC_DOUBLERATE_FSC     1375
+#define IDC_CHKREU                      1376
 #define IDM_EXIT                        40018
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -457,9 +459,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
+#define _APS_NEXT_RESOURCE_VALUE        165
 #define _APS_NEXT_COMMAND_VALUE         40092
-#define _APS_NEXT_CONTROL_VALUE         1376
-#define _APS_NEXT_SYMED_VALUE           164
+#define _APS_NEXT_CONTROL_VALUE         1377
+#define _APS_NEXT_SYMED_VALUE           165
 #endif
 #endif

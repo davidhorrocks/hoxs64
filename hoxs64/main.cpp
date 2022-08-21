@@ -860,6 +860,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	CommandArg *caAutoLoad = cmdArgs.FindOption(TEXT("-AutoLoad"));
 	CommandArg *caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
 	CommandArg *caAlignD64Tracks= cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
+	CommandArg* caReu512k = cmdArgs.FindOption(TEXT("-Reu512k"));
 	CommandArg *caStartFullscreen = cmdArgs.FindOption(TEXT("-Fullscreen"));
 	CommandArg *caDebugCart = cmdArgs.FindOption(TEXT("-debugcart"));
 	CommandArg *caLimitCycles = cmdArgs.FindOption(TEXT("-limitcycles"));
@@ -1181,7 +1182,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 				}
 			}
 			
-			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, indexPrgsOnly, pC64filename, caQuickLoad != NULL, alignD64);
+			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, indexPrgsOnly, pC64filename, caQuickLoad != NULL, alignD64, caReu512k != nullptr);
 		}
 	}
 
@@ -1353,7 +1354,7 @@ HRESULT hr;
 CPRGBrowse prgBrowse;
 
 	initfilename[0]=0;
-	hr = prgBrowse.Init(c64.ram.mCharGen);
+	hr = prgBrowse.Init(c64.ram.mCharGen, &c64);
 	if (FAILED(hr))
 	{
 		return ; 
@@ -1370,7 +1371,7 @@ CPRGBrowse prgBrowse;
 	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::ALL);
 	if (b)
 	{
-		hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks);
+		hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks, prgBrowse.SelectedWantReu);
 		if (hr != S_OK)
 		{
 			c64.DisplayError(hWnd, TEXT("Auto Load"));
@@ -1426,7 +1427,7 @@ int i;
 	
 	initfilename[0] = 0;
 	TCHAR title[] = TEXT("Load T64");
-	hr = prgBrowse.Init(c64.ram.mCharGen);
+	hr = prgBrowse.Init(c64.ram.mCharGen, &c64);
 	if (FAILED(hr))
 	{
 		prgBrowse.DisplayError(hWnd, title);
@@ -1469,7 +1470,7 @@ CPRGBrowse prgBrowse;
 
 	initfilename[0] = 0;
 	TCHAR title[] = TEXT("Insert Disk Image");
-	hr = prgBrowse.Init(c64.ram.mCharGen);
+	hr = prgBrowse.Init(c64.ram.mCharGen, &c64);
 	if (FAILED(hr))
 	{		
 		prgBrowse.DisplayError(hWnd, title);
@@ -2469,13 +2470,13 @@ void CApp::PostToggleFullscreen()
 	::PostMessage(this->GetMainFrameWindow(), WM_COMMAND, MAKEWPARAM(IDM_TOGGLEFULLSCREEN, 0), 0);
 }
 
-bool CApp::PostAutoLoadFile(const wchar_t *pszFilename, int directoryIndex, bool quickload)
+bool CApp::PostAutoLoadFile(const wchar_t *pszFilename, int directoryIndex, bool quickload, bool reu)
 {
 	if (pszFilename != nullptr)
 	{
 		if (std::wcslen(pszFilename) > 0)
 		{
-			HRESULT hr = this->c64.AutoLoad(pszFilename, directoryIndex, false, nullptr, quickload, false);
+			HRESULT hr = this->c64.AutoLoad(pszFilename, directoryIndex, false, nullptr, quickload, false, reu);
 			if (SUCCEEDED(hr))
 			{
 				return true;

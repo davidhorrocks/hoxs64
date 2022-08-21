@@ -1166,6 +1166,7 @@ void Graphics::DrawGui()
 				bool wantChangeDirectory = false;
 				bool wantChangeParentDirectory = false;
 				bool wantQuickload = false;
+				bool wantReu = false;
 				int wantChangeDirectoryIndex = -1;
 				int wantChangeParentDirectoryIndex = -1;
 				int wantOpenFileIndex = -1;
@@ -1291,9 +1292,15 @@ void Graphics::DrawGui()
 
 					ImGui::SameLine();
 					wantQuickload = directoryViewer.Get_IsQuickloadEnabled();
+					wantReu = directoryViewer.Get_IsReuEnabled();
 					if (ImGui::Checkbox("Quickload", &wantQuickload))
 					{
 						directoryViewer.Set_IsQuickloadEnabled(wantQuickload);
+					}
+
+					if (ImGui::Checkbox("Reu", &wantReu))
+					{
+						directoryViewer.Set_IsReuEnabled(wantReu);
 					}
 
 					if (!directoryViewer.Get_IsCbmDirectoryLoaded())
@@ -1507,7 +1514,7 @@ void Graphics::DrawGui()
 								wantCbmDirectoryItem = -1;
 							}
 
-							if (this->appCommand->PostAutoLoadFile(Wfs::Path_Combine(directoryViewer.GetCurrentDir(), di.GetNameW()).c_str(), wantCbmDirectoryItem, wantQuickload))
+							if (this->appCommand->PostAutoLoadFile(Wfs::Path_Combine(directoryViewer.GetCurrentDir(), di.GetNameW()).c_str(), wantCbmDirectoryItem, wantQuickload, wantReu))
 							{
 								wantClose = true;
 							}

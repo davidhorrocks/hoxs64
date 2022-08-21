@@ -262,6 +262,16 @@ namespace FileSys
 		isQuickloadEnabled = isEnabled;
 	}
 
+	bool DirectoryViewer::Get_IsReuEnabled() const
+	{
+		return isReuEnabled;
+	}
+
+	void DirectoryViewer::Set_IsReuEnabled(int isEnabled)
+	{
+		isReuEnabled = isEnabled;
+	}
+
 	HRESULT DirectoryViewer::LoadCbmDirectory(const TCHAR filename[], int maxcount, int& count, bool bPrgFilesOnly, HANDLE hevtQuit)
 	{
 		Set_CbmDirectoryLoaded(true);

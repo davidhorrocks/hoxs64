@@ -48,7 +48,7 @@
 UINT_PTR CALLBACK PRGBrowseDialogHookProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #define WM_FILEINSPECTOR WM_USER
-CPRGBrowse::CPRGBrowse()
+CPRGBrowse::CPRGBrowse() noexcept
 {
 	mhEvtQuit = 0;
 	mFileInspectorStatus = COMPLETED;
@@ -56,7 +56,6 @@ CPRGBrowse::CPRGBrowse()
 	mhWndInspector = 0;
 	mhEvtComplete = 0;
 	mbSectionOK = false;
-
 	m_hbrush = 0;
 	m_pCharGen = 0;
 	m_hParent=0;
@@ -67,6 +66,7 @@ CPRGBrowse::CPRGBrowse()
 	SelectedDirectoryIndex=-1;
 	SelectedQuickLoadDiskFile = false;
 	SelectedAlignD64Tracks = false;
+	SelectedWantReu = false;
 	mbGapsDone = false;
 	miLoadedListItemCount = 0;
 	DisableQuickLoad = false;
@@ -76,7 +76,8 @@ CPRGBrowse::~CPRGBrowse()
 {
 	CleanUp();
 }
-void CPRGBrowse::CleanUp()
+
+void CPRGBrowse::CleanUp() noexcept
 {
 	if (mhEvtComplete)
 	{
@@ -100,9 +101,10 @@ void CPRGBrowse::CleanUp()
 	}
 }
 
-HRESULT CPRGBrowse::Init(bit8 *pCharGen)
+HRESULT CPRGBrowse::Init(bit8 *pCharGen, IC64* c64)
 {
-RGBQUAD rgb;
+	RGBQUAD rgb;
+	m_pC64 = c64;
 	mhEvtComplete = CreateEvent(NULL, TRUE, TRUE, NULL);
 	if (!mhEvtComplete)
 	{
@@ -161,21 +163,47 @@ BOOL r = 0;
 
 HRESULT CPRGBrowse::CreateControls(HWND hDlg)
 {
-	m_hBrowse = GetDlgItem(hDlg, 1119);
+	m_hBrowse = GetDlgItem(hDlg, IDD_BROWSE_FILE);
 	if (!m_hBrowse)
+	{
 		return E_FAIL;
+	}
+
 	m_hListBox = GetDlgItem(hDlg, IDC_CUSTOMPRGLIST);
 	if (!m_hListBox)
+	{
 		return E_FAIL;
+	}
+
 	m_hCheckQuickLoad = GetDlgItem(hDlg, IDC_CHKQUICKLOAD);
 	if (!m_hCheckQuickLoad)
+	{
 		return E_FAIL;
+	}
+
 	m_hCheckAlignD64Tracks = GetDlgItem(hDlg, IDC_CHKALIGND64TRACKS);
 	if (!m_hCheckAlignD64Tracks)
+	{
 		return E_FAIL;
+	}
+
+	m_hCheckReu = GetDlgItem(hDlg, IDC_CHKREU);
+	if (!m_hCheckReu)
+	{
+		return E_FAIL;
+	}
 
 	SendMessage(m_hListBox, LB_SETITEMHEIGHT, 0, m_dpi.ScaleY(HEIGHT_LVITEM_96));
 	SendMessage(m_hListBox, LB_SETHORIZONTALEXTENT, m_dpi.ScaleX(MAXLENLVITEM * HEIGHT_LVFONT_96), 0);
+
+	if (m_pC64->IsReuAttached())
+	{
+		CheckDlgButton(hDlg, IDC_CHKREU, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(hDlg, IDC_CHKREU, BST_UNCHECKED);
+	}
 
 	SelectedListItem=-1;
 	SelectedDirectoryIndex=-1;
@@ -294,6 +322,7 @@ HRESULT hr;
 			break;
 		}
 	}
+
 	if (bTypeOK || mAllowTypes == FileTypeFlag::ALL)
 	{
 		int i;
@@ -304,6 +333,7 @@ HRESULT hr;
 			return 0;
 		}
 	}
+
 	InspectorCompleteOK();
 	return 0;
 }
@@ -361,6 +391,7 @@ RECT rcBrowse;
 RECT rcListBox;
 RECT rcCheckBoxQuickLoad;
 RECT rcCheckBoxAlignD64Tracks;
+RECT rcCheckReu;
 RECT rcDlg;
 LRESULT lr;
 	switch (msg) 
@@ -379,17 +410,19 @@ LRESULT lr;
 			switch(mh->code)
 			{
 			case CDN_INITDONE:
-				if (hDlg !=0 && m_hListBox!=0 && m_hCheckQuickLoad!=0 && m_hCheckAlignD64Tracks!=0)
+				if (hDlg !=0 && m_hListBox!=0 && m_hCheckQuickLoad!=0 && m_hCheckAlignD64Tracks!=0 && m_hCheckReu!=0)
 				{
 					GetClientRect(hDlg, &rcDlg);
 					GetWindowRect(m_hBrowse, &rcBrowse);
 					GetWindowRect(m_hListBox, &rcListBox);
 					GetWindowRect(m_hCheckQuickLoad, &rcCheckBoxQuickLoad);
 					GetWindowRect(m_hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks);
+					GetWindowRect(m_hCheckReu, &rcCheckReu);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcBrowse, 2);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcListBox, 2);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxQuickLoad, 2);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxAlignD64Tracks, 2);
+					MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckReu, 2);
 					m_width_custom = abs(rcDlg.right - rcDlg.left) - rcBrowse.right;
 
 					mgapTop = abs(rcBrowse.top - rcDlg.top);
@@ -397,8 +430,15 @@ LRESULT lr;
 					mbGapsDone = true;							
 					ReSize(hDlg, rcDlg.right- rcDlg.left, rcDlg.bottom - rcDlg.top);
 				}
+
 				if (DisableQuickLoad)
-					ShowWindow(m_hCheckQuickLoad, SW_HIDE);
+				{
+					if (m_hCheckQuickLoad)
+					{
+						ShowWindow(m_hCheckQuickLoad, SW_HIDE);
+					}
+				}
+
 				break;
 			case CDN_SELCHANGE:
 				CancelFileInspector();
@@ -431,6 +471,7 @@ LRESULT lr;
 				SelectedC64FileNameLength = 0;
 				SelectedQuickLoadDiskFile = (IsDlgButtonChecked(hDlg, IDC_CHKQUICKLOAD) != BST_UNCHECKED) ? true : false;
 				SelectedAlignD64Tracks = (IsDlgButtonChecked(hDlg, IDC_CHKALIGND64TRACKS) != BST_UNCHECKED) ? true : false;
+				SelectedWantReu = (IsDlgButtonChecked(hDlg, IDC_CHKREU) != BST_UNCHECKED) ? true : false;
 				memset(SelectedC64FileName, 0xA0, sizeof(SelectedC64FileName));
 				lpOfNotify = (LPOFNOTIFY) lParam;
 				lr = SendMessage(m_hListBox, LB_GETCOUNT, 0, 0);
@@ -439,15 +480,15 @@ LRESULT lr;
 					//FALSE indicates to accept the file
 					return FALSE;
 				}
+
 				lr = SendMessage(m_hListBox, LB_GETCURSEL, 0, 0);
 				if (lr == LB_ERR || lr <= 0 || lr > MAXLONG)
 				{
 					return FALSE;
 				}
-				i = (LONG)lr;
-				
-				SelectedListItem = i;
 
+				i = (LONG)lr;				
+				SelectedListItem = i;
 				if (SelectedListItem >= HEADERLINES)
 				{
 					lr = SendMessage(m_hListBox, LB_GETITEMDATA, SelectedListItem, 0);
@@ -457,9 +498,12 @@ LRESULT lr;
 						SelectedDirectoryIndex = m_c64file.GetOriginalDirectoryIndex(i);
 						SelectedC64FileNameLength = m_c64file.GetDirectoryItemName(i, SelectedC64FileName, sizeof(SelectedC64FileName));
 						if (SelectedC64FileNameLength > sizeof(SelectedC64FileName))
+						{
 							SelectedC64FileNameLength = sizeof(SelectedC64FileName);
+						}
 					}
 				}
+
 				return FALSE;
 			}
 		}
@@ -680,28 +724,31 @@ void CPRGBrowse::OnDrawListViewItem(LPDRAWITEMSTRUCT lpdis)
 
 void CPRGBrowse::ReSize(HWND hDlg, LONG w, LONG h)
 {
-RECT rcListBox;
-RECT rcCheckBoxQuickLoad;
-RECT rcCheckBoxAlignD64Tracks;
-RECT rcDlg;
-RECT rcBrowse;
+	RECT rcListBox;
+	RECT rcCheckBoxQuickLoad;
+	RECT rcCheckBoxAlignD64Tracks;
+	RECT rcCheckReu;
+	RECT rcDlg;
+	RECT rcBrowse;
 
-	if (hDlg != 0 && m_hListBox != 0 && m_hCheckQuickLoad != 0 && m_hCheckAlignD64Tracks != 0 && mbGapsDone)
+	if (hDlg != 0 && m_hListBox != 0 && m_hCheckQuickLoad != 0 && m_hCheckAlignD64Tracks != 0 && m_hCheckReu != 0 && mbGapsDone)
 	{
 		GetClientRect(hDlg, &rcDlg);
 		GetWindowRect(m_hBrowse, &rcBrowse);
 		GetWindowRect(m_hListBox, &rcListBox);
 		GetWindowRect(m_hCheckQuickLoad, &rcCheckBoxQuickLoad);
 		GetWindowRect(m_hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks);
-		MapWindowPoints(NULL, hDlg, (POINT *)&rcBrowse, 2);
-		MapWindowPoints(NULL, hDlg, (POINT *)&rcListBox, 2);
-		MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxQuickLoad, 2);
-		MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxAlignD64Tracks, 2);
+		GetWindowRect(m_hCheckReu, &rcCheckReu);
+		MapWindowPoints(NULL, hDlg, (POINT*)&rcBrowse, 2);
+		MapWindowPoints(NULL, hDlg, (POINT*)&rcListBox, 2);
+		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckBoxQuickLoad, 2);
+		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckBoxAlignD64Tracks, 2);
+		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckReu, 2);
 		int gap = m_dpi.ScaleY(4);
 		int width_custom = m_width_custom;
 		int height_custom = abs(rcDlg.bottom - rcDlg.top);
 		int width_listbox = width_custom - 2 * gap;
-		int height_listbox = height_custom - abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) - abs(rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top) - 4 * gap - mgapTop - mgapBottom;
+		int height_listbox = height_custom - abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) - abs(rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top) - abs(rcCheckReu.bottom - rcCheckReu.top) - 4 * gap - mgapTop - mgapBottom;
 		if (width_listbox < 0) width_listbox = 0;
 		if (height_listbox < 0) height_listbox = 0;
 		int cx = abs(rcDlg.right - rcDlg.left) - width_custom;
@@ -709,17 +756,27 @@ RECT rcBrowse;
 		if (width_listbox > 0 && height_listbox > 0)
 		{
 			if (!IsWindowVisible(m_hListBox))
+			{
 				ShowWindow(m_hListBox, SW_SHOW);
+			}
+
 			MoveWindow(m_hListBox, cx + gap, rcDlg.top + gap, width_listbox, height_listbox, TRUE);
 		}
 		else
 		{
 			if (IsWindowVisible(m_hListBox))
+			{
 				ShowWindow(m_hListBox, SW_HIDE);
-		}
-		MoveWindow(m_hCheckQuickLoad, cx + gap, rcDlg.top + gap + height_listbox + gap, width_listbox, abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top), TRUE);
-		MoveWindow(m_hCheckAlignD64Tracks, cx + gap, rcDlg.top + gap + height_listbox + gap + abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) + gap + abs(rcCheckBoxAlignD64Tracks.bottom-rcCheckBoxAlignD64Tracks.top), width_listbox, (rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top), TRUE);
+			}
 
+		}
+
+		int nextYpos = rcDlg.top + gap + height_listbox + gap;
+		MoveWindow(m_hCheckQuickLoad,      cx + gap, nextYpos, width_listbox, abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top), TRUE);
+		nextYpos += abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) + gap;
+		MoveWindow(m_hCheckAlignD64Tracks, cx + gap, nextYpos, width_listbox, abs(rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top), TRUE);
+		nextYpos += abs(rcCheckReu.bottom - rcCheckReu.top) + gap;
+		MoveWindow(m_hCheckReu,            cx + gap, nextYpos, width_listbox, abs(rcCheckReu.bottom - rcCheckReu.top), TRUE);
 		UpdateWindow(hDlg);
 	}
 }

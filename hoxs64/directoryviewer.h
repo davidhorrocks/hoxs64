@@ -26,6 +26,8 @@ namespace FileSys
 		void Set_IsCbmDiskTitleSelected(int isSelected);
 		bool Get_IsQuickloadEnabled() const;
 		void Set_IsQuickloadEnabled(int isEnabled);
+		bool Get_IsReuEnabled() const;
+		void Set_IsReuEnabled(int isEnabled);
 		void ClearCbmDirectory();
 		HRESULT LoadCbmDirectory(const TCHAR filename[], int maxcount, int& count, bool bPrgFilesOnly, HANDLE hevtQuit);
 		C64File c64file;
@@ -38,6 +40,7 @@ namespace FileSys
 		bool isCbmDirectoryLoaded = false;
 		bool isCbmDirectorySuccessfullyLoaded = false;
 		bool isQuickloadEnabled = false;
+		bool isReuEnabled = false;
 		int indexCurrentCbmDiskItem = false;
 	};
 
