@@ -122,7 +122,7 @@ bit8 t;
 			}
 			else
 			{
-				bool stablewarm = false;
+				bool stablewarm = true;
 				//bool stablewarm = is_warm;
 				//if (!stablewarm)
 				//{
