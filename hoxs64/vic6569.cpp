@@ -5199,7 +5199,7 @@ bit8 VIC6569::SpriteDMATurningOn()
 void VIC6569::GetState(SsVic6569V1 &state)
 {
 	ZeroMemory(&state, sizeof(state));
-	state.Version = 0;
+	state.Version = 1;
 	state.CurrentClock = CurrentClock;
 	state.cpu_next_op_code = cpu_next_op_code;
 	state.vicECM = vicECM;

@@ -4049,8 +4049,9 @@ ULARGE_INTEGER pos_next_track_header;
 		if (vars.sbVic6569V1.Version == 0)
 		{
 			vars.sbVic6569V1.vicBA = cpu.RDY;
-			vars.sbVic6569V1.Version = 0;
+			vars.sbVic6569V1.Version = 1;
 			vars.sbVic6569V1.clockBALow = cpu.FirstRdyLowClock;
+			vars.sbVic6569V1.clockBAHigh = cpu.LastRdyHighClock;			
 		}
 
 		vic.SetState(vars.sbVic6569V1);
@@ -4165,7 +4166,6 @@ ULARGE_INTEGER pos_next_track_header;
 
 		ICLK clockCpu = vars.sbCpuMainV1.common.CurrentClock;
 		ICLK clockVIC = vars.sbVic6569V1.CurrentClock;
-		vic.vicBA = cpu.RDY;
 		cart.DetachCart();
 		if (spCartInterface)
 		{
@@ -4175,16 +4175,9 @@ ULARGE_INTEGER pos_next_track_header;
 			{
 				cart.ConfigureMemoryMap();
 			}
-			else
-			{
-				cpu.ConfigureMemoryMap();
-			}
-		}
-		else
-		{
-			cpu.ConfigureMemoryMap();
 		}
 
+		cpu.ConfigureMemoryMap();
 		this->PreventClockOverflow();
 		hr = S_OK;
 	}
