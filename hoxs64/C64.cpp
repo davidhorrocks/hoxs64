@@ -633,7 +633,7 @@ int result = 0;
 		}
 	}
 
-	if (autoExitEnabled && ((ICLKS)autoexitcountdown <= 0 && autoexitcountdown <= PAL_CLOCKS_PER_FRAME))
+	if (autoExitEnabled && (ICLKS)autoexitcountdown <= 0)
 	{
 		breakpointResult.IsBreak = true;
 		breakpointResult.ExitCode = 1;
@@ -677,8 +677,6 @@ int result = 0;
 		ICLK surplessclocks = sysclock - this->limitCycles;
 		if ((ICLKS)surplessclocks >= 0 && surplessclocks <= PAL_CLOCKS_PER_FRAME)
 		{
-			cycles = cycles - std::min(sysclock - this->limitCycles, cycles);
-			sysclock = vic.CurrentClock + cycles;
 			result = 1;
 		}
 	}
@@ -1355,9 +1353,9 @@ const TCHAR CouldNotGenerateParam1[] = TEXT("Could not generate the PNG file %s"
 	cycle = cycle > 0 ? cycle : 1;
 
 	int currentFramePixelBufferNumber = vic.currentPixelBufferNumber;
-	if ((current_line == PAL_MAX_LINE || current_line == 1))
+	if (vic.vic_check_irq_in_cycle2)
 	{
-		currentFramePixelBufferNumber ^= 1;
+		current_line = 0;
 	}
 
 	int previousFramePixelBufferNumber = currentFramePixelBufferNumber ^ 1;
@@ -1403,8 +1401,10 @@ const TCHAR CouldNotGenerateParam1[] = TEXT("Could not generate the PNG file %s"
 			{
 				pMainPixelBuffer = &vic.ScreenPixelBuffer[previousFramePixelBufferNumber];
 			}
+
 			info.image_data[x] = ((*pMainPixelBuffer)[y + starty][x + startx]) & 0xf;
 		}
+
 		wp.writepng_encode_row();
 	}
 

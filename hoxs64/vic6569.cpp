@@ -2549,11 +2549,6 @@ HRESULT VIC6569::UpdateBackBufferLine(bit8 *pDestSurfLine, int videoPitch, bit16
 	}
 
 	int currentFramePixelBufferNumber = currentPixelBufferNumber;
-	if ((vic_raster_line == PAL_MAX_LINE && vic_raster_cycle == 1))
-	{
-		currentFramePixelBufferNumber ^= 1;
-	}
-
 	int previousFramePixelBufferNumber = currentFramePixelBufferNumber ^ 1;
 	int buffer_line = 0;
 	int current_line = line;
@@ -2631,9 +2626,10 @@ HRESULT VIC6569::UpdateBackBuffer()
 	}
 
 	int currentFramePixelBufferNumber = currentPixelBufferNumber;
-	if ((vic_raster_line == PAL_MAX_LINE && vic_raster_cycle == 1))
+	bit16 current_line = (bit16)vic_raster_line;
+	if (vic_check_irq_in_cycle2)
 	{
-		currentFramePixelBufferNumber ^= 1;
+		current_line = 0;
 	}
 
 	int previousFramePixelBufferNumber = currentFramePixelBufferNumber ^ 1;
@@ -2658,7 +2654,7 @@ HRESULT VIC6569::UpdateBackBuffer()
 				render(pDestSurfLine, 0, 0, width, height, pPixelBufferCurrentFrame, pPixelBufferPreviousFrame, startx, mapped.RowPitch, bufferPitch, c64display.displayFirstVicRaster);
 				if (appStatus->m_bDebug)
 				{
-					hr = UpdateBackBufferLine(pDestSurfLine, mapped.RowPitch, (bit16)vic_raster_line, vic_raster_cycle);
+					hr = UpdateBackBufferLine(pDestSurfLine, mapped.RowPitch, current_line, vic_raster_cycle);
 				}
 
 				pGx->deviceContext->Unmap(screenResource.Get(), 0);
