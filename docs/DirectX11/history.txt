@@ -1,3 +1,17 @@
+21 August 2022 v1.1.0.6
+=======================
+1) Added Commodore 1750 REU 512K RAM expansion cartridge. REU option added to the 
+auto load dialog. Added new command line -reu512k.
+
+2) Keyboard assignment dialog fixes. Enable the delete key to clear key assignments.
+
+3) Drive VIA fixes for VICE tests testprogs\drive\viavarious\via20.prg | via21.prg
+
+4) Testbench mode fix to save the most recent frame PNG.
+
+5) New debugger command to trace a number of system clocks.
+
+
 30 August 2020 v1.1.0.5
 =======================
 1) issue #4: cartridge system 3 fix plus other related cartridge register

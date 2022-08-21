@@ -1,4 +1,4 @@
-Hoxs64 v1.1.0.4 (c) 2020 David Horrocks
+Hoxs64 v1.1.0.6 (c) 2022 David Horrocks
 ========================================
 Hoxs64 is an attempt to accurately emulate the Commodore 64 computer.
 
@@ -19,6 +19,7 @@ Debugger.
 Full screen display.
 
 Cartridge support is as follows:
+Commodore REU 1750 (512K)
 Action Reply
 Retro Reply
 Easy Flash (1MB)
@@ -34,13 +35,12 @@ Simons Basic
 
 Host PC Requirements
 ====================
-Windows 10
-Windows 7
+Windows 10 or Windows 7
 DirectX 11.1
 Microsoft Visual C++ 2019 runtime installation.
 Intel or AMD 3 GHz (4.0 to 5.0 GHz recommended for some features.)
-2 GB RAM.
-DirectX 11 Graphics Card with pixel shader 4.0.
+4 GB RAM.
+DirectX 11 graphics card with pixel shader 4.0.
 
 
 [For 64 bit Hoxs64]
@@ -143,6 +143,9 @@ any programs.
 -quickload
 Memory injects the PRG file. This currently does not simulate the exact 
 memory pattern that would be caused by real load from tape or disk.
+
+-reu512k
+Enable 1750 RAM Expansion Cartridge (512K).
 
 
 -fullscreen

@@ -38,6 +38,9 @@ any programs.
 Memory injects the PRG file. This currently does not simulate the exact 
 memory pattern that would be caused by real load from tape or disk.
 
+-reu512k
+Enable 1750 RAM Expansion Cartridge (512K).
+
 
 -cia-new
 Use new CIA.
