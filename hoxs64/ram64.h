@@ -34,6 +34,7 @@ public:
 	bit8 *miIO = nullptr;
 	bit8 *miCharGen = nullptr;
 	bit8 tmp_data[0x10000] = {};
+	bit8* mMemoryRestore = nullptr;
 	bit8 *mMemory = nullptr;
 	bit8 *mKernal = nullptr;
 	bit8 *mBasic = nullptr;
@@ -41,6 +42,13 @@ public:
 	bit8 *mColorRAM = nullptr;
 	bit8 *mCharGen = nullptr;
 private:
+	static constexpr int MEM_RAM64 = 64 * 1024;
+	static constexpr int MEM_KERNAL = 8 * 1024;
+	static constexpr int MEM_BASIC = 8 * 1024;
+	static constexpr int MEM_CHARGEN = 4 * 1024;
+	static constexpr int MEM_IO = 4 * 1024;
+	static constexpr int MEM_TOTALSIZE = (MEM_RAM64 + MEM_KERNAL + MEM_BASIC + MEM_CHARGEN + MEM_IO);
+
 	Cart *m_pCart = nullptr;
 	bit8 m_iCurrentCpuMmuIndex = 0;
 	std::wstring wsAppDirectory;

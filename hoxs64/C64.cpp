@@ -2539,6 +2539,7 @@ bit32 dwordCount;
 				hr = E_OUTOFMEMORY;
 				break;
 			}
+
 			LARGE_INTEGER spos_zero;
 			LARGE_INTEGER spos_next;
 			ULARGE_INTEGER pos_current_section_header;
@@ -2971,6 +2972,11 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64Cpu = true;
 				break;
 			case SsLib::SectionType::C64Ram:
+				if (pC64Ram)
+				{
+					break;
+				}
+
 				pC64Ram = (bit8 *)malloc(SaveState::SIZE64K);
 				if (pC64Ram)
 				{
@@ -2999,6 +3005,11 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64Ram = true;
 				break;
 			case SsLib::SectionType::C64ColourRam:
+				if (pC64ColourRam)
+				{
+					break;
+				}
+
 				pC64ColourRam = (bit8 *)malloc(SaveState::SIZECOLOURAM);
 				if (pC64ColourRam)
 				{
@@ -3479,6 +3490,11 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64SidNumber8 = true;
 				break;
 			case SsLib::SectionType::C64KernelRom:
+				if (pC64KernelRom)
+				{
+					break;
+				}
+
 				pC64KernelRom = (bit8 *)malloc(SaveState::SIZEC64KERNEL);
 				if (pC64KernelRom)
 				{
@@ -3503,6 +3519,11 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64KernelRom = true;
 				break;
 			case SsLib::SectionType::C64BasicRom:
+				if (pC64BasicRom)
+				{
+					break;
+				}
+
 				pC64BasicRom = (bit8 *)malloc(SaveState::SIZEC64BASIC);
 				if (pC64BasicRom)
 				{
@@ -3517,6 +3538,7 @@ ULARGE_INTEGER pos_next_track_header;
 						eof = true;
 						hr = E_FAIL;
 					}
+
 					if (FAILED(hr))
 						break;
 				}
@@ -3527,6 +3549,11 @@ ULARGE_INTEGER pos_next_track_header;
 				bC64BasicRom = true;
 				break;
 			case SsLib::SectionType::C64CharRom:
+				if (pC64CharRom)
+				{
+					break;
+				}
+
 				pC64CharRom = (bit8 *)malloc(SaveState::SIZEC64CHARGEN);
 				if (pC64CharRom)
 				{
@@ -3548,6 +3575,7 @@ ULARGE_INTEGER pos_next_track_header;
 				{
 					hr = E_OUTOFMEMORY;
 				}
+
 				bC64CharRom = true;
 				break;
 			case SsLib::SectionType::C64Tape:
@@ -3577,6 +3605,7 @@ ULARGE_INTEGER pos_next_track_header;
 					hr = E_FAIL;
 					break;
 				}
+
 				ZeroMemory(&vars.sbTapeDataHeader, sizeof(vars.sbTapeDataHeader));
 				bytesToRead = sizeof(vars.sbTapeDataHeader);
 				hr = pfs->Read(&vars.sbTapeDataHeader, bytesToRead, &bytesRead);
@@ -3659,15 +3688,21 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				else
 				{
-					hr = hw.Decompress(vars.sbTapeDataHeader.tape_max_counter, &pTapeData);
+					hr = hw.DecompressToExistingBuffer(vars.sbTapeDataHeader.tape_max_counter, pTapeData);
 					if (FAILED(hr))
 					{
 						break;
 					}
 				}
+
 				bTapeData = true;
 				break;
 			case SsLib::SectionType::DriveRam:
+				if (pDriveRam)
+				{
+					break;
+				}
+
 				pDriveRam = (bit8 *)malloc(SaveState::SIZEDRIVERAM);
 				if (pDriveRam)
 				{
@@ -3692,6 +3727,11 @@ ULARGE_INTEGER pos_next_track_header;
 				bDriveRam = true;
 				break;
 			case SsLib::SectionType::DriveRom:
+				if (pDriveRom)
+				{
+					break;
+				}
+
 				pDriveRom = (bit8 *)malloc(SaveState::SIZEDRIVEROM);
 				if (pDriveRom)
 				{
@@ -3845,21 +3885,12 @@ ULARGE_INTEGER pos_next_track_header;
 				break;
 			case SsLib::SectionType::DriveDiskImageV0:
 			case SsLib::SectionType::DriveDiskImageV1:
-				trackbufferLength = (DISK_RAW_TRACK_SIZE+1)*sizeof(bit32);
-				if (!pTrackBuffer)
-				{
-					pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, trackbufferLength);
-					if (!pTrackBuffer)
-					{
-						hr = E_OUTOFMEMORY;
-						break;
-					}
-				}
 				hr = hw.SetFile(pfs);
 				if (FAILED(hr))
 				{
 					break;
 				}
+
 				if (vars.sh.id == SsLib::SectionType::DriveDiskImageV0)
 				{
 					numberOfHalfTracks = G64_MAX_TRACKS;
@@ -3878,20 +3909,24 @@ ULARGE_INTEGER pos_next_track_header;
 						eof = true;
 						hr = E_FAIL;
 					}
+
 					if (FAILED(hr))
 					{
 						break;
 					}
+
 					if (numberOfHalfTracks > HOST_MAX_TRACKS)
 					{
 						numberOfHalfTracks = HOST_MAX_TRACKS;
 					}
 				}
+
 				hr = pfs->Seek(spos_zero, STREAM_SEEK_CUR, &pos_current_track_header);
 				if (FAILED(hr))
 				{
 					break;
-				}				
+				}	
+
 				for (i=0; i < numberOfHalfTracks; i++)
 				{
 					bytesToRead = sizeof(vars.trackHeader);
@@ -3905,22 +3940,27 @@ ULARGE_INTEGER pos_next_track_header;
 						eof = true;
 						hr = E_FAIL;
 					}
+
 					if (FAILED(hr))
 					{
 						break;
 					}
+
 					if (vars.trackHeader.gap_count > P64PulseSamplesPerRotation || (vars.trackHeader.number >= numberOfHalfTracks))
 					{
 						hr = E_FAIL;
 						break;
 					}
+
 					if (vars.trackHeader.gap_count * sizeof(bit32) > trackbufferLength)
 					{
 						if (pTrackBuffer != NULL)
 						{
+							trackbufferLength = 0;
 							GlobalFree(pTrackBuffer);
 							pTrackBuffer = NULL;
 						}
+
 						trackbufferLength = (vars.trackHeader.gap_count * sizeof(bit32)) * 2;
 						pTrackBuffer = (bit32 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, trackbufferLength);
 						if (!pTrackBuffer)
@@ -3929,8 +3969,9 @@ ULARGE_INTEGER pos_next_track_header;
 							break;
 						}
 					}
+
 					pos_next_track_header.QuadPart = pos_current_track_header.QuadPart + vars.trackHeader.size;
-					TP64PulseStream& track = diskdrive.m_P64Image.PulseStreams[P64FirstHalfTrack + vars.trackHeader.number];
+					//TP64PulseStream& track = diskdrive.m_P64Image.PulseStreams[P64FirstHalfTrack + vars.trackHeader.number];
 					if (vars.trackHeader.gap_count > 1)
 					{
 						bytesToRead = sizeof(vars.chdr);
@@ -3973,12 +4014,13 @@ ULARGE_INTEGER pos_next_track_header;
 						}
 						else
 						{
-							hr = hw.Decompress(vars.trackHeader.gap_count, &pTrackBuffer);
+							hr = hw.DecompressToExistingBuffer(vars.trackHeader.gap_count, pTrackBuffer);
 							if (FAILED(hr))
 							{
 								break;
 							}
 						}
+
 						this->LoadTrackStateV0(i, pTrackBuffer, diskdrive.m_P64Image, vars.trackHeader.gap_count);
 					}
 					spos_next.QuadPart = pos_next_track_header.QuadPart;
@@ -4002,6 +4044,7 @@ ULARGE_INTEGER pos_next_track_header;
 				}
 				break;
 			}
+
 			if (FAILED(hr))
 			{
 				break;
@@ -4013,14 +4056,19 @@ ULARGE_INTEGER pos_next_track_header;
 				hr = S_OK;
 			}
 		}
+
 		if (FAILED(hr))
+		{
 			break;
+		}
 	} while (false);
+
 	if (pfs)
 	{
 		pfs->Release();
 		pfs = NULL;
 	}
+
 	if (SUCCEEDED(hr) && hasC64)
 	{
 		cpu.SetState(vars.sbCpuMainV1);

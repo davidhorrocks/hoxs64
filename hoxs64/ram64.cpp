@@ -35,7 +35,6 @@
 RAM64::RAM64() noexcept
 {
 	Zero64MemoryPointers();
-	randengine_main.seed(rd());
 }
 
 RAM64::~RAM64()
@@ -49,6 +48,9 @@ void RAM64::InitReset(bool poweronreset)
 	{
 		return;
 	}
+
+	// The copy from mMemoryRestore covers the case where a saved state that was loaded from file has overwritten the ROMs.
+	memcpy(mMemory, mMemoryRestore, MEM_TOTALSIZE);
 	int i;
 	bool usecommon = false;
 	bool userandom = true;
@@ -128,6 +130,8 @@ void RAM64::InitReset(bool poweronreset)
 				}
 
 				break;
+			default:
+				break;
 			}
 		}
 	}
@@ -173,6 +177,7 @@ HRESULT RAM64::Init(const wchar_t* pwszAppDirectory, Cart* cart)
 	static const wchar_t ROM_NAME_KERNAL[] = L"kernal.rom";
 	static const wchar_t ROM_NAME_BASIC[] = L"basic.rom";
 	static const wchar_t ROM_NAME_CHAR[] = L"char.rom";
+	randengine_main.seed(rd());
 
 	ClearError();
 	m_pCart = cart;
@@ -269,6 +274,8 @@ HRESULT RAM64::Init(const wchar_t* pwszAppDirectory, Cart* cart)
 		return SetError(E_FAIL, TEXT("Could not read 0x1000 bytes from char.rom"));
 	}
 
+	memcpy(mMemoryRestore, mMemory, MEM_TOTALSIZE);
+
 	InitMMU();
 	return S_OK;
 }
@@ -297,33 +304,37 @@ void RAM64::LoadResetPattern()
 	}
 }
 
-HRESULT RAM64::Allocate64Memory() {
-	constexpr int MEM_RAM64 = 64 * 1024;
-	constexpr int MEM_KERNAL = 8 * 1024;
-	constexpr int MEM_BASIC = 8 * 1024;
-	constexpr int MEM_CHARGEN = 4 * 1024;
-	constexpr int MEM_IO = 4 * 1024;
-
+HRESULT RAM64::Allocate64Memory() 
+{
 	Free64Memory();
-	if (NULL != (mMemory = (bit8*)VirtualAlloc(NULL, (MEM_RAM64 + MEM_KERNAL + MEM_BASIC + MEM_CHARGEN + MEM_IO), MEM_COMMIT, PAGE_READWRITE)))
+	mMemory = (bit8*)GlobalAlloc(GPTR, MEM_TOTALSIZE);
+	if (mMemory != nullptr)
 	{
-		mKernal = mMemory + (INT_PTR)MEM_RAM64;
-		mBasic = mKernal + (INT_PTR)MEM_KERNAL;
-		mIO = mBasic + (INT_PTR)MEM_BASIC;
-		mCharGen = mIO + (INT_PTR)MEM_IO;
+		mMemoryRestore = (bit8*)GlobalAlloc(GPTR, MEM_TOTALSIZE);
+		if (mMemoryRestore != nullptr)
+		{
+			mKernal = mMemory + (INT_PTR)MEM_RAM64;
+			mBasic = mKernal + (INT_PTR)MEM_KERNAL;
+			mIO = mBasic + (INT_PTR)MEM_BASIC;
+			mCharGen = mIO + (INT_PTR)MEM_IO;
+		}
+
 		return S_OK;
 	}
-	else
-	{
-		return SetError(E_FAIL, TEXT("Allocate64Memory() failed"));
-	}
+
+	return SetError(E_FAIL, TEXT("Allocate64Memory() failed"));
 }
 
 void RAM64::Free64Memory() noexcept
 {
 	if (mMemory)
 	{
-		VirtualFree(mMemory, 0, MEM_RELEASE);
+		GlobalFree(mMemory);
+	}
+
+	if (mMemoryRestore)
+	{
+		GlobalFree(mMemoryRestore);
 	}
 
 	Zero64MemoryPointers();
@@ -332,18 +343,18 @@ void RAM64::Free64Memory() noexcept
 void RAM64::Zero64MemoryPointers() noexcept
 {
 	m_iCurrentCpuMmuIndex = 0;
-	mMemory = 0L;
-	mKernal = 0L;
-	mBasic = 0L;
-	mIO = 0L;
-	mCharGen = 0L;
-	mColorRAM = 0L;
-
-	miMemory = 0L;
-	miKernal = 0L;
-	miBasic = 0L;
-	miIO = 0L;
-	miCharGen = 0L;
+	mMemory = nullptr;
+	mKernal = nullptr;
+	mBasic = nullptr;
+	mIO = nullptr;
+	mCharGen = nullptr;
+	mColorRAM = nullptr;
+	mMemoryRestore = nullptr;
+	miMemory = nullptr;
+	miKernal = nullptr;
+	miBasic = nullptr;
+	miIO = nullptr;
+	miCharGen = nullptr;
 }
 
 int RAM64::GetCurrentCpuMmuMemoryMap()

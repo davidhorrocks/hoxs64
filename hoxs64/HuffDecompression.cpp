@@ -56,38 +56,73 @@ HRESULT HuffDecompression::SetFile(IStream *pStream)
 
 void HuffDecompression::InitSetFile()
 {
-	//writeError=false;
-	//bufferPos=0;
 }
 
-HRESULT HuffDecompression::Decompress(unsigned int numberOfDoubleWords, bit32** data)
+HRESULT HuffDecompression::DecompressGlobalAlloc(unsigned int numberOfDoubleWords, bit32** data)
 {
-HuffNode *rootNode;
-bit8 subStreamHeader1;
-bit8 subStreamHeader2;
-FDIStream fdiStream;
-char currentByte;
-short currentWord;
-bit8 frame;
-HuffNode *currentNode,*hn;
-HRESULT hr;
-DWORD v;
-DWORD mask;
-CHuffNodeArray nodeArray;
-HuffNodeHolder nodeHolder;
-int cnt = 0;
-ULONG bytesRead = 0;
-ULONG bytesToRead = 0;
+	FDIStream fdiStream;
+	if (data == nullptr)
+	{
+		return E_POINTER;
+	}
+
+	*data = nullptr;
+	fdiStream.ownsTheDataAutomaticFree = true;
+	fdiStream.data = (bit8*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (SIZE_T)numberOfDoubleWords * 4);
+	if (!fdiStream.data)
+	{
+		return E_OUTOFMEMORY;
+	}
+
+	HRESULT hr = DecompressStream(numberOfDoubleWords, fdiStream);
+	if (SUCCEEDED(hr))
+	{
+		*data = (bit32*)fdiStream.data;
+		fdiStream.data = nullptr; // Prevent fdiStream called GlobalFree in its destructor.
+	}
+
+	return hr;
+}
+
+HRESULT HuffDecompression::DecompressToExistingBuffer(unsigned int numberOfDoubleWords, bit32* data)
+{
+	if (data == nullptr)
+	{
+		return E_POINTER;
+	}
+
+	FDIStream fdiStream;
+	fdiStream.ownsTheDataAutomaticFree = false;
+	fdiStream.data = (bit8 *)data;
+	return DecompressStream(numberOfDoubleWords, fdiStream);	
+}
+
+HRESULT HuffDecompression::DecompressStream(unsigned int numberOfDoubleWords, FDIStream& fdiStream)
+{
+	HuffNode *rootNode;
+	bit8 subStreamHeader1;
+	bit8 subStreamHeader2;
+	char currentByte;
+	short currentWord;
+	bit8 frame;
+	HuffNode *currentNode,*hn;
+	HRESULT hr;
+	DWORD v;
+	DWORD mask;
+	CHuffNodeArray nodeArray;
+	HuffNodeHolder nodeHolder;
+	int cnt = 0;
+	ULONG bytesRead = 0;
+	ULONG bytesToRead = 0;
 
 	if (numberOfDoubleWords >= 0x40000000)
 	{
 		return E_INVALIDARG;
 	}
 
-	fdiStream.data = (bit8 *)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, (SIZE_T)numberOfDoubleWords * 4);
 	if (!fdiStream.data)
 	{
-		return E_OUTOFMEMORY;
+		return E_POINTER;
 	}
 
 	do
@@ -352,7 +387,5 @@ ULONG bytesToRead = 0;
 		}
 	} while (fdiStream.lowBitNumber != 0);
 
-	*data = (bit32 *)fdiStream.data;
-	fdiStream.data = 0;
 	return S_OK;
 }

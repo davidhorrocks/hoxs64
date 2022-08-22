@@ -132,6 +132,7 @@ public:
 	TP64Image m_P64Image;	
 	bit8 *m_pD1541_ram = nullptr;
 	bit8 *m_pD1541_rom = nullptr;
+	bit8* m_pD1541_restore_rom = nullptr;
 	bit8 *m_pIndexedD1541_rom = nullptr;
 	__int64 m_diskd64clk_xf = 0;
 
@@ -147,6 +148,7 @@ public:
 	static const __int64 Disk64clk_dy1 = 2*985248;
 	static const __int64 Disk64clk_dy2 = 2*1000000;
 private:
+	constexpr static int ROM_SIZE = 0x4000;
 	std::wstring wsAppDirectory;
 	HANDLE mhThread = 0;
 	DWORD mThreadId = 0;

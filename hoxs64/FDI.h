@@ -77,6 +77,7 @@ public:
 	bit8 *data = nullptr;
 	bool bSignExtend = false;
 	bit8 bitSize = 0;
+	bool ownsTheDataAutomaticFree = true;
 };
 
 class FDIData

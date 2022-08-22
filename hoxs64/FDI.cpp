@@ -80,13 +80,17 @@ FDIStream::FDIStream()
 	data=0;
 	highBitNumber=0;
 	lowBitNumber=0;
+	ownsTheDataAutomaticFree = true;
 };
 
 FDIStream::~FDIStream()
 {
-	if (data)
+	if (ownsTheDataAutomaticFree)
 	{
-		GlobalFree(data);
-		data = 0;
+		if (data != nullptr)
+		{
+			GlobalFree(data);
+			data = 0;
+		}
 	}
 }

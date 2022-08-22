@@ -2620,7 +2620,7 @@ unsigned int i;
 			}
 			else if (fdiStreamsHeader.aveCompression==1)
 			{
-				hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
+				hr = hd.DecompressGlobalAlloc(fdiStreamsHeader.numPulses, &fdiStreamsHeader.aveData);
 			}
 			else
 			{
@@ -2648,7 +2648,7 @@ unsigned int i;
 				}
 				else if (fdiStreamsHeader.minCompression==1)
 				{
-					hr = hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
+					hr = hd.DecompressGlobalAlloc(fdiStreamsHeader.numPulses, &fdiStreamsHeader.minData);
 				}
 				else
 				{
@@ -2675,7 +2675,7 @@ unsigned int i;
 					}
 					else if (fdiStreamsHeader.maxCompression==1)
 					{
-						hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
+						hr =  hd.DecompressGlobalAlloc(fdiStreamsHeader.numPulses, &fdiStreamsHeader.maxData);
 					}
 					else
 					{
@@ -2706,7 +2706,7 @@ unsigned int i;
 				}
 				else if (fdiStreamsHeader.idxCompression==1)
 				{
-					hr =  hd.Decompress(fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
+					hr =  hd.DecompressGlobalAlloc(fdiStreamsHeader.numPulses, &fdiStreamsHeader.idxData);
 				}
 				else
 				{

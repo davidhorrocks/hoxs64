@@ -108,6 +108,7 @@ DiskInterface::DiskInterface()
 	m_bLastPulseState = 0;
 	m_pD1541_ram = nullptr;
 	m_pD1541_rom = nullptr;
+	m_pD1541_restore_rom = nullptr;
 	m_pIndexedD1541_rom = nullptr;
 	m_diskd64clk_xf = 0;
 
@@ -144,9 +145,12 @@ void DiskInterface::InitReset(ICLK sysclock, bool poweronreset)
 {
 	ThreadSignalPause();
 	WaitThreadReady();
+	if (m_pD1541_rom != nullptr && m_pD1541_restore_rom != nullptr)
+	{
+		memcpy(m_pD1541_rom, m_pD1541_restore_rom, ROM_SIZE);
+	}
 
 	m_diskd64clk_xf = -Disk64clk_dy2 / 2;
-
 	m_currentHeadIndex = 0;
 	m_shifterWriter_UD3 = 0;
 	m_shifterReader_UD2 = 0;
@@ -281,7 +285,14 @@ HRESULT DiskInterface::Init(CAppStatus* appStatus, IC64* pIC64, IC64Event* pIC64
 	}
 
 	m_pD1541_rom = (bit8*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 0x4000);
-	if (m_pD1541_ram == NULL)
+	if (m_pD1541_rom == NULL)
+	{
+		Cleanup();
+		return SetError(E_OUTOFMEMORY, TEXT("Memory allocation failed"));
+	}
+
+	m_pD1541_restore_rom = (bit8*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 0x4000);
+	if (m_pD1541_restore_rom == NULL)
 	{
 		Cleanup();
 		return SetError(E_OUTOFMEMORY, TEXT("Memory allocation failed"));
@@ -303,7 +314,7 @@ HRESULT DiskInterface::Init(CAppStatus* appStatus, IC64* pIC64, IC64Event* pIC64
 		return SetError(E_FAIL, TEXT("Could not open c1541.rom"));
 	}
 
-	r = ReadFile(hfile, m_pD1541_rom, 0x4000, &bytes_read, NULL);
+	r = ReadFile(hfile, m_pD1541_rom, ROM_SIZE, &bytes_read, NULL);
 	CloseHandle(hfile);
 	if (r == 0)
 	{
@@ -311,12 +322,13 @@ HRESULT DiskInterface::Init(CAppStatus* appStatus, IC64* pIC64, IC64Event* pIC64
 		return SetError(E_FAIL, TEXT("Could not read from c1541.rom"));
 	}
 
-	if (bytes_read != 0x4000)
+	if (bytes_read != ROM_SIZE)
 	{
 		Cleanup();
 		return SetError(E_FAIL, TEXT("Could not read 0x4000 bytes from c1541.rom"));
 	}
 
+	memcpy(m_pD1541_restore_rom, m_pD1541_rom, ROM_SIZE);
 	m_pIndexedD1541_rom = m_pD1541_rom - 0xC000;
 	via1.Init(1, appStatus, &cpu, this);
 	via2.Init(2, appStatus, &cpu, this);
@@ -602,6 +614,12 @@ void DiskInterface::Cleanup() noexcept
 	{
 		GlobalFree(m_pD1541_rom);
 		m_pD1541_rom=NULL;
+	}
+
+	if (m_pD1541_restore_rom)
+	{
+		GlobalFree(m_pD1541_restore_rom);
+		m_pD1541_restore_rom = NULL;
 	}
 
 	m_pIndexedD1541_rom=NULL;

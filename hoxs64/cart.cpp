@@ -654,7 +654,9 @@ HRESULT CartCommon::LoadState(IStream *pfs, int version)
 							bytesToRead = dataheader.byteCount;
 							hr = pfs->Read(pcd->pData, bytesToRead, &bytesRead);
 							if (FAILED(hr))
+							{
 								break;
+							}
 						}
 						else
 						{
@@ -673,9 +675,12 @@ HRESULT CartCommon::LoadState(IStream *pfs, int version)
 
 							if (dwordCount > 0)
 							{
-								hr = hw.Decompress(dwordCount, (bit32 **)&pcd->pData);
+								hr = hw.DecompressGlobalAlloc(dwordCount, (bit32 **)&pcd->pData);
 								if (FAILED(hr))
+								{
 									break;
+								}
+
 								pcd->ownData = true;
 							}
 						}

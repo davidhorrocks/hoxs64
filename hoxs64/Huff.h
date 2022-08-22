@@ -1,5 +1,6 @@
 #pragma once
 #include "filestream.h"
+#include "FDI.h"
 
 #define HUFFBUFFERSIZE (32)
 
@@ -97,9 +98,12 @@ public:
 	HRESULT SetFile(HANDLE hfile, bool bOwnFileHandle);
 	HRESULT SetFile(IStream *pStream);
 
-	HRESULT Decompress(unsigned int numberOfDoubleWords, bit32 **data);
+	HRESULT DecompressGlobalAlloc(unsigned int numberOfDoubleWords, bit32 **data);
+	HRESULT DecompressToExistingBuffer(unsigned int numberOfDoubleWords, bit32* data);
+
 
 private:
+	HRESULT DecompressStream(unsigned int numberOfDoubleWords, FDIStream& fdiStream);
 	void InitSetFile();
 
 	IStream *m_pStream;
