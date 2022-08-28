@@ -448,7 +448,7 @@ CConfig::CConfig() noexcept
 	LoadDefaultSetting();
 }
 
-void CConfig::SetCiaNewOldMode(bool isNew)
+void CConfig::SetCiaNewOldMode(bool isNew) noexcept
 {
 	if (isNew)
 	{
@@ -1163,6 +1163,7 @@ DWORD dw;
 
 			//Joystick X axis
 			jconfig.horizontalAxisAxisCount = 0;
+			jconfig.dwOfs_X = DIJOFS_X;
 			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisX], &dw);
 			if (lRetCode == ERROR_SUCCESS)
 			{
@@ -1173,18 +1174,26 @@ DWORD dw;
 				jconfig.isValidXAxis = true;
 			}
 
-			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisX], &dw);
-			if (lRetCode == ERROR_SUCCESS)
+			if (jconfig.isValidXAxis)
 			{
-				if (dw <= (sizeof(DIJOYSTATE2) - sizeof(DWORD)))
+				lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisX], &dw);
+				if (lRetCode == ERROR_SUCCESS)
 				{
-					jconfig.dwOfs_X = dw;
-					jconfig.horizontalAxisAxisCount = 1;
+					if (dw <= (sizeof(DIJOYSTATE2) - sizeof(LONG)))
+					{
+						jconfig.dwOfs_X = dw;
+						jconfig.horizontalAxisAxisCount = 1;
+					}
 				}
+			}
+			else
+			{
+				jconfig.horizontalAxisAxisCount = 0;
 			}
 					
 			//Joystick Y axis
 			jconfig.verticalAxisAxisCount = 0;
+			jconfig.dwOfs_Y = DIJOFS_Y;
 			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynIsValidAxisY], &dw);
 			if (lRetCode == ERROR_SUCCESS)
 			{
@@ -1195,15 +1204,22 @@ DWORD dw;
 				jconfig.isValidYAxis = true;
 			}
 
-			lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisY], &dw);
-			if (lRetCode == ERROR_SUCCESS)
+			if (jconfig.isValidYAxis)
 			{
-				if (dw <= (sizeof(DIJOYSTATE2) - sizeof(DWORD)))
+				lRetCode = RegReadDWordOrStr(hKey1, JoyKeyName::Name[joyIndex][JoyKeyName::JoynAxisY], &dw);
+				if (lRetCode == ERROR_SUCCESS)
 				{
-					jconfig.dwOfs_Y = dw;
-					jconfig.verticalAxisAxisCount = 1;
+					if (dw <= (sizeof(DIJOYSTATE2) - sizeof(LONG)))
+					{
+						jconfig.dwOfs_Y = dw;
+						jconfig.verticalAxisAxisCount = 1;
+					}
 				}
-			}					
+			}
+			else
+			{
+				jconfig.verticalAxisAxisCount = 0;
+			}
 
 			// Read map of game buttons to C64 joystick.
 			ReadJoystickButtonList(hKey1, joystickNumber, JoyKeyName::Fire1, jconfig.fire1ButtonOffsets, jconfig.fire1ButtonCount);
