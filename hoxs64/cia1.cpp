@@ -459,6 +459,11 @@ void CIA1::SetKeyMatrixDown(bit8 row, bit8 col)
 	KEYMATRIX_DOWN(row , col);
 }
 
+void CIA1::SetKeyMatrixCodeDown(C64MatrixCodes::C64MatrixCode code)
+{
+	KEYMATRIX_DOWN(((code >> 3) & 0x7), (code & 0x7));
+}
+
 bool CIA1::ReadJoyAxis(int joyindex, struct joyconfig& joycfg, unsigned int& axis, bool& fire1, bool& fire2, unsigned char c64keyboard[])
 {
 LPDIRECTINPUTDEVICE7 joystick7;

@@ -113,3 +113,81 @@ public:
 private:
 	static  void setkeyrc(C64Key key, unsigned char row, unsigned char col) noexcept;
 };
+
+struct C64MatrixCodes
+{
+	typedef enum tagC64MatrixCode : unsigned char
+	{
+		C64MK_DEL = 0,
+		C64MK_RETURN = 1,
+		C64MK_CURSORRIGHT = 2,
+		C64MK_F7 = 3,
+		C64MK_F1 = 4,
+		C64MK_F3 = 5,
+		C64MK_F5 = 6,
+		C64MK_CURSORDOWN = 7,
+
+		C64MK_3 = 8,
+		C64MK_W = 9,
+		C64MK_A = 0xA,
+		C64MK_4 = 0xB,
+		C64MK_Z = 0xC,
+		C64MK_S = 0xD,
+		C64MK_E = 0xE,
+		C64MK_LEFTSHIFT = 0xF,
+
+		C64MK_5 = 0x10,
+		C64MK_R = 0x11,
+		C64MK_D = 0x12,
+		C64MK_6 = 0x13,
+		C64MK_C = 0x14,
+		C64MK_F = 0x15,
+		C64MK_T = 0x16,
+		C64MK_X = 0x17,
+
+		C64MK_7 = 0x18,
+		C64MK_Y = 0x19,
+		C64MK_G = 0x1A,
+		C64MK_8 = 0x1B,
+		C64MK_B = 0x1C,
+		C64MK_H = 0x1D,
+		C64MK_U = 0x1E,
+		C64MK_V = 0x1F,
+
+		C64MK_9 = 0x20,
+		C64MK_I = 0x21,
+		C64MK_J = 0x22,
+		C64MK_0 = 0x23,
+		C64MK_M = 0x24,
+		C64MK_K = 0x25,
+		C64MK_O = 0x26,
+		C64MK_N = 0x27,
+
+		C64MK_PLUS = 0x28,
+		C64MK_P = 0x29,
+		C64MK_L = 0x2A,
+		C64MK_MINUS = 0x2B,
+		C64MK_DOT = 0x2C,
+		C64MK_COLON = 0x2D,
+		C64MK_AT = 0x2E,
+		C64MK_COMMA = 0x2F,
+
+		C64MK_POUND = 0x30,
+		C64MK_ASTERISK = 0x31,
+		C64MK_SEMICOLON = 0x32,
+		C64MK_HOME = 0x33,
+		C64MK_RIGHTSHIFT = 0x34,
+		C64MK_EQUAL = 0x35,
+		C64MK_ARROWUP = 0x36,
+		C64MK_SLASH = 0x37,
+
+		C64MK_1 = 0x38,
+		C64MK_ARROWLEFT = 0x39,
+		C64MK_CONTROL = 0x3A,
+		C64MK_2 = 0x3B,
+		C64MK_SPACE = 0x3C,
+		C64MK_COMMODORE = 0x3D,
+		C64MK_Q = 0x3E,
+		C64MK_STOP = 0x3F,
+	} C64MatrixCode;
+};

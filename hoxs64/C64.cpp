@@ -816,16 +816,16 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		}
 		else if (period < (resettime + 6))
 		{
-			cia1.SetKeyMatrixDown(1, 7);//lshift
+			cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_LEFTSHIFT);
 		}
 		else if (period  < (resettime + 9))
 		{
-			cia1.SetKeyMatrixDown(1, 7);//lshift
-			cia1.SetKeyMatrixDown(7, 7);//stop
+			cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_LEFTSHIFT);
+			cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_STOP);
 		}
 		else if (period < (resettime + 12))
 		{
-			cia1.SetKeyMatrixDown(1, 7);//lshift
+			cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_LEFTSHIFT);
 			break;
 		}
 		else 
@@ -883,28 +883,28 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		{
 			if (period < resettime + 3)	
 			{
-				cia1.SetKeyMatrixDown(2, 1);//r
+				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_R);
 			}
 			else if (period < resettime + 6)
 			{
 			}
 			else if (period < resettime + 9)	
 			{
-				cia1.SetKeyMatrixDown(3, 6);//u
+				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_U);
 			}
 			else if (period < resettime + 12)
 			{
 			}
 			else if (period < resettime + 15)	
 			{
-				cia1.SetKeyMatrixDown(4, 7);//n
+				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_N);
 			}
 			else if (period < resettime + 18)
 			{
 			}
 			else if (period < resettime + 21)
 			{
-				cia1.SetKeyMatrixDown(0, 1);//return
+				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_RETURN);
 			}
 			else
 			{
@@ -916,14 +916,14 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		{
 			if (period < resettime + 3)	
 			{
-				cia1.SetKeyMatrixDown(1, 5);//s
+				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_S);
 			}
 			else if (period < resettime + 6)
 			{
 			}
 			else if (period < resettime + 9)
 			{
-				cia1.SetKeyMatrixDown(0, 1);//return
+				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_RETURN);
 			}
 			else
 			{
@@ -1068,12 +1068,12 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		}
 		else if (period < resettime + 6)
 		{
-			cia1.SetKeyMatrixDown(1, 7);//lshift
+			cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_LEFTSHIFT);
 		}
 		else if (period < resettime + 9)
 		{
-			cia1.SetKeyMatrixDown(1, 7);//lshift
-			cia1.SetKeyMatrixDown(7, 7);//stop
+			cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_LEFTSHIFT);
+			cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_STOP);
 		}
 		else
 		{

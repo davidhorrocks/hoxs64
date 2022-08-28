@@ -55,6 +55,7 @@ public:
 	void ReadKeyboard();
 	void ResetKeyboard();
 	void SetKeyMatrixDown(bit8 row, bit8 col);
+	void SetKeyMatrixCodeDown(C64MatrixCodes::C64MatrixCode code);
 	ICLK NextScanDelta();
 	void GetState(SsCia1V2 &state);
 	void SetState(const SsCia1V2 &state);
