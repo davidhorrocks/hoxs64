@@ -122,6 +122,7 @@ void C64::InitReset(ICLK sysclock, bool poweronreset)
 	cia2.CurrentClock = sysclock;
 	sid.CurrentClock = sysclock;
 	cpu.CurrentClock = sysclock;
+	cart.SetCurrentClock(sysclock);
 	diskdrive.CurrentPALClock = sysclock;
 	diskdrive.CurrentClock = sysclock;
 	diskdrive.cpu.CurrentClock = sysclock;
@@ -1603,14 +1604,22 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 			{
 				autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
 				appStatus->m_bAutoload = true;
-				cart.DetachCart();
 				if (bReu)
 				{
-					cart.LoadReu1750();
-					cart.AttachCart();
+					if (!cart.IsCartAttached() || !cart.IsREU())
+					{
+						cart.DetachCart();
+						cart.LoadReu1750();
+						cart.AttachCart();
+					}
+				}
+				else
+				{
+					cart.DetachCart();
 				}
 
 				Reset(cpu.CurrentClock, true);
+				this->pIC64Event->Reset();
 				return hr;
 			}
 			else
@@ -1645,14 +1654,21 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 		return SetError(E_FAIL,TEXT("Unknown file type."));
 	}
 
-	cart.DetachCart();
 	if (bReu)
 	{
-		cart.LoadReu1750();
-		cart.AttachCart();
+		if (!cart.IsCartAttached() || !cart.IsREU())
+		{
+			cart.LoadReu1750();
+			cart.AttachCart();
+		}
+	}
+	else
+	{
+		cart.DetachCart();
 	}
 
 	Reset(cpu.CurrentClock, true);
+	this->pIC64Event->Reset();
 	return S_OK;
 }
 

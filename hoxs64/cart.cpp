@@ -518,7 +518,7 @@ HRESULT CartCommon::LoadState(IStream *pfs, int version)
 				break;
 			}
 
-			pZeroBankData = &pCartData[memoryheader.ramsize];
+			pZeroBankData = &pCartData[amountOfExtraRAM];
 			if (memoryheader.ramsize > 0)
 			{
 				bytesToRead = memoryheader.ramsize;
@@ -1819,6 +1819,7 @@ HRESULT Cart::LoadReu1750()
 	CrtHeader hdr;
 	CrtBankList* plstBank = nullptr;
 	bit8* pCartData = nullptr;
+	bit8* pZeroBankData = nullptr;
 	try
 	{		
 		Cart::MarkHeaderAsReu(hdr);
@@ -1830,6 +1831,8 @@ HRESULT Cart::LoadReu1750()
 			throw std::bad_alloc();
 		}
 
+		pZeroBankData = &pCartData[Cart::REU_1750_RAM];
+
 		hr = S_OK;
 	}
 	catch (std::exception&)
@@ -1839,18 +1842,20 @@ HRESULT Cart::LoadReu1750()
 
 	if (SUCCEEDED(hr))
 	{
-		DetachCart();
+		CleanUp();
 		m_crtHeader = hdr;
 		if (pCartData)
 		{
 			m_pCartData = pCartData;
 			m_amountOfExtraRAM = Cart::REU_1750_RAM;
+			m_pZeroBankData = pZeroBankData;
 		}
 
 		m_plstBank = plstBank;
 		m_bIsCartDataLoaded = true;
 		pCartData = nullptr;
 		plstBank = nullptr;
+		pZeroBankData = nullptr;
 	}
 
 	if (plstBank)
