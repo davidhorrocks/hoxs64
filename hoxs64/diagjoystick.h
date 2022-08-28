@@ -135,8 +135,8 @@ class CDiagJoystick : public CVirDialog , public ErrorMsg
 		void FillJoyAxisDropdown(C64JoyItem& c64joybutton, vector<GameControllerItem> &items);
 		void FillJoyButton(bool bSetConfig);
 		void FillJoyButtonDropdown(C64JoyItem& c64joybutton, vector<GameControllerItem> &items);
-		void FillJoyButtonAndAxis(bool bSetConfig);//
-		void FillJoyButtonAndAxisDropdown(int ctrlid, vector<GameControllerItem> &items);//
+		//void FillJoyButtonAndAxis(bool bSetConfig);//
+		//void FillJoyButtonAndAxisDropdown(int ctrlid, vector<GameControllerItem> &items);//
 		void FillJoyButtonKeys(const joyconfig& cfg);
 		void FillJoyButtonKeyDropdown(int ctrlid, bool isValid, bit8 keyValue);
 		void SelectJoyButtonKeyDropdown(int ctrlid, bool isValid, bit8 keyValue);

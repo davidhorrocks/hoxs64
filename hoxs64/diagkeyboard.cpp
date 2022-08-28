@@ -781,15 +781,6 @@ void CDiagKeyboard::SetKeyCapture(int c64key)
 			InvalidateRect(keycontrol[i].hwnd, NULL, TRUE);
 		}
 	}
-
-	if (m_current_c64key < 0 && m_current_c64key >= _countof(keycontrol))
-	{
-		keycontrol[m_current_c64key].state = kcs_getkey;
-		if (keycontrol[m_current_c64key].hwnd != 0)
-		{
-			InvalidateRect(keycontrol[m_current_c64key].hwnd, NULL, TRUE);
-		}
-	}
 }
 
 void CDiagKeyboard::ResetKeyCapture()

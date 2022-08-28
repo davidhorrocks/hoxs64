@@ -459,139 +459,145 @@ BOOL CDiagJoystick::DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lP
 
 void CDiagJoystick::ShowButtonConfig(JoyUi &joyui, C64JoyItem& c64joybutton)
 {
-LRESULT lr;
-int seldeviceindex;
-unsigned int datadeviceindex;
-	lr = SendDlgItemMessage(m_hWnd, joyui.controlNum.cbo_joydevice, CB_GETCURSEL, 0, 0);
-	if (lr == CB_ERR || lr < 0)
+	LRESULT lr;
+	int seldeviceindex;
+	unsigned int datadeviceindex;
+	try
 	{
-		return;
-	}
-	
-	seldeviceindex = (int)lr;
-	lr = SendDlgItemMessage(m_hWnd, joyui.controlNum.cbo_joydevice, CB_GETITEMDATA, (WPARAM)seldeviceindex, 0);
-	if (lr == CB_ERR || lr < 0)
-	{
-		return;
-	}
-
-	datadeviceindex = (unsigned int)lr;
-	if (this->devices.size() <= (size_t)datadeviceindex)
-	{
-		return;
-	}
-
-	shared_ptr<GameDeviceItem> spdev = this->devices[(size_t)datadeviceindex];
-	if (FAILED(spdev->hrStatus))
-	{
-		return;
-	}
-
-	unsigned int i;
-
-	//Read the dropdrown selected item.
-	joyui.DropdownAutoSelectionChanged(c64joybutton);
-
-	// Append the current list of buttons into a vector to be passed to the dialog.
-	vector<ButtonItemData> paramListOfCurrentItems;	
-	for (i = 0 ; i <  c64joybutton.buttonCount; i++)
-	{
-		paramListOfCurrentItems.push_back(ButtonItemData(GameControllerItem::Button, c64joybutton.pButtonOffsets[i], GameControllerItem::DirectionAny));
-	}
-
-	// Append the current list of axes into a vector to be passed to the dialog.
-	if (c64joybutton.pAxisOffsets != NULL)
-	{
-		for (i = 0 ; i <  c64joybutton.axisCount; i++)
+		lr = SendDlgItemMessage(m_hWnd, joyui.controlNum.cbo_joydevice, CB_GETCURSEL, 0, 0);
+		if (lr == CB_ERR || lr < 0)
 		{
-			GameControllerItem::ControllerAxisDirection direction = GameControllerItem::DirectionAny;
-			if (c64joybutton.pAxisDirection != NULL)
-			{
-				direction = c64joybutton.pAxisDirection[i];
-			}
-
-			paramListOfCurrentItems.push_back(ButtonItemData(GameControllerItem::Axis, c64joybutton.pAxisOffsets[i], direction));
+			return;
 		}
-	}
 
-	// Append the current list of pov items into a vector to be passed to the dialog.
-	if (c64joybutton.pPovOffsets != NULL)
-	{
-		for (i = 0 ; i <  c64joybutton.povCount; i++)
+		seldeviceindex = (int)lr;
+		lr = SendDlgItemMessage(m_hWnd, joyui.controlNum.cbo_joydevice, CB_GETITEMDATA, (WPARAM)seldeviceindex, 0);
+		if (lr == CB_ERR || lr < 0)
 		{
-			GameControllerItem::ControllerAxisDirection direction = GameControllerItem::DirectionAny;
-			if (c64joybutton.pPovDirection != NULL)
-			{
-				direction = c64joybutton.pPovDirection[i];
-			}
-
-			paramListOfCurrentItems.push_back(ButtonItemData(GameControllerItem::Pov, c64joybutton.pPovOffsets[i], direction));
+			return;
 		}
-	}
 
-	shared_ptr<CDiagButtonSelection> pDiagButtonSelection = make_shared<CDiagButtonSelection>(CDiagButtonSelection(pDX->pDI, spdev->deviceInstance.guidInstance, joyui.ID, c64joybutton.buttonnumber, paramListOfCurrentItems));
-	if (pDiagButtonSelection != 0)
-	{
-		if (IDOK == pDiagButtonSelection->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_JOYBUTTONSELECTION), this->m_hWnd))
+		datadeviceindex = (unsigned int)lr;
+		if (this->devices.size() <= (size_t)datadeviceindex)
 		{
-			vector<ButtonItemData>::const_iterator iter;
-			unsigned int &buttonCount = c64joybutton.buttonCount;
-			unsigned int &axisCount = c64joybutton.axisCount;
-			unsigned int &povCount = c64joybutton.povCount;
-			buttonCount = 0;
-			axisCount = 0;
-			povCount = 0;
-			for (iter = pDiagButtonSelection->resultButtons.cbegin(); iter != pDiagButtonSelection->resultButtons.cend(); iter++)
+			return;
+		}
+
+		shared_ptr<GameDeviceItem> spdev = this->devices[(size_t)datadeviceindex];
+		if (FAILED(spdev->hrStatus))
+		{
+			return;
+		}
+
+		unsigned int i;
+
+		//Read the dropdrown selected item.
+		joyui.DropdownAutoSelectionChanged(c64joybutton);
+
+		// Append the current list of buttons into a vector to be passed to the dialog.
+		vector<ButtonItemData> paramListOfCurrentItems;
+		for (i = 0; i < c64joybutton.buttonCount; i++)
+		{
+			paramListOfCurrentItems.push_back(ButtonItemData(GameControllerItem::Button, c64joybutton.pButtonOffsets[i], GameControllerItem::DirectionAny));
+		}
+
+		// Append the current list of axes into a vector to be passed to the dialog.
+		if (c64joybutton.pAxisOffsets != NULL)
+		{
+			for (i = 0; i < c64joybutton.axisCount; i++)
 			{
-				switch (iter->itemType)
+				GameControllerItem::ControllerAxisDirection direction = GameControllerItem::DirectionAny;
+				if (c64joybutton.pAxisDirection != NULL)
 				{
-				case GameControllerItem::Button:
-					if (iter->controllerItemOffset >= DIJOFS_BUTTON0 && iter->controllerItemOffset < DIJOFS_BUTTON(joyconfig::MAXBUTTONS))
-					{
-						c64joybutton.pButtonOffsets[buttonCount] = iter->controllerItemOffset;
-						buttonCount++;
-					}
-
-					break;
-				case GameControllerItem::Axis:
-					if (iter->controllerItemOffset <= sizeof(DIJOYSTATE2) - sizeof(DWORD))
-					{
-						if (c64joybutton.pAxisOffsets != NULL)
-						{
-							c64joybutton.pAxisOffsets[axisCount] = iter->controllerItemOffset;
-						}
-
-						if (c64joybutton.pAxisDirection != NULL)
-						{
-							c64joybutton.pAxisDirection[axisCount] = iter->axisPovDirection;
-						}
-
-						axisCount++;
-					}
-
-					break;
-				case GameControllerItem::Pov:
-					if (iter->controllerItemOffset >= DIJOFS_POV(0) && iter->controllerItemOffset <= DIJOFS_POV(joyconfig::MAXDIRECTINPUTPOVNUMBER))
-					{
-						if (c64joybutton.pPovOffsets != NULL)
-						{
-							c64joybutton.pPovOffsets[povCount] = iter->controllerItemOffset;
-						}
-
-						if (c64joybutton.pPovDirection != NULL)
-						{
-							c64joybutton.pPovDirection[povCount] = iter->axisPovDirection;
-						}
-
-						povCount++;
-					}
-
-					break;
+					direction = c64joybutton.pAxisDirection[i];
 				}
+
+				paramListOfCurrentItems.push_back(ButtonItemData(GameControllerItem::Axis, c64joybutton.pAxisOffsets[i], direction));
 			}
-			
-			joyui.SelectJoyButtonAxisDropdownItem(c64joybutton, true);
 		}
+
+		// Append the current list of pov items into a vector to be passed to the dialog.
+		if (c64joybutton.pPovOffsets != NULL)
+		{
+			for (i = 0; i < c64joybutton.povCount; i++)
+			{
+				GameControllerItem::ControllerAxisDirection direction = GameControllerItem::DirectionAny;
+				if (c64joybutton.pPovDirection != NULL)
+				{
+					direction = c64joybutton.pPovDirection[i];
+				}
+
+				paramListOfCurrentItems.push_back(ButtonItemData(GameControllerItem::Pov, c64joybutton.pPovOffsets[i], direction));
+			}
+		}
+
+		shared_ptr<CDiagButtonSelection> pDiagButtonSelection = std::shared_ptr<CDiagButtonSelection>(new CDiagButtonSelection(pDX->pDI, spdev->deviceInstance.guidInstance, joyui.ID, c64joybutton.buttonnumber, paramListOfCurrentItems));
+		if (pDiagButtonSelection != 0)
+		{
+			if (IDOK == pDiagButtonSelection->ShowDialog(this->m_hInst, MAKEINTRESOURCE(IDD_JOYBUTTONSELECTION), this->m_hWnd))
+			{
+				vector<ButtonItemData>::const_iterator iter;
+				unsigned int& buttonCount = c64joybutton.buttonCount;
+				unsigned int& axisCount = c64joybutton.axisCount;
+				unsigned int& povCount = c64joybutton.povCount;
+				buttonCount = 0;
+				axisCount = 0;
+				povCount = 0;
+				for (iter = pDiagButtonSelection->resultButtons.cbegin(); iter != pDiagButtonSelection->resultButtons.cend(); iter++)
+				{
+					switch (iter->itemType)
+					{
+					case GameControllerItem::Button:
+						if (iter->controllerItemOffset >= DIJOFS_BUTTON0 && iter->controllerItemOffset < DIJOFS_BUTTON(joyconfig::MAXBUTTONS))
+						{
+							c64joybutton.pButtonOffsets[buttonCount] = iter->controllerItemOffset;
+							buttonCount++;
+						}
+
+						break;
+					case GameControllerItem::Axis:
+						if (iter->controllerItemOffset <= sizeof(DIJOYSTATE2) - sizeof(LONG))
+						{
+							if (c64joybutton.pAxisOffsets != NULL)
+							{
+								c64joybutton.pAxisOffsets[axisCount] = iter->controllerItemOffset;
+							}
+
+							if (c64joybutton.pAxisDirection != NULL)
+							{
+								c64joybutton.pAxisDirection[axisCount] = iter->axisPovDirection;
+							}
+
+							axisCount++;
+						}
+
+						break;
+					case GameControllerItem::Pov:
+						if (iter->controllerItemOffset >= DIJOFS_POV(0) && iter->controllerItemOffset <= DIJOFS_POV(joyconfig::MAXDIRECTINPUTPOVNUMBER))
+						{
+							if (c64joybutton.pPovOffsets != NULL)
+							{
+								c64joybutton.pPovOffsets[povCount] = iter->controllerItemOffset;
+							}
+
+							if (c64joybutton.pPovDirection != NULL)
+							{
+								c64joybutton.pPovDirection[povCount] = iter->axisPovDirection;
+							}
+
+							povCount++;
+						}
+
+						break;
+					}
+				}
+
+				joyui.SelectJoyButtonAxisDropdownItem(c64joybutton, true);
+			}
+		}
+	}
+	catch (std::exception&)
+	{
 	}
 }
 
@@ -1497,10 +1503,10 @@ DWORD dwOffset;
 					{
 						for (i = 0, j = 0; i < joyconfig::MAXBUTTONS && j < buttonAxisOptions.size(); j++)
 						{
-							const GameControllerItem& item = buttonAxisOptions[j];
-							if (item.option == GameControllerItem::Button)
+							const GameControllerItem& gciitem = buttonAxisOptions[j];
+							if (gciitem.option == GameControllerItem::Button)
 							{
-								dwOffset = item.objectInfo.dwOfs;
+								dwOffset = gciitem.objectInfo.dwOfs;
 								if (dwOffset  <= sizeof(DIJOYSTATE2) - sizeof(BYTE))
 								{
 									c64joybutton.pButtonOffsets[i++] = dwOffset;
@@ -1763,10 +1769,6 @@ unsigned int datadeviceindex;
 			{
 				cfg->keyNPovDirection[j][i] = GameControllerItem::DirectionAny;
 			}
-
-			// Initial axes calibrations.
-			ButtonItemData povdata(GameControllerItem::Pov, cfg->keyNPovOffsets[j][i], cfg->keyNPovDirection[j][i]);
-			cfg->pov[j][i] = povdata;
 		}
 	}
 

@@ -261,15 +261,19 @@ struct joyconfig
 	GameControllerItem::ControllerAxisDirection keyNPovDirection[MAXKEYMAPS][MAXAXIS] = {};
 
 	LPCDIDATAFORMAT inputDeviceFormat = nullptr;
-	DWORD sizeOfInputDeviceFormat = 0;
+	size_t sizeOfInputDeviceFormat = 0;
 	ICLK joyNotAcquiredClock = 0;
 
 	// Axes with additional info.
 	ButtonItemData axes[MAXKEYMAPS][MAXAXIS] = {};
 
 	// Pov with additional info.
-	ButtonItemData pov[MAXKEYMAPS][MAXPOV] = {};
+	//ButtonItemData pov[MAXKEYMAPS][MAXPOV] = {};
 	void LoadDefault() noexcept;
+	void SafeGuardMaxOffsets();
+	void SafeGuardAxis(DWORD& dwOffset);
+	void SafeGuardPov(DWORD& dwOffset);
+	void SafeGuardButton(DWORD& dwOffset);
 	static void defaultClearAxisDirection(GameControllerItem::ControllerAxisDirection offsets[], GameControllerItem::ControllerAxisDirection axisDirection, unsigned int count) noexcept;
 };
 
@@ -299,9 +303,9 @@ public:
 	HRESULT ReadJoystickPovList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pPovOffsets, GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int maxPovBufferCount, unsigned int* pPovCount);
 	HRESULT SaveCurrentSetting();
 	HRESULT SaveCurrentJoystickSetting(int joystickNumber, const struct joyconfig& jconfig);
-	void LoadDefaultSetting();
+	void LoadDefaultSetting() noexcept;
 	void SetPalettePepto() noexcept;
-	void SetCiaNewOldMode(bool isNew);
+	void SetCiaNewOldMode(bool isNew) noexcept;
 	void SetRunFast();
 	void SetRunNormal();
 

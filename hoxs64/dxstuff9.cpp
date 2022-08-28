@@ -249,12 +249,12 @@ DWORD i2 =0;
 
 	if (SUCCEEDED(pSoundBuffer->Lock(0, 0, &p1, &i1, &p2, &i2, DSBLOCK_ENTIREBUFFER)))
 	{
-		for (DWORD i = 0 ; i < i1 / (DWORD)sizeof(bit32) ; i++)
+		for (DWORD i = 0 ; i < (i1 / (DWORD)sizeof(bit32)) ; i++)
 		{
 			((bit32 *)p1)[i] = value;
 		}
 
-		for (DWORD i = 0 ; i < i2 / (DWORD)sizeof(bit32) ; i++)
+		for (DWORD i = 0 ; i < (i2 / (DWORD)sizeof(bit32)) ; i++)
 		{
 			((bit32 *)p2)[i] = value;
 		}
@@ -464,6 +464,7 @@ HRESULT CDX9::InitJoy(HWND hWnd, int joyindex, struct joyconfig &joycfg)
 					joycfg.inputDeviceFormat = &c_dfDIJoystick;
 				}
 
+				joycfg.SafeGuardMaxOffsets();
 				hr = pJoy->SetDataFormat(joycfg.inputDeviceFormat);
 				if (SUCCEEDED(hr))
 				{

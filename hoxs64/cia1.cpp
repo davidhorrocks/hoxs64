@@ -476,7 +476,7 @@ unsigned int j;
 	fire2 = false;
 	joystick7 = (LPDIRECTINPUTDEVICE7) dx->GetJoy(joyindex);
 	joystick7->Poll();
-	hr = joystick7->GetDeviceState(joycfg.sizeOfInputDeviceFormat, &this->js);
+	hr = joystick7->GetDeviceState((DWORD)joycfg.sizeOfInputDeviceFormat, &this->js);
 	if (hr == DIERR_NOTACQUIRED || hr == DIERR_INPUTLOST)
 	{
 		if ((this->CurrentClock - joycfg.joyNotAcquiredClock) > DEVICEACQUIRECLOCKS)
@@ -484,7 +484,7 @@ unsigned int j;
 			hr = joystick7->Acquire();
 			if (SUCCEEDED(hr))
 			{
-				hr = joystick7->GetDeviceState(joycfg.sizeOfInputDeviceFormat, &this->js);
+				hr = joystick7->GetDeviceState((DWORD)joycfg.sizeOfInputDeviceFormat, &this->js);
 			}
 			else
 			{

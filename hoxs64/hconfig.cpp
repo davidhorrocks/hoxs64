@@ -2452,7 +2452,7 @@ int i;
 	}
 }
 
-void CConfig::LoadDefaultSetting()
+void CConfig::LoadDefaultSetting() noexcept
 {
 	SetPalettePepto();
 	ZeroMemory(&m_KeyMap[0], sizeof(m_KeyMap));
@@ -2669,6 +2669,11 @@ LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPD
 			return r;
 		}
 
+		if (lpData == nullptr)
+		{
+			return r;
+		}
+
 		bytesCopied = *lpcbData;
 		DWORD fixup = 0;
 		if (sizeof(TCHAR) > 1)
@@ -2677,32 +2682,33 @@ LONG CConfig::RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPD
 			fixup = bytesCopied % sizeof(TCHAR);
 		}
 
-		if (fixup == 0 && bytesCopied >=sizeof(TCHAR))
+		if (fixup == 0 && bytesCopied >= sizeof(TCHAR))
 		{
-			if (((TCHAR *)lpData)[(bytesCopied / sizeof(TCHAR)) - 1] == TEXT('\0'))
+			if (((TCHAR*)lpData)[(bytesCopied / sizeof(TCHAR)) - 1] == TEXT('\0'))
 			{
 				//If the string is already NULL terminated then return.
 				return r;
 			}
 		}
 
-		if (bytesCopied + fixup + sizeof(TCHAR) >= maxlen)
+		if ((size_t)bytesCopied + fixup + sizeof(TCHAR) > maxlen)
 		{
 			//No room for the NULL terminator.
 			return ERROR_MORE_DATA;
 		}
 
 		//Add the TCHAR null terminator plus any fix up zeros if the last TCHAR was cut in half.
-		for (unsigned int i = 0; i < sizeof(TCHAR) + fixup; i++)
+		for (size_t i = bytesCopied; i < (size_t)bytesCopied + fixup + sizeof(TCHAR); i++)
 		{
-			lpData[bytesCopied + i] = 0;
+			lpData[i] = 0;
 		}
 	}
+
 	return r;
 }
 
 joyconfig::joyconfig() noexcept
-{	
+{
 	LoadDefault();
 	joyNotAcquiredClock = 0;
 }
@@ -2711,9 +2717,9 @@ void joyconfig::defaultClearAxisDirection(GameControllerItem::ControllerAxisDire
 {
 	if (offsets != NULL)
 	{
-		for(unsigned int i = 0; i < count; i++)
+		for (unsigned int i = 0; i < count; i++)
 		{
-			offsets[i] = axisDirection;
+		offsets[i] = axisDirection;
 		}
 	}
 }
@@ -2741,7 +2747,7 @@ void joyconfig::LoadDefault() noexcept
 	ZeroMemory(&keyNPovOffsets, sizeof(keyNPovOffsets));
 	ZeroMemory(&keyNPovDirection, sizeof(keyNPovDirection));
 	ZeroMemory(&axes, sizeof(axes));
-	ZeroMemory(&pov, sizeof(pov));
+	//ZeroMemory(&pov, sizeof(pov));
 
 	IsEnabled = false;
 	isPovEnabled = true;
@@ -2781,7 +2787,7 @@ void joyconfig::LoadDefault() noexcept
 		defaultClearAxisDirection(keyNAxisDirection[i], GameControllerItem::DirectionAny, MAXAXIS);
 		ZeroMemory(&keyNButtonOffsets[i], sizeof(keyNButtonOffsets[0]));
 		ZeroMemory(&keyNAxisOffsets[i], sizeof(keyNAxisOffsets[0]));
-		ZeroMemory(&pov[i], sizeof(pov[0]));
+		//ZeroMemory(&pov[i], sizeof(pov[0]));
 		keyNButtonCount[i] = 0;
 		keyNAxisCount[i] = 0;
 		keyNPovCount[i] = 0;
@@ -2791,3 +2797,75 @@ void joyconfig::LoadDefault() noexcept
 	sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
 };
 
+
+void joyconfig::SafeGuardMaxOffsets()
+{
+	unsigned int i;
+	unsigned int j;
+	if (sizeOfInputDeviceFormat == 0 || sizeOfInputDeviceFormat > sizeof(DIJOYSTATE2))
+	{
+		sizeOfInputDeviceFormat = sizeof(DIJOYSTATE);
+	}
+
+	SafeGuardAxis(dwOfs_X);
+	SafeGuardAxis(dwOfs_Y);
+	for (i = 0; i < _countof(fire1ButtonOffsets); i++)
+	{
+		SafeGuardButton(fire1ButtonOffsets[i]);
+	}
+
+	for (i = 0; i < _countof(fire2ButtonOffsets); i++)
+	{
+		SafeGuardButton(fire2ButtonOffsets[i]);
+	}
+
+	for (i = 0; i < MAXKEYMAPS; i++)
+	{
+		for (j = 0; j < _countof(keyNButtonOffsets); j++)
+		{
+			SafeGuardButton(keyNButtonOffsets[i][j]);
+		}
+
+		for (j = 0; j < _countof(keyNAxisOffsets); j++)
+		{
+			SafeGuardAxis(keyNAxisOffsets[i][j]);
+		}
+
+		for (j = 0; j < _countof(keyNPovOffsets); j++)
+		{
+			SafeGuardPov(keyNPovOffsets[i][j]);
+		}
+	}
+}
+
+
+void joyconfig::SafeGuardAxis(DWORD& dwOffset)
+{
+	if (dwOffset > sizeOfInputDeviceFormat - sizeof(LONG))
+	{
+		dwOffset = 0;
+	}
+}
+
+void joyconfig::SafeGuardPov(DWORD& dwOffset)
+{
+	if (dwOffset >= DIJOFS_POV(0) && dwOffset <= DIJOFS_POV(joyconfig::MAXDIRECTINPUTPOVNUMBER))
+	{
+		dwOffset = DIJOFS_POV(0);
+	}
+}
+
+void joyconfig::SafeGuardButton(DWORD& dwOffset)
+{
+	if (dwOffset > sizeOfInputDeviceFormat - sizeof(BYTE))
+	{
+		if (DIJOFS_BUTTON0 < sizeOfInputDeviceFormat)
+		{
+			dwOffset = DIJOFS_BUTTON0;
+		}
+		else
+		{
+			dwOffset = 0;
+		}
+	}
+}

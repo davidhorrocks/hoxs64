@@ -182,7 +182,7 @@ void CDiagButtonSelection::InitAllAxes()
 		AxisState& item = *iter;
 		if (item.option == AxisState::Axis)
 		{
-			if (item.objectInfo.dwOfs <= sizeof(DIJOYSTATE2) - sizeof(DWORD))
+			if (item.objectInfo.dwOfs <= sizeof(DIJOYSTATE2) - sizeof(LONG))
 			{
 				InitAxis(&item);
 			}
@@ -291,7 +291,7 @@ const unsigned int MAXTRIGGERCOUNT = 1;
 				if (item.option == AxisState::Axis)
 				{
 					offset = item.objectInfo.dwOfs;
-					if (offset <= sizeof(DIJOYSTATE2) - sizeof(DWORD))
+					if (offset <= sizeof(DIJOYSTATE2) - sizeof(LONG))
 					{
 						LONG value = *((LONG *)(((char *)&js) + offset));
 						if (item.direction == AxisState::DirectionMin)
