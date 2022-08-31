@@ -27,11 +27,13 @@ public:
 	void ClearSystemInterrupt();
 	void InitReset(ICLK sysclock, bool poweronreset);
 	void Reset(ICLK sysclock, bool poweronreset);
-
+	void PreventClockOverflow();
 	void GetState(SsVia1 &state);
 	void SetState(const SsVia1 &state);
 
 	CPUDisk *cpu = nullptr;
 	DiskInterface *disk = nullptr;
 	CAppStatus *appStatus = nullptr;
+	bit8 port_a_floating;
+	ICLK port_a_floating_clock;
 };

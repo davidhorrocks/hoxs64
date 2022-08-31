@@ -34,6 +34,8 @@ HRESULT VIA1::Init(int ID, CAppStatus *appStatus, CPUDisk *cpu, DiskInterface *d
 	this->appStatus = appStatus;
 	this->cpu = cpu;
 	this->disk = disk;
+	port_a_floating = 0xFF;
+	port_a_floating_clock = 0;
 	return S_OK;
 }
 
@@ -46,6 +48,8 @@ void VIA1::Reset(ICLK sysclock, bool poweronreset)
 {
 	InitReset(sysclock, poweronreset);
 	VIA::Reset(sysclock, poweronreset);
+	port_a_floating = 0xFF;
+	port_a_floating_clock = sysclock;
 }
 
 void VIA1::ExecuteDevices(ICLK sysclock)
@@ -54,24 +58,58 @@ void VIA1::ExecuteDevices(ICLK sysclock)
 
 bit8 VIA1::ReadPinsPortA()
 {
+	bit8 strong0;
 	switch (appStatus->m_TrackZeroSensorStyle)
 	{
 		case HCFG::TZSSPullHigh:
-			return 0x01;
+			strong0 = 0xFF;
+			break;
 		case HCFG::TZSSPullLow:
-			return 0x00;
+			strong0 = 0xFE;
+			break;
 		case HCFG::TZSSPositiveHigh:
-			if (disk->m_currentTrackNumber==0)
-				return 0x01;
+			if (disk->m_currentTrackNumber == 0)
+			{
+				strong0 = 0xFF;
+			}
 			else
-				return 0x00;
+			{
+				strong0 = 0xFE;
+			}
+
+			break;
 		case HCFG::TZSSPositiveLow:
-			if (disk->m_currentTrackNumber==0)
-				return 0x00;
+			if (disk->m_currentTrackNumber == 0)
+			{
+				strong0 = 0xFF;
+			}
 			else
-				return 0x01;
+			{
+				strong0 = 0xFE;
+			}
+
+			break;
 		default:
-			return 0x00;
+			strong0 = 0xFF;
+			break;
+	}
+
+	if (((ICLKS)(CurrentClock - port_a_floating_clock)) > 0x1000)
+	{
+		port_a_floating = 0xFF;
+	}
+
+	return port_a_floating & strong0;
+}
+
+void VIA1::PreventClockOverflow()
+{
+	const ICLKS CLOCKSYNCBAND_NEAR = PAL_5_MINUTES;
+	const ICLKS CLOCKSYNCBAND_FAR = OVERFLOWSAFTYTHRESHOLD;
+	ICLK ClockBehindNear = CurrentClock - CLOCKSYNCBAND_NEAR;
+	if (port_a_floating_clock > CLOCKSYNCBAND_FAR)
+	{
+		port_a_floating_clock = ClockBehindNear;
 	}
 }
 
@@ -98,6 +136,8 @@ void VIA1::SetCB2Output(bool value)
 
 void VIA1::SetPinsPortA(bit8 newPin)
 {
+	port_a_floating = newPin;
+	port_a_floating_clock = this->CurrentClock;
 }
 
 void VIA1::SetPinsPortB(bit8 newPin)

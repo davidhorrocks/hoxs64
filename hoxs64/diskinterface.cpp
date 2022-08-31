@@ -1350,8 +1350,10 @@ void DiskInterface::PreventClockOverflow()
 	if (m_lastWeakPulseTime > CLOCKSYNCBAND_FAR)
 	{
 		m_lastWeakPulseTime = ClockBehindNear;
-	}	
+	}
+
 	cpu.PreventClockOverflow();
+	via1.PreventClockOverflow();
 }
 
 void DiskInterface::LoadMoveP64Image(GCRDISK *dsk)
