@@ -675,7 +675,6 @@ bit8 t;
 	switch (address & 15)
 	{
 	case 0://port b
-		//TEST latchPortB
 		if (((acr & 2) !=0) && bLatchB)
 		{
 			//Port latching
@@ -689,7 +688,6 @@ bit8 t;
 
 		return (orb & ddrb) | (t & ~ddrb);
 	case 1://port a
-		//TEST latchPortA
 		if (((acr & 1) !=0) && bLatchA)
 		{
 			//Port latching
@@ -1023,6 +1021,8 @@ bit8 newpb6;
 		break;
 	case 12://pcr
 		pcr = data;
+
+		// TODO: I do not know if the port handshake state is lost when switching to a non handshake mode and then switching back to handshake mode.
 		switch ((data>>1) & 7)
 		{
 		case 0:// ca2 interrupt on negative edge, clear interrupt on port a access
@@ -1038,7 +1038,7 @@ bit8 newpb6;
 			feed &= ~VIACA2Low0;
 			WakeUp();
 			break;
-		case 5:// pulse ca2 for 1 clock
+		case 5:// pulse ca2 for 1 clock following a read or write to port a.
 			delay &= ~VIACA2Low0;
 			feed &= ~VIACA2Low0;
 			WakeUp();
@@ -1077,7 +1077,7 @@ bit8 newpb6;
 				feed &= ~VIACB2Low0;
 				WakeUp();
 				break;
-			case 5:// pulse cb2 for 1 clock
+			case 5:// pulse cb2 for 1 clock following a read or write to port b.
 				delay &= ~VIACB2Low0;
 				feed &= ~VIACB2Low0;
 				WakeUp();
@@ -1316,7 +1316,6 @@ void VIA::TransitionCB2()
 
 void VIA::ActiveTransitionCA1()
 {
-	//TEST latchPortA
 	if (((acr & 1) !=0) && !bLatchA)
 	{
 		bLatchA = true;
@@ -1353,7 +1352,6 @@ void VIA::ActiveTransitionCA2()
 
 void VIA::ActiveTransitionCB1()
 {
-	//TEST latchPortB
 	if (((acr & 2) !=0) && !bLatchB)
 	{
 		bLatchB = true;
