@@ -224,6 +224,8 @@ long l;
 		dest[3] = hi_nib(2) << 7;
 		dest[3] |= (lo_nib(2) << 2);
 		break;
+	default:
+		break;
 	}
 }
 
@@ -275,10 +277,10 @@ const struct D64_Track_Info GCRDISK::D64_info[42]=
 
 #define D64_GAPHEADER 9
 #define D64_SYNCLENGTH 5
-#define D64_GAPSECTOR_1_17 8
-#define D64_GAPSECTOR_18_24 17
-#define D64_GAPSECTOR_25_30 12
-#define D64_GAPSECTOR_31_40 9
+#define D64_GAPSECTOR_1_17 7
+#define D64_GAPSECTOR_18_24 7
+#define D64_GAPSECTOR_25_30 7
+#define D64_GAPSECTOR_31_40 7
 #define D64_SECTOR_HEADER_SIZE 9
 #define D64_SECTOR_DATABLOCK_SIZE 256
 #define D64_SECTOR_SIZE 260
@@ -308,7 +310,7 @@ struct sector_data
 /***********************************************************************************************************************
 GCRDISK Class
 ***********************************************************************************************************************/
-GCRDISK::GCRDISK()
+GCRDISK::GCRDISK() noexcept
 {
 int i;
 	for (i=0 ; i < HOST_MAX_TRACKS ; i++)
@@ -416,8 +418,8 @@ struct sector_header sec_header;
 struct sector_data sec_data;
 unsigned int bitIndex;
 HRESULT hr;
-const bit32 MAXBYTESTOSCAN = G64_MAX_BYTES_PER_TRACK * 3;
-const bit32 MAXBITSTOSCAN = MAXBYTESTOSCAN * 8L;
+constexpr bit32 MAXBYTESTOSCAN = G64_MAX_BYTES_PER_TRACK * 3;
+constexpr bit32 MAXBITSTOSCAN = MAXBYTESTOSCAN * 8L;
 unsigned int bitCounter;
 unsigned int jumpedBitCount;
 unsigned int sync_count;
@@ -900,7 +902,7 @@ const unsigned int SmallestTrackBits = 8;
 void GCRDISK::SetSpeedZone(bit8 trackNumber, bit16 byteIndex, bit8 speed)
 {
 bit8 t,s,mask;
-const unsigned int SmallestTrackBits = 8;
+constexpr unsigned int SmallestTrackBits = 8;
 	if (trackSize[trackNumber] >= SmallestTrackBits)
 	{
 		byteIndex = (bit16)(byteIndex % (trackSize[trackNumber] / SmallestTrackBits));
@@ -949,6 +951,7 @@ unsigned long bits;
 
 	bits = 8;
 	sourceCounter = 0;
+	nextRawCounter = 0;
 	for (i=0 ; i < len ; i++)
 	{
 		if (i >= trackSize[trackNumber] / 8)
@@ -961,7 +964,7 @@ unsigned long bits;
 		byte = trackData[trackNumber][i];
 		for (j = 0 ; j < bits ; j++)
 		{
-			nextRawCounter = (unsigned long)(((double)sourceCounter / (double)sourceSize) * (double)rawSize);
+			nextRawCounter = (unsigned long)(long)(((double)sourceCounter / (double)sourceSize) * (double)rawSize);
 			if (nextRawCounter >= rawSize) 
 			{
 				break;
@@ -2832,7 +2835,7 @@ unsigned int i;
 					}
 
 					clockTime = (double)(sumPulseTime - 1) / (double)totalTime * (double)(P64PulseSamplesPerRotation);
-					p64_uint32_t pulsePosition = (p64_uint32_t)floor(clockTime);
+					p64_uint32_t pulsePosition = (p64_uint32_t)(p64_int32_t)floor(clockTime);
 					if (pulsePosition >= 0  && pulsePosition < P64PulseSamplesPerRotation)
 					{
 						//Write the pulse to the emulated disk.

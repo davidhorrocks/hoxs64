@@ -50,7 +50,7 @@ class GCRDISK : public ErrorMsg, public IQuit
 {
 public:
 
-	GCRDISK();
+	GCRDISK() noexcept;
 	~GCRDISK();
 	GCRDISK(const GCRDISK&) = delete;
 	GCRDISK& operator=(const GCRDISK&) = delete;
