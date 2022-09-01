@@ -212,22 +212,24 @@ bit8 shiftmsb;
 		// The shift register control
 		switch (shiftRegisterMode)
 		{
-		case 0:// DISABLED
+		case 0:// SR Mode 0 -- Disabled
+			/*
+			Mode  0  disables  the  Shift  Register.  In  this mode the microprocessor can
+			write  or  read  the  SR  and  the  SR  will  shift  on each CB1 positive edge
+			shifting  in  the  value  on  CB2.  In  this  mode  the  SR  Interrupt Flag is
+			disabled (held to a logic 0).
+			*/
+
+			// Port B handshake. Only when SR is disabled.
 			if ((pcr & 0xC0) == 0x80)
 			{
 				if (delay & VIACB2Low0)
 				{
-					if (cb2_out)
-					{
-						LocalCB2Output(false);
-					}
+					LocalCB2Output(false);
 				}
 				else
 				{
-					if (!cb2_out)
-					{
-						LocalCB2Output(true);
-					}
+					LocalCB2Output(true);
 				}
 			}
 
@@ -358,23 +360,20 @@ bit8 shiftmsb;
 		case 7:// SHIFT OUT UNDER CONTROL OF EXT.CLK
 			LocalCB1Output(shiftClockLevel);
 			break;
+		default:
+			break;
 		}
 
+		// Port A handshake.
 		if ((pcr & 0x0C) == 0x08)
 		{
 			if (delay & VIACA2Low0)
 			{
-				if (ca2_out)
-				{
-					LocalCA2Output(false);
-				}
+				LocalCA2Output(false);
 			}
 			else
 			{
-				if (!ca2_out)
-				{
-					LocalCA2Output(true);
-				}
+				LocalCA2Output(true);
 			}
 		}
 
@@ -472,6 +471,8 @@ bit8 t;
 			break;
 		case 7:// hold cb2 hi
 			break;
+		default:
+			break;
 		}
 
 		ifr &= ~(VIA_INT_CB1);
@@ -522,6 +523,8 @@ bit8 t;
 		case 6:// hold ca2 low
 			break;
 		case 7:// hold ca2 hi
+			break;
+		default:
 			break;
 		}
 
@@ -637,6 +640,8 @@ bit8 t;
 		case 6:// hold ca2 low
 			break;
 		case 7:// hold ca2 hi
+			break;
+		default:
 			break;
 		}
 
@@ -777,6 +782,8 @@ bit8 newpb6;
 			break;
 		case 7:// hold cb2 hi
 			break;
+		default:
+			break;
 		}
 
 		ifr &= ~(VIA_INT_CB1);
@@ -835,6 +842,8 @@ bit8 newpb6;
 			break;
 		case 7:// hold ca2 hi
 			break;
+		default:
+			break;
 		}
 
 		ifr &= ~(VIA_INT_CA1);
@@ -866,6 +875,7 @@ bit8 newpb6;
 				delay |= VIACountB2;
 			}
 		}
+
 		break;
 	case 3://ddra
 		ddra = data;
@@ -1045,6 +1055,8 @@ bit8 newpb6;
 			LocalCA2Output(true);
 			WakeUp();
 			break;
+		default:
+			break;
 		}
 		
 		if (shiftRegisterMode == 0)
@@ -1081,6 +1093,8 @@ bit8 newpb6;
 				feed &= ~VIACB2Low0;
 				LocalCB2Output(true);
 				WakeUp();
+				break;
+			default:
 				break;
 			}
 		}
@@ -1141,6 +1155,8 @@ bit8 newpb6;
 			break;
 		case 7:// hold ca2 hi
 			break;
+		default:
+			break;
 		}
 
 		ifr &= ~(VIA_INT_CA1);
@@ -1151,6 +1167,8 @@ bit8 newpb6;
 
 		ora = data;
 		SetPinsPortA(PortAOutput());
+		break;
+	default:
 		break;
 	}
 }
@@ -1187,6 +1205,7 @@ void VIA::TransitionCA1()
 			ActiveTransitionCA1();
 		}
 	}
+
 	if (ca1_in_prev != false)
 	{
 		OnTransitionCA1Low();
@@ -1204,23 +1223,30 @@ void VIA::TransitionCA2()
 		{
 			ActiveTransitionCA2();
 		}
+
 		break;
 	case 1://CA2 independent interrupt negative active edge
 		if (ca2_in_prev != false)
 		{
 			ActiveTransitionCA2();
 		}
+
+		break;
 	case 2://CA2 positive active edge	
 		if (ca2_in_prev == false)
 		{
 			ActiveTransitionCA2();
 		}
+
 		break;
 	case 3://CA2 independent interrupt positive active edge
 		if (ca2_in_prev == false)
 		{
 			ActiveTransitionCA2();
 		}
+
+		break;
+	default:
 		break;
 	}
 
@@ -1258,24 +1284,30 @@ void VIA::TransitionCB2()
 		{
 			ActiveTransitionCB2();
 		}
+
 		break;
 	case 1://CB2 independant interrupt negative active edge
 		if (cb2_in_prev != false)
 		{
 			ActiveTransitionCB2();
 		}
+
 		break;
 	case 2://CB2 positive active edge	
 		if (cb2_in_prev == false)
 		{
 			ActiveTransitionCB2();
 		}
+
 		break;
 	case 3://CB2 independant interrupt positive active edge
 		if (cb2_in_prev == false)
 		{
 			ActiveTransitionCB2();
 		}
+
+		break;
+	default:
 		break;
 	}
 
@@ -1296,11 +1328,7 @@ void VIA::ActiveTransitionCA1()
 		//Handshake CA2 CA2 goes high on CA1 active transition
 		delay &= ~VIACA2Low0;
 		feed &= ~VIACA2Low0;
-		if (ca2_out==0)
-		{
-			LocalCA2Output(true);
-		}
-
+		LocalCA2Output(true);
 		WakeUp();
 	}
 
@@ -1340,10 +1368,7 @@ void VIA::ActiveTransitionCB1()
 		if (shiftRegisterMode == 0)
 		{
 			// The shift register is not controlling CB2.
-			if (cb2_out==0)
-			{
-				LocalCB2Output(true);
-			}
+			LocalCB2Output(true);
 		}
 
 		WakeUp();
