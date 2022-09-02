@@ -1475,14 +1475,13 @@ bit8 DiskInterface::MotorSlowDownEnv()
 
 	if (m_bDiskMotorOn)
 	{
-
 		if (m_motorSpeed >= MaxMotorSpeed)
 		{
 			return MaxMotorSpeed;
 		}
 
 		m_motorSpeed_counter += 1;
-		if ((m_motorSpeed_counter & 0xfff) == 0)
+		if ((m_motorSpeed_counter & 0x7ff) == 0)
 		{
 			m_motorSpeed += 1;
 		}
@@ -1498,38 +1497,16 @@ bit8 DiskInterface::MotorSlowDownEnv()
 
 		m_motorOffClock--;
 		m_motorSpeed_counter -= 1;
-		if ((m_motorSpeed_counter & 0x1fff) == 0)
+		if ((m_motorSpeed_counter & 0xfff) == 0)
 		{
 			m_motorSpeed -= 1;
 		}
 
 		return m_motorSpeed;
-		//if (m_motorOffClock > 0)
-  //      {
-  //          m_motorOffClock--;
-
-  //          if (m_motorOffClock > (3 * DISKMOTORSLOWTIME / 4))
-  //          {
-  //              return true;
-  //          }
-  //          else if (m_motorOffClock > (1 * DISKMOTORSLOWTIME / 2))
-  //          {
-  //              return (m_motorOffClock & 1) == 0;
-  //          }
-  //          else
-  //          {
-  //              return (m_motorOffClock & 3) == 0;
-  //          }
-  //      }
-		//else
-		//{
-		//	m_motorSpeed = 0;
-		//	return m_motorSpeed;
-		//}
 	}
 }
 
-void DiskInterface::GetState(SsDiskInterfaceV2 &state)
+void DiskInterface::GetState(SsDiskInterfaceV3 &state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.CurrentClock = CurrentClock;
@@ -1584,9 +1561,11 @@ void DiskInterface::GetState(SsDiskInterfaceV2 &state)
 	state.m_bPendingPulse = m_bPendingPulse;
 	state.m_bPulseState = m_bPulseState;
 	state.m_bLastPulseState = m_bLastPulseState;
+	state.m_motorSpeed = m_motorSpeed;
+	state.m_motorSpeed_counter = m_motorSpeed_counter;
 }
 
-void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
+void DiskInterface::SetState(const SsDiskInterfaceV3 &state)
 {
 	CurrentClock = state.CurrentClock;
 	CurrentPALClock = state.CurrentPALClock;
@@ -1640,6 +1619,8 @@ void DiskInterface::SetState(const SsDiskInterfaceV2 &state)
 	m_bPendingPulse = state.m_bPendingPulse != 0;
 	m_bPulseState = state.m_bPulseState != 0;
 	m_bLastPulseState = state.m_bLastPulseState != 0;
+	m_motorSpeed = state.m_motorSpeed;
+	m_motorSpeed_counter = state.m_motorSpeed_counter;
 	PrepareP64Head(m_currentTrackNumber);
 }
 
@@ -1706,5 +1687,13 @@ void DiskInterface::UpgradeStateV1ToV2(const SsDiskInterfaceV1 &in, SsDiskInterf
 	out.m_previousTrackNumber = in.m_currentTrackNumber;
 	out.m_lastWeakPulseTime = 0;
 	out.m_counterStartPulseFilter = 0;
+}
 
+
+void DiskInterface::UpgradeStateV2ToV3(const SsDiskInterfaceV2& in, SsDiskInterfaceV3& out)
+{
+	ZeroMemory(&out, sizeof(SsDiskInterfaceV3));
+	*((SsDiskInterfaceV2*)&out) = in;
+	out.m_motorSpeed = in.m_bDiskMotorOn != 0 ? DISK16CELLSPERCLOCK : 0;
+	out.m_motorSpeed_counter = 0;
 }

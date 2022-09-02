@@ -2519,8 +2519,8 @@ bit32 dwordCount;
 			break;
 		}
 
-		this->diskdrive.GetState(vars.sbDiskInterfaceV2);
-		hr = SaveState::SaveSection(pfs, vars.sbDiskInterfaceV2, SsLib::SectionType::DriveControllerV2);
+		this->diskdrive.GetState(vars.sbDiskInterfaceV3);
+		hr = SaveState::SaveSection(pfs, vars.sbDiskInterfaceV3, SsLib::SectionType::DriveControllerV3);
 		if (FAILED(hr))
 		{
 			break;
@@ -3819,6 +3819,7 @@ ULARGE_INTEGER pos_next_track_header;
 				{
 					break;
 				}
+
 				driveControllerVersion = 1;
 				ZeroMemory(&vars.sbDriveControllerV1, sizeof(vars.sbDriveControllerV1));
 				bytesToRead = sizeof(SsDiskInterfaceV1);
@@ -3832,11 +3833,14 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
 				{
 					break;
 				}
+
 				DiskInterface::UpgradeStateV1ToV2(vars.sbDriveControllerV1, vars.sbDriveControllerV2);
+				DiskInterface::UpgradeStateV2ToV3(vars.sbDriveControllerV2, vars.sbDriveControllerV3);
 				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveControllerV2:
@@ -3844,6 +3848,7 @@ ULARGE_INTEGER pos_next_track_header;
 				{
 					break;
 				}
+
 				driveControllerVersion = 2;
 				ZeroMemory(&vars.sbDriveControllerV2, sizeof(vars.sbDriveControllerV2));
 				bytesToRead = sizeof(SsDiskInterfaceV2);
@@ -3857,10 +3862,40 @@ ULARGE_INTEGER pos_next_track_header;
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
 				{
 					break;
 				}
+
+				DiskInterface::UpgradeStateV2ToV3(vars.sbDriveControllerV2, vars.sbDriveControllerV3);
+				bDriveController = true;
+				break;
+			case SsLib::SectionType::DriveControllerV3:
+				if (driveControllerVersion > 3)
+				{
+					break;
+				}
+
+				driveControllerVersion = 3;
+				ZeroMemory(&vars.sbDriveControllerV3, sizeof(vars.sbDriveControllerV3));
+				bytesToRead = sizeof(SsDiskInterfaceV3);
+				hr = pfs->Read(&vars.sbDriveControllerV3, bytesToRead, &bytesRead);
+				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
+				{
+					break;
+				}
+				else if (bytesRead < bytesToRead)
+				{
+					eof = true;
+					hr = E_FAIL;
+				}
+
+				if (FAILED(hr))
+				{
+					break;
+				}
+
 				bDriveController = true;
 				break;
 			case SsLib::SectionType::DriveVia1:
@@ -4193,14 +4228,17 @@ ULARGE_INTEGER pos_next_track_header;
 		{
 			diskdrive.cpu.SetState(vars.sbCpuDisk);
 		}
+
 		if (bDriveController)
 		{
-			diskdrive.SetState(vars.sbDriveControllerV2);
+			diskdrive.SetState(vars.sbDriveControllerV3);
 		}
+
 		if (bDriveVia1)
 		{
 			diskdrive.via1.SetState(vars.sbDriveVia1);
 		}
+
 		if (bDriveVia2)
 		{
             diskdrive.via2.SetState(vars.sbDriveVia2);
@@ -4210,10 +4248,12 @@ ULARGE_INTEGER pos_next_track_header;
 		{
 			memcpy(ram.mKernal, pC64KernelRom, SaveState::SIZEC64KERNEL);
 		}
+
 		if (pC64BasicRom && ram.mBasic)
 		{
 			memcpy(ram.mBasic, pC64BasicRom, SaveState::SIZEC64BASIC);
 		}
+
 		if (pC64CharRom && ram.mCharGen)
 		{
 			memcpy(ram.mCharGen, pC64CharRom, SaveState::SIZEC64CHARGEN);
@@ -4223,6 +4263,7 @@ ULARGE_INTEGER pos_next_track_header;
 		{
 			memcpy(diskdrive.m_pD1541_ram, pDriveRam, SaveState::SIZEDRIVERAM);
 		}
+
 		if (pDriveRom && diskdrive.m_pD1541_rom)
 		{
 			memcpy(diskdrive.m_pD1541_rom, pDriveRom, SaveState::SIZEDRIVEROM);

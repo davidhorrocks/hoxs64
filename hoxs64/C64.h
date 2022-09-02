@@ -320,6 +320,7 @@ private:
 		SsDiskInterfaceV0 sbDriveControllerV0;
 		SsDiskInterfaceV1 sbDriveControllerV1;
 		SsDiskInterfaceV2 sbDriveControllerV2;
+		SsDiskInterfaceV3 sbDriveControllerV3;
 		SsVia1 sbDriveVia1;
 		SsVia2 sbDriveVia2;
 		SsCpuDisk sbCpuDisk;
@@ -346,10 +347,9 @@ private:
 		SsTape sbTapePlayer;
 		SsTapeData tapeDataHeader;
 		SsCpuDisk sbCpuDisk;
-		SsDiskInterfaceV2 sbDiskInterfaceV2;
+		SsDiskInterfaceV3 sbDiskInterfaceV3;
 		SsVia1 sbVia1;
 		SsVia2 sbVia2;
 		SsTrackHeader th;
-
 	};
 };

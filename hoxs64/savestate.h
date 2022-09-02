@@ -52,7 +52,8 @@ namespace SsLib
 			C64Cia1V3 = 39,
 			C64Cia2V3 = 40,
 			C64VicV1 = 41,
-			C64CpuV1 = 42
+			C64CpuV1 = 42,
+			DriveControllerV3 = 43,
 		};
 	}
 };
@@ -730,6 +731,13 @@ struct SsDiskInterfaceV2 : SsDiskInterfaceV1
 	bit32 m_counterStartPulseFilter;
 };
 
+struct SsDiskInterfaceV3 : SsDiskInterfaceV2
+{
+	bit8 m_motorSpeed;
+	bit32 m_counterStartPulseFilter;
+	bit32 m_motorSpeed_counter;
+};
+
 struct SsViaCommon
 {
 	bit32s ID;
@@ -817,7 +825,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 10;
+    static const int VERSION = 11;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

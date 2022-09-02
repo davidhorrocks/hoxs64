@@ -44,11 +44,12 @@ public:
 	virtual ICLK GetCurrentClock();
 	virtual void SetCurrentClock(ICLK sysclock);
 
-	void GetState(SsDiskInterfaceV2 &state);
-	void SetState(const SsDiskInterfaceV2 &state);
+	void GetState(SsDiskInterfaceV3 &state);
+	void SetState(const SsDiskInterfaceV3 &state);
 	void PrepareP64Head(unsigned int trackNumber);
 	static void UpgradeStateV0ToV1(const SsDiskInterfaceV0 &in, SsDiskInterfaceV1 &out);
 	static void UpgradeStateV1ToV2(const SsDiskInterfaceV1 &in, SsDiskInterfaceV2 &out);
+	static void UpgradeStateV2ToV3(const SsDiskInterfaceV2& in, SsDiskInterfaceV3& out);
 
 	//IMonitorDisk
 	virtual bit8 GetHalfTrackIndex();
@@ -95,7 +96,6 @@ public:
 	ICLK m_changing_c64_serialbus_diskview_diskclock = 0;
 	ICLK m_driveWriteChangeClock = 0;
 	ICLK m_motorOffClock = 0;
-	ICLK m_motorOnClock = 0;
 	bit8 m_motorSpeed = 0;
 	unsigned int m_motorSpeed_counter = 0;
 	ICLK m_headStepClock = 0;
