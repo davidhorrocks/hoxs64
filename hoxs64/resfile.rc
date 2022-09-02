@@ -251,8 +251,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,9
- PRODUCTVERSION 1,1,0,9
+ FILEVERSION 1,1,1,0
+ PRODUCTVERSION 1,1,1,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -270,12 +270,12 @@ BEGIN
             VALUE "Comments", "A Commodore 64 cycle based emulation."
             VALUE "CompanyName", "David Horrocks Enterprises"
             VALUE "FileDescription", "Hoxs64 C64 Emulator"
-            VALUE "FileVersion", "1.1.0.9"
+            VALUE "FileVersion", "1.1.1.0"
             VALUE "InternalName", "Hoxs64"
             VALUE "LegalCopyright", "Copyright © 2001"
             VALUE "OriginalFilename", "hoxs64.exe"
             VALUE "ProductName", "Hoxs64"
-            VALUE "ProductVersion", "1.1.0.9"
+            VALUE "ProductVersion", "1.1.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1044,7 +1044,6 @@ END
 // BINARY
 //
 
-IDR_SIDDRIVER           BINARY                  "siddrv.o65"
 
 
 /////////////////////////////////////////////////////////////////////////////

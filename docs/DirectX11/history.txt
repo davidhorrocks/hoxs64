@@ -1,3 +1,16 @@
+02 September 2022 v1.1.1.0
+==========================
+1) Fix corruption bug with the REU swap command. This fixes Sonic the Hedgehog by Mr. Sid.
+
+2) Fix the joystick loading of settings to support a blank axis selection.
+
+3) Set D64 sector gap to 7 bytes.
+
+4) Drive motor linear spin up time added.
+
+5) Drive VIA1 Port A improved simulation of floating pins.
+
+
 22 August 2022 v1.1.0.9
 =======================
 1) Fix memory leak when loading a save state file.
