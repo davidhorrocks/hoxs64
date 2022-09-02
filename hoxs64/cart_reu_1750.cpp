@@ -219,7 +219,7 @@ bool CartReu1750::IsREU()
 
 bool CartReu1750::IsCartIOActive(bit16 address, bool isWriting)
 {
-	if ((address & 0xFF00) == 0xDF00)
+	if ((address & 0xFF00) == 0xDF00) // leave open address space 0xDExx
 	{
 		return !transfer_started;
 	}
@@ -487,7 +487,7 @@ void CartReu1750::RunSwap()
 	{
 		return;
 	}
-
+	
 	if (!swap_started)
 	{
 		swap_state = !swap_state;
@@ -502,6 +502,18 @@ void CartReu1750::RunSwap()
 	}
 	else
 	{
+		if (countBALow > 0)
+		{
+			if (dma_on)
+			{
+				dma_on = false;
+				DMA = dma_on ? 0 : 1;
+				m_pCpu->SetCartridgeRdyHigh(CurrentClock);
+			}
+
+			return;
+		}
+
 		WriteByteToREU(reg_reuBankPointer, reg_reuBaseAddress.word, swap_byte_from_c64);
 		WriteByteToC64(reg_c64BaseAddress.word, swap_byte_from_reu);
 	}
@@ -517,6 +529,7 @@ void CartReu1750::RunSwap()
 
 		return;
 	}
+
 
 	// Update counters.
 	UpdateTransferAddressAndCounter();
