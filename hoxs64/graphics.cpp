@@ -1142,6 +1142,7 @@ void Graphics::DrawGui()
 				directoryViewer.Set_IndexCurrentCbmDiskItem(-1);
 				directoryViewer.Set_IsQuickloadEnabled(false);
 				directoryViewer.UseC64FilesFilter();
+				directoryViewer.Set_IsReuEnabled(this->c64->IsReuAttached());
 				directoryViewer.Fill();
 				ImGui::OpenPopup(title);
 			}
@@ -1166,7 +1167,7 @@ void Graphics::DrawGui()
 				bool wantChangeDirectory = false;
 				bool wantChangeParentDirectory = false;
 				bool wantQuickload = false;
-				bool wantReu = false;
+				bool wantReu = this->c64->IsReuAttached();
 				int wantChangeDirectoryIndex = -1;
 				int wantChangeParentDirectoryIndex = -1;
 				int wantOpenFileIndex = -1;
