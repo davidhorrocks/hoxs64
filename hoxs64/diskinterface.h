@@ -71,7 +71,7 @@ public:
 	void SpinDisk(ICLK sysclock);
 	void StartMotor();
 	void StopMotor();
-	bool MotorSlowDownEnv();
+	bit8 MotorSlowDownEnv();
 	void ExecutePALClock(ICLK palclock);
 	void ExecuteOnePendingDiskCpuClock();
 	void AccumulatePendingDiskCpuClocksToPalClock(ICLK palclock);
@@ -95,6 +95,9 @@ public:
 	ICLK m_changing_c64_serialbus_diskview_diskclock = 0;
 	ICLK m_driveWriteChangeClock = 0;
 	ICLK m_motorOffClock = 0;
+	ICLK m_motorOnClock = 0;
+	bit8 m_motorSpeed = 0;
+	unsigned int m_motorSpeed_counter = 0;
 	ICLK m_headStepClock = 0;
 	ICLK m_headStepClockUp = 0;
 	ICLK m_pendingclocks = 0;

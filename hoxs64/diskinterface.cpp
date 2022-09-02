@@ -826,7 +826,7 @@ bit8 bandpos;
 
 	if (m_lastPulseTime > WEAKBITIME1 && m_d64_write_enable == 0)
 	{
-		if ((m_bDiskMotorOn || m_motorOffClock> 0) && m_d64_diskchange_counter==0 && m_lastWeakPulseTime > WEAKBITIME2 && dist_weakbit(randengine_drive) < 1000)
+		if ((m_bDiskMotorOn || m_motorSpeed > 0) && m_d64_diskchange_counter==0 && m_lastWeakPulseTime > WEAKBITIME2 && dist_weakbit(randengine_drive) < 1000)
 		{
 			clockDivider1_UE7 = speed;
 			clockDivider2_UF4 = 0;
@@ -986,11 +986,11 @@ int i;
 		bitTimeFirstInCell = 0;
 		bitTimeDelayed = 0;
 		nextPulseState = m_bPulseState;
-		bit8 bMotorRun = MotorSlowDownEnv();
+		bit8 bMotorRunSpeed = MotorSlowDownEnv();
 		if (m_headStepClock)
 		{
 			m_headStepClock--;
-			position = ((p64_uint32_t)m_currentHeadIndex) << 4;
+			position = (p64_uint32_t)m_currentHeadIndex;
 			if (m_headStepClockUp == 0)
 			{
 				if (track->CurrentIndex >= 0 && track->Pulses[track->CurrentIndex].Position > position)
@@ -1020,17 +1020,17 @@ int i;
 				m_nextP64PulsePosition = -1;
 			}
 		}
-		m_counterStartPulseFilter += DISK16CELLSPERCLOCK;
 
-		if (bMotorRun && m_d64_diskchange_counter==0)
+		m_counterStartPulseFilter += DISK16CELLSPERCLOCK;
+		if (bMotorRunSpeed > 0 && m_d64_diskchange_counter==0)
 		{
 			//Rotate disk 16 clocks;
-			m_currentHeadIndex++;
-			if (m_currentHeadIndex >= DISK_RAW_TRACK_SIZE)
+			m_currentHeadIndex += bMotorRunSpeed;
+			if (m_currentHeadIndex >= P64PulseSamplesPerRotation)
 			{
 				m_currentHeadIndex = 0;
 			}
-			position = ((p64_uint32_t)m_currentHeadIndex) << 4;
+			position = (p64_uint32_t)m_currentHeadIndex;
 			if (m_nextP64PulsePosition < 0)
 			{
 				P64PulseStreamGetNextPulse(track, position);
@@ -1455,43 +1455,77 @@ bit8 DiskInterface::GetHalfTrackIndex()
 
 void DiskInterface::StartMotor()
 {
+	m_bDiskMotorOn = true;
 }
 
 void DiskInterface::StopMotor()
 {
+	m_bDiskMotorOn = false;
 	//Allow motor to run for a short time after it is turned off.
 	m_motorOffClock = DISKMOTORSLOWTIME + dist_motor_slow(randengine_drive);
 }
 
-bool DiskInterface::MotorSlowDownEnv()
+bit8 DiskInterface::MotorSlowDownEnv()
 {	
+	constexpr bit8 MaxMotorSpeed = DISK16CELLSPERCLOCK;
+	if (m_motorSpeed > MaxMotorSpeed)
+	{
+		m_motorSpeed = MaxMotorSpeed;
+	}
+
 	if (m_bDiskMotorOn)
 	{
-		return true;
+
+		if (m_motorSpeed >= MaxMotorSpeed)
+		{
+			return MaxMotorSpeed;
+		}
+
+		m_motorSpeed_counter += 1;
+		if ((m_motorSpeed_counter & 0xfff) == 0)
+		{
+			m_motorSpeed += 1;
+		}
+
+		return m_motorSpeed;
 	}
 	else
 	{
-        if (m_motorOffClock > 0)
-        {
-            m_motorOffClock--;
-
-            if (m_motorOffClock > (3 * DISKMOTORSLOWTIME / 4))
-            {
-                return true;
-            }
-            else if (m_motorOffClock > (1 * DISKMOTORSLOWTIME / 2))
-            {
-                return (m_motorOffClock & 1) == 0;
-            }
-            else
-            {
-                return (m_motorOffClock & 3) == 0;
-            }
-        }
-		else
+		if (m_motorSpeed == 0)
 		{
-			return false;
+			return 0;
 		}
+
+		m_motorOffClock--;
+		m_motorSpeed_counter -= 1;
+		if ((m_motorSpeed_counter & 0x1fff) == 0)
+		{
+			m_motorSpeed -= 1;
+		}
+
+		return m_motorSpeed;
+		//if (m_motorOffClock > 0)
+  //      {
+  //          m_motorOffClock--;
+
+  //          if (m_motorOffClock > (3 * DISKMOTORSLOWTIME / 4))
+  //          {
+  //              return true;
+  //          }
+  //          else if (m_motorOffClock > (1 * DISKMOTORSLOWTIME / 2))
+  //          {
+  //              return (m_motorOffClock & 1) == 0;
+  //          }
+  //          else
+  //          {
+  //              return (m_motorOffClock & 3) == 0;
+  //          }
+  //      }
+		//else
+		//{
+		//	m_motorSpeed = 0;
+		//	return m_motorSpeed;
+		//}
 	}
 }
 
@@ -1631,7 +1665,7 @@ void DiskInterface::PrepareP64Head(unsigned int trackNumber)
 	PP64PulseStream track;
 	if (this->m_diskLoaded != 0)
 	{
-		p64_uint32_t position = ((p64_uint32_t)m_currentHeadIndex) << 4;
+		p64_uint32_t position = (p64_uint32_t)m_currentHeadIndex;
 		track = &this->m_P64Image.PulseStreams[P64FirstHalfTrack + m_currentTrackNumber];
 		if (track->UsedFirst >= 0 && track->Pulses != NULL && track->CurrentIndex >= 0)
 		{
