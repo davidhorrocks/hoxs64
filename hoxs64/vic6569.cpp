@@ -1462,7 +1462,7 @@ bit8 gData;
 		if (vicIDLE_DELAY)
 		{
 			vicIDLE_DELAY=0;
-			gData = 0;
+			//gData = 0;
 		}
 	}
 	else
