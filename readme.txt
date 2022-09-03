@@ -23,6 +23,17 @@ Execute the following commands in a Visual Studio 2019 elevated command prompt. 
 
 The hoxs64_2019.sln solution should in theory now build in Microsoft Visual Studio 2019.
 
+Runtime Requirements
+Windows 7/10
+Microsoft Visual C++ runtime installation.
+https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads
+
+For 64 bit version
+Download and install: vc_redist.x64.exe
+
+For 32 bit version
+Download and install: vc_redist.x86.exe
+
 License
 
 Hoxs64 Commodore 64 Emulator for Windows
