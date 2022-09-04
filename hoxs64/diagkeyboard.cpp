@@ -775,10 +775,19 @@ void CDiagKeyboard::SetKeyCapture(int c64key)
 	m_bBeginKeyScan = true;
 	for (i = 0; i < _countof(keycontrol); i++)
 	{
-		if (m_current_c64key != i && keycontrol[i].state != kcs_display)
+		if (c64key != i && keycontrol[i].state != kcs_display)
 		{
 			keycontrol[i].state = kcs_display;
 			InvalidateRect(keycontrol[i].hwnd, NULL, TRUE);
+		}
+	}
+
+	if (c64key >= 0 && c64key <= _countof(keycontrol))
+	{
+		keycontrol[c64key].state = kcs_getkey;
+		if (keycontrol[c64key].hwnd != 0)
+		{
+			InvalidateRect(keycontrol[c64key].hwnd, NULL, TRUE);
 		}
 	}
 }
