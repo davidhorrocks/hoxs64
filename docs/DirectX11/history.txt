@@ -1,4 +1,9 @@
-03 September 2022 v1.1.1.1
+04 September 2022 v1.1.1.2
+==========================
+1) Fix keyboard settings dialog that was broken in v1.1.1.0.
+
+
+03 September 2022 v1.1.1.2
 ==========================
 1) Put back accidentally deleted SID player driver.
 
