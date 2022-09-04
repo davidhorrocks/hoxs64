@@ -42,6 +42,7 @@ public:
 	enum FileTypeFlag::filetype mAllowTypes;
 	static const int HEADERLINES = 1;
 	bool DisableQuickLoad;
+	bool DisableReuOption;
 
 private:
 	CDPI m_dpi;

@@ -1487,6 +1487,7 @@ CPRGBrowse prgBrowse;
 		0);
 
 	prgBrowse.DisableQuickLoad = true;
+	prgBrowse.DisableReuOption = true;
 	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, (CPRGBrowse::FileTypeFlag::filetype)(CPRGBrowse::FileTypeFlag::D64 | CPRGBrowse::FileTypeFlag::G64 | CPRGBrowse::FileTypeFlag::FDI | CPRGBrowse::FileTypeFlag::P64) );
 	if (b)
 	{

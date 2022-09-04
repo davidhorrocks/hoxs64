@@ -70,6 +70,7 @@ CPRGBrowse::CPRGBrowse() noexcept
 	mbGapsDone = false;
 	miLoadedListItemCount = 0;
 	DisableQuickLoad = false;
+	DisableReuOption = false;
 }
 
 CPRGBrowse::~CPRGBrowse()
@@ -436,6 +437,14 @@ LRESULT lr;
 					if (m_hCheckQuickLoad)
 					{
 						ShowWindow(m_hCheckQuickLoad, SW_HIDE);
+					}
+				}
+
+				if (DisableReuOption)
+				{
+					if (m_hCheckReu)
+					{
+						EnableWindow(m_hCheckReu, FALSE);
 					}
 				}
 
