@@ -675,8 +675,20 @@ bit8 CartReu1750::ReadByteFromREU(bit8 bank, bit16 address)
 
 bit8 CartReu1750::ReadByteFromC64(bit16 address, bool startingVicDMA)
 {
-	if (address >= 0xD000 && address <= 0xDFFF && startingVicDMA)
+	if (startingVicDMA && address >= 0xD000 && address <= 0xDFFF && m_pCpu->GetCurrentCpuMmuReadMemoryType(address) == MT_IO)
 	{
+		/*
+		* It is reported that the C64C has a bug where it can read from RAM instead of IO
+		* The older C64 reads from IO as expected.
+
+		* From VICE's testprogs\REU\reutiming2\readme.txt
+		* 
+		* When reading from I/O, the first byte of a transfer that is started in the
+		* same cycle as a VIC DMA would be may come from the RAM under the I/O instead.
+		* This seems to happen (to be confirmed) when the "new" VICII is used and/or
+		* a "new" motherboard is used (C64C) - on "breadbox" with "old" VICII we
+		* apparently get the expected value from I/O (see the -m2 test variants).		
+		*/
 		return this->m_pC64RamMemory[address];
 	}
 	else

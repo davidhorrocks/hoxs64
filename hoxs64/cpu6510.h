@@ -79,6 +79,8 @@ public:
 	int GetCurrentCpuMmuMemoryMap()  override;
 	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap) override;
 	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap) override;
+	MEM_TYPE GetCurrentCpuMmuReadMemoryType(bit16 address) override;
+	MEM_TYPE GetCurrentCpuMmuWriteMemoryType(bit16 address) override;
 
 	bool IsVicNotifyCpuWriteCycle() override;
 	bit8 Get_IRQ_VIC() override;

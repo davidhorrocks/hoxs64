@@ -403,6 +403,16 @@ MEM_TYPE RAM64::GetCpuMmuWriteMemoryType(bit16 address, int memorymap)
 		return MMU_MT_write[memorymap & 0x1f][address >> 12];
 }
 
+MEM_TYPE RAM64::GetCurrentCpuMmuReadMemoryType(bit16 address)
+{
+	return MMU_MT_read[m_iCurrentCpuMmuIndex][address >> 12];
+}
+
+MEM_TYPE RAM64::GetCurrentCpuMmuWriteMemoryType(bit16 address)
+{
+	return MMU_MT_write[m_iCurrentCpuMmuIndex & 0x1f][address >> 12];
+}
+
 void RAM64::InitMMU_0()
 {
 int i,j;
@@ -1003,16 +1013,10 @@ int i,j;
 			if (readmt == MT_CHARGEN 
 				|| readmt == MT_BASIC
 				|| readmt == MT_KERNAL
-				//|| readmt == MT_ROML
-				//|| readmt == MT_ROMH
 				)
 			{
 				MMU_MT_write[i][j]=MT_RAM;
 			}
-			//else if (readmt == MT_ROML_ULTIMAX || readmt == MT_ROMH_ULTIMAX)
-			//{
-			//	MMU_MT_write[i][j]=MT_EXRAM;
-			//}
 			else
 			{
 				MMU_MT_write[i][j]=readmt;

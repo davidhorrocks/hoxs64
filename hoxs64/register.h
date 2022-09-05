@@ -84,6 +84,10 @@ public:
 	virtual void WriteDmaByte(bit16 address, bit8 data) = 0;
 	virtual bit8 MonReadByte(bit16 address, int memorymap) = 0;
 	virtual void MonWriteByte(bit16 address, bit8 data, int memorymap) = 0;
+	virtual MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap) = 0;
+	virtual MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap) = 0;
+	virtual MEM_TYPE GetCurrentCpuMmuReadMemoryType(bit16 address) = 0;
+	virtual MEM_TYPE GetCurrentCpuMmuWriteMemoryType(bit16 address) = 0;
 };
 
 class ISid64 : public IRegister

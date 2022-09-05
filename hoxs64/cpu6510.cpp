@@ -839,6 +839,16 @@ MEM_TYPE CPU6510::GetCpuMmuWriteMemoryType(bit16 address, int memorymap)
 	return ram->GetCpuMmuWriteMemoryType(address, memorymap);
 }
 
+MEM_TYPE CPU6510::GetCurrentCpuMmuReadMemoryType(bit16 address)
+{
+	return ram->GetCurrentCpuMmuReadMemoryType(address);
+}
+
+MEM_TYPE CPU6510::GetCurrentCpuMmuWriteMemoryType(bit16 address)
+{
+	return ram->GetCurrentCpuMmuWriteMemoryType(address);
+}
+
 void CPU6510::CheckPortFade(ICLK sysclock)
 {
 bit8 f;

@@ -21,6 +21,8 @@ public:
 	int GetCurrentCpuMmuMemoryMap();
 	MEM_TYPE GetCpuMmuReadMemoryType(bit16 address, int memorymap);
 	MEM_TYPE GetCpuMmuWriteMemoryType(bit16 address, int memorymap);
+	MEM_TYPE GetCurrentCpuMmuReadMemoryType(bit16 address);
+	MEM_TYPE GetCurrentCpuMmuWriteMemoryType(bit16 address);
 	bit8 *GetCpuMmuIndexedPointer(MEM_TYPE mt);
 
 	MEM_TYPE MMU_MT_read[32][16] = {};
