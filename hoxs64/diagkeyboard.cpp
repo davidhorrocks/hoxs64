@@ -764,7 +764,7 @@ LPARAM lParam   // second message parameter
 void CDiagKeyboard::SetKeyCapture(int c64key)
 {
 	int i;
-	if (c64key < 0 && c64key >= _countof(keycontrol))
+	if (c64key < 0 || c64key >= _countof(keycontrol))
 	{
 		ResetKeyCapture();
 		return;
@@ -782,7 +782,7 @@ void CDiagKeyboard::SetKeyCapture(int c64key)
 		}
 	}
 
-	if (c64key >= 0 && c64key <= _countof(keycontrol))
+	if (c64key >= 0 && c64key < _countof(keycontrol))
 	{
 		keycontrol[c64key].state = kcs_getkey;
 		if (keycontrol[c64key].hwnd != 0)
