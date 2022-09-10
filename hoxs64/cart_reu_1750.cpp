@@ -196,6 +196,14 @@ void CartReu1750::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 
 bool CartReu1750::SnoopWrite(bit16 address, bit8 data)
 {
+	/* From VICE's testprogs\REU\reutiming2\readme.txt
+	* 
+	* When the DMA is triggered by writing to $ff00 using a RMW instruction, the
+	* first "dummy" write will start the DMA immediatly, the CPU will be
+	* disconnected from the bus instantly and the second write cycle will go to
+	* "nowhere", so it will not end up in the computers RAM.
+	*/
+
 	bool tx = transfer_started;
 	if (address == 0xFF00)	
 	{
@@ -209,6 +217,7 @@ bool CartReu1750::SnoopWrite(bit16 address, bit8 data)
 
 	}
 
+	// If the transfer was already started, we prevent the CPU write.
 	return !tx;
 }
 
@@ -305,6 +314,7 @@ void CartReu1750::RunC64ToREU()
 	ICLK countBALow = m_pVic->Get_CountBALow();
 	if ((countBALow > 0) && (countBALow != 1 || (m_pVic->SpriteDMATurningOn() & 1) == 0))
 	{
+		// If sprite0 DMA is what caused BA to go low then delay the release of the DMA line.
 		if (dma_on)
 		{
 			dma_on = false;
@@ -369,6 +379,13 @@ void CartReu1750::RunREUToC64()
 
 	// Check VIC's BA
 	ICLK countBALow = m_pVic->Get_CountBALow();
+
+	/*
+	* In order get to get badoublewite.prg to work then:
+	* If BA goes low on the first cycle of a transfer then a DMA byte is written to the C64,
+	* DMA will be released in the second half of this cycle,
+	* and the memory pointers and counter will not change.
+	*/
 	if (countBALow == 0 || (countBALow == 1 && runcount == 1)) // badoublewite.prg
 	{
 		if (!dma_on)
@@ -385,6 +402,13 @@ void CartReu1750::RunREUToC64()
 
 	if (countBALow > 0 && reg_transferLength.word == 1 && !transfer_finished && runcount > 1)
 	{
+		/*
+		* From VICE's testprogs\REU\reutiming2\readme.txt
+		* 
+		* When a REU DMA ends in the same cycle when a VIC DMA starts, it will take one
+		* extra cycle
+		*/
+
 		if (dma_on)
 		{
 			dma_on = false;
@@ -409,7 +433,11 @@ void CartReu1750::RunREUToC64()
 
 	if (countBALow == 1 && runcount == 1)
 	{
-		// badoublewite.prg
+		// testprogs\REU\reutiming2\badoublewite.prg
+		// We do not increment the counters. This may produce a second write to the same address in the next cycle.
+		// Unfortunately, the VICE tests do not currently probe whether sprint0 DMA turning on bug can delay release of the DMA line in this condition.
+		// It might be that if sprite0 DMA is what caused BA to go low then we should continue to increment the counters,
+		// but this has not been tested.
 		if (dma_on)
 		{
 			dma_on = false;
@@ -425,6 +453,7 @@ void CartReu1750::RunREUToC64()
 
 	if ((countBALow > 0) && (countBALow != 1 || (m_pVic->SpriteDMATurningOn() & 1) == 0))
 	{
+		// If sprite0 DMA is what caused BA to go low then delay the release of the DMA line.
 		if (dma_on)
 		{
 			dma_on = false;
@@ -490,6 +519,7 @@ void CartReu1750::RunSwap()
 	
 	if (!swap_started)
 	{
+		// The swap state continues to be toggled even while DMA is paused.
 		swap_state = !swap_state;
 	}
 
@@ -590,6 +620,7 @@ void CartReu1750::RunVerify()
 
 	if ((countBALow > 0) && (countBALow != 1 || (m_pVic->SpriteDMATurningOn() & 1) == 0))
 	{
+		// If sprite0 DMA is what caused BA to go low then delay the release of the DMA line.
 		if (dma_on)
 		{
 			dma_on = false;
