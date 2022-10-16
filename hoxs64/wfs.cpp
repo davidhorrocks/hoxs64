@@ -10,25 +10,16 @@ const std::wstring Wfs::RootPrefix(L"\\");
 
 bool Wfs::IsAbsolutePath(const std::wstring& path)
 {
-    if (StringConverter::IsEmptyOrWhiteSpace(path))
+    std::wstring plainpath = EnsureRemoveLongNamePrefix(path);
+    std::wstring wsroot;
+    std::wstring wsdirectorypath;
+    std::wstring wsfilename;
+    Wfs::SplitRootPath(plainpath, wsroot, wsdirectorypath, wsfilename);
+    if (!StringConverter::IsEmptyOrWhiteSpace(wsroot) && !StringConverter::IsEmptyOrWhiteSpace(wsdirectorypath))
     {
-        return false;
-    }
-
-    if (path.find(L"\\") == 0 || path.find(L"/") == 0)
-    {
-        return true;
-    }
-
-    size_t i = path.find(L":");
-    if (i > 0)
-    {
-        if (path.length() > i + 1)
+        if (wsdirectorypath.find(L"\\") == 0)
         {
-            if (path[i + 1] == L'/' || path[i + 1] == L'\\')
-            {
-                return true;
-            }
+            return true;
         }
     }
 
@@ -216,7 +207,7 @@ bool Wfs::FileExists(const std::wstring& path, bool* pisFound, DWORD* plastError
 
     if (pisFound)
     {
-        *pisFound = pisFound;
+        *pisFound = found;
     }
 
     return !isError;
@@ -225,8 +216,7 @@ bool Wfs::FileExists(const std::wstring& path, bool* pisFound, DWORD* plastError
 bool Wfs::FileExists(const std::wstring& path, bool* pisFound, std::wstring& errorMessage)
 {
     DWORD lastError;
-    bool isFound;
-    bool isSuccess = FileExists(path, &isFound, &lastError);
+    bool isSuccess = FileExists(path, pisFound, &lastError);
     if (!isSuccess)
     {
         errorMessage = G::GetLastWin32ErrorWString(lastError);
@@ -289,140 +279,143 @@ bool Wfs::FilenameHasExtension(const wchar_t filename[], const wchar_t ext[])
 
 void Wfs::SplitRootPath(const std::wstring path, std::wstring& root, std::wstring& directorypath, std::wstring& filename)
 {
+    std::wstring longnameprefix;
+    SplitRootPath(path, longnameprefix, root, directorypath, filename);
+    root = Path_Combine(longnameprefix, root);
+}
+
+void Wfs::SplitRootPath(const std::wstring path, std::wstring& longnameprefix, std::wstring& root, std::wstring& directorypath, std::wstring& filename)
+{
     std::wstring sb;
+    std::wstring path_no_prefix = EnsureRemoveLongNamePrefix(path);
     size_t i;
     int scount;
     directorypath.clear();
     root.clear();
+    filename.clear();
     if (path.find(Wfs::LongNamePrefixUnc) == 0)
     {
-        sb.append(Wfs::LongNamePrefixUnc);
-        scount = 2;
-        for (i = sb.length(); i < path.length() && scount > 0; i++)
+        longnameprefix.append(Wfs::LongNamePrefixUnc);
+        scount = 4;
+        for (i = 0; i < path_no_prefix.length() && scount > 0; i++)
         {
-            switch (path[i])
+            switch (path_no_prefix[i])
             {
-            case '\\':
+            case L'\\':
                 scount--;
+                break;
+            default:
                 break;
             }
 
             if (scount > 0)
             {
-                sb.push_back(path[i]);
+                sb.push_back(path_no_prefix[i]);
             }
         }
 
-        if (sb.length() < path.length())
+        if (sb.length() < path_no_prefix.length())
         {
-            size_t k = path.length() - sb.length();
-            directorypath = path.substr(path.length() - k, k);
+            size_t k = path_no_prefix.length() - sb.length();
+            directorypath = path_no_prefix.substr(path_no_prefix.length() - k, k);
         }
     }
     else if (path.find(Wfs::LongNamePrefix) == 0)
     {
-        sb.append(Wfs::LongNamePrefix);
-        scount = 1;
-        for (i = sb.length(); i < path.length() && scount > 0; i++)
+        longnameprefix.append(Wfs::LongNamePrefix);
+        size_t k = path_no_prefix.find(L':');
+        if (k != std::wstring::npos)
         {
-            switch (path[i])
+            scount = 1;
+            for (i = 0; i < path_no_prefix.length() && scount > 0; i++)
             {
-            case ':':
-                scount--;
-                break;
-            }
+                switch (path_no_prefix[i])
+                {
+                case L':':
+                    scount--;
+                    break;
+                default:
+                    break;
+                }
 
-            sb.push_back(path[i]);
+                sb.push_back(path_no_prefix[i]);
+            }
         }
 
-        if (sb.length() < path.length())
+        if (sb.length() < path_no_prefix.length())
         {
-            size_t k = path.length() - sb.length();
-            directorypath = path.substr(path.length() - k, k);
+            k = path_no_prefix.length() - sb.length();
+            directorypath = path_no_prefix.substr(path_no_prefix.length() - k, k);
         }
     }
     else if (path.find(Wfs::ShortNamePrefixUnc) == 0)
     {
-        sb.append(Wfs::ShortNamePrefixUnc);
-        scount = 2;
-        for (i = sb.length(); i < path.length() && scount > 0; i++)
+        scount = 4;
+        for (i = 0; i < path_no_prefix.length() && scount > 0; i++)
         {
-            switch (path[i])
+            switch (path_no_prefix[i])
             {
-            case '\\':
+            case L'\\':
                 scount--;
+                break;
+            default:
                 break;
             }
 
             if (scount > 0)
             {
-                sb.push_back(path[i]);
+                sb.push_back(path_no_prefix[i]);
             }
         }
 
-        if (sb.length() < path.length())
+        if (sb.length() < path_no_prefix.length())
         {
-            size_t k = path.length() - sb.length();
-            directorypath = path.substr(path.length() - k, k);
-        }
-    }
-    else if (path.find(Wfs::RootPrefix) == 0)
-    {
-        sb.append(Wfs::RootPrefix);
-        scount = 2;
-        for (i = sb.length(); i < path.length() && scount > 0; i++)
-        {
-            switch (path[i])
-            {
-            case '\\':
-                scount--;
-                break;
-            }
-
-            if (scount > 0)
-            {
-                sb.push_back(path[i]);
-            }
-        }
-
-        if (sb.length() < path.length())
-        {
-            size_t k = path.length() - sb.length();
-            directorypath = path.substr(path.length() - k, k);
+            size_t k = path_no_prefix.length() - sb.length();
+            directorypath = path_no_prefix.substr(path_no_prefix.length() - k, k);
         }
     }
     else
     {
-        scount = 1;
-        for (i = sb.length(); i < path.length() && scount > 0; i++)
+        size_t k = path_no_prefix.find(L':');
+        if (k != std::wstring::npos)
         {
-            switch (path[i])
+            scount = 1;
+            for (i = 0; i < path_no_prefix.length() && scount > 0; i++)
             {
-            case ':':
-                scount--;
-                break;
-            }
+                switch (path_no_prefix[i])
+                {
+                case L':':
+                    scount--;
+                    break;
+                default:
+                    break;
+                }
 
-            sb.push_back(path[i]);
+                sb.push_back(path_no_prefix[i]);
+            }
         }
 
-        if (sb.length() < path.length())
+        if (sb.length() < path_no_prefix.length())
         {
-            size_t k = path.length() - sb.length();
-            directorypath = path.substr(path.length() - k, k);
+            k = path_no_prefix.length() - sb.length();
+            directorypath = path_no_prefix.substr(path_no_prefix.length() - k, k);
         }
     }
 
     root = sb;
-
-    i = directorypath.find_last_of('\\');
-    if (i != std::wstring::npos)
+    size_t firstslash = directorypath.find_last_of(L'\\');
+    if (firstslash != std::wstring::npos)
     {
-        size_t k = i + 1;
+        size_t k = firstslash + 1;
         if (directorypath.length() > k)
-        {
+        {  
             filename = directorypath.substr(k, directorypath.length() - k);
             directorypath.resize(k);
         }
+    }
+    else
+    {
+        filename = directorypath;
+        directorypath.clear();
     }
 }

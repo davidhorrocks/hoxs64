@@ -21,4 +21,5 @@ public:
 	static std::wstring GetFileExtension(const std::wstring& filename);
 	static bool FilenameHasExtension(const wchar_t filename[], const wchar_t ext[]);
 	static void SplitRootPath(const std::wstring path, std::wstring& root, std::wstring& directorypath, std::wstring& filename);
+	static void SplitRootPath(const std::wstring path, std::wstring& longnameprefix, std::wstring& root, std::wstring& directorypath, std::wstring& filename);
 };
