@@ -4,6 +4,7 @@
 #include <DirectXTK/WICTextureLoader.h>
 #include <DirectXTK/DDSTextureLoader.h>
 #include "graphicshelper.h"
+#include "wfs.h"
 
 Texture::Texture(ID3D11Device* device, const Color& color, aiTextureType type)
 {
@@ -15,12 +16,12 @@ Texture::Texture(ID3D11Device* device, const Color* colorData, UINT width, UINT 
 	this->InitializeColorTexture(device, colorData, width, height, type);
 }
 
-Texture::Texture(ID3D11Device* device, const std::string& filePath, aiTextureType type)
+Texture::Texture(ID3D11Device* device, const std::wstring& filePath, aiTextureType type)
 {
 	this->type = type;
-	if (StringHelper::GetFileExtension(filePath) == ".dds")
+	if (StringConverter::CompareStrCaseInsensitive(Wfs::GetFileExtension(filePath), L".dds"))
 	{
-		HRESULT hr = DirectX::CreateDDSTextureFromFile(device, StringConverter::StringToWideString(filePath).c_str(), texture.GetAddressOf(), this->textureView.GetAddressOf());
+		HRESULT hr = DirectX::CreateDDSTextureFromFile(device, filePath.c_str(), texture.GetAddressOf(), this->textureView.GetAddressOf());
 		if (FAILED(hr))
 		{
 			this->Initialize1x1ColorTexture(device, Color(Colors::UnloadedTextureColor), type);
@@ -29,7 +30,7 @@ Texture::Texture(ID3D11Device* device, const std::string& filePath, aiTextureTyp
 	}
 	else
 	{
-		HRESULT hr = DirectX::CreateWICTextureFromFile(device, StringConverter::StringToWideString(filePath).c_str(), texture.GetAddressOf(), this->textureView.GetAddressOf());
+		HRESULT hr = DirectX::CreateWICTextureFromFile(device, filePath.c_str(), texture.GetAddressOf(), this->textureView.GetAddressOf());
 		if (FAILED(hr))
 		{
 			this->Initialize1x1ColorTexture(device, Color(Colors::UnloadedTextureColor), type);

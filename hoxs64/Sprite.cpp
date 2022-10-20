@@ -7,7 +7,7 @@ void Sprite::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext
 	Init(device, deviceContext, width, height, cb_vs_vertexshader_2d);
 }
 
-void Sprite::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, float width, float height, std::string spritePath, ConstantBuffer<CB_VS_vertexshader_2d>& cb_vs_vertexshader_2d)
+void Sprite::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, float width, float height, std::wstring spritePath, ConstantBuffer<CB_VS_vertexshader_2d>& cb_vs_vertexshader_2d)
 {
 	this->texture = std::make_unique<Texture>(device, spritePath, aiTextureType::aiTextureType_DIFFUSE);
 	Init(device, deviceContext, width, height, cb_vs_vertexshader_2d);

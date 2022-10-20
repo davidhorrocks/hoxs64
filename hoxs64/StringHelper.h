@@ -5,6 +5,6 @@
 class StringHelper
 {
 public:
-	static std::string GetDirectoryFromPath(const std::string& filepath);
-	static std::string GetFileExtension(const std::string& filename);
+	static std::wstring GetDirectoryFromPath(const std::wstring& filepath);
+	static std::wstring GetFileExtension(const std::wstring& filename);
 };

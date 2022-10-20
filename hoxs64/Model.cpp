@@ -1,7 +1,8 @@
 #include "Model.h"
 #include "StringHelper.h"
+#include "wfs.h"
 
-bool Model::Initialize(const std::string& filePath, ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader>& cb_vs_vertexshader)
+bool Model::Initialize(const std::wstring& filePath, ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader>& cb_vs_vertexshader)
 {
 	this->device = device;
 	this->deviceContext = deviceContext;
@@ -35,13 +36,14 @@ void Model::Draw(const XMMATRIX& worldMatrix, const XMMATRIX& viewProjectionMatr
 	}
 }
 
-bool Model::LoadModel(const std::string& filePath)
+bool Model::LoadModel(const std::wstring& filePath)
 {
 	this->directory = StringHelper::GetDirectoryFromPath(filePath);
 
 	Assimp::Importer importer;
 
-	const aiScene* pScene = importer.ReadFile(filePath,
+	std::string utf8_filePath = StringConverter::WideStringToString(CP_UTF8, filePath);
+	const aiScene* pScene = importer.ReadFile(utf8_filePath,
 		aiProcess_Triangulate |
 		aiProcess_ConvertToLeftHanded);
 
@@ -210,7 +212,8 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* pMaterial, aiTextur
 			}
 			case TextureStorageType::Disk:
 			{
-				std::string filename = this->directory + '\\' + path.C_Str();
+				std::wstring path2 = StringConverter::StringToWideString(CP_UTF8, path.C_Str());
+				std::wstring filename = Wfs::Path_Combine(this->directory, path2);
 				Texture diskTexture(this->device, filename, textureType);
 				materialTextures.push_back(diskTexture);
 				break;
