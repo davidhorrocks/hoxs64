@@ -171,6 +171,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <PreprocessorDefinitions>NOMINMAX;_CRT_SECURE_NO_DEPRECATE;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;_WIN32_WINNT=0x601;WINVER=0x0601;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -230,6 +231,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <PreprocessorDefinitions>NOMINMAX;_CRT_SECURE_NO_DEPRECATE;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;_WIN32_WINNT=0x601;WINVER=0x0601;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -287,6 +289,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -344,6 +347,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -398,6 +402,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
       <FloatingPointModel>Fast</FloatingPointModel>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <ExceptionHandling>Sync</ExceptionHandling>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -452,6 +457,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
       <PreprocessorDefinitions>NOMINMAX;_CRT_SECURE_NO_DEPRECATE;IMGUI_IMPL_WIN32_DISABLE_GAMEPAD;_WIN32_WINNT=0x601;WINVER=0x0601;UNICODE;_UNICODE;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FloatingPointModel>Fast</FloatingPointModel>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -506,6 +512,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <Optimization>Disabled</Optimization>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -561,6 +568,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <Optimization>Disabled</Optimization>
       <DisableSpecificWarnings>26400;26401;26408;26409;26429;26430;26440;26446;26451;26461;26462;26477;26481;26482;26485;26486;26487;26489;26490;26492;26493;26494;26496;26497;26812;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
