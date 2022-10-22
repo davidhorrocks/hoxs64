@@ -1,57 +1,23 @@
 #include <algorithm>
 #include "StringConverter.h"
 
-/**************************************************************************/
-
-/*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
-	Function: AnsiToUc
-
-	Summary:  Convert an ANSI 'multibyte' string into a UNICODE 'wide
-			character' string.
-
-	Args:     LPSTR pszAnsi
-				Pointer to a caller's input ANSI string.
-			LPWSTR pwszUc
-				Pointer to a caller's output UNICODE wide string.
-			int cAnsiCharsToConvert
-				Character count. If 0 then use length of pszAnsi.
-
-	Returns:  HRESULT
-				Standard result code. NOERROR for success.
-F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F-F*/
-HRESULT StringConverter::AnsiToUc(
-	LPCSTR pszAnsi,
-	LPWSTR pwszUc,
-	int cAnsiCharsToConvert)  noexcept
+HRESULT StringConverter::MultiByteToUc(UINT codepage, LPCSTR pszMb, int cchMbCharsToConvert, LPWSTR pwszUc, int cchOutputBuffer) noexcept
 {
 	int chout = 0;
-	return StringConverter::AnsiToUc(pszAnsi, pwszUc, cAnsiCharsToConvert, chout);
+	return StringConverter::MultiByteToUc(codepage, pszMb, cchMbCharsToConvert, pwszUc, cchOutputBuffer, chout);
 }
 
-HRESULT StringConverter::AnsiToUc(
-	LPCSTR pszAnsi,
-	LPWSTR pwszUc,
-	int cAnsiCharsToConvert,
-	int& cchOut) noexcept
+HRESULT StringConverter::MultiByteToUc(UINT codepage, LPCSTR pszMb, int cchMbCharsToConvert, LPWSTR pwszUc, int cchOutputBuffer, int& cchOut) noexcept
 {
 	int cch = 0;
-
 	cchOut = 0;
-	if (pszAnsi == nullptr)
+	if (pszMb == nullptr)
 	{
 		return E_POINTER;
 	}
 
-	if (0 == cAnsiCharsToConvert)
-	{
-		cch = -1;
-	}
-	else
-	{
-		cch = cAnsiCharsToConvert;
-	}
-
-	int cSize = MultiByteToWideChar(CP_ACP, 0, pszAnsi, cch, nullptr, 0);
+	cch = cchMbCharsToConvert;
+	int cSize = MultiByteToWideChar(codepage, 0, pszMb, cch, nullptr, 0);
 	if (cSize == 0)
 	{
 		return E_FAIL;
@@ -63,7 +29,7 @@ HRESULT StringConverter::AnsiToUc(
 		return S_OK;
 	}
 
-	int r = MultiByteToWideChar(CP_ACP, 0, pszAnsi, cch, pwszUc, cSize);
+	int r = MultiByteToWideChar(codepage, 0, pszMb, cch, pwszUc, cchOutputBuffer);
 	if (0 == r)
 	{
 		return  E_FAIL;
@@ -73,36 +39,18 @@ HRESULT StringConverter::AnsiToUc(
 	return S_OK;
 }
 
-HRESULT StringConverter::AnsiToUcRequiredBufferLength(
-	LPCSTR pszAnsi,
-	int cAnsiCharsToConvert,
-	int& cchOut
-) noexcept
+HRESULT StringConverter::MultiByteToUcRequiredBufferLength(UINT codepage, LPCSTR pszMb, int cbMbCharsToConvert, int& cchOut) noexcept
 {
-	return AnsiToUc(pszAnsi, nullptr, cAnsiCharsToConvert, cchOut);
+	return MultiByteToUc(codepage, pszMb, cbMbCharsToConvert, nullptr, 0, cchOut);
 }
 
-/*F+F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F+++F
-	Function: StringConverter::UcToAnsi
+HRESULT StringConverter::UcToMultiByte(UINT codepage, LPCWSTR pwszUc, int cchWideCharsToConvert, LPSTR pszMb, int cbOutputBuffer) noexcept
+{
+	int cchOut = 0;
+	return UcToMultiByte(codepage, pwszUc, cchWideCharsToConvert, pszMb, cbOutputBuffer, cchOut);
+}
 
-	Summary:  Convert a UNICODE 'wide character' input string to an output
-			ANSI 'multi-byte' string.
-
-	Args:     LPWSTR pwszUc
-				Pointer to a caller's input UNICODE wide string.
-			LPSTR pszAnsi
-				Pointer to a caller's output ANSI string.
-			int cWideCharsToConvert
-				Character count. If 0 then use length of pszUc.
-
-	Returns:  HRESULT
-				Standard result code. NOERROR for success.
-F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F---F-F*/
-HRESULT StringConverter::UcToAnsi(
-	LPCWSTR pwszUc,
-	LPSTR pszAnsi,
-	int cWideCharsToConvert,
-	int& cchOut) noexcept
+HRESULT StringConverter::UcToMultiByte(UINT codepage, LPCWSTR pwszUc, int cchWideCharsToConvert, LPSTR pszMb, int cbOutputBuffer, int& cchOut) noexcept
 {
 	int cch = 0;
 
@@ -112,28 +60,20 @@ HRESULT StringConverter::UcToAnsi(
 		return E_POINTER;
 	}
 
-	if (0 == cWideCharsToConvert)
-	{
-		cch = -1;
-	}
-	else
-	{
-		cch = cWideCharsToConvert;
-	}
-
-	int cSize = WideCharToMultiByte(CP_ACP, 0, pwszUc, cch, nullptr, 0, nullptr, nullptr);
+	cch = cchWideCharsToConvert;
+	int cSize = WideCharToMultiByte(codepage, 0, pwszUc, cch, nullptr, 0, nullptr, nullptr);
 	if (cSize == 0)
 	{
 		return E_FAIL;
 	}
 
-	if (nullptr == pszAnsi)
+	if (nullptr == pszMb)
 	{
 		cchOut = cSize;
 		return S_OK;
 	}
 
-	int r = WideCharToMultiByte(CP_ACP, 0, pwszUc, cch, pszAnsi, cSize, nullptr, nullptr);
+	int r = WideCharToMultiByte(codepage, 0, pwszUc, cch, pszMb, cbOutputBuffer, nullptr, nullptr);
 	if (0 == r)
 	{
 		return  E_FAIL;
@@ -143,18 +83,9 @@ HRESULT StringConverter::UcToAnsi(
 	return S_OK;
 }
 
-HRESULT StringConverter::UcToAnsi(
-	LPCWSTR pwszUc,
-	LPSTR pszAnsi,
-	int cWideCharsToConvert) noexcept
+HRESULT StringConverter::UcToMultiByteRequiredBufferLength(UINT codepage, LPCWSTR pwszUc, int cchWideCharsToConvert, int& cchOut)  noexcept
 {
-	int cchOut = 0;
-	return UcToAnsi(pwszUc, pszAnsi, cWideCharsToConvert, cchOut);
-}
-
-HRESULT StringConverter::UcToAnsiRequiredBufferLength(LPCWSTR pwszUc, int cWideCharsToConvert, int& cchOut)  noexcept
-{
-	return UcToAnsi(pwszUc, nullptr, cWideCharsToConvert, cchOut);
+	return UcToMultiByte(codepage, pwszUc, cchWideCharsToConvert, nullptr, 0, cchOut);
 }
 
 BSTR StringConverter::AllocBStr(LPCTSTR pszString) noexcept
@@ -165,18 +96,27 @@ BSTR StringConverter::AllocBStr(LPCTSTR pszString) noexcept
 #else
 	int ich = 0;
 	LPWSTR pwstr;
-	if (SUCCEEDED(AnsiToUc(pszString, NULL, 0, ich)))
+	int lenSourceStr = lstrlen(pszString);
+	if (lenSourceStr > 0)
 	{
-		pwstr = (LPWSTR)malloc(ich * sizeof(wchar_t));
-		if (pwstr)
+		if (SUCCEEDED(MultiByteToUc(CP_ACP, pszString, -1, nullptr, 0, ich)))
 		{
-			if (SUCCEEDED(AnsiToUc(pszString, pwstr, 0, ich)))
+			pwstr = (LPWSTR)malloc((ich + 1) * sizeof(wchar_t));
+			if (pwstr)
 			{
-				bstr = SysAllocString(pwstr);
+				if (SUCCEEDED(MultiByteToUc(pszString, -1, pwstr, ich)))
+				{
+					pwstr[ich] = 0;
+					bstr = SysAllocString(pwstr);
+				}
 			}
-		}
 
-		free(pwstr);
+			free(pwstr);
+		}
+	}
+	else
+	{
+		bstr = SysAllocString(L"");
 	}
 #endif
 	return bstr;
@@ -189,7 +129,7 @@ TCHAR* StringConverter::MallocFormattedString(LPCTSTR pszFormatString, ...) noex
 {
 	va_list vl = nullptr;
 	va_start(vl, pszFormatString);
-	constexpr size_t maxsize = 1024*1024*5;
+	constexpr size_t maxsize = static_cast<size_t>(1024*1024)*5;
 	TCHAR* s = nullptr;
 	for (size_t size = 1024; size < maxsize; size = size * 5)
 	{
@@ -221,7 +161,7 @@ wchar_t* StringConverter::MallocFormattedStringW(const wchar_t *pszFormatString,
 {
 	va_list vl = nullptr;
 	va_start(vl, pszFormatString);
-	constexpr size_t maxsize = 1024 * 1024 * 5;
+	constexpr size_t maxsize = static_cast<size_t>(1024 * 1024) * 5;
 	wchar_t* s = nullptr;
 	for (size_t size = 1024; size < maxsize; size = size * 5)
 	{
@@ -253,7 +193,7 @@ char* StringConverter::MallocFormattedStringA(const char* pszFormatString, ...) 
 {
 	va_list vl = nullptr;
 	va_start(vl, pszFormatString);
-	constexpr size_t maxsize = 1024 * 1024 * 5;
+	constexpr size_t maxsize = static_cast<size_t>(1024 * 1024) * 5;
 	char* s = nullptr;
 	for (size_t size = 1024; size < maxsize; size = size * 5)
 	{
@@ -283,25 +223,51 @@ char* StringConverter::MallocFormattedStringA(const char* pszFormatString, ...) 
 
 #pragma warning( pop ) 
 
-std::wstring StringConverter::StringToWideString(std::string str)
+std::wstring StringConverter::StringToWideString(const std::string str)
 {
+	return StringToWideString(CP_ACP, str);
+}
+
+std::wstring StringConverter::StringToWideString(UINT codepage, const std::string str)
+{	
+	std::string errmsg;
 	std::wstring s;
 	if (str.length() == 0 || str[0] == '\0')
 	{
 		return std::wstring();
 	}
 
-	LPWSTR pwstr = new WCHAR[str.length() + 1];
+	if (str.length() >= MaxLength)
+	{
+		throw new std::exception("StringToWideString failed. String too long.");
+	}
+
+	int cchRequired = 0;
+	HRESULT hr = MultiByteToUcRequiredBufferLength(codepage, str.c_str(), (int)str.length(), cchRequired);
+	if (FAILED(hr))
+	{				
+		//errmsg = GetLastWin32ErrorString();
+		throw new std::exception("StringToWideString failed.");
+	}
+
+	LPWSTR pwstr = new WCHAR[cchRequired + 1];
 	try
 	{
-		HRESULT hr = AnsiToUc(str.c_str(), pwstr, 0);
+		int cchCopied = cchRequired;
+		hr = MultiByteToUc(codepage, str.c_str(), (int)str.length(), pwstr, cchCopied);
 		if (SUCCEEDED(hr))
 		{
+			if (cchCopied > cchRequired)
+			{
+				cchCopied = cchRequired;
+			}
+
+			pwstr[cchCopied] = 0;
 			s = std::wstring(pwstr);
 		}
 		else
 		{
-			s = std::wstring(L"?");
+			throw new std::exception("StringToWideString failed.");
 		}
 	}
 	catch (...)
@@ -315,7 +281,12 @@ std::wstring StringConverter::StringToWideString(std::string str)
 	return s;
 }
 
-std::string StringConverter::WideStringToString(std::wstring str)
+std::string StringConverter::WideStringToString(const std::wstring str)
+{
+	return WideStringToString(CP_ACP, str);
+}
+
+std::string StringConverter::WideStringToString(UINT codepage, const std::wstring str)
 {
 	std::string s;
 	if (str.length() == 0 || str[0] == '\0')
@@ -323,17 +294,38 @@ std::string StringConverter::WideStringToString(std::wstring str)
 		return std::string();
 	}
 
-	LPSTR pstr = new CHAR[str.length() + 1];
+	if (str.length() >= MaxLength)
+	{
+		throw new std::exception("WideStringToString failed. String too long.");
+	}
+
+	int cchRequired = 0;
+	HRESULT hr = UcToMultiByteRequiredBufferLength(codepage, str.c_str(), (int)str.length(), cchRequired);
+	if (FAILED(hr))
+	{
+
+		//errmsg = GetLastWin32ErrorString();
+		throw new std::exception("WideStringToString failed.");
+	}
+
+	LPSTR pstr = new CHAR[cchRequired + 1];
 	try
 	{
-		HRESULT hr = UcToAnsi(str.c_str(), pstr, 0);
+		int cchCopied = cchRequired;
+		hr = UcToMultiByte(codepage, str.c_str(), (int)str.length(), pstr, cchRequired, cchCopied);
 		if (SUCCEEDED(hr))
 		{
+			if (cchCopied > cchRequired)
+			{
+				cchCopied = cchRequired;
+			}
+
+			pstr[cchCopied] = 0;
 			s = std::string(pstr);
 		}
 		else
 		{
-			s = std::string("?");
+			throw new std::exception("WideStringToString failed.");
 		}
 	}
 	catch (...)
@@ -347,7 +339,7 @@ std::string StringConverter::WideStringToString(std::wstring str)
 	return s;
 }
 
-bool StringConverter::IsEmptyOrWhiteSpace(std::wstring s)
+bool StringConverter::IsEmptyOrWhiteSpace(const std::wstring s)
 {
 	for (size_t i = 0; i < s.length(); i++)
 	{
@@ -358,4 +350,25 @@ bool StringConverter::IsEmptyOrWhiteSpace(std::wstring s)
 	}
 
 	return true;
+}
+
+
+bool StringConverter::CompareStrCaseInsensitive(const std::string& str1, const std::string& str2)
+{
+	return ((str1.size() == str2.size()) && std::equal(str1.cbegin(), str1.cend(), str2.cbegin(), 
+		[](char c1, char c2) 
+		{
+			return (c1 == c2 || std::toupper(c1) == std::toupper(c2));
+		}
+		));
+}
+
+bool StringConverter::CompareStrCaseInsensitive(const std::wstring& str1, const std::wstring& str2)
+{
+	return ((str1.size() == str2.size()) && std::equal(str1.cbegin(), str1.cend(), str2.cbegin(),
+		[](wchar_t c1, wchar_t c2)
+		{
+			return (c1 == c2 || std::toupper(c1) == std::toupper(c2));
+		}
+	));
 }

@@ -376,7 +376,7 @@ void CMDIDebuggerFrame::OnSize(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	this->m_WPanelManager.SizePanels(hWnd, rcRootPanel.left, rcRootPanel.top, rcRootPanel.right - rcRootPanel.left, rcRootPanel.bottom - rcRootPanel.top);
 }
 
-HRESULT CMDIDebuggerFrame::CreateMDIToolBars(HDC hdc) throw(...)
+HRESULT CMDIDebuggerFrame::CreateMDIToolBars(HDC hdc) noexcept
 {
 	if (m_hImageListToolBarNormal == NULL)
 	{
@@ -424,7 +424,7 @@ HIMAGELIST CMDIDebuggerFrame::CreateImageListNormal(HWND hWnd)
 	return G::CreateImageListNormal(m_hInst, hWnd, tool_dx, tool_dy, TB_ImageList, _countof(TB_ImageList));
 }
 
-void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) throw()
+void CMDIDebuggerFrame::ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) noexcept
 {
 HRESULT hr;
 	try
@@ -451,7 +451,7 @@ HRESULT hr;
 	}
 }
 
-void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) throw()
+void CMDIDebuggerFrame::ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) noexcept
 {
 HRESULT hr;
 	try

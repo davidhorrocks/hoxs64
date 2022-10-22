@@ -699,16 +699,16 @@ int len;
 	#else
 
 						int maxallowedstringlen = _countof(phName.wsz);
-						int lenAnsiBuffer = 0;
+						int cchRequired = 0;
 						bool stringOK = false;
-						if (SUCCEEDED(StringConverter::UcToAnsiRequiredBufferLength(phName.wsz, maxallowedstringlen - 1, lenAnsiBuffer)))
+						if (SUCCEEDED(StringConverter::UcToMultiByteRequiredBufferLength(CP_ACP, phName.wsz, -1, cchRequired)))
 						{
-							if (lenAnsiBuffer > 0)
+							if (cchRequired > 0)
 							{
-								char *p = this->AllocAnsiStringBuffer(lenAnsiBuffer);
+								char *p = this->AllocAnsiStringBuffer(cchRequired + 1);
 								if (p != NULL)
 								{
-									if (SUCCEEDED(StringConverter::UcToAnsi(phName.wsz, p, lenAnsiBuffer)))
+									if (SUCCEEDED(StringConverter::UcToMultiByte(CP_ACP, phName.wsz, -1, p, cchRequired)))
 									{
 										stringOK = true;
 										Edit_SetText(hwndDeviceName, p);

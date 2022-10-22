@@ -598,61 +598,93 @@ LRESULT lr;
 	SetWindowPos(hWnd, (HWND)HWND_NOTOPMOST,0,0, rc.right - rc.left, (int)height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
-HRESULT G::GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId)
+HRESULT G::GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID* pId)
 {
-WCHAR szwGuid[50];
-LONG   lRetCode; 
-ULONG buflen1;
+	WCHAR szwGuid[50];
+	LONG   lRetCode;
+	ULONG bufferBytelen;
+	ULONG bytesCopied;
+	ULONG charsCopied;
+
 #ifdef UNICODE
-	buflen1 = sizeof(szwGuid);
-	lRetCode = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE) &szwGuid[0], &buflen1);
-#else
-	TCHAR szGuid[50];
-	buflen1 = sizeof(szGuid);
-	lRetCode = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE) &szGuid[0], &buflen1);
+	bufferBytelen = (_countof(szwGuid) - 1) * sizeof(TCHAR);
+	bytesCopied = bufferBytelen;
+	lRetCode = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE)&szwGuid[0], &bytesCopied);
 	if (lRetCode == ERROR_SUCCESS)
 	{
-		lRetCode = StringConverter::AnsiToUc(&szGuid[0], &szwGuid[0], sizeof(szwGuid)/sizeof(WCHAR));
+		charsCopied = bytesCopied / sizeof(WCHAR);
+		if (charsCopied == 0 || charsCopied >= _countof(szwGuid))
+		{
+			return E_FAIL;
+		}
+
+		szwGuid[charsCopied] = 0;
+	}
+
+#else
+	CHAR szGuid[50];
+	bufferBytelen = (_countof(szGuid) - 1) * sizeof(CHAR);
+	bytesCopied = bufferBytelen;
+	lRetCode = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE)&szGuid[0], &bytesCopied);
+	if (lRetCode == ERROR_SUCCESS)
+	{
+		charsCopied = bytesCopied / sizeof(CHAR);
+		if (charsCopied == 0 || charsCopied >= _countof(szGuid))
+		{
+			return E_FAIL;
+		}
+
+		szGuid[charsCopied] = 0;
+		lRetCode = StringConverter::MultiByteToUc(CP_ACP, &szGuid[0], -1, &szwGuid[0], _countof(szwGuid));
 	}
 #endif
+
+
 	if (SUCCEEDED(lRetCode))
 	{
 		if (CLSIDFromString(&szwGuid[0], pId) == NOERROR)
+		{
 			return S_OK;
+		}
 		else
+		{
 			return E_FAIL;
+		}
 	}
 	else
+	{
 		return lRetCode;
+	}
 }
 
-HRESULT G::SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID *pId)
+HRESULT G::SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID* pId)
 {
-TCHAR szValue[50];
-WCHAR szwValue[50];
-LONG   lRetCode; 
-int i;
+	TCHAR szValue[50]{};
+	WCHAR szwValue[50]{};
+	LONG   lRetCode;
+	int i;
 
-	i= StringFromGUID2(*pId, &szwValue[0], sizeof(szwValue) / sizeof(WCHAR));
-	if (i!=0)
+	i = StringFromGUID2(*pId, &szwValue[0], _countof(szwValue));
+	if (i != 0)
 	{
 		szwValue[_countof(szwValue) - 1] = 0;
 #ifdef UNICODE
 		lstrcpy(szValue, szwValue);
 		lRetCode = ERROR_SUCCESS;
 #else
-		lRetCode = StringConverter::UcToAnsi(&szwValue[0], szValue, 0);
+		int bytesCopied = 0;
+		lRetCode = StringConverter::UcToMultiByte(CP_ACP, &szwValue[0], -1, szValue, _countof(szwValue), bytesCopied);
 #endif
 		if (SUCCEEDED(lRetCode))
 		{
-			lRetCode = RegSetValueEx(hKey, lpValueName, 0, REG_SZ, (LPBYTE) &szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+			lRetCode = RegSetValueEx(hKey, lpValueName, 0, REG_SZ, (LPBYTE)&szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
 			if (SUCCEEDED(lRetCode))
 			{
 				return S_OK;
 			}
 		}
-
 	}
+
 	return E_FAIL;
 }
 

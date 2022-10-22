@@ -1574,7 +1574,7 @@ bool isUndoc = false;
 
 typedef vector<bit16> VecAddress;
 
-bit16 CDisassemblyEditChild::GetNthAddress(bit16 startaddress, int linenumber) throw(...)
+bit16 CDisassemblyEditChild::GetNthAddress(bit16 startaddress, int linenumber)
 {
 bool isUndoc = false;
 

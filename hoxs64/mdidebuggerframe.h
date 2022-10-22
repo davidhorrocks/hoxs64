@@ -69,8 +69,8 @@ public:
 	virtual void WindowRelease() override;
 	virtual void GetMinWindowSize(int &w, int &h);
 	HWND Show(CVirWindow *pParentWindow);
-	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
-	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address);
+	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) noexcept;
+	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) noexcept;
 	bool IsWinDlgModelessBreakpointVicRaster();
 	void OpenNewCli();
 
@@ -121,7 +121,7 @@ private:
 	void ShowDlgBreakpointVicRaster();
 	void ShowModelessDlgBreakpointVicRaster();
 
-	HRESULT CreateMDIToolBars(HDC hdc);
+	HRESULT CreateMDIToolBars(HDC hdc) noexcept;
 	HIMAGELIST CreateImageListNormal(HWND hWnd);
 	void OnGetMinMaxSizeInfo(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void Cleanup();

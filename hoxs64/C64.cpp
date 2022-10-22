@@ -1211,49 +1211,61 @@ void C64::ResetOnceExitCode()
 	this->bExitCodeWritten = false;
 }
 
-HRESULT C64::CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength)
+HRESULT C64::CopyC64FilenameFromString(const TCHAR* sourcestr, bit8* c64filename, int c64FilenameBufferLength)
 {
-int i;
-int charcount = 0;					
-char *pAnsiFilename = NULL;
-const TCHAR *pWideFileName = sourcestr;
-HRESULT hr = E_FAIL;
+	int i;
+	char* p = nullptr;
+	char* pAnsiFilename = nullptr;
+	HRESULT hr = E_FAIL;
 
-	if (c64FilenameBufferLength > 0)
+	if (c64FilenameBufferLength > 0 && sourcestr != nullptr && c64filename != nullptr)
 	{
+		int cchSource = lstrlen(sourcestr);
 		memset(c64filename, 160, c64FilenameBufferLength);
-		int bufferlen = std::max(c64FilenameBufferLength, lstrlen(pWideFileName));
-		if (SUCCEEDED(StringConverter::UcToAnsiRequiredBufferLength(pWideFileName, bufferlen, charcount)))
+#if UNICODE
+		int cchRequired = 0;
+		int cchCopied = 0;
+		const TCHAR* pWideFileName = sourcestr;
+		if (SUCCEEDED(StringConverter::UcToMultiByteRequiredBufferLength(CP_ACP, pWideFileName, cchSource, cchRequired)))
 		{
-			pAnsiFilename = (char *)malloc(charcount + 1);
-			if (pAnsiFilename != NULL)
+			pAnsiFilename = (char*)malloc((size_t)cchRequired + 1);
+			if (pAnsiFilename != nullptr)
 			{
-				hr = StringConverter::UcToAnsi(pWideFileName, pAnsiFilename, bufferlen, charcount);		
+				cchCopied = cchRequired;
+				hr = StringConverter::UcToMultiByte(CP_ACP, pWideFileName, cchSource, pAnsiFilename, cchRequired, cchCopied);
+				if (SUCCEEDED(hr))
+				{
+					p = pAnsiFilename;
+				}
 			}
 			else
 			{
 				hr = E_OUTOFMEMORY;
 			}
 		}
+#else
+		p = sourcestr;
+#endif
 
 		if (SUCCEEDED(hr))
 		{
-			if (pAnsiFilename)
+			if (p != nullptr)
 			{
-				char* p = pAnsiFilename;
-				for (i = 0; i < C64DISKFILENAMELENGTH && *p != 0; i++, p++)
+				
+				for (i = 0; i < C64DISKFILENAMELENGTH && i < cchSource && *p != 0; i++, p++)
 				{
 					c64filename[i] = C64File::ConvertCommandLineAnsiToPetAscii(*p);
 				}
 			}
 
-			if (pAnsiFilename)
+			if (pAnsiFilename != nullptr)
 			{
 				free(pAnsiFilename);
-				pAnsiFilename = NULL;
+				pAnsiFilename = nullptr;
 			}
 		}
 	}
+
 	return hr;
 }
 
