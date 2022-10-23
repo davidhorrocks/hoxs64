@@ -23,68 +23,62 @@ void ErrorLogger::LogInfo(LPCSTR message)
 	//MessageBoxA(NULL, message, "Info", 0L);
 }
 
+void ErrorLogger::Log(HWND hWnd, PCSTR lpText, PCSTR lpCaption, UINT uType)
+{
+	LogToStdOut(lpCaption, lpText);
+	if (!ErrorLogger::HideMessageBox)
+	{
+		MessageBoxA(hWnd, lpText, lpCaption, uType);
+	}
+}
+
 void ErrorLogger::Log(HWND hWnd, PCWSTR lpText, PCWSTR lpCaption, UINT uType)
 {
-	if (ErrorLogger::HideMessageBox)
+	LogToStdOut(lpCaption, lpText);
+	if (!ErrorLogger::HideMessageBox)
 	{
-		LogToStdOut(lpCaption, lpText);
-	}
-	else
-	{
-		MessageBox(hWnd, lpText, lpCaption, uType);
+		MessageBoxW(hWnd, lpText, lpCaption, uType);
 	}
 }
 
 void ErrorLogger::Log(const std::string message)
 {
-	if (ErrorLogger::HideMessageBox)
+	LogToStdOut("Error", message.c_str());
+	if (!ErrorLogger::HideMessageBox)
 	{
-		LogToStdOut("Error", message.c_str());
-	}
-	else
-	{
-		std::string error_message = "Error:" + message;
+		std::string error_message = "Error: " + message;
 		MessageBoxA(nullptr, error_message.c_str(), "Error", MB_ICONERROR);
 	}
 }
 
 void ErrorLogger::Log(const std::wstring message)
 {
-	if (ErrorLogger::HideMessageBox)
+	LogToStdOut(L"Error", message.c_str());
+	if (!ErrorLogger::HideMessageBox)
 	{
-		LogToStdOut(L"Error", message.c_str());
-	}
-	else
-	{
-		std::wstring error_message = L"Error:" + message;
+		std::wstring error_message = L"Error: " + message;
 		MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
 	}
 }
 
 void ErrorLogger::Log(HRESULT hr, const std::string message)
 {
-	if (ErrorLogger::HideMessageBox)
-	{
-		LogToStdOut("Error", message.c_str());
-	}
-	else
+	LogToStdOut("Error", message.c_str());
+	if (!ErrorLogger::HideMessageBox)
 	{
 		_com_error error(hr);
-		std::wstring error_message = L"Error:" + StringConverter::StringToWideString(message) + L"\n" + error.ErrorMessage();
+		std::wstring error_message = L"Error: " + StringConverter::StringToWideString(message) + L"\n" + error.ErrorMessage();
 		MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
 	}
 }
 
 void ErrorLogger::Log(HRESULT hr, const std::wstring message)
 {
-	if (ErrorLogger::HideMessageBox)
-	{
-		LogToStdOut(L"Error", message.c_str());
-	}
-	else
+	LogToStdOut(L"Error", message.c_str());
+	if (!ErrorLogger::HideMessageBox)
 	{
 		_com_error error(hr);
-		std::wstring error_message = L"Error:" + message + L"\n" + error.ErrorMessage();
+		std::wstring error_message = L"Error: " + message + L"\n" + error.ErrorMessage();
 		MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
 	}
 }
@@ -92,5 +86,9 @@ void ErrorLogger::Log(HRESULT hr, const std::wstring message)
 void ErrorLogger::Log(const COMException& exception)
 {
 	std::wstring error_message = exception.what();
-	MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
+	LogToStdOut(L"Error", error_message.c_str());
+	if (!ErrorLogger::HideMessageBox)
+	{
+		MessageBoxW(nullptr, error_message.c_str(), L"Error", MB_ICONERROR);
+	}
 }

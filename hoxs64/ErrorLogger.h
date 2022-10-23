@@ -13,6 +13,8 @@ public:
 
 	static bool HideWindow;
 
+	static void Log(HWND hWnd, PCSTR lpText, PCSTR lpCaption, UINT uType);
+
 	static void Log(HWND hWnd, PCWSTR lpText, PCWSTR lpCaption, UINT uType);
 
 	static void Log(const std::string message);
