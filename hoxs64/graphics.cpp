@@ -1015,6 +1015,7 @@ void Graphics::DrawGui()
 	static bool show_main_menu = false;
 	static bool wasEnableC64Input = false;
 	static int keep_alive_show_main_menu = 0;
+	static int keep_alive_show_mouse = 0;
 	bool enableC64Input = true;
 
 	for (;;)
@@ -1036,33 +1037,53 @@ void Graphics::DrawGui()
 		{
 			appCommand->GetLastMousePosition(&mouseX, &mouseY);
 			constexpr int MouseCapturePeriod = 10;
-			constexpr int KeepAliveCount = 10;
+			constexpr int KeepAliveCount = 50;
 			if (currentDrawFrameCounter - mouseSnapShotFrameCounter > MouseCapturePeriod)
 			{
 				mouseSnapShotFrameCounter = currentDrawFrameCounter;
-				if (abs(mouseX - lastMouseX) > mouseActiveDistance || abs(mouseY - lastMouseY) > mouseActiveDistance || mouseY < menukeepAliveHeight)
+				if (keep_alive_show_mouse <= 0)
 				{
-					keep_alive_show_main_menu = KeepAliveCount;
-				}
+					if (abs(mouseX - lastMouseX) > mouseActiveDistance || abs(mouseY - lastMouseY) > mouseActiveDistance)
+					{
+						keep_alive_show_mouse = KeepAliveCount;
+						ImGui::SetMouseCursor(ImGuiMouseCursor_::ImGuiMouseCursor_Arrow);
+					}
 
-				if (keep_alive_show_main_menu > 0)
-				{
-					show_main_menu = true;
-					keep_alive_show_main_menu--;
-				}
-				else
-				{
-					show_main_menu = false;
 				}
 
 				lastMouseX = mouseX;
 				lastMouseY = mouseY;
 			}
+
+			bool mouseMoved = keep_alive_show_mouse > 0;
+			if ((mouseMoved && mouseY < menuShowHeight) || mouseY < menukeepAliveHeight)
+			{				
+				keep_alive_show_main_menu = KeepAliveCount;
+			}
+
+			if (mouseY >= menuShowHeight)
+			{
+				keep_alive_show_main_menu = 0;
+			}
+
+			if (keep_alive_show_mouse > 0)
+			{
+				--keep_alive_show_mouse;
+			}
+
+			if (keep_alive_show_main_menu > 0)
+			{
+				show_main_menu = true;
+				--keep_alive_show_main_menu;
+			}
+			else
+			{
+				show_main_menu = false;
+			}
 		}
 		else
 		{
 			show_main_menu = false;
-			keep_alive_show_main_menu = -1;
 		}
 
 		if (show_file_open)
@@ -1073,10 +1094,10 @@ void Graphics::DrawGui()
 
 		if (!show_main_menu && !show_file_open)
 		{
-			if (keep_alive_show_main_menu == 0)
+			if (keep_alive_show_mouse == 0)
 			{
-				keep_alive_show_main_menu = -1;
-				if (!appStatus->m_bDebug)
+				--keep_alive_show_mouse;
+				if (!appStatus->m_bDebug && !appStatus->m_bWindowed)
 				{
 					ImGui::SetMouseCursor(ImGuiMouseCursor_::ImGuiMouseCursor_None);
 					SetCursor(NULL);
@@ -1359,7 +1380,7 @@ void Graphics::DrawGui()
 						constexpr int IndexRightSelector = WidthLeftSelector + C64Directory::D64FILENAMELENGTH + WidthFileTypeGap + WidthFileType;
 						bit8 tempC64String[WidthLeftSelector + C64Directory::D64FILENAMELENGTH + WidthFileTypeGap + WidthFileType + WidthRightSelector];
 						ImVec2 szbutton = ImVec2(sizeof(tempC64String) * cbmfontsize, cbmfontsize - 4);
-						ImVec2 pos = ImGui::GetCursorPos();
+						pos = ImGui::GetCursorPos();
 						C64File& c64file = directoryViewer.c64file;
 						//deviceContext->PSSetSamplers(0, 1, pointSamplerState.GetAddressOf());
 
@@ -1772,6 +1793,7 @@ HRESULT Graphics::ResizeBuffers(unsigned int width, unsigned int height)
 void Graphics::SetMenuKeepAliveHeightFromScreenHeight(int screenHeight)
 {
 	menukeepAliveHeight = (int)(screenHeight * KeepAliveTopPercentage / 100);
+	menuShowHeight = (int)(screenHeight * MenuShowTopPercentage / 100);
 	mouseActiveDistance = dpi.ScaleY(40);
 }
 

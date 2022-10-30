@@ -1,11 +1,15 @@
 #pragma once
 #include <windows.h>
 #include <tchar.h>
+#include <memory>
+#include <string>
 #include "dx_version.h"
 #include "bits.h"
 #include "C64Keys.h"
 #include "viciipalette.h"
 #include "gamecontrolleritem.h"
+#include "configregistry.h"
+#include "configfileini.h"
 
 namespace C64JoystickButton
 {
@@ -286,32 +290,41 @@ public:
 	CConfig(CConfig&&) = default;
 	CConfig& operator=(const CConfig&) = default;
 	CConfig& operator=(CConfig&&) = default;
-	static LONG RegReadDWordOrStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD dwValue) noexcept;
-	static LONG RegReadStr(HKEY hKey, LPCTSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
-	static HRESULT SaveMDIWindowSetting(HWND hWnd);
-	static HRESULT LoadMDIWindowSetting(POINT& pos, SIZE& size);
-	static int GetKeyScanCode(UINT ch);
+	HRESULT SaveMDIWindowSetting(HWND hWnd);
+	HRESULT LoadMDIWindowSetting(POINT& pos, SIZE& size);
+	static int GetKeyScanCode(UINT ch) noexcept;
 	HRESULT SaveWindowSetting(HWND);
 	HRESULT LoadWindowSetting(POINT& pos, int& winWidth, int& winHeight);
 	HRESULT LoadCurrentSetting();
-	HRESULT LoadCurrentJoystickSetting(int joystickNumber, struct joyconfig& jconfig);
-	HRESULT WriteJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pButtonOffsets, const unsigned int &buttonCount);
-	HRESULT ReadJoystickButtonList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pButtonOffsets, unsigned int &buttonCount);
-	HRESULT WriteJoystickAxisList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pAxisOffsets, const GameControllerItem::ControllerAxisDirection *pAxisDirection, unsigned int axisCount);
-	HRESULT WriteJoystickPovList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pPovOffsets, const GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int povCount);
-	HRESULT ReadJoystickAxisList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pAxisOffsets, GameControllerItem::ControllerAxisDirection *pAxisDirection, unsigned int maxAxisBufferCount, unsigned int* pAxisCount);
-	HRESULT ReadJoystickPovList(HKEY hKey1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pPovOffsets, GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int maxPovBufferCount, unsigned int* pPovCount);
-	HRESULT SaveCurrentSetting();
-	HRESULT SaveCurrentJoystickSetting(int joystickNumber, const struct joyconfig& jconfig);
+	HRESULT LoadCurrentJoystickSetting(IConfigDataSource* configSource, int joystickNumber, struct joyconfig& jconfig);
+	HRESULT WriteJoystickButtonList(IConfigDataSource* configSource, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pButtonOffsets, const unsigned int &buttonCount);
+	HRESULT ReadJoystickButtonList(IConfigDataSource* configSource, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pButtonOffsets, unsigned int &buttonCount);
+	HRESULT WriteJoystickAxisList(IConfigDataSource* configSource, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pAxisOffsets, const GameControllerItem::ControllerAxisDirection *pAxisDirection, unsigned int axisCount);
+	HRESULT WriteJoystickPovList(IConfigDataSource* configSource1, int joystickNumber, JoyKeyName::ButtonKeySet regnames, const DWORD *pPovOffsets, const GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int povCount);
+	HRESULT ReadJoystickAxisList(IConfigDataSource* configSource, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pAxisOffsets, GameControllerItem::ControllerAxisDirection *pAxisDirection, unsigned int maxAxisBufferCount, unsigned int* pAxisCount);
+	HRESULT ReadJoystickPovList(IConfigDataSource* configSource, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pPovOffsets, GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int maxPovBufferCount, unsigned int* pPovCount);
+	HRESULT SaveCurrentSettings();
+	HRESULT SaveCurrentJoystickSetting(IConfigDataSource* configSource, int joystickNumber, const struct joyconfig& jconfig);
 	void LoadDefaultSetting() noexcept;
 	void SetPalettePepto() noexcept;
 	void SetCiaNewOldMode(bool isNew) noexcept;
 	void SetRunFast();
 	void SetRunNormal();
+	void SetConfigLocation(bool isFile, std::wstring location);
 
 private:
-	HRESULT ReadRegKeyboardItem(HKEY hkey, LPCTSTR keyname, unsigned char keyvalue) noexcept;
-	HRESULT WriteRegKeyboardItem(HKEY hkey, LPCTSTR keyname, unsigned char keyvalue) noexcept;
+	static const LPCTSTR Section_General;
+	static const LPCTSTR Section_Joystick;
+	static const LPCTSTR Section_Keyboard;
+	static const LPCTSTR Section_VICIIPalette;
+	HRESULT ReadRegKeyboardItem(IConfigDataSource* configSource, LPCTSTR keyname, unsigned char keyvalue);
+	HRESULT WriteRegKeyboardItem(IConfigDataSource* configSource, LPCTSTR keyname, unsigned char keyvalue);
+	std::shared_ptr<IConfigDataSource> GetConfigSource();
+	std::shared_ptr<IConfigDataSource> GetConfigRegistrySource();
+protected:
+	std::wstring m_wsAppConfigFilenameFullPath;
+	bool m_bIsUsingConfigFile = false;
+
 public:
 	bit32 m_colour_palette[VicIIPalette::NumColours] = {};
 	unsigned char m_KeyMap[256] = {};

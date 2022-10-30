@@ -407,7 +407,7 @@ namespace FileSys
 				Names = (PWCHAR) new WCHAR[RequestedCharCount + 1];
 				if (!Names)
 				{
-					throw new std::bad_array_new_length();
+					throw std::bad_array_new_length();
 				}
 
 				CharCount = RequestedCharCount;
@@ -429,7 +429,7 @@ namespace FileSys
 
 			if (CharCopiedCount <= CharCount)
 			{
-				throw new std::exception("GetVolumePathNamesForVolumeNameW failed.");
+				throw std::exception("GetVolumePathNamesForVolumeNameW failed.");
 			}
 
 			delete[] Names;

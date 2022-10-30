@@ -47,13 +47,13 @@ C64File::C64File()
 	hr = disk.Init();
 	if (FAILED(hr))
 	{
-		throw new std::exception("C64File disk.init() failed.");
+		throw std::exception("C64File disk.init() failed.");
 	}
 
 	hr = directory.Init();
 	if (FAILED(hr))
 	{
-		throw new std::exception("C64File directory.init() failed.");
+		throw std::exception("C64File directory.init() failed.");
 	}
 }
 
@@ -62,7 +62,7 @@ C64File::~C64File()
 	CleanUp();
 }
 
-void C64File::CleanUp()
+void C64File::CleanUp() noexcept
 {
 	try
 	{

@@ -18,6 +18,7 @@ public:
 	static const int ShellExitCycleLimit = 0x1;
 	static const int ShellExitInitFailed = 0x101;
 	static const int ShellExitPngFailed = 0x103;
+	static constexpr size_t CchPathBufferSize = 1024ULL * 1024;
 
 	void Cleanup() noexcept;
 	int Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow);
@@ -53,7 +54,11 @@ public:
 	void IAppCommand::LoadC64StateDialog(HWND hWnd) override;
 	void IAppCommand::RestoreUserSettings() override;
 	void IAppCommand::RestoreDefaultSettings() override;
-	void IAppCommand::SaveCurrentSetting() override;
+	bool IAppCommand::RestoreSettingsFromFileDialog(HWND hWnd) override;
+	void IAppCommand::RestoreSettingsFromRegistry() override;
+	void IAppCommand::SaveCurrentSettings() override;
+	bool IAppCommand::SaveCurrentSettingsToFileDialog(HWND hWnd) override;
+	void IAppCommand::SaveCurrentSettingsToRegistry() override;
 	void IAppCommand::GetUserConfig(CConfig& cfg) override;
 	void IAppCommand::SetUserConfig(const CConfig& newcfg) override;
 	void IAppCommand::ApplyConfig(const CConfig& newcfg) override;
@@ -142,22 +147,21 @@ public:
 	HCURSOR hOldCursor = 0;
 	HACCEL m_hAccelTable = 0;
 	HINSTANCE m_hInstance = 0;
+	std::vector<LPARAM> waitingWinProcMessages;
+	bool m_bStartFullScreen = false;
+	CDX9 dx;
+	Graphics gx;
+private:
 	std::wstring wsAppName;  // Name of the app
 	std::wstring wsTitle;    // The title bar text
 	std::wstring wsMonitorTitle;    // The title bar text
 	std::wstring wsMainWndClsName;  // Main window class
 	std::wstring wsMonitorWndClsName;  // Monitor window class
 	std::wstring wsMonitorDisassembleWndClsName;  //Disassemble child window class 
-	std::wstring wsAppConfigPath;
 	std::wstring wsAppFullPath;
 	std::wstring wsAppDirectory;
-	std::vector<LPARAM> waitingWinProcMessages;
-	bool m_bStartFullScreen = false;
-	CDX9 dx;
-	Graphics gx;
-private:
 	POINT GetCenteredPos(int w, int h);
 	int lastMouseX = 0;
 	int lastMouseY = 0;
-	bool isMouseOverClientArea = false;
+	bool isMouseOverClientArea = false;	
 };

@@ -1167,7 +1167,7 @@ TCHAR szTemp[NUMDIGITS + 1];
 		return ;
 	}
 
-	HexConv::long_to_hex((bit32)v, szTemp, m_iNumChars);
+	HexConv<TCHAR>::long_to_hex((bit32)v, szTemp, m_iNumChars);
 	_tcsncpy_s(pszBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
 }
 
@@ -1180,7 +1180,7 @@ TCHAR szTemp[NUMDIGITS + 1];
 		return ;
 	}
 
-	HexConv::long_to_hex(v & 0xffff, szTemp, NUMDIGITS);
+	HexConv<TCHAR>::long_to_hex(v & 0xffff, szTemp, NUMDIGITS);
 	_tcsncpy_s(pszBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
 }
 
@@ -1193,7 +1193,7 @@ TCHAR szTemp[NUMDIGITS + 1];
 		return ;
 	}
 
-	HexConv::long_to_hex(v & 0xff, szTemp, NUMDIGITS);
+	HexConv<TCHAR>::long_to_hex(v & 0xff, szTemp, NUMDIGITS);
 	_tcsncpy_s(pszBuffer, m_iTextBufferLength, szTemp, _TRUNCATE);
 }
 

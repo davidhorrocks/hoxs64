@@ -111,7 +111,11 @@ public:
 	virtual void LoadC64StateDialog(HWND hWnd) = 0;
 	virtual void RestoreUserSettings() = 0;
 	virtual void RestoreDefaultSettings() = 0;
-	virtual void SaveCurrentSetting() = 0;
+	virtual bool RestoreSettingsFromFileDialog(HWND hWnd) = 0;
+	virtual void RestoreSettingsFromRegistry() = 0;
+	virtual void SaveCurrentSettings() = 0;
+	virtual bool SaveCurrentSettingsToFileDialog(HWND hWnd) = 0;
+	virtual void SaveCurrentSettingsToRegistry() = 0;
 	virtual void GetUserConfig(CConfig& cfg) = 0;
 	virtual void SetUserConfig(const CConfig& newcfg) = 0;
 	virtual void ApplyConfig(const CConfig& newcfg) = 0;

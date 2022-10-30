@@ -95,7 +95,7 @@ TCHAR szWord[5];
 
 	if (pLine_Text != NULL && cchLine_Text > 0)
 	{
-		HexConv::long_to_hex(line, &szWord[0], 3);
+		HexConv<TCHAR>::long_to_hex(line, &szWord[0], 3);
 		_tcsncpy_s(pLine_Text, cchLine_Text, szWord, _TRUNCATE);
 	}
 
@@ -116,31 +116,31 @@ CPUState cpu;
 
 	if (pPC_Text != NULL && cchPC_Text > 0)
 	{
-		HexConv::long_to_hex(cpu.PC_CurrentOpcode, &szWord[0], 4);
+		HexConv<TCHAR>::long_to_hex(cpu.PC_CurrentOpcode, &szWord[0], 4);
 		_tcsncpy_s(pPC_Text, cchPC_Text, szWord, _TRUNCATE);
 	}
 
 	if (pA_Text != NULL && cchA_Text > 0)
 	{
-		HexConv::long_to_hex(cpu.A, &szByte[0], 2);
+		HexConv<TCHAR>::long_to_hex(cpu.A, &szByte[0], 2);
 		_tcsncpy_s(pA_Text, cchA_Text, szByte, _TRUNCATE);
 	}
 
 	if (pX_Text != NULL && cchX_Text > 0)
 	{
-		HexConv::long_to_hex(cpu.X, &szByte[0], 2);
+		HexConv<TCHAR>::long_to_hex(cpu.X, &szByte[0], 2);
 		_tcsncpy_s(pX_Text, cchX_Text, szByte, _TRUNCATE);
 	}
 
 	if (pY_Text != NULL && cchY_Text > 0)
 	{
-		HexConv::long_to_hex(cpu.Y, &szByte[0], 2);
+		HexConv<TCHAR>::long_to_hex(cpu.Y, &szByte[0], 2);
 		_tcsncpy_s(pY_Text, cchY_Text, szByte, _TRUNCATE);
 	}
 
 	if (pSP_Text != NULL && cchSP_Text > 0)
 	{
-		HexConv::long_to_hex(cpu.SP, &szByte[0], 2);
+		HexConv<TCHAR>::long_to_hex(cpu.SP, &szByte[0], 2);
 		_tcsncpy_s(pSP_Text, cchSP_Text, szByte, _TRUNCATE);
 	}
 
@@ -159,13 +159,13 @@ CPUState cpu;
 
 	if (pDDR_Text != NULL && cchDDR_Text > 0)
 	{
-		HexConv::long_to_hex(cpu.PortDdr, &szByte[0], 2);
+		HexConv<TCHAR>::long_to_hex(cpu.PortDdr, &szByte[0], 2);
 		_tcsncpy_s(pDDR_Text, cchDDR_Text, szByte, _TRUNCATE);
 	}
 
 	if (pData_Text != NULL && cchData_Text > 0)
 	{
-		HexConv::long_to_hex(cpu.PortDataStored, &szByte[0], 2);
+		HexConv<TCHAR>::long_to_hex(cpu.PortDataStored, &szByte[0], 2);
 		_tcsncpy_s(pData_Text, cchData_Text, szByte, _TRUNCATE);
 	}
 }
@@ -225,7 +225,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly,TEXT("$"));
-			HexConv::long_to_hex(operandByte, szNumber, 2);
+			HexConv<TCHAR>::long_to_hex(operandByte, szNumber, 2);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -241,7 +241,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly, TEXT("$"));
-			HexConv::long_to_hex(operandByte, szNumber, 2);
+			HexConv<TCHAR>::long_to_hex(operandByte, szNumber, 2);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -257,7 +257,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly, TEXT("$"));
-			HexConv::long_to_hex(operandByte, szNumber, 2);			
+			HexConv<TCHAR>::long_to_hex(operandByte, szNumber, 2);			
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -274,7 +274,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly, TEXT("$"));
-			HexConv::long_to_hex(operandByte, szNumber, 2);
+			HexConv<TCHAR>::long_to_hex(operandByte, szNumber, 2);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -292,7 +292,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly,TEXT("$"));
-			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+			HexConv<TCHAR>::long_to_hex((bit32)operandWord, szNumber, 4);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -309,7 +309,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly,TEXT("$"));
-			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+			HexConv<TCHAR>::long_to_hex((bit32)operandWord, szNumber, 4);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -327,7 +327,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly,TEXT("$"));
-			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+			HexConv<TCHAR>::long_to_hex((bit32)operandWord, szNumber, 4);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -345,7 +345,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly,TEXT("$"));
-			HexConv::long_to_hex((bit32)operandWord, szNumber, 4);
+			HexConv<TCHAR>::long_to_hex((bit32)operandWord, szNumber, 4);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -362,7 +362,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly,TEXT("$"));
-			HexConv::long_to_hex(operandByte, szNumber, 2);
+			HexConv<TCHAR>::long_to_hex(operandByte, szNumber, 2);
 		}
 
 		lstrcat(szAssembly, szNumber);
@@ -379,7 +379,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly,TEXT("$"));
-			HexConv::long_to_hex(operandByte, szNumber, 2);
+			HexConv<TCHAR>::long_to_hex(operandByte, szNumber, 2);
 		}
 
 		lstrcat(szAssembly,szNumber);
@@ -405,7 +405,7 @@ bit16 absAddress;
 		else
 		{
 			lstrcat(szAssembly, TEXT("$"));
-			HexConv::long_to_hex((bit32)absAddress, szNumber, 4);
+			HexConv<TCHAR>::long_to_hex((bit32)absAddress, szNumber, 4);
 		}
 
 		lstrcat(szAssembly,szNumber);
@@ -435,7 +435,7 @@ bit16 absAddress;
 		else
 		{
 			szAddress[0]=TEXT('$');
-			HexConv::long_to_hex(address, &szAddress[1], 4);
+			HexConv<TCHAR>::long_to_hex(address, &szAddress[1], 4);
 		}
 
 		_tcsncpy_s(pAddressText, cchAddressText, szAddress, _TRUNCATE);
@@ -499,7 +499,7 @@ const unsigned int DECDIGITS = 3;
 				break;
 			}
 		
-			HexConv::long_to_hex(b, s, HEXDIGITS);
+			HexConv<TCHAR>::long_to_hex(b, s, HEXDIGITS);
 			s += HEXDIGITS;
 			charsRemaining -= HEXDIGITS;
 		}

@@ -1,4 +1,6 @@
 #pragma once
+#include <Windows.h>
+#include <tchar.h>
 #include <commctrl.h>
 #include "dx_version.h"
 #include "boost2005.h"
@@ -34,39 +36,45 @@ class G
 {
 private:
 	G();
-	static const int MonitorFontPointsY = 12;	
+	static const int MonitorFontPointsY = 12;
 	static bool m_bHasCachedCommonControlsVersion;
-	static DWORD m_dwCachedCommonControlsVersion;	
+	static DWORD m_dwCachedCommonControlsVersion;
+	static const size_t FORMAT_STRING_INITIAL_SIZE = 512;
+	static const size_t FORMAT_STRING_MAX_SIZE = 0x7fffffffUL;
 public:
 	static BOOL WaitMessageTimeout(DWORD dwTimeout) noexcept;
-	static HRESULT GetVersion_Res(LPCTSTR filename, VS_FIXEDFILEINFO *p_vinfo);
-	static DLGTEMPLATE * WINAPI DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName);
+	static HRESULT GetVersion_Res(LPCTSTR filename, VS_FIXEDFILEINFO* p_vinfo);
+	static DLGTEMPLATE* WINAPI DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName);
 	static void ShowLastError(HWND);
-	static TCHAR *GetLastWin32ErrorTString();
-	static TCHAR *GetLastWin32ErrorTString(DWORD err);
+	static TCHAR* GetLastWin32ErrorTString();
+	static TCHAR* GetLastWin32ErrorTString(DWORD err);
 	static std::wstring GetLastWin32ErrorWString();
 	static std::wstring GetLastWin32ErrorWString(DWORD err);
 	static std::string GetLastWin32ErrorString();
 	static std::string GetLastWin32ErrorString(DWORD err);
 	static void ArrangeOKCancel(HWND hwndDlg);
-	static LPTSTR GetStringRes (int id);
-	static BOOL CenterWindow (HWND hwndChild, HWND hwndParent);
-	static HRESULT InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError, ...);
+	static LPTSTR GetStringRes(int id);
+	static BOOL CenterWindow(HWND hwndChild, HWND hwndParent);
+	static std::wstring format_string(const wchar_t* fmt, ...);
+	static std::wstring format_string(const wchar_t* fmt, va_list vl);
+	static std::string format_string(const char* fmt, ...);
+	static std::string format_string(const char* fmt, va_list vl);
+	static HRESULT InitFail(HWND hWnd, HRESULT hRet, const wchar_t* szError, ...);
 	static bool IsWindowsVistaOrLater();
 	static bool IsWinVerSupportInitializeCriticalSectionAndSpinCount();
-	static bool IsMultiCore();
-	static void PaintRect(HDC hdc, RECT *rect, COLORREF colour);
-	static void AutoSetComboBoxHeight(HWND hWnd,  int maxHeight);
+	static bool IsMultiCore() noexcept;
+	static void PaintRect(HDC hdc, RECT* rect, COLORREF colour);
+	static void AutoSetComboBoxHeight(HWND hWnd, int maxHeight);
 	static void AutoSetComboBoxHeight(HWND hWndParent, int controls[], int count, int maxHeight);
-	static HRESULT GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID *pId);
-	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID *pId);
-	static void DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType); 
+	static HRESULT GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID* pId);
+	static HRESULT SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID* pId);
+	static void DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType);
 	static void InitOfn(OPENFILENAME& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile);
 	static void RectToWH(const RECT& rc, LONG& x, LONG& y, LONG& w, LONG& h);
 	static BOOL DrawDefText(HDC hdc, int x, int y, LPCTSTR text, int len, int* nextx, int* nexty);
 	static void GetWorkArea(RECT& rcWorkArea);
 	static void GetMonitorWorkAreaFromWindow(HWND hWnd, RECT& rcWorkArea);
-	static BOOL DrawBitmap (HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP);
+	static BOOL DrawBitmap(HDC hDC, INT x, INT y, HBITMAP hBitmap, DWORD dwROP);
 	//Win98 WinNT 4 SP6
 	//static BOOL IsWindowEnabled(HWND hWnd, bool &bResult);
 	static HIMAGELIST CreateImageListNormal(HINSTANCE m_hInst, HWND hWnd, int tool_dx, int tool_dy, const ImageInfo tbImageList[], int countOfImageList);
@@ -91,7 +99,15 @@ public:
 	static __int64 FileSize(HANDLE hfile);
 	static void InitRandomSeed();
 	static const TCHAR EmptyString[1];
-	static bool IsLargeGameDevice(const DIDEVCAPS &didevcaps);
+	static bool IsLargeGameDevice(const DIDEVCAPS& didevcaps);
+	static void LTrim(std::string& s);
+	static void RTrim(std::string& s);
+	static void Trim(std::string& s);
+	static void LTrim(std::wstring& s);
+	static void RTrim(std::wstring& s);
+	static void Trim(std::wstring& s);
+	static HRESULT LoadStringResource(HINSTANCE hInstance, UINT id, std::wstring& s);
+	static HRESULT LoadAppPath(std::wstring& s);
 };
 
 class ComboTextAndValue

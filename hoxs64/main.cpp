@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <map>
 #include <malloc.h>
 #include <memory.h>
 #include <assert.h>
@@ -65,9 +69,48 @@ TCHAR applicationVersionString[60];
 VS_FIXEDFILEINFO applicationVersionInformation;
 std::wstring applicationFullPathString;
 
+bool AttachToExistingConsole()
+{
+	if (!AttachConsole(ATTACH_PARENT_PROCESS))
+	{
+		if (GetLastError() != ERROR_ACCESS_DENIED) //already has a console
+		{
+			if (!AttachConsole(GetCurrentProcessId()))
+			{
+				DWORD dwLastError = GetLastError();
+				if (dwLastError != ERROR_ACCESS_DENIED) //already has a console
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	if (freopen("CONIN$", "r", stdin) != nullptr)
+	{
+		std::wcin.clear();
+		std::cin.clear();
+	}
+
+	if (freopen("CONOUT$", "w+", stdout) != nullptr)
+	{
+		std::wcout.clear();
+		std::cout.clear();
+	}
+
+	if (freopen("CONOUT$", "w+", stderr) != nullptr)
+	{
+		std::wcerr.clear();
+		std::cerr.clear();
+	}
+
+	return true;
+}
+
 CApp* app = nullptr;
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
 {
+	bool isConsoleAttached = AttachToExistingConsole();
 	ZeroMemory(&applicationVersionString[0], _countof(applicationVersionString));
 	ZeroMemory(&applicationVersionInformation, sizeof(applicationVersionInformation));
 	
@@ -122,6 +165,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 	}
 
 	delete app;
+	if (isConsoleAttached)
+	{
+		FreeConsole();
+	}
+
 	return r;
 }
 
@@ -264,397 +312,420 @@ int CApp::Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int
 	short captionUpdateCounter = 0;
 	BOOL bRet;
 
-#if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
-	Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
-	if (FAILED(hRet))
+	try
 	{
-		G::InitFail(0, hRet, TEXT("Microsoft::WRL::Wrappers::RoInitializeWrapper failed"));
-		return ShellExitInitFailed;
-	}
-#else
-	hRet = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
-	if (FAILED(hRet))
-	{
-		G::InitFail(0, hRet, TEXT("CoInitializeEx failed"));
-		return ShellExitInitFailed;
-	}
-#endif
-	
-	ImGui_ImplWin32_EnableDpiAwareness();
-
-	m_hInstance = hInstance;
-	if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
-	{
-		G::InitFail(0,0,TEXT("The system does not support a high performance timer."));
-		return ShellExitInitFailed;
-	}
-	else
-	{
-		if (m_systemfrequency.QuadPart < 60)
+	#if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
+		Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
+		if (FAILED(hRet))
 		{
-			G::InitFail(0, 0, TEXT("The system does not support a high performance timer."));
+			G::InitFail(0, hRet, TEXT("Microsoft::WRL::Wrappers::RoInitializeWrapper failed"));
 			return ShellExitInitFailed;
 		}
-	}
-
-	frequency.QuadPart = m_framefrequency.QuadPart;
-	frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
-	QueryPerformanceCounter((PLARGE_INTEGER)&last_counter);
-	QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
-	start_counter.QuadPart = end_counter.QuadPart - frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ;
-
-	if (FAILED(RegisterWindowClasses(hInstance)))
-	{
-		return ShellExitInitFailed;
-	}
-
-	if (FAILED(InitInstance(nCmdShow, lpCmdLine)))
-	{
-		return ShellExitInitFailed;
-	}
-	
-	AllowAccessibilityShortcutKeys(false);
-	
-	m_bReady = true;
-	m_bRunning=1;
-	m_bPaused=0;
-	m_bInitDone = true;
-	bool bExecuteFrameDone = false;
-	int framesSkipped = 0;
-	G::EnsureWindowPosition(m_pWinAppWindow->GetHwnd());
-
-    //-------------------------------------------------------------------------
-    //                          The Message Pump
-    //-------------------------------------------------------------------------
-	while (true)
-	{
-		bExecuteFrameDone = false;
-msgloop:
-		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+	#else
+		hRet = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
+		if (FAILED(hRet))
 		{
-			bRet = GetMessage(&msg, NULL, 0, 0 );
-			if (bRet==-1 || bRet==0)
+			G::InitFail(0, hRet, TEXT("CoInitializeEx failed"));
+			return ShellExitInitFailed;
+		}
+	#endif
+	
+		ImGui_ImplWin32_EnableDpiAwareness();
+
+		m_hInstance = hInstance;
+		if (QueryPerformanceFrequency((PLARGE_INTEGER)&m_systemfrequency)==0)
+		{
+			G::InitFail(0,0,TEXT("The system does not support a high performance timer."));
+			return ShellExitInitFailed;
+		}
+		else
+		{
+			if (m_systemfrequency.QuadPart < 60)
 			{
-				CleanWaitingWinProcMessages();
-				goto finish;
+				G::InitFail(0, 0, TEXT("The system does not support a high performance timer."));
+				return ShellExitInitFailed;
 			}
-			if (!m_pWinAppWindow->m_pMDIDebugger.expired())
+		}
+
+		frequency.QuadPart = m_framefrequency.QuadPart;
+		frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
+		QueryPerformanceCounter((PLARGE_INTEGER)&last_counter);
+		QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
+		start_counter.QuadPart = end_counter.QuadPart - frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ;
+
+		if (FAILED(RegisterWindowClasses(hInstance)))
+		{
+			return ShellExitInitFailed;
+		}
+
+		if (FAILED(InitInstance(nCmdShow, lpCmdLine)))
+		{
+			return ShellExitInitFailed;
+		}
+	
+		AllowAccessibilityShortcutKeys(false);
+	
+		m_bReady = true;
+		m_bRunning=1;
+		m_bPaused=0;
+		m_bInitDone = true;
+		bool bExecuteFrameDone = false;
+		int framesSkipped = 0;
+		G::EnsureWindowPosition(m_pWinAppWindow->GetHwnd());
+
+		//-------------------------------------------------------------------------
+		//                          The Message Pump
+		//-------------------------------------------------------------------------
+		bool isApplicationQuit = false;
+		while (!isApplicationQuit)
+		{
+			bExecuteFrameDone = false;
+			while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 			{
-				HWND hWndDebug = 0;
-				HWND hWndDebugCpuC64 = 0;
-				HWND hWndDebugCpuDisk = 0;
-				HWND hWndDlgVicRaster = 0;
-				shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();				
-				hWndDebug =  pWinDebugger->GetHwnd();
-				shared_ptr<CDisassemblyFrame> pWinDebugCpuC64 = pWinDebugger->m_pWinDebugCpuC64.lock();
-				if (pWinDebugCpuC64)
+				bRet = GetMessage(&msg, NULL, 0, 0 );
+				if (bRet==-1 || bRet==0)
 				{
-					hWndDebugCpuC64 = pWinDebugCpuC64->GetHwnd();
+					CleanWaitingWinProcMessages();
+					isApplicationQuit = true;
+					break;
 				}
 
-				shared_ptr<CDisassemblyFrame> pWinDebugCpuDisk = pWinDebugger->m_pWinDebugCpuDisk.lock();
-				if (pWinDebugCpuDisk)
+				if (!m_pWinAppWindow->m_pMDIDebugger.expired())
 				{
-					hWndDebugCpuDisk = pWinDebugCpuDisk->GetHwnd();
-				}
+					HWND hWndDebug = 0;
+					HWND hWndDebugCpuC64 = 0;
+					HWND hWndDebugCpuDisk = 0;
+					HWND hWndDlgVicRaster = 0;
+					shared_ptr<CMDIDebuggerFrame> pWinDebugger = m_pWinAppWindow->m_pMDIDebugger.lock();				
+					hWndDebug =  pWinDebugger->GetHwnd();
+					shared_ptr<CDisassemblyFrame> pWinDebugCpuC64 = pWinDebugger->m_pWinDebugCpuC64.lock();
+					if (pWinDebugCpuC64)
+					{
+						hWndDebugCpuC64 = pWinDebugCpuC64->GetHwnd();
+					}
 
-				Sp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster = pWinDebugger->m_pdlgModelessBreakpointVicRaster.lock();
-				if (m_pdlgModelessBreakpointVicRaster!=0)
-				{
-					hWndDlgVicRaster = m_pdlgModelessBreakpointVicRaster->GetHwnd();
-				}
+					shared_ptr<CDisassemblyFrame> pWinDebugCpuDisk = pWinDebugger->m_pWinDebugCpuDisk.lock();
+					if (pWinDebugCpuDisk)
+					{
+						hWndDebugCpuDisk = pWinDebugCpuDisk->GetHwnd();
+					}
 
-				HWND hWndDefaultAccelerator = GetActiveWindow();
-				if (hWndDefaultAccelerator == 0 || 
-					(
-						hWndDefaultAccelerator != m_pWinAppWindow->GetHwnd() 
-						&& hWndDefaultAccelerator != hWndDebug 
-						&& hWndDefaultAccelerator != hWndDebugCpuC64
-						&& hWndDefaultAccelerator != hWndDebugCpuDisk
-					))
-				{
-					hWndDefaultAccelerator =pWinDebugger->GetHwnd();
+					Sp_CDiagBreakpointVicRaster m_pdlgModelessBreakpointVicRaster = pWinDebugger->m_pdlgModelessBreakpointVicRaster.lock();
+					if (m_pdlgModelessBreakpointVicRaster!=0)
+					{
+						hWndDlgVicRaster = m_pdlgModelessBreakpointVicRaster->GetHwnd();
+					}
+
+					HWND hWndDefaultAccelerator = GetActiveWindow();
+					if (hWndDefaultAccelerator == 0 || 
+						(
+							hWndDefaultAccelerator != m_pWinAppWindow->GetHwnd() 
+							&& hWndDefaultAccelerator != hWndDebug 
+							&& hWndDefaultAccelerator != hWndDebugCpuC64
+							&& hWndDefaultAccelerator != hWndDebugCpuDisk
+						))
+					{
+						hWndDefaultAccelerator =pWinDebugger->GetHwnd();
+					}
+					HWND hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();					
+					if (
+						//(!IsWindow(hWndDlgVicRaster) || !IsDialogMessage(hWndDlgVicRaster, &msg)) &&
+						//(!IsWindow(hWndDebugCpuC64) || !IsDialogMessage(hWndDebugCpuC64, &msg)) &&                    
+						//(!IsWindow(hWndDebugCpuDisk) || !IsDialogMessage(hWndDebugCpuDisk, &msg)) &&
+						//(!IsWindow(hWndDebuggerMdiClient) || !IsDialogMessage(hWndDebuggerMdiClient, &msg)) &&
+						(!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) &&
+						(!TranslateAccelerator(hWndDefaultAccelerator, this->m_hAccelTable, &msg)))
+					{
+						TranslateMessage(&msg); 
+						DispatchMessage(&msg);
+					}
+					continue;
 				}
-				HWND hWndDebuggerMdiClient = pWinDebugger->Get_MDIClientWindow();					
-				if (
-					//(!IsWindow(hWndDlgVicRaster) || !IsDialogMessage(hWndDlgVicRaster, &msg)) &&
-                    //(!IsWindow(hWndDebugCpuC64) || !IsDialogMessage(hWndDebugCpuC64, &msg)) &&                    
-                    //(!IsWindow(hWndDebugCpuDisk) || !IsDialogMessage(hWndDebugCpuDisk, &msg)) &&
-                    //(!IsWindow(hWndDebuggerMdiClient) || !IsDialogMessage(hWndDebuggerMdiClient, &msg)) &&
-					(!IsWindow(hWndDebuggerMdiClient) || !TranslateMDISysAccel(hWndDebuggerMdiClient, &msg)) &&
-					(!TranslateAccelerator(hWndDefaultAccelerator, this->m_hAccelTable, &msg)))
+				if (!TranslateAccelerator(m_pWinAppWindow->GetHwnd(), this->m_hAccelTable, &msg))
 				{
 					TranslateMessage(&msg); 
 					DispatchMessage(&msg);
 				}
-				continue;
 			}
-			if (!TranslateAccelerator(m_pWinAppWindow->GetHwnd(), this->m_hAccelTable, &msg))
+			if (isApplicationQuit)
 			{
-				TranslateMessage(&msg); 
-				DispatchMessage(&msg);
+				break;
 			}
-		}
-		frequency.QuadPart = m_framefrequency.QuadPart;
-		frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
 
-		if (((m_bActive && m_bReady) || ErrorLogger::HideWindow) && m_bRunning && !m_bPaused)
-		{
-			if (!bExecuteFrameDone)
+			frequency.QuadPart = m_framefrequency.QuadPart;
+			frequencyDoubler.QuadPart = m_framefrequencyDoubler.QuadPart;
+
+			if (((m_bActive && m_bReady) || ErrorLogger::HideWindow) && m_bRunning && !m_bPaused)
 			{
-				SoundResume();
-				if (captionUpdateCounter<=0)
+				if (!bExecuteFrameDone)
 				{
-					captionUpdateCounter = FRAMEUPDATEFREQ;
-					QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
-					emulationSpeed =(ULONG) (((ULONGLONG)100) * (frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ) / (end_counter.QuadPart - start_counter.QuadPart));
-					m_pWinAppWindow->UpdateWindowTitle(wsTitle.c_str(), emulationSpeed);
-					QueryPerformanceCounter((PLARGE_INTEGER)&start_counter);
-					c64.PreventClockOverflow();
-				}
-				QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
-				tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-				if ((LONGLONG)tSlice.QuadPart <= 0)
-				{
-					last_counter.QuadPart = new_counter.QuadPart;
-					tSlice.QuadPart = 0ULL;
-				}
-
-				if (m_bLimitSpeed)
-				{
-					if (m_bAudioClockSync && m_bSID_Emulation_Enable)
+					SoundResume();
+					if (captionUpdateCounter<=0)
 					{
-						if (m_audioSpeedStatus == HCFG::AUDIO_QUICK)
-						{						
-							last_counter.QuadPart = last_counter.QuadPart - frequency.QuadPart/8;
-							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-						}
-						else if (m_audioSpeedStatus == HCFG::AUDIO_SLOW)
-						{
-							last_counter.QuadPart = last_counter.QuadPart + frequency.QuadPart/16;
-							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
-						}
-						m_audioSpeedStatus = HCFG::AUDIO_OK;
+						captionUpdateCounter = FRAMEUPDATEFREQ;
+						QueryPerformanceCounter((PLARGE_INTEGER)&end_counter);
+						emulationSpeed =(ULONG) (((ULONGLONG)100) * (frequency.QuadPart * (ULONGLONG)FRAMEUPDATEFREQ) / (end_counter.QuadPart - start_counter.QuadPart));
+						m_pWinAppWindow->UpdateWindowTitle(wsTitle.c_str(), emulationSpeed);
+						QueryPerformanceCounter((PLARGE_INTEGER)&start_counter);
+						c64.PreventClockOverflow();
+					}
+					QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
+					tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
+					if ((LONGLONG)tSlice.QuadPart <= 0)
+					{
+						last_counter.QuadPart = new_counter.QuadPart;
+						tSlice.QuadPart = 0ULL;
 					}
 
-					if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
+					if (m_bLimitSpeed)
 					{
-						while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
+						if (m_bAudioClockSync && m_bSID_Emulation_Enable)
 						{
-							if (m_bCPUFriendly)
-							{
-								if (frequency.QuadPart > tSlice.QuadPart)
-								{
-									if (!G::WaitMessageTimeout(1))
-									{
-										goto msgloop;
-									}
-								}
+							if (m_audioSpeedStatus == HCFG::AUDIO_QUICK)
+							{						
+								last_counter.QuadPart = last_counter.QuadPart - frequency.QuadPart/8;
+								tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 							}
-							else
+							else if (m_audioSpeedStatus == HCFG::AUDIO_SLOW)
 							{
-								if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD))
-								{
-									goto msgloop;
-								}
+								last_counter.QuadPart = last_counter.QuadPart + frequency.QuadPart/16;
+								tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
 							}
-
-							QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
-							tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
+							m_audioSpeedStatus = HCFG::AUDIO_OK;
 						}
-					}
-					else
-					{
-						//If we get here is means we took a very large time slice.
-						if ((LONGLONG)tSlice.QuadPart >= (LONGLONG)(2)*(LONGLONG)frequency.QuadPart)
-						{
-							if ((LONGLONG)tSlice.QuadPart > (LONGLONG)(4)*(LONGLONG)frequency.QuadPart)
-							{
-								tSlice.QuadPart = (LONGLONG)(4)*(LONGLONG)frequency.QuadPart;
-							}
-							
-							if (framesSkipped <= 2)
-							{
-								this->m_fskip = 0;
-							}
-						}
-					}
 
-					last_counter.QuadPart = new_counter.QuadPart - (tSlice.QuadPart-frequency.QuadPart);
-				}
-				else
-				{
-					//No limit speed
-					if (m_bSkipFrames)
-					{
-						//No limit speed and skip frames.						
 						if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 						{
-							//We were quick so see if we can skip frames.
-							if (framesSkipped < frequency.QuadPart / tSlice.QuadPart)
+							bool isMessageAvailable = false;
+							while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 							{
-								m_fskip = 0;
+								if (m_bCPUFriendly)
+								{
+									if (frequency.QuadPart > tSlice.QuadPart)
+									{
+										if (!G::WaitMessageTimeout(1))
+										{
+											isMessageAvailable = true;
+											break;
+										}
+									}
+								}
+								else
+								{
+									if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD))
+									{
+										isMessageAvailable = true;
+										break;
+									}
+								}
+
+								QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
+								tSlice.QuadPart = new_counter.QuadPart - last_counter.QuadPart;
+							}
+
+							if (isMessageAvailable)
+							{
+								continue;
 							}
 						}
 						else
 						{
-							//We were slow so we might as well show this frame.
-							last_counter.QuadPart = new_counter.QuadPart;
-							m_fskip = -1;
+							//If we get here is means we took a very large time slice.
+							if ((LONGLONG)tSlice.QuadPart >= (LONGLONG)(2)*(LONGLONG)frequency.QuadPart)
+							{
+								if ((LONGLONG)tSlice.QuadPart > (LONGLONG)(4)*(LONGLONG)frequency.QuadPart)
+								{
+									tSlice.QuadPart = (LONGLONG)(4)*(LONGLONG)frequency.QuadPart;
+								}
+							
+								if (framesSkipped <= 2)
+								{
+									this->m_fskip = 0;
+								}
+							}
 						}
+
+						last_counter.QuadPart = new_counter.QuadPart - (tSlice.QuadPart-frequency.QuadPart);
 					}
 					else
 					{
-						if ((LONGLONG)tSlice.QuadPart >= (LONGLONG)(2)*(LONGLONG)frequency.QuadPart)
+						//No limit speed
+						if (m_bSkipFrames)
 						{
-							if (framesSkipped <= 2)
+							//No limit speed and skip frames.						
+							if ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart)
 							{
-								this->m_fskip = 0;
+								//We were quick so see if we can skip frames.
+								if (framesSkipped < frequency.QuadPart / tSlice.QuadPart)
+								{
+									m_fskip = 0;
+								}
+							}
+							else
+							{
+								//We were slow so we might as well show this frame.
+								last_counter.QuadPart = new_counter.QuadPart;
+								m_fskip = -1;
+							}
+						}
+						else
+						{
+							if ((LONGLONG)tSlice.QuadPart >= (LONGLONG)(2)*(LONGLONG)frequency.QuadPart)
+							{
+								if (framesSkipped <= 2)
+								{
+									this->m_fskip = 0;
+								}
+							}
+						}
+
+						last_counter.QuadPart = new_counter.QuadPart;
+					}
+				
+					//Execute one frame.
+					bExecuteFrameDone = true;
+					int frameResult;
+					if (!m_bDebug)
+					{
+						frameResult = c64.ExecuteFrame();
+					}
+					else
+					{
+						BreakpointResult breakpointResult;
+						frameResult = 0;
+						if (c64.ExecuteDebugFrame(CPUID_MAIN, breakpointResult))
+						{
+							if (breakpointResult.IsApplicationExitCode)
+							{
+								frameResult = breakpointResult.ExitCode;
 							}
 						}
 					}
 
-					last_counter.QuadPart = new_counter.QuadPart;
-				}
-				
-				//Execute one frame.
-				bExecuteFrameDone = true;
-				int frameResult;
-				if (!m_bDebug)
-				{
-					frameResult = c64.ExecuteFrame();
-				}
-				else
-				{
-					BreakpointResult breakpointResult;
-					frameResult = 0;
-					if (c64.ExecuteDebugFrame(CPUID_MAIN, breakpointResult))
+					if (frameResult)
 					{
-						if (breakpointResult.IsApplicationExitCode)
-						{
-							frameResult = breakpointResult.ExitCode;
-						}
+						this->c64.WriteOnceExitCode(ShellExitCycleLimit);
+						this->CloseAppWindow();
 					}
 				}
 
-				if (frameResult)
+				captionUpdateCounter--;
+				bool bDrawThisFrame = ((m_fskip < 0) || m_bIsDebugCart || m_bDebug);
+				if (bDrawThisFrame)
 				{
-					this->c64.WriteOnceExitCode(ShellExitCycleLimit);
-					this->CloseAppWindow();
-				}
-			}
-
-			captionUpdateCounter--;
-			bool bDrawThisFrame = ((m_fskip < 0) || m_bIsDebugCart || m_bDebug);
-			if (bDrawThisFrame)
-			{
-				hRet = m_pWinAppWindow->UpdateC64Window(true);
-				if (SUCCEEDED(hRet))
-				{
-					if (!m_bIsDebugCart)
+					hRet = m_pWinAppWindow->UpdateC64Window(true);
+					if (SUCCEEDED(hRet))
 					{
-						if (SUCCEEDED(hRet))
+						if (!m_bIsDebugCart)
 						{
-							hRet = gx.PresentFrame();
 							if (SUCCEEDED(hRet))
 							{
-								if (this->m_syncModeFullscreen == HCFG::FSSM_FRAME_DOUBLER && !this->m_bWindowed && !this->m_bMaxSpeed)
+								hRet = gx.PresentFrame();
+								if (SUCCEEDED(hRet))
 								{
-									ULARGE_INTEGER last_present_counter;
-									QueryPerformanceCounter((PLARGE_INTEGER)&last_present_counter);
-									tSlice.QuadPart = 0;
-									hRet = m_pWinAppWindow->UpdateC64Window(false);
-									if (SUCCEEDED(hRet))
+									if (this->m_syncModeFullscreen == HCFG::FSSM_FRAME_DOUBLER && !this->m_bWindowed && !this->m_bMaxSpeed)
 									{
-										if (((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart))
+										ULARGE_INTEGER last_present_counter;
+										QueryPerformanceCounter((PLARGE_INTEGER)&last_present_counter);
+										tSlice.QuadPart = 0;
+										hRet = m_pWinAppWindow->UpdateC64Window(false);
+										if (SUCCEEDED(hRet))
 										{
-											while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequencyDoubler.QuadPart)
+											if (((LONGLONG)tSlice.QuadPart < (LONGLONG)frequency.QuadPart))
 											{
-												QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
-												tSlice.QuadPart = new_counter.QuadPart - last_present_counter.QuadPart;
-											}
+												while ((LONGLONG)tSlice.QuadPart < (LONGLONG)frequencyDoubler.QuadPart)
+												{
+													QueryPerformanceCounter((PLARGE_INTEGER)&new_counter);
+													tSlice.QuadPart = new_counter.QuadPart - last_present_counter.QuadPart;
+												}
 
-											gx.PresentFrame();
+												gx.PresentFrame();
+											}
 										}
 									}
 								}
 							}
 						}
 					}
+
+					framesSkipped = 0;
+				}
+				else
+				{
+					framesSkipped++;
+	#if defined(DEBUG) && DEBUG_AUDIO_CLOCK_SYNC != 0
+					OutputDebugString(TEXT("fskip\n"));
+	#endif
 				}
 
-				framesSkipped = 0;
+				//Handle frame skip
+				if (m_bSkipFrames && framesSkipped == 0)
+				{
+					m_fskip = 0;
+				}
+				else if (m_fskip >= 0)
+				{
+					--m_fskip;
+				}
 			}
 			else
 			{
-				framesSkipped++;
-#if defined(DEBUG) && DEBUG_AUDIO_CLOCK_SYNC != 0
-				OutputDebugString(TEXT("fskip\n"));
-#endif
-			}
-
-			//Handle frame skip
-			if (m_bSkipFrames && framesSkipped == 0)
-			{
-				m_fskip = 0;
-			}
-			else if (m_fskip >= 0)
-			{
-				--m_fskip;
-			}
-		}
-		else
-		{
-			//Handle paused or non ready states in a CPU friendly manner.
-			SoundHalt();
-			if (!m_bClosing && m_bActive && !m_bReady && !ErrorLogger::HideWindow)
-			{
-				hRet = E_FAIL;				
-				if (gx.isInitOK)
+				//Handle paused or non ready states in a CPU friendly manner.
+				SoundHalt();
+				if (!m_bClosing && m_bActive && !m_bReady && !ErrorLogger::HideWindow)
 				{
-					hRet = gx.TestPresent();
-					if (hRet == S_OK)
+					hRet = E_FAIL;				
+					if (gx.isInitOK)
 					{
-						m_bReady = true;
+						hRet = gx.TestPresent();
+						if (hRet == S_OK)
+						{
+							m_bReady = true;
+						}
+						else if (hRet == DXGI_ERROR_DEVICE_REMOVED || hRet == DXGI_ERROR_DEVICE_RESET)
+						{
+							if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+							{
+								m_bReady = true;
+							}
+
+							G::WaitMessageTimeout(1000);
+						}
+						else 
+						{
+							CloseAppWindow();
+						}
 					}
-					else if (hRet == DXGI_ERROR_DEVICE_REMOVED || hRet == DXGI_ERROR_DEVICE_RESET)
+					else
 					{
+						G::WaitMessageTimeout(1000);
 						if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
 						{
 							m_bReady = true;
 						}
-
-						G::WaitMessageTimeout(1000);
-					}
-					else 
-					{
-						CloseAppWindow();
 					}
 				}
 				else
 				{
-					G::WaitMessageTimeout(1000);
-					if (SUCCEEDED(hRet = m_pWinAppWindow->ResetDirect3D()))
+					if (m_bReady)
 					{
-						m_bReady = true;
+						UpdateEmulationDisplay();
 					}
-				}
-			}
-			else
-			{
-				if (m_bReady)
-				{
-					UpdateEmulationDisplay();
-				}
 
-				if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
-				{
-					WaitMessage();
+					if (!PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+					{
+						WaitMessage();
+					}
 				}
 			}
 		}
 	}
-finish:
+	catch (std::exception&ex )
+	{
+		ErrorLogger::Log(ex.what());
+	}
+
+	// Application is quitting.
 	AllowAccessibilityShortcutKeys(true);
 	HRESULT pngresult = c64.SavePng(NULL);
 	if (c64.Get_EnableDebugCart())
@@ -817,7 +888,6 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 {
 	BOOL br;
 	HRESULT hr;
-	DWORD lr;
 	HWND hWndMain;
 	CConfig* thisCfg = this;
 	CAppStatus* thisAppStatus = this;
@@ -829,16 +899,15 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	int mainWinHeight;
 	int mainWinFixedWidth;
 	int mainWinFixedHeight;
-	WCHAR maxpathbuffer[MAX_PATH + 1];
-
 	ClearError();
-	lr = GetModuleFileName(NULL, maxpathbuffer, _countof(maxpathbuffer) - 1);
-	if (lr == 0)
+	std::wstring wsErrorMessage;
+	hr = G::LoadAppPath(wsAppFullPath);
+	if (FAILED(hr))
 	{
-		return E_FAIL;
+		wsErrorMessage = G::GetLastWin32ErrorWString();
+		G::DebugMessageBox(0L, wsErrorMessage.c_str(), L"GetModuleFileName Failed", MB_ICONWARNING);
+		return hr;
 	}
-
-	wsAppFullPath = maxpathbuffer;
 
 	//Process command line arguments.
 	CParseCommandArg cmdArgs(lpCmdLine);
@@ -877,6 +946,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	CommandArg *caSoundOff= cmdArgs.FindOption(TEXT("-nosound"));
 	CommandArg *caSystemWarm = cmdArgs.FindOption(TEXT("-system-warm"));
 	CommandArg *caSystemCold = cmdArgs.FindOption(TEXT("-system-cold"));	
+	CommandArg* caConfigFile = cmdArgs.FindOption(TEXT("-configfile"));
 
 	if (caNoMessageBox || caWindowHide)
 	{
@@ -894,26 +964,72 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	}
 
 	std::wstring wsroot;
-	std::wstring wsfilename;
-	Wfs::SplitRootPath(wsAppFullPath, wsroot, wsAppDirectory, wsfilename);
-	wsAppDirectory = wsroot + wsAppDirectory;
-	wsAppConfigPath.clear();
-	Wfs::Path_Append(wsAppConfigPath, wsAppDirectory);
-	Wfs::Path_Append(wsAppConfigPath, L"hoxs64.ini");
-	if (LoadString(m_hInstance, IDS_APP_TITLE, maxpathbuffer, _countof(maxpathbuffer) - 1))
+	std::wstring wsdir;
+	std::wstring wsfilename;	
+	std::wstring wsAppConfigFilenameFullPath;
+	Wfs::SplitRootPath(wsAppFullPath, wsroot, wsdir, wsfilename);
+	wsAppDirectory = Wfs::Path_Combine(wsroot, wsdir);
+	bool isExistConfigFile = false;
+	if (caConfigFile != nullptr && caConfigFile->ParamCount > 0)
 	{
-		wsTitle = maxpathbuffer;
+		std::wstring wsconfigfilename;
+		wsconfigfilename = caConfigFile->pParam[0];
+		Wfs::SplitRootPath(wsconfigfilename, wsroot, wsdir, wsfilename);
+		if (Wfs::IsAbsolutePath(wsconfigfilename))
+		{
+			// Command line absolute path.
+			Wfs::SplitRootPath(wsconfigfilename, wsroot, wsdir, wsfilename);
+			wsAppConfigFilenameFullPath = wsconfigfilename;
+		}
+		else
+		{
+			// Command line relative path.
+			wsAppConfigFilenameFullPath = wsAppDirectory;
+			Wfs::Path_Append(wsAppConfigFilenameFullPath, wsconfigfilename);
+		}
+
+		if (!Wfs::FileExists(wsAppConfigFilenameFullPath, &isExistConfigFile, wsErrorMessage))
+		{
+			std::wstring message = std::wstring(L"Unable to check for file:\n") + wsAppConfigFilenameFullPath + L"\n" + wsErrorMessage;
+			G::DebugMessageBox(0L, message.c_str(), wsAppName.c_str(), MB_ICONWARNING);
+			isExistConfigFile = false;
+		}
+		else
+		{
+			if (!isExistConfigFile)
+			{
+				std::wstring message = std::wstring(L"Cannot find command line specified config file:\n") + wsAppConfigFilenameFullPath + L"\n" + wsErrorMessage;
+				G::DebugMessageBox(0L, message.c_str(), wsAppName.c_str(), MB_ICONWARNING);
+				return E_FAIL;
+			}
+		}
+	}
+	else
+	{
+		wsAppConfigFilenameFullPath = wsAppDirectory;
+		Wfs::Path_Append(wsAppConfigFilenameFullPath, L"hoxs64.ini");
+		if (!Wfs::FileExists(wsAppConfigFilenameFullPath, &isExistConfigFile, wsErrorMessage))
+		{
+			std::wstring message = std::wstring(L"Unable to check for file:\n") + wsAppConfigFilenameFullPath + L"\n" + wsErrorMessage;
+			G::DebugMessageBox(0L, message.c_str(), wsAppName.c_str(), MB_ICONWARNING);
+			isExistConfigFile = false;
+		}
 	}
 
-	if (LoadString(m_hInstance, IDS_MONITOR_TITLE, maxpathbuffer, _countof(maxpathbuffer) - 1))
-	{
-		wsMonitorTitle = maxpathbuffer;
-	}
+	this->SetConfigLocation(isExistConfigFile, wsAppConfigFilenameFullPath);
 
+	// Load resource strings
+	constexpr size_t CharCountResourceBuffer = MAX_PATH + 1;// Must be 8 bytes or more for LoadString.
+
+	// Load app title name.
+	G::LoadStringResource(m_hInstance, IDS_APP_TITLE, wsTitle);
 	wsTitle.append(L"    V ");
 	wsTitle.append(applicationVersionString);
 
-	//Set up some late bound OS DLL calls
+	// Load monitor title name.
+	G::LoadStringResource(m_hInstance, IDS_MONITOR_TITLE, wsMonitorTitle);
+
+	// Initialise random numbers.
 	G::InitRandomSeed();
 
 	//Initialise common control library.
@@ -937,17 +1053,29 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	bool alignD64 = false;
 	bool systemWarm = false;
 	bool warmForTestbench = false;
+	mainCfg.SetConfigLocation(isExistConfigFile, wsAppConfigFilenameFullPath);
+
 	//Load the users settings.
 	if (caDefaultSettings)
 	{
 		warmForTestbench = true;
-		mainCfg.LoadDefaultSetting();		
+		mainCfg.LoadDefaultSetting();
 	}
 	else
 	{
-		hr = mainCfg.LoadCurrentSetting();
+		try
+		{
+			hr = mainCfg.LoadCurrentSetting();
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
+			hr = E_FAIL;
+		}
+		
 		if (FAILED(hr))
 		{
+			G::DebugMessageBox(0L, TEXT("The settings could not be restored. Using default settings."), wsAppName.c_str(), MB_ICONWARNING);
 			mainCfg.LoadDefaultSetting();
 		}
 	}
@@ -1247,13 +1375,199 @@ void CApp::RestoreDefaultSettings()
 
 void CApp::RestoreUserSettings()
 {
-	mainCfg.LoadCurrentSetting();
-	ApplyConfig(mainCfg);
+	HRESULT hr = mainCfg.LoadCurrentSetting();
+	if (SUCCEEDED(hr))
+	{
+		ApplyConfig(mainCfg);
+	}
+	else
+	{
+		throw std::exception("The settings could not be restored.");
+	}
 }
 
-void CApp::SaveCurrentSetting()
+bool CApp::RestoreSettingsFromFileDialog(HWND hWnd)
 {
-	mainCfg.SaveCurrentSetting();
+	DWORD pathsize = CchPathBufferSize;
+	OPENFILENAME of;
+	std::shared_ptr<wchar_t[]> initfilename;
+	TCHAR title[] = TEXT("Restore settings from ini file");
+	BOOL b = FALSE;
+	for (int tries = 0; tries < 2; tries)
+	{
+		initfilename.reset(new wchar_t[pathsize + 1]);
+		ZeroMemory(&of, sizeof(of));
+		of.lStructSize = sizeof(OPENFILENAME);
+		of.hwndOwner = hWnd;
+		of.lpstrFilter = TEXT("ini file (*.ini)\0*.ini\0All files (*.*)\0*.*\0\0");
+		of.nFilterIndex = 1;
+		initfilename[0] = 0;
+		of.lpstrDefExt = TEXT("ini");
+		of.lpstrFile = initfilename.get();
+		of.nMaxFile = pathsize;
+		of.lpstrFileTitle = nullptr;
+		of.nMaxFileTitle = 0;
+		of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+		of.lpstrTitle = title;
+		b = GetOpenFileName((LPOPENFILENAME)&of);
+		if (b)
+		{
+			break;
+		}
+
+		DWORD derr = CommDlgExtendedError();
+		if (derr == 0)
+		{
+			//The user cancelled the dialog.
+			break;
+		}
+		else if (derr == FNERR_BUFFERTOOSMALL)
+		{
+			// The buffer is too small. Get the required size and try again.
+			pathsize = (DWORD)(((unsigned int)(unsigned char)initfilename[0]) | (((unsigned int)(unsigned char)initfilename[1]) << 8));
+			continue;
+		}
+		else
+		{
+			// Unexpected error.
+			break;
+		}
+	}
+
+	if (b)
+	{
+		std::wstring errorMessage;
+		bool isFound = false;
+		if (Wfs::FileExists(initfilename.get(), &isFound, errorMessage))
+		{
+			if (isFound)
+			{
+				std::unique_ptr<CConfig> cfg = std::make_unique<CConfig>();
+				cfg->SetConfigLocation(true, initfilename.get());
+				HRESULT hr = cfg->LoadCurrentSetting();
+				if (SUCCEEDED(hr))
+				{
+					mainCfg = *cfg.get();
+					ApplyConfig(mainCfg);
+					return true;
+				}
+				else
+				{
+					throw std::exception("The settings could not be restored.");
+				}
+			}
+			else
+			{
+				throw std::exception(StringConverter::WideStringToString(CP_UTF8, G::format_string(L"File not found: %s", initfilename.get())).c_str());
+			}
+		}
+		else
+		{
+			throw std::exception(StringConverter::WideStringToString(CP_UTF8, errorMessage).c_str());
+		}
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void CApp::RestoreSettingsFromRegistry()
+{
+	std::unique_ptr<CConfig> cfg = std::make_unique<CConfig>();
+	cfg->SetConfigLocation(false, L"");
+	HRESULT hr = cfg->LoadCurrentSetting();
+	if (SUCCEEDED(hr))
+	{
+		mainCfg = *cfg.get();
+		ApplyConfig(mainCfg);
+	}
+	else
+	{
+		throw std::exception("The settings could not be restored.");
+	}
+}
+
+void CApp::SaveCurrentSettings()
+{
+	mainCfg.SaveCurrentSettings();
+}
+
+bool CApp::SaveCurrentSettingsToFileDialog(HWND hWnd)
+{
+	DWORD pathsize = CchPathBufferSize;
+	OPENFILENAME of;
+	std::shared_ptr<wchar_t[]> initfilename;
+	TCHAR title[] = TEXT("Save settings to ini file");
+	BOOL b = FALSE;
+	for (int tries = 0; tries < 2; tries)
+	{
+		initfilename.reset(new wchar_t[pathsize]);
+		ZeroMemory(&of, sizeof(of));
+		of.lStructSize = sizeof(OPENFILENAME);
+		of.hwndOwner = hWnd;
+		of.lpstrFilter = TEXT("ini file (*.ini)\0*.ini\0All files (*.*)\0*.*\0\0");
+		of.nFilterIndex = 1;
+		initfilename[0] = 0;
+		of.lpstrDefExt = TEXT("ini");
+		of.lpstrFile = initfilename.get();
+		of.nMaxFile = pathsize;
+		of.lpstrFileTitle = nullptr;
+		of.nMaxFileTitle = 0;
+		of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+		of.lpstrTitle = title;
+		b = GetSaveFileName((LPOPENFILENAME)&of);
+		if (b)
+		{
+			break;
+		}
+
+		DWORD derr = CommDlgExtendedError();
+		if (derr == 0)
+		{
+			//The user cancelled the dialog.
+			break;
+		}
+		else if (derr == FNERR_BUFFERTOOSMALL)
+		{
+			// The buffer is too small. Get the required size and try again.
+			pathsize = (DWORD)(((unsigned int)(unsigned char)initfilename[0]) | (((unsigned int)(unsigned char)initfilename[1]) << 8));
+			continue;
+		}
+		else
+		{
+			// Unexpected error.
+			break;
+		}
+	}
+
+	if (b)
+	{
+		SetBusy(true);
+		try
+		{
+			mainCfg.SetConfigLocation(true, initfilename.get());
+			mainCfg.SaveCurrentSettings();
+		}
+		catch (...)
+		{
+			SetBusy(false);
+			throw;
+		}
+
+		SetBusy(false);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void CApp::SaveCurrentSettingsToRegistry()
+{
+	mainCfg.SetConfigLocation(false, L"");
+	mainCfg.SaveCurrentSettings();
 }
 
 void CApp::ToggleMaxSpeed()
@@ -1274,16 +1588,16 @@ void CApp::ToggleMaxSpeed()
 
 void CApp::LoadCrtFileDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH];
-BOOL b;
+	OPENFILENAME of;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
+	BOOL b;
 
-	initfilename[0] = 0;
-	G::InitOfn(of, 
-		hWnd, 
+	spFilename[0] = 0;
+	G::InitOfn(of,
+		hWnd,
 		TEXT("Choose a cartridge CRT file"),
-		initfilename,
-		MAX_PATH,
+		spFilename.get(),
+		CchPathBufferSize,
 		TEXT("Cartridge CRT (*.crt)\0*.crt\0All files (*.*)\0*.*\0\0"),
 		NULL,
 		0);
@@ -1291,7 +1605,7 @@ BOOL b;
 	b = GetOpenFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
-		HRESULT hr = c64.LoadCrtFile(initfilename);
+		HRESULT hr = c64.LoadCrtFile(spFilename.get());
 		if (SUCCEEDED(hr))
 		{
 			UpdateApplication();
@@ -1320,16 +1634,16 @@ void CApp::LoadReu1750(HWND hWnd)
 
 void CApp::InsertTapeDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH];
-BOOL b;
+	OPENFILENAME of;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
+	BOOL b;
 
-	initfilename[0] = 0;	
-	G::InitOfn(of, 
-		hWnd, 
+	spFilename[0] = 0;
+	G::InitOfn(of,
+		hWnd,
 		TEXT("Choose a raw tape file"),
-		initfilename,
-		MAX_PATH,
+		spFilename.get(),
+		CchPathBufferSize,
 		TEXT("Raw tapes (*.tap)\0*.tap\0All files (*.*)\0*.*\0\0"),
 		NULL,
 		0);
@@ -1337,7 +1651,7 @@ BOOL b;
 	b = GetOpenFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
-		HRESULT hr = c64.LoadTAPFile(initfilename);
+		HRESULT hr = c64.LoadTAPFile(spFilename.get());
 		if (FAILED(hr))
 		{
 			c64.DisplayError(hWnd, TEXT("Insert Tape"));
@@ -1347,31 +1661,31 @@ BOOL b;
 
 void CApp::AutoLoadDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH];
-BOOL b;
-HRESULT hr;
-CPRGBrowse prgBrowse;
+	OPENFILENAME of;
+	BOOL b;
+	HRESULT hr;
 
-	initfilename[0]=0;
-	hr = prgBrowse.Init(c64.ram.mCharGen, &c64);
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
+	std::shared_ptr<CPRGBrowse> spPrgBrowse(new CPRGBrowse());
+	spFilename[0] = 0;
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, &c64);
 	if (FAILED(hr))
 	{
-		return ; 
+		return;
 	}
 
-	G::InitOfn(of, 
-		hWnd, 
+	G::InitOfn(of,
+		hWnd,
 		TEXT("Choose a C64 program file"),
-		initfilename,
-		MAX_PATH,
+		spFilename.get(),
+		CchPathBufferSize,
 		TEXT("C64 file (*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s)\0*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s\0\0"),
 		NULL,
 		0);
-	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::ALL);
+	b = spPrgBrowse->Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::ALL);
 	if (b)
 	{
-		hr = c64.AutoLoad(initfilename, prgBrowse.SelectedDirectoryIndex, false, prgBrowse.SelectedC64FileName, prgBrowse.SelectedQuickLoadDiskFile, prgBrowse.SelectedAlignD64Tracks, prgBrowse.SelectedWantReu);
+		hr = c64.AutoLoad(spFilename.get(), spPrgBrowse->SelectedDirectoryIndex, false, spPrgBrowse->SelectedC64FileName, spPrgBrowse->SelectedQuickLoadDiskFile, spPrgBrowse->SelectedAlignD64Tracks, spPrgBrowse->SelectedWantReu);
 		if (hr != S_OK)
 		{
 			c64.DisplayError(hWnd, TEXT("Auto Load"));
@@ -1383,18 +1697,18 @@ CPRGBrowse prgBrowse;
 
 void CApp::LoadC64ImageDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH];
-BOOL b;
-bit16 start, loadSize;
-HRESULT hr;
+	OPENFILENAME of;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
+	BOOL b;
+	bit16 start, loadSize;
+	HRESULT hr;
 
-	initfilename[0] = 0;
-	G::InitOfn(of, 
-		hWnd, 
+	spFilename[0] = 0;
+	G::InitOfn(of,
+		hWnd,
 		TEXT("Choose a C64 image file"),
-		initfilename,
-		MAX_PATH,
+		spFilename.get(),
+		CchPathBufferSize,
 		TEXT("Image file (*.p00;*.prg)\0*.p00;*.prg\0All files (*.*)\0*.*\0\0"),
 		NULL,
 		0);
@@ -1402,11 +1716,11 @@ HRESULT hr;
 	b = GetOpenFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
-		hr = c64.LoadImageFile(initfilename, &start, &loadSize);
+		hr = c64.LoadImageFile(spFilename.get(), &start, &loadSize);
 		if (SUCCEEDED(hr))
 		{
 			MemoryChanged();
-			ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("Load Image") , TEXT("START=%d"), (int)start);
+			ShowMessage(hWnd, MB_ICONINFORMATION, TEXT("Load Image"), TEXT("START=%d"), (int)start);
 		}
 		else
 		{
@@ -1417,37 +1731,37 @@ HRESULT hr;
 
 void CApp::LoadT64Dialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH+1];
-BOOL b;
-bit16 start, loadSize;
-HRESULT hr;
-CPRGBrowse prgBrowse;
-int i;
-	
-	initfilename[0] = 0;
+	OPENFILENAME of;
+	BOOL b;
+	bit16 start, loadSize;
+	HRESULT hr;
+	int i;	
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
+	std::shared_ptr<CPRGBrowse> spPrgBrowse(new CPRGBrowse());
+
+	spFilename[0] = 0;
 	TCHAR title[] = TEXT("Load T64");
-	hr = prgBrowse.Init(c64.ram.mCharGen, &c64);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, &c64);
 	if (FAILED(hr))
 	{
-		prgBrowse.DisplayError(hWnd, title);
+		spPrgBrowse->DisplayError(hWnd, title);
 		return ; 
 	}
 
 	G::InitOfn(of, 
 		hWnd, 
 		TEXT("Choose a T64 file"),
-		initfilename,
-		MAX_PATH,
+		spFilename.get(),
+		CchPathBufferSize,
 		TEXT("Image file (*.t64)\0*.t64\0All files (*.*)\0*.*\0\0"),
 		NULL,
 		0);
 
-	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::T64);
+	b = spPrgBrowse->Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::T64);
 	if (b)
 	{
-		i = (prgBrowse.SelectedDirectoryIndex < 0) ? 0 : prgBrowse.SelectedDirectoryIndex;
-		hr = c64.LoadT64ImageFile(initfilename, i, &start, &loadSize);
+		i = (spPrgBrowse->SelectedDirectoryIndex < 0) ? 0 : spPrgBrowse->SelectedDirectoryIndex;
+		hr = c64.LoadT64ImageFile(spFilename.get(), i, &start, &loadSize);
 		if (SUCCEEDED(hr))
 		{
 			MemoryChanged();
@@ -1462,37 +1776,37 @@ int i;
 
 void CApp::InsertDiskImageDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH+1];
-BOOL b;
-HRESULT hr;
-CPRGBrowse prgBrowse;
+	OPENFILENAME of;
+	BOOL b;
+	HRESULT hr;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
+	std::shared_ptr<CPRGBrowse> spPrgBrowse(new CPRGBrowse());
 
-	initfilename[0] = 0;
+	spFilename[0] = 0;
 	TCHAR title[] = TEXT("Insert Disk Image");
-	hr = prgBrowse.Init(c64.ram.mCharGen, &c64);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, &c64);
 	if (FAILED(hr))
-	{		
-		prgBrowse.DisplayError(hWnd, title);
-		return ; 
+	{
+		spPrgBrowse->DisplayError(hWnd, title);
+		return;
 	}
 
-	G::InitOfn(of, 
-		hWnd, 
+	G::InitOfn(of,
+		hWnd,
 		TEXT("Choose a disk image file"),
-		initfilename,
-		MAX_PATH,
+		spFilename.get(),
+		CchPathBufferSize,
 		TEXT("Disk image file (*.d64;*.g64;*.p64;*.fdi)\0*.d64;*.g64;*.p64;*.fdi\0All files (*.*)\0*.*\0\0"),
 		NULL,
 		0);
 
-	prgBrowse.DisableQuickLoad = true;
-	prgBrowse.DisableReuOption = true;
-	b = prgBrowse.Open(m_hInstance, (LPOPENFILENAME)&of, (CPRGBrowse::FileTypeFlag::filetype)(CPRGBrowse::FileTypeFlag::D64 | CPRGBrowse::FileTypeFlag::G64 | CPRGBrowse::FileTypeFlag::FDI | CPRGBrowse::FileTypeFlag::P64) );
+	spPrgBrowse->DisableQuickLoad = true;
+	spPrgBrowse->DisableReuOption = true;
+	b = spPrgBrowse->Open(m_hInstance, (LPOPENFILENAME)&of, (CPRGBrowse::FileTypeFlag::filetype)(CPRGBrowse::FileTypeFlag::D64 | CPRGBrowse::FileTypeFlag::G64 | CPRGBrowse::FileTypeFlag::FDI | CPRGBrowse::FileTypeFlag::P64));
 	if (b)
 	{
 		SetBusy(true);
-		hr = c64.InsertDiskImageFile(initfilename, prgBrowse.SelectedAlignD64Tracks, false);
+		hr = c64.InsertDiskImageFile(spFilename.get(), spPrgBrowse->SelectedAlignD64Tracks, false);
 		SetBusy(false);
 		if (FAILED(hr))
 		{
@@ -1501,18 +1815,17 @@ CPRGBrowse prgBrowse;
 		else if (hr == APPERR_BAD_CRC)
 		{
 			c64.DisplayError(hWnd, title);
-		}			
+		}
 	}
 }
 
 void CApp::SaveD64ImageDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH];
-TCHAR filename[MAX_PATH];
-BOOL b;
-HRESULT hr;
-CDiagFileSaveD64 childDialog;
+	OPENFILENAME of;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
+	BOOL b;
+	HRESULT hr;
+	CDiagFileSaveD64 childDialog;
 
 	TCHAR title[] = TEXT("Save D64 Image");
 	if (c64.diskdrive.m_diskLoaded==0)
@@ -1532,19 +1845,19 @@ CDiagFileSaveD64 childDialog;
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.d64)\0*.d64\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex =1;
-	initfilename[0]=0;
+	spFilename[0]=0;
 	of.lpstrDefExt=TEXT("D64");
-	of.lpstrFile = initfilename;
-	of.nMaxFile = MAX_PATH;
-	of.lpstrFileTitle = filename;
-	of.nMaxFileTitle = MAX_PATH;
+	of.lpstrFile = spFilename.get();
+	of.nMaxFile = CchPathBufferSize;
+	of.lpstrFileTitle = nullptr;
+	of.nMaxFileTitle = 0;
 	of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 	of.lpstrTitle = TEXT("Save a D64 disk image file");
 	b = childDialog.Open(m_hInstance, (LPOPENFILENAME)&of);
 	if (b)
 	{
 		SetBusy(true);
-		hr = c64.SaveD64ToFile(initfilename, childDialog.SelectedNumberOfTracks);
+		hr = c64.SaveD64ToFile(spFilename.get(), childDialog.SelectedNumberOfTracks);
 		SetBusy(false);
 		if (SUCCEEDED(hr))
 		{
@@ -1572,16 +1885,14 @@ CDiagFileSaveD64 childDialog;
 
 void CApp::SaveFDIImageDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH+1];
-TCHAR filename[MAX_PATH+1];
-BOOL b;
-HRESULT hr;
-
+	OPENFILENAME of;
+	BOOL b;
+	HRESULT hr;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
 	TCHAR title[] = TEXT("Save FDI Image");
-	if (c64.diskdrive.m_diskLoaded==0)
+	if (c64.diskdrive.m_diskLoaded == 0)
 	{
-		G::DebugMessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
+		G::DebugMessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION);
 		return;
 	}
 
@@ -1590,26 +1901,26 @@ HRESULT hr;
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.fdi)\0*.fdi\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
-	initfilename[0] = 0;
-	of.lpstrDefExt=TEXT("FDI");
-	of.lpstrFile = initfilename;
-	of.nMaxFile = MAX_PATH-1;
-	of.lpstrFileTitle = filename;
-	of.nMaxFileTitle = MAX_PATH-1;
+	spFilename[0] = 0;
+	of.lpstrDefExt = TEXT("FDI");
+	of.lpstrFile = spFilename.get();
+	of.nMaxFile = CchPathBufferSize;
+	of.lpstrFileTitle = nullptr;
+	of.nMaxFileTitle = 0;
 	of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 	of.lpstrTitle = TEXT("Save an FDI disk image file");
 	b = GetSaveFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
 		SetBusy(true);
-		hr =  c64.SaveFDIToFile(initfilename);
+		hr = c64.SaveFDIToFile(spFilename.get());
 		SetBusy(false);
 		if (SUCCEEDED(hr))
 		{
 			G::DebugMessageBox(hWnd,
-			TEXT("Disk saved."), 
-			title, 
-			MB_OK | MB_ICONINFORMATION);
+				TEXT("Disk saved."),
+				title,
+				MB_OK | MB_ICONINFORMATION);
 		}
 		else
 		{
@@ -1620,16 +1931,14 @@ HRESULT hr;
 
 void CApp::SaveP64ImageDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH+1];
-TCHAR filename[MAX_PATH+1];
-BOOL b;
-HRESULT hr;
-
+	OPENFILENAME of;
+	BOOL b;
+	HRESULT hr;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
 	TCHAR title[] = TEXT("Save P64 Image");
-	if (c64.diskdrive.m_diskLoaded==0)
+	if (c64.diskdrive.m_diskLoaded == 0)
 	{
-		G::DebugMessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION); 
+		G::DebugMessageBox(hWnd, TEXT("No disk has been inserted"), title, MB_OK | MB_ICONEXCLAMATION);
 		return;
 	}
 
@@ -1638,26 +1947,26 @@ HRESULT hr;
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("Disk image file (*.p64)\0*.p64\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
-	initfilename[0] = 0;
-	of.lpstrDefExt=TEXT("P64");
-	of.lpstrFile = initfilename;
-	of.nMaxFile = MAX_PATH-1;
-	of.lpstrFileTitle = filename;
-	of.nMaxFileTitle = MAX_PATH-1;
+	spFilename[0] = 0;
+	of.lpstrDefExt = TEXT("P64");
+	of.lpstrFile = spFilename.get();
+	of.nMaxFile = CchPathBufferSize;
+	of.lpstrFileTitle = nullptr;
+	of.nMaxFileTitle = 0;
 	of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 	of.lpstrTitle = TEXT("Save a P64 disk image file");
 	b = GetSaveFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
 		SetBusy(true);
-		hr =  c64.SaveP64ToFile(initfilename);
+		hr = c64.SaveP64ToFile(spFilename.get());
 		SetBusy(false);
 		if (SUCCEEDED(hr))
 		{
 			G::DebugMessageBox(hWnd,
-			TEXT("Disk saved."), 
-			title, 
-			MB_OK | MB_ICONINFORMATION);
+				TEXT("Disk saved."),
+				title,
+				MB_OK | MB_ICONINFORMATION);
 		}
 		else
 		{
@@ -1668,12 +1977,11 @@ HRESULT hr;
 
 void CApp::SaveC64StateDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH+1];
-TCHAR filename[MAX_PATH+1];
-BOOL b;
-HRESULT hr;
+	OPENFILENAME of;
+	BOOL b;
+	HRESULT hr;
 
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
 	TCHAR title[] = TEXT("Save State Image");
 
 	ZeroMemory(&of, sizeof(of));
@@ -1681,19 +1989,19 @@ HRESULT hr;
 	of.hwndOwner = hWnd;
 	of.lpstrFilter = TEXT("State Image (*.64s)\0*.64s\0All files (*.*)\0*.*\0\0");
 	of.nFilterIndex = 1;
-	initfilename[0] = 0;
-	of.lpstrDefExt=TEXT("64s");
-	of.lpstrFile = initfilename;
-	of.nMaxFile = MAX_PATH-1;
-	of.lpstrFileTitle = filename;
-	of.nMaxFileTitle = MAX_PATH-1;
+	spFilename[0] = 0;
+	of.lpstrDefExt = TEXT("64s");
+	of.lpstrFile = spFilename.get();
+	of.nMaxFile = CchPathBufferSize;
+	of.lpstrFileTitle = nullptr;
+	of.nMaxFileTitle = 0;
 	of.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 	of.lpstrTitle = TEXT("Save a state image file");
 	b = GetSaveFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
 		SetBusy(true);
-		hr =  c64.SaveC64StateToFile(initfilename);
+		hr = c64.SaveC64StateToFile(spFilename.get());
 		SetBusy(false);
 		if (FAILED(hr))
 		{
@@ -1704,18 +2012,18 @@ HRESULT hr;
 
 void CApp::LoadC64StateDialog(HWND hWnd)
 {
-OPENFILENAME of;
-TCHAR initfilename[MAX_PATH];
-BOOL b;
-HRESULT hr;
+	OPENFILENAME of;
+	BOOL b;
+	HRESULT hr;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
 
 	TCHAR title[] = TEXT("Load State Image");
-	initfilename[0] = 0;
+	spFilename[0] = 0;
 	G::InitOfn(of, 
 		hWnd, 
 		title,
-		initfilename,
-		MAX_PATH,
+		spFilename.get(),
+		CchPathBufferSize,
 		TEXT("State Image file (*.64s)\0*.64s\0All files (*.*)\0*.*\0\0"),
 		NULL,
 		0);
@@ -1724,7 +2032,7 @@ HRESULT hr;
 	if (b)
 	{
 		SetBusy(true);
-		hr = c64.LoadC64StateFromFile(initfilename);
+		hr = c64.LoadC64StateFromFile(spFilename.get());
 		SetBusy(false);
 		if (SUCCEEDED(hr))
 		{

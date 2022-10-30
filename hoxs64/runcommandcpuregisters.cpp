@@ -71,7 +71,7 @@ IMonitorCpu *cpu;
 	}
 	else
 	{
-		HexConv::long_to_hex(reg.PC_CurrentOpcode, addressText, 4);
+		HexConv<TCHAR>::long_to_hex(reg.PC_CurrentOpcode, addressText, 4);
 	}
 
 	m_sLineBuffer.append(addressText);
@@ -82,7 +82,7 @@ IMonitorCpu *cpu;
 	}
 	else
 	{
-		HexConv::long_to_hex(reg.A, byteText, 2);
+		HexConv<TCHAR>::long_to_hex(reg.A, byteText, 2);
 	}
 
 	m_sLineBuffer.append(byteText);
@@ -93,7 +93,7 @@ IMonitorCpu *cpu;
 	}
 	else
 	{
-		HexConv::long_to_hex(reg.X, byteText, 2);
+		HexConv<TCHAR>::long_to_hex(reg.X, byteText, 2);
 	}
 
 	m_sLineBuffer.append(byteText);
@@ -104,7 +104,7 @@ IMonitorCpu *cpu;
 	}
 	else
 	{
-		HexConv::long_to_hex(reg.Y, byteText, 2);
+		HexConv<TCHAR>::long_to_hex(reg.Y, byteText, 2);
 	}
 
 	m_sLineBuffer.append(byteText);
@@ -129,7 +129,7 @@ IMonitorCpu *cpu;
 	}
 	else
 	{
-		HexConv::long_to_hex(reg.SP, byteText, 2);
+		HexConv<TCHAR>::long_to_hex(reg.SP, byteText, 2);
 	}
 
 	m_sLineBuffer.append(byteText);

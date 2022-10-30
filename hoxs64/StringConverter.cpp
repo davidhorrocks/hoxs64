@@ -223,12 +223,12 @@ char* StringConverter::MallocFormattedStringA(const char* pszFormatString, ...) 
 
 #pragma warning( pop ) 
 
-std::wstring StringConverter::StringToWideString(const std::string str)
+std::wstring StringConverter::StringToWideString(const std::string& str)
 {
 	return StringToWideString(CP_ACP, str);
 }
 
-std::wstring StringConverter::StringToWideString(UINT codepage, const std::string str)
+std::wstring StringConverter::StringToWideString(UINT codepage, const std::string& str)
 {	
 	std::string errmsg;
 	std::wstring s;
@@ -239,7 +239,7 @@ std::wstring StringConverter::StringToWideString(UINT codepage, const std::strin
 
 	if (str.length() >= MaxLength)
 	{
-		throw new std::exception("StringToWideString failed. String too long.");
+		throw std::exception("StringToWideString failed. String too long.");
 	}
 
 	int cchRequired = 0;
@@ -247,7 +247,7 @@ std::wstring StringConverter::StringToWideString(UINT codepage, const std::strin
 	if (FAILED(hr))
 	{				
 		//errmsg = GetLastWin32ErrorString();
-		throw new std::exception("StringToWideString failed.");
+		throw std::exception("StringToWideString failed.");
 	}
 
 	LPWSTR pwstr = new WCHAR[cchRequired + 1];
@@ -267,7 +267,7 @@ std::wstring StringConverter::StringToWideString(UINT codepage, const std::strin
 		}
 		else
 		{
-			throw new std::exception("StringToWideString failed.");
+			throw std::exception("StringToWideString failed.");
 		}
 	}
 	catch (...)
@@ -296,7 +296,7 @@ std::string StringConverter::WideStringToString(UINT codepage, const std::wstrin
 
 	if (str.length() >= MaxLength)
 	{
-		throw new std::exception("WideStringToString failed. String too long.");
+		throw std::exception("WideStringToString failed. String too long.");
 	}
 
 	int cchRequired = 0;
@@ -305,7 +305,7 @@ std::string StringConverter::WideStringToString(UINT codepage, const std::wstrin
 	{
 
 		//errmsg = GetLastWin32ErrorString();
-		throw new std::exception("WideStringToString failed.");
+		throw std::exception("WideStringToString failed.");
 	}
 
 	LPSTR pstr = new CHAR[cchRequired + 1];
@@ -325,7 +325,7 @@ std::string StringConverter::WideStringToString(UINT codepage, const std::wstrin
 		}
 		else
 		{
-			throw new std::exception("WideStringToString failed.");
+			throw std::exception("WideStringToString failed.");
 		}
 	}
 	catch (...)
@@ -371,4 +371,104 @@ bool StringConverter::CompareStrCaseInsensitive(const std::wstring& str1, const 
 			return (c1 == c2 || std::toupper(c1) == std::toupper(c2));
 		}
 	));
+}
+
+std::wstring StringConverter::format_string(const wchar_t* format, ...)
+{
+	va_list vl;
+	std::wstring result;
+	size_t cchbuffer = FORMAT_STRING_INITIAL_SIZE;
+	wchar_t* buffer = nullptr;
+	while (1)
+	{
+		buffer = new wchar_t[cchbuffer];
+		if (buffer == nullptr)
+		{
+			throw std::bad_alloc();
+		}
+
+		va_start(vl, format);
+		int copied = _vsnwprintf_s(buffer, cchbuffer, cchbuffer - 1, format, vl);
+		va_end(vl);
+		if (copied == -1)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			cchbuffer *= 2;
+			if (cchbuffer >= FORMAT_STRING_MAX_SIZE)
+			{
+				throw std::exception("format_string buffer required is too long.");
+			}
+		}
+		else if (copied < 0 || copied >= cchbuffer)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			throw std::exception("format_string error.");
+		}
+		else
+		{
+			buffer[copied] = 0;
+			break;
+		}
+	}
+
+	if (buffer != nullptr)
+	{
+		result.append(buffer);
+		delete[] buffer;
+		buffer = nullptr;
+	}
+
+	return result;
+}
+
+std::string StringConverter::format_string(const char* format, ...)
+{
+	va_list vl;
+	std::string result;
+	size_t cchbuffer = FORMAT_STRING_INITIAL_SIZE;
+	char* buffer = nullptr;
+	while (1)
+	{
+		buffer = new char[cchbuffer];
+		if (buffer == nullptr)
+		{
+			throw std::bad_alloc();
+		}
+
+		va_start(vl, format);
+		int copied = _vsnprintf_s(buffer, cchbuffer, cchbuffer - 1, format, vl);
+		va_end(vl);
+		if (copied == -1)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			cchbuffer *= 2;
+			if (cchbuffer >= FORMAT_STRING_MAX_SIZE)
+			{
+				throw std::exception("format_string buffer required is too long.");
+			}
+		}
+		else if (copied < 0 || copied >= cchbuffer)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			throw std::exception("format_string error.");
+		}
+		else
+		{
+			buffer[copied] = 0;
+			break;
+		}
+	}
+
+	if (buffer != nullptr)
+	{
+		result.append(buffer);
+		delete[] buffer;
+		buffer = nullptr;
+	}
+
+	return result;
 }

@@ -1,58 +1,123 @@
+#pragma once
 //
 // Created by Chiara on 17/08/2016.
+// Modified by David Horrocks on 18/11/2022
 //
-
-#ifndef INIFILEMANAGER_INIFILEMANAGER_H
-#define INIFILEMANAGER_INIFILEMANAGER_H
-
-
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <list>
 #include <vector>
 
-enum Mode {open, create};
+class KeyValueAssign {
+public:
+    std::wstring name;
+    std::vector<std::wstring> values;
+    std::wstring comment;
+    bool operator<(const KeyValueAssign& other) const;
+    void clear();
+};
 
 class Section {
 public:
-    std::string name;
-    std::vector<std::string> comments;
-    std::unordered_map<std::string, std::string> settings;
+    std::wstring name;
+    std::vector<std::wstring> comments;
+    std::list<KeyValueAssign> settings;
+    bool operator<(const Section& other) const;
 };
 
-
-class IniFileManager {
+class IniFileManager 
+{
 public:
-    IniFileManager(const std::string path, Mode m);
+    bool read(const std::wstring& whichSection, const std::wstring& whichKey, KeyValueAssign **pkeyValue);
+    std::list<KeyValueAssign>::iterator ensureKey(const std::wstring& whichSection, const std::wstring& whichKey);
+    void ensureKeyValue(const std::wstring& whichSection, const std::wstring& whichKey, const std::wstring& userValue);
+    void ensureKeyValues(const std::wstring& whichSection, const std::wstring& whichKey, const std::vector<std::wstring>& userValue);
 
-    const std::string read(std::string whichSection, std::string whichKey);
+    void editKeyValue(const std::wstring& whichSection, const std::wstring& whichKey, const std::wstring& userValue);
+    void editKeyValues(const std::wstring& whichSection, const std::wstring& whichKey, const std::vector<std::wstring>& userValues);
 
-    void editValue(std::string whichSection, std::string whichKey, std::string userValue);
+    void addKeyValue(const std::wstring& whichSection, const std::wstring& newKey, const std::wstring& newValue);
+    void addKeyValues(const std::wstring& whichSection, const std::wstring& newKey, const std::vector<std::wstring>& newValues);
+    void deleteKey(const std::wstring& whichSection, const std::wstring& whichKey);
 
-    void addLine(std::string whichSection, std::string whichKey, std::string userValue);
-    void deleteLine(std::string whichSection, std::string whichKey);
+    void addSection(const std::wstring& sectionName);
+    void deleteSection(const std::wstring& sectionName);
+    void clearSection(const std::wstring& sectionName);
 
-    void addSection(std::string sectionName);
-    void deleteSection(std::string sectionName);
-    void clearSection(std::string sectionName);
+    void addComment(const std::wstring& whichSection, const std::wstring& newComment);
+    const std::wstring readAComment(const std::wstring& whichSection, unsigned int commentIndex);
 
-    void addComment(std::string whichSection, std::string newComment);
-    const std::string readAComment(std::string whichSection, unsigned int commentIndex);
+    bool parse(const std::wstring& filename);
+    void saveFile(const std::wstring& filename);
+    void sortSections();
+    void clearLastError();
 
-    ~IniFileManager();
-
-private:
-    void parse();
-    void generateCopy(std::string path);
-    bool testPath();
-    void removeMarginWhites(std::string & string);
-    std::list<Section>::iterator getSection (const std::string whichSection);
-
+    std::list<Section>::iterator ensureSection(const std::wstring& sectionName);
+    std::list<Section>::iterator getSection(const std::wstring& whichSection);
     std::list<Section> sections;
-    std::string path;
-    Mode mode;
-    static bool copyIsNecessary;
+    std::wstring lastErrorMessage;
+private:
+    void generateCopy(const std::wstring& filename);
+    bool testPath(std::wstring& filename);
+    void removeMarginWhites(std::wstring& s);
+    void removeMarginWhites(std::string& s);
+    void removeSpaces(std::wstring& s);
+
+    //Mode mode;
+    bool copyIsNecessary;    
+    static constexpr int BOM_COUNT_UTF8 = 3;
+    static const char bomUtf8[3];
+    const char whitespacelist[4] = { ' ', '\t', '\r', '\n' };
+    bool isWhiteSpace(char ch) const;
+    bool isOctalDigit(char ch) const;
+    bool isHexDigit(char ch) const;
+    bool isDigit(char ch) const;
+    bool isAlpha(char ch) const;
+    bool isSectionNameChar(char ch) const;
+    bool isKeyNameChar(char ch) const;
+    bool isValueChar(char ch) const;
+    bool isAcceptChar(char ch, bool acceptKeyName, bool acceptKeyValue) const;
+    bool isQuotedStringEscapeRequired(char ch) const;
+    unsigned long long lineNumber;
+
+    struct IniToken
+    {
+        static constexpr std::size_t MaxStringLength = 1024 * 1024;
+        struct ATokenType
+        {
+            enum tagTType
+            {
+                None,
+                EndOfInput,
+                StringValue,
+                Symbol,
+                Comment,
+                SectionName,
+                NewLine,
+                Error
+            };
+        };
+
+        ATokenType::tagTType TokenType = ATokenType::None;
+        std::string StringText;
+        std::string ErrorText;
+        void Init();
+        void SetError();
+        void SetError(const std::string& errorMessage);
+        void SetErrorSymbol();
+        void SetErrorSymbol(char ch);
+        void SetErrorMissingSectionEndChar();
+        void SetErrorMissingDoubleQuoteChar();
+        void SetErrorStringTooLong();
+        void SetErrorSyntax();
+        void SetErrorFile();
+        void SetEOF();
+        bool IsEOF();
+        bool IsError();
+        bool IsOK();
+    };
+
+    bool readNextToken(std::basic_istream<char>& strm, bool acceptKeyName, bool acceptKeyValue, IniToken& token);
+    bool getStringValue(std::basic_istream<char>& strm, bool acceptKeyName, bool acceptKeyValue, IniToken& token);
 };
 
-
-#endif //INIFILEMANAGER_INIFILEMANAGER_H

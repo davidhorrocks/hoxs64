@@ -117,7 +117,7 @@ public:
 private:
 	//static bit8 blankname[C64DISKFILENAMELENGTH];
 	bit8 mDirectoryItemNameBuffer[20];
-	void CleanUp();
+	void CleanUp() noexcept;
 	eC64FileType _FileType;
 	T64 t64;
 	GCRDISK disk;

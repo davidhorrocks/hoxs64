@@ -677,35 +677,135 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 		appCommand->SoundResume();
 		lresult = 0;
 		return true;
-	case IDM_SETTING_RESTOREDEFAULT:
+	case IDM_LOADSETTINGS_RESTOREDEFAULT:
 		appCommand->SoundHalt();
-		appCommand->RestoreDefaultSettings();
-		if (SUCCEEDED(this->UpdateC64Window(true)))
+		try
 		{
-			this->Present();
+			appCommand->RestoreDefaultSettings();
+			if (SUCCEEDED(this->UpdateC64Window(true)))
+			{
+				this->Present();
+			}
+
+			G::DebugMessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
 		}
 
-		G::DebugMessageBox(hWnd, TEXT("Default settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION);
 		appCommand->SoundResume();
 		lresult = 0;
 		return true;
-	case IDM_SETTING_LOADSETTINGS_RESTOREUSER:
+	case IDM_LOADSETTINGS_RESTOREUSER:
 		appCommand->SoundHalt();
-		appCommand->RestoreUserSettings();
-		if (SUCCEEDED(this->UpdateC64Window(true)))
+		try
 		{
-			this->Present();
+			appCommand->RestoreUserSettings();
+			if (SUCCEEDED(this->UpdateC64Window(true)))
+			{
+				this->Present();
+			}
+
+			G::DebugMessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
 		}
 
-		G::DebugMessageBox(hWnd, TEXT("User settings restored."), APPNAME, MB_OK | MB_ICONINFORMATION);
 		appCommand->SoundResume();
 		lresult = 0;
 		return true;
-	case IDM_SETTING_SAVE:
+	case IDM_LOADSETTINGS_LOADFROMFILE:
 		appCommand->SoundHalt();
-		appCommand->UpdateUserConfigFromSid();
-		appCommand->SaveCurrentSetting();
-		G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		try
+		{
+			if (appCommand->RestoreSettingsFromFileDialog(hWnd))
+			{
+				if (SUCCEEDED(this->UpdateC64Window(true)))
+				{
+					this->Present();
+				}
+
+				G::DebugMessageBox(hWnd, TEXT("User settings restored from file."), APPNAME, MB_OK | MB_ICONINFORMATION);
+			}
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
+		}
+
+		appCommand->SoundResume();
+		lresult = 0;
+		return true;
+	case IDM_LOADSETTINGS_LOADFROMREGISTRY:
+		appCommand->SoundHalt();
+		try
+		{
+			appCommand->RestoreSettingsFromRegistry();
+			if (SUCCEEDED(this->UpdateC64Window(true)))
+			{
+				this->Present();
+			}
+
+			G::DebugMessageBox(hWnd, TEXT("User settings restored from registry."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
+		}
+
+		appCommand->SoundResume();
+		lresult = 0;
+		return true;
+	case IDM_SAVESETTINGS_SAVE:
+		appCommand->SoundHalt();
+		try
+		{
+			appCommand->UpdateUserConfigFromSid();
+			appCommand->SaveCurrentSettings();
+			G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
+		}
+
+		appCommand->SoundResume();
+		lresult = 0;
+		return true;
+	case IDM_SAVESETTINGS_SAVETOFILE:
+		appCommand->SoundHalt();
+		try
+		{
+			appCommand->UpdateUserConfigFromSid();
+			if (appCommand->SaveCurrentSettingsToFileDialog(hWnd))
+			{
+				G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION);
+			}
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
+		}
+
+		appCommand->SoundResume();
+		lresult = 0;		
+		return true;
+	case IDM_SAVESETTINGS_SAVETOREGISTRY:
+		appCommand->SoundHalt();
+		try
+		{
+			appCommand->UpdateUserConfigFromSid();
+			appCommand->SaveCurrentSettingsToRegistry();
+			G::DebugMessageBox(hWnd, TEXT("Setting saved."), APPNAME, MB_OK | MB_ICONINFORMATION);
+		}
+		catch (std::exception& ex)
+		{
+			ErrorLogger::Log(ex.what());
+		}
+
 		appCommand->SoundResume();
 		lresult = 0;
 		return true;
@@ -742,11 +842,12 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 				}
 			}
 		}
-		catch (...)
+		catch (std::exception& ex)
 		{
+			ErrorLogger::Log(ex.what());
 		}
 
-		if (pTemporaryCfg)
+		if (pTemporaryCfg != nullptr)
 		{
 			delete pTemporaryCfg;
 			pTemporaryCfg = nullptr;
@@ -781,8 +882,9 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 				}
 			}
 		}
-		catch (...)
+		catch (std::exception& ex)
 		{
+			ErrorLogger::Log(ex.what());
 		}
 
 		if (pTemporaryCfg)
@@ -827,8 +929,9 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 			dx->pKeyboard->Unacquire();
 			dx->pKeyboard->SetCooperativeLevel(hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 		}
-		catch (...)
+		catch (std::exception& ex)
 		{
+			ErrorLogger::Log(ex.what());
 		}
 
 		if (pTemporaryCfg)
@@ -859,8 +962,9 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 				}
 			}
 		}
-		catch (...)
+		catch (std::exception& ex)
 		{
+			ErrorLogger::Log(ex.what());
 		}
 
 		if (pTemporaryCfg)
@@ -1043,6 +1147,8 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 
 		lresult = 0;
 		return true;
+	default:
+		return false;
 	}
 
 	return false;
@@ -1725,7 +1831,7 @@ HWND CAppWindow::ShowDevelopment()
 
 				POINT pos = {x,y};
 				SIZE size= {w,h};
-				hr = CConfig::LoadMDIWindowSetting(pos, size);
+				hr = appStatus->LoadMDIWindowSetting(pos, size);
 				if (SUCCEEDED(hr))
 				{
 					x = pos.x;

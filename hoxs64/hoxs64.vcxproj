@@ -634,6 +634,8 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClCompile Include="cart_system_3.cpp" />
     <ClCompile Include="cart_zaxxon.cpp" />
     <ClCompile Include="Color.cpp" />
+    <ClCompile Include="configfileini.cpp" />
+    <ClCompile Include="configregistry.cpp" />
     <ClCompile Include="cvirwindow.cpp" />
     <ClCompile Include="diagbuttonselection.cpp" />
     <ClCompile Include="commandresult.cpp" />
@@ -659,6 +661,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClCompile Include="imgui\imgui_impl_dx11.cpp" />
     <ClCompile Include="imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="IniFileManager\IniFileManager.cpp" />
     <ClCompile Include="memorystream.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -1017,6 +1020,9 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClInclude Include="Color.h" />
     <ClInclude Include="COMException.h" />
     <ClInclude Include="commandresult.h" />
+    <ClInclude Include="configdatasource.h" />
+    <ClInclude Include="configfileini.h" />
+    <ClInclude Include="configregistry.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="ConstantBufferTypes.h" />
     <ClInclude Include="cvirwindow.h" />
@@ -1047,6 +1053,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="IndexBuffer.h" />
+    <ClInclude Include="IniFileManager\IniFileManager.h" />
     <ClInclude Include="IQuit.h" />
     <ClInclude Include="mdichildcli.h" />
     <ClInclude Include="memorystream.h" />

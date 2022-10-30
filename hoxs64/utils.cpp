@@ -391,17 +391,208 @@ void G::DebugMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType
 	ErrorLogger::Log(hWnd, lpText, lpCaption, uType);
 }
 
-HRESULT G::InitFail(HWND hWnd, HRESULT hRet, LPCTSTR szError, ...)
+HRESULT G::InitFail(HWND hWnd, HRESULT hRet, const wchar_t* szError, ...)
 {
-	TCHAR            szBuff[302];
 	va_list         vl;
-
 	va_start(vl, szError);
-	_vsntprintf_s(szBuff, _countof(szBuff), _TRUNCATE, szError, vl);
-	szBuff[_countof(szBuff)-1]=0;
-	G::DebugMessageBox(hWnd, szBuff, APPNAME, MB_OK | MB_ICONEXCLAMATION);
+	std::wstring message = format_string(szError, vl);
 	va_end(vl);
+	G::DebugMessageBox(hWnd, message.c_str(), APPNAME, MB_OK | MB_ICONEXCLAMATION);
 	return hRet;
+}
+
+std::wstring G::format_string(const wchar_t* format, ...)
+{
+	va_list vl;
+	std::wstring result;
+	size_t cchbuffer = FORMAT_STRING_INITIAL_SIZE;
+	wchar_t* buffer = nullptr;
+	while (1)
+	{
+		buffer = new wchar_t[cchbuffer];
+		if (buffer == nullptr)
+		{
+			throw std::bad_alloc();
+		}
+
+		va_start(vl, format);
+		int copied = _vsnwprintf_s(buffer, cchbuffer, cchbuffer - 1, format, vl);
+		va_end(vl);
+		if (copied == -1)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			cchbuffer *= 2;
+			if (cchbuffer >= FORMAT_STRING_MAX_SIZE)
+			{
+				throw std::exception("format_string buffer required is too long.");
+			}
+		}
+		else if (copied < 0 || copied >= cchbuffer)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			throw std::exception("format_string error.");
+		}
+		else
+		{
+			buffer[copied] = 0;
+			break;
+		}
+	}
+
+	if (buffer != nullptr)
+	{
+		result.append(buffer);
+		delete[] buffer;
+		buffer = nullptr;
+	}
+
+	return result;
+}
+
+std::wstring G::format_string(const wchar_t* format, va_list vl)
+{
+	std::wstring result;
+	size_t cchbuffer = FORMAT_STRING_INITIAL_SIZE;
+	wchar_t* buffer = nullptr;
+	while (1)
+	{
+		buffer = new wchar_t[cchbuffer];
+		if (buffer == nullptr)
+		{
+			throw std::bad_alloc();
+		}
+
+		int copied = _vsnwprintf_s(buffer, cchbuffer, cchbuffer - 1, format, vl);
+		if (copied == -1)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			cchbuffer *= 2;
+			if (cchbuffer >= FORMAT_STRING_MAX_SIZE)
+			{
+				throw std::exception("format_string buffer required is too long.");
+			}
+		}
+		else if (copied < 0 || copied >= cchbuffer)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			throw std::exception("format_string error.");
+		}
+		else
+		{
+			buffer[copied] = 0;
+			break;
+		}
+	}
+
+	if (buffer != nullptr)
+	{
+		result.append(buffer);
+		delete[] buffer;
+		buffer = nullptr;
+	}
+
+	return result;
+}
+
+std::string G::format_string(const char* format, ...)
+{
+	va_list vl;
+	std::string result;
+	size_t cchbuffer = FORMAT_STRING_INITIAL_SIZE;
+	char* buffer = nullptr;
+	while (1)
+	{
+		buffer = new char[cchbuffer];
+		if (buffer == nullptr)
+		{
+			throw std::bad_alloc();
+		}
+
+		va_start(vl, format);
+		int copied = _vsnprintf_s(buffer, cchbuffer, cchbuffer - 1, format, vl);
+		va_end(vl);
+		if (copied == -1)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			cchbuffer *= 2;
+			if (cchbuffer >= FORMAT_STRING_MAX_SIZE)
+			{
+				throw std::exception("format_string buffer required is too long.");
+			}
+		}
+		else if (copied < 0 || copied >= cchbuffer)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			throw std::exception("format_string error.");
+		}
+		else
+		{
+			buffer[copied] = 0;
+			break;
+		}
+	}
+
+	if (buffer != nullptr)
+	{
+		result.append(buffer);
+		delete[] buffer;
+		buffer = nullptr;
+	}
+
+	return result;
+}
+
+std::string G::format_string(const char* format, va_list vl)
+{
+	std::string result;
+	size_t cchbuffer = FORMAT_STRING_INITIAL_SIZE;
+	char* buffer = nullptr;
+	while (1)
+	{
+		buffer = new char[cchbuffer];
+		if (buffer == nullptr)
+		{
+			throw std::bad_alloc();
+		}
+
+		int copied = _vsnprintf_s(buffer, cchbuffer, cchbuffer - 1, format, vl);
+		if (copied == -1)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			cchbuffer *= 2;
+			if (cchbuffer >= FORMAT_STRING_MAX_SIZE)
+			{
+				throw std::exception("format_string buffer required is too long.");
+			}
+		}
+		else if (copied < 0 || copied >= cchbuffer)
+		{
+			delete[] buffer;
+			buffer = nullptr;
+			throw std::exception("format_string error.");
+		}
+		else
+		{
+			buffer[copied] = 0;
+			break;
+		}
+	}
+
+	if (buffer != nullptr)
+	{
+		result.append(buffer);
+		delete[] buffer;
+		buffer = nullptr;
+	}
+
+	return result;
 }
 
 void G::InitOfn(OPENFILENAME& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFile[], int chInitialFile, LPTSTR szFilter, TCHAR szReturnFile[], int chReturnFile)
@@ -410,19 +601,19 @@ void G::InitOfn(OPENFILENAME& ofn, HWND hWnd, LPTSTR szTitle, TCHAR szInitialFil
 	ofn.lStructSize = sizeof(OPENFILENAME);
 
 	ofn.hwndOwner = hWnd;
-	if (szFilter!= nullptr)
+	if (szFilter != nullptr)
 	{
 		ofn.lpstrFilter = szFilter;
-		ofn.nFilterIndex =1;
+		ofn.nFilterIndex = 1;
 	}
 
-	if (szInitialFile!= nullptr)
+	if (szInitialFile != nullptr)
 	{
 		ofn.lpstrFile = szInitialFile;
 		ofn.nMaxFile = chInitialFile;
 	}
 
-	if (szReturnFile!= nullptr)
+	if (szReturnFile != nullptr)
 	{
 		if (chReturnFile > 0)
 		{
@@ -487,7 +678,7 @@ bool G::IsWinVerSupportInitializeCriticalSectionAndSpinCount()
 #endif
 }
 
-bool G::IsMultiCore()
+bool G::IsMultiCore() noexcept
 {
 	int c = 0;
 	DWORD_PTR dwProcessAffinityMask, dwSystemAffinityMask;
@@ -601,16 +792,17 @@ LRESULT lr;
 HRESULT G::GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID* pId)
 {
 	WCHAR szwGuid[50];
-	LONG   lRetCode;
 	ULONG bufferBytelen;
 	ULONG bytesCopied;
 	ULONG charsCopied;
+	LSTATUS ls;
+	HRESULT hr = E_FAIL;
 
 #ifdef UNICODE
 	bufferBytelen = (_countof(szwGuid) - 1) * sizeof(TCHAR);
 	bytesCopied = bufferBytelen;
-	lRetCode = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE)&szwGuid[0], &bytesCopied);
-	if (lRetCode == ERROR_SUCCESS)
+	ls = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE)&szwGuid[0], &bytesCopied);
+	if (ls == ERROR_SUCCESS)
 	{
 		charsCopied = bytesCopied / sizeof(WCHAR);
 		if (charsCopied == 0 || charsCopied >= _countof(szwGuid))
@@ -619,14 +811,19 @@ HRESULT G::GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID* pId)
 		}
 
 		szwGuid[charsCopied] = 0;
+		hr = S_OK;
+	}
+	else
+	{
+		return MAKE_HRESULT(1, 0, ls);
 	}
 
 #else
 	CHAR szGuid[50];
 	bufferBytelen = (_countof(szGuid) - 1) * sizeof(CHAR);
 	bytesCopied = bufferBytelen;
-	lRetCode = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE)&szGuid[0], &bytesCopied);
-	if (lRetCode == ERROR_SUCCESS)
+	ls = RegQueryValueEx(hKey, lpValueName, NULL, NULL, (PBYTE)&szGuid[0], &bytesCopied);
+	if (ls == ERROR_SUCCESS)
 	{
 		charsCopied = bytesCopied / sizeof(CHAR);
 		if (charsCopied == 0 || charsCopied >= _countof(szGuid))
@@ -635,12 +832,12 @@ HRESULT G::GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID* pId)
 		}
 
 		szGuid[charsCopied] = 0;
-		lRetCode = StringConverter::MultiByteToUc(CP_ACP, &szGuid[0], -1, &szwGuid[0], _countof(szwGuid));
+		hr = StringConverter::MultiByteToUc(CP_ACP, &szGuid[0], -1, &szwGuid[0], _countof(szwGuid));
 	}
 #endif
 
 
-	if (SUCCEEDED(lRetCode))
+	if (SUCCEEDED(hr))
 	{
 		if (CLSIDFromString(&szwGuid[0], pId) == NOERROR)
 		{
@@ -653,7 +850,7 @@ HRESULT G::GetClsidFromRegValue(HKEY hKey, LPCTSTR lpValueName, GUID* pId)
 	}
 	else
 	{
-		return lRetCode;
+		return hr;
 	}
 }
 
@@ -661,7 +858,8 @@ HRESULT G::SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID* pId)
 {
 	TCHAR szValue[50]{};
 	WCHAR szwValue[50]{};
-	LONG   lRetCode;
+	LSTATUS ls;
+	HRESULT hr = E_FAIL;
 	int i;
 
 	i = StringFromGUID2(*pId, &szwValue[0], _countof(szwValue));
@@ -670,17 +868,21 @@ HRESULT G::SaveClsidToRegValue(HKEY hKey, LPCTSTR lpValueName, const GUID* pId)
 		szwValue[_countof(szwValue) - 1] = 0;
 #ifdef UNICODE
 		lstrcpy(szValue, szwValue);
-		lRetCode = ERROR_SUCCESS;
+		hr = S_OK;
 #else
 		int bytesCopied = 0;
-		lRetCode = StringConverter::UcToMultiByte(CP_ACP, &szwValue[0], -1, szValue, _countof(szwValue), bytesCopied);
+		hr = StringConverter::UcToMultiByte(CP_ACP, &szwValue[0], -1, szValue, _countof(szwValue), bytesCopied);
 #endif
-		if (SUCCEEDED(lRetCode))
+		if (SUCCEEDED(hr))
 		{
-			lRetCode = RegSetValueEx(hKey, lpValueName, 0, REG_SZ, (LPBYTE)&szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
-			if (SUCCEEDED(lRetCode))
+			ls = RegSetValueEx(hKey, lpValueName, 0, REG_SZ, (LPBYTE)&szValue[0], (lstrlen(&szValue[0]) + 1) * sizeof(TCHAR));
+			if (ls == ERROR_SUCCESS)
 			{
 				return S_OK;
+			}
+			else
+			{
+				return MAKE_HRESULT(1, 0, ls);
 			}
 		}
 	}
@@ -1644,4 +1846,112 @@ void G::InitRandomSeed()
 bool G::IsLargeGameDevice(const DIDEVCAPS &didevcaps)
 {
 	return didevcaps.dwButtons > 32 || didevcaps.dwAxes > 8;
+}
+
+void G::LTrim(std::string& s) {
+	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+		return !std::isspace(ch);
+		}));
+}
+
+// trim from end (in place)
+void G::RTrim(std::string& s) {
+	s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+		return !std::isspace(ch);
+		}).base(), s.end());
+}
+
+// trim from both ends (in place)
+void G::Trim(std::string& s) {
+	LTrim(s);
+	RTrim(s);
+}
+
+void G::LTrim(std::wstring& s) {
+	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](wchar_t ch) {
+		return !std::isspace(ch);
+		}));
+}
+
+// trim from end (in place)
+void G::RTrim(std::wstring& s) {
+	s.erase(std::find_if(s.rbegin(), s.rend(), [](wchar_t ch) {
+		return !std::isspace(ch);
+		}).base(), s.end());
+}
+
+// trim from both ends (in place)
+void G::Trim(std::wstring& s) {
+	LTrim(s);
+	RTrim(s);
+}
+
+HRESULT G::LoadAppPath(std::wstring& s)
+{
+	std::vector<TCHAR> pathbuffer;
+	constexpr size_t MaxLongPathLengh = static_cast<size_t>(1024) * 64;
+	constexpr unsigned int MaxLongPathDoubling = 16;
+	unsigned int counter = 0;
+	pathbuffer.resize(MAX_PATH + 1);
+	DWORD dw = ERROR_INSUFFICIENT_BUFFER;
+	for (counter = 0; pathbuffer.size() <= MaxLongPathLengh || counter < MaxLongPathDoubling; counter++)
+	{
+		if (counter != 0)
+		{
+			pathbuffer.resize(pathbuffer.size() * 2);
+		}
+
+		dw = GetModuleFileName(NULL, pathbuffer.data(), (DWORD)pathbuffer.size());
+		if (GetLastError() != ERROR_INSUFFICIENT_BUFFER && dw < pathbuffer.size() && dw != 0)
+		{
+			dw = ERROR_SUCCESS;
+			break;
+		}
+		else
+		{
+			dw = ERROR_INSUFFICIENT_BUFFER;
+		}
+	}
+
+	if (dw != ERROR_SUCCESS)
+	{
+		return E_FAIL;
+	}
+
+	s.assign(pathbuffer.data());
+	return S_OK;
+}
+
+HRESULT G::LoadStringResource(HINSTANCE hInstance, UINT id, std::wstring& s)
+{
+	s.clear();
+	std::vector<TCHAR> pathbuffer;
+
+	// Load resource strings
+	constexpr size_t CharCountResourceBuffer = MAX_PATH + 1;// Must be 8 bytes or more for LoadString.
+
+	// Load app title name.
+	if (pathbuffer.size() < CharCountResourceBuffer)
+	{
+		pathbuffer.resize(CharCountResourceBuffer);
+	}
+
+	int lr = LoadString(hInstance, id, pathbuffer.data(), 0);
+	if (lr >= pathbuffer.size())
+	{
+		pathbuffer.resize((size_t)lr + 1);
+	}
+
+	lr = LoadString(hInstance, id, pathbuffer.data(), (DWORD)pathbuffer.size());
+	if (lr == 0 || lr >= pathbuffer.size())
+	{
+		return E_FAIL;
+	}
+	else
+	{
+		pathbuffer[lr] = 0;
+	}
+
+	s.assign(pathbuffer.data());
+	return S_OK;
 }

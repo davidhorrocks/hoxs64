@@ -64,7 +64,7 @@ CMDIDebuggerFrame::CMDIDebuggerFrame(IC64 *c64, IAppCommand *pAppCommand, CConfi
 	HRESULT hr = Init();
 	if (FAILED(hr))
 	{
-		throw new std::exception("CMDIDebuggerFrame::Init() Failed");
+		throw std::exception("CMDIDebuggerFrame::Init() Failed");
 	}
 }
 
@@ -328,7 +328,7 @@ void CMDIDebuggerFrame::OnDestroy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 	{
 		if (m_bIsCreated)
 		{
-			CConfig::SaveMDIWindowSetting(m_hWnd);
+			appStatus->SaveMDIWindowSetting(m_hWnd);
 		}
 	}
 

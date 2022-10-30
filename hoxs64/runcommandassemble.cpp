@@ -76,7 +76,7 @@ std::basic_string<TCHAR> s;
 		else
 		{
 			s.append(TEXT("A $"));
-			HexConv::long_to_hex(nextaddress, addressText, 4);
+			HexConv<TCHAR>::long_to_hex(nextaddress, addressText, 4);
 		}
 
 		s.append(addressText);

@@ -65,10 +65,10 @@ public:
 	CMDIDebuggerFrame& operator=(CMDIDebuggerFrame&&) = default;
 
 	static HRESULT RegisterClass(HINSTANCE hInstance);
-	virtual HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu);
-	virtual void WindowRelease() override;
-	virtual void GetMinWindowSize(int &w, int &h);
-	HWND Show(CVirWindow *pParentWindow);
+	HWND Create(HINSTANCE hInstance, HWND hWndParent, const TCHAR title[], int x,int y, int w, int h, HMENU hMenu) override;
+	void WindowRelease() override;
+	void GetMinWindowSize(int &w, int &h) override;
+	//HWND Show(CVirWindow *pParentWindow);
 	void ShowDebugCpuC64(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) noexcept;
 	void ShowDebugCpuDisk(DBGSYM::SetDisassemblyAddress::DisassemblyPCUpdateMode pcmode, bit16 address) noexcept;
 	bool IsWinDlgModelessBreakpointVicRaster();

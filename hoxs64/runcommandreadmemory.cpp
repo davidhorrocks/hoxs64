@@ -71,7 +71,7 @@ TCHAR byteText[4];
 		else
 		{
 			m_sLineBuffer.append(TEXT("a $"));
-			HexConv::long_to_hex(m_currentAddress, addressText, 4);
+			HexConv<TCHAR>::long_to_hex(m_currentAddress, addressText, 4);
 		}
 
 		m_sLineBuffer.append(addressText);
@@ -92,7 +92,7 @@ TCHAR byteText[4];
 			}
 			else
 			{
-				HexConv::long_to_hex(data, byteText, 2);
+				HexConv<TCHAR>::long_to_hex(data, byteText, 2);
 			}
 			
 			m_sLineBuffer.append(byteText);			

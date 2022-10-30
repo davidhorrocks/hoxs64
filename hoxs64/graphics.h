@@ -118,7 +118,9 @@ private:
 	int lastMouseY = 0;
 	CDPI dpi;
 	static const int KeepAliveTopPercentage = 10;
+	static const int MenuShowTopPercentage = 50;
 	int menukeepAliveHeight = 5;
+	int menuShowHeight = 5;
 	int mouseActiveDistance = 20;
 	FileSys::DirectoryViewer directoryViewer;
 };

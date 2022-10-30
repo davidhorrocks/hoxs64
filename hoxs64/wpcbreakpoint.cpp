@@ -487,7 +487,7 @@ TCHAR sIntBuffer[20];
 			switch (c64->GetMon()->Get_Radix())
 			{
 			case DBGSYM::MonitorOption::Hex:
-				HexConv::long_to_hex(bp.address, sAddressHexBuf, ADDRESS_DIGITS); 
+				HexConv<TCHAR>::long_to_hex(bp.address, sAddressHexBuf, ADDRESS_DIGITS); 
 				_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
 				_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
 				break;
@@ -496,7 +496,7 @@ TCHAR sIntBuffer[20];
 				_tcsncpy_s(pText, cch, sIntBuffer, _TRUNCATE);
 				break;
 			default:
-				HexConv::long_to_hex(bp.address, sAddressHexBuf, ADDRESS_DIGITS); 
+				HexConv<TCHAR>::long_to_hex(bp.address, sAddressHexBuf, ADDRESS_DIGITS); 
 				_tcsncpy_s(pText, cch, TEXT("$"), _TRUNCATE);
 				_tcsncat_s(pText, cch, sAddressHexBuf, _TRUNCATE);
 				break;

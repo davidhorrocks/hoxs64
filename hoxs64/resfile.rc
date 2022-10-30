@@ -165,11 +165,18 @@ BEGIN
         MENUITEM "SID Stereo\tAlt S",           IDM_SETTINGS_SIDSTEREO, CHECKED
         MENUITEM "VIC II Palette",              IDM_SETTING_COLOUR
         MENUITEM SEPARATOR
-        MENUITEM "&Save Settings",              IDM_SETTING_SAVE
+        POPUP "&Save Settings"
+        BEGIN
+            MENUITEM "&Save",                       IDM_SAVESETTINGS_SAVE
+            MENUITEM "Save To &File",               IDM_SAVESETTINGS_SAVETOFILE
+            MENUITEM "Save To &Registry",           IDM_SAVESETTINGS_SAVETOREGISTRY
+        END
         POPUP "&Load Settings"
         BEGIN
-            MENUITEM "Restore &User Settings",      IDM_SETTING_LOADSETTINGS_RESTOREUSER
-            MENUITEM "Restore &Default Settings",   IDM_SETTING_RESTOREDEFAULT
+            MENUITEM "Restore",                     IDM_LOADSETTINGS_RESTOREUSER
+            MENUITEM "Reset to Default",            IDM_LOADSETTINGS_RESTOREDEFAULT
+            MENUITEM "Load From &File",             IDM_LOADSETTINGS_LOADFROMFILE
+            MENUITEM "Load From &Registry",         IDM_LOADSETTINGS_LOADFROMREGISTRY
         END
     END
     POPUP "&Help"
