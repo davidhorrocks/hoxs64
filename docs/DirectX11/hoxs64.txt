@@ -1,4 +1,4 @@
-Hoxs64 v1.1.1.2 (c) 2022 David Horrocks
+Hoxs64 v1.1.2.0 (c) 2022 David Horrocks
 ========================================
 Hoxs64 is an attempt to accurately emulate the Commodore 64 computer.
 
@@ -84,7 +84,7 @@ monitor refresh rate that is substantially higher than 50 Hz. If you have a
 high refresh rate monitor then use the 100Hz frame rate doubler option where
 possible to prevent IPS LCD pixel burn.
 
-The CPU "friendly" causes the application to over sleep and miss its frame 
+The CPU "friendly" mode causes the application to over sleep and miss its frame 
 time slot. The application will try to catch up with fast frames that may 
 exceed the user selected G-Sync frame cap and cause either tearing or 
 stutter.
@@ -212,4 +212,17 @@ Main CPU HLT exits with exit code 255.
 
 -runfast
 Run at the fastest possible speed. Disables sound.
+
+
+-configfile <filename>
+Loads settings from an INI config file specified by <filename> which can either be a full path or
+a path relative to the application folder. Double dot ".." and single dot "." path elements are not 
+supported. If the -configfile option is missing it will look for a file hoxs64.ini within the 
+application folder. If the hoxs64.ini file is missing it will load settings from the registry. 
+
+
+Examples
+hoxs64 -configfile D:\myconfigs\someconfig.ini
+hoxs64 -configfile appconfig.ini
+
 

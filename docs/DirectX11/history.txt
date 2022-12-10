@@ -1,3 +1,16 @@
+10 December 2022 v1.1.2.0
+=========================
+1) New menu options to save and load settings from an INI config file.
+
+2) New command line option -configfile <filename>
+Loads settings from an INI config file specified by <filename> which can either be a full path or
+a path relative to the application folder. Double dot ".." and single dot "." path elements are not 
+supported. If the -configfile option is missing it will look for a file hoxs64.ini within the 
+application folder. If the hoxs64.ini file is missing it will load settings from the registry. 
+
+
+
+
 04 September 2022 v1.1.1.2
 ==========================
 1) Fix keyboard settings dialog that was broken in v1.1.1.0.
