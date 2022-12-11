@@ -531,7 +531,7 @@ HRESULT CConfig::LoadCurrentSetting()
 
 	dwValue = 0;
 	lRetCode = configSource->ReadDWord(Section_General, TEXT("PrefsSaved"), dwValue);
-	if (lRetCode == ConfigFileIni::ErrorNotFound)
+	if (FAILED(lRetCode) || dwValue == 0)
 	{
 		return S_OK;
 	}
