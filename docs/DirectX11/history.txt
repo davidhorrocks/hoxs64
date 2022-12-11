@@ -1,3 +1,9 @@
+11 December 2022 v1.1.2.1
+=========================
+1) Regression fix to load default settings when a valid configuration is not found as would be
+the case when the application is run for the first time.
+
+
 10 December 2022 v1.1.2.0
 =========================
 1) New menu options to save and load settings from an INI config file.
