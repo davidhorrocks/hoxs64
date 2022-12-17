@@ -400,7 +400,7 @@ std::wstring StringConverter::format_string(const wchar_t* format, ...)
 				throw std::exception("format_string buffer required is too long.");
 			}
 		}
-		else if (copied < 0 || copied >= cchbuffer)
+		else if (copied < 0 || (size_t)copied >= cchbuffer)
 		{
 			delete[] buffer;
 			buffer = nullptr;
@@ -450,7 +450,7 @@ std::string StringConverter::format_string(const char* format, ...)
 				throw std::exception("format_string buffer required is too long.");
 			}
 		}
-		else if (copied < 0 || copied >= cchbuffer)
+		else if (copied < 0 || (size_t)copied >= cchbuffer)
 		{
 			delete[] buffer;
 			buffer = nullptr;

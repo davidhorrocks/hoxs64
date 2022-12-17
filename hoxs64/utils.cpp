@@ -428,7 +428,7 @@ std::wstring G::format_string(const wchar_t* format, ...)
 				throw std::exception("format_string buffer required is too long.");
 			}
 		}
-		else if (copied < 0 || copied >= cchbuffer)
+		else if (copied < 0 || (size_t)copied >= cchbuffer)
 		{
 			delete[] buffer;
 			buffer = nullptr;
@@ -475,7 +475,7 @@ std::wstring G::format_string(const wchar_t* format, va_list vl)
 				throw std::exception("format_string buffer required is too long.");
 			}
 		}
-		else if (copied < 0 || copied >= cchbuffer)
+		else if (copied < 0 || (size_t)copied >= cchbuffer)
 		{
 			delete[] buffer;
 			buffer = nullptr;
@@ -525,7 +525,7 @@ std::string G::format_string(const char* format, ...)
 				throw std::exception("format_string buffer required is too long.");
 			}
 		}
-		else if (copied < 0 || copied >= cchbuffer)
+		else if (copied < 0 || (size_t)copied >= cchbuffer)
 		{
 			delete[] buffer;
 			buffer = nullptr;
@@ -572,7 +572,7 @@ std::string G::format_string(const char* format, va_list vl)
 				throw std::exception("format_string buffer required is too long.");
 			}
 		}
-		else if (copied < 0 || copied >= cchbuffer)
+		else if (copied < 0 || (size_t)copied >= cchbuffer)
 		{
 			delete[] buffer;
 			buffer = nullptr;
@@ -1937,13 +1937,13 @@ HRESULT G::LoadStringResource(HINSTANCE hInstance, UINT id, std::wstring& s)
 	}
 
 	int lr = LoadString(hInstance, id, pathbuffer.data(), 0);
-	if (lr >= pathbuffer.size())
+	if ((size_t)(unsigned int)lr >= pathbuffer.size())
 	{
 		pathbuffer.resize((size_t)lr + 1);
 	}
 
 	lr = LoadString(hInstance, id, pathbuffer.data(), (DWORD)pathbuffer.size());
-	if (lr == 0 || lr >= pathbuffer.size())
+	if (lr == 0 || (size_t)(unsigned int)lr >= pathbuffer.size())
 	{
 		return E_FAIL;
 	}

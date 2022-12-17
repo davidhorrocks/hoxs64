@@ -40,7 +40,7 @@ private:
 	static bool m_bHasCachedCommonControlsVersion;
 	static DWORD m_dwCachedCommonControlsVersion;
 	static const size_t FORMAT_STRING_INITIAL_SIZE = 512;
-	static const size_t FORMAT_STRING_MAX_SIZE = 0x7fffffffUL;
+	static const size_t FORMAT_STRING_MAX_SIZE = 0x3fffffffUL;
 public:
 	static BOOL WaitMessageTimeout(DWORD dwTimeout) noexcept;
 	static HRESULT GetVersion_Res(LPCTSTR filename, VS_FIXEDFILEINFO* p_vinfo);

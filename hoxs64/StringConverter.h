@@ -7,7 +7,7 @@ class StringConverter
 {
 public:
 	static constexpr size_t FORMAT_STRING_INITIAL_SIZE = 512;
-	static constexpr size_t FORMAT_STRING_MAX_SIZE = 0x7fffffffUL;
+	static constexpr size_t FORMAT_STRING_MAX_SIZE = 0x3fffffffUL;
 	static constexpr unsigned int MaxLength = 0x7FFFFFFF;
 	static HRESULT MultiByteToUc(UINT codepage, LPCSTR pszMb, int cbMbCharsToConvert, LPWSTR pwszUc, int cchOutputBuffer) noexcept;
 	static HRESULT MultiByteToUc(UINT codepage, LPCSTR pszMb, int cbMbCharsToConvert, LPWSTR pwszUc, int cchOutputBuffer, int& cchOut) noexcept;
