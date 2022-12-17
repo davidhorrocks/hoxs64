@@ -1,3 +1,8 @@
+17 December 2022 v1.1.2.2
+=========================
+1) Regression fix to save joystick settings the to registry; put back missing key values "Joy1GUID" and "Joy2GUID".
+
+
 11 December 2022 v1.1.2.1
 =========================
 1) Regression fix to load default settings when a valid configuration is not found as would be
@@ -14,8 +19,11 @@ a path relative to the application folder. Double dot ".." and single dot "." pa
 supported. If the -configfile option is missing it will look for a file hoxs64.ini within the 
 application folder. If the hoxs64.ini file is missing it will load settings from the registry. 
 
+3) Keyboard key map assignments must now be explicitly specified else the C64 key will be unbound. 
+Previous versions would assume default key assignments. Please check your key assignments are not 
+blanked after running this version. Please remap your keys as required.
 
-
+4) The ImGui menu is now always hidden if the mouse is in the lower half of the screen.
 
 04 September 2022 v1.1.1.2
 ==========================
