@@ -131,7 +131,7 @@ HRESULT ConfigRegistry::WriteGUID(LPCTSTR sectionName, LPCTSTR valueName, const 
     HKEY regkey;
     if (GetSectionKey(sectionName, true, regkey))
     {
-        if (SUCCEEDED(G::SaveClsidToRegValue(regkey, sectionName, &guid)))
+        if (SUCCEEDED(G::SaveClsidToRegValue(regkey, valueName, &guid)))
         {
             return S_OK;
         }
