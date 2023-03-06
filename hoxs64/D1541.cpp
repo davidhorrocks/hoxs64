@@ -119,10 +119,11 @@ bool CPUDisk::ReadByte(bit16 address, bit8& data)
 		}
 		else
 		{
-			data = address >> 8;
+			data = m_busbyte;
 		}
 	}
 
+	m_busbyte = data;
 	return true;
 }
 
@@ -165,13 +166,15 @@ void CPUDisk::WriteByte(bit16 address, bit8 data)
 		}
 		else if (address >= 0x1c00)
 		{
-			return via2->WriteRegister(address, CurrentClock, data);
+			via2->WriteRegister(address, CurrentClock, data);
 		}
 		else if (address >= 0x1800)
 		{
-			return via1->WriteRegister(address, CurrentClock, data);
+			via1->WriteRegister(address, CurrentClock, data);
 		}
 	}
+
+	m_busbyte = data;
 }
 
 void CPUDisk::MonWriteByte(bit16 address, bit8 data, int memorymap)

@@ -179,8 +179,8 @@ struct CPUState
 	bit8 Flags;
 	bit8 PortDdr;
 	bit8 PortDataStored;
-	int processor_interrupt;
-	int cpu_sequence;
+	bit8 processor_interrupt;
+	bit16 cpu_sequence;
 	bit8 RDY;
 	ICLK clock;
 	bit8 opcode;

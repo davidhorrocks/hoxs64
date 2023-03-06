@@ -120,9 +120,14 @@ struct SsCpuCommon
 	bit32 FirstRdyLowClock;
 	bit32 LastRdyHighClock;
 	bit32 m_CurrentOpcodeClock;
-	bit32 m_cpu_sequence;
-	bit32 m_cpu_final_sequence;
-	bit32 m_op_code;
+	bit16 m_cpu_sequence;
+	bit16 m_spare16_1;
+	bit16 m_cpu_final_sequence;
+	bit8 m_busbyte;
+	bit8 m_spare8_1;
+	bit8 m_op_code;
+	bit8 m_spare8_2;
+	bit16 m_spare16_2;
 	bit16 m_CurrentOpcodeAddress;
 	bit16 addr;
 	bit16 ptr;
@@ -825,7 +830,7 @@ struct SsTapeData
 class SaveState
 {
 public:
-    static const int VERSION = 11;
+    static const int VERSION = 12;
 	static const char SIGNATURE[];
 	static const char NAME[];
 	static const int SIZE64K = 0x10000;

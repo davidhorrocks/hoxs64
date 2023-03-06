@@ -577,18 +577,18 @@ public:
 	bit8 mY = 0;
 	bit8 mSP = 0;
 
-	unsigned int fNEGATIVE = 0;
-	unsigned int fOVERFLOW = 0;
-	unsigned int fBREAK = 0;
-	unsigned int fDECIMAL = 0;
-	unsigned int fINTERRUPT = 0;
-	unsigned int fZERO = 0;
-	unsigned int fCARRY = 0;
+	bit8 fNEGATIVE = 0;
+	bit8 fOVERFLOW = 0;
+	bit8 fBREAK = 0;
+	bit8 fDECIMAL = 0;
+	bit8 fINTERRUPT = 0;
+	bit8 fZERO = 0;
+	bit8 fCARRY = 0;
 
-	unsigned int m_cpu_sequence = 0;
-	unsigned int m_cpu_final_sequence = 0;
-	bit8         m_op_code = 0;
-	bit8         m_not_used = 0;
+	bit16  m_cpu_sequence = 0;
+	bit16  m_cpu_final_sequence = 0;
+	bit8   m_op_code = 0;
+	bit8   m_busbyte = 0xff;
 
 	bit8 PROCESSOR_INTERRUPT = 0;
 	bit8 IRQ = 0;

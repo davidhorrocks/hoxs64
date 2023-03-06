@@ -217,6 +217,7 @@ bool CPU6510::ReadByte(bit16 address, bit8& data)
 		}		
 	}
 
+	m_busbyte = data;
 	return this->RDY != 0;
 }
 
@@ -306,6 +307,7 @@ bit8 CPU6510::ReadDmaByte(bit16 address)
 		}
 	}
 
+	m_busbyte = data;
 	return data;
 }
 
@@ -405,6 +407,7 @@ bit8 *t;
 		}
 	}
 
+	m_busbyte = data;
 	m_bIsVicNotifyCpuWriteCycle = false;
 }
 
@@ -484,6 +487,7 @@ void CPU6510::WriteDmaByte(bit16 address, bit8 data)
 		}
 	}
 
+	m_busbyte = data;
 	m_bIsVicNotifyCpuWriteCycle = false;
 }
 
@@ -547,6 +551,10 @@ bit8 *t;
 			{
 				return vic->GetDExxByte(CurrentClock);
 			}
+
+			break;
+		default:
+			break;
 		}
 
 		if (pCart->IsCartAttached())
@@ -562,7 +570,7 @@ bit8 *t;
 			case MT_ROMH_ULTIMAX:
 				return pCart->MonReadUltimaxROMH(address);
 			case MT_EXRAM:
-				return 0;
+				return vic->GetDExxByte(CurrentClock);;
 			default:
 				return 0;
 			}

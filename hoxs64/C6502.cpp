@@ -830,10 +830,10 @@ unsigned int t;
 
 	SyncVFlag();
 	if (fDECIMAL==0){
-		t = a + s + fCARRY;
+		t = a + s + (unsigned int)fCARRY;
 		fOVERFLOW=(~(a^s) & (a^t) & 0x80) >> 7;
 		a = t & 0xFF;
-		fCARRY=t>>8;
+		fCARRY=(t>>8)!=0;
 		fZERO=(a==0);
 		fNEGATIVE=(a & 0x80) >> 7;
 	}
@@ -932,6 +932,10 @@ void CPU6502::InitReset(ICLK sysclock, bool poweronreset)
 	m_CurrentOpcodeAddress = mPC;
 	m_CurrentOpcodeClock = sysclock;
 	jumpAddress = 0;
+	if (poweronreset)
+	{
+		m_busbyte = 0xFF;
+	}
 }
 
 void CPU6502::Reset(ICLK sysclock, bool poweronreset)
@@ -1061,6 +1065,8 @@ bool CPU6502::IsInterruptInstruction()
 	case C_LOAD_PC:
 	case C_LOAD_PC_2:
 		return true;
+	default:
+		break;
 	}
 	return false;
 }
@@ -3771,6 +3777,7 @@ void CPU6502::GetState(SsCpuCommon &state)
 	state.m_CurrentOpcodeClock = m_CurrentOpcodeClock;
 	state.m_cpu_sequence = m_cpu_sequence;
 	state.m_cpu_final_sequence = m_cpu_final_sequence;
+	state.m_busbyte = m_busbyte;
 	state.m_op_code = m_op_code;
 	state.m_CurrentOpcodeAddress = m_CurrentOpcodeAddress.word;
 	state.addr = addr.word;
@@ -3783,6 +3790,10 @@ void CPU6502::GetState(SsCpuCommon &state)
 	state.IRQ = IRQ;
 	state.NMI = NMI;
 	state.NMI_TRIGGER = NMI_TRIGGER;
+	state.m_spare16_1 = 0;
+	state.m_spare16_2 = 0;
+	state.m_spare8_1 = 0;
+	state.m_spare8_2 = 0;
 }
 
 void CPU6502::SetState(const SsCpuCommon &state)
@@ -3811,7 +3822,8 @@ void CPU6502::SetState(const SsCpuCommon &state)
 	m_CurrentOpcodeClock = state.m_CurrentOpcodeClock;
 	m_cpu_sequence = state.m_cpu_sequence;
 	m_cpu_final_sequence = state.m_cpu_final_sequence;
-	m_op_code = state.m_op_code & 0xff;
+	m_busbyte = state.m_busbyte;
+	m_op_code = state.m_op_code;
 	m_CurrentOpcodeAddress.word = state.m_CurrentOpcodeAddress;
 	addr.word = state.addr;
 	ptr.word = state.ptr;
