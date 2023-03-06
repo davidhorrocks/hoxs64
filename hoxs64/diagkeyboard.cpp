@@ -176,8 +176,11 @@ LPNMHDR lpnmhdr;
 				UpdatePage(m_current_page_index, m_hwndDisplay);
 				UpdateWindow(hwndDlg);
 				return TRUE;
+			default:
+				break;
 			}
 		} 
+
 		break; 
 	case WM_COMMAND: 
 		switch (LOWORD(wParam))
@@ -189,7 +192,13 @@ LPNMHDR lpnmhdr;
 		case IDCANCEL:
 			EndDialog(hwndDlg, wParam);
 			return TRUE;
+		default:
+			break;
 		}
+
+		break;
+	default:
+		break;
 	}
 
 	return FALSE;
@@ -365,6 +374,12 @@ TCHAR szBuffer[30];
 
 	GetKeyName(keymap[C64Keys::C64K_RETURN], szBuffer, _countof(szBuffer));
 	SetDlgItemText(hwndDlg, IDC_TXT_RETURN, szBuffer);
+
+	GetKeyName(keymap[C64Keys::C64K_COMMA], szBuffer, _countof(szBuffer));
+	SetDlgItemText(hwndDlg, IDC_TXT_COMMA, szBuffer);
+
+	GetKeyName(keymap[C64Keys::C64K_DOT], szBuffer, _countof(szBuffer));
+	SetDlgItemText(hwndDlg, IDC_TXT_DOT, szBuffer);
 }
 
 
@@ -374,22 +389,8 @@ TCHAR szBuffer[30];
 void CDiagKeyboard::UpdatePage2(HWND hwndDlg)
 {
 TCHAR szBuffer[30];
-BOOL br = FALSE;
-int t;
 
-	GetKeyName(keymap[C64Keys::C64K_A], szBuffer, _countof(szBuffer));
-	br = SetDlgItemText(hwndDlg, IDC_TXT_A, szBuffer);
-	if (!br)
-	{
-		t = 0;//OK
-	}
-	else
-	{
-		t = 1;//FAIL
-	}
-	InvalidateRect(keycontrol[C64Keys::C64K_A].hwnd, NULL, TRUE);
-	UpdateWindow(hwndDlg);
-	//pdatekeypage(A);
+	_updatekeypage(A);
 	_updatekeypage(B);
 	_updatekeypage(C);
 	_updatekeypage(D);
@@ -415,6 +416,7 @@ int t;
 	_updatekeypage(X);
 	_updatekeypage(Y);
 	_updatekeypage(Z);
+	UpdateWindow(hwndDlg);
 }
 
 void CDiagKeyboard::UpdatePage3(HWND hwndDlg)
@@ -840,6 +842,8 @@ HWND hWnd;
 	_initcapturectrls(RESTORE);
 	_initcapturectrls(SPACE);
 	_initcapturectrls(RETURN);
+	_initcapturectrls(COMMA);
+	_initcapturectrls(DOT);
 	return S_OK;
 }
 
@@ -1183,8 +1187,10 @@ HRESULT  hr;
 				hr = S_OK;
 				return hr;
 			}
+
+			break;
 		default:
-			continue;
+			break;
 		}
 	}
 
