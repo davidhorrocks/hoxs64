@@ -1,3 +1,10 @@
+07 March 2023 v1.1.2.3
+======================
+1) Added missing keyboard assignment dialog key boxes for COMMA and DOT.
+
+2) Improve unconnected IO emulation in the disk drive memory map.
+
+
 17 December 2022 v1.1.2.2
 =========================
 1) Regression fix to save joystick settings the to registry; put back missing key values "Joy1GUID" and "Joy2GUID".
