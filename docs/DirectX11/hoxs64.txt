@@ -37,37 +37,36 @@ Host PC Requirements
 ====================
 Windows 10 or Windows 7
 DirectX 11.1
-Microsoft Visual C++ 2019 runtime installation.
+Microsoft Visual C++ 2022 runtime installation.
 Intel or AMD 3 GHz (4.0 to 5.0 GHz recommended for some features.)
 4 GB RAM.
 DirectX 11 graphics card with pixel shader 4.0.
 
 
 [For 64 bit Hoxs64]
-Microsoft Visual C++ 2019 runtime 64 bit.
-
-http://www.hoxs64.net/files/vcredist_x64.exe
-Name: vcredist_x64.exe
-SIZE: (14,974,024 bytes)
-MD5: f0248d477e74687c5619ae16498b13d4
-SHA1: 9ed4b091148c9b53f66b3f2c69be7e60e74c486a
-CRC32: 37dd29a9
+Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.34.31938
+Name: VC_redist.x64.exe
+Size: (25,490,328 bytes)
+MD5: 119dde89a20674349a51893114eae5ed
+SHA1: 4de9f6681f0f213b132def3af88a3c68483f5f32
+SHA256: 26c2c72fba6438f5e29af8ebc4826a1e424581b3c446f8c735361f1db7beff72
+CRC32: 6c5a78c2
 
 
 [For 32 bit Hoxs64]
-Microsoft Visual C++ 2019 runtime 32 bit.
-http://www.hoxs64.net/files/vcredist_x86.exe
-Name: vcredist_x86.exe
-Size: (14,412,304 bytes)
-MD5: de34b1c517e0463602624bbc8294c08d
-SHA1: 5ce7923ffea712468c05e7ac376dd9c29ea9f6be
-CRC32: 5d9ab2f2
+Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.34.31938
+Name: VC_redist.x86.exe
+Size: (13,838,816 bytes)
+MD5: ca8c521c30f57c0c199d526b9a23fc4a
+SHA1: 663399541a7d3bb1b5ea0e57a00c024e50d8506c
+SHA256: 8ae59d82845159db3a70763f5cb1571e45ebf6a1adfecc47574ba17b019483a0
+CRC32: 1c9e87d0
 
 
 Installation
 ============
-Install Microsoft Visual C++ 2019 runtime. Both 64 bit and 32 bit version of 
-Microsoft Visual C++ 2019 may be installed on 64 bit Windows.
+Install Microsoft Visual C++ 2022 runtime. Both 64 bit and 32 bit version of 
+Microsoft Visual C++ 2022 may be installed on 64 bit Windows.
 Copy all files in the Hoxs64 zip folder to the same directory.
 
 

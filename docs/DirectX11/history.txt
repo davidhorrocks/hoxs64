@@ -32,6 +32,7 @@ blanked after running this version. Please remap your keys as required.
 
 4) The ImGui menu is now always hidden if the mouse is in the lower half of the screen.
 
+
 04 September 2022 v1.1.1.2
 ==========================
 1) Fix keyboard settings dialog that was broken in v1.1.1.0.
