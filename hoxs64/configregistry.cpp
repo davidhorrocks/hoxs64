@@ -55,7 +55,7 @@ HRESULT ConfigRegistry::ReadString(LPCTSTR sectionName, LPCTSTR valueName, LPTST
         LSTATUS ls = RegGetValue(regkey, nullptr, valueName, RRF_RT_REG_SZ | RRF_ZEROONFAILURE, nullptr, (LPBYTE)buffer, &cbBuffer);
         if (ls == ERROR_SUCCESS)
         {
-            cchBuffer = (cbBuffer + sizeof(TCHAR) - 1) / sizeof(TCHAR);
+            cchBuffer = (cbBuffer) / sizeof(TCHAR);
             return S_OK;
         }
         else

@@ -109,7 +109,7 @@ public:
 	ICLK GetCurrentClock() override;
 	void SetCurrentClock(ICLK sysclock) override;
 
-	HRESULT InitCart(unsigned int amountOfExtraRAM, bit8* pCartData, CrtBankList* plstBank, bit8* pZeroBankData) override;
+	HRESULT InitCart(CartData& cartData) override;
 
 	unsigned int GetStateBytes(int version, void* pstate) override;
 	HRESULT SetStateBytes(int version, void* pstate, unsigned int size) override;

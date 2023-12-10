@@ -164,4 +164,6 @@ private:
 	int lastMouseX = 0;
 	int lastMouseY = 0;
 	bool isMouseOverClientArea = false;	
+	random_device rd;
+	mt19937 randengine;
 };

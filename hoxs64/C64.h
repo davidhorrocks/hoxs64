@@ -48,8 +48,8 @@ class SIDLoader;
 class C64 : public IC64, private ITapeEvent, public IAutoLoad, public ErrorMsg
 {
 public:	
-	C64();
-	~C64();
+	C64() noexcept;
+	~C64() noexcept;
 	C64(const C64&) = delete;
 	C64& operator=(const C64&) = delete;
 	C64(C64&&) = delete;
@@ -89,15 +89,14 @@ public:
 	void EnterDebugRun(bool bWithSound);
 	void FinishDebugRun();
 	void SetBasicProgramEndAddress(bit16 last_byte);
-	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool bReu);
+	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool keepCurrentCart, bool bReu);
 	static HRESULT CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength);
 	HRESULT LoadCrtFile(const TCHAR *filename);
 	HRESULT LoadReu1750() override;
 	bool IsReuAttached() override;
-	HRESULT LoadImageFile(const TCHAR *filename, bit16* pStartAddress, bit16* pSize);
-	HRESULT LoadT64ImageFile(const TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize);
+	HRESULT LoadImageFile(const TCHAR* filename, bool injectC64Memory, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize);
+	HRESULT LoadT64ImageFile(const std::wstring filename, int t64Index, bool injectC64Memory, bool prependStartAddressToBuffer, std::wstring& c64filename, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize);
 	HRESULT LoadTAPFile(const TCHAR *filename);
-	HRESULT InsertDiskImageFile(const TCHAR *filename, bool alignD64Tracks, bool immediately);
 	HRESULT LoadD64FromFile(const TCHAR *filename, bool alignD64Tracks, bool immediately);
 	HRESULT LoadG64FromFile(const TCHAR *filename, bool immediately);
 	HRESULT LoadP64FromFile(const TCHAR *filename, bool immediately);
@@ -131,7 +130,11 @@ public:
 	void TapePressStop() override;
 	void TapePressRewind() override;
 	void TapePressEject() override;
-	HRESULT InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks) override;
+	HRESULT InsertDiskImageFile(const std::wstring filename, bool alignD64Tracks, bool immediately) override;
+	HRESULT InsertNewDiskImage(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately) override;
+	HRESULT InsertNewDiskImageWithPrgFile(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, const std::wstring prgFileNameFullPath) override;
+	HRESULT InsertNewDiskImageWithPrgBinary(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, bit8* pPrgData, bit32 cbPrgDataLength) override;
+	HRESULT InsertNewDiskImageWithT64File(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, const std::wstring t64FileNameFullPath, int t64directoryIndex) override;
 	void RemoveDisk() override;
 	void Set_DiskProtect(bool bOn) override;
 	bool Get_DiskProtect() override;
@@ -201,8 +204,9 @@ protected:
 		enum AutoLoadType type  = AutoLoadType::AUTOLOAD_NONE;
 		enum AutoLoadSequence sequence = AutoLoadSequence::AUTOSEQ_RESET;
 		bit16 startaddress = 0;
-		bit16 imageSize = 0;
-		std::wstring wsfilename;
+		bit16 injectedC64Size16 = 0;
+		bit32 imageSize32 = 0;
+		std::wstring wsfilenameFullPath;
 		bit8 c64filename[C64DISKFILENAMELENGTH] = {};
 		int directoryIndex = 0;
 		bool bIndexOnlyPrgFiles = false;
@@ -252,9 +256,10 @@ protected:
 				type = AUTOLOAD_NONE;
 				sequence = AUTOSEQ_RESET;
 				startaddress = 0;
-				imageSize = 0;
+				injectedC64Size16 = 0;
+				imageSize32 = 0;
 				memset(c64filename, 0xA0, sizeof(c64filename));
-				wsfilename.clear();
+				wsfilenameFullPath.clear();
 				directoryIndex = 0;
 				bIndexOnlyPrgFiles = false;
 				bQuickLoad = false;

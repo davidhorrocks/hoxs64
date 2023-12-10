@@ -59,7 +59,7 @@ void CartReu1750::Reset(ICLK sysclock, bool poweronreset)
 		unsigned int* p = (unsigned int*)m_pCartData;
 		for (i = 0; i < m_amountOfExtraRAM / sizeof(bit32); i++)
 		{
-			if (((i & 0x40) == 0) ^ ((i & 0x8000) == 0))
+			if ((((i & 0x40) == 0) ^ ((i & 0x8000) == 0)) != 0)
 			{
 				p[i] = 0x00FFFF00;
 			}

@@ -42,6 +42,8 @@ private:
 	static const size_t FORMAT_STRING_INITIAL_SIZE = 512;
 	static const size_t FORMAT_STRING_MAX_SIZE = 0x3fffffffUL;
 public:
+	static const size_t MaxApplicationPathLength = 0x7fff;
+
 	static BOOL WaitMessageTimeout(DWORD dwTimeout) noexcept;
 	static HRESULT GetVersion_Res(LPCTSTR filename, VS_FIXEDFILEINFO* p_vinfo);
 	static DLGTEMPLATE* WINAPI DoLockDlgRes(HINSTANCE hinst, LPCTSTR lpszResName);
@@ -93,6 +95,7 @@ public:
 	static int GetMonitorFontPixelsY();
 	static bool GetCurrentFontLineBox(HDC hdc, LPSIZE size);
 	static HFONT CreateMonitorFont();
+	static bool IsStringBlank(const std::wstring s) noexcept;
 	static bool IsStringBlank(LPCTSTR ps) noexcept;
 	static bool IsWhiteSpace(TCHAR ch) noexcept;
 	static __int64 FileSeek(HANDLE hfile, __int64 distance, DWORD moveMethod);

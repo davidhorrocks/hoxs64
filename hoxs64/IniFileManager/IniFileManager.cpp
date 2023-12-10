@@ -103,7 +103,7 @@ bool IniFileManager::parse(const std::wstring& filename)
             if (!currentSection.name.empty()) {
 
                 //If so, the previous one is over, and it can store it in the list:
-                sections.push_back(std::move(currentSection));
+                sections.push_back(currentSection);
 
                 //Clears data for a reuse of the variable:
                 currentSection.name.clear();
@@ -207,7 +207,7 @@ bool IniFileManager::parse(const std::wstring& filename)
                     break;
                 }
 
-                currentSection.settings.push_back(std::move(currentSetting));
+                currentSection.settings.push_back(currentSetting);
             }
             else
             {
@@ -246,7 +246,7 @@ bool IniFileManager::parse(const std::wstring& filename)
     //When no more lines are left, it stores the last section being handled into the list:
     if (!currentSection.name.empty()) {
 
-        sections.push_back(std::move(currentSection));
+        sections.push_back(currentSection);
     }
 
     if (token.IsError() || iserror)
@@ -1446,7 +1446,7 @@ void IniFileManager::clearSection(const std::wstring& stringWhichSection) {
     }
 }
 
-bool IniFileManager::testPath(std::wstring& filename) {
+bool IniFileManager::testPath(const std::wstring& filename) {
 
     //If the user doesn't provide a filename:
     if ((filename.find(L'/') == std::wstring::npos) && (filename.find(L"\\") == std::wstring::npos)) {

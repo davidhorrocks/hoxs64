@@ -38,8 +38,18 @@ const bit8 C64File::FTN_USR[3] = {'U', 'S', 'R'};
 const bit8 C64File::FTN_REL[3] = {'R', 'E', 'L'};
 const bit8 C64File::FTN_CLR[3] = {0xa0, 0xa0, 0xa0};
 
-C64File::C64File()
+C64File::~C64File()
 {
+	CleanUp();
+}
+
+HRESULT C64File::Init()
+{
+	if (bInitDone)
+	{
+		return S_OK;
+	}
+
 	_FileType = ef_UNKNOWN;
 	ClearError();
 	HRESULT hr;
@@ -47,25 +57,27 @@ C64File::C64File()
 	hr = disk.Init();
 	if (FAILED(hr))
 	{
-		throw std::exception("C64File disk.init() failed.");
+		SetError(E_FAIL, TEXT("C64File disk.init() failed."));
+		return hr;
 	}
 
 	hr = directory.Init();
 	if (FAILED(hr))
 	{
-		throw std::exception("C64File directory.init() failed.");
+		disk.Clean();
+		SetError(E_FAIL, TEXT("C64File directory.init() failed."));
+		return hr;
 	}
-}
 
-C64File::~C64File()
-{
-	CleanUp();
+	bInitDone = true;
+	return S_OK;
 }
 
 void C64File::CleanUp() noexcept
 {
 	try
 	{
+		bInitDone = false;
 		t64.CleanUp();
 		disk.Clean();
 		_FileType = ef_UNKNOWN;
@@ -290,11 +302,10 @@ int i,j,k;
 		if (outBuffer)
 		{
 			memcpy_s(outBuffer, bufferLength, &sidLoader.sfh.name[0], j);
-		}
-
-		for (k = 0; k < bufferLength; k++)
-		{
-			outBuffer[k] = ConvertCommandLineAnsiToPetAscii(outBuffer[k]);
+			for (k = 0; k < bufferLength; k++)
+			{
+				outBuffer[k] = StringConverter::ConvertCommandLineAnsiToPetAscii(outBuffer[k]);
+			}
 		}
 
 		return i;
@@ -400,13 +411,13 @@ int C64File::GetDirectoryItemName(int index, bit8 *outBuffer, int bufferLength)
 		sprintf_s((char *)&mDirectoryItemNameBuffer[0], _countof(mDirectoryItemNameBuffer) - 1, formatsong, (int)index + 1);
 		i = (int)strnlen((char *)mDirectoryItemNameBuffer, _countof(mDirectoryItemNameBuffer));
 		j = std::min(bufferLength, i);
-		j = std::min(j, (int)_countof(mDirectoryItemNameBuffer));
+		j = (int)std::min((size_t)j, (size_t)_countof(mDirectoryItemNameBuffer));
 		if (outBuffer)
 		{
 			memcpy_s(outBuffer, bufferLength, mDirectoryItemNameBuffer, j);
 			for (k = 0; k < bufferLength; k++)
 			{
-				outBuffer[k] = ConvertCommandLineAnsiToPetAscii(outBuffer[k]);
+				outBuffer[k] = StringConverter::ConvertCommandLineAnsiToPetAscii(outBuffer[k]);
 			}
 		}
 
@@ -459,6 +470,12 @@ const bit8* C64File::GetDirectoryItemTypeName(int index)
 
 int C64File::GetOriginalDirectoryIndex(int index)
 {
+	HRESULT hr = Init();
+	if (FAILED(hr))
+	{
+		return 0;
+	}
+
 	switch (_FileType)
 	{
 	case ef_FDI:
@@ -492,8 +509,12 @@ void C64File::ClearDirectory()
 
 HRESULT C64File::LoadDirectory(const TCHAR filename[], int maxcount, int &count, bool bPrgFilesOnly, HANDLE hevtQuit)
 {
-HRESULT hr;
-eC64FileType filetype;
+	eC64FileType filetype;
+	HRESULT hr = Init();
+	if (FAILED(hr))
+	{
+		return hr;
+	}
 
 	ClearDirectory();
 	if (_tcslen(filename) == 0)
@@ -596,13 +617,25 @@ eC64FileType filetype;
 	return S_OK;
 }
 
-HRESULT C64File::LoadFileImage(const TCHAR filename[], const bit8 c64FileName[C64DISKFILENAMELENGTH], bit8** ppFileData, bit16* pFileSize)
+HRESULT C64File::LoadFileImage(const TCHAR filename[], const bit8 c64FileName[C64DISKFILENAMELENGTH], bit8** ppFileData, bit32* pFileSize)
 {
-	HRESULT hr;
+	HRESULT hr = Init();
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
 	eC64FileType filetype;
 
-	*ppFileData = 0;
-	*pFileSize = 0;
+	if (ppFileData != nullptr)
+	{
+		*ppFileData = 0;
+	}
+
+	if (pFileSize != nullptr)
+	{
+		*pFileSize = 0;
+	}
 
 	if (_tcslen(filename) == 0)
 	{
@@ -1088,9 +1121,9 @@ P00Header header;
 	return S_OK;
 }
 
-int C64File::GetC64FileNameLength(const bit8 filename[], int bufferLength)
+int C64File::GetC64FileNameLength(const bit8 filename[], unsigned int bufferLength)
 {
-	int i;
+	unsigned int i;
 	if (filename == NULL)
 	{
 		return 0;
@@ -1107,9 +1140,20 @@ int C64File::GetC64FileNameLength(const bit8 filename[], int bufferLength)
 	return i;
 }
 
-int C64File::CompareC64FileNames(const bit8 filename1[], int bufferLength1, const bit8 filename2[], int bufferLength2)
+void C64File::GetC64ClearFileName(bit8 filename[], unsigned int bufferLength)
 {
-	int i, j, len1, len2;
+	if (filename == NULL)
+	{
+		return;
+	}
+
+	bufferLength = std::max(bufferLength, C64DISKFILENAMELENGTH);
+	memset(filename, 0xA0, bufferLength);
+}
+
+int C64File::CompareC64FileNames(const bit8 filename1[], unsigned int bufferLength1, const bit8 filename2[], unsigned int bufferLength2)
+{
+	unsigned int i, j, len1, len2;
 	if (filename1 == NULL && filename2 == NULL)
 	{
 		return 0;
@@ -1152,78 +1196,117 @@ int C64File::CompareC64FileNames(const bit8 filename1[], int bufferLength1, cons
 	return 0;
 }
 
-bit8 C64File::ConvertPetAsciiToScreenCode(bit8 petascii)
-{
-	bit8 addition = 0;
-	if (petascii <= 31)
-		addition = +128;
-	else if (petascii <= 63)
-		addition = 0;
-	else if (petascii <= 95)
-		addition = +192;
-	else if (petascii <= 127)
-		addition = +224;
-	else if (petascii <= 159)
-		addition = +64;
-	else if (petascii <= 191)
-		addition = +192;
-	else if (petascii <= 223)
-		addition = +128;
-	else if (petascii <= 254)
-		addition = +128;
-	else
-		addition = +95;
-
-	return (petascii + addition) & 0xff;
-}
-
-bit8 C64File::ConvertCommandLineAnsiToPetAscii(unsigned char ch)
-{
-	if (ch >= 'A' && ch <= 'Z')
-	{
-		return (ch + 32) & 0xff;
-	}
-	else if (ch >= 'a' && ch <= 'z')
-	{
-		return (ch - 32) & 0xff;
-	}
-
-	switch (ch)
-	{
-	case 0xa3:// £ Pound
-		return 0x5c;
-	case '`':
-	case '\\':
-		return 0x5f;
-	}
-
-	return ch;
-}
-
-unsigned char C64File::ConvertPetAsciiToAnsi(bit8 ch)
-{
-	if (ch <= ' ')
-	{
-		return ' ';
-	}
-
-	switch (ch)
-	{
-	case 0x5c:// £ Pound
-		return 0xa3;
-	case 0x5f:
-		return '~';
-	case 0x60:
-		return 0x97;
-	}
-
-	if (ch > 0x7a)
-	{
-		return ' ';
-	}
-
-	return ch;
-}
+//bit8 C64File::ConvertPetAsciiToScreenCode(bit8 petascii)
+//{
+//	bit8 addition = 0;
+//	if (petascii <= 31)
+//		addition = +128;
+//	else if (petascii <= 63)
+//		addition = 0;
+//	else if (petascii <= 95)
+//		addition = +192;
+//	else if (petascii <= 127)
+//		addition = +224;
+//	else if (petascii <= 159)
+//		addition = +64;
+//	else if (petascii <= 191)
+//		addition = +192;
+//	else if (petascii <= 223)
+//		addition = +128;
+//	else if (petascii <= 254)
+//		addition = +128;
+//	else
+//		addition = +95;
+//
+//	return (petascii + addition) & 0xff;
+//}
+//
+//unsigned char C64File::ConvertPetAsciiToAnsi(bit8 ch)
+//{
+//	if (ch <= ' ')
+//	{
+//		return ' ';
+//	}
+//
+//	switch (ch)
+//	{
+//	case 0x5c:// £ Pound
+//		return 0xa3;
+//	case 0x5f:
+//		return '~';
+//	case 0x60:
+//		return 0x97;
+//	case 0x6d:
+//		return '\\';
+//	}
+//
+//	if (ch >= 0x8d && ch <= 0x9f)
+//	{
+//		return ' ';
+//	}
+//
+//	return ch;
+//}
+//
+//bit8 C64File::ConvertAnsiToPetAscii(bit8 ch)
+//{
+//	if (ch <= ' ')
+//	{
+//		return ' ';
+//	}
+//
+//	if (ch >= 'a' && ch <= 'z')
+//	{
+//		return (ch - 0x20) & 0xff;
+//	}
+//
+//	switch (ch)
+//	{
+//	case 0xa3:// £ Pound
+//		return 0x5c;
+//	case '~':
+//		return 0x5f;
+//	case '\\':
+//		return 0x6d;
+//	case '_':
+//		return 0xa4;
+//	default:
+//		break;
+//	}
+//
+//	if (ch >= 0x8d && ch <= 0x9f)
+//	{
+//		return ' ';
+//	}
+//
+//	return ch;
+//}
+//
+//bit8 C64File::ConvertCommandLineAnsiToPetAscii(bit8 ch)
+//{
+//	if (ch >= 'A' && ch <= 'Z')
+//	{
+//		return (ch + 32) & 0xff;
+//	}
+//	else if (ch >= 'a' && ch <= 'z')
+//	{
+//		return (ch - 32) & 0xff;
+//	}
+//
+//	switch (ch)
+//	{
+//	case 0xa3:// £ Pound
+//		return 0x5c;
+//	case '`':
+//		return 0x27;
+//	case '\\':
+//		return 0x6d;
+//	default:
+//		break;
+//	}
+//
+//	return ch;
+//}
 
 HRESULT C64Directory::Init()
 {
@@ -1273,21 +1356,29 @@ void C64Directory::LoadDirectory(bit8* d64Binary, bool bPrgFilesOnly)
 	}
 }
 
-HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit16* pFileSize)
+HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit32* pFileSize)
 {
 	C64Directory dir;
 	HRESULT hr;
-	int i,j;
-	int p,q;
-	int currentTrack;
-	int currentSector;
-	int nextTrack;
-	int nextSector;
-	int fileSize;
-	constexpr int MAXSECTORS = 786;
+	unsigned int i,j;
+	bit32 p,q;
+	unsigned int currentTrack;
+	unsigned int currentSector;
+	unsigned int nextTrack;
+	unsigned int nextSector;
+	bit32 fileSize;
+	constexpr int MAXSECTORS = GCRDISK::D64MaxCbm42TrackFreeFileBlocks;
 
-	*ppFileData = 0;
-	*pFileSize = 0;
+	if (ppFileData != nullptr)
+	{
+		*ppFileData = 0;
+	}
+
+	if (pFileSize != nullptr)
+	{
+		*pFileSize = 0;
+	}
+
 	fileSize = 0;
 	hr = dir.Init();
 	if (FAILED(hr))
@@ -1296,11 +1387,8 @@ HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64D
 	}
 
 	dir.LoadDirectory(d64Binary, true);
-	for (i = 0; i < (int)dir.aItems.Count(); i++)
+	for (i = 0; i < dir.aItems.Count(); i++)
 	{
-		//if ((dir.aItems[i].ItemType) == C64DirectoryItem::DEL)
-		//	continue;
-
 		if ((dir.aItems[i].ItemType) != C64DirectoryItem::PRG)
 		{
 			continue;
@@ -1329,11 +1417,11 @@ HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64D
 		nextTrack = d64Binary[GCRDISK::D64_info[currentTrack - 1].file_offset + currentSector * 0x100 + 0];
 		nextSector = d64Binary[GCRDISK::D64_info[currentTrack - 1].file_offset + currentSector * 0x100 + 1];
 		fileSize = 0;
-		for (j=0; j < MAXSECTORS ; j++)
+		for (j = 0; j < MAXSECTORS; j++)
 		{
 
-			if (nextTrack==0)
-			{				
+			if (nextTrack == 0)
+			{
 				if (nextSector >= 0xff)
 				{
 					fileSize += (0x100 - 2);
@@ -1352,7 +1440,7 @@ HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64D
 
 				fileSize += (0x100 - 2);
 			}
-			
+
 			if (nextTrack == 0)
 			{
 				break;
@@ -1361,7 +1449,7 @@ HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64D
 			currentTrack = nextTrack;
 			currentSector = nextSector;
 			nextTrack = d64Binary[GCRDISK::D64_info[currentTrack - 1].file_offset + currentSector * 0x100 + 0];
-			nextSector = d64Binary[GCRDISK::D64_info[currentTrack - 1].file_offset + currentSector * 0x100 + 1];			
+			nextSector = d64Binary[GCRDISK::D64_info[currentTrack - 1].file_offset + currentSector * 0x100 + 1];
 		}
 	}
 
@@ -1370,13 +1458,20 @@ HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64D
 		return S_OK;
 	}
 
+	if (pFileSize != nullptr)
+	{
+		*pFileSize = fileSize;
+	}
+
 	if (fileSize > 0)
 	{
-		*pFileSize = (bit16)fileSize;
-		*ppFileData = (bit8*)GlobalAlloc(GPTR, fileSize);
-		if (*ppFileData == 0)
+		if (ppFileData != nullptr)
 		{
-			return E_OUTOFMEMORY;
+			*ppFileData = (bit8*)GlobalAlloc(GPTR, fileSize);
+			if (*ppFileData == 0)
+			{
+				return E_OUTOFMEMORY;
+			}
 		}
 
 		currentTrack = dir.aItems[i].Track;
@@ -1415,7 +1510,10 @@ HRESULT C64Directory::LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64D
 			assert(p + q <= fileSize);
 			if (q > 0)
 			{
-				memcpy_s(&(*ppFileData)[p], fileSize - p, &d64Binary[GCRDISK::D64_info[currentTrack - 1].file_offset + currentSector * 0x100 + 2], q);
+				if (ppFileData != nullptr)
+				{
+					memcpy_s(&(*ppFileData)[p], fileSize - p, &d64Binary[GCRDISK::D64_info[currentTrack - 1].file_offset + currentSector * 0x100 + 2], q);
+				}
 			}
 
 			p += q;

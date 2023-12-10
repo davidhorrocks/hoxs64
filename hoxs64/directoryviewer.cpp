@@ -21,6 +21,8 @@ namespace FileSys
 		else
 		{
 			DirectoryItem parentItem = {};
+
+			// Add the double dot entry ".." to allow navigation to the parent.
 			parentItem.Type = DirectoryItemType::ParentDirectory;
 			CurrentDirectoryItems.push_back(parentItem);
 			std::wstring dirname;
@@ -70,7 +72,7 @@ namespace FileSys
 			{
 				if (di.Type == DirectoryItemType::DirectoryFileItem)
 				{
-					if (di.Find_data.dwFileAttributes & (FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN))
+					if (di.Find_data.dwFileAttributes & (FILE_ATTRIBUTE_HIDDEN))
 					{
 						continue;
 					}
@@ -143,16 +145,25 @@ namespace FileSys
 		Set_IndexCurrentCbmDiskItem(-1);
 		if (index < this->ParentFullPath.size())
 		{
-			DirectoryItem& di = ParentFullPath[index];
-			if (di.IsDirectory())
+			std::wstring dirfullpath = GetIndexedDir(index);
+			if (dirfullpath.length() > 0)
 			{
-				if (ParentFullPath.size() > index)
+				DWORD attributes = ::GetFileAttributes(dirfullpath.c_str());
+				if (attributes != INVALID_FILE_ATTRIBUTES)
 				{
-					ParentFullPath.resize(index + 1);
+					DirectoryItem& di = ParentFullPath[index];
+					di.Find_data.dwFileAttributes = attributes;
+					if (attributes & FILE_ATTRIBUTE_DIRECTORY)
+					{
+						if (ParentFullPath.size() > index)
+						{
+							ParentFullPath.resize(index + 1);
+						}
+					}
+
+					Fill();
 				}
 			}
-
-			Fill();
 		}
 	}
 
@@ -179,6 +190,101 @@ namespace FileSys
 		}
 	}
 
+	void DirectoryViewer::ChangeDirectoryPath(const std::wstring directoryPath)
+	{
+		std::vector<DirectoryItem> listPath;
+		std::wstring stritem;
+		if (directoryPath.length() <= MaxApplicationPathLength && Wfs::IsAbsolutePath(directoryPath))
+		{
+			bool isFound = false;
+			if (Wfs::DirectoryExists(directoryPath, &isFound, nullptr))
+			{
+				size_t i = 0;
+				bool wantDriveLetter = true;
+				for (i = 0; i < directoryPath.length(); i++)
+				{
+					size_t pos = directoryPath.find(L'\\', i);
+					if (pos == i)
+					{
+						continue;
+					}
+
+					if (pos != std::string::npos)
+					{
+						if (i > pos)
+						{
+							// find error: should not happen.
+							return;
+						}
+
+						stritem = directoryPath.substr(i, pos - i);
+						i = pos;
+					}
+					else 
+					{
+						stritem = directoryPath.substr(i, directoryPath.length() - i);
+						break;
+					}
+
+					if (stritem.length() == 0)
+					{
+						// empty not allowed.
+						return;
+					}
+
+					if (std::isspace(stritem[0]) || std::isspace(stritem[stritem.length() - 1]))
+					{
+						// leading / trailing space not allowed.
+						return;
+					}
+
+					if (wantDriveLetter)
+					{
+						if (stritem.length() == 2)
+						{
+							wchar_t letter = stritem[0];
+							if (stritem[1] == L':' && ((letter >= L'A' && letter <= L'Z') || (letter >= L'a' && letter <= L'z')))
+							{
+								DirectoryItem diritem;
+								diritem.Clear();
+								diritem.DriveLetter = (CHAR)letter;
+								diritem.Type = FileSys::DriveLetter;
+								listPath.push_back(diritem);
+								wantDriveLetter = false;
+								continue;
+							}
+						}
+					}
+					else if (stritem.find_first_of(L"*\"/\\<>:|?") != std::string::npos)
+					{
+						// invalid chars
+						return;
+					}
+					else
+					{
+						DirectoryItem diritem;
+						diritem.Clear();
+						diritem.NameW = stritem;
+						diritem.hasNameW = true;
+						diritem.Type = FileSys::DirectoryFileItem;
+						listPath.push_back(diritem);
+						continue;
+					}
+
+					return;
+				}
+
+			}
+
+			if (listPath.size() == 0)
+			{
+				return;
+			}
+
+			ParentFullPath = listPath;
+		}
+	}
+
 	std::wstring DirectoryViewer::GetCurrentDir() const
 	{
 		std::wstring dir;
@@ -189,6 +295,27 @@ namespace FileSys
 		}
 
 		return dir;
+	}
+
+	std::wstring DirectoryViewer::GetIndexedDir(size_t index)
+	{
+		std::wstring name;
+		size_t i;
+		if (index < ParentFullPath.size())
+		{
+			for (i = 0; i <= index; i++)
+			{
+				DirectoryItem& di = ParentFullPath[i];
+				if (i != 0 && di.GetNameW().length() > 0)
+				{
+					Wfs::EnsureTrailingBackslash(name);
+				}
+
+				name.append(di.GetNameW());
+			}
+		}
+
+		return name;
 	}
 
 	std::wstring DirectoryViewer::GetItemName(size_t index) const

@@ -21,6 +21,17 @@ FileStream::~FileStream()
 	}
 }
 
+HRESULT FileStream::CreateObject(std::wstring filename, IStream** ppStream, bool fWrite)
+{
+	HANDLE hFile = ::CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), fWrite ? GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,
+		NULL, fWrite ? CREATE_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (hFile == INVALID_HANDLE_VALUE)
+		return HRESULT_FROM_WIN32(GetLastError());
+
+	return CreateObject(hFile, true, ppStream);
+}
+
 HRESULT FileStream::CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite)
 {
 	HANDLE hFile = ::CreateFile(Wfs::EnsureLongNamePrefix(pName).c_str(), fWrite ? GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,

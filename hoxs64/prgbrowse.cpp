@@ -564,29 +564,34 @@ LRESULT lr;
 		{
 			PopulateList(hDlg);
 
-			switch (m_c64file.GetFileType())
-			{
-			case C64File::ef_P64:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			case C64File::ef_FDI:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			case C64File::ef_G64:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			case C64File::ef_D64:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, TRUE);
-				break;
-			default:
-				EnableWindow(m_hCheckQuickLoad, FALSE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			}
+			EnableWindow(m_hCheckQuickLoad, TRUE);
+			EnableWindow(m_hCheckAlignD64Tracks, TRUE);
+
+			// Commented out due to a new option to copy prg to disk.
+			// Therefore loading prg no loner implies a quickload.
+			//switch (m_c64file.GetFileType())
+			//{
+			//case C64File::ef_P64:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//case C64File::ef_FDI:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//case C64File::ef_G64:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//case C64File::ef_D64:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, TRUE);
+			//	break;
+			//default:
+			//	EnableWindow(m_hCheckQuickLoad, FALSE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//}
 		}
 		else if (mFileInspectorStatus == CPRGBrowse::WORKING)
 		{
@@ -834,7 +839,7 @@ RGBQUAD rgb;
 	for (i = 0; i < length; i++, x += x_advance)
 	{
 		petascii = str[i];	
-		c = C64File::ConvertPetAsciiToScreenCode(petascii);
+		c = StringConverter::ConvertPetAsciiToScreenCode(petascii);
 
 		for (row = 0; row < 8; row++)
 		{

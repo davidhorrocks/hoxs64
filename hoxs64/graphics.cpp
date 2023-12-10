@@ -8,8 +8,9 @@
 #include <sstream>
 #include "directoryviewer.h"
 
-Graphics::Graphics() noexcept
+HRESULT Graphics::Initialize(IC64 *c64, IAppCommand* appCommand, CAppStatus* appStatus)
 {
+	HRESULT hr;
 	for (int i = 0; i < _countof(cbmCharRom); i++)
 	{
 		if (cbmCharRom[i] != nullptr)
@@ -17,11 +18,7 @@ Graphics::Graphics() noexcept
 			cbmCharRom[i] = nullptr;
 		}
 	}
-}
 
-HRESULT Graphics::Initialize(IC64 *c64, IAppCommand* appCommand, CAppStatus* appStatus)
-{
-	HRESULT hr;
 	isInitOK = false;
 	isStartedImGuiDx11 = false;
 	currentDrawFrameCounter = 0;
@@ -1164,6 +1161,7 @@ void Graphics::DrawGui()
 				directoryViewer.Set_IsQuickloadEnabled(false);
 				directoryViewer.UseC64FilesFilter();
 				directoryViewer.Set_IsReuEnabled(this->c64->IsReuAttached());
+				directoryViewer.ChangeDirectoryPath(appStatus->m_imgui_autoload_folder);
 				directoryViewer.Fill();
 				ImGui::OpenPopup(title);
 			}
@@ -1400,7 +1398,7 @@ void Graphics::DrawGui()
 								ImGui::SameLine(0, 0);
 							}
 
-							unsigned int screencode = (unsigned int)C64File::ConvertPetAsciiToScreenCode(tempC64String[j]);
+							unsigned int screencode = (unsigned int)StringConverter::ConvertPetAsciiToScreenCode(tempC64String[j]);
 							ImVec2 uv0;
 							ImVec2 uv1;
 							GetTextureCoordFromScreenCode(screencode, uv0, uv1);
@@ -1455,7 +1453,7 @@ void Graphics::DrawGui()
 									ImGui::SameLine(0, 0);
 								}
 
-								unsigned int screencode = (unsigned int)C64File::ConvertPetAsciiToScreenCode(tempC64String[j]);
+								unsigned int screencode = (unsigned int)StringConverter::ConvertPetAsciiToScreenCode(tempC64String[j]);
 								ImVec2 uv0;
 								ImVec2 uv1;
 								GetTextureCoordFromScreenCode(screencode, uv0, uv1);
@@ -1588,6 +1586,9 @@ void Graphics::DrawGui()
 					wantChangeDirectory = false;
 					directoryViewer.ChangeDirectory(wantChangeDirectoryIndex);
 					currentFileSystemItem = -1;
+
+					// Save path to app status settings.
+					appStatus->m_imgui_autoload_folder = directoryViewer.GetCurrentDir();
 				}
 				else if (wantChangeParentDirectory)
 				{
@@ -1602,6 +1603,9 @@ void Graphics::DrawGui()
 					}
 
 					currentFileSystemItem = -1;
+
+					// Save path to app status settings.
+					appStatus->m_imgui_autoload_folder = directoryViewer.GetCurrentDir();
 				}
 
 				if (wantClose)
@@ -1609,6 +1613,9 @@ void Graphics::DrawGui()
 					ImGui::CloseCurrentPopup();
 					show_file_open = false;
 					enableC64Input = true;
+
+					// Save path to app status settings.
+					appStatus->m_imgui_autoload_folder = directoryViewer.GetCurrentDir();
 				}
 				
 				ImGui::EndPopup();
@@ -1831,6 +1838,8 @@ void Graphics::SetVsync(bool useVsync)
 
 HRESULT Graphics::LoadCbmCharTexture()
 {
+	bit8* pSet1 = nullptr;
+	bit8* pSet2 = nullptr;
 	HRESULT hr = E_FAIL;
 	constexpr unsigned int bytesperpixel = 4;
 	constexpr unsigned int bitmapsize = 8 * 8 * (16 * 2 + 1) * (16 * 2 + 1) * bytesperpixel;
@@ -1838,8 +1847,6 @@ HRESULT Graphics::LoadCbmCharTexture()
 	constexpr unsigned int pitchbyte = pitchpixel * bytesperpixel;
 	constexpr unsigned int bitmapheight = 8 * (16 * 2 + 1);
 	constexpr unsigned int bitmapwidth = 8 * (16 * 2 + 1);
-	bit8* pSet1 = nullptr;
-	bit8* pSet2 = nullptr;
 	try
 	{
 		CleanCharRomTextureSet();
@@ -1955,23 +1962,23 @@ HRESULT Graphics::LoadCbmCharTexture()
 		if (pSet2)
 		{
 			GlobalFree(pSet2);
-			pSet1 = nullptr;
+			pSet2 = nullptr;
 		}
 
 		COM_ERROR_IF_FAILED(hr, ex.what());
 		hr = E_FAIL;
 	}
 
-	if (pSet1)
+	if (pSet1 != nullptr)
 	{
 		GlobalFree(pSet1);
 		pSet1 = nullptr;
 	}
 
-	if (pSet2)
+	if (pSet2 != nullptr)
 	{
 		GlobalFree(pSet2);
-		pSet1 = nullptr;
+		pSet2 = nullptr;
 	}
 
 	return hr;

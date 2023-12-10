@@ -1102,11 +1102,13 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 					r = pDiagNewBlankDisk->ShowDialog(m_hInst, MAKEINTRESOURCE(IDD_NEWDISK), hWnd);
 					if (LOWORD(r) == IDOK)
 					{
-						c64->InsertNewDiskImage(pDiagNewBlankDisk->diskname, pDiagNewBlankDisk->id1, pDiagNewBlankDisk->id2, pDiagNewBlankDisk->bAlignTracks, pDiagNewBlankDisk->numberOfTracks);
+						c64->InsertNewDiskImage(pDiagNewBlankDisk->diskname, pDiagNewBlankDisk->id1, pDiagNewBlankDisk->id2, pDiagNewBlankDisk->bAlignTracks, pDiagNewBlankDisk->numberOfTracks, false);
 					}
 				}
 				else
+				{
 					pDiagNewBlankDisk->DisplayError(hWnd, appCommand->GetAppName());
+				}
 			}
 		}
 		catch (...)
@@ -1228,6 +1230,7 @@ bool CAppWindow::OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresu
 	else
 	{
 		appStatus->SaveWindowSetting(hWnd);
+		appStatus->SaveImGuiSetting();
 	}
 
 	return false;

@@ -47,7 +47,7 @@ public:
 	CArray<C64DirectoryItem> aItems;
 	void LoadDirectory(bit8 *d64Binary, bool bPrgFilesOnly);
 	void Clear();
-	static HRESULT LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit16* pFileSize);
+	static HRESULT LoadFileImage(bit8 *d64Binary, const bit8 c64Filename[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit32* pFileSize);
 private:
 	static HRESULT LoadItem(bit8 *d64Binary, int currentTrack , int currentSector, int currentEntry, C64DirectoryItem& fileItem);
 	static int MoveNextEntry(bit8 *d64Binary, int& currentTrack , int& currentSector, int& currentEntry);
@@ -71,7 +71,7 @@ public:
 		ef_UNKNOWN
 	};
 
-	C64File();
+	C64File() = default;
 	~C64File();
 	C64File(const C64File&) = default;
 	C64File(C64File&&) = default;
@@ -88,16 +88,18 @@ public:
 	static HRESULT IsP00(const TCHAR filename[], bool &result);
 	static HRESULT IsSID(const TCHAR filename[], bool &result);
 	static HRESULT GetC64FileType(const TCHAR filename[],enum eC64FileType &filetype);
-	static int GetC64FileNameLength(const bit8 filename[], int bufferLength);
-	static int CompareC64FileNames(const bit8 filename1[], int length1, const bit8 filename2[], int length2);
-	static bit8 ConvertPetAsciiToScreenCode(bit8 petascii);
-	static bit8 ConvertCommandLineAnsiToPetAscii(unsigned char ch);
-	static unsigned char C64File::ConvertPetAsciiToAnsi(bit8 ch);
-	static bool FilenameHasExtension(const TCHAR filename[], const TCHAR ext[]);
+	static int GetC64FileNameLength(const bit8 filename[], unsigned int bufferLength);
+	static void GetC64ClearFileName(bit8 filename[], unsigned int bufferLength);
+	static int CompareC64FileNames(const bit8 filename1[], unsigned int length1, const bit8 filename2[], unsigned int length2);
+	//static bit8 ConvertPetAsciiToScreenCode(bit8 petascii);
+	//static bit8 ConvertAnsiToPetAscii(bit8 petascii);
+	//static bit8 ConvertCommandLineAnsiToPetAscii(bit8 ch);
+	//static unsigned char ConvertPetAsciiToAnsi(bit8 ch);
+	static bool FilenameHasExtension(const TCHAR* filename, const TCHAR* ext);
 
 	void ClearDirectory();
 	HRESULT LoadDirectory(const TCHAR filename[], int maxcount, int &count, bool bPrgFilesOnly, HANDLE hevtQuit);
-	HRESULT LoadFileImage(const TCHAR filename[], const bit8 c64FileName[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit16* pFileSize);
+	HRESULT LoadFileImage(const TCHAR filename[], const bit8 c64FileName[C64DISKFILENAMELENGTH], bit8 **ppFileData, bit32* pFileSize);
 	enum eC64FileType GetFileType() const;
 	int GetFileCount() const;
 	int GetDirectoryItemNameLength(int);
@@ -105,6 +107,7 @@ public:
 	int GetC64DisknameLength();
 	int GetC64Diskname(bit8 *outBuffer, int bufferLength);
 	int GetOriginalDirectoryIndex(int);
+	HRESULT Init();
 	const bit8 *GetDirectoryItemTypeName(int index);
 
 	static const bit8 FTN_DEL[3];
@@ -115,7 +118,7 @@ public:
 	static const bit8 FTN_CLR[3];
 	static const char formatsong[];
 private:
-	//static bit8 blankname[C64DISKFILENAMELENGTH];
+	bool bInitDone = false;
 	bit8 mDirectoryItemNameBuffer[20];
 	void CleanUp() noexcept;
 	eC64FileType _FileType;
