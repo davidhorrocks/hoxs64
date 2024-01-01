@@ -345,6 +345,7 @@ public:
 	bool m_bAllowOpposingJoystick = false;
 	bool m_bDisableDwmFullscreen = false;
 	bool m_bEnableImGuiWindowed = true;
+	bool m_bSaveWindowPositionOnExit = true;
 	bool m_bSID_Emulation_Enable = true;
 	bool m_bShowSpeed = true;
 	bool m_bLimitSpeed = true;

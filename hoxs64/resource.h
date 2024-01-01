@@ -381,7 +381,8 @@
 #define IDC_CHKREU                      1376
 #define IDC_TXT_DOT                     1377
 #define IDC_TXT_COMMA                   1378
-#define IDC_EDIT1                       1379
+#define IDC_SAVE_WINDOW_POSITION_ON_EXIT 1379
+#define IDC_CHECK1                      1380
 #define IDM_EXIT                        40018
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -469,7 +470,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
 #define _APS_NEXT_COMMAND_VALUE         40097
-#define _APS_NEXT_CONTROL_VALUE         1380
+#define _APS_NEXT_CONTROL_VALUE         1381
 #define _APS_NEXT_SYMED_VALUE           165
 #endif
 #endif

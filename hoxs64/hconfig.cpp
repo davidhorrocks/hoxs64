@@ -430,6 +430,7 @@ CConfig::CConfig() noexcept
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
 	m_bEnableImGuiWindowed = true;
+	m_bSaveWindowPositionOnExit = true;
 	m_bWindowedLockAspectRatio = false;
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
@@ -1056,6 +1057,16 @@ HRESULT CConfig::LoadCurrentSetting()
 	else
 	{
 		m_bEnableImGuiWindowed = true;
+	}
+
+	lRetCode = configSource->ReadDWord(Section_General, TEXT("SaveWindowPositionOnExit"), dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_bSaveWindowPositionOnExit = dwValue != 0;
+	}
+	else
+	{
+		m_bSaveWindowPositionOnExit = true;
 	}
 
 	// Read VICIIPalette config
@@ -1809,6 +1820,11 @@ HRESULT CConfig::SaveWindowSetting(HWND hWnd)
 	WINDOWPLACEMENT wp;
 	DWORD dwValue;
 
+	if (!m_bSaveWindowPositionOnExit)
+	{
+		return S_FALSE;
+	}
+
 	std::shared_ptr<IConfigDataSource> configSource = GetConfigRegistrySource();
 	ZeroMemory(&wp, sizeof(wp));
 	wp.length = sizeof(wp);
@@ -2308,6 +2324,9 @@ HRESULT CConfig::SaveCurrentSettings()
 	dwValue = m_bEnableImGuiWindowed ? 1 : 0;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("EnableImGuiWindowed"), dwValue);
 
+	dwValue = m_bSaveWindowPositionOnExit ? 1 : 0;
+	configSource->WriteDWord(CConfig::Section_General, TEXT("SaveWindowPositionOnExit"), dwValue);
+
 	dwValue = 1;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("PrefsSaved"), dwValue);
 
@@ -2571,6 +2590,7 @@ void CConfig::LoadDefaultSetting() noexcept
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
 	m_bEnableImGuiWindowed = true;
+	m_bSaveWindowPositionOnExit = true;
 	m_fullscreenAdapterIsDefault = true;
 	m_fullscreenAdapterNumber = 0;
 	m_fullscreenOutputNumber = 0;
