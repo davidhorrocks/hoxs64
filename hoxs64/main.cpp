@@ -933,6 +933,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	CommandArg* caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
 	CommandArg* caAlignD64Tracks = cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
 	CommandArg* caReu512k = cmdArgs.FindOption(TEXT("-Reu512k"));
+	CommandArg* caReu16M = cmdArgs.FindOption(TEXT("-Reu16M"));
 	CommandArg* caStartFullscreen = cmdArgs.FindOption(TEXT("-Fullscreen"));
 	CommandArg* caDebugCart = cmdArgs.FindOption(TEXT("-debugcart"));
 	CommandArg* caLimitCycles = cmdArgs.FindOption(TEXT("-limitcycles"));
@@ -1107,6 +1108,17 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		mainCfg.SetRunFast();
 	}
 
+	if (caReu16M != nullptr)
+	{
+		mainCfg.m_reu_extraAddressBits = CartReu1750::MaxExtraBits;
+		mainCfg.m_reu_insertCartridge = true;
+	}
+	else if (caReu512k != nullptr)
+	{
+		mainCfg.m_reu_extraAddressBits = 0;
+		mainCfg.m_reu_insertCartridge = true;
+	}
+
 	//Apply the users settings.
 	ApplyConfig(mainCfg);
 	m_hAccelTable = LoadAccelerators (m_hInstance, wsAppName.c_str());
@@ -1270,10 +1282,11 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 			keepCurrentCart = true;
 		}
 	}
-	else if (caReu512k != nullptr)
+	else if (caReu16M != nullptr || caReu512k != nullptr || this->m_reu_insertCartridge)
 	{
 		// REU plus and other cart is not implemented.
-		c64.LoadReu1750();
+		c64.LoadReu1750(this->m_reu_extraAddressBits);
+		keepCurrentCart = true;
 	}
 
 	if (caSystemWarm)
@@ -1359,7 +1372,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 				}
 			}
 
-			c64.AutoLoad(pFilename, directoryIndex, indexPrgsOnly, pC64filename, wantQuickLoad, alignD64, keepCurrentCart, caReu512k != nullptr);
+			c64.AutoLoad(pFilename, directoryIndex, indexPrgsOnly, pC64filename, wantQuickLoad, alignD64, keepCurrentCart, caReu512k != nullptr || caReu16M != nullptr);
 		}
 	}
 
@@ -1667,9 +1680,9 @@ void CApp::LoadCrtFileDialog(HWND hWnd)
 	}
 }
 
-void CApp::LoadReu1750(HWND hWnd)
+void CApp::LoadReu1750(HWND hWnd, unsigned int extraAddressBits)
 {
-	HRESULT hr = c64.LoadReu1750();
+	HRESULT hr = c64.LoadReu1750(extraAddressBits);
 	if (SUCCEEDED(hr))
 	{
 		UpdateApplication();
@@ -1728,7 +1741,7 @@ void CApp::AutoLoadDialog(HWND hWnd)
 		TEXT("Choose a C64 program file"),
 		spFilename.get(),
 		CchPathBufferSize,
-		TEXT("C64 file (*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s)\0*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s\0\0"),
+		TEXT("C64 file (*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s;*.reu)\0*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s;*.reu\0\0"),
 		NULL,
 		0);
 

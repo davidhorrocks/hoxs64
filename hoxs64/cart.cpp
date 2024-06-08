@@ -84,6 +84,7 @@ void CartData::MoveItHere(CartData&& cartData) noexcept
 	m_pCartData = cartData.m_pCartData;
 	m_pZeroBankData = cartData.m_pZeroBankData;
 	m_amountOfExtraRAM = cartData.m_amountOfExtraRAM;
+	m_bPreserveRamOnReset = cartData.m_bPreserveRamOnReset;
 	cartData.Disown();
 }
 
@@ -125,6 +126,8 @@ CartCommon::CartCommon(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit
 	{
 		m_statebool[i] = false;
 	}
+
+	m_bPreserveRamOnReset = false;
 }
 
 CartCommon::~CartCommon()
@@ -543,11 +546,9 @@ HRESULT CartCommon::LoadState(IStream *pfs, int version)
 
 			if (memoryheader.ramsize > Cart::MAX_CART_EXTRA_RAM)
 			{
-				hr = E_FAIL;
-				break;
+				cartData.m_amountOfExtraRAM = Cart::MIN_CART_EXTRA_RAM;
 			}
-
-			if (memoryheader.ramsize < Cart::MIN_CART_EXTRA_RAM)
+			else if (memoryheader.ramsize < Cart::MIN_CART_EXTRA_RAM)
 			{
 				cartData.m_amountOfExtraRAM = Cart::MIN_CART_EXTRA_RAM;
 			}
@@ -1145,7 +1146,7 @@ void CartCommon::InitReset(ICLK sysclock, bool poweronreset)
 	m_bEnableRAM = false;
 	m_bIsCartIOActive = true;
 	m_bIsCartRegActive = true;
-	m_bEffects = true;
+	m_bEffects = true;	
 	memset(&this->registerArray[0], 0, _countof(registerArray));
 	m_pCpu->Clear_CRT_IRQ();
 	m_pCpu->Clear_CRT_NMI();
@@ -1158,7 +1159,10 @@ void CartCommon::Reset(ICLK sysclock, bool poweronreset)
 	ConfigureMemoryMap();
 	if (m_amountOfExtraRAM > 0 && m_pCartData != nullptr)
 	{
-		ZeroMemory(&m_pCartData[0x0], m_amountOfExtraRAM);
+		if (poweronreset && !this->m_bPreserveRamOnReset)
+		{
+			ZeroMemory(&m_pCartData[0x0], m_amountOfExtraRAM);
+		}
 	}
 }
 
@@ -1225,6 +1229,11 @@ bool CartCommon::IsCartAttached()
 void CartCommon::Set_IsCartAttached(bool isAttached)
 {
 	m_bIsCartAttached = isAttached;
+}
+
+void CartCommon::Set_PreserveRamOnReset(bool isPreserveRamOnReset)
+{
+	m_bPreserveRamOnReset = isPreserveRamOnReset;
 }
 
 bool CartCommon::IsREU()
@@ -1421,7 +1430,7 @@ unsigned int offsetToDefault8kZeroBank;
 unsigned int offsetToFirstChipBank;
 CartData cartTempData;
 CrtHeader& hdr = cartTempData.m_crtHeader;
-__int64 filesize=0;
+unsigned __int64 filesize=0;
 __int64 iFileIndex = 0;
 
 	ClearError();
@@ -1438,13 +1447,8 @@ __int64 iFileIndex = 0;
 				ok = false;
 				break;
 			}
+
 			filesize = G::FileSize(hFile);
-			if (filesize < 0)
-			{
-				hr = SetError(E_FAIL, S_READFAILED, filename);
-				ok = false;
-				break;
-			}
 
 			//Read header.
 			nBytesToRead = sizeof(hdr);
@@ -1496,7 +1500,7 @@ __int64 iFileIndex = 0;
 					ok = false;
 					break;
 				}
-				if (filesize - spos < sizeof(chip))
+				if (filesize - (unsigned __int64)spos < sizeof(chip))
 				{
 					//ok
 					break;
@@ -1615,7 +1619,7 @@ __int64 iFileIndex = 0;
 				if (chip.TotalPacketLength != pos - spos)
 				{
 					__int64 nextpos = spos + (__int64)chip.TotalPacketLength;
-					if (nextpos >= filesize)
+					if ((unsigned __int64)nextpos >= filesize)
 					{
 						//ok
 						break;
@@ -1776,24 +1780,34 @@ __int64 iFileIndex = 0;
 	return hr;
 }
 
-HRESULT Cart::LoadReu1750(CartData& cartData)
+HRESULT Cart::LoadReu1750(CartData& cartData, unsigned int extraAddressBits)
 {
 	HRESULT hr = E_FAIL;
 	CartData cartTempData;
 	CrtHeader& hdr = cartTempData.m_crtHeader;
 	try
 	{		
-		Cart::MarkHeaderAsReu(hdr);
+		Cart::MarkHeaderAsReu(hdr, extraAddressBits);
 		assert(hdr.FileHeaderLength == 0x40);
 		cartTempData.m_plstBank = new CrtBankList();
-		cartTempData.m_pCartData = (bit8*)GlobalAlloc(GPTR, Cart::REU_1750_RAM + Cart::DEFAULT_CHIP_EXTRA_MEMORY);
+		unsigned int ramSize;
+		if (extraAddressBits == 0)
+		{
+			ramSize = Cart::REU_1750_RAM;
+		}
+		else
+		{
+			ramSize = Cart::REU_1750_RAM_PLUS_16M;
+		}
+
+		cartTempData.m_pCartData = (bit8*)GlobalAlloc(GPTR, (SIZE_T)(ramSize + Cart::DEFAULT_CHIP_EXTRA_MEMORY));
 		if (cartTempData.m_pCartData == nullptr)
 		{
 			throw std::bad_alloc();
 		}
 
-		cartTempData.m_pZeroBankData = &cartTempData.m_pCartData[Cart::REU_1750_RAM];
-		cartTempData.m_amountOfExtraRAM = Cart::REU_1750_RAM;
+		cartTempData.m_pZeroBankData = &cartTempData.m_pCartData[ramSize];
+		cartTempData.m_amountOfExtraRAM = ramSize;
 		hr = S_OK;
 	}
 	catch (std::exception&)
@@ -1823,7 +1837,7 @@ bool Cart::IsHeaderReu(const CrtHeader& crtHeader) noexcept
 	}
 }
 
-void Cart::MarkHeaderAsReu(CrtHeader& crtHeader) noexcept
+void Cart::MarkHeaderAsReu(CrtHeader& crtHeader, unsigned int extraAddressBits) noexcept
 {
 	memset(&crtHeader, 0, sizeof(CrtHeader));
 	crtHeader.FileHeaderLength = sizeof(CrtHeader);
@@ -1833,8 +1847,8 @@ void Cart::MarkHeaderAsReu(CrtHeader& crtHeader) noexcept
 	crtHeader.EXROM = 1;
 	crtHeader.GAME = 1;
 	crtHeader.VersionHigh = 0;
-	crtHeader.VersionLow = 17;
-	crtHeader.SubType = 0;
+	crtHeader.VersionLow = 17;	
+	crtHeader.SubType = (extraAddressBits & 7);
 }
 
 shared_ptr<ICartInterface> Cart::CreateCartInterface(const CrtHeader &crtHeader)
@@ -2075,6 +2089,14 @@ void Cart::Set_IsCartAttached(bool isAttached)
 	if (m_spCurrentCart)
 	{
 		m_spCurrentCart->Set_IsCartAttached(isAttached);
+	}
+}
+
+void Cart::Set_PreserveRamOnReset(bool isPreserveRamOnReset)
+{
+	if (m_spCurrentCart)
+	{
+		m_spCurrentCart->Set_PreserveRamOnReset(isPreserveRamOnReset);
 	}
 }
 

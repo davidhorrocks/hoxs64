@@ -1836,7 +1836,7 @@ __int64 G::FileSeek (HANDLE hfile, __int64 distance, DWORD moveMethod)
    return li.QuadPart;
 }
 
-__int64 G::FileSize (HANDLE hfile)
+unsigned __int64 G::FileSize (HANDLE hfile)
 {
    ULARGE_INTEGER li;
 
@@ -1849,7 +1849,7 @@ __int64 G::FileSize (HANDLE hfile)
    {
       li.QuadPart = -1;
    }
-   return (__int64)li.QuadPart;
+   return (unsigned __int64)li.QuadPart;
 }
 
 void G::InitRandomSeed()

@@ -6,9 +6,9 @@
 
 namespace FileSys
 {	
-	const wchar_t* const DirectoryItem::AllC64Extenstions[10] = { L".64S", L".D64", L".G64", L".P64", L".FDI", L".TAP", L".T64", L".PRG", L".CRT", L".SID" };
+	const wchar_t* const DirectoryItem::AllC64Extenstions[11] = { L".64S", L".D64", L".G64", L".P64", L".FDI", L".TAP", L".T64", L".PRG", L".CRT", L".SID", L".REU"};
 
-	const wchar_t* const DirectoryItem::DiskC64Extenstions[4] = { L".D64", L".G64", L".P64", L".FDI" };
+	const wchar_t* const DirectoryItem::DiskC64Extenstions[5] = { L".D64", L".G64", L".P64", L".FDI", L".PRG" };
 
 	const wchar_t* const DirectoryItem::TapeC64Extenstions[1] = { L".TAP" };
 

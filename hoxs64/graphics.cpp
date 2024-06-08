@@ -537,6 +537,14 @@ HRESULT Graphics::InitializeDirectX()
 			COM_ERROR_IF_FAILED(hr, "D3D11CreateDevice failed.");
 		}
 
+#if defined(DEBUG)
+		hr = device->QueryInterface(__uuidof(ID3D11Debug), (void**)dxdebug.ReleaseAndGetAddressOf());
+		if (SUCCEEDED(hr))
+		{
+			//dxdebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+		}
+#endif
+
 		DXGI_MODE_DESC selectedFullScreenModeDesc = {};
 		if (!bWindowedMode)
 		{
@@ -824,6 +832,15 @@ void Graphics::CleanDevice()
 	deviceContext.Reset();
 	device.Reset();
 	isInitOK = false;
+#if defined(DEBUG)
+	if (dxdebug != nullptr)
+	{
+		dxdebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+	}
+
+	dxdebug.Reset();
+#endif
+
 }
 
 void Graphics::ImGuiStart()
@@ -833,7 +850,7 @@ void Graphics::ImGuiStart()
 		isStartedImGuiDx11 = true;
 		ImGui_ImplWin32_Init(this->hWnd);
 		ImGui_ImplDX11_Init(device.Get(), deviceContext.Get());
-		ImGuiIO& io = ImGui::GetIO();
+		//ImGuiIO& io = ImGui::GetIO();
 		//io.DisplaySize.x = this->assignedWidth;
 		//io.DisplaySize.y = this->assignedHeight;
 	}
@@ -1757,8 +1774,8 @@ HRESULT Graphics::ResizeBuffers(unsigned int width, unsigned int height)
 	isInitOK = false;
 	if (deviceContext != nullptr)
 	{
-		deviceContext->OMSetRenderTargets(0, 0, 0);
-		deviceContext->OMSetDepthStencilState(NULL, 0);
+		deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+		deviceContext->OMSetDepthStencilState(nullptr, 0);
 	}
 
 	depthStencilState.Reset();

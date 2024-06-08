@@ -92,7 +92,8 @@ public:
 	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool keepCurrentCart, bool bReu);
 	static HRESULT CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength);
 	HRESULT LoadCrtFile(const TCHAR *filename);
-	HRESULT LoadReu1750() override;
+	HRESULT LoadReu1750(unsigned int extraAddressBits) override;
+	HRESULT LoadReu1750FromFile(const TCHAR* filename) override;
 	bool IsReuAttached() override;
 	HRESULT LoadImageFile(const TCHAR* filename, bool injectC64Memory, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize);
 	HRESULT LoadT64ImageFile(const std::wstring filename, int t64Index, bool injectC64Memory, bool prependStartAddressToBuffer, std::wstring& c64filename, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize);

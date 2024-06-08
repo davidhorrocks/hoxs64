@@ -441,6 +441,8 @@ CConfig::CConfig() noexcept
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
+	m_reu_insertCartridge = false;
+	m_reu_extraAddressBits = 0;
 	m_bWindowedLockAspectRatio = false;
 	m_bSIDStereo = true;
 	SetPalettePepto();
@@ -950,6 +952,28 @@ HRESULT CConfig::LoadCurrentSetting()
 	else
 	{
 		this->m_bTimerBbug = false;
+	}
+
+	dwValue = 0;
+	lRetCode = configSource->ReadDWord(Section_General, TEXT("ReuInsertCart"), dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_reu_insertCartridge = dwValue != 0;
+	}
+	else
+	{
+		m_reu_insertCartridge = false;
+	}
+
+	dwValue = 0;
+	lRetCode = configSource->ReadDWord(Section_General, TEXT("ReuExtraAddressBits"), dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_reu_extraAddressBits = dwValue;
+	}
+	else
+	{
+		m_reu_extraAddressBits = 0;
 	}
 
 	dwValue = 0;
@@ -2271,6 +2295,12 @@ HRESULT CConfig::SaveCurrentSettings()
 
 	dwValue = m_bTimerBbug ? 1 : 0;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("CIATimerBbug"), dwValue);
+	
+	dwValue = m_reu_insertCartridge ? 1 : 0;
+	configSource->WriteDWord(CConfig::Section_General, TEXT("ReuInsertCart"), dwValue);
+
+	dwValue = m_reu_extraAddressBits;
+	configSource->WriteDWord(CConfig::Section_General, TEXT("ReuExtraAddressBits"), dwValue);
 
 	dwValue = (DWORD)this->m_numberOfExtraSIDs;
 	if (dwValue >= 8)
@@ -2609,6 +2639,8 @@ void CConfig::LoadDefaultSetting() noexcept
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
+	m_reu_insertCartridge = false;
+	m_reu_extraAddressBits = 0;
 	SetCiaNewOldMode(true);
 	m_numberOfExtraSIDs = 0;
 	m_Sid2Address = 0;

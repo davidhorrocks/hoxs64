@@ -7,6 +7,9 @@ class CartReu1750 : public CartCommon
 public:
 	CartReu1750(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory);
 
+	static const unsigned int MaxExtraBits = 5;
+	static const unsigned int MaxRAMSize = 16 * 1024 * 1024;
+	static const unsigned int DefaultRAMSize = 512 * 1024;
 	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
 	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
 	void Reset(ICLK sysclock, bool poweronreset) override;
@@ -17,6 +20,7 @@ public:
 	void WriteByteToREU(bit8 bank, bit16 address, bit8 data);
 	bit8 ReadByteFromC64(bit16 address, bool startingVicDMA);
 	void WriteByteToC64(bit16 address, bit8 data);
+	HRESULT InitCart(CartData& cartData) override;
 protected:
 	void UpdateIO() override;
 	bool IsCartIOActive(bit16 address, bool isWriting) override;	
@@ -54,4 +58,6 @@ private:
 	bit8& verify_byte_from_reu;
 	bit8& verify_byte_from_c64;
 	bit32& runcount;
+	unsigned int reu_extraAddressBits;
+	bit8 reu_extraAddressMask;
 };

@@ -99,7 +99,7 @@ public:
 	static bool IsStringBlank(LPCTSTR ps) noexcept;
 	static bool IsWhiteSpace(TCHAR ch) noexcept;
 	static __int64 FileSeek(HANDLE hfile, __int64 distance, DWORD moveMethod);
-	static __int64 FileSize(HANDLE hfile);
+	static unsigned __int64 FileSize(HANDLE hfile);
 	static void InitRandomSeed();
 	static const TCHAR EmptyString[1];
 	static bool IsLargeGameDevice(const DIDEVCAPS& didevcaps);

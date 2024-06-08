@@ -624,7 +624,7 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 		return 0;
 	case IDM_CART_ATTACH1750REU:
 		appCommand->SoundHalt();
-		appCommand->LoadReu1750(hWnd);
+		appCommand->LoadReu1750(hWnd, appStatus->m_reu_extraAddressBits);
 		appCommand->SoundResume();
 		lresult = 0;
 		return true;

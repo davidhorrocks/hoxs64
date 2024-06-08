@@ -380,4 +380,6 @@ public:
 	HCFG::CIAMODE m_CIAMode = HCFG::CIAMODE::CM_CIA6526A;
 	bool m_bTimerBbug = false;
 	std::wstring m_imgui_autoload_folder;
+	bool m_reu_insertCartridge;
+	unsigned int m_reu_extraAddressBits;
 };

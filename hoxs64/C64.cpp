@@ -1585,6 +1585,18 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 				appStatus->m_bAutoload = false;
 				return hr;
 			}
+			else if (_wcsicmp(wsext.c_str(), TEXT(".reu")) == 0)
+			{
+				hr = LoadReu1750FromFile(filename);
+				if (SUCCEEDED(hr))
+				{
+					keepCurrentCart = true;
+				}
+
+				autoLoadCommand.type = C64::AUTOLOAD_NONE;
+				appStatus->m_bAutoload = false;
+				return hr;
+			}
 			else if (_wcsicmp(wsext.c_str(), TEXT(".tap")) == 0)
 			{
 				hr = LoadTAPFile(filename);
@@ -1706,22 +1718,25 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 			return SetError(E_FAIL, TEXT("Unknown file type."));
 		}
 
-		// Mounting a non REU cart takes priority. The non REU cart is mounted and the REU is not mounted.
-		if (!keepCurrentCart && bReu)
+		if (!keepCurrentCart)
 		{
-			if (!cart.IsCartAttached() || !cart.IsREU())
+			if (bReu)
 			{
-				CartData cartData;
-				if (SUCCEEDED(cart.LoadReu1750(cartData)))
+				if (!cart.IsCartAttached() || !cart.IsREU())
 				{
-					cart.DetachCart();
-					cart.AttachCartData(cartData);
+					CartData cartData;
+					if (SUCCEEDED(cart.LoadReu1750(cartData, this->appStatus->m_reu_extraAddressBits)))
+					{
+						cart.DetachCart();
+						cart.AttachCartData(cartData);
+						this->HardReset(false);
+					}
 				}
 			}
-		}
-		else if (!keepCurrentCart)
-		{
-			cart.DetachCart();
+			else
+			{
+				cart.DetachCart();
+			}
 		}
 	}
 	catch (...)
@@ -2015,12 +2030,12 @@ HRESULT hr = E_FAIL;
 	return hr;
 }
 
-HRESULT C64::LoadReu1750()
+HRESULT C64::LoadReu1750(unsigned int extraAddressBits)
 {
 	HRESULT hr = E_FAIL;
 	ClearError();
 	CartData cartData;
-	hr = cart.LoadReu1750(cartData);
+	hr = cart.LoadReu1750(cartData, extraAddressBits);
 	if (SUCCEEDED(hr))
 	{
 		cart.AttachCartData(cartData);
@@ -2028,6 +2043,87 @@ HRESULT C64::LoadReu1750()
 	}
 
 	this->SetError(cart);
+	return hr;
+}
+
+HRESULT C64::LoadReu1750FromFile(const TCHAR* filename)
+{
+	HRESULT hr = E_FAIL;
+	HANDLE hFile = NULL;
+	LPCTSTR S_READFAILED = TEXT("Could not read file %s.");
+	LPCTSTR S_OUTOFMEMORY = TEXT("Out of memory.");
+	ClearError();
+	bool ok = true;
+	do
+	{
+		CartData cartData;
+		hFile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		if (hFile == INVALID_HANDLE_VALUE)
+		{
+			hr = SetError(E_FAIL, TEXT("Could not open reu file %s."), filename);
+			ok = false;
+			break;
+		}
+
+		unsigned __int64 filesize = G::FileSize(hFile);
+		if (filesize < 0)
+		{
+			hr = SetError(E_FAIL, S_READFAILED, filename);
+			ok = false;
+			break;
+		}		
+
+		DWORD nBytesToRead;
+		DWORD nBytesRead;
+		unsigned int extraBitsCompare = CartReu1750::MaxExtraBits;
+		unsigned int extraMaskCompare = 0xff;
+		unsigned int memorySizeCompare = CartReu1750::MaxRAMSize;
+		if (filesize >= CartReu1750::MaxRAMSize)
+		{
+			nBytesToRead = CartReu1750::MaxRAMSize;
+			extraBitsCompare = CartReu1750::MaxExtraBits;
+		}
+		else
+		{
+			nBytesToRead = CartReu1750::DefaultRAMSize;
+			extraBitsCompare = appStatus->m_reu_extraAddressBits;
+		}
+
+		if ((unsigned __int64)nBytesToRead > filesize)
+		{
+			nBytesToRead = (DWORD)(filesize & 0xffffffff);
+		}		
+
+		hr = cart.LoadReu1750(cartData, extraBitsCompare);
+		if (SUCCEEDED(hr))
+		{
+			if (cartData.m_pCartData != nullptr)
+			{
+				BOOL br = ReadFile(hFile, cartData.m_pCartData, nBytesToRead, &nBytesRead, nullptr);
+				if (br)
+				{
+					cartData.m_bPreserveRamOnReset = true;
+				}
+				else
+				{
+					hr = SetError(E_FAIL, S_READFAILED, filename);
+					ok = false;
+					break;
+				}
+			}
+
+			cart.AttachCartData(cartData);
+			this->HardReset(true);
+		}
+
+	} while (false);
+
+	if (hFile)
+	{
+		CloseHandle(hFile);
+		hFile = NULL;
+	}
+
 	return hr;
 }
 
@@ -2079,6 +2175,14 @@ HRESULT C64::InsertDiskImageFile(const std::wstring filename, bool alignD64Track
 	else if (_wcsicmp(fext.c_str(), L".p64")==0)
 	{
 		return LoadP64FromFile(filename.c_str(), immediately);
+	}
+	else if (_wcsicmp(fext.c_str(), L".prg") == 0)
+	{
+		uniform_int_distribution<int> dist_byte('A', 'Z');
+		bit8 id1 = dist_byte(this->randengine_main);
+		bit8 id2 = dist_byte(this->randengine_main);
+		std::wstring filenamewithoutext = Wfs::GetFileNameWithoutExtension(filename);
+		return InsertNewDiskImageWithPrgFile(filenamewithoutext, id1, id2, true, 35, true, filenamewithoutext, filename);
 	}
 	else
 	{

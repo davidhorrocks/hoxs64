@@ -383,6 +383,11 @@
 #define IDC_TXT_COMMA                   1378
 #define IDC_SAVE_WINDOW_POSITION_ON_EXIT 1379
 #define IDC_CHECK1                      1380
+#define IDC_CHK_REU                     1380
+#define IDC_CHK_REU_INSERT              1380
+#define IDC_GROUP_REU                   1381
+#define IDC_RAD_REU_512K                1382
+#define IDC_RAD_REU_16M                 1383
 #define IDM_EXIT                        40018
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -468,9 +473,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_RESOURCE_VALUE        167
 #define _APS_NEXT_COMMAND_VALUE         40097
-#define _APS_NEXT_CONTROL_VALUE         1381
+#define _APS_NEXT_CONTROL_VALUE         1384
 #define _APS_NEXT_SYMED_VALUE           165
 #endif
 #endif

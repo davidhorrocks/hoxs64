@@ -164,6 +164,7 @@ public:
 	bit8* m_pCartData = nullptr;// The cartridge memory data.
 	bit8* m_pZeroBankData = nullptr;// The pointer to an 8KB memory bank that is separate from the list of banks defined in m_plstBank
 	unsigned int m_amountOfExtraRAM = 0;// The size in bytes of extra RAM that is at the start pointed to by m_pCartData.
+	bool m_bPreserveRamOnReset = false;
 
 private:
 	void MoveItHere(CartData&& cartData) noexcept;
@@ -201,6 +202,7 @@ public:
 	virtual bool IsCartIOActive(bit16 address, bool isWriting) = 0;
 	virtual bool IsCartAttached() = 0;
 	virtual void Set_IsCartAttached(bool isAttached) = 0;
+	virtual void Set_PreserveRamOnReset(bool isPreserveRamOnReset) = 0;
 
 	virtual void CartFreeze() = 0;
 	virtual void CartReset() = 0;
@@ -268,6 +270,7 @@ public:
 	bool IsCartIOActive(bit16 address, bool isWriting) override;
 	bool IsCartAttached() override;
 	void Set_IsCartAttached(bool isAttached) override;
+	void Set_PreserveRamOnReset(bool isPreserveRamOnReset) override;
 	void CartFreeze() override;
 	void CartReset() override;
 	void CheckForCartFreeze() override;
@@ -392,7 +395,7 @@ public:
 
 	void Init(IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory);
 	HRESULT LoadCrtFile(LPCTSTR filename, CartData& cartData);
-	HRESULT LoadReu1750(CartData& cartData);
+	HRESULT LoadReu1750(CartData& cartData, unsigned int extraAddressBits);
 	shared_ptr<ICartInterface> CreateCartInterface(const CrtHeader& crtHeader);
 	static bool IsSupported(CartType::ECartType hardwareType);
 	static bool IsSupported(const CrtHeader& crtHeader);
@@ -434,7 +437,7 @@ public:
 	bool IsCartIOActive(bit16 address, bool isWriting) override;
 	bool IsCartAttached() override;
 	void Set_IsCartAttached(bool isAttached) override;
-
+	void Set_PreserveRamOnReset(bool isPreserveRamOnReset) override;
 	void CartFreeze() override;
 	void CartReset() override;
 	void CheckForCartFreeze() override;
@@ -458,13 +461,14 @@ private:
 	static const unsigned int RAMRESERVEDSIZE_V0 = 64 * 1024 + 8 * 1024;// Assume 64K cart RAM + 8K zero byte bank
 	static const unsigned int ZEROBANKOFFSET_V0 = 64 * 1024;
 	static const unsigned int CARTRAMSIZE_V0 = 64 * 1024;
-	static const unsigned int MAX_CART_EXTRA_RAM = 2 * 1024 * 1024;
+	static const unsigned int MAX_CART_EXTRA_RAM = 16 * 1024 * 1024;
 	static const unsigned int MIN_CART_EXTRA_RAM = 64 * 1024;
 	static const unsigned int DEFAULT_CHIP_EXTRA_MEMORY = 8 * 1024;
 	static const unsigned int REU_1750_RAM = 512 * 1024;
+	static const unsigned int REU_1750_RAM_PLUS_16M = 16 * 1024 * 1024;
 	static unsigned int GetTotalCartMemoryRequirement(unsigned int amountOfExtraRAM, const CrtBankList* plstBank, unsigned int& offsetToDefault8kZeroBank, unsigned int& offsetToFirstChipBank);
 	static bool IsHeaderReu(const CrtHeader& crtHeader) noexcept;
-	static void MarkHeaderAsReu(CrtHeader& crtHeader) noexcept;
+	static void MarkHeaderAsReu(CrtHeader& crtHeader, unsigned int extraAddressBits) noexcept;
 
 	IC6510* m_pCpu = nullptr;
 	bit8* m_pC64RamMemory = nullptr;

@@ -11,6 +11,7 @@
 #include "bits.h"
 #include "util.h"
 #include "utils.h"
+#include "cart.h"
 #include "StringConverter.h"
 #include "ErrorLogger.h"
 #include "errormsg.h"
@@ -2143,6 +2144,24 @@ void CDiagEmulationSettingsTab::loadconfig(const CConfig *cfg)
 		{
 			CheckDlgButton(hWnd, IDC_RAD_CIA6526A, BST_CHECKED);
 		}
+
+		if (cfg->m_reu_insertCartridge)
+		{
+			CheckDlgButton(hWnd, IDC_CHK_REU_INSERT, BST_CHECKED);
+		}
+		else
+		{
+			CheckDlgButton(hWnd, IDC_CHK_REU_INSERT, BST_UNCHECKED);
+		}
+
+		if (cfg->m_reu_extraAddressBits == 0)
+		{
+			CheckDlgButton(hWnd, IDC_RAD_REU_512K, BST_CHECKED);
+		}
+		else
+		{
+			CheckDlgButton(hWnd, IDC_RAD_REU_16M, BST_CHECKED);
+		}
 	}
 
 	FillFps();
@@ -2428,6 +2447,28 @@ shared_ptr<CTabPageDialog> pPage;
 		else
 		{
 			cfg->m_bTimerBbug = false;
+		}
+
+		if (IsDlgButtonChecked(hWnd, IDC_CHK_REU_INSERT))
+		{
+			cfg->m_reu_insertCartridge = true;
+		}
+		else
+		{
+			cfg->m_reu_insertCartridge = false;
+		}
+
+		if (IsDlgButtonChecked(hWnd, IDC_RAD_REU_512K))
+		{
+			cfg->m_reu_extraAddressBits = 0;
+		}
+		else if (IsDlgButtonChecked(hWnd, IDC_RAD_REU_16M))
+		{
+			cfg->m_reu_extraAddressBits = CartReu1750::MaxExtraBits;
+		}
+		else
+		{
+			cfg->m_reu_extraAddressBits = 0;
 		}
 
 		int v;

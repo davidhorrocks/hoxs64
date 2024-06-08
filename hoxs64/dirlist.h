@@ -43,8 +43,8 @@ namespace FileSys
         mutable std::wstring NameW;
         mutable std::string NameA;
 
-        static const wchar_t* const AllC64Extenstions[10];
-        static const wchar_t* const DiskC64Extenstions[4];
+        static const wchar_t* const AllC64Extenstions[11];
+        static const wchar_t* const DiskC64Extenstions[5];
         static const wchar_t* const TapeC64Extenstions[1];
         static const wchar_t* const SidC64Extenstions[1];
     };

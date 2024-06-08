@@ -69,6 +69,7 @@ private:
 	void SetMenuKeepAliveHeightFromScreenHeight(int screenHeight);
 	void GetTextureCoordFromScreenCode(unsigned int screencode, ImVec2& uv0, ImVec2& uv1) const;
 
+	Microsoft::WRL::ComPtr<ID3D11Debug> dxdebug;
 	Microsoft::WRL::ComPtr<IDXGIFactory1> dxgifactory1;
 	Microsoft::WRL::ComPtr<IDXGIFactory2> dxgifactory2;
 	Microsoft::WRL::ComPtr<IDXGIFactory5> dxgifactory5;

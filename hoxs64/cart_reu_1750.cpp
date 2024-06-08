@@ -31,7 +31,38 @@ CartReu1750::CartReu1750(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, b
 	EXROM = 1;
 	DMA = 1;
 	m_bREUcompatible = true;
+	reu_extraAddressBits = 0;
+	reu_extraAddressMask = 7;
 }
+
+HRESULT CartReu1750::InitCart(CartData& cartData)
+{
+	CartCommon::InitCart(cartData);
+	this->reu_extraAddressBits = m_crtHeader.SubType;
+	if (this->reu_extraAddressBits > MaxExtraBits)
+	{
+		this->reu_extraAddressBits = MaxExtraBits;
+	}
+
+	unsigned int extraBitsCompare = MaxExtraBits;
+	unsigned int extraMaskCompare = 0xff;
+	unsigned int memorySizeCompare = MaxRAMSize;
+	while (extraBitsCompare > 0 && memorySizeCompare > m_amountOfExtraRAM)
+	{
+		extraBitsCompare--;
+		memorySizeCompare = memorySizeCompare >>= 1;
+		extraMaskCompare = extraMaskCompare >>= 1;
+	}
+
+	if (this->reu_extraAddressBits > extraBitsCompare)
+	{
+		this->reu_extraAddressBits = extraBitsCompare;
+	}
+
+	this->reu_extraAddressMask = extraMaskCompare;
+	return S_OK;
+}
+
 
 void CartReu1750::Reset(ICLK sysclock, bool poweronreset)
 {
@@ -40,20 +71,20 @@ void CartReu1750::Reset(ICLK sysclock, bool poweronreset)
 	reg_command = 0x10;
 	reg_c64BaseAddress.word = 0;
 	reg_reuBaseAddress.word = 0;
-	reg_reuBankPointer = 0xF8;
+	reg_reuBankPointer = ~reu_extraAddressMask;
 	reg_transferLength.word = 0xFFFF;
 	reg_interruptMask = 0x1F;
 	reg_addressControl = 0x3F;
 	shadow_c64BaseAddress.word = 0;
 	shadow_reuBaseAddress.word = 0;
-	shadow_reuBankPointer = 0xF8;
+	shadow_reuBankPointer = ~reu_extraAddressMask;
 	shadow_transferLength.word = 0xFFFF;
 	transfer_started = false;
 	transfer_finished = false;
 	verify_error = false;
 	dma_on = false;
 	DMA = dma_on ? 0 : 1;
-	if (poweronreset)
+	if (poweronreset && !this->m_bPreserveRamOnReset)
 	{
 		unsigned int i;
 		unsigned int* p = (unsigned int*)m_pCartData;
@@ -69,6 +100,8 @@ void CartReu1750::Reset(ICLK sysclock, bool poweronreset)
 			}
 		}
 	}
+
+	this->m_bPreserveRamOnReset = true;
 }
 
 bit8 CartReu1750::ReadRegister(bit16 address, ICLK sysclock)
@@ -101,7 +134,7 @@ bit8 CartReu1750::ReadRegister(bit16 address, ICLK sysclock)
 		return reg_reuBaseAddress.byte.hiByte;
 		break;
 	case 0x6:
-		return reg_reuBankPointer | 0xF8;
+		return reg_reuBankPointer | ~reu_extraAddressMask;
 		break;
 	case 0x7:
 		return reg_transferLength.byte.loByte;
@@ -639,7 +672,7 @@ void CartReu1750::UpdateTransferAddressAndCounter()
 			reg_reuBaseAddress.word++;
 			if (reg_reuBaseAddress.word == 0)
 			{
-				reg_reuBankPointer = (reg_reuBankPointer + 1) & 7;
+				reg_reuBankPointer = (reg_reuBankPointer + 1) & reu_extraAddressMask;
 			}
 		}
 
@@ -700,7 +733,7 @@ bool CartReu1750::FinishTransfer()
 
 bit8 CartReu1750::ReadByteFromREU(bit8 bank, bit16 address)
 {
-	bank = bank & 7;
+	bank = bank & reu_extraAddressMask;
 	return this->m_pCartData[(unsigned int)bank * 0x10000 + address];
 }
 
@@ -730,7 +763,7 @@ bit8 CartReu1750::ReadByteFromC64(bit16 address, bool startingVicDMA)
 
 void CartReu1750::WriteByteToREU(bit8 bank, bit16 address, bit8 data)
 {
-	bank = bank & 7;
+	bank = bank & reu_extraAddressMask;
 	this->m_pCartData[(unsigned int)bank * 0x10000 + address] = data;
 }
 
