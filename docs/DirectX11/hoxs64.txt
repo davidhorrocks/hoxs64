@@ -1,4 +1,4 @@
-Hoxs64 v1.1.2.3 (c) 2023 David Horrocks
+Hoxs64 v1.1.2.4 (c) 2023 David Horrocks
 ========================================
 Hoxs64 is an attempt to accurately emulate the Commodore 64 computer.
 
@@ -19,7 +19,7 @@ Debugger.
 Full screen display.
 
 Cartridge support is as follows:
-Commodore REU 1750 (512K)
+Commodore REU 1750 512K with option for 16MB
 Action Reply
 Retro Reply
 Easy Flash (1MB)
@@ -35,7 +35,7 @@ Simons Basic
 
 Host PC Requirements
 ====================
-Windows 10 or Windows 7
+Windows 11, Windows 10
 DirectX 11.1
 Microsoft Visual C++ 2022 runtime installation.
 Intel or AMD 3 GHz (4.0 to 5.0 GHz recommended for some features.)
@@ -65,36 +65,27 @@ CRC32: 1c9e87d0
 
 Installation
 ============
-Install Microsoft Visual C++ 2022 runtime. Both 64 bit and 32 bit version of 
-Microsoft Visual C++ 2022 may be installed on 64 bit Windows.
-Copy all files in the Hoxs64 zip folder to the same directory.
+Install Microsoft Visual C++ 2022 runtime. Both 64 bit and 32 bit version of Microsoft Visual C++ 2022 may be installed on 64 bit Windows. Copy all files in the Hoxs64 zip folder to the same directory.
 
 
 How to use Hoxs64
 =================
-Use File / Auto Load to load a game file. Toggle full screen mode with the
-[Alt Enter] key combination. You need to be in windowed mode to access the 
-menu.
+Use File / Auto Load to load a game file. Toggle full screen mode with the [Alt Enter] key combination. You need to be in windowed mode to access the menu.
 
 NVidia G-Sync
 =============
-For best results, set host CPU usage to "aggressive". Use "Line Sync". Use a 
-monitor refresh rate that is substantially higher than 50 Hz. If you have a 
-high refresh rate monitor then use the 100Hz frame rate doubler option where
-possible to prevent IPS LCD pixel burn.
+For best results, set host CPU usage to "aggressive". Use "Line Sync". Use a monitor refresh rate that is substantially higher than 50 Hz. If you have a high refresh rate monitor then use the 100Hz frame rate doubler option where possible to prevent IPS LCD pixel burn which can occur when viewing interlaced pictures that flicker between two repeating images at 50Hz.
 
-The CPU "friendly" mode causes the application to over sleep and miss its frame 
-time slot. The application will try to catch up with fast frames that may 
-exceed the user selected G-Sync frame cap and cause either tearing or 
-stutter.
+The CPU "friendly" mode causes the application to over sleep and miss its frame time slot. The application will try to catch up with fast frames that may exceed the user selected G-Sync frame cap and cause either tearing or stutter.
 
 
 Command Line Options
 ====================
-Parameters including path names can optionally be double quoted. Double 
-quotes are required when path names include embedded spaces or double 
+Parameters including path names can optionally be double quoted. Double quotes are required when path names include embedded spaces or double 
 quotes.
 
+
+Automatically load and run C64 file
 
 -autoload <filename> {@<directoryitemnumber> | #<directoryprgnumber> | :<directoryitemname> }
 Loads a disk, cartridge or tape file and runs a C64 program.
@@ -107,8 +98,7 @@ A zero based number that specifies which file in a 1541
 disk to load.
 
 <directoryprgnumber> 
-A zero based number filtered on just PRG files that specifies which PRG in a
-1541 disk to load.
+A zero based number filtered on just PRG files that specifies which PRG in a 1541 disk to load.
 
 <directoryitemname> 
 The CBM DOS name. A colon must precede the name with no space.
@@ -131,93 +121,136 @@ This will load and run the 4th file in demo.D64
 
 Example
 hoxs64 -autoload "D:\My Demos\demo.D64" ":chess"
-This will load and run the file called CHESS in demo.D64
-Uppercase A-Z will refer to C64 shifted graphical glyphs.
+This will load and run the file called CHESS in demo.D64. Uppercase A-Z will refer to C64 shifted graphical glyphs.
 
--mountdisk <filename>
-Mounts a host PC disk file called <filename> but does not automatically load 
-any programs.
 
+Quickly load a PRG from a 1541 disk
 
 -quickload
-Memory injects the PRG file. This currently does not simulate the exact 
-memory pattern that would be caused by real load from tape or disk.
+Memory injects a PRG file from an auto loaded D64 file whose disk image is specified by -autoload. This currently does not simulate the exact memory pattern that would be caused by real load from tape or disk.
+
+Example
+hoxs64 -quickload -autoload "D:\My Games\SEA_FOX.D64"
+This will quick load and run the default file in SEA_FOX.D64
+
+
+Mount a disk image
+
+-mountdisk {<filename>}
+Mounts a host PC disk file <filename> to the 1541 drive. If <filename> is not supplied then, a new blank disk is mounted and if a .PRG file is supplied with -autoload is then the .PRG copied to the disk.
+
+Example
+hoxs64 -mountdisk -autoload "D:\My Games\bluemax.PRG"
+This will create and mount a new temporary 1541 disk called "BLUEMAX" and will copy the PC file bluemax.PRG to this new disk naming the 1541 file as "BLUEMAX" also. The file will be auto loaded from disk using LOAD"*",8,1
+
+
+Mount a cartridge
+
+-mountcart <filename>
+Mount a cartridge from a CRT file. 
+Muliple cartriages are not supported. The -mountcart option disables the -reu512k option.
+
+
+Insert a Commodore 1750 RAM Expansion Unit
 
 -reu512k
-Enable 1750 RAM Expansion Cartridge (512K).
 
+Enable 1750 RAM Expansion Cartridge (512K).
+Muliple cartriages are not supported. The -mountcart option disables the -reu512k option.
+
+
+Start fullscreen
 
 -fullscreen
 Start with a full screen display.
 
 
+Use new CIA 
+
 -cia-new
 Use new CIA.
 
+
+Use old CIA 
 
 -cia-old
 Use old CIA.
 
 
+Align the magnetic disk tracks
+
 -alignd64tracks
 Align D64 tracks.
 
 
--debugcart
-Enable the debug cart. A write to IO $D7FF will cause the application to 
-return an exit code. The first byte written to $D7FF becomes the exit code. 
-The actual time of exit is deferred till the end of the current frame.
+Enable the debug cart mode used by the VICE test programs
 
+-debugcart
+
+Enable the debug cart. A write to IO $D7FF will cause the application to return an exit code. The first byte written to $D7FF becomes the exit code. The actual time of exit is deferred till the end of the current frame.
+
+
+Write an exit screen shot to a PNG file
 
 -exitscreenshot <filename>
-Write a screen shot PNG file just before the application exits. <filename> 
-is the name of the file. Existing files are overwritten!
+Write a screen shot PNG file just before the application exits. <filename> is the name of the file. Existing files are overwritten!
 
 Example
 hoxs64 -exitscreenshot D:\Pictures\Test.png
 
 
--defaultsettings
-Load emulation defaults before applying other options. Drive enabled. New 
-CIA. D64 track skew. Track zero sensor. SID resample. Default keyboard 
-layout. Pepto colour palette. No Extra SID chips; one SID chip at D400.
+Load emulation defaults
 
+-defaultsettings
+Load emulation defaults before applying other options. Drive enabled. New CIA. D64 track skew. Track zero sensor. SID resample. Default keyboard layout. Pepto colour palette. No Extra SID chips; one SID chip at D400.
+
+
+Hide the application window
 
 -window-hide
-Do not show an application Window and do not show message boxes. Runs in the
-background.
+Do not show an application Window and do not show message boxes. Runs in the background.
 
+
+Prevent Windows message boxes
 
 -nomessagebox
-Prevent Windows message boxes.
+Prevent Windows message box dialogs.
 
+
+Disable sound
 
 -nosound
 No SID sound will be sent to the sound driver.
 
 
--limitcycles <n>
-Cause the application to exit after <n> number (a 32 bit number) of clock 
-cycles with exit code 1.
+Limit system clock cycles
 
+-limitcycles <n>
+Cause the application to exit after <n> number (a 32 bit number) of clock cycles with exit code 1.
+
+
+Auto reset on CPU halt
 
 -hlt-reset
 Reset the CPU upon freezing with HLT such as opcode $02 etc.
 
 
+Auto close application on CPU halt
+
 -hlt-exit
 Main CPU HLT exits with exit code 255.
 
+
+Run at maximum speed
 
 -runfast
 Run at the fastest possible speed. Disables sound.
 
 
+Load configuration from an INI text file.
+
 -configfile <filename>
-Loads settings from an INI config file specified by <filename> which can either be a full path or
-a path relative to the application folder. Double dot ".." and single dot "." path elements are not 
-supported. If the -configfile option is missing it will look for a file hoxs64.ini within the 
-application folder. If the hoxs64.ini file is missing it will load settings from the registry. 
+Loads settings from an INI config file specified by <filename> which can either be a full path or a path relative to the application folder. Double dot ".." and single dot "." path elements are not supported. If the -configfile option is missing it will look for a file hoxs64.ini within the application folder. If the hoxs64.ini file is missing it will load settings from the registry. 
 
 
 Examples

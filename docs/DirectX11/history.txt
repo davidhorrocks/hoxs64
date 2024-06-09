@@ -1,3 +1,16 @@
+27 May 2024 v1.1.2.4
+====================
+1) ImGUI remember directory path after closing the application. 
+
+2) New option to slow-load a host PC .PRG file via a more realistic 1541 disk load, instead of using instant memory injection. This is possible by both the user interface and command line options.
+
+3) REU option for 16 megabytes of RAM. Ability to load .REU files.
+
+4) Put back full screen pixel doubler option "1x" to turn off image stretch-to-fit.
+
+5) Retro Replay cart bug fix stuck register DE01 bit 7: bank-address bit 15 for ROM banking.
+
+
 07 March 2023 v1.1.2.3
 ======================
 1) Added missing keyboard assignment dialog key boxes for COMMA and DOT.
