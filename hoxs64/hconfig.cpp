@@ -417,6 +417,7 @@ const LPCTSTR CConfig::Section_General = TEXT("General");
 const LPCTSTR CConfig::Section_Joystick = TEXT("Joystick");
 const LPCTSTR CConfig::Section_Keyboard = TEXT("Keyboard");
 const LPCTSTR CConfig::Section_VICIIPalette = TEXT("VICIIPalette");
+const LPCTSTR CConfig::Key_ImGuiAutoloadPath = TEXT("ImGuiAutoloadPath");
 
 CConfig::CConfig() noexcept
 {	
@@ -429,6 +430,7 @@ CConfig::CConfig() noexcept
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
 	m_bEnableImGuiWindowed = true;
+	m_bSaveWindowPositionOnExit = true;
 	m_bWindowedLockAspectRatio = false;
 	m_bSwapJoysticks = false;
 	m_bCPUFriendly = true;
@@ -1055,6 +1057,16 @@ HRESULT CConfig::LoadCurrentSetting()
 	else
 	{
 		m_bEnableImGuiWindowed = true;
+	}
+
+	lRetCode = configSource->ReadDWord(Section_General, TEXT("SaveWindowPositionOnExit"), dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_bSaveWindowPositionOnExit = dwValue != 0;
+	}
+	else
+	{
+		m_bSaveWindowPositionOnExit = true;
 	}
 
 	// Read VICIIPalette config
@@ -1745,11 +1757,73 @@ HRESULT CConfig::ReadRegKeyboardItem(IConfigDataSource* configSource, LPCTSTR ke
 
 }
 
+HRESULT CConfig::LoadImGuiSetting()
+{
+	try
+	{
+		this->m_imgui_autoload_folder.clear();
+		std::shared_ptr<IConfigDataSource> configSource = GetConfigRegistrySource();
+		DWORD cchbuffer = 0;
+		if (SUCCEEDED(configSource->ReadString(CConfig::Section_General, CConfig::Key_ImGuiAutoloadPath, nullptr, cchbuffer)))
+		{
+			if (cchbuffer > 0 && cchbuffer <= G::MaxApplicationPathLength)
+			{
+				DWORD extra = cchbuffer + 1;// Add one in case we receive a string that is not zero terminated.
+				auto buffer = std::shared_ptr<wchar_t[]>(new wchar_t[extra]);
+				if (SUCCEEDED(configSource->ReadString(CConfig::Section_General, CConfig::Key_ImGuiAutoloadPath, buffer.get(), cchbuffer)))
+				{
+					buffer[cchbuffer] = L'\0';// Ensures we are zero terminated.
+					this->m_imgui_autoload_folder.assign(buffer.get());
+				}
+			}
+		}
+	}
+	catch (...)
+	{
+		return E_FAIL;
+	}
+
+	return S_OK;
+}
+
+HRESULT CConfig::SaveImGuiSetting()
+{
+	try
+	{
+		std::shared_ptr<IConfigDataSource> configSource = GetConfigRegistrySource();
+		const wchar_t* p;
+		if (m_imgui_autoload_folder.length() <= G::MaxApplicationPathLength)
+		{
+			p = this->m_imgui_autoload_folder.c_str();
+		}
+		else
+		{
+			p = G::EmptyString;
+		}
+
+		DWORD cchbuffer = (DWORD)((wcslen(p) + 1) * sizeof(wchar_t));
+		if (SUCCEEDED(configSource->WriteString(CConfig::Section_General, CConfig::Key_ImGuiAutoloadPath, p, cchbuffer)))
+		{
+			return S_OK;
+		}
+	}
+	catch (...)
+	{
+	}
+
+	return E_FAIL;
+}
+
 HRESULT CConfig::SaveWindowSetting(HWND hWnd)
 {
 	LONG   lRetCode; 
 	WINDOWPLACEMENT wp;
 	DWORD dwValue;
+
+	if (!m_bSaveWindowPositionOnExit)
+	{
+		return S_FALSE;
+	}
 
 	std::shared_ptr<IConfigDataSource> configSource = GetConfigRegistrySource();
 	ZeroMemory(&wp, sizeof(wp));
@@ -2250,6 +2324,9 @@ HRESULT CConfig::SaveCurrentSettings()
 	dwValue = m_bEnableImGuiWindowed ? 1 : 0;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("EnableImGuiWindowed"), dwValue);
 
+	dwValue = m_bSaveWindowPositionOnExit ? 1 : 0;
+	configSource->WriteDWord(CConfig::Section_General, TEXT("SaveWindowPositionOnExit"), dwValue);
+
 	dwValue = 1;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("PrefsSaved"), dwValue);
 
@@ -2513,6 +2590,7 @@ void CConfig::LoadDefaultSetting() noexcept
 	m_bAllowOpposingJoystick = false;
 	m_bDisableDwmFullscreen = false;
 	m_bEnableImGuiWindowed = true;
+	m_bSaveWindowPositionOnExit = true;
 	m_fullscreenAdapterIsDefault = true;
 	m_fullscreenAdapterNumber = 0;
 	m_fullscreenOutputNumber = 0;

@@ -69,24 +69,24 @@ void CartActionReplayMk4::UpdateIO()
 		EXROM = (~reg1 >> 3) & 1;
 		m_bIsCartIOActive = (reg1 & 0x4) == 0;
 		BankRom();
-		switch(((reg1 & 2) >> 1) | ((reg1 & 8) >> 2))
-		{
-		case 0://GAME=0 EXROM=1 Ultimax
-			//E000 mirrors 8000
-			m_ipROMH = m_ipROML;
-			m_ipROML = m_pZeroBankData;
-			break;
-		case 1://GAME=1 EXROM=1
-			break;
-		case 2://GAME=0 EXROM=0
-			//A000 mirrors 8000
-			m_ipROMH = m_ipROML;
-			break;
-		case 3://GAME=1 EXROM=0
-			m_ipROMH = m_ipROML;
-			break;
-		default:
-			break;
-		}
+		//switch(((reg1 & 2) >> 1) | ((reg1 & 8) >> 2))
+		//{
+		//case 0://GAME=0 EXROM=1 Ultimax
+		//	//E000 mirrors 8000
+		//	m_ipROMH = m_ipROML;
+		//	m_ipROML = m_pZeroBankData;
+		//	break;
+		//case 1://GAME=1 EXROM=1
+		//	break;
+		//case 2://GAME=0 EXROM=0
+		//	//A000 mirrors 8000
+		//	m_ipROMH = m_ipROML;
+		//	break;
+		//case 3://GAME=1 EXROM=0
+		//	m_ipROMH = m_ipROML;
+		//	break;
+		//default:
+		//	break;
+		//}
 	}			
 }

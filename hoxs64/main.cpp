@@ -108,7 +108,7 @@ bool AttachToExistingConsole()
 }
 
 CApp* app = nullptr;
-int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow)
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR lpCmdLine, _In_ int nCmdShow)
 {
 	bool isConsoleAttached = AttachToExistingConsole();
 	ZeroMemory(&applicationVersionString[0], _countof(applicationVersionString));
@@ -209,6 +209,9 @@ CApp::CApp() noexcept(false)
 
 	lastMouseX = 0;
 	lastMouseY = 0;
+
+	C64Keys::Init();
+	randengine.seed(rd());
 }
 
 CApp::~CApp()
@@ -926,26 +929,27 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		}
 	}
 
-	CommandArg *caAutoLoad = cmdArgs.FindOption(TEXT("-AutoLoad"));
-	CommandArg *caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
-	CommandArg *caAlignD64Tracks= cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
+	CommandArg* caAutoLoad = cmdArgs.FindOption(TEXT("-AutoLoad"));
+	CommandArg* caQuickLoad = cmdArgs.FindOption(TEXT("-QuickLoad"));
+	CommandArg* caAlignD64Tracks = cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
 	CommandArg* caReu512k = cmdArgs.FindOption(TEXT("-Reu512k"));
-	CommandArg *caStartFullscreen = cmdArgs.FindOption(TEXT("-Fullscreen"));
-	CommandArg *caDebugCart = cmdArgs.FindOption(TEXT("-debugcart"));
-	CommandArg *caLimitCycles = cmdArgs.FindOption(TEXT("-limitcycles"));
-	CommandArg *caExitScreenShot = cmdArgs.FindOption(TEXT("-exitscreenshot"));
-	CommandArg *caCiaNew = cmdArgs.FindOption(TEXT("-cia-new"));
-	CommandArg *caCiaOld = cmdArgs.FindOption(TEXT("-cia-old"));
-	CommandArg *caHltReset = cmdArgs.FindOption(TEXT("-hlt-reset"));
-	CommandArg *caHltExit = cmdArgs.FindOption(TEXT("-hlt-exit"));
-	CommandArg *caMountDisk = cmdArgs.FindOption(TEXT("-mountdisk"));
-	CommandArg *caNoMessageBox = cmdArgs.FindOption(TEXT("-nomessagebox"));
-	CommandArg *caRunFast = cmdArgs.FindOption(TEXT("-runfast"));
-	CommandArg *caWindowHide = cmdArgs.FindOption(TEXT("-window-hide"));
-	CommandArg *caDefaultSettings = cmdArgs.FindOption(TEXT("-defaultsettings"));
-	CommandArg *caSoundOff= cmdArgs.FindOption(TEXT("-nosound"));
-	CommandArg *caSystemWarm = cmdArgs.FindOption(TEXT("-system-warm"));
-	CommandArg *caSystemCold = cmdArgs.FindOption(TEXT("-system-cold"));	
+	CommandArg* caStartFullscreen = cmdArgs.FindOption(TEXT("-Fullscreen"));
+	CommandArg* caDebugCart = cmdArgs.FindOption(TEXT("-debugcart"));
+	CommandArg* caLimitCycles = cmdArgs.FindOption(TEXT("-limitcycles"));
+	CommandArg* caExitScreenShot = cmdArgs.FindOption(TEXT("-exitscreenshot"));
+	CommandArg* caCiaNew = cmdArgs.FindOption(TEXT("-cia-new"));
+	CommandArg* caCiaOld = cmdArgs.FindOption(TEXT("-cia-old"));
+	CommandArg* caHltReset = cmdArgs.FindOption(TEXT("-hlt-reset"));
+	CommandArg* caHltExit = cmdArgs.FindOption(TEXT("-hlt-exit"));
+	CommandArg* caMountDisk = cmdArgs.FindOption(TEXT("-mountdisk"));
+	CommandArg* caMountCart = cmdArgs.FindOption(TEXT("-mountcart"));
+	CommandArg* caNoMessageBox = cmdArgs.FindOption(TEXT("-nomessagebox"));
+	CommandArg* caRunFast = cmdArgs.FindOption(TEXT("-runfast"));
+	CommandArg* caWindowHide = cmdArgs.FindOption(TEXT("-window-hide"));
+	CommandArg* caDefaultSettings = cmdArgs.FindOption(TEXT("-defaultsettings"));
+	CommandArg* caSoundOff= cmdArgs.FindOption(TEXT("-nosound"));
+	CommandArg* caSystemWarm = cmdArgs.FindOption(TEXT("-system-warm"));
+	CommandArg* caSystemCold = cmdArgs.FindOption(TEXT("-system-cold"));	
 	CommandArg* caConfigFile = cmdArgs.FindOption(TEXT("-configfile"));
 
 	if (caNoMessageBox || caWindowHide)
@@ -1053,7 +1057,11 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	bool alignD64 = false;
 	bool systemWarm = false;
 	bool warmForTestbench = false;
+	bool wantQuickLoad = caQuickLoad != nullptr;
 	mainCfg.SetConfigLocation(isExistConfigFile, wsAppConfigFilenameFullPath);
+
+	// Load the ImGui default directory path
+	mainCfg.LoadImGuiSetting();
 
 	//Load the users settings.
 	if (caDefaultSettings)
@@ -1236,12 +1244,36 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 		c64.cpu.bExitOnHltInstruction = true;
 	}	
 
-	if (caMountDisk != NULL)
+	bool isMountedDisk = false;
+	if (caMountDisk != nullptr)
 	{
 		if (caMountDisk->ParamCount >= 1)
 		{			
 			c64.InsertDiskImageFile(caMountDisk->pParam[0], alignD64, true);
+			isMountedDisk = true;
 		}
+		else
+		{
+			uniform_int_distribution<int> dist_byte(0, 0xff);
+			bit8 id1 = dist_byte(this->randengine);
+			bit8 id2 = dist_byte(this->randengine);
+			c64.InsertNewDiskImage(L"NEW DISK", id1, id2, alignD64, 40, true);
+			isMountedDisk = true;
+		}
+	}
+
+	bool keepCurrentCart = false;
+	if (caMountCart != nullptr && caMountCart->ParamCount >= 1)
+	{
+		if (SUCCEEDED(c64.LoadCrtFile(caMountCart->pParam[0])))
+		{
+			keepCurrentCart = true;
+		}
+	}
+	else if (caReu512k != nullptr)
+	{
+		// REU plus and other cart is not implemented.
+		c64.LoadReu1750();
 	}
 
 	if (caSystemWarm)
@@ -1303,14 +1335,31 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 					{
 						directoryIndex = -1;
 					}
-					else if	(directoryIndex > C64Directory::D64MAXDIRECTORYITEMCOUNT)
+					else if	(directoryIndex >= C64Directory::D64MAXDIRECTORYITEMCOUNT)
 					{
-						directoryIndex = C64Directory::D64MAXDIRECTORYITEMCOUNT;
+						directoryIndex = C64Directory::D64MAXDIRECTORYITEMCOUNT - 1;
 					}
 				}
 			}
 			
-			c64.AutoLoad(caAutoLoad->pParam[0], directoryIndex, indexPrgsOnly, pC64filename, caQuickLoad != NULL, alignD64, caReu512k != nullptr);
+			TCHAR* pFilename = caAutoLoad->pParam[0];
+			bool isPrg = false;
+			bool isP00 = false;
+			bool isT64 = false;
+
+			C64File::IsPRG(pFilename, isPrg);
+			C64File::IsP00(pFilename, isP00);
+			C64File::IsT64(pFilename, isT64);
+			if (isPrg || isP00 || isT64)
+			{
+				if (caMountDisk == nullptr || caMountDisk->ParamCount != 0)
+				{
+					// For legacy command line reasons, files types PRG, P00, T64, are always "quick loaded" unless -mountdisk with no file parameter is specified.
+					wantQuickLoad = true;
+				}
+			}
+
+			c64.AutoLoad(pFilename, directoryIndex, indexPrgsOnly, pC64filename, wantQuickLoad, alignD64, keepCurrentCart, caReu512k != nullptr);
 		}
 	}
 
@@ -1668,7 +1717,7 @@ void CApp::AutoLoadDialog(HWND hWnd)
 	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
 	std::shared_ptr<CPRGBrowse> spPrgBrowse(new CPRGBrowse());
 	spFilename[0] = 0;
-	hr = spPrgBrowse->Init(c64.ram.mCharGen, &c64);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload);
 	if (FAILED(hr))
 	{
 		return;
@@ -1682,14 +1731,16 @@ void CApp::AutoLoadDialog(HWND hWnd)
 		TEXT("C64 file (*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s)\0*.fdi;*p64;*.d64;*.g64;*.t64;*.tap;*.p00;*.prg;*.sid;*.crt;*.64s\0\0"),
 		NULL,
 		0);
+
 	b = spPrgBrowse->Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::ALL);
 	if (b)
 	{
-		hr = c64.AutoLoad(spFilename.get(), spPrgBrowse->SelectedDirectoryIndex, false, spPrgBrowse->SelectedC64FileName, spPrgBrowse->SelectedQuickLoadDiskFile, spPrgBrowse->SelectedAlignD64Tracks, spPrgBrowse->SelectedWantReu);
+		hr = c64.AutoLoad(spFilename.get(), spPrgBrowse->SelectedDirectoryIndex, false, spPrgBrowse->SelectedC64FileName, spPrgBrowse->SelectedQuickLoadDiskFile, spPrgBrowse->SelectedAlignD64Tracks, false, spPrgBrowse->SelectedWantReu);
 		if (hr != S_OK)
 		{
 			c64.DisplayError(hWnd, TEXT("Auto Load"));
 		}
+
 		//The call to c64.AutoLoad can enable disk emulation
 		mainCfg.m_bD1541_Emulation_Enable = m_bD1541_Emulation_Enable;
 	}
@@ -1716,7 +1767,7 @@ void CApp::LoadC64ImageDialog(HWND hWnd)
 	b = GetOpenFileName((LPOPENFILENAME)&of);
 	if (b)
 	{
-		hr = c64.LoadImageFile(spFilename.get(), &start, &loadSize);
+		hr = c64.LoadImageFile(spFilename.get(), true, &start, &loadSize, nullptr, nullptr);
 		if (SUCCEEDED(hr))
 		{
 			MemoryChanged();
@@ -1741,7 +1792,7 @@ void CApp::LoadT64Dialog(HWND hWnd)
 
 	spFilename[0] = 0;
 	TCHAR title[] = TEXT("Load T64");
-	hr = spPrgBrowse->Init(c64.ram.mCharGen, &c64);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload);
 	if (FAILED(hr))
 	{
 		spPrgBrowse->DisplayError(hWnd, title);
@@ -1760,8 +1811,9 @@ void CApp::LoadT64Dialog(HWND hWnd)
 	b = spPrgBrowse->Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::T64);
 	if (b)
 	{
+		std::wstring c64filename;
 		i = (spPrgBrowse->SelectedDirectoryIndex < 0) ? 0 : spPrgBrowse->SelectedDirectoryIndex;
-		hr = c64.LoadT64ImageFile(spFilename.get(), i, &start, &loadSize);
+		hr = c64.LoadT64ImageFile(spFilename.get(), i, true, true, c64filename, &start, &loadSize, nullptr, nullptr);
 		if (SUCCEEDED(hr))
 		{
 			MemoryChanged();
@@ -1784,7 +1836,7 @@ void CApp::InsertDiskImageDialog(HWND hWnd)
 
 	spFilename[0] = 0;
 	TCHAR title[] = TEXT("Insert Disk Image");
-	hr = spPrgBrowse->Init(c64.ram.mCharGen, &c64);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload);
 	if (FAILED(hr))
 	{
 		spPrgBrowse->DisplayError(hWnd, title);
@@ -2226,6 +2278,7 @@ unsigned int i;
 		}
 		else 
 		{
+#pragma warning ( disable : 26467 )
 			this->m_framefrequency.QuadPart = (ULONGLONG)(((double)frequency.QuadPart / ((double)PALCLOCKSPERSECOND/((double)PAL_LINES_PER_FRAME * (double)PAL_CLOCKS_PER_LINE))));
 		}
 
@@ -2785,7 +2838,7 @@ bool CApp::PostAutoLoadFile(const wchar_t *pszFilename, int directoryIndex, bool
 	{
 		if (std::wcslen(pszFilename) > 0)
 		{
-			HRESULT hr = this->c64.AutoLoad(pszFilename, directoryIndex, false, nullptr, quickload, false, reu);
+			HRESULT hr = this->c64.AutoLoad(pszFilename, directoryIndex, false, nullptr, quickload, false, false, reu);
 			if (SUCCEEDED(hr))
 			{
 				return true;

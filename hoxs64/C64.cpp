@@ -20,7 +20,7 @@
 #include "savestate.h"
 #include "write_png.h"
 
-C64::C64()
+C64::C64() noexcept
 {
 	isInitOK = false;
 	pIC64Event = 0;
@@ -33,10 +33,16 @@ C64::C64()
 	exitCode = 0;
 	bExitCodeWritten = false;
 	C64Keys::Init();
-	randengine_main.seed(rd());
+	try
+	{ 
+		randengine_main.seed(rd());
+	}
+	catch(...)
+	{
+	}
 }
 
-C64::~C64()
+C64::~C64() noexcept
 {
 }
 
@@ -785,7 +791,7 @@ constexpr int LOADPOSTFIXLENGTH = 5;
 constexpr int KEYTIME = 3;
 HRESULT hr;
 ICLK period;
-bit16 loadSize;
+bit32 loadSize;
 int directoryIndex;
 char szAddress[7];
 LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
@@ -837,101 +843,107 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		}
 		break;
 	case C64::AUTOLOAD_PRG_FILE:		
-	case C64::AUTOLOAD_T64_FILE:	
-		if (autoLoadCommand.sequence == C64::AUTOSEQ_LOAD)
+	case C64::AUTOLOAD_T64_FILE:
+		if (autoLoadCommand.bQuickLoad)
 		{
-			autoLoadCommand.sequence = C64::AUTOSEQ_RUN;
-			if (autoLoadCommand.type == AUTOLOAD_PRG_FILE)
+			if (autoLoadCommand.sequence == C64::AUTOSEQ_LOAD)
 			{
-				hr = LoadImageFile(autoLoadCommand.wsfilename.c_str(), &autoLoadCommand.startaddress, &autoLoadCommand.imageSize);
-			}
-			else
-			{
-				directoryIndex  = (autoLoadCommand.directoryIndex < 0) ? 0 : autoLoadCommand.directoryIndex;
-				hr = LoadT64ImageFile(autoLoadCommand.wsfilename.c_str(), directoryIndex, &autoLoadCommand.startaddress, &autoLoadCommand.imageSize);
-			}
-
-			if (SUCCEEDED(hr))
-			{
-				if (autoLoadCommand.startaddress <= BASICSTARTADDRESS)
+				autoLoadCommand.sequence = C64::AUTOSEQ_RUN;
+				if (autoLoadCommand.type == AUTOLOAD_PRG_FILE)
 				{
-					SetBasicProgramEndAddress(autoLoadCommand.startaddress + autoLoadCommand.imageSize - 1);
+					hr = LoadImageFile(autoLoadCommand.wsfilenameFullPath.c_str(), true, &autoLoadCommand.startaddress, &autoLoadCommand.injectedC64Size16, nullptr, &autoLoadCommand.imageSize32);
 				}
 				else
 				{
-					CopyMemory(&ram.miMemory[SCREENWRITELOCATION], szSysCall, strlen(szSysCall));
-					szAddress[0] = 0;
-					sprintf_s(szAddress, _countof(szAddress), "%u", (unsigned int)autoLoadCommand.startaddress);
-					unsigned int i;
-					for (i=0 ; i < strlen(szAddress) ; i++)
+					directoryIndex = (autoLoadCommand.directoryIndex < 0) ? 0 : autoLoadCommand.directoryIndex;
+					std::wstring c64filename;
+					hr = LoadT64ImageFile(autoLoadCommand.wsfilenameFullPath.c_str(), directoryIndex, true, false, c64filename, &autoLoadCommand.startaddress, &autoLoadCommand.injectedC64Size16, nullptr, &autoLoadCommand.imageSize32);
+				}
+
+				if (SUCCEEDED(hr))
+				{
+					if (autoLoadCommand.startaddress <= BASICSTARTADDRESS)
 					{
-						ram.miMemory[SCREENWRITELOCATION + 4 + i] = szAddress[i];
+						SetBasicProgramEndAddress((bit32)autoLoadCommand.startaddress + (bit32)autoLoadCommand.injectedC64Size16 - 1U);
+					}
+					else
+					{
+						CopyMemory(&ram.miMemory[SCREENWRITELOCATION], szSysCall, strlen(szSysCall));
+						szAddress[0] = 0;
+						sprintf_s(szAddress, _countof(szAddress), "%u", (unsigned int)autoLoadCommand.startaddress);
+						unsigned int i;
+						for (i = 0; i < strlen(szAddress); i++)
+						{
+							ram.miMemory[SCREENWRITELOCATION + 4 + i] = szAddress[i];
+						}
 					}
 				}
-			}
-			else
-			{
-				if (this->pIC64Event)
+				else
 				{
-					pIC64Event->ShowErrorBox(SZAUTOLOADTITLE, errorText);
+					if (this->pIC64Event)
+					{
+						pIC64Event->ShowErrorBox(SZAUTOLOADTITLE, errorText);
+					}
+					autoLoadCommand.CleanUp();
+					appStatus->m_bAutoload = false;
+					break;
 				}
-				autoLoadCommand.CleanUp();
-				appStatus->m_bAutoload = false;
-				break;
 			}
-		}
-		if (autoLoadCommand.startaddress <= BASICSTARTADDRESS)
-		{
-			if (period < resettime + 3)	
+
+			if (autoLoadCommand.startaddress <= BASICSTARTADDRESS)
 			{
-				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_R);
-			}
-			else if (period < resettime + 6)
-			{
-			}
-			else if (period < resettime + 9)	
-			{
-				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_U);
-			}
-			else if (period < resettime + 12)
-			{
-			}
-			else if (period < resettime + 15)	
-			{
-				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_N);
-			}
-			else if (period < resettime + 18)
-			{
-			}
-			else if (period < resettime + 21)
-			{
-				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_RETURN);
+				if (period < resettime + 3)
+				{
+					cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_R);
+				}
+				else if (period < resettime + 6)
+				{
+				}
+				else if (period < resettime + 9)
+				{
+					cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_U);
+				}
+				else if (period < resettime + 12)
+				{
+				}
+				else if (period < resettime + 15)
+				{
+					cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_N);
+				}
+				else if (period < resettime + 18)
+				{
+				}
+				else if (period < resettime + 21)
+				{
+					cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_RETURN);
+				}
+				else
+				{
+					autoLoadCommand.CleanUp();
+					appStatus->m_bAutoload = false;
+				}
 			}
 			else
 			{
-				autoLoadCommand.CleanUp();
-				appStatus->m_bAutoload = false;
+				if (period < resettime + 3)
+				{
+					cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_S);
+				}
+				else if (period < resettime + 6)
+				{
+				}
+				else if (period < resettime + 9)
+				{
+					cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_RETURN);
+				}
+				else
+				{
+					autoLoadCommand.CleanUp();
+					appStatus->m_bAutoload = false;
+				}
 			}
 		}
-		else
-		{
-			if (period < resettime + 3)	
-			{
-				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_S);
-			}
-			else if (period < resettime + 6)
-			{
-			}
-			else if (period < resettime + 9)
-			{
-				cia1.SetKeyMatrixCodeDown(C64MatrixCodes::C64MK_RETURN);
-			}
-			else
-			{
-				autoLoadCommand.CleanUp();
-				appStatus->m_bAutoload = false;
-			}
-		}
+
 		break;
 	case C64::AUTOLOAD_SID_FILE:		
 		if (autoLoadCommand.sequence == C64::AUTOSEQ_LOAD)
@@ -942,11 +954,11 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 				SIDLoader &sl = *autoLoadCommand.pSidFile;
 				if (autoLoadCommand.directoryIndex < 0)
 				{
-					hr = sl.LoadSID(ram.miMemory, autoLoadCommand.wsfilename.c_str(), true, 0);
+					hr = sl.LoadSID(ram.miMemory, autoLoadCommand.wsfilenameFullPath.c_str(), true, 0);
 				}
 				else
 				{
-					hr = sl.LoadSID(ram.miMemory, autoLoadCommand.wsfilename.c_str(), false, autoLoadCommand.directoryIndex + 1);
+					hr = sl.LoadSID(ram.miMemory, autoLoadCommand.wsfilenameFullPath.c_str(), false, autoLoadCommand.directoryIndex + 1);
 				}
 
 				if (SUCCEEDED(hr))
@@ -1010,19 +1022,19 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 			if (autoLoadCommand.bQuickLoad)
 			{
 				autoLoadCommand.type = C64::AUTOLOAD_PRG_FILE;
-				if (autoLoadCommand.pImageData!=0 && autoLoadCommand.imageSize > 2)
+				if (autoLoadCommand.pImageData!=0 && autoLoadCommand.imageSize32 > 2)
 				{
 					autoLoadCommand.startaddress = autoLoadCommand.pImageData[0] + autoLoadCommand.pImageData[1] * 0x100;
 
-					loadSize = autoLoadCommand.imageSize - 2;
-					if ((bit32)autoLoadCommand.startaddress + (bit32)loadSize -1 > 0xffffL)
+					loadSize = (autoLoadCommand.imageSize32 - 2);
+					if ((unsigned int)autoLoadCommand.startaddress + (unsigned int)loadSize > C64RAMSIZE)
 					{
-						loadSize = 0xffff - autoLoadCommand.startaddress + 1;
+						loadSize = C64RAMSIZE - autoLoadCommand.startaddress;
 					}
 
 					if (loadSize > 0)
 					{
-						memcpy_s(&ram.miMemory[autoLoadCommand.startaddress], 0x10000 - autoLoadCommand.startaddress, &autoLoadCommand.pImageData[2], loadSize);					
+						memcpy_s(&ram.miMemory[autoLoadCommand.startaddress], C64RAMSIZE - (unsigned int)autoLoadCommand.startaddress, &autoLoadCommand.pImageData[2], loadSize);					
 						if (autoLoadCommand.startaddress <= BASICSTARTADDRESS)
 						{
 							SetBasicProgramEndAddress(autoLoadCommand.startaddress + loadSize - 1);
@@ -1033,8 +1045,10 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 							szAddress[0] = 0;
 							sprintf_s(szAddress, _countof(szAddress), "%u", (unsigned int)autoLoadCommand.startaddress);
 							unsigned int i;
-							for (i=0 ; i < strlen(szAddress) ; i++)
+							for (i = 0; i < strlen(szAddress); i++)
+							{
 								ram.miMemory[SCREENWRITELOCATION + 4 + i] = szAddress[i];
+							}
 						}
 					}
 				}
@@ -1056,8 +1070,9 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 					memset(screencodebuffer, 0, sizeof(screencodebuffer));
 					for (int i=0 ; i < sizeof(screencodebuffer) ; i++)
 					{
-						screencodebuffer[i]  = C64File::ConvertPetAsciiToScreenCode(autoLoadCommand.c64filename[i]);
+						screencodebuffer[i]  = StringConverter::ConvertPetAsciiToScreenCode(autoLoadCommand.c64filename[i]);
 					}
+
 					memcpy_s(&ram.miMemory[SCREENWRITELOCATION], 40, szLoadDisk, LOADPREFIXLENGTH);
 					memcpy_s(&ram.miMemory[SCREENWRITELOCATION + LOADPREFIXLENGTH], C64Directory::D64FILENAMELENGTH, screencodebuffer, filenamelen); 
 					memcpy_s(&ram.miMemory[SCREENWRITELOCATION + LOADPREFIXLENGTH + filenamelen], 40, &szLoadDisk[LOADPOSTFIXINDEX], LOADPOSTFIXLENGTH);
@@ -1254,7 +1269,7 @@ HRESULT C64::CopyC64FilenameFromString(const TCHAR* sourcestr, bit8* c64filename
 				
 				for (i = 0; i < C64DISKFILENAMELENGTH && i < cchSource && *p != 0; i++, p++)
 				{
-					c64filename[i] = C64File::ConvertCommandLineAnsiToPetAscii(*p);
+					c64filename[i] = StringConverter::ConvertCommandLineAnsiToPetAscii(*p);
 				}
 			}
 
@@ -1494,16 +1509,20 @@ void C64::EndOfTape(ICLK sysclock)
 	TapePressStop();
 }
 
-HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64FileName[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool bReu)
+HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64FileName[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool keepCurrentCart, bool bReu)
 {
 	HRESULT hr = S_OK;
 	C64File c64file;
-	std::wstring wsfilename = filename;
+	std::wstring wsfilenameFullPath = filename;
+	std::wstring wsfilenameonly = filename;
+	std::wstring wsfilenamewithoutext = filename;
 	std::wstring wsext;
 
 	ClearError();
 	autoLoadCommand.CleanUp();
-	wsext = Wfs::GetFileExtension(wsfilename);
+	wsfilenameonly = Wfs::GetFileName(wsfilenameFullPath);
+	wsfilenamewithoutext = Wfs::GetFileNameWithoutExtension(wsfilenameFullPath);
+	wsext = Wfs::GetFileExtension(wsfilenameFullPath);
 
 	autoLoadCommand.type = C64::AUTOLOAD_NONE;
 	autoLoadCommand.sequence = C64::AUTOSEQ_RESET;
@@ -1531,152 +1550,183 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 		memcpy_s(autoLoadCommand.c64filename, sizeof(autoLoadCommand.c64filename), c64FileName, C64DISKFILENAMELENGTH);
 	}
 
-	appStatus->m_bAutoload = false;
-	autoLoadCommand.wsfilename = filename;
-	if (lstrlen(wsext.c_str()) > 0)
-	{
-		if (_wcsicmp(wsext.c_str(), TEXT(".64s"))==0)
-		{
-			pIC64Event->SetBusy(true);
-			hr = this->LoadC64StateFromFile(filename);
-			pIC64Event->SetBusy(false);
-			{
-				SetError(hr, TEXT("Unable to load."));
-			}
+	try
+	{ 
+		appStatus->m_bAutoload = false;
+		autoLoadCommand.wsfilenameFullPath = filename;
+		uniform_int_distribution<int> dist_byte('A', 'Z');
+		bit8 id1 = dist_byte(this->randengine_main);
+		bit8 id2 = dist_byte(this->randengine_main);
 
-			autoLoadCommand.type = C64::AUTOLOAD_NONE;
-			appStatus->m_bAutoload = false;
-			return hr;
-		}
-		else if (_wcsicmp(wsext.c_str(), TEXT(".crt"))==0)
+		if (lstrlen(wsext.c_str()) > 0)
 		{
-			hr = LoadCrtFile(filename);
-			autoLoadCommand.type = C64::AUTOLOAD_NONE;
-			appStatus->m_bAutoload = false;
-			return hr;
-		}
-		else if (_wcsicmp(wsext.c_str(), TEXT(".tap"))==0)
-		{
-			hr = LoadTAPFile(filename);
-			if (SUCCEEDED(hr))
+			if (_wcsicmp(wsext.c_str(), TEXT(".64s")) == 0)
 			{
-				autoLoadCommand.type = C64::AUTOLOAD_TAP_FILE;
-				appStatus->m_bAutoload = true;
-			}
-			else
-			{
-				return hr;
-			}
-		}
-		else if (_wcsicmp(wsext.c_str(), TEXT(".prg"))==0 || _wcsicmp(wsext.c_str(), TEXT(".p00"))==0)
-		{
-			autoLoadCommand.type = C64::AUTOLOAD_PRG_FILE;
-			appStatus->m_bAutoload = true;
-		}		
-		else if (_wcsicmp(wsext.c_str(), TEXT(".t64"))==0)
-		{
-			autoLoadCommand.type = C64::AUTOLOAD_T64_FILE;
-			appStatus->m_bAutoload = true;
-		}		
-		else if (_wcsicmp(wsext.c_str(), TEXT(".d64"))==0 || _wcsicmp(wsext.c_str(), TEXT(".g64"))==0 || _wcsicmp(wsext.c_str(), TEXT(".fdi"))==0  || _wcsicmp(wsext.c_str(), TEXT(".p64"))==0)
-		{
-			if (!appStatus->m_bD1541_Emulation_Enable)
-			{
-				diskdrive.CurrentPALClock = cpu.CurrentClock;
-				appStatus->m_bD1541_Emulation_Enable = TRUE;
-			}
-			
-			pIC64Event->SetBusy(true);
-			hr = InsertDiskImageFile(filename, bAlignD64Tracks, true);
-			if (SUCCEEDED(hr))
-			{
-				if (bQuickLoad)
+				pIC64Event->SetBusy(true);
+				hr = this->LoadC64StateFromFile(filename);
+				pIC64Event->SetBusy(false);
 				{
-					if (autoLoadCommand.pImageData)
-					{
-						GlobalFree(autoLoadCommand.pImageData);
-						autoLoadCommand.pImageData = 0;
-					}
-					if (autoLoadCommand.directoryIndex<0)
-					{
-						hr = c64file.LoadFileImage(filename, NULL, &autoLoadCommand.pImageData, &autoLoadCommand.imageSize);
-					}
-					else
-					{
-						hr = c64file.LoadFileImage(filename, autoLoadCommand.c64filename, &autoLoadCommand.pImageData, &autoLoadCommand.imageSize);
-					}
-					if (FAILED(hr))
-					{
-						SetError(hr, TEXT("Unable to quick load."));
-					}
-				}
-			}
-			pIC64Event->SetBusy(false);
-			if (SUCCEEDED(hr))
-			{
-				autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
-				appStatus->m_bAutoload = true;
-				if (bReu)
-				{
-					if (!cart.IsCartAttached() || !cart.IsREU())
-					{
-						cart.DetachCart();
-						cart.LoadReu1750();
-						cart.AttachCart();
-					}
-				}
-				else
-				{
-					cart.DetachCart();
+					SetError(hr, TEXT("Unable to load."));
 				}
 
-				Reset(cpu.CurrentClock, true);
-				this->pIC64Event->Reset();
-				return hr;
-			}
-			else
-			{
-				autoLoadCommand.CleanUp();
+				autoLoadCommand.type = C64::AUTOLOAD_NONE;
 				appStatus->m_bAutoload = false;
 				return hr;
 			}
-		}
-		else if (_wcsicmp(wsext.c_str(), TEXT(".sid"))==0)
-		{
-			autoLoadCommand.pSidFile = new SIDLoader();
-			if (autoLoadCommand.pSidFile == 0)
+			else if (_wcsicmp(wsext.c_str(), TEXT(".crt")) == 0)
 			{
-				return SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
+				hr = LoadCrtFile(filename);
+				if (SUCCEEDED(hr))
+				{
+					keepCurrentCart = true;
+				}
+
+				autoLoadCommand.type = C64::AUTOLOAD_NONE;
+				appStatus->m_bAutoload = false;
+				return hr;
 			}
-			hr = autoLoadCommand.pSidFile->LoadSIDFile(filename);
-			if (FAILED(hr))
+			else if (_wcsicmp(wsext.c_str(), TEXT(".tap")) == 0)
 			{
-				return SetError(*(autoLoadCommand.pSidFile));
+				hr = LoadTAPFile(filename);
+				if (SUCCEEDED(hr))
+				{
+					autoLoadCommand.type = C64::AUTOLOAD_TAP_FILE;
+					appStatus->m_bAutoload = true;
+				}
+				else
+				{
+					return hr;
+				}
 			}
-			autoLoadCommand.type = C64::AUTOLOAD_SID_FILE;
-			appStatus->m_bAutoload = true;
+			else if (_wcsicmp(wsext.c_str(), TEXT(".prg")) == 0 || _wcsicmp(wsext.c_str(), TEXT(".p00")) == 0)
+			{
+				autoLoadCommand.type = C64::AUTOLOAD_PRG_FILE;
+				if (!bQuickLoad)
+				{
+					hr = InsertNewDiskImageWithPrgFile(wsfilenamewithoutext, id1, id2, bAlignD64Tracks, 35, true, wsfilenamewithoutext, wsfilenameFullPath);
+					if (SUCCEEDED(hr))
+					{
+						autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
+						autoLoadCommand.c64filename[0] = 0xA0;
+						autoLoadCommand.directoryIndex = -1;
+					}
+				}
+
+				appStatus->m_bAutoload = true;
+			}
+			else if (_wcsicmp(wsext.c_str(), TEXT(".t64")) == 0)
+			{
+				autoLoadCommand.type = C64::AUTOLOAD_T64_FILE;
+				if (!bQuickLoad)
+				{
+					std::wstring c64filename;
+					directoryIndex = (autoLoadCommand.directoryIndex < 0) ? 0 : autoLoadCommand.directoryIndex;
+					hr = InsertNewDiskImageWithT64File(wsfilenamewithoutext, id1, id2, bAlignD64Tracks, 35, true, c64filename, autoLoadCommand.wsfilenameFullPath, directoryIndex);
+					if (SUCCEEDED(hr))
+					{
+						autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
+						autoLoadCommand.c64filename[0] = 0xA0;
+						autoLoadCommand.directoryIndex = -1;
+					}
+				}
+
+				appStatus->m_bAutoload = true;
+			}
+			else if (_wcsicmp(wsext.c_str(), TEXT(".d64")) == 0 || _wcsicmp(wsext.c_str(), TEXT(".g64")) == 0 || _wcsicmp(wsext.c_str(), TEXT(".fdi")) == 0 || _wcsicmp(wsext.c_str(), TEXT(".p64")) == 0)
+			{
+				if (!appStatus->m_bD1541_Emulation_Enable)
+				{
+					diskdrive.CurrentPALClock = cpu.CurrentClock;
+					appStatus->m_bD1541_Emulation_Enable = TRUE;
+				}
+
+				pIC64Event->SetBusy(true);
+				hr = InsertDiskImageFile(filename, bAlignD64Tracks, true);
+				if (SUCCEEDED(hr))
+				{
+					if (bQuickLoad)
+					{
+						if (autoLoadCommand.pImageData)
+						{
+							GlobalFree(autoLoadCommand.pImageData);
+							autoLoadCommand.pImageData = 0;
+						}
+
+						if (autoLoadCommand.directoryIndex < 0)
+						{
+							hr = c64file.LoadFileImage(filename, NULL, &autoLoadCommand.pImageData, &autoLoadCommand.imageSize32);
+						}
+						else
+						{
+							hr = c64file.LoadFileImage(filename, autoLoadCommand.c64filename, &autoLoadCommand.pImageData, &autoLoadCommand.imageSize32);
+						}
+
+						if (FAILED(hr))
+						{
+							SetError(hr, TEXT("Unable to quick load."));
+						}
+					}
+				}
+
+				pIC64Event->SetBusy(false);
+				if (SUCCEEDED(hr))
+				{
+					autoLoadCommand.type = C64::AUTOLOAD_DISK_FILE;
+					appStatus->m_bAutoload = true;
+				}
+				else
+				{
+					autoLoadCommand.CleanUp();
+					appStatus->m_bAutoload = false;
+					return hr;
+				}
+			}
+			else if (_wcsicmp(wsext.c_str(), TEXT(".sid")) == 0)
+			{
+				autoLoadCommand.pSidFile = new SIDLoader();
+				if (autoLoadCommand.pSidFile == 0)
+				{
+					return SetError(E_OUTOFMEMORY, ErrorMsg::ERR_OUTOFMEMORY);
+				}
+				hr = autoLoadCommand.pSidFile->LoadSIDFile(filename);
+				if (FAILED(hr))
+				{
+					return SetError(*(autoLoadCommand.pSidFile));
+				}
+				autoLoadCommand.type = C64::AUTOLOAD_SID_FILE;
+				appStatus->m_bAutoload = true;
+			}
+			else
+			{
+				return SetError(E_FAIL, TEXT("Unknown file type."));
+			}
 		}
 		else
 		{
 			return SetError(E_FAIL, TEXT("Unknown file type."));
 		}
-	}
-	else
-	{
-		return SetError(E_FAIL,TEXT("Unknown file type."));
-	}
 
-	if (bReu)
-	{
-		if (!cart.IsCartAttached() || !cart.IsREU())
+		// Mounting a non REU cart takes priority. The non REU cart is mounted and the REU is not mounted.
+		if (!keepCurrentCart && bReu)
 		{
-			cart.LoadReu1750();
-			cart.AttachCart();
+			if (!cart.IsCartAttached() || !cart.IsREU())
+			{
+				CartData cartData;
+				if (SUCCEEDED(cart.LoadReu1750(cartData)))
+				{
+					cart.DetachCart();
+					cart.AttachCartData(cartData);
+				}
+			}
+		}
+		else if (!keepCurrentCart)
+		{
+			cart.DetachCart();
 		}
 	}
-	else
+	catch (...)
 	{
-		cart.DetachCart();
+
 	}
 
 	Reset(cpu.CurrentClock, true);
@@ -1684,123 +1734,268 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 	return S_OK;
 }
 
-HRESULT C64::LoadImageFile(const TCHAR *filename, bit16* pStartAddress, bit16* pSize)
+HRESULT C64::LoadImageFile(const TCHAR* filename, bool injectC64Memory, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize)
 {
-HANDLE hfile=0;
-BOOL r;
-DWORD bytes_read,file_size;
-bit32 start,code_size,s;
-const TCHAR *p;
-
-	ClearError();
-	hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-	if (hfile == INVALID_HANDLE_VALUE)
+	try
 	{
-		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
-	}
+		HANDLE hfile = 0;
+		BOOL r;
+		DWORD bytes_read;
+		DWORD bytes_to_read;
+		bit64 file_size;
+		bit32 start, code_size, s;
+		const TCHAR* p;
 
-	file_size = GetFileSize(hfile, 0);
-	if (INVALID_FILE_SIZE == file_size)
-	{
-		CloseHandle(hfile);
-		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
-	}
-
-	if (file_size > sizeof(ram.tmp_data))
-	{
-		CloseHandle(hfile);
-		return SetError(E_FAIL, TEXT("%s is too large to be a C64 image."), filename);
-	}
-
-	r=ReadFile(hfile,&ram.tmp_data[0],file_size,&bytes_read,NULL);
-	CloseHandle(hfile);
-	if (r == 0)
-	{
-		return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
-	}
-
-	if (bytes_read != file_size)
-	{
-		return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
-	}
-
-	if (lstrlen(filename) >= 4)
-	{
-		p = &(filename[lstrlen(filename) - 4]);
-		if (_wcsicmp(p, TEXT(".p00")) == 0)
+		ClearError();
+		hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		if (hfile == INVALID_HANDLE_VALUE)
 		{
-			start = *((bit16*)(&ram.tmp_data[0x1a]));
-			code_size = (bit16)file_size - 0x1c;
-			s = 0x1c;
+			return SetError(E_FAIL, TEXT("Could not open %s."), filename);
 		}
-		else if (_wcsicmp(p, TEXT(".prg")) == 0)
+
+		if (!GetFileSizeEx(hfile, (PLARGE_INTEGER)&file_size))
 		{
-			start = *((bit16*)(&ram.tmp_data[0x00]));
-			code_size = (bit16)file_size - 0x2;
-			s = 0x2;
+			CloseHandle(hfile);
+			return SetError(E_FAIL, TEXT("Could not open %s."), filename);
 		}
-		else
+
+		if (file_size > (bit64)C64MAXFILESIZE)
 		{
-			start = *((bit16*)(&ram.tmp_data[0x00]));
-			code_size = (bit16)file_size - 0x2;
-			s = 0x2;
+			CloseHandle(hfile);
+			return SetError(E_FAIL, TEXT("%s is too large to be a C64 image."), filename);
+		}
+
+		bit32 file_size_low32 = (bit32)(file_size & 0xffffffff);
+
+		if (pBuffer == nullptr)
+		{
+			if (pcbBufferSize != nullptr)
+			{
+				*pcbBufferSize = file_size_low32;
+			}
+		}
+
+		if (pBuffer != nullptr || injectC64Memory)
+		{
+			auto pTempBuffer = std::shared_ptr<bit8[]>(new bit8[file_size_low32]);
+			bytes_to_read = file_size_low32;
+			r = ReadFile(hfile, pTempBuffer.get(), bytes_to_read, &bytes_read, NULL);
+			CloseHandle(hfile);
+			if (r == 0)
+			{
+				return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
+			}
+
+			if (bytes_read != file_size)
+			{
+				return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
+			}
+
+			if (lstrlen(filename) >= 4)
+			{
+				p = &(filename[lstrlen(filename) - 4]);
+				if (_wcsicmp(p, TEXT(".p00")) == 0)
+				{
+					start = *((bit16*)(&pTempBuffer[0x1a]));
+					code_size = (bit16)file_size - 0x1c;
+					s = 0x1c;
+				}
+				else if (_wcsicmp(p, TEXT(".prg")) == 0)
+				{
+					start = *((bit16*)(&pTempBuffer[0x00]));
+					code_size = (bit16)file_size - 0x2;
+					s = 0x2;
+				}
+				else
+				{
+					start = *((bit16*)(&pTempBuffer[0x00]));
+					code_size = (bit16)file_size - 0x2;
+					s = 0x2;
+				}
+			}
+			else
+			{
+				start = *((bit16*)(&pTempBuffer[0x00]));
+				code_size = (bit16)file_size - 0x2;
+				s = 0x2;
+			}
+
+			start &= 0xffff;
+			if (code_size > C64RAMSIZE)
+			{
+				code_size = C64RAMSIZE;
+			}
+
+			if ((code_size + start) > C64RAMSIZE)
+			{
+				code_size = C64RAMSIZE - start;
+			}
+
+			if (injectC64Memory)
+			{
+				memcpy(&ram.mMemory[start], &pTempBuffer[s], code_size);
+			}
+
+			if (injectedC64Size != nullptr)
+			{				
+				*injectedC64Size = (bit16)code_size;
+			}
+
+			if (pStartAddress != nullptr)
+			{
+				*pStartAddress = (bit16)start;
+			}
+
+			if (pBuffer != nullptr && pcbBufferSize != nullptr)
+			{
+				bit32 trimsize = std::min((bit32)file_size, *pcbBufferSize);
+				*pcbBufferSize = trimsize;
+				memcpy(pBuffer, &pTempBuffer[s], trimsize);
+			}
 		}
 	}
-	else
+	catch (...)
 	{
-		start = *((bit16*)(&ram.tmp_data[0x00]));
-		code_size = (bit16)file_size - 0x2;
-		s = 0x2;
+		return E_FAIL;
 	}
 
-	start &= 0xffff;
-	code_size &= 0xffff;
-	if ((code_size + start - 1) > 0xffff)
-	{
-		code_size = 0x10000 - start;
-	}
 
-	memcpy(&ram.mMemory[start],&ram.tmp_data[s], code_size);
-	*pStartAddress = (bit16)start;
-	*pSize = (bit16)code_size;
 	return S_OK;
 }
 
-HRESULT C64::LoadT64ImageFile(const TCHAR *filename, int t64Index, bit16* pStartAddress, bit16* pSize)
+HRESULT C64::LoadT64ImageFile(const std::wstring filename, int t64Index, bool injectC64Memory, bool prependStartAddressToBuffer, std::wstring& c64filename, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize)
 {
-HANDLE hfile=0;
-bit16 start,code_size;
-T64 t64;
-HRESULT hr;
-	
+	HANDLE hfile = 0;
+	constexpr bit32 address16size = 2;
+	bit32 start, code_size;
+	bit32 file_size;
+	T64 t64;
+	HRESULT hr;
+
 	ClearError();
-	if (t64Index<0)
-		return SetError(E_FAIL,TEXT("Could not open the selected directory item for %s."), filename);
+	if (t64Index < 0)
+	{
+		return SetError(E_FAIL, TEXT("Could not open the selected directory item for %s."), filename.c_str());
+	}
+
 	hr = t64.LoadT64Directory(filename, MAXT64LIST);
 	if (FAILED(hr))
+	{
 		return SetError(t64);
+	}
+
 	if (t64.t64Header.maxEntries <= t64Index)
-		return SetError(E_FAIL,TEXT("Could not open the selected directory item for %s."), filename);
+	{
+		return SetError(E_FAIL, TEXT("Could not open the selected directory item for %s."), filename.c_str());
+	}
 
-	if (t64.t64Item[t64Index].mySize > 0xffff || t64.t64Item[t64Index].mySize <= 2)
-		return SetError(E_FAIL,TEXT("Could not open the selected directory item for %s."), filename);
+	if (t64.t64Item[t64Index].mySize > C64MAXFILESIZE || t64.t64Item[t64Index].mySize <= 2)
+	{
+		return SetError(E_FAIL, TEXT("Could not open the selected directory item for %s."), filename.c_str());
+	}
 
+	std::string ansiC64filename;
+	unsigned int i;
+	unsigned int j;
+	bool hasNonSpace = false;
+	for (i = 0; i < C64DISKFILENAMELENGTH; i++)
+	{
+		j = C64DISKFILENAMELENGTH - i - 1;
+		char ch = t64.t64Item[t64Index].c64Filename[j] & 0xff;
+		if (ch != 0x20 && ch != 0xA0)
+		{
+			hasNonSpace = true;
+		}
+
+		if (hasNonSpace)
+		{
+			ansiC64filename.push_back(ch);
+		}
+	}
+
+	std::reverse(ansiC64filename.begin(), ansiC64filename.end());
+	c64filename.assign(StringConverter::StringToWideString(ansiC64filename));
 	start = t64.t64Item[t64Index].startAddress;
-	code_size = (bit16)t64.t64Item[t64Index].mySize;
-	
-	hr = t64.LoadT64File(filename, t64.t64Item[t64Index].offset, code_size);
+	file_size = t64.t64Item[t64Index].mySize;
+	if (file_size > C64MAXFILESIZE)
+	{
+		file_size = C64MAXFILESIZE;
+	}
+
+	if (file_size > C64RAMSIZE)
+	{
+		code_size = C64RAMSIZE;
+	}
+	else
+	{
+		code_size = (bit16)file_size;
+	}
+
+	hr = t64.LoadT64File(filename, t64.t64Item[t64Index].offset, file_size);
 	if (FAILED(hr))
+	{
 		return SetError(t64);
+	}
 
-	if (start==0)
-		start=* ((bit16 *)(&t64.data[0]));
+	if (start == 0)
+	{
+		start = *((bit16*)(&t64.data[0]));
+	}
 
-	if (((bit32)code_size + (bit32)start - 1) > 0xffffL)
-		code_size = 0xffff - start + 1;
-	memcpy(&ram.mMemory[start],&t64.data[0], code_size);
+	if (((bit32)code_size + (bit32)start) > C64RAMSIZE)
+	{
+		code_size = C64RAMSIZE - start;
+	}
 
-	*pStartAddress = (bit16)start;
-	*pSize = (bit16)code_size;
+	if (injectC64Memory)
+	{
+		memcpy(&ram.mMemory[start], &t64.data[0], code_size);
+	}
+
+	if (pStartAddress != nullptr)
+	{
+		*pStartAddress = (bit16)start;
+	}
+
+	if (injectedC64Size != nullptr)
+	{
+		*injectedC64Size = (bit16)code_size;
+	}
+
+	if (pBuffer == nullptr)
+	{
+		if (pcbBufferSize != nullptr)
+		{
+			if (prependStartAddressToBuffer)
+			{
+				*pcbBufferSize = file_size + address16size; 
+			}
+			else
+			{
+				*pcbBufferSize = file_size;
+			}
+		}
+	}
+
+	if (pBuffer != nullptr && pcbBufferSize != nullptr)
+	{
+		bit32 trimsize;
+		if (prependStartAddressToBuffer)
+		{
+			trimsize = std::min(file_size + address16size, *pcbBufferSize);
+			pBuffer[0] = start & 0xFF;
+			pBuffer[1] = (start >> 8) & 0xFF;
+			memcpy(&pBuffer[address16size], &t64.data[0], (size_t)trimsize - (size_t)address16size);
+		}
+		else
+		{
+			trimsize = std::min(file_size, *pcbBufferSize);
+			memcpy(pBuffer, &t64.data[0], trimsize);
+		}
+
+		*pcbBufferSize = trimsize;
+	}
+
 	return S_OK;
 }
 
@@ -1808,10 +2003,11 @@ HRESULT C64::LoadCrtFile(const TCHAR *filename)
 {
 HRESULT hr = E_FAIL;
 	ClearError();
-	hr = cart.LoadCrtFile(filename);
+	CartData cartData;
+	hr = cart.LoadCrtFile(filename, cartData);
 	if (SUCCEEDED(hr))
 	{
-		cart.AttachCart();
+		cart.AttachCartData(cartData);
 		this->HardReset(true);
 	}
 
@@ -1823,10 +2019,11 @@ HRESULT C64::LoadReu1750()
 {
 	HRESULT hr = E_FAIL;
 	ClearError();
-	hr = cart.LoadReu1750();
+	CartData cartData;
+	hr = cart.LoadReu1750(cartData);
 	if (SUCCEEDED(hr))
 	{
-		cart.AttachCart();
+		cart.AttachCartData(cartData);
 		this->HardReset(true);
 	}
 
@@ -1858,32 +2055,30 @@ void C64::RemoveDisk()
 	diskdrive.RemoveDisk();
 }
 
-HRESULT C64::InsertDiskImageFile(const TCHAR *filename, bool alignD64Tracks, bool immediately)
+HRESULT C64::InsertDiskImageFile(const std::wstring filename, bool alignD64Tracks, bool immediately)
 {
-const TCHAR *p;
-
 	ClearError();
-	if (lstrlen(filename) < 4)
+	const std::wstring fext = Wfs::GetFileExtension(filename);
+	if (fext.length() == 0)
 	{
 		return E_FAIL;
 	}
 
-	p = &(filename[lstrlen(filename)-4]);	
-	if (_wcsicmp(p, TEXT(".d64"))==0)
+	if (_wcsicmp(fext.c_str(), L".d64")==0)
 	{
-		return LoadD64FromFile(filename, alignD64Tracks, immediately);
+		return LoadD64FromFile(filename.c_str(), alignD64Tracks, immediately);
 	}
-	else if (_wcsicmp(p, TEXT(".g64"))==0)
+	else if (_wcsicmp(fext.c_str(), L".g64")==0)
 	{
-		return LoadG64FromFile(filename, immediately);
+		return LoadG64FromFile(filename.c_str(), immediately);
 	}
-	else if (_wcsicmp(p, TEXT(".fdi"))==0)
+	else if (_wcsicmp(fext.c_str(), L".fdi")==0)
 	{
-		return LoadFDIFromFile(filename, immediately);
+		return LoadFDIFromFile(filename.c_str(), immediately);
 	}
-	else if (_wcsicmp(p, TEXT(".p64"))==0)
+	else if (_wcsicmp(fext.c_str(), L".p64")==0)
 	{
-		return LoadP64FromFile(filename, immediately);
+		return LoadP64FromFile(filename.c_str(), immediately);
 	}
 	else
 	{
@@ -1892,7 +2087,6 @@ const TCHAR *p;
 
 	return S_OK;
 }
-
 
 HRESULT C64::LoadD64FromFile(const TCHAR *filename, bool alignD64Tracks, bool immediately)
 {
@@ -1998,7 +2192,71 @@ HRESULT hr;
 	return hr;
 }
 
-HRESULT C64::InsertNewDiskImage(TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks)
+HRESULT C64::InsertNewDiskImage(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately)
+{
+	return InsertNewDiskImageWithPrgBinary(diskname, id1, id2, bAlignD64Tracks, numberOfTracks, immediately, L"", nullptr, 0);
+}
+
+HRESULT C64::InsertNewDiskImageWithPrgFile(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, const std::wstring prgFileNameFullPath)
+{
+	IStream* pfs = nullptr;
+	HRESULT hr = FileStream::CreateObject(prgFileNameFullPath, &pfs, false);
+	if (SUCCEEDED(hr))
+	{
+		STATSTG stat;
+		ZeroMemory(&stat, sizeof(stat));
+		hr = pfs->Stat(&stat, STATFLAG_NONAME);
+		if (SUCCEEDED(hr))
+		{
+			if (stat.cbSize.QuadPart <= GCRDISK::D64MaxCbm35TrackMaxFileSize)
+			{
+				bit8* pPrgData = (bit8*)GlobalAlloc(GPTR, (SIZE_T)stat.cbSize.QuadPart);
+				if (pPrgData != nullptr)
+				{
+					ULONG bytesRead = 0;
+					hr = pfs->Read(pPrgData, (ULONG)stat.cbSize.LowPart, &bytesRead);
+					if (SUCCEEDED(hr))
+					{
+						bit32 imageSize32 = (bit32)stat.cbSize.LowPart;
+						hr = InsertNewDiskImageWithPrgBinary(diskname, id1, id2, bAlignD64Tracks, 35, true, prgFileName, pPrgData, imageSize32);
+					}
+
+					GlobalFree(pPrgData);
+				}
+			}
+		}
+
+		pfs->Release();
+	}
+
+	return hr;
+}
+
+HRESULT C64::InsertNewDiskImageWithT64File(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, const std::wstring t64FileNameFullPath, int t64directoryIndex)
+{
+	std::wstring c64filename;
+	int directoryIndex = (t64directoryIndex < 0) ? 0 : t64directoryIndex;
+	bit32 imageSize32 = 0;
+	HRESULT hr = LoadT64ImageFile(autoLoadCommand.wsfilenameFullPath.c_str(), directoryIndex, false, true, c64filename, nullptr, nullptr, nullptr, &imageSize32);
+	if (SUCCEEDED(hr))
+	{
+		bit8* pPrgData = (bit8*)GlobalAlloc(GPTR, imageSize32);
+		if (pPrgData != nullptr)
+		{
+			hr = LoadT64ImageFile(t64FileNameFullPath, directoryIndex, false, true, c64filename, nullptr, nullptr, pPrgData, &imageSize32);
+			if (SUCCEEDED(hr))
+			{
+				hr = InsertNewDiskImageWithPrgBinary(diskname, id1, id2, bAlignD64Tracks, 35, true, c64filename, pPrgData, imageSize32);
+			}
+
+			GlobalFree(pPrgData);
+		}
+	}
+
+	return hr;
+}
+
+HRESULT C64::InsertNewDiskImageWithPrgBinary(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, bit8* pPrgData, bit32 cbPrgDataLength)
 {
 GCRDISK dsk;
 HRESULT hr;
@@ -2010,10 +2268,11 @@ HRESULT hr;
 		SetError(dsk);
 		return hr;
 	}
-	dsk.InsertNewDiskImage(diskname, id1, id2, bAlignD64Tracks, numberOfTracks);
+
+	dsk.InsertNewDiskImage(diskname, id1, id2, bAlignD64Tracks, numberOfTracks, prgFileName, pPrgData, cbPrgDataLength);
 	diskdrive.WaitThreadReady();
 	diskdrive.LoadMoveP64Image(&dsk);
-	diskdrive.SetDiskLoaded(false);
+	diskdrive.SetDiskLoaded(immediately);
 	return S_OK;
 }
 
@@ -4106,6 +4365,8 @@ ULARGE_INTEGER pos_next_track_header;
 					break;
 				}
 				break;
+			default:
+				break;
 			}
 
 			if (FAILED(hr))
@@ -4287,7 +4548,7 @@ ULARGE_INTEGER pos_next_track_header;
 		if (spCartInterface)
 		{
 			spCartInterface->SetCurrentClock(clockVIC);
-			cart.AttachCart(spCartInterface);
+			cart.AttachCartInterface(spCartInterface);
 			if (cart.IsCartAttached())
 			{
 				cart.ConfigureMemoryMap();

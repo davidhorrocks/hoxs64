@@ -20,7 +20,7 @@ public:
 		enum filetype {ALL=0,FDI=1,G64=2,D64=4,TAP=8,T64=16,PRG=32,P00=64,SID=128,P64=256};
 	};
 
-	HRESULT Init(bit8 *charGen, IC64* c64);
+	HRESULT Init(bit8 *charGen, bool isReu, bool isQuickload);
 	BOOL Open(HINSTANCE hInstance, OPENFILENAME *pOF, enum FileTypeFlag::filetype filetypes);
 	LRESULT ChildDialogProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam);
 	void PopulateList(HWND hDlg);
@@ -35,7 +35,7 @@ public:
 	int SelectedDirectoryIndex;
 	bool SelectedQuickLoadDiskFile;
 	bool SelectedAlignD64Tracks;
-	bit8 SelectedC64FileName[C64DISKFILENAMELENGTH];
+	bit8 SelectedC64FileName[C64DISKFILENAMELENGTH] = { 0 };
 	int SelectedC64FileNameLength;
 	bool SelectedWantReu;
 
@@ -43,6 +43,9 @@ public:
 	static const int HEADERLINES = 1;
 	bool DisableQuickLoad;
 	bool DisableReuOption;
+	bool QuickLoadDefault;
+	bool InitIsReu;
+	bool InitIsQuickload;
 
 private:
 	CDPI m_dpi;
@@ -72,7 +75,6 @@ private:
 	HBRUSH m_hbrush;
 	void ReSize(HWND hDlg, LONG w, LONG h);
 	void CleanUp() noexcept;
-	IC64* m_pC64;
 	bit8 *m_pCharGen;
 	C64File m_c64file;
 	HWND m_hParent;

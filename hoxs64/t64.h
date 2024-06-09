@@ -63,8 +63,8 @@ class T64 : public ErrorMsg
 public:
 	T64();
 	~T64();
-	HRESULT LoadT64Directory(const TCHAR filename[], int maxcount);
-	HRESULT LoadT64File(const TCHAR filename[], DWORD offset, WORD size);
+	HRESULT LoadT64Directory(const std::wstring filename, int maxcount);
+	HRESULT LoadT64File(const std::wstring filename, DWORD offset, DWORD size);
 	void CleanUp();
 
 	BYTE *data;
@@ -78,10 +78,10 @@ public:
 
 	static const int CONTAINERNAMELENGTH=24;
 	static const int FILENAMELENGTH=16;
-
 private:
 	T64DirectoryItemList dirList;
 
 	static int T64::CompareT64DirItemOffset(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b);
 	static int T64::CompareT64DirItemOriginalIndex(WrappedT64DirectoryItem * const &a, WrappedT64DirectoryItem * const &b);
+	static void FixT64TrailingSpaces(T64DirectoryItem& t64Item);
 };

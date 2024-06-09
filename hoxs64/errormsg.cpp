@@ -63,7 +63,7 @@ HRESULT ErrorMsg::SetError(HRESULT hRet, LPCTSTR szError, ...)
     return hRet;
 }
 
-HRESULT ErrorMsg::SetError(ErrorMsg& err)
+HRESULT ErrorMsg::SetError(const ErrorMsg& err)
 {
 	errorValue = err.errorValue;
 	_tcsncpy_s(errorText, _countof(errorText), err.errorText, _countof(errorText)-1);

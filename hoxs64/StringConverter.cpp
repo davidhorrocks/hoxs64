@@ -1,4 +1,5 @@
 #include <algorithm>
+#include "bits.h"
 #include "StringConverter.h"
 
 HRESULT StringConverter::MultiByteToUc(UINT codepage, LPCSTR pszMb, int cchMbCharsToConvert, LPWSTR pwszUc, int cchOutputBuffer) noexcept
@@ -278,6 +279,145 @@ std::wstring StringConverter::StringToWideString(UINT codepage, const std::strin
 	}
 
 	delete[] pwstr;
+	return s;
+}
+
+bit8 StringConverter::ConvertPetAsciiToScreenCode(bit8 petascii)
+{
+	bit8 addition = 0;
+	if (petascii <= 31)
+		addition = +128;
+	else if (petascii <= 63)
+		addition = 0;
+	else if (petascii <= 95)
+		addition = +192;
+	else if (petascii <= 127)
+		addition = +224;
+	else if (petascii <= 159)
+		addition = +64;
+	else if (petascii <= 191)
+		addition = +192;
+	else if (petascii <= 223)
+		addition = +128;
+	else if (petascii <= 254)
+		addition = +128;
+	else
+		addition = +95;
+
+	return (petascii + addition) & 0xff;
+}
+
+bit8 StringConverter::ConvertPetAsciiToAnsi(bit8 ch)
+{
+	if (ch <= ' ')
+	{
+		return ' ';
+	}
+
+	switch (ch)
+	{
+	case 0x5c:// £ Pound
+		return 0xa3;
+	case 0x5f:
+		return '~';
+	case 0x60:
+		return 0x97;
+	case 0x6d:
+		return '\\';
+	}
+
+	if (ch >= 0x8d && ch <= 0x9f)
+	{
+		return ' ';
+	}
+
+	return ch;
+}
+
+bit8 StringConverter::ConvertAnsiToPetAscii(bit8 ch)
+{
+	if (ch <= ' ')
+	{
+		return ' ';
+	}
+
+	if (ch >= 'a' && ch <= 'z')
+	{
+		return (ch - 0x20) & 0xff;
+	}
+
+	switch (ch)
+	{
+	case 0xa3:// £ Pound
+		return 0x5c;
+	case '~':
+		return 0x5f;
+	case '\\':
+		return 0x6d;
+	case '_':
+		return 0xa4;
+	default:
+		break;
+	}
+
+	if (ch >= 0x8d && ch <= 0x9f)
+	{
+		return ' ';
+	}
+
+	return ch;
+}
+
+bit8 StringConverter::ConvertCommandLineAnsiToPetAscii(bit8 ch)
+{
+	if (ch >= 'A' && ch <= 'Z')
+	{
+		return (ch + 32) & 0xff;
+	}
+	else if (ch >= 'a' && ch <= 'z')
+	{
+		return (ch - 32) & 0xff;
+	}
+
+	switch (ch)
+	{
+	case 0xa3:// £ Pound
+		return 0x5c;
+	case '`':
+		return 0x27;
+	case '\\':
+		return 0x6d;
+	default:
+		break;
+	}
+
+	return ch;
+}
+
+std::string StringConverter::WideStringToPetscii(const std::wstring str)
+{
+	std::string s;
+	unsigned int i;
+	std::string sAnsi = WideStringToString(str);
+	for (i = 0; i < sAnsi.length(); i++)
+	{
+		bit8 ch = ConvertAnsiToPetAscii((bit8)(sAnsi[i] & 0xff));
+		s.push_back(ch);
+	}
+
+	return s;
+}
+
+std::string StringConverter::AnsiStringToPetscii(const std::string str)
+{
+	std::string s;
+	unsigned int i;
+	for (i = 0; i < str.length(); i++)
+	{
+		bit8 ch = ConvertAnsiToPetAscii((bit8)str[i]);
+		s.push_back(ch);
+	}
+
 	return s;
 }
 

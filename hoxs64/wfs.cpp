@@ -10,6 +10,11 @@ const std::wstring Wfs::RootPrefix(L"\\");
 
 bool Wfs::IsAbsolutePath(const std::wstring& path)
 {
+    if (G::IsStringBlank(path))
+    {
+        return false;
+    }
+
     std::wstring plainpath = EnsureRemoveLongNamePrefix(path);
     std::wstring wsroot;
     std::wstring wsdirectorypath;
@@ -225,6 +230,88 @@ bool Wfs::FileExists(const std::wstring& path, bool* pisFound, std::wstring& err
     return isSuccess;
 }
 
+bool Wfs::DirectoryExists(const std::wstring& path, bool* pisFound, DWORD* plastError)
+{
+    DWORD dwAttr = ::GetFileAttributes(Wfs::EnsureLongNamePrefix(path).c_str());
+    DWORD lastError = 0;
+    bool isError = false;
+    bool found = false;
+    if (dwAttr == INVALID_FILE_ATTRIBUTES)
+    {
+        lastError = ::GetLastError();
+        if (lastError == ERROR_FILE_NOT_FOUND)
+        {
+            found = false;
+        }
+        else if (lastError == ERROR_PATH_NOT_FOUND)
+        {
+            found = false;
+        }
+        else if (lastError == ERROR_ACCESS_DENIED)
+        {
+            isError = true;
+            found = false;
+        }
+        else
+        {
+            isError = true;
+            found = false;
+        }
+    }
+    else
+    {
+        if ((dwAttr & FILE_ATTRIBUTE_DIRECTORY) != 0)
+        {
+            found = true;
+        }
+        else
+        {
+            found = false;
+        }
+    }
+
+    if (plastError)
+    {
+        *plastError = lastError;
+    }
+
+    if (pisFound)
+    {
+        *pisFound = found;
+    }
+
+    return !isError;
+}
+
+bool Wfs::DirectoryExists(const std::wstring& path, bool* pisFound, std::wstring& errorMessage)
+{
+    DWORD lastError;
+    bool isSuccess = DirectoryExists(path, pisFound, &lastError);
+    if (!isSuccess)
+    {
+        errorMessage = G::GetLastWin32ErrorWString(lastError);
+    }
+
+    return isSuccess;
+}
+
+std::wstring Wfs::GetFileName(const std::wstring& filename)
+{
+    std::wstring s;
+    if (StringConverter::IsEmptyOrWhiteSpace(filename))
+    {
+        return s;
+    }
+
+    size_t i = filename.find_last_of(L'\\');
+    if (i == std::wstring::npos)
+    {
+        return filename;
+    }
+
+    return filename.substr(i, filename.length() - i);
+}
+
 std::wstring Wfs::GetFileExtension(const std::wstring& filename)
 {
     std::wstring s;
@@ -240,6 +327,41 @@ std::wstring Wfs::GetFileExtension(const std::wstring& filename)
     }
 
     return filename.substr(i, filename.length() - i);
+}
+
+std::wstring Wfs::GetFileNameWithoutExtension(const std::wstring& filename)
+{
+    std::wstring s;
+    if (StringConverter::IsEmptyOrWhiteSpace(filename))
+    {
+        return s;
+    }
+
+    std::wstring f1 = filename;
+    size_t j = filename.find_last_of(L'\\');
+    if (j != std::wstring::npos)
+    {
+        size_t len = filename.length() - j - 1;
+        if (len > 0)
+        {
+            f1 = filename.substr(j + 1, len);
+        }
+        else
+        {
+            return s;
+        }
+    }
+
+    size_t i = f1.find_last_of(L'.');
+    if (i != std::wstring::npos)
+    {
+        if (i > 0)
+        {
+            s = f1.substr(0, i);
+        }
+    }
+
+    return s;
 }
 
 bool Wfs::FilenameHasExtension(const wchar_t filename[], const wchar_t ext[])

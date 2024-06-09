@@ -305,6 +305,8 @@ public:
 	HRESULT ReadJoystickPovList(IConfigDataSource* configSource, int joystickNumber, JoyKeyName::ButtonKeySet regnames, DWORD *pPovOffsets, GameControllerItem::ControllerAxisDirection *pPovDirection, unsigned int maxPovBufferCount, unsigned int* pPovCount);
 	HRESULT SaveCurrentSettings();
 	HRESULT SaveCurrentJoystickSetting(IConfigDataSource* configSource, int joystickNumber, const struct joyconfig& jconfig);
+	HRESULT LoadImGuiSetting();
+	HRESULT SaveImGuiSetting();
 	void LoadDefaultSetting() noexcept;
 	void SetPalettePepto() noexcept;
 	void SetCiaNewOldMode(bool isNew) noexcept;
@@ -317,6 +319,7 @@ private:
 	static const LPCTSTR Section_Joystick;
 	static const LPCTSTR Section_Keyboard;
 	static const LPCTSTR Section_VICIIPalette;
+	static const LPCTSTR Key_ImGuiAutoloadPath;
 	HRESULT ReadRegKeyboardItem(IConfigDataSource* configSource, LPCTSTR keyname, unsigned char keyvalue);
 	HRESULT WriteRegKeyboardItem(IConfigDataSource* configSource, LPCTSTR keyname, unsigned char keyvalue);
 	std::shared_ptr<IConfigDataSource> GetConfigSource();
@@ -342,6 +345,7 @@ public:
 	bool m_bAllowOpposingJoystick = false;
 	bool m_bDisableDwmFullscreen = false;
 	bool m_bEnableImGuiWindowed = true;
+	bool m_bSaveWindowPositionOnExit = true;
 	bool m_bSID_Emulation_Enable = true;
 	bool m_bShowSpeed = true;
 	bool m_bLimitSpeed = true;
@@ -375,4 +379,5 @@ public:
 	HCFG::ETRACKZEROSENSORSTYLE m_TrackZeroSensorStyle;
 	HCFG::CIAMODE m_CIAMode = HCFG::CIAMODE::CM_CIA6526A;
 	bool m_bTimerBbug = false;
+	std::wstring m_imgui_autoload_folder;
 };

@@ -18,7 +18,11 @@ public:
 	static void Path_Append(std::wstring& pathToBeChanged, const std::wstring& pathToBeAppended);
 	static bool FileExists(const std::wstring& path, bool* pisFound, DWORD* plastError);
 	static bool FileExists(const std::wstring& path, bool* pisFound, std::wstring& errorMessage);
+	static bool DirectoryExists(const std::wstring& path, bool* pisFound, DWORD* plastError);
+	static bool DirectoryExists(const std::wstring& path, bool* pisFound, std::wstring& errorMessage);
 	static std::wstring GetFileExtension(const std::wstring& filename);
+	static std::wstring GetFileName(const std::wstring& filename);
+	static std::wstring GetFileNameWithoutExtension(const std::wstring& filename);
 	static bool FilenameHasExtension(const wchar_t filename[], const wchar_t ext[]);
 	static void SplitRootPath(const std::wstring path, std::wstring& root, std::wstring& directorypath, std::wstring& filename);
 	static void SplitRootPath(const std::wstring path, std::wstring& longnameprefix, std::wstring& root, std::wstring& directorypath, std::wstring& filename);

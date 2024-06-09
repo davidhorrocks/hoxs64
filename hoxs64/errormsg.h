@@ -19,7 +19,7 @@ public:
 	bool OK();
 	void ClearError();
 	HRESULT SetError(HRESULT hRet, LPCTSTR szError, ...);
-	HRESULT SetError(ErrorMsg& err);
+	HRESULT SetError(const ErrorMsg& err);
 	HRESULT SetErrorFromGetLastError();
 	HRESULT SetErrorFromGetLastError(DWORD err, LPCTSTR szError);
 	void DisplayError(HWND hWnd, const TCHAR title[]);

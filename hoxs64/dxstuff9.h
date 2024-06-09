@@ -25,7 +25,7 @@ public:
 		Joy2=2
 	};
 	
-	CDX9();
+	CDX9() noexcept;
 	~CDX9();
 	CDX9(const CDX9&) = delete;
 	CDX9& operator=(const CDX9&) = delete;

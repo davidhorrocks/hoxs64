@@ -58,13 +58,13 @@ public:
     std::wstring lastErrorMessage;
 private:
     void generateCopy(const std::wstring& filename);
-    bool testPath(std::wstring& filename);
+    bool testPath(const std::wstring& filename);
     void removeMarginWhites(std::wstring& s);
     void removeMarginWhites(std::string& s);
     void removeSpaces(std::wstring& s);
 
     //Mode mode;
-    bool copyIsNecessary;    
+    bool copyIsNecessary = false;    
     static constexpr int BOM_COUNT_UTF8 = 3;
     static const char bomUtf8[3];
     const char whitespacelist[4] = { ' ', '\t', '\r', '\n' };
@@ -78,7 +78,7 @@ private:
     bool isValueChar(char ch) const;
     bool isAcceptChar(char ch, bool acceptKeyName, bool acceptKeyValue) const;
     bool isQuotedStringEscapeRequired(char ch) const;
-    unsigned long long lineNumber;
+    unsigned long long lineNumber = 0;
 
     struct IniToken
     {

@@ -24,6 +24,7 @@ public:
 	bool m_bPaused = true;
 	bool m_bClosing = false;
 	bool m_bIsDebugCart = false;
+	bool m_preferQuickload = false;
 	signed int m_fskip = 0;
 
 	HCFG::AUDIOSPEED m_audioSpeedStatus = HCFG::AUDIOSPEED::AUDIO_OK;

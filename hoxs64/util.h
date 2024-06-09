@@ -148,8 +148,8 @@ private:
 			LeftRightOuter
 		} ScalingType;
 
-		Scaling();
-		Scaling(ScalingType scaleType, double scale);
+		Scaling() noexcept;
+		Scaling(ScalingType scaleType, double scale) noexcept;
 		ScalingType scaleType;
 		double scale;
 	};

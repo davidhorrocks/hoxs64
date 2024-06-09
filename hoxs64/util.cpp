@@ -76,12 +76,12 @@ void C64WindowDimensions::SetBorder(HCFG::EMUBORDERSIZE border)
 	assert(LastRasterLine == FirstRasterLine + Height - 1);
 }
 
-C64WindowDimensions::Scaling::Scaling(ScalingType scaleType, double scale)
+C64WindowDimensions::Scaling::Scaling(ScalingType scaleType, double scale) noexcept
 	: scaleType(scaleType), scale(scale)
 {
 }
 
-C64WindowDimensions::Scaling::Scaling()
+C64WindowDimensions::Scaling::Scaling() noexcept
 	: scaleType(Scaling::TopBottomOuter), scale((double)(WDNoBorderWidth + 2 * BEZEL) / (double)(WDNoBorderHeight + 2 * BEZEL))
 {
 }

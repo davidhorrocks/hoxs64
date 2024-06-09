@@ -50,15 +50,14 @@ struct CDisplayRefreshInfo
 class CDiagEmulationSettingsTab : public CTabDialog, public ErrorMsg
 {
 public:
-	CDiagEmulationSettingsTab();
-	virtual ~CDiagEmulationSettingsTab();
 	void loadconfig(const CConfig *);
 	void saveconfig(CConfig *);
 
 	HRESULT Init(Graphics* pGx, const CConfig *cfg);
 	CConfig CurrentCfg;
 	CConfig NewCfg;
-	HFONT defaultFont;
+	HFONT defaultFont = NULL;
+
 protected:
 	void SettingsOnLimitSpeedChange();
 	void SettingsOnCiaChipChange();

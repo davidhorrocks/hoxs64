@@ -10,7 +10,7 @@
 
 #define ASSUMED_DPI_DEFAULT (96)
 
-CDX9::CDX9()
+CDX9::CDX9() noexcept
 {
 	int i;
 	pDirectInputCreateEx = 0;
@@ -249,14 +249,14 @@ DWORD i2 =0;
 
 	if (SUCCEEDED(pSoundBuffer->Lock(0, 0, &p1, &i1, &p2, &i2, DSBLOCK_ENTIREBUFFER)))
 	{
-		for (DWORD i = 0 ; i < (i1 / (DWORD)sizeof(bit32)) ; i++)
+		for (DWORD i = 0 ; i < (i1 / (DWORD)sizeof(DWORD)) ; i++)
 		{
-			((bit32 *)p1)[i] = value;
+			((DWORD*)p1)[i] = (DWORD)value;
 		}
 
-		for (DWORD i = 0 ; i < (i2 / (DWORD)sizeof(bit32)) ; i++)
+		for (DWORD i = 0 ; i < (i2 / (DWORD)sizeof(DWORD)) ; i++)
 		{
-			((bit32 *)p2)[i] = value;
+			((DWORD*)p2)[i] = (DWORD)value;
 		}
 
 		pSoundBuffer->Unlock(p1, i1, p2, i2);

@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 class FileStream : public IStream
 {
 private:
@@ -11,9 +12,12 @@ public:
     virtual ~FileStream();
 
 public:
-    HRESULT static CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite);
 
-    HRESULT static CreateObject(HANDLE hFile, bool bOwnFileHandle, IStream ** ppStream);
+    static HRESULT CreateObject(std::wstring filename, IStream** ppStream, bool fWrite);
+
+    static HRESULT CreateObject(LPCTSTR pName, IStream ** ppStream, bool fWrite);
+
+    static HRESULT CreateObject(HANDLE hFile, bool bOwnFileHandle, IStream ** ppStream);
 
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void ** ppvObject) override;
 	

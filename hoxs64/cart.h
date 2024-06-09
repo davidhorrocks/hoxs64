@@ -112,8 +112,13 @@ struct SsCartCommonV1
 
 struct CrtChipAndData
 {
-	CrtChipAndData();
-	~CrtChipAndData();
+	CrtChipAndData() noexcept;
+	~CrtChipAndData() noexcept;
+	CrtChipAndData(const CrtChipAndData&) = default;
+	CrtChipAndData& operator=(const CrtChipAndData&) = default;
+	CrtChipAndData(CrtChipAndData&&) = default;
+	CrtChipAndData& operator=(CrtChipAndData&&) noexcept = default;
+
 	CrtChip chip;
 	bit8 *pData = nullptr;
 	bool ownData = false;
@@ -124,8 +129,13 @@ struct CrtChipAndData
 
 struct CrtBank
 {
-	CrtBank();
-	virtual ~CrtBank();
+	CrtBank()  noexcept;
+	virtual ~CrtBank() noexcept;
+	CrtBank(const CrtBank&) = default;
+	CrtBank& operator=(const CrtBank&) = default;
+	CrtBank(CrtBank&&) = default;
+	CrtBank& operator=(CrtBank&&) noexcept = default;
+
 	bit16 bank = 0;
 	CrtChipAndData chipAndDataLow;
 	CrtChipAndData chipAndDataHigh;
@@ -135,6 +145,29 @@ typedef shared_ptr<CrtBank> Sp_CrtBank;
 typedef vector<Sp_CrtBank> CrtBankList;
 typedef vector<Sp_CrtBank>::iterator CrtBankListIter;
 typedef vector<Sp_CrtBank>::const_iterator CrtBankListConstIter;
+
+class CartData
+{
+public:
+	CartData() noexcept;
+	~CartData() noexcept;
+	CartData(const CartData&) = delete;
+	CartData& operator=(const CartData&) = delete;
+	CartData(CartData&&) noexcept;
+	CartData& operator=(CartData&&) noexcept;
+
+	void CleanUp() noexcept;
+	void Disown() noexcept;
+
+	CrtHeader m_crtHeader = {}; //Cartridge file header information.
+	CrtBankList* m_plstBank = nullptr;//A list of cart ROM/EPROM banks that index the cartridge memory data.
+	bit8* m_pCartData = nullptr;// The cartridge memory data.
+	bit8* m_pZeroBankData = nullptr;// The pointer to an 8KB memory bank that is separate from the list of banks defined in m_plstBank
+	unsigned int m_amountOfExtraRAM = 0;// The size in bytes of extra RAM that is at the start pointed to by m_pCartData.
+
+private:
+	void MoveItHere(CartData&& cartData) noexcept;
+};
 
 class ICartInterface : public IRegister
 {
@@ -185,12 +218,12 @@ public:
 	virtual HRESULT LoadState(IStream* pfs, int version) = 0;
 	virtual HRESULT SaveState(IStream* pfs) = 0;
 
-	virtual HRESULT InitCart(unsigned int amountOfExtraRAM, bit8* pCartData, CrtBankList* plstBank, bit8* pZeroBankData) = 0;
+	virtual HRESULT InitCart(CartData& cartData) = 0;
 };
 
 class Cart;
 
-class CartCommon : public ICartInterface
+class CartCommon : protected CartData, public ICartInterface
 {
 public:
 	CartCommon(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory);
@@ -248,7 +281,7 @@ public:
 	void PreventClockOverflow() override;
 	HRESULT LoadState(IStream* pfs, int version) override;
 	HRESULT SaveState(IStream* pfs) override;
-	HRESULT InitCart(unsigned int amountOfExtraRAM, bit8* pCartData, CrtBankList* plstBank, bit8* pZeroBankData) override;
+	HRESULT InitCart(CartData& cartData) override;
 	virtual HRESULT SaveMemoryState(IStream* pfs);
 protected:
 	virtual void UpdateIO() = 0;
@@ -256,11 +289,11 @@ protected:
 	virtual unsigned int GetStateBytes(int version, void* pstate);
 	virtual HRESULT SetStateBytes(int version, void* pstate, unsigned int size);
 
-	CrtHeader m_crtHeader = {};
-	CrtBankList* m_plstBank = nullptr;
-	bit8* m_pCartData = nullptr;
-	bit8* m_pZeroBankData = nullptr;
-	unsigned int m_amountOfExtraRAM;
+	//CrtHeader m_crtHeader = {};
+	//CrtBankList* m_plstBank = nullptr;
+	//bit8* m_pCartData = nullptr;
+	//bit8* m_pZeroBankData = nullptr;
+	//unsigned int m_amountOfExtraRAM;
 	bit8* m_ipROML = nullptr;
 	bit8* m_ipROMH = nullptr;
 
@@ -358,11 +391,11 @@ public:
 	static const bit8 S_CART_NAME_REU1750[9];
 
 	void Init(IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory);
-	HRESULT LoadCrtFile(LPCTSTR filename);
-	HRESULT LoadReu1750();
+	HRESULT LoadCrtFile(LPCTSTR filename, CartData& cartData);
+	HRESULT LoadReu1750(CartData& cartData);
 	shared_ptr<ICartInterface> CreateCartInterface(const CrtHeader& crtHeader);
 	static bool IsSupported(CartType::ECartType hardwareType);
-	bool IsSupported();
+	static bool IsSupported(const CrtHeader& crtHeader);
 
 	void Reset(ICLK sysclock, bool poweronreset) override;
 	void ExecuteCycle(ICLK sysclock) override;
@@ -407,7 +440,6 @@ public:
 	void CheckForCartFreeze() override;
 	bool SnoopWrite(bit16 address, bit8 data) override;
 	void SnoopRead(bit16 address, bit8 data) override;
-	void AttachCart(shared_ptr<ICartInterface> spCartInterface);
 	void AttachCart() override;
 	void DetachCart() override;
 	void ConfigureMemoryMap() override;
@@ -416,18 +448,12 @@ public:
 	void PreventClockOverflow() override;
 
 	HRESULT LoadCartInterface(IStream* pfs, int version, shared_ptr<ICartInterface>& spCartInterface);
+	void AttachCartInterface(shared_ptr<ICartInterface> spCartInterface);
+	void AttachCartData(CartData& cartData);
 	HRESULT LoadState(IStream* pfs, int version) override;
 	HRESULT SaveState(IStream* pfs) override;
-	HRESULT InitCart(unsigned int amountOfExtraRAM, bit8* pCartData, CrtBankList* plstBank, bit8* pZeroBankData) override;
+	HRESULT InitCart(CartData& cartData) override;
 
-	CrtHeader m_crtHeader = {};//Cart head information
-	unsigned int m_offsetToDefault8kZeroBank;
-	unsigned int m_offsetToFirstChipBank;
-	CrtBankList* m_plstBank = nullptr;//A list of cart ROM/EPROM banks that index the cart memory data.
-	bit8* m_pCartData = nullptr; //Pointer to the cart memory data. This a block of RAM followed by 1 or more ROM/EPROM banks.
-	bit8* m_pZeroBankData = nullptr; //An offset into the cart memory data that points past the initial block of RAM to the first ROM/EPROM bank.
-	unsigned int m_amountOfExtraRAM;
-	bool m_bIsCartDataLoaded = false;
 private:
 	static const unsigned int RAMRESERVEDSIZE_V0 = 64 * 1024 + 8 * 1024;// Assume 64K cart RAM + 8K zero byte bank
 	static const unsigned int ZEROBANKOFFSET_V0 = 64 * 1024;
@@ -440,7 +466,6 @@ private:
 	static bool IsHeaderReu(const CrtHeader& crtHeader) noexcept;
 	static void MarkHeaderAsReu(CrtHeader& crtHeader) noexcept;
 
-	void CleanUp() noexcept;
 	IC6510* m_pCpu = nullptr;
 	bit8* m_pC64RamMemory = nullptr;
 	IVic* m_pVic = nullptr;

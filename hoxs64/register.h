@@ -425,7 +425,11 @@ public:
 	virtual void TapePressStop() = 0;
 	virtual void TapePressRewind() = 0;
 	virtual void TapePressEject() = 0;
-	virtual HRESULT InsertNewDiskImage(TCHAR* diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks) = 0;
+	virtual HRESULT InsertDiskImageFile(const std::wstring filename, bool alignD64Tracks, bool immediately) = 0;
+	virtual HRESULT InsertNewDiskImage(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately) = 0;
+	virtual HRESULT InsertNewDiskImageWithPrgBinary(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, bit8* pPrgData, bit32 cbPrgDataLength) = 0;
+	virtual HRESULT InsertNewDiskImageWithPrgFile(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, const std::wstring prgFileNameFullPath) = 0;
+	virtual HRESULT InsertNewDiskImageWithT64File(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, bool immediately, const std::wstring prgFileName, const std::wstring t64FileNameFullPath, int t64directoryIndex) = 0;
 	virtual void RemoveDisk() = 0;
 	virtual void Set_DiskProtect(bool bOn) = 0;
 	virtual bool Get_DiskProtect() = 0;

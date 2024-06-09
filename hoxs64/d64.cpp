@@ -20,6 +20,7 @@
 #include "p64config.h"
 #include "p64.h"
 #include "d64.h"
+#include "C64File.h"
 #include "CDPI.h"
 #include "utils.h"
 
@@ -3448,33 +3449,401 @@ HRESULT hr;
 	return hr;
 }
 
-void GCRDISK::MakeNewD64Image(const TCHAR *diskname, bit8 id1, bit8 id2)
+void GCRDISK::MakeNewD64Image(const std::wstring diskname, bit8 id1, bit8 id2, const std::wstring prgFileName, const bit8* pPrgData, unsigned int cbPrgDataLength)
 {
-char dname[16];
-int i;
-	memset(&dname[0], 160, 16);
+	const std::string petsciiDiskname = StringConverter::WideStringToPetscii(Wfs::GetFileName(diskname));
+	const std::string petsciiPrgFileName = StringConverter::WideStringToPetscii(Wfs::GetFileName(prgFileName));
+	bit8 dname[D64MaxFileNameLength];
+	bit8 fname[D64MaxFileNameLength];
+	unsigned int i;
+	memset(&dname[0], 0xA0, _countof(dname));
+	memset(&fname[0], 0xA0, _countof(fname));
 	memset(m_pD64Binary, 0x0, MAX_D64_SIZE);
 	CopyMemory(&m_pD64Binary[D64_info[17].file_offset], &D64_BAM[0], 256L);
-	for (i=0 ; i<=15 ; i++)
+	for (i = 0; i < D64MaxFileNameLength && i < petsciiDiskname.length(); i++)
 	{
-		if (diskname[i] !=0 && diskname[i] !=160)
-			dname[i] = diskname[i] & 255;
+		bit8 ch = petsciiDiskname[i];
+		if (ch != 0xA0)
+		{
+			dname[i] = ch;
+		}
 		else
+		{
 			break;
+		}
 	}
-	CopyMemory(&m_pD64Binary[D64_info[17].file_offset + 0x90], &dname[0], 16);
+
+	CopyMemory(&m_pD64Binary[D64_info[17].file_offset + 0x90], &dname[0], D64MaxFileNameLength);
 	m_pD64Binary[D64_info[17].file_offset + 0xA2] = id1;
 	m_pD64Binary[D64_info[17].file_offset + 0xA3] = id2;
+
+	size_t filenamelen = 0;
+	for (i = 0; i < D64MaxFileNameLength && i < petsciiPrgFileName.length(); i++)
+	{
+		bit8 ch = petsciiPrgFileName[i];
+		if (ch != 0xA0)
+		{
+			fname[i] = ch;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (pPrgData != nullptr)
+	{
+		WritePrgToD64(&fname[0], D64MaxFileNameLength, pPrgData, cbPrgDataLength);
+	}
 }
 
-void GCRDISK::InsertNewDiskImage(const TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks)
+void GCRDISK::WritePrgToD64(const bit8* pFilename, size_t cbFileNameLength, const bit8* pPrgData, unsigned int cbPrgDataLength)
+{
+	unsigned int dataindex;
+	unsigned int cbAmountCopied = 0;
+	bool stepoutwards = true;
+	unsigned int cbRemainingData = cbPrgDataLength;
+	unsigned int trackNumber = 17;// 1 based. Ranges from 1 - 35
+	unsigned sectorIndex = 0;// 0 based. BAM is sector 0; first directory sector = 1;
+	bool full = false;
+	unsigned int firstFileTrackNumber = 0;
+	unsigned int firstFileSectorIndex = 0;
+	unsigned int nextFileTrackNumber = 0;
+	unsigned int nextFileSectorIndex = 0;
+	bool wantZeroLengthFile = cbPrgDataLength == 0;
+	unsigned int fileBlockSize = 0;
+	unsigned int fileSize = 0;
+	if (pPrgData != nullptr)
+	{
+		// Write the file data.
+		for (dataindex = 0; !full && dataindex < cbPrgDataLength && cbRemainingData > 0; dataindex += cbAmountCopied)
+		{
+			cbAmountCopied = 0;
+			if (nextFileTrackNumber != 0)
+			{
+				trackNumber = nextFileTrackNumber;
+				sectorIndex = nextFileSectorIndex;
+				nextFileTrackNumber = 0;
+			}
+
+			bit8* pStartOfSector = &m_pD64Binary[D64_info[trackNumber - 1].file_offset + sectorIndex * D64TotalBytesPerSector];
+			if (IsD64SectorFree(trackNumber, sectorIndex))
+			{
+				D64SectorSetUsageInBam(trackNumber, sectorIndex, true);
+				fileBlockSize++;
+				if (firstFileTrackNumber == 0)
+				{
+					firstFileTrackNumber = trackNumber;
+					firstFileSectorIndex = sectorIndex;
+				}
+
+				if (cbRemainingData >= D64DataPerSector)
+				{
+					cbAmountCopied = D64DataPerSector;
+					cbRemainingData -= D64DataPerSector;
+				}
+				else
+				{
+					cbAmountCopied = cbRemainingData;
+					cbRemainingData = 0;
+				}
+
+				if (cbAmountCopied > 0)
+				{
+					CopyMemory(&pStartOfSector[D64StartIndexFileData], &pPrgData[dataindex], cbAmountCopied);
+					fileSize += cbAmountCopied;
+				}
+			}
+			else
+			{
+				fileSize = fileSize;
+			}
+
+			if (cbRemainingData > 0)
+			{
+				if (stepoutwards)
+				{
+					nextFileTrackNumber = trackNumber;
+					nextFileSectorIndex = sectorIndex + 1;
+					if (nextFileSectorIndex >= D64_info[nextFileTrackNumber - 1].sector_count)
+					{
+						if (nextFileTrackNumber <= 1)
+						{
+							nextFileTrackNumber = 19;
+							nextFileSectorIndex = 0;
+							stepoutwards = false;
+						}
+						else
+						{
+							nextFileTrackNumber -= 1;
+							nextFileSectorIndex = 0;
+						}
+					}
+				}
+				else
+				{
+					nextFileTrackNumber = trackNumber;
+					nextFileSectorIndex = sectorIndex + 1;
+					if (nextFileSectorIndex >= D64_info[nextFileTrackNumber - 1].sector_count)
+					{
+						if (nextFileTrackNumber < D64MaxCbmDosTracks)
+						{
+							nextFileTrackNumber += 1;
+							nextFileSectorIndex = 0;
+						}
+						else
+						{
+							full = true;
+							nextFileTrackNumber = 0;
+							nextFileSectorIndex = 0;
+						}
+					}
+				}
+			}
+
+			if (!full && cbRemainingData > 0)
+			{
+				pStartOfSector[0] = nextFileTrackNumber & 0xff;
+				pStartOfSector[1] = nextFileSectorIndex & 0xff;
+			}
+			else
+			{
+				pStartOfSector[0] = 0;
+
+				// cbAmountCopied is never more than 0xFE
+				pStartOfSector[1] = (cbAmountCopied + 1) & 0xff;
+			}
+		}
+	}
+
+	bool found = false;
+	unsigned int directoryEntryIndex;
+	sectorIndex = 1;
+	trackNumber = D64BamTrackNumber;
+	if (!full)
+	{
+		// Write the directory entry..
+		unsigned int sectorsTried = 0;
+		for (sectorsTried = 0; !found && sectorsTried < D64MaxCbmFreeFileBlocks; sectorsTried++)
+		{
+			constexpr unsigned int MaxEntriesPerSector = 8;
+			if (trackNumber == 0 || trackNumber > D64MaxCbmDosTracks)
+			{
+				break;
+			}
+
+			bit8* pDirSector = &m_pD64Binary[D64_info[trackNumber - 1].file_offset + sectorIndex * D64TotalBytesPerSector];
+			if (sectorIndex >= D64_info[trackNumber - 1].sector_count)
+			{
+				break;
+			}
+
+			unsigned int nextDirTrack = (unsigned int)pDirSector[0];
+			unsigned int nextDirSectorIndex = (unsigned int)pDirSector[1];
+			for (directoryEntryIndex = 0; directoryEntryIndex < MaxEntriesPerSector; directoryEntryIndex++)
+			{
+				if (IsD64DirectoryEntryFree(trackNumber, sectorIndex, directoryEntryIndex))
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (found)
+			{
+				break;
+			}
+			else
+			{
+				trackNumber = nextDirTrack;
+				sectorIndex = nextDirSectorIndex;
+			}
+		}
+	}
+
+	if (found)
+	{
+		D64SetDirectoryEntry(pFilename, cbFileNameLength, trackNumber, sectorIndex, directoryEntryIndex,  firstFileTrackNumber, firstFileSectorIndex, fileBlockSize, fileSize);
+	}
+}
+
+// trackNumber is 1 based. Ranges from 1 - 35
+// sectorIndex is 0 based. Starts a zero;
+void GCRDISK::D64SetDirectoryEntry(const bit8* pFilename, size_t cbFilenameLength, unsigned int trackNumber, unsigned int sectorIndex, unsigned int directoryEntryIndex, unsigned int firstFileTrackNumber, unsigned int firstFileSectorIndex, unsigned int fileBlockSize, unsigned int fileSize)
+{
+	if (trackNumber == 0 || trackNumber > D64MaxCbmDosTracks)
+	{
+		return;
+	}
+
+	bit8* pDirSector = &m_pD64Binary[D64_info[trackNumber - 1].file_offset + sectorIndex * D64TotalBytesPerSector];
+	unsigned int countSectors = (unsigned int)D64_info[D64BamTrackNumber - 1].sector_count;
+	if (sectorIndex >= countSectors)
+	{
+		return;
+	}
+
+	bit8* pDirEntry = &pDirSector[directoryEntryIndex * D64DirectoryEntrySize];
+	ZeroMemory(pDirEntry, D64DirectoryEntrySize);
+	if (directoryEntryIndex == 0)
+	{
+		pDirEntry[0] = 0;
+		pDirEntry[1] = 0xff;
+	}
+	else
+	{
+		pDirEntry[0] = 0;
+		pDirEntry[1] = 0;
+	}
+
+	pDirEntry[2] = 0x82;//PRG; Closed
+	pDirEntry[3] = firstFileTrackNumber & 0xff;
+	pDirEntry[4] = firstFileSectorIndex & 0xff;
+	unsigned int i;
+	for (i = 0; i < D64MaxFileNameLength; i++)
+	{
+		bit8 ch = pFilename[i];
+		if (i < cbFilenameLength)
+		{			
+			pDirEntry[0x5 + i] = ch;
+		}
+		else
+		{
+			pDirEntry[0x5 + i] = 0xA0;
+		}
+	}
+
+	pDirEntry[0x15] = 0;
+	pDirEntry[0x16] = 0;
+	pDirEntry[0x1E] = fileBlockSize & 0xff;
+	pDirEntry[0x1F] = (fileBlockSize >> 8) & 0xff;
+}
+
+// trackNumber is 1 based. Ranges from 1 - 35
+// sectorIndex is 0 based. Starts a zero;
+bool GCRDISK::IsD64DirectoryEntryFree(unsigned int trackNumber, unsigned int sectorIndex, unsigned int directoryEntryIndex)
+{
+	if (trackNumber == 0 || trackNumber > D64MaxCbmDosTracks)
+	{
+		return false;
+	}
+
+	bit8* pDirSector = &m_pD64Binary[D64_info[trackNumber - 1].file_offset + sectorIndex * D64TotalBytesPerSector + directoryEntryIndex * D64DirectoryEntrySize];
+	unsigned int countSectors = (unsigned int)D64_info[trackNumber - 1].sector_count;
+	if (sectorIndex >= countSectors)
+	{
+		return false;
+	}
+
+	bool isFree = true;
+	for (unsigned i = 2; i < D64DirectoryEntrySize; i++)
+	{
+		if (pDirSector[i] != 0)
+		{
+			isFree = false;
+		}
+	}
+
+	return isFree;
+}
+
+// trackNumber is 1 based. Ranges from 1 - 35
+// sectorIndex is 0 based. Starts a zero;
+bool GCRDISK::IsD64SectorFree(unsigned int trackNumber, unsigned int sectorIndex)
+{
+	if (trackNumber == 0 || trackNumber > D64MaxCbmDosTracks)
+	{
+		return false;
+	}
+
+	bit8* pStartOfBAMSector = &m_pD64Binary[D64_info[D64BamTrackNumber - 1].file_offset];
+	unsigned int countSectors = (unsigned int)D64_info[trackNumber - 1].sector_count;
+	if (sectorIndex >= countSectors)
+	{
+		return false;
+	}
+
+	unsigned  bamSectorByteIndex = (trackNumber - 1) * 4;
+	bamSectorByteIndex += 4;
+	unsigned int countOfFreeSectors = pStartOfBAMSector[bamSectorByteIndex];
+	if (countOfFreeSectors == 0)
+	{
+		return false;
+	}
+
+	bamSectorByteIndex += 1;
+	bamSectorByteIndex += (sectorIndex / 8);
+	unsigned  bamSectorBitIndex = sectorIndex % 8;
+	bit8 mask = (0x1 << bamSectorBitIndex) & 0xff;
+	bit8 bamByte = pStartOfBAMSector[bamSectorByteIndex];
+	if ((bamByte & mask) != 0)
+	{
+		// Is free.
+		return true;
+	}
+	else
+	{
+		// Is in use.
+		return false;
+	}	
+}
+
+void GCRDISK::D64SectorSetUsageInBam(unsigned int trackNumber, unsigned int sectorIndex, bool setAsInUse)
+{
+	if (trackNumber == 0 || trackNumber > D64MaxCbmDosTracks)
+	{
+		return;
+	}
+
+	bool setAsFree = !setAsInUse;
+	bit8* pStartOfBAMSector = &m_pD64Binary[D64_info[D64BamTrackNumber - 1].file_offset];
+	unsigned int countSectors = (unsigned int)D64_info[trackNumber - 1].sector_count;
+	if (sectorIndex >= countSectors)
+	{
+		return;
+	}
+
+	unsigned  bamSectorByteIndex = (trackNumber - 1) * 4;
+	bamSectorByteIndex += 4;
+	bit8& countOfFreeSectors = pStartOfBAMSector[bamSectorByteIndex];
+	bamSectorByteIndex += 1;
+	bamSectorByteIndex += (sectorIndex / 8);
+	unsigned  bamSectorBitIndex = sectorIndex % 8;
+	bit8 mask = (0x1 << bamSectorBitIndex) & 0xff;
+	bit8& bamByte = pStartOfBAMSector[bamSectorByteIndex];
+	if ((bamByte & mask) != 0)
+	{
+		// Was free.
+		if (setAsInUse)
+		{
+			bamByte = bamByte & ~mask;
+			if (countOfFreeSectors > 0)
+			{
+				countOfFreeSectors = countOfFreeSectors - 1;
+			}
+		}
+	}
+	else
+	{
+		// Was in use.
+		if (setAsFree)
+		{
+			bamByte = bamByte | mask;
+			if (countOfFreeSectors < countSectors)
+			{
+				countOfFreeSectors = countOfFreeSectors + 1;
+			}
+		}
+	}
+}
+
+void GCRDISK::InsertNewDiskImage(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, const std::wstring prgFileName, const bit8* pPrgData, unsigned int cbPrgDataLength)
 {
 	m_d64_protectOff=0;
 	m_d64TrackCount = numberOfTracks == 40 ? 40 : 35;
-	MakeNewD64Image(diskname, id1, id2);
+	MakeNewD64Image(diskname, id1, id2, prgFileName, pPrgData, cbPrgDataLength);
 	MakeGCRImage(m_pD64Binary, m_d64TrackCount, 0, bAlignD64Tracks);
 }
-
 
 bit8 GCRDISK::GetByte(unsigned int trackNumber, unsigned int bitIndex)
 {

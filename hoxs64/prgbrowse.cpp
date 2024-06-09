@@ -50,6 +50,8 @@ UINT_PTR CALLBACK PRGBrowseDialogHookProc(HWND hDlg, UINT msg, WPARAM wParam, LP
 #define WM_FILEINSPECTOR WM_USER
 CPRGBrowse::CPRGBrowse() noexcept
 {
+	InitIsReu = false;
+	InitIsQuickload = false;
 	mhEvtQuit = 0;
 	mFileInspectorStatus = COMPLETED;
 	mFileInspectorResult = S_OK;
@@ -58,12 +60,15 @@ CPRGBrowse::CPRGBrowse() noexcept
 	mbSectionOK = false;
 	m_hbrush = 0;
 	m_pCharGen = 0;
-	m_hParent=0;
-	m_hBrowse=0;
-	m_hListBox= 0;
+	m_hParent = 0;
+	m_hBrowse = 0;
+	m_hListBox = 0;
 	m_hInstance = 0;
-	SelectedListItem=-1;
-	SelectedDirectoryIndex=-1;
+	m_hCheckQuickLoad = 0;
+	m_hCheckAlignD64Tracks = 0;
+	m_hCheckReu = 0;
+	SelectedListItem = -1;
+	SelectedDirectoryIndex = -1;
 	SelectedQuickLoadDiskFile = false;
 	SelectedAlignD64Tracks = false;
 	SelectedWantReu = false;
@@ -71,6 +76,7 @@ CPRGBrowse::CPRGBrowse() noexcept
 	miLoadedListItemCount = 0;
 	DisableQuickLoad = false;
 	DisableReuOption = false;
+	QuickLoadDefault = false;
 }
 
 CPRGBrowse::~CPRGBrowse()
@@ -102,10 +108,14 @@ void CPRGBrowse::CleanUp() noexcept
 	}
 }
 
-HRESULT CPRGBrowse::Init(bit8 *pCharGen, IC64* c64)
+HRESULT CPRGBrowse::Init(bit8 *pCharGen, bool isReu, bool isQuickload)
 {
 	RGBQUAD rgb;
-	m_pC64 = c64;
+	InitIsReu = isReu;
+	InitIsQuickload = isQuickload;
+	DisableQuickLoad = false;
+	DisableReuOption = false;
+	QuickLoadDefault = false;
 	mhEvtComplete = CreateEvent(NULL, TRUE, TRUE, NULL);
 	if (!mhEvtComplete)
 	{
@@ -197,13 +207,22 @@ HRESULT CPRGBrowse::CreateControls(HWND hDlg)
 	SendMessage(m_hListBox, LB_SETITEMHEIGHT, 0, m_dpi.ScaleY(HEIGHT_LVITEM_96));
 	SendMessage(m_hListBox, LB_SETHORIZONTALEXTENT, m_dpi.ScaleX(MAXLENLVITEM * HEIGHT_LVFONT_96), 0);
 
-	if (m_pC64->IsReuAttached())
+	if (InitIsReu)
 	{
 		CheckDlgButton(hDlg, IDC_CHKREU, BST_CHECKED);
 	}
 	else
 	{
 		CheckDlgButton(hDlg, IDC_CHKREU, BST_UNCHECKED);
+	}
+
+	if (InitIsQuickload)
+	{
+		CheckDlgButton(hDlg, IDC_CHKQUICKLOAD, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(hDlg, IDC_CHKQUICKLOAD, BST_UNCHECKED);
 	}
 
 	SelectedListItem=-1;
@@ -514,6 +533,8 @@ LRESULT lr;
 				}
 
 				return FALSE;
+			default:
+				break;
 			}
 		}
 		break;
@@ -564,29 +585,34 @@ LRESULT lr;
 		{
 			PopulateList(hDlg);
 
-			switch (m_c64file.GetFileType())
-			{
-			case C64File::ef_P64:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			case C64File::ef_FDI:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			case C64File::ef_G64:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			case C64File::ef_D64:
-				EnableWindow(m_hCheckQuickLoad, TRUE);
-				EnableWindow(m_hCheckAlignD64Tracks, TRUE);
-				break;
-			default:
-				EnableWindow(m_hCheckQuickLoad, FALSE);
-				EnableWindow(m_hCheckAlignD64Tracks, FALSE);
-				break;
-			}
+			EnableWindow(m_hCheckQuickLoad, TRUE);
+			EnableWindow(m_hCheckAlignD64Tracks, TRUE);
+
+			// Commented out due to a new option to copy prg to disk.
+			// Therefore loading prg no loner implies a quickload.
+			//switch (m_c64file.GetFileType())
+			//{
+			//case C64File::ef_P64:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//case C64File::ef_FDI:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//case C64File::ef_G64:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//case C64File::ef_D64:
+			//	EnableWindow(m_hCheckQuickLoad, TRUE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, TRUE);
+			//	break;
+			//default:
+			//	EnableWindow(m_hCheckQuickLoad, FALSE);
+			//	EnableWindow(m_hCheckAlignD64Tracks, FALSE);
+			//	break;
+			//}
 		}
 		else if (mFileInspectorStatus == CPRGBrowse::WORKING)
 		{
@@ -834,7 +860,7 @@ RGBQUAD rgb;
 	for (i = 0; i < length; i++, x += x_advance)
 	{
 		petascii = str[i];	
-		c = C64File::ConvertPetAsciiToScreenCode(petascii);
+		c = StringConverter::ConvertPetAsciiToScreenCode(petascii);
 
 		for (row = 0; row < 8; row++)
 		{

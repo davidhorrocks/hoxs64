@@ -2,7 +2,9 @@
 
 CartRetroReplay::CartRetroReplay(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, bit8* pC64RamMemory)
 	: CartCommon(crtHeader, pCpu, pVic, pC64RamMemory),
-	m_bDE01WriteDone(m_statebool[0])
+	m_bDE01WriteDone(m_statebool[0]),
+	m_bIsFreezeButtonPressed(m_statebool[0]),
+	m_freezeButtonPressedClock(m_stateuint[0])
 {
 	m_bDE01WriteDone = false;
 }
@@ -25,7 +27,7 @@ bit8 CartRetroReplay::ReadRegister(bit16 address, ICLK sysclock)
 
 	if ((address == 0xDE00 || address == 0xDE01))
 	{
-		return (reg1 & 0xB8) | (reg2 & 0x42);
+		return (reg1 & 0xB8) | (reg2 & 0x42) | ((m_bIsFreezeButtonPressed != false) << 2);
 	}
 	else if (address >= 0xDE00 && address < 0xDF00 && m_bREUcompatible)
 	{
@@ -81,7 +83,7 @@ void CartRetroReplay::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	{
 		if (m_bDE01WriteDone)
 		{
-			reg2 = (reg2 & 0x86) | (data & ~0x86);
+			reg2 = (reg2 & 0x46) | (data & ~0x46);
 		}
 		else
 		{
@@ -171,7 +173,10 @@ void CartRetroReplay::CartFreeze()
 {
 	if (m_bIsCartAttached)
 	{
-		if ((reg2 & 0x04) == 0)
+		bool bWasPressed = m_bIsFreezeButtonPressed;
+		m_bIsFreezeButtonPressed = true;
+		m_freezeButtonPressedClock = m_pCpu->Get6510CurrentClock();
+		if (!bWasPressed && !m_bFreezePending && (reg2 & 0x04) == 0)
 		{
 			m_pCpu->Set_CRT_IRQ(m_pCpu->Get6510CurrentClock());
 			m_pCpu->Set_CRT_NMI(m_pCpu->Get6510CurrentClock());
@@ -237,5 +242,17 @@ void CartRetroReplay::UpdateIO()
 		m_bIsCartIOActive = (reg1 & 0x4) == 0;
 		BankRom();
 		m_ipROMH = m_ipROML;
+	}
+}
+
+
+void CartRetroReplay::ExecuteCycle(ICLK sysclock)
+{
+	if (m_bIsFreezeButtonPressed)
+	{
+		if ((m_pCpu->Get6510CurrentClock() - m_freezeButtonPressedClock) > 500000)
+		{
+			m_bIsFreezeButtonPressed = false;
+		}
 	}
 }

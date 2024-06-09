@@ -37,7 +37,8 @@ Index of this file:
 */
 
 #pragma once
-
+#pragma warning( push )
+#pragma warning( disable : 26455 26432 26447 26472)
 // Configuration file with compile-time options (edit imconfig.h or #define IMGUI_USER_CONFIG to your own filename)
 #ifdef IMGUI_USER_CONFIG
 #include IMGUI_USER_CONFIG
@@ -2614,3 +2615,4 @@ struct ImGuiViewport
 #endif
 
 #endif // #ifndef IMGUI_DISABLE
+#pragma warning( pop )

@@ -168,6 +168,16 @@ HRESULT ConfigFileIni::ReadGUID(LPCTSTR sectionName, LPCTSTR valueName, GUID& gu
     return IConfigDataSource::ErrorNotFound;
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="sectionName"></param>
+/// <param name="valueName"></param>
+/// <param name="buffer"></param>
+/// <param name="cchBuffer">if buffer is null then cchBuffer returns the required buffer size in characters including room for the zero terminator
+/// if buffer is not null then cchBuffer specifies the buffer size in characters which must include room for the zero terminator
+/// </param>
+/// <returns></returns>
 HRESULT ConfigFileIni::ReadString(LPCTSTR sectionName, LPCTSTR valueName, LPTSTR buffer, DWORD& cchBuffer)
 {
     if (buffer == nullptr)
@@ -408,12 +418,31 @@ HRESULT ConfigFileIni::WriteGUID(LPCTSTR sectionName, LPCTSTR valueName, const G
     return S_OK;
 }
 
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="sectionName"></param>
+/// <param name="valueName"></param>
+/// <param name="buffer"></param>
+/// <param name="cchBuffer">cchBuffer should include zero terminater</param>
+/// <returns></returns>
 HRESULT ConfigFileIni::WriteString(LPCTSTR sectionName, LPCTSTR valueName, LPCTSTR buffer, DWORD cchBuffer)
 {
     std::wstring s;
     if (cchBuffer > 0)
     {
-        s.append(buffer, cchBuffer);
+        if (buffer[cchBuffer - 1] != '\0')
+        {
+            s.append(buffer, cchBuffer);
+        }
+        else
+        {
+            if (cchBuffer - 1 > 0)
+            {
+                s.append(buffer, cchBuffer - 1);
+            }
+        }
     }
 
     this->iniFile.ensureKeyValue(sectionName, valueName, s);

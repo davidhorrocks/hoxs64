@@ -83,11 +83,12 @@ void T64::CleanUp()
 	memset(&t64Header, 0, sizeof(t64Header));
 }
 
-HRESULT T64::LoadT64Directory(const TCHAR filename[], int maxcount)
+HRESULT T64::LoadT64Directory(const std::wstring filename, int maxcount)
 {
 HANDLE hfile=0;
 BOOL r;
-DWORD bytes_read,file_size,byteCount;
+DWORD bytes_read, byteCount;
+LARGE_INTEGER file_size;
 WORD i;
 int numItems;
 HRESULT hr;
@@ -103,11 +104,16 @@ HRESULT hr;
 		return SetError(E_FAIL, TEXT("Could not open %s."), &filename[0]);
 	}
 
-	file_size = GetFileSize(hfile, 0);
-	if (INVALID_FILE_SIZE == file_size)
+	if (!GetFileSizeEx(hfile, &file_size))
 	{
 		CloseHandle(hfile);
 		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
+	}
+
+	if (file_size.QuadPart > MAXUINT32 || file_size.QuadPart < 0)
+	{
+		CloseHandle(hfile);
+		return SetError(E_FAIL, TEXT("File %s is too large."), filename);
 	}
 
 	byteCount = sizeof(struct T64Header);
@@ -159,28 +165,28 @@ HRESULT hr;
 		return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
 	}
 
-
 	CloseHandle(hfile);
-
 	for (i=0 ; i < t64Header.maxEntries ; i++)
 	{
 		wrappedT64Item[i].item = &t64Item[i];
 		wrappedT64Item[i].orginalIndex = i;
-		if (t64Item[i].offset>file_size)
+		if (t64Item[i].offset > file_size.LowPart)
 		{
 			return SetError(E_FAIL, TEXT("Invalid file structure."));
 		}
+
 		t64Item[i].mySize=0;
-
 		if (t64Item[i].offset == 0)
+		{
 			continue;
+		}
 
+		FixT64TrailingSpaces(t64Item[i]);
 		hr = dirList.Append(&wrappedT64Item[i]);
 		if (FAILED(hr))
 		{
 			return SetError(E_OUTOFMEMORY, TEXT("Out of memory."));
 		}
-
 	}
 
 	dirList.MergeSort(CompareT64DirItemOffset);
@@ -196,7 +202,7 @@ HRESULT hr;
 		}
 		else
 		{
-			element->m_data->item->mySize = file_size - element->m_data->item->offset;
+			element->m_data->item->mySize = file_size.LowPart - element->m_data->item->offset;
 		}
 		if (element->m_data->item->mySize > 0x10000)
 		{
@@ -205,22 +211,25 @@ HRESULT hr;
 	}
 
 	dirList.MergeSort(CompareT64DirItemOriginalIndex);
-
-	
 	for (i=0, element = dirList.Head(); i < dirList.Count() ; i++, element=element->Next())
 	{
 
-		if (element->m_data->item->mySize==0)
+		if (element->m_data->item->mySize == 0)
+		{
 			continue;
+		}
 
 		if (element->m_data->item->offset == 0)
+		{
 			continue;
+		}
 
 		hr = filteredDirectory.Append(element->m_data);
 		if (FAILED(hr))
 		{
 			return SetError(E_OUTOFMEMORY, TEXT("Out of memory."));
 		}
+
 		numItems++;
 	}
 
@@ -228,22 +237,51 @@ HRESULT hr;
 	return S_OK;
 }
 
+void T64::FixT64TrailingSpaces(T64DirectoryItem& t64Item)
+{
+	unsigned int i;
+	unsigned int j;
+	bool hasNonSpace = false;
+	for (i = 0; i < _countof(t64Item.c64Filename); i++)
+	{
+		j = _countof(t64Item.c64Filename) - i - 1;
+		bit8 ch = t64Item.c64Filename[j];
+		if (ch != 0xA0 && ch != 0x20)
+		{
+			hasNonSpace = true;
+		}
 
-HRESULT T64::LoadT64File(const TCHAR filename[], DWORD offset, WORD size)
+		if (!hasNonSpace)
+		{
+			t64Item.c64Filename[j] = 0xA0;
+		}
+	}
+
+	if (t64Item.c64Filename[j] == 0xA0)
+	{
+		strncpy((char *) & t64Item.c64Filename[0], "?", _countof(t64Item.c64Filename));
+	}
+}
+
+HRESULT T64::LoadT64File(const std::wstring filename, DWORD offset, DWORD size)
 {
 HANDLE hfile=0;
 BOOL r;
-DWORD bytes_read,file_size,byteCount;
+DWORD bytes_read,byteCount;
+LARGE_INTEGER file_size;
 
 	ClearError();
 	if (data)
+	{
 		free(data);
-	data = 0;
+	}
 
-	if (size > 0x10000)
+	data = 0;
+	if (size > C64MAXFILESIZE)
 	{
 		return SetError(E_FAIL, TEXT("Bad T64 file size."));
 	}
+
 	data = (BYTE *) malloc(size);
 	if (data == 0)
 	{
@@ -254,29 +292,29 @@ DWORD bytes_read,file_size,byteCount;
 	hfile=CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (hfile==INVALID_HANDLE_VALUE)
 	{
-		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
+		return SetError(E_FAIL, TEXT("Could not open %s."), filename.c_str());
 	}
 
-	file_size = GetFileSize(hfile, 0);
-	if (INVALID_FILE_SIZE == file_size)
+	if (!GetFileSizeEx(hfile, &file_size))
 	{
 		CloseHandle(hfile);
-		return SetError(E_FAIL, TEXT("Could not open %s."), filename);
+		return SetError(E_FAIL, TEXT("Could not open %s."), filename.c_str());
 	}
 
 	r = SetFilePointer (hfile, offset, 0L, FILE_BEGIN);
 	if (r == INVALID_SET_FILE_POINTER)
 	{
 		CloseHandle(hfile);
-		return SetError(E_FAIL, TEXT("Could not seek in file %s."), filename);
+		return SetError(E_FAIL, TEXT("Could not seek in file %s."), filename.c_str());
 	}
 
 	byteCount = size;
 	r = ReadFile(hfile, data, byteCount, &bytes_read, NULL);
-	if (r==0 || byteCount!=bytes_read)
+	if (r == 0 || byteCount != bytes_read)
 	{
 		CloseHandle(hfile);
-		return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
+		return SetError(E_FAIL, TEXT("Could not read from %s."), filename.c_str());
 	}
+
 	return S_OK;
 }

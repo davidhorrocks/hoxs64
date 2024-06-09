@@ -1787,6 +1787,22 @@ bool G::IsWhiteSpace(TCHAR ch) noexcept
 	return (ch == _T(' ') || ch == _T('\n') || ch == _T('\r') || ch == _T('\t') || ch == _T('\b') || ch == _T('\v')  || ch == _T('\f'));
 }
 
+bool G::IsStringBlank(const std::wstring s) noexcept
+{
+	if (s.length() > 0)
+	{
+		for (auto p = s.cbegin(); p != s.cend(); p++)
+		{
+			if (!std::isspace(*p))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 bool G::IsStringBlank(LPCTSTR ps) noexcept
 {
 	if (ps)

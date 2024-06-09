@@ -18,7 +18,7 @@ public:
 	static const int ShellExitCycleLimit = 0x1;
 	static const int ShellExitInitFailed = 0x101;
 	static const int ShellExitPngFailed = 0x103;
-	static constexpr size_t CchPathBufferSize = 1024ULL * 1024;
+	static constexpr size_t CchPathBufferSize = 1024ULL * 64;
 
 	void Cleanup() noexcept;
 	int Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow);
@@ -164,4 +164,6 @@ private:
 	int lastMouseX = 0;
 	int lastMouseY = 0;
 	bool isMouseOverClientArea = false;	
+	random_device rd;
+	mt19937 randengine;
 };

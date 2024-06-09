@@ -10,6 +10,7 @@ public:
 	void Reset(ICLK sysclock, bool poweronreset) override;
 	bit8 ReadRegister(bit16 address, ICLK sysclock) override;
 	void WriteRegister(bit16 address, ICLK sysclock, bit8 data) override;
+	void ExecuteCycle(ICLK sysclock) override;
 
 	void CartFreeze() override;
 	void CheckForCartFreeze() override;
@@ -27,4 +28,6 @@ protected:
 private:
 
 	bool& m_bDE01WriteDone;
+	bool& m_bIsFreezeButtonPressed;
+	ICLK& m_freezeButtonPressedClock;
 };

@@ -8,12 +8,15 @@ namespace FileSys
 	class DirectoryViewer
 	{
 	public:
+		static const size_t MaxApplicationPathLength = 0x7fff;
 		DirList Dir;
 		void Fill();
 		void ChangeToRoot();
 		void ChangeParentDirectory(size_t index);
 		void ChangeDirectory(size_t index);
+		void ChangeDirectoryPath(const std::wstring directoryPath);
 		std::wstring GetCurrentDir() const;
+		std::wstring GetIndexedDir(size_t index);
 		std::wstring GetItemName(size_t index) const;
 		void UseC64FilesFilter();
 		bool Get_IsCbmDirectoryLoaded() const;

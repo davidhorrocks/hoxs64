@@ -18,7 +18,6 @@ class Graphics
 {
 public:
 	static const unsigned int ASSUMED_DPI_DEFAULT = 96;
-	Graphics() noexcept;
 	HRESULT Initialize(IC64* c64, IAppCommand* appCommand, CAppStatus* appStatus);
 	void Cleanup() noexcept;
 	void CleanShaders();

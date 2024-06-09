@@ -35,7 +35,6 @@ public:
 	bit8 *miBasic = nullptr;
 	bit8 *miIO = nullptr;
 	bit8 *miCharGen = nullptr;
-	bit8 tmp_data[0x10000] = {};
 	bit8* mMemoryRestore = nullptr;
 	bit8 *mMemory = nullptr;
 	bit8 *mKernal = nullptr;

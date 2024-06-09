@@ -82,8 +82,13 @@ public:
 	void WriteGCRBit(bit8 trackNumber, bit32 index, bit8 v);
 	void WriteGCRByte(bit8 trackNumber, bit32 index, bit8 v);
 	HRESULT ConvertGCRToD64(unsigned int tracks);
-	void InsertNewDiskImage(const TCHAR *diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks);
-	void MakeNewD64Image(const TCHAR *, bit8, bit8);
+	void InsertNewDiskImage(const std::wstring diskname, bit8 id1, bit8 id2, bool bAlignD64Tracks, int numberOfTracks, const std::wstring prgFileName, const bit8* pPrgData, bit32 cbPrgDataLength);
+	bool IsD64SectorFree(unsigned int trackNumber, unsigned int sectorIndex);
+	void D64SectorSetUsageInBam(unsigned int trackNumber, unsigned int sectorIndex, bool setAsInUse);
+	void MakeNewD64Image(const std::wstring diskname, bit8 id1, bit8 id2, const std::wstring prgFileName, const bit8* pPrgData, unsigned int cbPrgDataLength);
+	void WritePrgToD64(const bit8* pFilename, size_t cbNameLength, const bit8* pPrgData, unsigned int cbPrgDataLength);
+	bool IsD64DirectoryEntryFree(unsigned int trackNumber, unsigned int sectorIndex, unsigned int directoryEntryIndex);
+	void D64SetDirectoryEntry(const bit8* pFilename, size_t cbFilenameLength, unsigned int trackNumber, unsigned int sectorIndex, unsigned int directoryEntryIndex, unsigned int firstFileTrackNumber, unsigned int firstFileSectorIndex, unsigned int fileBlockSize, unsigned int fileSize);
 	HRESULT MakeGCRImage(bit8 *d64Binary, bit32 tracks, bit16 errorBytes, bool bAlignD64Tracks);
 	bit8 GetSectorErrorCode(bit8 *d64Binary, bit16 errorBytes, bit8 trackNumber, bit8 sectorNumber);
 	bit16 GetD64TrackSize(bit8 track);
@@ -126,6 +131,20 @@ public:
 	static const bit8 gcr_reverse_table[32];
 	static const bit8 D64_BAM[256];
 	static const struct D64_Track_Info D64_info[D64_MAX_TRACKS + 2];
+	static constexpr unsigned int D64TotalBytesPerSector = 0x100;
+	static constexpr unsigned int D64StartIndexFileData = 0x2;
+	static constexpr unsigned int D64DataPerSector = D64TotalBytesPerSector - D64StartIndexFileData;
+	static constexpr unsigned int D64BamTrackNumber = 18;
+	static constexpr unsigned int D64BamSectorIndex = 0;
+	static constexpr unsigned int D64MaxCbmDosTracks= 35;
+	static constexpr unsigned int D64MaxCbmFreeFileBlocks = 664;
+	static constexpr unsigned int D64MaxCbm35TrackFreeFileBlocks = 666;
+	static constexpr unsigned int D64MaxCbm40TrackFreeFileBlocks = 771;
+	static constexpr unsigned int D64MaxCbm42TrackFreeFileBlocks = 785;
+	static constexpr unsigned int D64MaxCbm35TrackMaxFileSize = D64MaxCbmFreeFileBlocks * 0xFE;
+	static constexpr unsigned int D64MaxFileNameLength = 16;
+	static constexpr unsigned int D64DirectoryEntrySize = 0x20;
+
 private:
 	enum LoadState
 	{

@@ -305,7 +305,12 @@ void C64Display::SetDisplaySize(bool isWindowedMode, unsigned int width, unsigne
 	else
 	{
 		C64WindowDimensions dims;
-		if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
+		if (stretch == HCFG::EMUWINSTR_1X)
+		{
+			dims.SetBorder(borderSize);
+			CalcClearingRects(width, height, dims, 1, bShowFloppyLed, drcScreen, drcEraseRects, drcStatusBar);
+		}
+		else if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
 		{
 			dims.SetBorder2(width, height - heightToolbar);
 			CalcStretchToFitClearingRects(width, height, dims, bShowFloppyLed, drcScreen, drcEraseRects, drcStatusBar);
@@ -422,38 +427,31 @@ HRESULT C64Display::SetRenderStyle(unsigned int width, unsigned int height, bool
 			return E_FAIL;
 		}
 
-		if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP) 
+		C64WindowDimensions dims;
+		if (stretch == HCFG::EMUWINSTR_1X)
 		{
-			//HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP;
-			C64WindowDimensions dims;
+			dims.SetBorder(borderSize);
+		}
+		else if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
+		{
 			dims.SetBorder2(width, height - heightToolbar);
-			displayFirstVicRaster = dims.FirstRasterLine;
-			displayLastVicRaster = dims.LastRasterLine;
-			displayWidth = dims.Width;
-			displayHeight = dims.Height;
-			displayStart = dims.Start;
-			hr = this->screenTexture.ResizeOrKeep(device.Get(), dims.Width, dims.Height);
-			if (SUCCEEDED(hr))
-			{
-				bScreenOk = true;
-			}
 		}
 		else
 		{
 			// Aspect stretch
 			//HCFG::EMUWINSTR_ASPECTSTRETCH
-			C64WindowDimensions dims;
 			dims.SetBorder(borderSize);
-			displayWidth = dims.Width;
-			displayHeight = dims.Height;
-			displayFirstVicRaster = dims.FirstRasterLine;
-			displayLastVicRaster = dims.LastRasterLine;
-			displayStart = dims.Start;
-			hr = this->screenTexture.ResizeOrKeep(device.Get(), dims.Width, dims.Height);
-			if (SUCCEEDED(hr))
-			{
-				bScreenOk = true;
-			}
+		}
+
+		displayFirstVicRaster = dims.FirstRasterLine;
+		displayLastVicRaster = dims.LastRasterLine;
+		displayWidth = dims.Width;
+		displayHeight = dims.Height;
+		displayStart = dims.Start;
+		hr = this->screenTexture.ResizeOrKeep(device.Get(), dims.Width, dims.Height);
+		if (SUCCEEDED(hr))
+		{
+			bScreenOk = true;
 		}
 
 		SetDisplaySize(isWindowedMode, width, height);
@@ -476,21 +474,32 @@ bool C64Display::IsValidRect(const D3D11_RECT& rc)
 
 void C64Display::CalcStretchToFitClearingRects(int modeWidth, int modeHeight, const C64WindowDimensions& dims, bool bShowFloppyLed, RECT& rcTargetRect, std::vector<D3D11_RECT>& drcEraseRects, D3D11_RECT& drcStatusBar)
 {
-	int tHeight = GetToolBarHeight(bShowFloppyLed, false, modeHeight, nullptr, nullptr);
 	double c64ratio, screenratio;
 	c64ratio = (double)dims.Width / (double)dims.Height;
-	screenratio = (double)modeWidth / (double)(modeHeight - tHeight);
+	int toolBarHeight = GetToolBarHeight(bShowFloppyLed, false, modeHeight, nullptr, nullptr);
+	int modeHeightRemaining;
+	if (modeHeight > toolBarHeight)
+	{
+		modeHeightRemaining = modeHeight - toolBarHeight;
+		screenratio = (double)modeWidth / (double)modeHeightRemaining;
+	}
+	else
+	{
+		screenratio = (double)modeWidth;
+		modeHeightRemaining = 0;
+	}
+
 	if (c64ratio <= screenratio)
 	{
 		rcTargetRect.top = 0;
-		rcTargetRect.bottom = modeHeight - tHeight;
-		rcTargetRect.left = (modeWidth - ((DWORD)(c64ratio * ((double)(modeHeight - tHeight))))) / 2L;
+		rcTargetRect.bottom = modeHeightRemaining;
+		rcTargetRect.left = (modeWidth - ((DWORD)(LONG)(c64ratio * ((double)(modeHeightRemaining))))) / 2L;
 		rcTargetRect.right = modeWidth - rcTargetRect.left;
 	}
 	else
 	{
-		rcTargetRect.top = (modeHeight - tHeight - ((DWORD)((1.0 / c64ratio) * ((double)(modeWidth))))) / 2L;
-		rcTargetRect.bottom = modeHeight - tHeight - rcTargetRect.top;
+		rcTargetRect.top = (modeHeightRemaining - ((DWORD)(LONG)((1.0 / c64ratio) * ((double)(modeWidth))))) / 2L;
+		rcTargetRect.bottom = modeHeightRemaining - rcTargetRect.top;
 		rcTargetRect.left = 0;
 		rcTargetRect.right = modeWidth;
 	}
@@ -523,10 +532,18 @@ void C64Display::CalcStretchToFitClearingRects(int modeWidth, int modeHeight, co
 	rcRight.right = modeWidth;
 	rcRight.bottom = rcTargetRect.bottom;
 
-	if (rcTargetRect.bottom + tHeight > (int)modeHeight)
+	if (rcTargetRect.bottom + toolBarHeight > (int)modeHeight)
 	{
 		drcStatusBar.left = rcTargetRect.left;
-		drcStatusBar.top = modeHeight - tHeight;
+		if (modeHeight > toolBarHeight)
+		{
+			drcStatusBar.top = modeHeight - toolBarHeight;
+		}
+		else
+		{
+			drcStatusBar.top = 0;
+		}
+
 		drcStatusBar.right = rcTargetRect.right;
 		drcStatusBar.bottom = modeHeight;
 	}
@@ -535,7 +552,7 @@ void C64Display::CalcStretchToFitClearingRects(int modeWidth, int modeHeight, co
 		drcStatusBar.left = rcTargetRect.left;
 		drcStatusBar.top = rcTargetRect.bottom;
 		drcStatusBar.right = rcTargetRect.right;
-		drcStatusBar.bottom = rcTargetRect.bottom + tHeight;
+		drcStatusBar.bottom = rcTargetRect.bottom + toolBarHeight;
 	}
 
 	drcEraseRects.clear();
@@ -562,11 +579,11 @@ void C64Display::CalcStretchToFitClearingRects(int modeWidth, int modeHeight, co
 
 void C64Display::CalcClearingRects(int modeWidth, int modeHeight, const C64WindowDimensions& dims, const DWORD scale, bool bShowFloppyLed, RECT& rcTargetRect, std::vector<D3D11_RECT>& drcEraseRects, D3D11_RECT& drcStatusBar)
 {
-	int tHeight = GetToolBarHeight(bShowFloppyLed, false, modeHeight, nullptr, nullptr);
+	int toolBarHeight = GetToolBarHeight(bShowFloppyLed, false, modeHeight, nullptr, nullptr);
 	int h = dims.Height * scale;
 	int w = dims.Width * scale;
-	rcTargetRect.top = (h + tHeight) < modeHeight ? (modeHeight - (h + tHeight)) / 2 : 0;
-	rcTargetRect.bottom = (rcTargetRect.top + h + tHeight) < modeHeight ? rcTargetRect.top + h : modeHeight - tHeight;
+	rcTargetRect.top = (h + toolBarHeight) < modeHeight ? (modeHeight - (h + toolBarHeight)) / 2 : 0;
+	rcTargetRect.bottom = (rcTargetRect.top + h + toolBarHeight) < modeHeight ? rcTargetRect.top + h : modeHeight - toolBarHeight;
 	rcTargetRect.left = w < modeWidth ? (modeWidth - w) / 2 : 0;
 	rcTargetRect.right = (rcTargetRect.left + w) < modeWidth ? rcTargetRect.left + w : modeWidth;
 
@@ -599,10 +616,10 @@ void C64Display::CalcClearingRects(int modeWidth, int modeHeight, const C64Windo
 	rcRight.right = modeWidth;
 	rcRight.bottom = rcTargetRect.bottom;
 
-	if (rcTargetRect.bottom + tHeight > (int)modeHeight)
+	if (rcTargetRect.bottom + toolBarHeight > (int)modeHeight)
 	{
 		drcStatusBar.left = rcTargetRect.left;
-		drcStatusBar.top = modeHeight - tHeight;
+		drcStatusBar.top = modeHeight - toolBarHeight;
 		drcStatusBar.right = rcTargetRect.right;
 		drcStatusBar.bottom = modeHeight;
 	}
@@ -611,7 +628,7 @@ void C64Display::CalcClearingRects(int modeWidth, int modeHeight, const C64Windo
 		drcStatusBar.left = rcTargetRect.left;
 		drcStatusBar.top = rcTargetRect.bottom;
 		drcStatusBar.right = rcTargetRect.right;
-		drcStatusBar.bottom = rcTargetRect.bottom + tHeight;
+		drcStatusBar.bottom = rcTargetRect.bottom + toolBarHeight;
 	}
 
 	drcEraseRects.clear();

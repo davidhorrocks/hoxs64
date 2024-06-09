@@ -35,15 +35,6 @@ struct StringAndInt
 	int value;
 };
 
-CDiagEmulationSettingsTab::CDiagEmulationSettingsTab()
-{
-	defaultFont = NULL;
-}
-
-CDiagEmulationSettingsTab::~CDiagEmulationSettingsTab()
-{
-}
-
 HRESULT CDiagEmulationSettingsTab::Init(Graphics *pGx, const CConfig *cfg)
 {
 	m_pGx = pGx;
@@ -944,6 +935,17 @@ bool bShowFloppyLed;
 	{
 		SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM)HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP);
 		if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
+		{
+			currentSelection = lr;
+		}
+	}
+
+	tw.GetWidth(szVideoFilter_1X);
+	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM)szVideoFilter_1X);
+	if (lr >= 0)
+	{
+		SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_SETITEMDATA, lr, (LPARAM)HCFG::EMUWINSTR_1X);
+		if (NewCfg.m_fullscreenStretch == HCFG::EMUWINSTR_1X)
 		{
 			currentSelection = lr;
 		}
@@ -1996,6 +1998,15 @@ void CDiagEmulationSettingsTab::loadconfig(const CConfig *cfg)
 		{
 			CheckDlgButton(hWnd, IDC_IMGUI_WINDOWEDMODE_ENABLE, BST_UNCHECKED);
 		}
+
+		if (cfg->m_bSaveWindowPositionOnExit)
+		{
+			CheckDlgButton(hWnd, IDC_SAVE_WINDOW_POSITION_ON_EXIT, BST_CHECKED);
+		}
+		else
+		{
+			CheckDlgButton(hWnd, IDC_SAVE_WINDOW_POSITION_ON_EXIT, BST_UNCHECKED);
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
@@ -2209,6 +2220,15 @@ shared_ptr<CTabPageDialog> pPage;
 		{
 			cfg->m_bEnableImGuiWindowed = false;
 		}
+
+		if (IsDlgButtonChecked(hWnd, IDC_SAVE_WINDOW_POSITION_ON_EXIT))
+		{
+			cfg->m_bSaveWindowPositionOnExit = true;
+		}
+		else
+		{
+			cfg->m_bSaveWindowPositionOnExit = false;
+		}		
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO)) != NULL)
@@ -2662,6 +2682,8 @@ void CDiagEmulationSettingsTab::UpdatePage(int pageno, HWND hWndDlg)
 		break;
 	case 3:
 		UpdatePageDisk(hWndDlg);
+		break;
+	default:
 		break;
 	}
 }
