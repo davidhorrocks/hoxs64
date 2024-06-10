@@ -1,4 +1,4 @@
-Hoxs64 v1.1.2.4 (c) 2023 David Horrocks
+Hoxs64 v1.1.2.5 (c) 2024 David Horrocks
 ========================================
 Hoxs64 is an attempt to accurately emulate the Commodore 64 computer.
 

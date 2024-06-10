@@ -1,3 +1,8 @@
+10 June 2024 v1.1.2.5
+=====================
+1) Fix REU file image truncation bug when loading a .REU file that more than 512kB and less than 16MB.
+
+
 27 May 2024 v1.1.2.4
 ====================
 1) ImGUI remember directory path after closing the application. 
