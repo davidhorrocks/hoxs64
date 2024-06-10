@@ -2083,9 +2083,14 @@ HRESULT C64::LoadReu1750FromFile(const TCHAR* filename)
 			nBytesToRead = CartReu1750::MaxRAMSize;
 			extraBitsCompare = CartReu1750::MaxExtraBits;
 		}
+		else if (filesize > CartReu1750::DefaultRAMSize)
+		{
+			nBytesToRead = (DWORD)(filesize & 0xffffffff);
+			extraBitsCompare = CartReu1750::MaxExtraBits;
+		}
 		else
 		{
-			nBytesToRead = CartReu1750::DefaultRAMSize;
+			nBytesToRead = (DWORD)(filesize & 0xffffffff);
 			extraBitsCompare = appStatus->m_reu_extraAddressBits;
 		}
 
