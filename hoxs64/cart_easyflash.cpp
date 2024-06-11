@@ -18,6 +18,7 @@ HRESULT hr=E_FAIL;
 
 	try
 	{
+		*((CartData*)this) = std::move(cartData);
 		do
 		{
 			if (m_plstBank->size() < EasyFlashChip::MAXEASYFLASHBANKS)
@@ -43,7 +44,6 @@ HRESULT hr=E_FAIL;
 		hr = E_FAIL;
 	}
 
-	CartCommon::InitCart(cartData);
 	return hr;
 }
 

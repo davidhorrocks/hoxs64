@@ -217,7 +217,7 @@ public:
 	virtual bit8* Get_RomL() = 0;
 	virtual void PreventClockOverflow() = 0;
 
-	virtual HRESULT LoadState(IStream* pfs, int version) = 0;
+	virtual HRESULT LoadState(IStream* pfs, const CrtHeader& crtHeader, int version) = 0;
 	virtual HRESULT SaveState(IStream* pfs) = 0;
 
 	virtual HRESULT InitCart(CartData& cartData) = 0;
@@ -282,7 +282,7 @@ public:
 	bit8* Get_RomH() override;
 	bit8* Get_RomL() override;
 	void PreventClockOverflow() override;
-	HRESULT LoadState(IStream* pfs, int version) override;
+	HRESULT LoadState(IStream* pfs, const CrtHeader& crtHeader, int version) override;
 	HRESULT SaveState(IStream* pfs) override;
 	HRESULT InitCart(CartData& cartData) override;
 	virtual HRESULT SaveMemoryState(IStream* pfs);
@@ -453,7 +453,7 @@ public:
 	HRESULT LoadCartInterface(IStream* pfs, int version, shared_ptr<ICartInterface>& spCartInterface);
 	void AttachCartInterface(shared_ptr<ICartInterface> spCartInterface);
 	void AttachCartData(CartData& cartData);
-	HRESULT LoadState(IStream* pfs, int version) override;
+	HRESULT LoadState(IStream* pfs, const CrtHeader& crtHeader, int version) override;
 	HRESULT SaveState(IStream* pfs) override;
 	HRESULT InitCart(CartData& cartData) override;
 

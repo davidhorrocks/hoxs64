@@ -38,27 +38,17 @@ CartReu1750::CartReu1750(const CrtHeader& crtHeader, IC6510* pCpu, IVic* pVic, b
 HRESULT CartReu1750::InitCart(CartData& cartData)
 {
 	CartCommon::InitCart(cartData);
-	this->reu_extraAddressBits = m_crtHeader.SubType;
-	if (this->reu_extraAddressBits > MaxExtraBits)
-	{
-		this->reu_extraAddressBits = MaxExtraBits;
-	}
-
 	unsigned int extraBitsCompare = MaxExtraBits;
 	unsigned int extraMaskCompare = 0xff;
 	unsigned int memorySizeCompare = MaxRAMSize;
-	while (extraBitsCompare > 0 && memorySizeCompare > m_amountOfExtraRAM)
+	while (extraBitsCompare > 0 && (memorySizeCompare > m_amountOfExtraRAM || (extraBitsCompare > cartData.m_crtHeader.SubType && m_amountOfExtraRAM < MaxRAMSize)))
 	{
 		extraBitsCompare--;
 		memorySizeCompare = memorySizeCompare >>= 1;
 		extraMaskCompare = extraMaskCompare >>= 1;
 	}
 
-	if (this->reu_extraAddressBits > extraBitsCompare)
-	{
-		this->reu_extraAddressBits = extraBitsCompare;
-	}
-
+	this->reu_extraAddressBits = extraBitsCompare;
 	this->reu_extraAddressMask = extraMaskCompare;
 	return S_OK;
 }

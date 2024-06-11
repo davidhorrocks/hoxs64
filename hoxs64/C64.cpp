@@ -4658,10 +4658,6 @@ ULARGE_INTEGER pos_next_track_header;
 		{
 			spCartInterface->SetCurrentClock(clockVIC);
 			cart.AttachCartInterface(spCartInterface);
-			if (cart.IsCartAttached())
-			{
-				cart.ConfigureMemoryMap();
-			}
 		}
 
 		cpu.ConfigureMemoryMap();

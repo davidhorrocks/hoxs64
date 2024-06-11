@@ -14,7 +14,7 @@ public:
 	void CartFreeze() override;
 	void CheckForCartFreeze() override;
 
-	HRESULT LoadState(IStream* pfs, int version) override;
+	HRESULT LoadState(IStream* pfs, const CrtHeader& crtHeader, int version) override;
 	HRESULT SaveState(IStream* pfs) override;
 protected:
 	virtual void UpdateIO() override;

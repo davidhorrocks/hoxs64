@@ -27,9 +27,9 @@ void CartActionReplayMk2::Reset(ICLK sysclock, bool poweronreset)
 	ConfigureMemoryMap();
 }
 
-HRESULT CartActionReplayMk2::LoadState(IStream* pfs, int version)
+HRESULT CartActionReplayMk2::LoadState(IStream* pfs, const CrtHeader& crtHeader, int version)
 {
-	HRESULT hr = CartCommon::LoadState(pfs, version);
+	HRESULT hr = CartCommon::LoadState(pfs, crtHeader, version);
 	if (SUCCEEDED(hr))
 	{
 		m_bActionReplayMk2Rom = m_stateuint[0] != 0;

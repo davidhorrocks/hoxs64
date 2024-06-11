@@ -424,13 +424,15 @@ HRESULT CartCommon::SetStateBytes(int version, void *pstate, unsigned int size)
 	return S_OK;
 }
 
-HRESULT CartCommon::LoadState(IStream *pfs, int version)
+HRESULT CartCommon::LoadState(IStream *pfs, const CrtHeader& crtHeader, int version)
 {
 	ULONG bytesRead;
 	ULONG bytesToRead;
 	bool eof = false;
 	void *pstate = nullptr;
 	CartData cartData;
+	cartData.m_crtHeader = crtHeader;
+	cartData.m_bPreserveRamOnReset = true;
 	bit32 dwordCount;
 	unsigned int cartstatesize, cartfullstatesize;
 	HRESULT hr;
@@ -546,7 +548,7 @@ HRESULT CartCommon::LoadState(IStream *pfs, int version)
 
 			if (memoryheader.ramsize > Cart::MAX_CART_EXTRA_RAM)
 			{
-				cartData.m_amountOfExtraRAM = Cart::MIN_CART_EXTRA_RAM;
+				cartData.m_amountOfExtraRAM = Cart::MAX_CART_EXTRA_RAM;
 			}
 			else if (memoryheader.ramsize < Cart::MIN_CART_EXTRA_RAM)
 			{
@@ -567,7 +569,17 @@ HRESULT CartCommon::LoadState(IStream *pfs, int version)
 			cartData.m_pZeroBankData = &cartData.m_pCartData[cartData.m_amountOfExtraRAM];
 			if (memoryheader.ramsize > 0)
 			{
+				ULONG extra = 0;
 				bytesToRead = memoryheader.ramsize;
+				if (bytesToRead > cartData.m_amountOfExtraRAM)
+				{
+					bytesToRead = cartData.m_amountOfExtraRAM;
+				}
+				else
+				{
+					extra = cartData.m_amountOfExtraRAM - bytesToRead;
+				}				
+
 				hr = pfs->Read(cartData.m_pCartData, bytesToRead, &bytesRead);
 				if (FAILED(hr) && GetLastError() != ERROR_HANDLE_EOF)
 				{
@@ -578,8 +590,23 @@ HRESULT CartCommon::LoadState(IStream *pfs, int version)
 					eof = true;
 					hr = E_FAIL;
 				}
+
 				if (FAILED(hr))
+				{
 					break;
+				}
+
+				if (extra > 0)
+				{
+					ULARGE_INTEGER pos_dummy;
+					pos_dummy.QuadPart = 0;
+					pos_in.QuadPart = extra;
+					hr = pfs->Seek(pos_in, STREAM_SEEK_CUR, &pos_dummy);
+					if (FAILED(hr))
+					{
+						break;
+					}
+				}
 			}
 
 			HuffDecompression hw;
@@ -2127,8 +2154,17 @@ void Cart::CheckForCartFreeze()
 void Cart::AttachCartInterface(shared_ptr<ICartInterface> spCartInterface)
 {
 	DetachCart();
+	if (m_spCurrentCart)
+	{
+		m_spCurrentCart->Set_IsCartAttached(false);
+	}
+
 	m_spCurrentCart = spCartInterface;
-	AttachCart();
+	if (m_spCurrentCart)
+	{
+		m_spCurrentCart->Set_IsCartAttached(true);
+		m_spCurrentCart->ConfigureMemoryMap();
+	}
 }
 
 void Cart::AttachCartData(CartData& cartData)
@@ -2220,7 +2256,7 @@ void Cart::PreventClockOverflow()
 	}
 }
 
-HRESULT Cart::LoadState(IStream *pfs, int version)
+HRESULT Cart::LoadState(IStream *pfs, const CrtHeader& crtHeader, int version)
 {
 	return E_NOTIMPL;
 }
@@ -2281,8 +2317,7 @@ SsCartStateHeader hdr;
 			hr = E_FAIL;
 			break;
 		}
-
-		hr = spLocalCartInterface->LoadState(pfs, version);
+		hr = spLocalCartInterface->LoadState(pfs, crtHeader, version);
 		if (FAILED(hr))
 		{
 			break;
