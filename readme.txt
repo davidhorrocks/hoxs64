@@ -1,6 +1,6 @@
 Building
 
-1) Install Microsoft Visual Studio 2019.
+1) Install Microsoft Visual Studio 2022.
 
 2) git clone the hoxs64 source repository. The build process does not like spaces in the source directory path. Choose a path with no spaces.
 
@@ -8,7 +8,7 @@ Building
 
 4) Use Vcpkg to download, compile and configure the dependent libraries.
 
-Execute the following commands in a Visual Studio 2019 elevated command prompt. The "integrate install" commnand option requires an elevated command prompt.
+Execute the following commands in a Visual Studio 2022 elevated command prompt. The "integrate install" commnand option requires an elevated command prompt.
 
 .\vcpkg\vcpkg integrate install
 
@@ -21,11 +21,11 @@ Execute the following commands in a Visual Studio 2019 elevated command prompt. 
 .\vcpkg install assimp:x86-windows
 .\vcpkg install assimp:x64-windows
 
-The hoxs64_2019.sln solution should in theory now build in Microsoft Visual Studio 2019.
+The hoxs64_2022.sln solution should in theory now build in Microsoft Visual Studio 2022.
 
 Runtime Requirements
-Windows 7/10
-Microsoft Visual C++ runtime installation.
+Windows 7/10/11
+Microsoft Visual C++ 2022 runtime installation.
 https://support.microsoft.com/en-gb/help/2977003/the-latest-supported-visual-c-downloads
 
 For 64 bit version
