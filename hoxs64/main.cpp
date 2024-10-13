@@ -1372,7 +1372,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 				}
 			}
 
-			c64.AutoLoad(pFilename, directoryIndex, indexPrgsOnly, pC64filename, wantQuickLoad, alignD64, keepCurrentCart, caReu512k != nullptr || caReu16M != nullptr);
+			c64.AutoLoad(pFilename, directoryIndex, indexPrgsOnly, pC64filename, wantQuickLoad, wantQuickLoad, alignD64, keepCurrentCart, caReu512k != nullptr || caReu16M != nullptr);
 		}
 	}
 
@@ -1730,7 +1730,7 @@ void CApp::AutoLoadDialog(HWND hWnd)
 	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[CchPathBufferSize + 1]);
 	std::shared_ptr<CPRGBrowse> spPrgBrowse(new CPRGBrowse());
 	spFilename[0] = 0;
-	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload, this->m_bPrgAlwaysQuickload);
 	if (FAILED(hr))
 	{
 		return;
@@ -1748,7 +1748,7 @@ void CApp::AutoLoadDialog(HWND hWnd)
 	b = spPrgBrowse->Open(m_hInstance, (LPOPENFILENAME)&of, CPRGBrowse::FileTypeFlag::ALL);
 	if (b)
 	{
-		hr = c64.AutoLoad(spFilename.get(), spPrgBrowse->SelectedDirectoryIndex, false, spPrgBrowse->SelectedC64FileName, spPrgBrowse->SelectedQuickLoadDiskFile, spPrgBrowse->SelectedAlignD64Tracks, false, spPrgBrowse->SelectedWantReu);
+		hr = c64.AutoLoad(spFilename.get(), spPrgBrowse->SelectedDirectoryIndex, false, spPrgBrowse->SelectedC64FileName, spPrgBrowse->SelectedQuickLoadDiskFile, spPrgBrowse->SelectedWantPrgAlwaysQuickload, spPrgBrowse->SelectedAlignD64Tracks, false, spPrgBrowse->SelectedWantReu);
 		if (hr != S_OK)
 		{
 			c64.DisplayError(hWnd, TEXT("Auto Load"));
@@ -1805,7 +1805,7 @@ void CApp::LoadT64Dialog(HWND hWnd)
 
 	spFilename[0] = 0;
 	TCHAR title[] = TEXT("Load T64");
-	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload, this->m_bPrgAlwaysQuickload);
 	if (FAILED(hr))
 	{
 		spPrgBrowse->DisplayError(hWnd, title);
@@ -1849,7 +1849,7 @@ void CApp::InsertDiskImageDialog(HWND hWnd)
 
 	spFilename[0] = 0;
 	TCHAR title[] = TEXT("Insert Disk Image");
-	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload);
+	hr = spPrgBrowse->Init(c64.ram.mCharGen, c64.IsReuAttached(), this->m_preferQuickload, this->m_bPrgAlwaysQuickload);
 	if (FAILED(hr))
 	{
 		spPrgBrowse->DisplayError(hWnd, title);
@@ -2845,13 +2845,13 @@ void CApp::PostToggleFullscreen()
 	::PostMessage(this->GetMainFrameWindow(), WM_COMMAND, MAKEWPARAM(IDM_TOGGLEFULLSCREEN, 0), 0);
 }
 
-bool CApp::PostAutoLoadFile(const wchar_t *pszFilename, int directoryIndex, bool quickload, bool reu)
+bool CApp::PostAutoLoadFile(const wchar_t *pszFilename, int directoryIndex, bool quickload, bool prgAlwaysQuickload, bool reu)
 {
 	if (pszFilename != nullptr)
 	{
 		if (std::wcslen(pszFilename) > 0)
 		{
-			HRESULT hr = this->c64.AutoLoad(pszFilename, directoryIndex, false, nullptr, quickload, false, false, reu);
+			HRESULT hr = this->c64.AutoLoad(pszFilename, directoryIndex, false, nullptr, quickload, prgAlwaysQuickload, false, false, reu);
 			if (SUCCEEDED(hr))
 			{
 				return true;

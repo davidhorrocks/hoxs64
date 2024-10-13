@@ -844,7 +844,7 @@ LPCTSTR SZAUTOLOADTITLE = TEXT("C64 auto load");
 		break;
 	case C64::AUTOLOAD_PRG_FILE:		
 	case C64::AUTOLOAD_T64_FILE:
-		if (autoLoadCommand.bQuickLoad)
+		if (autoLoadCommand.bQuickLoad || autoLoadCommand.bPrgAlwaysQuickLoad)
 		{
 			if (autoLoadCommand.sequence == C64::AUTOSEQ_LOAD)
 			{
@@ -1509,7 +1509,7 @@ void C64::EndOfTape(ICLK sysclock)
 	TapePressStop();
 }
 
-HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64FileName[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool keepCurrentCart, bool bReu)
+HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64FileName[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bPrgAlwaysQuickLoad, bool bAlignD64Tracks, bool keepCurrentCart, bool bReu)
 {
 	HRESULT hr = S_OK;
 	C64File c64file;
@@ -1528,6 +1528,7 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 	autoLoadCommand.sequence = C64::AUTOSEQ_RESET;
 	autoLoadCommand.directoryIndex = directoryIndex;
 	autoLoadCommand.bQuickLoad = bQuickLoad;
+	autoLoadCommand.bPrgAlwaysQuickLoad = bPrgAlwaysQuickLoad;
 	autoLoadCommand.bAlignD64Tracks =  bAlignD64Tracks;
 	autoLoadCommand.bReu = bReu;
 	autoLoadCommand.bIndexOnlyPrgFiles =bIndexOnlyPrgFiles; 
@@ -1613,7 +1614,7 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 			else if (_wcsicmp(wsext.c_str(), TEXT(".prg")) == 0 || _wcsicmp(wsext.c_str(), TEXT(".p00")) == 0)
 			{
 				autoLoadCommand.type = C64::AUTOLOAD_PRG_FILE;
-				if (!bQuickLoad)
+				if (!bQuickLoad && !bPrgAlwaysQuickLoad)
 				{
 					hr = InsertNewDiskImageWithPrgFile(wsfilenamewithoutext, id1, id2, bAlignD64Tracks, 35, true, wsfilenamewithoutext, wsfilenameFullPath);
 					if (SUCCEEDED(hr))
@@ -1629,7 +1630,7 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 			else if (_wcsicmp(wsext.c_str(), TEXT(".t64")) == 0)
 			{
 				autoLoadCommand.type = C64::AUTOLOAD_T64_FILE;
-				if (!bQuickLoad)
+				if (!bQuickLoad && !bPrgAlwaysQuickLoad)
 				{
 					std::wstring c64filename;
 					directoryIndex = (autoLoadCommand.directoryIndex < 0) ? 0 : autoLoadCommand.directoryIndex;
@@ -1649,7 +1650,7 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 				if (!appStatus->m_bD1541_Emulation_Enable)
 				{
 					diskdrive.CurrentPALClock = cpu.CurrentClock;
-					appStatus->m_bD1541_Emulation_Enable = TRUE;
+					appStatus->m_bD1541_Emulation_Enable = true;
 				}
 
 				pIC64Event->SetBusy(true);

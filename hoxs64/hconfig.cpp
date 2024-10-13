@@ -911,6 +911,17 @@ HRESULT CConfig::LoadCurrentSetting()
 	}
 
 	dwValue = 0;
+	lRetCode = configSource->ReadDWord(Section_General, TEXT("PrgAlwaysQuickload"), dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_bPrgAlwaysQuickload = dwValue != 0;
+	}
+	else
+	{
+		m_bPrgAlwaysQuickload = true;
+	}	
+
+	dwValue = 0;
 	lRetCode = configSource->ReadDWord(Section_General, TEXT("FPS"), dwValue);
 	if (SUCCEEDED(lRetCode))
 	{
@@ -2284,6 +2295,9 @@ HRESULT CConfig::SaveCurrentSettings()
 	dwValue = m_bShowFloppyLed ? 1 : 0;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("ShowFloppyLed"), dwValue);
 
+	dwValue = m_bPrgAlwaysQuickload ? 1 : 0;
+	configSource->WriteDWord(CConfig::Section_General, TEXT("PrgAlwaysQuickload"), dwValue);	
+
 	dwValue = m_fps;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("FPS"), dwValue);
 
@@ -2635,6 +2649,7 @@ void CConfig::LoadDefaultSetting() noexcept
 	m_blitFilter = HCFG::EMUWINFILTER_AUTO;
 	m_borderSize = HCFG::EMUBORDER_TV;
 	m_bShowFloppyLed = true;
+	m_bPrgAlwaysQuickload = true;
 	m_fps = HCFG::EMUFPS_50_12;
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;

@@ -1179,6 +1179,7 @@ void Graphics::DrawGui()
 				directoryViewer.UseC64FilesFilter();
 				directoryViewer.Set_IsReuEnabled(this->c64->IsReuAttached());
 				directoryViewer.ChangeDirectoryPath(appStatus->m_imgui_autoload_folder);
+				directoryViewer.Set_IsPrgAlwaysQuickloadEnabled(appStatus->m_bPrgAlwaysQuickload);
 				directoryViewer.Fill();
 				ImGui::OpenPopup(title);
 			}
@@ -1203,6 +1204,7 @@ void Graphics::DrawGui()
 				bool wantChangeDirectory = false;
 				bool wantChangeParentDirectory = false;
 				bool wantQuickload = false;
+				bool wantPrgAlwaysQuickload = true;
 				bool wantReu = this->c64->IsReuAttached();
 				int wantChangeDirectoryIndex = -1;
 				int wantChangeParentDirectoryIndex = -1;
@@ -1329,10 +1331,16 @@ void Graphics::DrawGui()
 
 					ImGui::SameLine();
 					wantQuickload = directoryViewer.Get_IsQuickloadEnabled();
+					wantPrgAlwaysQuickload = directoryViewer.Get_IsPrgAlwaysQuickloadEnabled();
 					wantReu = directoryViewer.Get_IsReuEnabled();
 					if (ImGui::Checkbox("Quickload", &wantQuickload))
 					{
 						directoryViewer.Set_IsQuickloadEnabled(wantQuickload);
+					}
+
+					if (ImGui::Checkbox("PRG Always Quickload", &wantPrgAlwaysQuickload))
+					{
+						directoryViewer.Set_IsPrgAlwaysQuickloadEnabled(wantPrgAlwaysQuickload);
 					}
 
 					if (ImGui::Checkbox("Reu", &wantReu))
@@ -1551,7 +1559,7 @@ void Graphics::DrawGui()
 								wantCbmDirectoryItem = -1;
 							}
 
-							if (this->appCommand->PostAutoLoadFile(Wfs::Path_Combine(directoryViewer.GetCurrentDir(), di.GetNameW()).c_str(), wantCbmDirectoryItem, wantQuickload, wantReu))
+							if (this->appCommand->PostAutoLoadFile(Wfs::Path_Combine(directoryViewer.GetCurrentDir(), di.GetNameW()).c_str(), wantCbmDirectoryItem, wantQuickload, wantPrgAlwaysQuickload, wantReu))
 							{
 								wantClose = true;
 							}

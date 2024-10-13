@@ -375,6 +375,7 @@ public:
 	bit16 m_Sid7Address = 0;
 	bit16 m_Sid8Address = 0;
 	bool m_bShowFloppyLed = true;
+	bool m_bPrgAlwaysQuickload = true;
 	HCFG::EMUFPS m_fps = HCFG::EMUFPS::EMUFPS_50_12;
 	HCFG::ETRACKZEROSENSORSTYLE m_TrackZeroSensorStyle;
 	HCFG::CIAMODE m_CIAMode = HCFG::CIAMODE::CM_CIA6526A;

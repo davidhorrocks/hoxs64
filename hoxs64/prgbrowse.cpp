@@ -52,6 +52,7 @@ CPRGBrowse::CPRGBrowse() noexcept
 {
 	InitIsReu = false;
 	InitIsQuickload = false;
+	InitIsPrgAlwaysQuickload = false;
 	mhEvtQuit = 0;
 	mFileInspectorStatus = COMPLETED;
 	mFileInspectorResult = S_OK;
@@ -67,11 +68,13 @@ CPRGBrowse::CPRGBrowse() noexcept
 	m_hCheckQuickLoad = 0;
 	m_hCheckAlignD64Tracks = 0;
 	m_hCheckReu = 0;
+	m_hCheckPrgAlwaysQuickLoad = 0;
 	SelectedListItem = -1;
 	SelectedDirectoryIndex = -1;
 	SelectedQuickLoadDiskFile = false;
 	SelectedAlignD64Tracks = false;
 	SelectedWantReu = false;
+	SelectedWantPrgAlwaysQuickload = false;
 	mbGapsDone = false;
 	miLoadedListItemCount = 0;
 	DisableQuickLoad = false;
@@ -108,11 +111,12 @@ void CPRGBrowse::CleanUp() noexcept
 	}
 }
 
-HRESULT CPRGBrowse::Init(bit8 *pCharGen, bool isReu, bool isQuickload)
+HRESULT CPRGBrowse::Init(bit8 *pCharGen, bool isReu, bool isQuickload, bool isPrgAlwaysQuickload)
 {
 	RGBQUAD rgb;
 	InitIsReu = isReu;
 	InitIsQuickload = isQuickload;
+	InitIsPrgAlwaysQuickload = isPrgAlwaysQuickload;
 	DisableQuickLoad = false;
 	DisableReuOption = false;
 	QuickLoadDefault = false;
@@ -204,6 +208,12 @@ HRESULT CPRGBrowse::CreateControls(HWND hDlg)
 		return E_FAIL;
 	}
 
+	m_hCheckPrgAlwaysQuickLoad = GetDlgItem(hDlg, IDC_CHKPRGQUICKLOAD);
+	if (!m_hCheckPrgAlwaysQuickLoad)
+	{
+		return E_FAIL;
+	}
+
 	SendMessage(m_hListBox, LB_SETITEMHEIGHT, 0, m_dpi.ScaleY(HEIGHT_LVITEM_96));
 	SendMessage(m_hListBox, LB_SETHORIZONTALEXTENT, m_dpi.ScaleX(MAXLENLVITEM * HEIGHT_LVFONT_96), 0);
 
@@ -223,6 +233,15 @@ HRESULT CPRGBrowse::CreateControls(HWND hDlg)
 	else
 	{
 		CheckDlgButton(hDlg, IDC_CHKQUICKLOAD, BST_UNCHECKED);
+	}
+
+	if (InitIsPrgAlwaysQuickload)
+	{
+		CheckDlgButton(hDlg, IDC_CHKPRGQUICKLOAD, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(hDlg, IDC_CHKPRGQUICKLOAD, BST_UNCHECKED);
 	}
 
 	SelectedListItem=-1;
@@ -411,7 +430,8 @@ RECT rcBrowse;
 RECT rcListBox;
 RECT rcCheckBoxQuickLoad;
 RECT rcCheckBoxAlignD64Tracks;
-RECT rcCheckReu;
+RECT rcCheckBoxReu;
+RECT rcCheckBoxPrgAlwaysQuickLoad;
 RECT rcDlg;
 LRESULT lr;
 	switch (msg) 
@@ -430,19 +450,20 @@ LRESULT lr;
 			switch(mh->code)
 			{
 			case CDN_INITDONE:
-				if (hDlg !=0 && m_hListBox!=0 && m_hCheckQuickLoad!=0 && m_hCheckAlignD64Tracks!=0 && m_hCheckReu!=0)
+				if (hDlg !=0 && m_hListBox!=0 && m_hCheckQuickLoad!=0 && m_hCheckAlignD64Tracks!=0 && m_hCheckReu!=0 && m_hCheckPrgAlwaysQuickLoad!=0)
 				{
 					GetClientRect(hDlg, &rcDlg);
 					GetWindowRect(m_hBrowse, &rcBrowse);
 					GetWindowRect(m_hListBox, &rcListBox);
 					GetWindowRect(m_hCheckQuickLoad, &rcCheckBoxQuickLoad);
 					GetWindowRect(m_hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks);
-					GetWindowRect(m_hCheckReu, &rcCheckReu);
+					GetWindowRect(m_hCheckReu, &rcCheckBoxReu);
+					GetWindowRect(m_hCheckPrgAlwaysQuickLoad, &rcCheckBoxPrgAlwaysQuickLoad);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcBrowse, 2);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcListBox, 2);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxQuickLoad, 2);
 					MapWindowPoints(NULL, hDlg, (POINT *)&rcCheckBoxAlignD64Tracks, 2);
-					MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckReu, 2);
+					MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckBoxReu, 2);
 					m_width_custom = abs(rcDlg.right - rcDlg.left) - rcBrowse.right;
 
 					mgapTop = abs(rcBrowse.top - rcDlg.top);
@@ -500,6 +521,7 @@ LRESULT lr;
 				SelectedQuickLoadDiskFile = (IsDlgButtonChecked(hDlg, IDC_CHKQUICKLOAD) != BST_UNCHECKED) ? true : false;
 				SelectedAlignD64Tracks = (IsDlgButtonChecked(hDlg, IDC_CHKALIGND64TRACKS) != BST_UNCHECKED) ? true : false;
 				SelectedWantReu = (IsDlgButtonChecked(hDlg, IDC_CHKREU) != BST_UNCHECKED) ? true : false;
+				SelectedWantPrgAlwaysQuickload = (IsDlgButtonChecked(hDlg, IDC_CHKPRGQUICKLOAD) != BST_UNCHECKED) ? true : false;
 				memset(SelectedC64FileName, 0xA0, sizeof(SelectedC64FileName));
 				lpOfNotify = (LPOFNOTIFY) lParam;
 				lr = SendMessage(m_hListBox, LB_GETCOUNT, 0, 0);
@@ -762,28 +784,31 @@ void CPRGBrowse::ReSize(HWND hDlg, LONG w, LONG h)
 	RECT rcListBox;
 	RECT rcCheckBoxQuickLoad;
 	RECT rcCheckBoxAlignD64Tracks;
-	RECT rcCheckReu;
+	RECT rcCheckBoxReu;
+	RECT rcCheckBoxPrgAlwaysQuickLoad;
 	RECT rcDlg;
 	RECT rcBrowse;
 
-	if (hDlg != 0 && m_hListBox != 0 && m_hCheckQuickLoad != 0 && m_hCheckAlignD64Tracks != 0 && m_hCheckReu != 0 && mbGapsDone)
+	if (hDlg != 0 && m_hListBox != 0 && m_hCheckQuickLoad != 0 && m_hCheckAlignD64Tracks != 0 && m_hCheckReu != 0 && m_hCheckPrgAlwaysQuickLoad != 0 && mbGapsDone)
 	{
 		GetClientRect(hDlg, &rcDlg);
 		GetWindowRect(m_hBrowse, &rcBrowse);
 		GetWindowRect(m_hListBox, &rcListBox);
 		GetWindowRect(m_hCheckQuickLoad, &rcCheckBoxQuickLoad);
 		GetWindowRect(m_hCheckAlignD64Tracks, &rcCheckBoxAlignD64Tracks);
-		GetWindowRect(m_hCheckReu, &rcCheckReu);
+		GetWindowRect(m_hCheckReu, &rcCheckBoxReu);
+		GetWindowRect(m_hCheckPrgAlwaysQuickLoad, &rcCheckBoxPrgAlwaysQuickLoad);
 		MapWindowPoints(NULL, hDlg, (POINT*)&rcBrowse, 2);
 		MapWindowPoints(NULL, hDlg, (POINT*)&rcListBox, 2);
 		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckBoxQuickLoad, 2);
 		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckBoxAlignD64Tracks, 2);
-		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckReu, 2);
+		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckBoxReu, 2);
+		MapWindowPoints(NULL, hDlg, (POINT*)&rcCheckBoxPrgAlwaysQuickLoad, 2);
 		int gap = m_dpi.ScaleY(4);
 		int width_custom = m_width_custom;
 		int height_custom = abs(rcDlg.bottom - rcDlg.top);
 		int width_listbox = width_custom - 2 * gap;
-		int height_listbox = height_custom - abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) - abs(rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top) - abs(rcCheckReu.bottom - rcCheckReu.top) - 4 * gap - mgapTop - mgapBottom;
+		int height_listbox = height_custom - abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) - abs(rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top) - abs(rcCheckBoxReu.bottom - rcCheckBoxReu.top) - abs(rcCheckBoxPrgAlwaysQuickLoad.bottom - rcCheckBoxPrgAlwaysQuickLoad.top) - 4 * gap - mgapTop - mgapBottom;
 		if (width_listbox < 0) width_listbox = 0;
 		if (height_listbox < 0) height_listbox = 0;
 		int cx = abs(rcDlg.right - rcDlg.left) - width_custom;
@@ -810,8 +835,10 @@ void CPRGBrowse::ReSize(HWND hDlg, LONG w, LONG h)
 		MoveWindow(m_hCheckQuickLoad,      cx + gap, nextYpos, width_listbox, abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top), TRUE);
 		nextYpos += abs(rcCheckBoxQuickLoad.bottom - rcCheckBoxQuickLoad.top) + gap;
 		MoveWindow(m_hCheckAlignD64Tracks, cx + gap, nextYpos, width_listbox, abs(rcCheckBoxAlignD64Tracks.bottom - rcCheckBoxAlignD64Tracks.top), TRUE);
-		nextYpos += abs(rcCheckReu.bottom - rcCheckReu.top) + gap;
-		MoveWindow(m_hCheckReu,            cx + gap, nextYpos, width_listbox, abs(rcCheckReu.bottom - rcCheckReu.top), TRUE);
+		nextYpos += abs(rcCheckBoxReu.bottom - rcCheckBoxReu.top) + gap;
+		MoveWindow(m_hCheckReu,            cx + gap, nextYpos, width_listbox, abs(rcCheckBoxReu.bottom - rcCheckBoxReu.top), TRUE);
+		nextYpos += abs(rcCheckBoxPrgAlwaysQuickLoad.bottom - rcCheckBoxPrgAlwaysQuickLoad.top) + gap;
+		MoveWindow(m_hCheckPrgAlwaysQuickLoad, cx + gap, nextYpos, width_listbox, abs(rcCheckBoxPrgAlwaysQuickLoad.bottom - rcCheckBoxPrgAlwaysQuickLoad.top), TRUE);
 		UpdateWindow(hDlg);
 	}
 }

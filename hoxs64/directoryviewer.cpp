@@ -389,6 +389,16 @@ namespace FileSys
 		isQuickloadEnabled = isEnabled;
 	}
 
+	bool DirectoryViewer::Get_IsPrgAlwaysQuickloadEnabled() const
+	{
+		return isPrgAlwaysQuickloadEnabled;
+	}
+
+	void DirectoryViewer::Set_IsPrgAlwaysQuickloadEnabled(int isEnabled)
+	{
+		isPrgAlwaysQuickloadEnabled = isEnabled;
+	}
+
 	bool DirectoryViewer::Get_IsReuEnabled() const
 	{
 		return isReuEnabled;

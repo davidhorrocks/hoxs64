@@ -89,7 +89,7 @@ public:
 	void EnterDebugRun(bool bWithSound);
 	void FinishDebugRun();
 	void SetBasicProgramEndAddress(bit16 last_byte);
-	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bAlignD64Tracks, bool keepCurrentCart, bool bReu);
+	HRESULT AutoLoad(const TCHAR *s, int directoryIndex, bool bIndexOnlyPrgFiles, const bit8 c64filename[C64DISKFILENAMELENGTH], bool bQuickLoad, bool bPrgAlwaysQuickLoad, bool bAlignD64Tracks, bool keepCurrentCart, bool bReu);
 	static HRESULT CopyC64FilenameFromString(const TCHAR *sourcestr, bit8 *c64filename, int c64FilenameBufferLength);
 	HRESULT LoadCrtFile(const TCHAR *filename);
 	HRESULT LoadReu1750(unsigned int extraAddressBits) override;
@@ -212,6 +212,7 @@ protected:
 		int directoryIndex = 0;
 		bool bIndexOnlyPrgFiles = false;
 		bool bQuickLoad = false;
+		bool bPrgAlwaysQuickLoad = true;
 		bool bAlignD64Tracks = false;
 		bool bReu = false;
 		bit8 *pImageData = nullptr;
@@ -264,6 +265,7 @@ protected:
 				directoryIndex = 0;
 				bIndexOnlyPrgFiles = false;
 				bQuickLoad = false;
+				bPrgAlwaysQuickLoad = true;
 				bAlignD64Tracks = false;
 			}
 			catch(...)

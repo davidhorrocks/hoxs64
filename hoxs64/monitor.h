@@ -80,7 +80,7 @@ public:
 	virtual void SetIsMouseOverClientArea(bool isMouseOver) = 0;
 	virtual void PostCloseMainWindow() = 0;
 	virtual void PostToggleFullscreen() = 0;
-	virtual bool PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload, bool reu) = 0;
+	virtual bool PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload, bool prgAlwaysQuickload, bool reu) = 0;
 	virtual void PostStartTrace(const TraceStepInfo& traceStepInfo) = 0;
 	virtual void DeleteOneWaitingWinProcMessage(LPARAM lparam) = 0;
 	virtual bool InsertDiskImageFromFile(const wchar_t* pszFilename) = 0;

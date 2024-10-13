@@ -875,10 +875,10 @@ void CDiagEmulationSettingsTab::FillRefresh2(const CDisplayModeInfo* pModeSelect
 
 void CDiagEmulationSettingsTab::FillSizes()
 {
-HWND hVideoPage, hDiskPage, hWndCboSize;
+HWND hVideoPage, hWndCboSize;
 LRESULT lr;
 LRESULT currentSelection = -1;
-bool bShowFloppyLed;
+//bool bShowFloppyLed;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 	{
@@ -905,13 +905,6 @@ bool bShowFloppyLed;
 		{
 			currentSelection = lr;
 		}
-	}
-
-	if (GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK))
-	{
-		//THE floppy LEDs affect the screen dimensions.
-		hDiskPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)->GetHwnd();
-		bShowFloppyLed = IsDlgButtonChecked(hDiskPage, IDC_CHK_SHOWFLOPPYLED) != 0;
 	}
 
 	HCFG::EMUBORDERSIZE border;
@@ -975,9 +968,8 @@ bool bShowFloppyLed;
 
 void CDiagEmulationSettingsTab::FillFilters()
 {
-	HWND hVideoPage, hDiskPage, hWndCboAdapter, hWndCboFilter;
+	HWND hVideoPage, hWndCboAdapter, hWndCboFilter;
 	LRESULT lr;
-	bool bShowFloppyLed;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 	{
@@ -1009,12 +1001,6 @@ void CDiagEmulationSettingsTab::FillFilters()
 		}
 	}	
 	
-	if (GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK))
-	{
-		hDiskPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_DISK)->GetHwnd();
-		bShowFloppyLed = IsDlgButtonChecked(hDiskPage, IDC_CHK_SHOWFLOPPYLED) != 0;
-	}
-
 	HCFG::EMUBORDERSIZE border;
 	ReadBorder(&border);
 	C64WindowDimensions dims;
@@ -2118,6 +2104,15 @@ void CDiagEmulationSettingsTab::loadconfig(const CConfig *cfg)
 		{
 			CheckDlgButton(hWnd, IDC_CHK_SHOWFLOPPYLED, BST_UNCHECKED);
 		}
+
+		if (cfg->m_bPrgAlwaysQuickload)
+		{
+			CheckDlgButton(hWnd, IDC_CHK_PRG_ALWAYS_QUICKLOAD, BST_CHECKED);
+		}
+		else
+		{
+			CheckDlgButton(hWnd, IDC_CHK_PRG_ALWAYS_QUICKLOAD, BST_UNCHECKED);
+		}
 	}
 
 	if ((pPage = GetPage(CDiagEmulationSettingsTab::TABPAGE_CHIP)) != NULL)
@@ -2419,6 +2414,15 @@ shared_ptr<CTabPageDialog> pPage;
 		else
 		{
 			cfg->m_bShowFloppyLed=false;
+		}
+
+		if (IsDlgButtonChecked(hWnd, IDC_CHK_PRG_ALWAYS_QUICKLOAD))
+		{
+			cfg->m_bPrgAlwaysQuickload = true;
+		}
+		else
+		{
+			cfg->m_bPrgAlwaysQuickload = false;
 		}
 
 		ReadTrackZeroSensor(&cfg->m_TrackZeroSensorStyle);

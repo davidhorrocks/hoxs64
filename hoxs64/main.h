@@ -99,7 +99,7 @@ public:
 	void IAppCommand::SetIsMouseOverClientArea(bool isMouseOver) override;
 	void IAppCommand::PostCloseMainWindow() override;
 	void IAppCommand::PostToggleFullscreen() override;
-	bool IAppCommand::PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload, bool reu) override;
+	bool IAppCommand::PostAutoLoadFile(const wchar_t* pszFilename, int directoryIndex, bool quickload, bool prgAlwaysQuickload, bool reu) override;
 	void IAppCommand::PostStartTrace(const TraceStepInfo& traceStepInfo) override;
 	void IAppCommand::DeleteOneWaitingWinProcMessage(LPARAM lparam) override;
 	bool IAppCommand::InsertDiskImageFromFile(const wchar_t* pszFilename) override;
