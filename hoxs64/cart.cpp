@@ -1457,7 +1457,7 @@ unsigned int offsetToDefault8kZeroBank;
 unsigned int offsetToFirstChipBank;
 CartData cartTempData;
 CrtHeader& hdr = cartTempData.m_crtHeader;
-unsigned __int64 filesize=0;
+unsigned __int64 filesize = 0;
 __int64 iFileIndex = 0;
 
 	ClearError();
@@ -1475,7 +1475,12 @@ __int64 iFileIndex = 0;
 				break;
 			}
 
-			filesize = G::FileSize(hFile);
+			if (!G::TryGetFileSize(hFile, filesize))
+			{
+				hr = SetError(E_FAIL, TEXT("Could not open crt file %s."), filename);
+				ok = false;
+				break;
+			}
 
 			//Read header.
 			nBytesToRead = sizeof(hdr);
@@ -1755,7 +1760,7 @@ __int64 iFileIndex = 0;
 		hr = SetError(E_FAIL, S_READFAILED, filename);
 	}
 
-	if (hFile)
+	if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(hFile);
 		hFile = NULL;

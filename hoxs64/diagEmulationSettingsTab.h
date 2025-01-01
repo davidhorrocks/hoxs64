@@ -71,6 +71,7 @@ private:
 	void UpdatePageDisk(HWND hWndDlg);
 	virtual BOOL DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	virtual BOOL OnPageEvent(CTabPageDialog *page, HWND hWndDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
+	void ShowBrowseReuFile(HWND hWndDlg);
 
 	Graphics* m_pGx;
 	std::vector<Microsoft::WRL::ComPtr<IDXGIAdapter1>> m_vdxgiAdapters;
@@ -124,6 +125,8 @@ private:
 	bool ReadSidAddress7(bit16 *sidAddress);
 	bool ReadSidAddress8(bit16 *sidAddress);
 	bool ReadComboItemDataInt(int page, int control_id, int *data);
+	void UpdateReuSize(HWND hWndDlg, std::wstring filename);
+	void UpdateReuSize(HWND hWndDlg, unsigned int extraAddressBits);
 
 	static const int TABPAGE_GENERAL = 0;
 	static const int TABPAGE_VIDEO = 1;

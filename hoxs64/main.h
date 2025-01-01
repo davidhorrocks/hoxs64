@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "errormsg.h"
+#include "buffersize.h"
 
 class CApp : CAppStatus, IAppCommand, IC64Event, CAppWindow::INotify, public ErrorMsg
 {
@@ -18,7 +19,7 @@ public:
 	static const int ShellExitCycleLimit = 0x1;
 	static const int ShellExitInitFailed = 0x101;
 	static const int ShellExitPngFailed = 0x103;
-	static constexpr size_t CchPathBufferSize = 1024ULL * 64;
+	static constexpr size_t CchPathBufferSize = MAX_SIZE_FILE_PATH;
 
 	void Cleanup() noexcept;
 	int Run(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow);
@@ -42,7 +43,9 @@ public:
 	void IAppCommand::ToggleMaxSpeed() override;
 	void IAppCommand::InsertTapeDialog(HWND hWnd) override;
 	void IAppCommand::LoadCrtFileDialog(HWND hWnd) override;
+	void IAppCommand::InsertReuFileDialog(HWND hWnd) override;
 	void IAppCommand::LoadReu1750(HWND hWnd, unsigned int extraAddressBits) override;
+	void IAppCommand::LoadReu1750FromFile(HWND hWnd, const TCHAR* filename, bool autoSizeExtraAddressBits, unsigned int extraAddressBits) override;
 	void IAppCommand::LoadC64ImageDialog(HWND hWnd) override;
 	void IAppCommand::LoadT64Dialog(HWND hWnd) override;
 	void IAppCommand::AutoLoadDialog(HWND hWnd) override;

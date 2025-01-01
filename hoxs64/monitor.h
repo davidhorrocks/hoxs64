@@ -99,7 +99,9 @@ public:
 	virtual void ToggleMaxSpeed() = 0;
 	virtual void InsertTapeDialog(HWND hWnd) = 0;
 	virtual void LoadCrtFileDialog(HWND hWnd) = 0;
+	virtual void InsertReuFileDialog(HWND hWnd) = 0;
 	virtual void LoadReu1750(HWND hWnd, unsigned int extraAddressBits) = 0;
+	virtual void LoadReu1750FromFile(HWND hWnd, const TCHAR* filename, bool autoSizeExtraAddressBits, unsigned int extraAddressBits) = 0;
 	virtual void LoadC64ImageDialog(HWND hWnd) = 0;
 	virtual void LoadT64Dialog(HWND hWnd) = 0;
 	virtual void AutoLoadDialog(HWND hWnd) = 0;

@@ -505,6 +505,9 @@
     <ClCompile Include="IniFileManager\IniFileManager.cpp">
       <Filter>IniFileManager</Filter>
     </ClCompile>
+    <ClCompile Include="diagInsertReu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cmdarg.h">
@@ -986,6 +989,12 @@
     </ClInclude>
     <ClInclude Include="IniFileManager\IniFileManager.h">
       <Filter>IniFileManager</Filter>
+    </ClInclude>
+    <ClInclude Include="diagInsertReu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="buffersize.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1588,7 +1588,7 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 			}
 			else if (_wcsicmp(wsext.c_str(), TEXT(".reu")) == 0)
 			{
-				hr = LoadReu1750FromFile(filename);
+				hr = LoadReu1750FromFile(filename, true, 0);
 				if (SUCCEEDED(hr))
 				{
 					keepCurrentCart = true;
@@ -2047,7 +2047,7 @@ HRESULT C64::LoadReu1750(unsigned int extraAddressBits)
 	return hr;
 }
 
-HRESULT C64::LoadReu1750FromFile(const TCHAR* filename)
+HRESULT C64::LoadReu1750FromFile(const TCHAR* filename, bool autoSizeExtraAddressBits, unsigned int extraAddressBits)
 {
 	HRESULT hr = E_FAIL;
 	HANDLE hFile = NULL;
@@ -2058,18 +2058,20 @@ HRESULT C64::LoadReu1750FromFile(const TCHAR* filename)
 	do
 	{
 		CartData cartData;
-		hFile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		std::wstring wsfilename = Wfs::EnsureLongNamePrefix(filename);
+		G::Trim(wsfilename);
+		hFile = CreateFile(wsfilename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
-			hr = SetError(E_FAIL, TEXT("Could not open reu file %s."), filename);
+			hr = SetError(E_FAIL, TEXT("Could not open reu file %s."), wsfilename.c_str());
 			ok = false;
 			break;
 		}
 
-		unsigned __int64 filesize = G::FileSize(hFile);
-		if (filesize < 0)
+		unsigned __int64 filesize;
+		if (!G::TryGetFileSize(hFile, filesize))
 		{
-			hr = SetError(E_FAIL, S_READFAILED, filename);
+			hr = SetError(E_FAIL, S_READFAILED, wsfilename.c_str());
 			ok = false;
 			break;
 		}		
@@ -2079,42 +2081,71 @@ HRESULT C64::LoadReu1750FromFile(const TCHAR* filename)
 		unsigned int extraBitsCompare = CartReu1750::MaxExtraBits;
 		unsigned int extraMaskCompare = 0xff;
 		unsigned int memorySizeCompare = CartReu1750::MaxRAMSize;
-		if (filesize >= CartReu1750::MaxRAMSize)
+		if (autoSizeExtraAddressBits)
 		{
-			nBytesToRead = CartReu1750::MaxRAMSize;
-			extraBitsCompare = CartReu1750::MaxExtraBits;
-		}
-		else if (filesize > CartReu1750::DefaultRAMSize)
-		{
-			nBytesToRead = (DWORD)(filesize & 0xffffffff);
-			extraBitsCompare = CartReu1750::MaxExtraBits;
+			if (filesize >= CartReu1750::MaxRAMSize)
+			{
+				nBytesToRead = CartReu1750::MaxRAMSize;
+				extraBitsCompare = CartReu1750::MaxExtraBits;
+			}
+			else if (filesize > CartReu1750::DefaultRAMSize)
+			{
+				nBytesToRead = (DWORD)(filesize & 0xffffffff);
+				extraBitsCompare = CartReu1750::MaxExtraBits;
+			}
+			else
+			{
+				nBytesToRead = (DWORD)(filesize & 0xffffffff);
+				extraBitsCompare = appStatus->m_reu_extraAddressBits;
+			}
 		}
 		else
 		{
-			nBytesToRead = (DWORD)(filesize & 0xffffffff);
-			extraBitsCompare = appStatus->m_reu_extraAddressBits;
+			if (extraAddressBits > CartReu1750::MaxExtraBits)
+			{
+				extraAddressBits = CartReu1750::MaxExtraBits;
+			}
+
+			unsigned int ramSize = CartReu1750::DefaultRAMSize << extraAddressBits;
+			extraBitsCompare = extraAddressBits;
+
+			if (filesize >= ramSize)
+			{
+				nBytesToRead = ramSize;
+			}
+			else
+			{
+				nBytesToRead = (DWORD)(filesize & 0xffffffff);
+			}
 		}
 
 		if ((unsigned __int64)nBytesToRead > filesize)
 		{
 			nBytesToRead = (DWORD)(filesize & 0xffffffff);
-		}		
+		}
 
 		hr = cart.LoadReu1750(cartData, extraBitsCompare);
 		if (SUCCEEDED(hr))
 		{
 			if (cartData.m_pCartData != nullptr)
 			{
-				BOOL br = ReadFile(hFile, cartData.m_pCartData, nBytesToRead, &nBytesRead, nullptr);
-				if (br)
+				if (nBytesToRead > 0)
 				{
-					cartData.m_bPreserveRamOnReset = true;
+					BOOL br = ReadFile(hFile, cartData.m_pCartData, nBytesToRead, &nBytesRead, nullptr);
+					if (br)
+					{
+						cartData.m_bPreserveRamOnReset = true;
+					}
+					else
+					{
+						hr = SetError(E_FAIL, S_READFAILED, filename);
+						ok = false;
+						break;
+					}
 				}
 				else
 				{
-					hr = SetError(E_FAIL, S_READFAILED, filename);
-					ok = false;
-					break;
+					cartData.m_bPreserveRamOnReset = true;
 				}
 			}
 

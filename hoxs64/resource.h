@@ -65,6 +65,8 @@
 #define IDB_PNG_WINDOWFULLSCREEN        161
 #define IDD_VICIICOLOURPALETTE          162
 #define IDD_JOYBUTTONSELECTION          163
+#define IDD_DIALOG1                     168
+#define IDD_INSERT_REU                  168
 #define IDC_VERSION                     1064
 #define IDC_STATIC_ABOUT_TITLE          1065
 #define IDC_STATIC_ABOUT_AUTHOR         1066
@@ -209,6 +211,7 @@
 #define IDC_GRP_RASTERVALUE             1204
 #define IDC_CBO_JOY1ENABLEPOV           1205
 #define IDC_CHECK2                      1206
+#define IDC_REU_USE_CUSTOM_FILE         1206
 #define IDC_CBO_JOY2ENABLEPOV           1207
 #define IDC_VICCOLOR2                   1208
 #define IDC_VICCOLOR3                   1209
@@ -385,12 +388,15 @@
 #define IDC_CHECK1                      1380
 #define IDC_CHK_REU                     1380
 #define IDC_CHK_REU_INSERT              1380
-#define IDC_CHECK_PRG_ALWAYS_QUICKLOAD  1380
 #define IDC_CHK_PRG_ALWAYS_QUICKLOAD    1380
 #define IDC_GROUP_REU                   1381
 #define IDC_RAD_REU_512K                1382
 #define IDC_RAD_REU_16M                 1383
 #define IDC_CHKPRGQUICKLOAD             1384
+#define IDC_RAD_REU_NONE                1385
+#define IDC_BUTTON_BROWSE_REU_FILE      1386
+#define IDC_TXT_REU_FILENAME            1387
+#define IDC_LBL_REU_NOTES               1388
 #define IDM_EXIT                        40018
 #define IDS_WINCLASS_KEYPRESS           40019
 #define IDS_PRESSANYKEY                 40020
@@ -476,9 +482,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         40097
-#define _APS_NEXT_CONTROL_VALUE         1385
+#define _APS_NEXT_CONTROL_VALUE         1389
 #define _APS_NEXT_SYMED_VALUE           165
 #endif
 #endif

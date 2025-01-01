@@ -353,6 +353,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClCompile Include="commandresult.cpp" />
     <ClCompile Include="cart_final_cartridge_iii.cpp" />
     <ClCompile Include="diagcolour.cpp" />
+    <ClCompile Include="diagInsertReu.cpp" />
     <ClCompile Include="directoryviewer.cpp" />
     <ClCompile Include="ErrorLogger.cpp" />
     <ClCompile Include="dirlist.cpp" />
@@ -598,6 +599,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClInclude Include="bits.h" />
     <ClInclude Include="bpenum.h" />
     <ClInclude Include="breakpointresult.h" />
+    <ClInclude Include="buffersize.h" />
     <ClInclude Include="buttonitemdata.h" />
     <ClInclude Include="C64Display.h" />
     <ClInclude Include="C64ScreenTexture.h" />
@@ -634,6 +636,7 @@ xcopy "$(SolutionDir)Dlls\$(PlatformTarget)\*.dll" "$(OutDir)" /i /r /y
     <ClInclude Include="cart_final_cartridge_iii.h" />
     <ClInclude Include="diagbuttonselection.h" />
     <ClInclude Include="diagcolour.h" />
+    <ClInclude Include="diagInsertReu.h" />
     <ClInclude Include="directoryviewer.h" />
     <ClInclude Include="dirlist.h" />
     <ClInclude Include="ErrorLogger.h" />

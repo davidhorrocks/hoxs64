@@ -418,6 +418,10 @@ const LPCTSTR CConfig::Section_Joystick = TEXT("Joystick");
 const LPCTSTR CConfig::Section_Keyboard = TEXT("Keyboard");
 const LPCTSTR CConfig::Section_VICIIPalette = TEXT("VICIIPalette");
 const LPCTSTR CConfig::Key_ImGuiAutoloadPath = TEXT("ImGuiAutoloadPath");
+const LPCTSTR CConfig::Key_ReuImageFilename = TEXT("ReuImageFilename");
+const LPCTSTR CConfig::Key_ReuUseImageFile = TEXT("ReuUseImageFile");
+const LPCTSTR CConfig::Key_ReuExtraAddressBits = TEXT("ReuExtraAddressBits");
+const LPCTSTR CConfig::Key_ReuInsertCart = TEXT("ReuInsertCart");
 
 CConfig::CConfig() noexcept
 {	
@@ -441,8 +445,6 @@ CConfig::CConfig() noexcept
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
-	m_reu_insertCartridge = false;
-	m_reu_extraAddressBits = 0;
 	m_bWindowedLockAspectRatio = false;
 	m_bSIDStereo = true;
 	SetPalettePepto();
@@ -454,6 +456,9 @@ CConfig::CConfig() noexcept
 	m_Sid6Address = 0;
 	m_Sid7Address = 0;
 	m_Sid8Address = 0;
+	m_reu_extraAddressBits = 0;
+	m_reu_use_image_file = false;
+	m_reu_insertCartridge = false;
 	LoadDefaultSetting();
 }
 
@@ -966,28 +971,6 @@ HRESULT CConfig::LoadCurrentSetting()
 	}
 
 	dwValue = 0;
-	lRetCode = configSource->ReadDWord(Section_General, TEXT("ReuInsertCart"), dwValue);
-	if (SUCCEEDED(lRetCode))
-	{
-		m_reu_insertCartridge = dwValue != 0;
-	}
-	else
-	{
-		m_reu_insertCartridge = false;
-	}
-
-	dwValue = 0;
-	lRetCode = configSource->ReadDWord(Section_General, TEXT("ReuExtraAddressBits"), dwValue);
-	if (SUCCEEDED(lRetCode))
-	{
-		m_reu_extraAddressBits = dwValue;
-	}
-	else
-	{
-		m_reu_extraAddressBits = 0;
-	}
-
-	dwValue = 0;
 	lRetCode = configSource->ReadDWord(Section_General, TEXT("NumberOfExtraSidChips"), dwValue);
 	if (SUCCEEDED(lRetCode))
 	{
@@ -1135,6 +1118,42 @@ HRESULT CConfig::LoadCurrentSetting()
 
 	// Load joystick 2 setting
 	LoadCurrentJoystickSetting(configSource.get(), 2, this->m_joy2config);
+
+	// Load REU settings
+	dwValue = 0;
+	lRetCode = configSource->ReadDWord(Section_General, CConfig::Key_ReuInsertCart, dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_reu_insertCartridge = dwValue != 0;
+	}
+	else
+	{
+		m_reu_insertCartridge = false;
+	}
+
+	dwValue = 0;
+	lRetCode = configSource->ReadDWord(Section_General, CConfig::Key_ReuExtraAddressBits, dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_reu_extraAddressBits = dwValue;
+	}
+	else
+	{
+		m_reu_extraAddressBits = 0;
+	}
+
+	dwValue = 0;
+	lRetCode = configSource->ReadDWord(Section_General, CConfig::Key_ReuUseImageFile, dwValue);
+	if (SUCCEEDED(lRetCode))
+	{
+		m_reu_use_image_file = dwValue != 0;
+	}
+	else
+	{
+		m_reu_use_image_file = true;
+	}
+
+	LoadReuImageFilenameSetting(configSource.get());
 	return S_OK;
 }
 
@@ -1808,17 +1827,17 @@ HRESULT CConfig::LoadImGuiSetting()
 				if (SUCCEEDED(configSource->ReadString(CConfig::Section_General, CConfig::Key_ImGuiAutoloadPath, buffer.get(), cchbuffer)))
 				{
 					buffer[cchbuffer] = L'\0';// Ensures we are zero terminated.
-					this->m_imgui_autoload_folder.assign(buffer.get());
+					this->m_imgui_autoload_folder.assign(buffer.get());					
+					return S_OK;
 				}
 			}
 		}
 	}
 	catch (...)
 	{
-		return E_FAIL;
 	}
 
-	return S_OK;
+	return E_FAIL;
 }
 
 HRESULT CConfig::SaveImGuiSetting()
@@ -1838,6 +1857,68 @@ HRESULT CConfig::SaveImGuiSetting()
 
 		DWORD cchbuffer = (DWORD)((wcslen(p) + 1) * sizeof(wchar_t));
 		if (SUCCEEDED(configSource->WriteString(CConfig::Section_General, CConfig::Key_ImGuiAutoloadPath, p, cchbuffer)))
+		{
+			return S_OK;
+		}
+	}
+	catch (...)
+	{
+	}
+
+	return E_FAIL;
+}
+
+HRESULT CConfig::LoadReuImageFilenameSetting(IConfigDataSource* configSource)
+{
+	try
+	{
+		std::wstring& str = m_reu_image_filename;
+		LPCTSTR pstrSection = CConfig::Section_General;
+		LPCTSTR pstrKey = CConfig::Key_ReuImageFilename;
+		str.clear();
+		DWORD cchbuffer = 0;
+		if (SUCCEEDED(configSource->ReadString(pstrSection, pstrKey, nullptr, cchbuffer)))
+		{
+			if (cchbuffer > 0 && cchbuffer <= G::MaxApplicationPathLength)
+			{
+				DWORD extra = cchbuffer + 1;// Add one in case we receive a string that is not zero terminated.
+				auto buffer = std::shared_ptr<wchar_t[]>(new wchar_t[extra]);
+				if (SUCCEEDED(configSource->ReadString(pstrSection, pstrKey, buffer.get(), cchbuffer)))
+				{
+					buffer[cchbuffer] = L'\0';// Ensures we are zero terminated.
+					str.assign(buffer.get());
+					G::Trim(str);
+					return S_OK;
+				}
+			}
+		}
+	}
+	catch (...)
+	{
+	}
+
+	return E_FAIL;
+}
+
+HRESULT CConfig::SaveReuImageFilenameSetting(IConfigDataSource* configSource)
+{
+	try
+	{
+		std::wstring& str = m_reu_image_filename;
+		LPCTSTR pstrSection = CConfig::Section_General;
+		LPCTSTR pstrKey = CConfig::Key_ReuImageFilename;
+		const wchar_t* p;
+		if (str.length() <= G::MaxApplicationPathLength)
+		{
+			p = str.c_str();
+		}
+		else
+		{
+			p = G::EmptyString;
+		}
+
+		DWORD cchbuffer = (DWORD)((wcslen(p) + 1) * sizeof(wchar_t));
+		if (SUCCEEDED(configSource->WriteString(pstrSection, pstrKey, p, cchbuffer)))
 		{
 			return S_OK;
 		}
@@ -2310,12 +2391,6 @@ HRESULT CConfig::SaveCurrentSettings()
 	dwValue = m_bTimerBbug ? 1 : 0;
 	configSource->WriteDWord(CConfig::Section_General, TEXT("CIATimerBbug"), dwValue);
 	
-	dwValue = m_reu_insertCartridge ? 1 : 0;
-	configSource->WriteDWord(CConfig::Section_General, TEXT("ReuInsertCart"), dwValue);
-
-	dwValue = m_reu_extraAddressBits;
-	configSource->WriteDWord(CConfig::Section_General, TEXT("ReuExtraAddressBits"), dwValue);
-
 	dwValue = (DWORD)this->m_numberOfExtraSIDs;
 	if (dwValue >= 8)
 	{
@@ -2397,6 +2472,16 @@ HRESULT CConfig::SaveCurrentSettings()
 
 	//Save joystick 2 setting.
 	SaveCurrentJoystickSetting(configSource.get(), 2, this->m_joy2config);
+
+	// Save REU settings.
+	dwValue = m_reu_insertCartridge ? 1 : 0;
+	configSource->WriteDWord(CConfig::Section_General, CConfig::Key_ReuInsertCart, dwValue);
+
+	dwValue = m_reu_extraAddressBits;
+	configSource->WriteDWord(CConfig::Section_General, CConfig::Key_ReuExtraAddressBits, dwValue);
+
+	configSource->WriteDWord(Section_General, CConfig::Key_ReuUseImageFile, m_reu_use_image_file ? 1 : 0);
+	SaveReuImageFilenameSetting(configSource.get());
 
 	configSource->WriteToFile();
 	configSource->Close();
@@ -2654,8 +2739,6 @@ void CConfig::LoadDefaultSetting() noexcept
 	m_TrackZeroSensorStyle = HCFG::TZSSPositiveHigh;
 	m_CIAMode = HCFG::CM_CIA6526A;
 	m_bTimerBbug = false;
-	m_reu_insertCartridge = false;
-	m_reu_extraAddressBits = 0;
 	SetCiaNewOldMode(true);
 	m_numberOfExtraSIDs = 0;
 	m_Sid2Address = 0;
@@ -2667,6 +2750,10 @@ void CConfig::LoadDefaultSetting() noexcept
 	m_Sid8Address = 0;
 	m_bWindowedLockAspectRatio = false;
 	m_bSIDStereo = true;
+	m_reu_extraAddressBits = 0;
+	m_reu_use_image_file = false;
+	m_reu_insertCartridge = false;
+	m_reu_image_filename.clear();
 }
 
 int CConfig::GetKeyScanCode(UINT ch) noexcept

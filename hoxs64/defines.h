@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <tchar.h>
+#include "buffersize.h"
 #define APPNAME TEXT("Hoxs64")
 #define APPMENUNAME TEXT("Hoxs64")
 #define HOXS_MAIN_WND_CLASS TEXT("Hoxs64")

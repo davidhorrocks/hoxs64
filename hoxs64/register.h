@@ -437,7 +437,7 @@ public:
 	virtual void DetachCart() = 0;
 	virtual bool IsCartAttached() = 0;
 	virtual HRESULT LoadReu1750(unsigned int extraAddressBits) = 0;
-	virtual HRESULT LoadReu1750FromFile(const TCHAR* filename) = 0;
+	virtual HRESULT LoadReu1750FromFile(const TCHAR* filename, bool autoSizeExtraAddressBits, unsigned int extraAddressBits) = 0;
 	virtual bool IsReuAttached() = 0;
 	virtual IMonitor* GetMon() = 0;
 	virtual void SetupColorTables() = 0;

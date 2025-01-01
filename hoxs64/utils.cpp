@@ -1836,20 +1836,21 @@ __int64 G::FileSeek (HANDLE hfile, __int64 distance, DWORD moveMethod)
    return li.QuadPart;
 }
 
-unsigned __int64 G::FileSize (HANDLE hfile)
+bool G::TryGetFileSize(HANDLE hfile, unsigned __int64& filesize)
 {
    ULARGE_INTEGER li;
-
    li.QuadPart = 0;
-
-   li.LowPart = GetFileSize (hfile, &li.HighPart);
-
-   if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() 
-       != NO_ERROR)
+   li.LowPart = GetFileSize(hfile, &li.HighPart);
+   if (li.LowPart == INVALID_FILE_SIZE)
    {
-      li.QuadPart = -1;
+	   if (GetLastError() != NO_ERROR)
+	   {
+		   return false;
+	   }
    }
-   return (unsigned __int64)li.QuadPart;
+
+   filesize = li.QuadPart;
+   return true;
 }
 
 void G::InitRandomSeed()

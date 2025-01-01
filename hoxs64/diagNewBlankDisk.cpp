@@ -17,15 +17,6 @@
 #include "diagnewblankdisk.h"
 #include "resource.h"
 
-
-CDiagNewBlankDisk::CDiagNewBlankDisk()
-{
-}
-
-CDiagNewBlankDisk::~CDiagNewBlankDisk()
-{
-}
-
 HRESULT CDiagNewBlankDisk::Init()
 {
 	ClearError();
@@ -47,7 +38,7 @@ BOOL br;
 		SendDlgItemMessage(hwndDlg, IDC_BYTEID1, EM_SETLIMITTEXT, 3, 0);
 		SendDlgItemMessage(hwndDlg, IDC_BYTEID2, EM_SETLIMITTEXT, 3, 0);
 		CheckDlgButton(hwndDlg, IDC_CHK_ALIGNTRACKS, BST_CHECKED);
-		CheckRadioButton(hwndDlg, IDC_RAD_TRACKS35, IDC_RAD_TRACKS35, IDC_RAD_TRACKS35);
+		CheckRadioButton(hwndDlg, IDC_RAD_TRACKS35, IDC_RAD_TRACKS40, IDC_RAD_TRACKS35);
 		return TRUE;
 	case WM_COMMAND: 
 		switch (LOWORD(wParam)) 
@@ -64,7 +55,14 @@ BOOL br;
 		case IDCANCEL: 
 			EndDialog(hwndDlg, wParam); 
 			return TRUE; 
-		} 
-	} 
+		default:
+			break;
+		}
+
+		return FALSE;
+	default:
+		break;
+	}
+
 	return FALSE; 
 } 

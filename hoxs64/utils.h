@@ -5,6 +5,7 @@
 #include "dx_version.h"
 #include "boost2005.h"
 #include <string>
+#include "buffersize.h"
 
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
@@ -42,7 +43,7 @@ private:
 	static const size_t FORMAT_STRING_INITIAL_SIZE = 512;
 	static const size_t FORMAT_STRING_MAX_SIZE = 0x3fffffffUL;
 public:
-	static const size_t MaxApplicationPathLength = 0x7fff;
+	static constexpr size_t MaxApplicationPathLength = MAX_SIZE_FILE_PATH;
 
 	static BOOL WaitMessageTimeout(DWORD dwTimeout) noexcept;
 	static HRESULT GetVersion_Res(LPCTSTR filename, VS_FIXEDFILEINFO* p_vinfo);
@@ -99,7 +100,7 @@ public:
 	static bool IsStringBlank(LPCTSTR ps) noexcept;
 	static bool IsWhiteSpace(TCHAR ch) noexcept;
 	static __int64 FileSeek(HANDLE hfile, __int64 distance, DWORD moveMethod);
-	static unsigned __int64 FileSize(HANDLE hfile);
+	static bool TryGetFileSize(HANDLE hfile, unsigned __int64 &filesize);
 	static void InitRandomSeed();
 	static const TCHAR EmptyString[1];
 	static bool IsLargeGameDevice(const DIDEVCAPS& didevcaps);

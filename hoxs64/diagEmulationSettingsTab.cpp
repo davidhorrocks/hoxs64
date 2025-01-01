@@ -1001,6 +1001,7 @@ void CDiagEmulationSettingsTab::FillFilters()
 		}
 	}	
 	
+
 	HCFG::EMUBORDERSIZE border;
 	ReadBorder(&border);
 	C64WindowDimensions dims;
@@ -2149,6 +2150,15 @@ void CDiagEmulationSettingsTab::loadconfig(const CConfig *cfg)
 			CheckDlgButton(hWnd, IDC_CHK_REU_INSERT, BST_UNCHECKED);
 		}
 
+		if (cfg->m_reu_use_image_file)
+		{
+			CheckDlgButton(hWnd, IDC_REU_USE_CUSTOM_FILE, BST_CHECKED);
+		}
+		else
+		{
+			CheckDlgButton(hWnd, IDC_REU_USE_CUSTOM_FILE, BST_UNCHECKED);
+		}
+
 		if (cfg->m_reu_extraAddressBits == 0)
 		{
 			CheckDlgButton(hWnd, IDC_RAD_REU_512K, BST_CHECKED);
@@ -2157,6 +2167,23 @@ void CDiagEmulationSettingsTab::loadconfig(const CConfig *cfg)
 		{
 			CheckDlgButton(hWnd, IDC_RAD_REU_16M, BST_CHECKED);
 		}
+		
+		try
+		{
+			if (cfg->m_reu_image_filename.length() >= 0 && cfg->m_reu_image_filename.length() <= G::MaxApplicationPathLength)
+			{
+				SendDlgItemMessageW(hWnd, IDC_TXT_REU_FILENAME, WM_SETTEXT, 0, (LPARAM)cfg->m_reu_image_filename.c_str());
+			}
+			else 
+			{
+				SendDlgItemMessageW(hWnd, IDC_TXT_REU_FILENAME, WM_SETTEXT, 0, (LPARAM)G::EmptyString);
+			}
+		}
+		catch (std::exception e)
+		{
+			ErrorLogger::Log(hWnd, e.what());
+		}
+
 	}
 
 	FillFps();
@@ -2433,15 +2460,15 @@ shared_ptr<CTabPageDialog> pPage;
 		hWnd = pPage->GetHwnd();
 		if (IsDlgButtonChecked(hWnd, IDC_RAD_CIA6526))
 		{
-			cfg->m_CIAMode = HCFG::CM_CIA6526; 
+			cfg->m_CIAMode = HCFG::CM_CIA6526;
 		}
 		else if (IsDlgButtonChecked(hWnd, IDC_RAD_CIA6526A))
 		{
-			cfg->m_CIAMode = HCFG::CM_CIA6526A; 
+			cfg->m_CIAMode = HCFG::CM_CIA6526A;
 		}
 		else
 		{
-			cfg->m_CIAMode = HCFG::CM_CIA6526A; 
+			cfg->m_CIAMode = HCFG::CM_CIA6526A;
 		}
 
 		if (IsDlgButtonChecked(hWnd, IDC_CHK_TIMERBBUG))
@@ -2460,6 +2487,41 @@ shared_ptr<CTabPageDialog> pPage;
 		else
 		{
 			cfg->m_reu_insertCartridge = false;
+		}
+
+		if (IsDlgButtonChecked(hWnd, IDC_REU_USE_CUSTOM_FILE))
+		{
+			cfg->m_reu_use_image_file = true;
+		}
+		else
+		{
+			cfg->m_reu_use_image_file = false;
+		}
+
+		try
+		{
+			std::shared_ptr<TCHAR[]> buffer;
+			cfg->m_reu_image_filename.clear();
+			LRESULT lr = SendDlgItemMessageW(hWnd, IDC_TXT_REU_FILENAME, WM_GETTEXTLENGTH, 0, 0);
+			if (lr >= 0 && lr <= G::MaxApplicationPathLength)
+			{
+				int size = (int)lr + 1;
+				if (lr != 0)
+				{
+					buffer = std::shared_ptr<WCHAR[]>(new WCHAR[size]);
+					lr = GetDlgItemTextW(hWnd, IDC_TXT_REU_FILENAME, buffer.get(), size);
+					if (lr < 0 || lr >= (LRESULT)size)
+					{
+						buffer.get()[0] = TEXT('\0');
+					}
+
+					cfg->m_reu_image_filename.append(buffer.get());
+				}
+			}
+		}
+		catch (std::exception e)
+		{
+			ErrorLogger::Log(hWnd, e.what());
 		}
 
 		if (IsDlgButtonChecked(hWnd, IDC_RAD_REU_512K))
@@ -2608,7 +2670,9 @@ HRESULT hr;
 			return TRUE; 
 		case IDCANCEL: 
 			EndDialog(hWndDlg, wParam); 
-			return TRUE; 
+			return TRUE;
+		default:
+			return FALSE;
 		}
 
 		break;
@@ -2618,6 +2682,92 @@ HRESULT hr;
 	}
 
 	return FALSE; 
+}
+
+void CDiagEmulationSettingsTab::ShowBrowseReuFile(HWND hWndDlg)
+{
+	HWND& hWnd = hWndDlg;
+	OPENFILENAME of;
+	std::shared_ptr<TCHAR[]> spFilename(new TCHAR[G::MaxApplicationPathLength + 1]);
+	BOOL b;
+
+	spFilename[0] = 0;
+	G::InitOfn(of,
+		hWnd,
+		TEXT("Choose a REU image file"),
+		spFilename.get(),
+		G::MaxApplicationPathLength,
+		TEXT("REU image file (*.reu)\0*.reu\0All files (*.*)\0*.*\0\0"),
+		NULL,
+		0);
+
+	of.nFilterIndex = 2;
+	b = GetOpenFileName((LPOPENFILENAME)&of);
+	if (b)
+	{
+		int size = lstrlen(spFilename.get());
+		if (size <= G::MaxApplicationPathLength)
+		{
+			SendDlgItemMessage(hWnd, IDC_TXT_REU_FILENAME, WM_SETTEXT, 0, (LPARAM)spFilename.get());
+			UpdateReuSize(hWndDlg, spFilename.get());
+		}
+		else
+		{
+			G::DebugMessageBox(hWnd, TEXT("Path too long."), TEXT("Error"), MB_OK | MB_ICONEXCLAMATION);
+		}
+	}
+	else
+	{
+		G::ShowLastError(hWnd);
+	}
+}
+
+void CDiagEmulationSettingsTab::UpdateReuSize(HWND hWndDlg, std::wstring filename)
+{
+	if (!G::IsStringBlank(filename))
+	{
+		HANDLE hFile = nullptr;
+		try
+		{
+			hFile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+			if (hFile != INVALID_HANDLE_VALUE)
+			{
+				unsigned __int64 filesize;
+				if (G::TryGetFileSize(hFile, filesize))
+				{
+					if (filesize >= CartReu1750::MaxRAMSize)
+					{
+						UpdateReuSize(hWndDlg, CartReu1750::MaxExtraBits);
+					}
+					else if (filesize > CartReu1750::DefaultRAMSize)
+					{
+						UpdateReuSize(hWndDlg, CartReu1750::MaxExtraBits);
+					}
+				}
+			}
+		}
+		catch (...)
+		{
+
+		}
+
+		if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
+		{
+			CloseHandle(hFile);
+		}
+	}
+}
+
+void CDiagEmulationSettingsTab::UpdateReuSize(HWND hWndDlg, unsigned int extraAddressBits)
+{
+	if (extraAddressBits == 0)
+	{
+		CheckRadioButton(hWndDlg, IDC_RAD_REU_512K, IDC_RAD_REU_16M, IDC_RAD_REU_512K);
+	}
+	else
+	{
+		CheckRadioButton(hWndDlg, IDC_RAD_REU_512K, IDC_RAD_REU_16M, IDC_RAD_REU_16M);
+	}
 }
 
 BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, UINT message, WPARAM wParam, LPARAM lParam) 
@@ -2648,7 +2798,10 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 				FillFilters();
 				VideoPageSizeComboBoxes();
 				return TRUE;
+			default:
+				break;
 			}
+
 			break;
 		case IDC_CBO_MODE:
 			switch (HIWORD(wParam))
@@ -2660,7 +2813,10 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 				FillFilters();
 				VideoPageSizeComboBoxes();
 				return TRUE;
+			default:
+				break;
 			}
+
 			break;
 		case IDC_CBO_FORMAT:
 			switch (HIWORD(wParam))
@@ -2671,7 +2827,10 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 				FillFilters();
 				VideoPageSizeComboBoxes();
 				return TRUE;
+			default:
+				break;
 			}
+
 			break;
 		case IDC_CBO_BORDER:
 			switch (HIWORD(wParam))
@@ -2680,8 +2839,10 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 				FillSizes();
 				VideoPageSizeComboBoxes();
 				return TRUE;
+			default:
+				break;
 			}
-			break;
+
 			break;
 		case IDC_LIMITSPEED:
 			switch (HIWORD(wParam))
@@ -2689,7 +2850,10 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			case BN_CLICKED:
 				SettingsOnLimitSpeedChange();
 				return TRUE;
+			default:
+				break;
 			}
+
 			break;
 		case IDC_RAD_CIA6526:
 			switch (HIWORD(wParam))
@@ -2697,7 +2861,10 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			case BN_CLICKED:
 				SettingsOnCiaChipChange();
 				return TRUE;
+			default:
+				break;
 			}
+
 			break;
 		case IDC_RAD_CIA6526A:
 			switch (HIWORD(wParam))
@@ -2705,10 +2872,23 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			case BN_CLICKED:
 				SettingsOnCiaChipChange();
 				return TRUE;
+			default:
+				break;
 			}
+
+			break;
+		case IDC_BUTTON_BROWSE_REU_FILE:
+			ShowBrowseReuFile(hWndDlg);
+			return TRUE;
+		default:
 			break;
 		}
-	} 
+
+		break;
+	default:
+		break;
+	}
+
 	return FALSE; 
 }
 

@@ -43,6 +43,7 @@
 #include "diagnewblankdisk.h"
 #include "diagabout.h"
 #include "diagfilesaved64.h"
+#include "diagInsertReu.h"
 #include "cmdarg.h"
 #include "edln.h"
 #include "wpanel.h"
@@ -934,6 +935,7 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	CommandArg* caAlignD64Tracks = cmdArgs.FindOption(TEXT("-AlignD64Tracks"));
 	CommandArg* caReu512k = cmdArgs.FindOption(TEXT("-Reu512k"));
 	CommandArg* caReu16M = cmdArgs.FindOption(TEXT("-Reu16M"));
+	CommandArg* caReuImage = cmdArgs.FindOption(TEXT("-ReuImage"));
 	CommandArg* caStartFullscreen = cmdArgs.FindOption(TEXT("-Fullscreen"));
 	CommandArg* caDebugCart = cmdArgs.FindOption(TEXT("-debugcart"));
 	CommandArg* caLimitCycles = cmdArgs.FindOption(TEXT("-limitcycles"));
@@ -1275,6 +1277,11 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	}
 
 	bool keepCurrentCart = false;
+	if (caReuImage != nullptr && caReuImage->ParamCount >= 1)
+	{
+		this->m_reu_image_filename.assign(caMountCart->pParam[0]);
+	}
+
 	if (caMountCart != nullptr && caMountCart->ParamCount >= 1)
 	{
 		if (SUCCEEDED(c64.LoadCrtFile(caMountCart->pParam[0])))
@@ -1284,8 +1291,27 @@ HRESULT CApp::InitInstance(int nCmdShow, PWSTR lpCmdLine)
 	}
 	else if (caReu16M != nullptr || caReu512k != nullptr || this->m_reu_insertCartridge)
 	{
-		// REU plus and other cart is not implemented.
-		c64.LoadReu1750(this->m_reu_extraAddressBits);
+		// REU plus and other cart is not implemented.		
+		bool wantReuAutoSize = false;
+		if (caReu16M != nullptr)
+		{
+			this->m_reu_extraAddressBits = CartReu1750::MaxExtraBits;
+		}
+		else if (caReu512k != nullptr)
+		{
+			this->m_reu_extraAddressBits = 0;
+		}
+
+		if (this->m_reu_use_image_file)
+		{
+			bool wantReuAutoSize = caReu16M == nullptr && caReu512k == nullptr;
+			c64.LoadReu1750FromFile(this->m_reu_image_filename.c_str(), false, this->m_reu_extraAddressBits);
+		}
+		else
+		{
+			c64.LoadReu1750(this->m_reu_extraAddressBits);
+		}
+
 		keepCurrentCart = true;
 	}
 
@@ -1680,6 +1706,34 @@ void CApp::LoadCrtFileDialog(HWND hWnd)
 	}
 }
 
+void CApp::InsertReuFileDialog(HWND hWnd)
+{
+	shared_ptr<CDiagInsertReu> pCDiagInsertReu;
+	try
+	{
+		pCDiagInsertReu = shared_ptr<CDiagInsertReu>(new CDiagInsertReu());
+		if (pCDiagInsertReu != nullptr)
+		{
+			pCDiagInsertReu->Init(this->m_reu_use_image_file, this->m_reu_image_filename, this->m_reu_extraAddressBits);
+			INT_PTR r = pCDiagInsertReu->ShowDialog(m_hInstance, MAKEINTRESOURCE(IDD_INSERT_REU), hWnd);
+			if (LOWORD(r) == IDOK)
+			{
+				if (pCDiagInsertReu->m_reu_use_image_file && !G::IsStringBlank(pCDiagInsertReu->m_reu_image_filename))
+				{
+					LoadReu1750FromFile(hWnd, pCDiagInsertReu->m_reu_image_filename.c_str(), false, pCDiagInsertReu->m_reu_extraAddressBits);
+				}
+				else
+				{
+					LoadReu1750(hWnd, pCDiagInsertReu->m_reu_extraAddressBits);
+				}
+			}
+		}
+	}
+	catch (...)
+	{
+	}
+}
+
 void CApp::LoadReu1750(HWND hWnd, unsigned int extraAddressBits)
 {
 	HRESULT hr = c64.LoadReu1750(extraAddressBits);
@@ -1690,7 +1744,21 @@ void CApp::LoadReu1750(HWND hWnd, unsigned int extraAddressBits)
 	}
 	else
 	{
-		c64.DisplayError(hWnd, TEXT("Attach Cartridge"));
+		c64.DisplayError(hWnd, TEXT("Attach REU Cartridge"));
+	}
+}
+
+void CApp::LoadReu1750FromFile(HWND hWnd, const TCHAR* filename, bool autoSizeExtraAddressBits, unsigned int extraAddressBits)
+{
+	HRESULT hr = c64.LoadReu1750FromFile(filename, autoSizeExtraAddressBits, extraAddressBits);
+	if (SUCCEEDED(hr))
+	{
+		UpdateApplication();
+		Reset();
+	}
+	else
+	{
+		c64.DisplayError(hWnd, TEXT("Attach REU Cartridge"));
 	}
 }
 

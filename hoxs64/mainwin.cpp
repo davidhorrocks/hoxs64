@@ -28,6 +28,7 @@
 #include "diagabout.h"
 #include "diagfilesaved64.h"
 #include "diagcolour.h"
+#include "diagInsertReu.h"
 #include "edln.h"
 #include "wpanel.h"
 #include "wpanelmanager.h"
@@ -555,9 +556,10 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 	shared_ptr<CDiagJoystick> pDiagJoystick;
 	shared_ptr<CDiagEmulationSettingsTab> pDiagEmulationSettingsTab;
 	shared_ptr<CDiagNewBlankDisk> pDiagNewBlankDisk;
+	shared_ptr<CDiagInsertReu> pCDiagInsertReu;
 	shared_ptr<CDiagAbout> pDiagAbout;
 	HRESULT hr;
-	CConfig* pTemporaryCfg;
+	CConfig* pTemporaryCfg = nullptr;
 	HRESULT hRet;
 	INT_PTR r;
 	int wmId, wmEvent;
@@ -624,7 +626,7 @@ bool CAppWindow::OnCommand(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT& lre
 		return 0;
 	case IDM_CART_ATTACH1750REU:
 		appCommand->SoundHalt();
-		appCommand->LoadReu1750(hWnd, appStatus->m_reu_extraAddressBits);
+		appCommand->InsertReuFileDialog(hWnd);
 		appCommand->SoundResume();
 		lresult = 0;
 		return true;
@@ -1230,7 +1232,7 @@ bool CAppWindow::OnClose(HWND hWnd, WPARAM wParam, LPARAM lParam, LRESULT &lresu
 	else
 	{
 		appStatus->SaveWindowSetting(hWnd);
-		appStatus->SaveImGuiSetting();
+		appStatus->SaveImGuiSetting();		
 	}
 
 	return false;

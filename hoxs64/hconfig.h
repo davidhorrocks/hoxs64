@@ -307,6 +307,8 @@ public:
 	HRESULT SaveCurrentJoystickSetting(IConfigDataSource* configSource, int joystickNumber, const struct joyconfig& jconfig);
 	HRESULT LoadImGuiSetting();
 	HRESULT SaveImGuiSetting();
+	HRESULT LoadReuImageFilenameSetting(IConfigDataSource* configSource);
+	HRESULT SaveReuImageFilenameSetting(IConfigDataSource* configSource);
 	void LoadDefaultSetting() noexcept;
 	void SetPalettePepto() noexcept;
 	void SetCiaNewOldMode(bool isNew) noexcept;
@@ -320,6 +322,10 @@ private:
 	static const LPCTSTR Section_Keyboard;
 	static const LPCTSTR Section_VICIIPalette;
 	static const LPCTSTR Key_ImGuiAutoloadPath;
+	static const LPCTSTR Key_ReuImageFilename;
+	static const LPCTSTR Key_ReuUseImageFile;
+	static const LPCTSTR Key_ReuExtraAddressBits;
+	static const LPCTSTR Key_ReuInsertCart;
 	HRESULT ReadRegKeyboardItem(IConfigDataSource* configSource, LPCTSTR keyname, unsigned char keyvalue);
 	HRESULT WriteRegKeyboardItem(IConfigDataSource* configSource, LPCTSTR keyname, unsigned char keyvalue);
 	std::shared_ptr<IConfigDataSource> GetConfigSource();
@@ -381,6 +387,8 @@ public:
 	HCFG::CIAMODE m_CIAMode = HCFG::CIAMODE::CM_CIA6526A;
 	bool m_bTimerBbug = false;
 	std::wstring m_imgui_autoload_folder;
-	bool m_reu_insertCartridge;
-	unsigned int m_reu_extraAddressBits;
+	std::wstring m_reu_image_filename;
+	bool m_reu_use_image_file = false;
+	bool m_reu_insertCartridge = false;
+	unsigned int m_reu_extraAddressBits = 0;
 };
