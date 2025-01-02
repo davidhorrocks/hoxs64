@@ -1752,75 +1752,87 @@ HRESULT C64::AutoLoad(const TCHAR *filename, int directoryIndex, bool bIndexOnly
 
 HRESULT C64::LoadImageFile(const TCHAR* filename, bool injectC64Memory, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize)
 {
+	HANDLE hfile = NULL;
+	HRESULT hRet = S_OK;
 	try
 	{
-		HANDLE hfile = 0;
-		BOOL r;
-		DWORD bytes_read;
-		DWORD bytes_to_read;
-		bit64 file_size;
-		bit32 start, code_size, s;
-		const TCHAR* p;
-
-		ClearError();
-		hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-		if (hfile == INVALID_HANDLE_VALUE)
+		do
 		{
-			return SetError(E_FAIL, TEXT("Could not open %s."), filename);
-		}
+			BOOL r;
+			DWORD bytes_read;
+			DWORD bytes_to_read;
+			bit64 file_size;
+			bit32 start, code_size, s;
+			const TCHAR* p;
 
-		if (!GetFileSizeEx(hfile, (PLARGE_INTEGER)&file_size))
-		{
-			CloseHandle(hfile);
-			return SetError(E_FAIL, TEXT("Could not open %s."), filename);
-		}
-
-		if (file_size > (bit64)C64MAXFILESIZE)
-		{
-			CloseHandle(hfile);
-			return SetError(E_FAIL, TEXT("%s is too large to be a C64 image."), filename);
-		}
-
-		bit32 file_size_low32 = (bit32)(file_size & 0xffffffff);
-
-		if (pBuffer == nullptr)
-		{
-			if (pcbBufferSize != nullptr)
+			ClearError();
+			hfile = CreateFile(Wfs::EnsureLongNamePrefix(filename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+			if (hfile == INVALID_HANDLE_VALUE)
 			{
-				*pcbBufferSize = file_size_low32;
-			}
-		}
-
-		if (pBuffer != nullptr || injectC64Memory)
-		{
-			auto pTempBuffer = std::shared_ptr<bit8[]>(new bit8[file_size_low32]);
-			bytes_to_read = file_size_low32;
-			r = ReadFile(hfile, pTempBuffer.get(), bytes_to_read, &bytes_read, NULL);
-			CloseHandle(hfile);
-			if (r == 0)
-			{
-				return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
+				hRet = SetError(E_FAIL, TEXT("Could not open %s."), filename);
+				break;
 			}
 
-			if (bytes_read != file_size)
+			if (!GetFileSizeEx(hfile, (PLARGE_INTEGER)&file_size))
 			{
-				return SetError(E_FAIL, TEXT("Could not read from %s."), filename);
+				hRet = SetError(E_FAIL, TEXT("Could not open %s."), filename);
+				break;
 			}
 
-			if (lstrlen(filename) >= 4)
+			if (file_size > (bit64)C64MAXFILESIZE)
 			{
-				p = &(filename[lstrlen(filename) - 4]);
-				if (_wcsicmp(p, TEXT(".p00")) == 0)
+				hRet = SetError(E_FAIL, TEXT("%s is too large to be a C64 image."), filename);
+				break;
+			}
+
+			bit32 file_size_low32 = (bit32)(file_size & 0xffffffff);
+
+			if (pBuffer == nullptr)
+			{
+				if (pcbBufferSize != nullptr)
 				{
-					start = *((bit16*)(&pTempBuffer[0x1a]));
-					code_size = (bit16)file_size - 0x1c;
-					s = 0x1c;
+					*pcbBufferSize = file_size_low32;
 				}
-				else if (_wcsicmp(p, TEXT(".prg")) == 0)
+			}
+
+			if (pBuffer != nullptr || injectC64Memory)
+			{
+				auto pTempBuffer = std::shared_ptr<bit8[]>(new bit8[file_size_low32]);
+				bytes_to_read = file_size_low32;
+				r = ReadFile(hfile, pTempBuffer.get(), bytes_to_read, &bytes_read, NULL);
+				if (r == 0)
 				{
-					start = *((bit16*)(&pTempBuffer[0x00]));
-					code_size = (bit16)file_size - 0x2;
-					s = 0x2;
+					hRet = SetError(E_FAIL, TEXT("Could not read from %s."), filename);
+					break;
+				}
+
+				if (bytes_read != file_size)
+				{
+					hRet = SetError(E_FAIL, TEXT("Could not read from %s."), filename);
+					break;
+				}
+
+				if (lstrlen(filename) >= 4)
+				{
+					p = &(filename[lstrlen(filename) - 4]);
+					if (_wcsicmp(p, TEXT(".p00")) == 0)
+					{
+						start = *((bit16*)(&pTempBuffer[0x1a]));
+						code_size = (bit16)file_size - 0x1c;
+						s = 0x1c;
+					}
+					else if (_wcsicmp(p, TEXT(".prg")) == 0)
+					{
+						start = *((bit16*)(&pTempBuffer[0x00]));
+						code_size = (bit16)file_size - 0x2;
+						s = 0x2;
+					}
+					else
+					{
+						start = *((bit16*)(&pTempBuffer[0x00]));
+						code_size = (bit16)file_size - 0x2;
+						s = 0x2;
+					}
 				}
 				else
 				{
@@ -1828,55 +1840,54 @@ HRESULT C64::LoadImageFile(const TCHAR* filename, bool injectC64Memory, bit16* p
 					code_size = (bit16)file_size - 0x2;
 					s = 0x2;
 				}
-			}
-			else
-			{
-				start = *((bit16*)(&pTempBuffer[0x00]));
-				code_size = (bit16)file_size - 0x2;
-				s = 0x2;
-			}
 
-			start &= 0xffff;
-			if (code_size > C64RAMSIZE)
-			{
-				code_size = C64RAMSIZE;
-			}
+				start &= 0xffff;
+				if (code_size > C64RAMSIZE)
+				{
+					code_size = C64RAMSIZE;
+				}
 
-			if ((code_size + start) > C64RAMSIZE)
-			{
-				code_size = C64RAMSIZE - start;
-			}
+				if ((code_size + start) > C64RAMSIZE)
+				{
+					code_size = C64RAMSIZE - start;
+				}
 
-			if (injectC64Memory)
-			{
-				memcpy(&ram.mMemory[start], &pTempBuffer[s], code_size);
-			}
+				if (injectC64Memory)
+				{
+					memcpy(&ram.mMemory[start], &pTempBuffer[s], code_size);
+				}
 
-			if (injectedC64Size != nullptr)
-			{				
-				*injectedC64Size = (bit16)code_size;
-			}
+				if (injectedC64Size != nullptr)
+				{
+					*injectedC64Size = (bit16)code_size;
+				}
 
-			if (pStartAddress != nullptr)
-			{
-				*pStartAddress = (bit16)start;
-			}
+				if (pStartAddress != nullptr)
+				{
+					*pStartAddress = (bit16)start;
+				}
 
-			if (pBuffer != nullptr && pcbBufferSize != nullptr)
-			{
-				bit32 trimsize = std::min((bit32)file_size, *pcbBufferSize);
-				*pcbBufferSize = trimsize;
-				memcpy(pBuffer, &pTempBuffer[s], trimsize);
+				if (pBuffer != nullptr && pcbBufferSize != nullptr)
+				{
+					bit32 trimsize = std::min((bit32)file_size, *pcbBufferSize);
+					*pcbBufferSize = trimsize;
+					memcpy(pBuffer, &pTempBuffer[s], trimsize);
+				}
 			}
-		}
+		} while (false);
 	}
 	catch (...)
 	{
-		return E_FAIL;
+		hRet = E_FAIL;
 	}
 
+	if (hfile != NULL && hfile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(hfile);
+		hfile = NULL;
+	}
 
-	return S_OK;
+	return hRet;
 }
 
 HRESULT C64::LoadT64ImageFile(const std::wstring filename, int t64Index, bool injectC64Memory, bool prependStartAddressToBuffer, std::wstring& c64filename, bit16* pStartAddress, bit16* injectedC64Size, bit8* pBuffer, bit32* pcbBufferSize)
@@ -2155,7 +2166,7 @@ HRESULT C64::LoadReu1750FromFile(const TCHAR* filename, bool autoSizeExtraAddres
 
 	} while (false);
 
-	if (hFile)
+	if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(hFile);
 		hFile = NULL;

@@ -725,7 +725,7 @@ HRESULT C64File::IsFDI(const TCHAR filename[], bool &result)
 		return E_FAIL;
 	}
 
-	r = ReadFile(hfile, &fdiHeader.signature[0], sizeof(struct FDIHeader), &bytes_read, NULL);
+	r = ReadFile(hfile, &fdiHeader, sizeof(struct FDIHeader), &bytes_read, NULL);
 	if (r==0 || sizeof(struct FDIHeader)!=bytes_read)
 	{
 		CloseHandle(hfile);
