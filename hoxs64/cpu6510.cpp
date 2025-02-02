@@ -117,7 +117,7 @@ bool CPU6510::ReadByte(bit16 address, bit8& data)
 {
 	// Performance hack: 
 	// If not in debug mode, then the our CPU hack will run ahead on reads from local RAM or ROM even while BA is low.
-	// We can get away with this trick because the VIC does to write to RAM.
+	// We can get away with this trick because the VIC does not write to RAM.
 	// We cannot use this CPU run ahead trick if the CPU needs to read from an IO chip or other timing sensitive register.
 	// The function VIC ExecuteCycle should return with BA left high (if not in debug mode), however DMA and RDY could still be left low.
 	// If a cartridge is holding DMA low which means RDY is low then we have to hold the CPU because a cartridge could write to RAM or a register.
