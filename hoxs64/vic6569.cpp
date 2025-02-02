@@ -1490,7 +1490,7 @@ bit8 gData;
 					bit8 gap = iWritevicVMLI2 - iWritevicVMLI1;
 					bit32& char0 = VideoMatrix[((iWritevicVMLI2-1) % gap) % NUM_SCREEN_COLUMNS];
 					bit32& char1 = VideoMatrix[iWritevicVMLI1];
-					bit32& char2 = VideoMatrix[iWritevicVMLI2];
+					bit32& char2 = VideoMatrix[iWritevicVMLI2 % NUM_SCREEN_COLUMNS];
 					if (((vic_raster_cycle +1) & 3) == 0)
 					{
 						 cdata_carry = 0x8a6 & char0;
