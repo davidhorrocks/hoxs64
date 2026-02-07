@@ -1217,7 +1217,7 @@ TEXTMETRIC tm;
 			}
 			else
 			{
-				LONG width_intflag = tm.tmAveCharWidth * slen;
+				width_intflag = tm.tmAveCharWidth * slen;
 			}
 
 			if (!bUnavailable)
