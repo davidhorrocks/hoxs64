@@ -34,7 +34,7 @@ HRESULT Graphics::Initialize(IC64 *c64, IAppCommand* appCommand, CAppStatus* app
 	Cleanup();
 	isTearingSupported = false;
 	useVsync = true;
-	this->otherFlags = DXGI_SWAP_CHAIN_FLAG::DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	this->otherFlags = 0;
 	ZeroMemory(&assignedSwapChainDesc, sizeof(assignedSwapChainDesc));
 	this->assignedWidth = 0;
 	this->assignedHeight = 0;
@@ -360,6 +360,8 @@ HRESULT Graphics::InitializeDirectX()
 	std::string message;
 	try
 	{
+		this->isTearingSupported = false;
+		this->otherFlags = DXGI_SWAP_CHAIN_FLAG::DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		HMONITOR hmonitor = 0;
 		if (useDefaultAdapter)
 		{
@@ -450,9 +452,8 @@ HRESULT Graphics::InitializeDirectX()
 			}
 		}
 
-		wantFullScreenBorderlessWindow = false;
-		enableFullScreenBorderlessTearing = false;
-		this->isTearingSupported = false;
+		//wantFullScreenBorderlessWindow = false;
+		//enableFullScreenBorderlessTearing = false;
 		if (dxgifactory5)
 		{
 			BOOL allowTearing;
@@ -558,13 +559,12 @@ HRESULT Graphics::InitializeDirectX()
 
 			DXGI_SWAP_CHAIN_DESC1 swapWindowedDesc = {};
 			this->otherFlags &= ~DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-			if (!bWindowedMode && this->wantFullScreenBorderlessWindow)
+			if (!bWindowedMode)
 			{
 				if (syncMode != HCFG::FULLSCREENSYNCMODE::FSSM_VBL)
 				{
 					if (this->isTearingSupported)
 					{
-						this->enableFullScreenBorderlessTearing = true;
 						this->otherFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 					}
 				}

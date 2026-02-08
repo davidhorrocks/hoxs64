@@ -468,7 +468,7 @@ double GraphicsHelper::GetRefreshRate(const DXGI_MODE_DESC& desc) noexcept
 
 bool GraphicsHelper::IsAcceptableMode(UINT Width, UINT Height) noexcept
 {
-	// Should it be min 640 and min 300?
+	// Should it be min 640 and min 400?
 	return Width >= 320 && Height >= 200;
 }
 

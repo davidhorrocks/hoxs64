@@ -83,8 +83,6 @@ private:
 	std::vector<Microsoft::WRL::ComPtr<IDXGIOutput>> vOutputs;	
 	Texture* cbmCharRom[2] = {};
 	UINT otherFlags = 0;
-	bool wantFullScreenBorderlessWindow = false;
-	bool enableFullScreenBorderlessTearing = false;
 	VertexShader vertex_shader_2d;
 	PixelShader pixel_shader_2d;
 	ConstantBuffer<CB_VS_vertexshader_2d> cb_vs_vertexshader_2d;
