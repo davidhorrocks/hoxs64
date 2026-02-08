@@ -1,7 +1,7 @@
 #include "vicpixelbuffer.h"
 #include "C64Display.h"
 
-HRESULT C64Display::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader_2d>& cb_vs_vertexshader_2d, ID3D11SamplerState* pointSamplerState, ID3D11SamplerState* linearSamplerState, HWND hWnd, unsigned int width, unsigned int height, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, IC64* c64, CAppStatus* appStatus)
+HRESULT C64Display::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader_2d>& cb_vs_vertexshader_2d, ID3D11SamplerState* pointSamplerState, ID3D11SamplerState* linearSamplerState, HWND hWnd, unsigned int width, unsigned int height, DXGI_FORMAT format, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, IC64* c64, CAppStatus* appStatus)
 {
 	HRESULT hr;
 	this->device = device;
@@ -13,6 +13,7 @@ HRESULT C64Display::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
 	this->cb_vs_vertexshader_2d = &cb_vs_vertexshader_2d;
 	this->pointSamplerState = pointSamplerState;
 	this->linearSamplerState = linearSamplerState;
+	this->format = format;
 	std::vector<Vertex2D> vertexData =
 	{
 		Vertex2D(-0.5f, -0.5f, 0.0f, 0.0f, 0.0f), //TopLeft
@@ -40,15 +41,15 @@ HRESULT C64Display::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
 	hr = indices.Initialize(device, indexData.data(), (UINT)indexData.size());
 	COM_ERROR_IF_FAILED(hr, "Failed to initialize index buffer for C64Display.");
 
-	this->spriteToolbarBackground.Initialize(device, deviceContext, widthLed, heightLed, Color(0, 0, 0), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	this->spriteLedMotorOn.Initialize(device, deviceContext, widthLed, heightLed, Color(0, 255, 0), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	this->spriteLedMotorOff.Initialize(device, deviceContext, widthLed, heightLed, Color(0, 64, 64), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	this->spriteLedDriveOn.Initialize(device, deviceContext, widthLed, heightLed, Color(0, 128, 255), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	this->spriteLedDriveOff.Initialize(device, deviceContext, widthLed, heightLed, Color(19, 21, 83), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	this->spriteLedWriteOn.Initialize(device, deviceContext, widthLed, heightLed, Color(255, 0, 0), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	this->spriteLedWriteOff.Initialize(device, deviceContext, widthLed, heightLed, Color(62, 14, 13), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	this->spriteVicCursorBar.Initialize(device, deviceContext, 8, 1, Color(200, 200, 200), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
-	hr = this->SetRenderStyle(width, height, bWindowedMode, borderSize, bShowFloppyLed, stretch, bUsePointFilter);
+	this->spriteToolbarBackground.Initialize(device, deviceContext, widthLed, heightLed, format, Color(0, 0, 0), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	this->spriteLedMotorOn.Initialize(device, deviceContext, widthLed, heightLed, format, Color(0, 255, 0), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	this->spriteLedMotorOff.Initialize(device, deviceContext, widthLed, heightLed, format, Color(0, 64, 64), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	this->spriteLedDriveOn.Initialize(device, deviceContext, widthLed, heightLed, format, Color(0, 128, 255), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	this->spriteLedDriveOff.Initialize(device, deviceContext, widthLed, heightLed, format, Color(19, 21, 83), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	this->spriteLedWriteOn.Initialize(device, deviceContext, widthLed, heightLed, format, Color(255, 0, 0), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	this->spriteLedWriteOff.Initialize(device, deviceContext, widthLed, heightLed, format, Color(62, 14, 13), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	this->spriteVicCursorBar.Initialize(device, deviceContext, 8, 1, format, Color(200, 200, 200), aiTextureType::aiTextureType_DIFFUSE, cb_vs_vertexshader_2d);
+	hr = this->SetRenderStyle(width, height, format, bWindowedMode, borderSize, bShowFloppyLed, stretch, bUsePointFilter);
 	if (FAILED(hr))
 	{
 		ErrorLogger::Log(hr, "SetRenderStyle failed.");
@@ -367,11 +368,12 @@ void C64Display::SetDisplaySize(bool isWindowedMode, unsigned int width, unsigne
 	}
 }
 
-HRESULT C64Display::SetRenderStyle(unsigned int width, unsigned int height, bool isWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter)
+HRESULT C64Display::SetRenderStyle(unsigned int width, unsigned int height, DXGI_FORMAT format, bool isWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter)
 {
 	HRESULT hr = E_FAIL;	
 	this->width = width;
 	this->height = height;
+	this->format = format;
 	this->isWindowedMode = isWindowedMode;
 	this->borderSize = borderSize;
 	this->bShowFloppyLed = bShowFloppyLed;
@@ -404,7 +406,7 @@ HRESULT C64Display::SetRenderStyle(unsigned int width, unsigned int height, bool
 				if (IsValidRect(rcWindow))
 				{
 					SetDisplaySize(isWindowedMode, rcWindow.right, rcWindow.bottom);
-					hr = this->screenTexture.ResizeOrKeep(device.Get(), dims.Width, dims.Height);
+					hr = this->screenTexture.ResizeOrKeep(device.Get(), dims.Width, dims.Height, format);
 					if (SUCCEEDED(hr))
 					{
 						bScreenOk = true;
@@ -448,7 +450,7 @@ HRESULT C64Display::SetRenderStyle(unsigned int width, unsigned int height, bool
 		displayWidth = dims.Width;
 		displayHeight = dims.Height;
 		displayStart = dims.Start;
-		hr = this->screenTexture.ResizeOrKeep(device.Get(), dims.Width, dims.Height);
+		hr = this->screenTexture.ResizeOrKeep(device.Get(), dims.Width, dims.Height, format);
 		if (SUCCEEDED(hr))
 		{
 			bScreenOk = true;

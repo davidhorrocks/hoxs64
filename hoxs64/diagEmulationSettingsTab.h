@@ -5,7 +5,7 @@
 
 struct CDisplayInfo2
 {
-	CDisplayInfo2();
+	CDisplayInfo2() noexcept;
 	bool isAuto;
 	DXGI_ADAPTER_DESC1 adapterDesc;
 	DXGI_OUTPUT_DESC outputDesc;
@@ -20,7 +20,7 @@ struct CDisplayInfo2
 
 struct CDisplayModeInfo
 {
-	CDisplayModeInfo();
+	CDisplayModeInfo() noexcept;
 	bool isAuto;
 	unsigned int width;
 	unsigned int height;
@@ -32,7 +32,7 @@ struct CDisplayModeInfo
 
 struct CDisplayFormatInfo
 {
-	CDisplayFormatInfo();
+	CDisplayFormatInfo() noexcept;
 	bool isAuto;
 	DXGI_FORMAT format;
 	std::wstring name;
@@ -40,7 +40,7 @@ struct CDisplayFormatInfo
 };
 struct CDisplayRefreshInfo
 {
-	CDisplayRefreshInfo();
+	CDisplayRefreshInfo() noexcept;
 	bool isAuto;
 	unsigned int refreshRateNumerator;
 	unsigned int refreshRateDenominator;

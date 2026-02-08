@@ -211,7 +211,7 @@ HRESULT Graphics::GoWindowed()
 	return hr;
 }
 
-HRESULT Graphics::SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outputNumber, HWND hWnd, unsigned int width, unsigned int height, unsigned int refreshNumerator, unsigned int refreshDenominator, DXGI_MODE_SCANLINE_ORDER dxgiScanlineOrder, DXGI_MODE_SCALING dxgiScaling, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, HCFG::FULLSCREENSYNCMODE syncMode)
+HRESULT Graphics::SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outputNumber, HWND hWnd, unsigned int width, unsigned int height, DXGI_FORMAT format, unsigned int refreshNumerator, unsigned int refreshDenominator, DXGI_MODE_SCANLINE_ORDER dxgiScanlineOrder, DXGI_MODE_SCALING dxgiScaling, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, HCFG::FULLSCREENSYNCMODE syncMode)
 {
 	HRESULT hr;
 	isWantingFullscreen = !bWindowedMode;
@@ -243,7 +243,8 @@ HRESULT Graphics::SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outpu
 		requestedMode.RefreshRate.Denominator = refreshDenominator;
 	}
 
-	requestedMode.Format = GraphicsHelper::DefaultPixelFormat;
+	//GraphicsHelper::DefaultPixelFormat
+	requestedMode.Format = format;
 	this->useDefaultAdapter = useDefaultAdapter;
 	this->adapterNumber = adapterNumber;
 	this->outputNumber = outputNumber;
@@ -350,19 +351,6 @@ void Graphics::FillOutputs(IDXGIAdapter1 *adapter, std::vector<Microsoft::WRL::C
 			break;
 		}
 	}
-}
-
-void Graphics::SetDefaultOverride()
-{
-	adapterNumber = 0;
-	outputNumber = 0;
-	requestedMode.Width = 0;
-	requestedMode.Height = 0;
-	requestedMode.RefreshRate.Numerator= 0;
-	requestedMode.RefreshRate.Denominator = 1;
-	requestedMode.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	requestedMode.Scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
-	bWindowedMode = true;
 }
 
 HRESULT Graphics::InitializeDirectX()
@@ -601,6 +589,11 @@ HRESULT Graphics::InitializeDirectX()
 			{
 				swapWindowedDesc.Width = selectedFullScreenModeDesc.Width;
 				swapWindowedDesc.Height = selectedFullScreenModeDesc.Height;
+				if (selectedFullScreenModeDesc.Format != DXGI_FORMAT::DXGI_FORMAT_UNKNOWN)
+				{
+					swapWindowedDesc.Format = selectedFullScreenModeDesc.Format;
+				}
+
 				if (IsWindows10OrGreater())
 				{
 					swapWindowedDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -632,6 +625,7 @@ HRESULT Graphics::InitializeDirectX()
 			// DirectX 11.0 systems
 			DXGI_SWAP_CHAIN_DESC sd = {};
 			sd.BufferCount = bWindowedMode ? 1 : 2;
+			sd.BufferDesc.Format = GraphicsHelper::DefaultPixelFormat;
 			if (bWindowedMode)
 			{
 				sd.BufferDesc.Width = 0;
@@ -648,9 +642,12 @@ HRESULT Graphics::InitializeDirectX()
 				sd.BufferDesc.RefreshRate = selectedFullScreenModeDesc.RefreshRate;
 				sd.BufferDesc.Scaling = selectedFullScreenModeDesc.Scaling;
 				sd.BufferDesc.ScanlineOrdering = selectedFullScreenModeDesc.ScanlineOrdering;
+				if (selectedFullScreenModeDesc.Format != DXGI_FORMAT::DXGI_FORMAT_UNKNOWN)
+				{
+					sd.BufferDesc.Format = selectedFullScreenModeDesc.Format;
+				}
 			}
 
-			sd.BufferDesc.Format = GraphicsHelper::DefaultPixelFormat;
 			sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 			sd.OutputWindow = hWnd;
 			sd.SampleDesc.Count = 1;
@@ -664,20 +661,13 @@ HRESULT Graphics::InitializeDirectX()
 		dxgifactory1->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
 		assignedWidth = 0;
 		assignedHeight = 0;
+		assignedFormat = GraphicsHelper::DefaultPixelFormat;
 		assignedSwapChainDesc = {};
 		hr = swapChain->GetDesc(&assignedSwapChainDesc);
 		COM_ERROR_IF_FAILED(hr, "GetDesc failed.");				
-		if (bWindowedMode)
-		{
-			assignedWidth = assignedSwapChainDesc.BufferDesc.Width;
-			assignedHeight = assignedSwapChainDesc.BufferDesc.Height;
-		}
-		else
-		{
-			assignedWidth = assignedSwapChainDesc.BufferDesc.Width;
-			assignedHeight = assignedSwapChainDesc.BufferDesc.Height;
-		}
-
+		assignedWidth = assignedSwapChainDesc.BufferDesc.Width;
+		assignedHeight = assignedSwapChainDesc.BufferDesc.Height;
+		assignedFormat = assignedSwapChainDesc.BufferDesc.Format;
 		this->appStatus->m_bWindowed = bWindowedMode;
 		isWentFullscreen = !bWindowedMode;
 
@@ -921,7 +911,7 @@ HRESULT Graphics::InitializeScene()
 		hr = this->cb_vs_vertexshader.Initialize(this->device.Get(), this->deviceContext.Get());
 		COM_ERROR_IF_FAILED(hr, "Failed to initialize constant buffer.");
 
-		hr = c64display.Initialize(this->device.Get(), this->deviceContext.Get(), this->cb_vs_vertexshader_2d, this->pointSamplerState.Get(), this->linearSamplerState.Get(), hWnd, assignedWidth, assignedHeight, bWindowedMode, borderSize, bShowFloppyLed, stretch, bUsePointFilter, c64, appStatus);
+		hr = c64display.Initialize(this->device.Get(), this->deviceContext.Get(), this->cb_vs_vertexshader_2d, this->pointSamplerState.Get(), this->linearSamplerState.Get(), hWnd, assignedWidth, assignedHeight, assignedFormat, bWindowedMode, borderSize, bShowFloppyLed, stretch, bUsePointFilter, c64, appStatus);
 		COM_ERROR_IF_FAILED(hr, "Failed to initialize c64 display.");
 
 		hr = LoadCbmCharTexture();
@@ -1965,7 +1955,7 @@ HRESULT Graphics::LoadCbmCharTexture()
 					}
 				}
 
-				cbmCharRom[setnumber] = new Texture(this->device.Get(), (Color*)ptarget, bitmapwidth, bitmapheight, aiTextureType::aiTextureType_EMISSIVE);
+				cbmCharRom[setnumber] = new Texture(this->device.Get(), this->assignedFormat, (Color*)ptarget, bitmapwidth, bitmapheight, aiTextureType::aiTextureType_EMISSIVE);
 			}
 
 			hr = S_OK;

@@ -5,6 +5,7 @@ C64ScreenTexture::C64ScreenTexture() noexcept
 	pbuffer = nullptr;
 	width = 0;
 	height = 0;
+	format = GraphicsHelper::DefaultPixelFormat;
 }
 
 C64ScreenTexture::~C64ScreenTexture()
@@ -12,10 +13,10 @@ C64ScreenTexture::~C64ScreenTexture()
 	Cleanup();
 }
 
-HRESULT C64ScreenTexture::Initialize(ID3D11Device* device, UINT width, UINT height)
+HRESULT C64ScreenTexture::Initialize(ID3D11Device* device, UINT width, UINT height, DXGI_FORMAT format)
 {
 	FreeSmallSurface();
-	HRESULT hr = CreateSmallSurface(device, width, height);
+	HRESULT hr = CreateSmallSurface(device, width, height, format);
 	if (FAILED(hr))
 	{
 		return hr;
@@ -24,42 +25,48 @@ HRESULT C64ScreenTexture::Initialize(ID3D11Device* device, UINT width, UINT heig
 	return S_OK;
 }
 
-HRESULT C64ScreenTexture::ResizeOrKeep(ID3D11Device* device, UINT width, UINT height)
+HRESULT C64ScreenTexture::ResizeOrKeep(ID3D11Device* device, UINT width, UINT height, DXGI_FORMAT format)
 {
 	if (width == 0 || height == 0)
 	{
 		return E_FAIL;
 	}
 
-	if (this->width == width && this->height == height)
+	if (this->width == width && this->height == height && this->format == format)
 	{
 		return S_OK;
 	}
 
-	return Initialize(device, width, height);
+	return Initialize(device, width, height, format);
 }
 
-UINT C64ScreenTexture::GetWidth()
+UINT C64ScreenTexture::GetWidth() const
 {
 	return width;
 }
 
-UINT C64ScreenTexture::GetHeight()
+UINT C64ScreenTexture::GetHeight() const
 {
 	return height;
 }
 
-void C64ScreenTexture::Cleanup()
+DXGI_FORMAT C64ScreenTexture::GetFormat() const
+{
+	return format;
+}
+
+void C64ScreenTexture::Cleanup() noexcept
 {
 	FreeSmallSurface();
 }
 
-HRESULT C64ScreenTexture::CreateSmallSurface(ID3D11Device* device, int width, int height)
+HRESULT C64ScreenTexture::CreateSmallSurface(ID3D11Device* device, int width, int height, DXGI_FORMAT format)
 {
 	HRESULT hr;
 	FreeSmallSurface();
 	this->width = width;
 	this->height = height;
+	this->format = format;
 	int widthBytes = width * sizeof(Color);
 	widthBytes = width * 4;
 	int widthPadding = widthBytes % 64;
@@ -81,7 +88,8 @@ HRESULT C64ScreenTexture::CreateSmallSurface(ID3D11Device* device, int width, in
 	textureDesc.ArraySize = 1;
 	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	textureDesc.Format = GraphicsHelper::DefaultPixelFormat;
+	//textureDesc.Format = GraphicsHelper::DefaultPixelFormat;
+	textureDesc.Format = format;
 	textureDesc.Height = height;
 	textureDesc.Width = width;
 	textureDesc.MipLevels = 1;
@@ -124,10 +132,17 @@ HRESULT C64ScreenTexture::CreateSmallSurface(ID3D11Device* device, int width, in
 }
 
 
-void C64ScreenTexture::FreeSmallSurface()
+void C64ScreenTexture::FreeSmallSurface() noexcept
 {
-	textureView.Reset();
-	texture.Reset();
+	try
+	{
+		textureView.Reset();
+		texture.Reset();
+	}
+	catch(...) 
+	{
+
+	}
 	if (pbuffer)
 	{
 		GlobalFree(pbuffer);

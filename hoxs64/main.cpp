@@ -2345,7 +2345,16 @@ unsigned int i;
 		}
 		else if (bNeedDisplayStyleUpdate)
 		{
-			this->gx.c64display.SetRenderStyle(0, 0, this->m_bWindowed, m_borderSize, m_bShowFloppyLed, m_fullscreenStretch, m_blitFilter == HCFG::EMUWINDOWFILTER::EMUWINFILTER_POINT);
+			DXGI_FORMAT format;
+			if (FAILED(gx.GetCurrentBufferFormat(&format)))
+			{
+				if (!GraphicsHelper::IsAcceptableFormat((DXGI_FORMAT)m_fullscreenFormat))
+				{
+					format = GraphicsHelper::DefaultPixelFormat;
+				}
+			}
+
+			this->gx.c64display.SetRenderStyle(0, 0, format, this->m_bWindowed, m_borderSize, m_bShowFloppyLed, m_fullscreenStretch, m_blitFilter == HCFG::EMUWINDOWFILTER::EMUWINFILTER_POINT);
 		}
 	}
 

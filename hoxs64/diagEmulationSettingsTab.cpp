@@ -263,23 +263,36 @@ int CDiagEmulationSettingsTab::fnCompareFormat(const CDisplayFormatInfo &mode1, 
 		return 1;
 	}
 
-	if (GraphicsHelper::GetBitsPerPixel(mode1.format) > GraphicsHelper::GetBitsPerPixel(mode2.format))
+	auto it1 = std::find(GraphicsHelper::Formats, GraphicsHelper::Formats + _countof(GraphicsHelper::Formats), mode1.format);
+	auto it2 = std::find(GraphicsHelper::Formats, GraphicsHelper::Formats + _countof(GraphicsHelper::Formats), mode2.format);
+	auto index1 = std::distance(GraphicsHelper::Formats, it1);
+	auto index2 = std::distance(GraphicsHelper::Formats, it2);
+	if (index1 > index2)
 	{
 		return 1;
 	}
-	else if (GraphicsHelper::GetBitsPerPixel(mode1.format) < GraphicsHelper::GetBitsPerPixel(mode2.format))
+	else if (index2 > index1)
 	{
 		return -1;
 	}
 
-	if (mode1.format > mode2.format)
-	{
-		return 1;
-	}
-	else if (mode1.format < mode2.format)
-	{
-		return -1;
-	}
+	//if (GraphicsHelper::GetBitsPerPixel(mode1.format) > GraphicsHelper::GetBitsPerPixel(mode2.format))
+	//{
+	//	return 1;
+	//}
+	//else if (GraphicsHelper::GetBitsPerPixel(mode1.format) < GraphicsHelper::GetBitsPerPixel(mode2.format))
+	//{
+	//	return -1;
+	//}
+
+	//if (mode1.format > mode2.format)
+	//{
+	//	return 1;
+	//}
+	//else if (mode1.format < mode2.format)
+	//{
+	//	return -1;
+	//}
 
 	return 0;
 }
@@ -387,7 +400,7 @@ void CDiagEmulationSettingsTab::FillModes2(int displayInfoIndex)
 							for (std::vector<DXGI_MODE_DESC>::const_iterator iter = modeDescArray.cbegin(); iter != modeDescArray.cend(); iter++)
 							{
 								const DXGI_MODE_DESC& modeDesc = *iter;
-								if (GraphicsHelper::IsAcceptableMode(modeDesc.Width, modeDesc.Height, modeDesc.Format))
+								if (GraphicsHelper::IsAcceptableDisplay(modeDesc))
 								{
 									m_ModeCompleteList.push_back(modeDesc);
 								}
@@ -2987,7 +3000,7 @@ bool CDiagEmulationSettingsTab::CDisplayModeInfo_refresh_is_less::operator()(con
 	return rateL < rateR;
 }
 
-CDisplayInfo2::CDisplayInfo2()
+CDisplayInfo2::CDisplayInfo2() noexcept
 {
 	isAuto = false;
 	adapterOrdinal = 0;
@@ -3020,7 +3033,7 @@ HRESULT CDisplayInfo2::MakeName()
 	return S_OK;
 }
 
-CDisplayModeInfo::CDisplayModeInfo()
+CDisplayModeInfo::CDisplayModeInfo() noexcept
 {
 	isAuto = false;
 	width = 0;
@@ -3091,7 +3104,7 @@ HRESULT CDisplayModeInfo::MakeName()
 	return hr;
 }
 
-CDisplayFormatInfo::CDisplayFormatInfo()
+CDisplayFormatInfo::CDisplayFormatInfo() noexcept
 {
 	isAuto = false;
 	format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
@@ -3137,7 +3150,7 @@ HRESULT CDisplayFormatInfo::MakeName()
 	return hr;
 }
 
-CDisplayRefreshInfo::CDisplayRefreshInfo()
+CDisplayRefreshInfo::CDisplayRefreshInfo() noexcept
 {
 	isAuto = false;
 	refreshRateNumerator = 0;

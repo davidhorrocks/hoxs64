@@ -25,11 +25,12 @@ public:
 	static unsigned int GetDisplayResolutionText(unsigned int width, unsigned int height, LPWSTR buffer, unsigned int charBufferLen);
 	static unsigned int GetDisplayFormatText(DXGI_FORMAT format, LPWSTR buffer, unsigned int charBufferLen);
 	static unsigned int GetDisplayRefreshText(unsigned int refreshRateNumerator, unsigned int refreshRateDenominator, LPWSTR buffer, unsigned int charBufferLen);
-	static const DXGI_FORMAT Formats[1];
-	static const DXGI_FORMAT Formats2[9];
+	static const DXGI_FORMAT Formats[3];
 	static const DXGI_FORMAT DefaultPixelFormat = DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM;
+	static double GetRefreshRate(const DXGI_MODE_DESC& desc) noexcept;
+	static bool IsAcceptableRefreshRate(double rate) noexcept;
 	static bool IsAcceptableMode(UINT Width, UINT Height) noexcept;
-	static bool IsAcceptableMode(UINT Width, UINT Height, DXGI_FORMAT Format) noexcept;
+	static bool IsAcceptableDisplay(const DXGI_MODE_DESC& desc) noexcept;
 	static bool IsAcceptableFormat(DXGI_FORMAT format) noexcept;
 	static bool GetAppDir(std::wstring& str);
 	static bool GetAppFilename(std::wstring& str);
@@ -39,4 +40,11 @@ private:
 	static const int MinNonInterlacedScanRating = 3;
 	static int GetScanRating(const DXGI_MODE_SCANLINE_ORDER& scanOrder);
 	static int GetScaleRating(const DXGI_MODE_SCALING& scaling);
+
+	typedef enum MatchDegree
+	{
+		None = 0,
+		Mode = 1,
+		ModeAndRefresh = 2
+	} MatchDegree;
 };

@@ -439,7 +439,6 @@ void CAppWindow::ResizeGraphics(HWND hWnd, int width, int height)
 					showWindowFlags = SWP_NOZORDER | SWP_NOMOVE;
 				}
 
-				//SetWindowPos(m_pWinEmuWin->GetHwnd(), HWND_NOTOPMOST, 0, 0, clientWidth, clientHeight, showWindowFlags);
 				pGx->ResizeBuffers(clientWidth, clientHeight);
 			}
 		}
@@ -1685,7 +1684,7 @@ HRESULT CAppWindow::SetWindowedMode(bool wantWindowed)
 		}
 	}
 
-	HRESULT hr = pGx->SetMode(appStatus->m_fullscreenAdapterIsDefault, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenOutputNumber, hwndMainWindow, appStatus->m_fullscreenWidth, appStatus->m_fullscreenHeight, appStatus->m_fullscreenRefreshNumerator, appStatus->m_fullscreenRefreshDenominator, appStatus->m_fullscreenDxGiModeScanlineOrdering, appStatus->m_fullscreenDxGiModeScaling, wantWindowed, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_fullscreenStretch, usePointFilter, wantWindowed ? appStatus->m_syncModeWindowed : appStatus->m_syncModeFullscreen);
+	HRESULT hr = pGx->SetMode(appStatus->m_fullscreenAdapterIsDefault, appStatus->m_fullscreenAdapterNumber, appStatus->m_fullscreenOutputNumber, hwndMainWindow, appStatus->m_fullscreenWidth, appStatus->m_fullscreenHeight, (DXGI_FORMAT)appStatus->m_fullscreenFormat, appStatus->m_fullscreenRefreshNumerator, appStatus->m_fullscreenRefreshDenominator, appStatus->m_fullscreenDxGiModeScanlineOrdering, appStatus->m_fullscreenDxGiModeScaling, wantWindowed, appStatus->m_borderSize, appStatus->m_bShowFloppyLed, appStatus->m_fullscreenStretch, usePointFilter, wantWindowed ? appStatus->m_syncModeWindowed : appStatus->m_syncModeFullscreen);
 	if (SUCCEEDED(hr))
 	{
 		this->appStatus->m_bReady = true;
@@ -1711,6 +1710,7 @@ HRESULT CAppWindow::SetWindowedMode(bool wantWindowed)
 		RedrawWindow(hwndMainWindow, NULL, NULL, RDW_NOFRAME | RDW_VALIDATE | RDW_NOERASE);
 	}
 
+	this->c64->SetupColorTables();
 	return hr;
 }
 

@@ -24,7 +24,7 @@ public:
 	void CleanScene();
 	void CleanDevice();
 	void CleanForModeChange(bool wantCleanDevice);
-	HRESULT SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outputNumber, HWND hWnd, unsigned int fullScreenWidth, unsigned int fullScreenHeight, unsigned int refreshNumerator, unsigned int refreshDenominator, DXGI_MODE_SCANLINE_ORDER dxgiScanlineOrder, DXGI_MODE_SCALING dxgiScaling, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, HCFG::FULLSCREENSYNCMODE syncMode);
+	HRESULT SetMode(bool useDefaultAdapter, UINT adapterNumber, UINT outputNumber, HWND hWnd, unsigned int fullScreenWidth, unsigned int fullScreenHeight, DXGI_FORMAT format, unsigned int refreshNumerator, unsigned int refreshDenominator, DXGI_MODE_SCANLINE_ORDER dxgiScanlineOrder, DXGI_MODE_SCALING dxgiScaling, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, HCFG::FULLSCREENSYNCMODE syncMode);
 	bool IsFullscreen();
 	bool IsWantingFullscreen();
 	bool IsWentFullscreen();
@@ -60,7 +60,6 @@ private:
 	HRESULT CreateRenderTargetDepthAndViewport(unsigned int width, unsigned int height);
 	HRESULT InitializeShaders();
 	HRESULT InitializeScene();
-	void SetDefaultOverride();
 	void CleanSwapChain();
 	void CleanRenderTarget();
 	void CleanCharRomTextureSet();
@@ -107,6 +106,7 @@ private:
 	bool bUsePointFilter = false;
 	HCFG::FULLSCREENSYNCMODE syncMode = HCFG::FULLSCREENSYNCMODE::FSSM_VBL;
 	DXGI_SWAP_CHAIN_DESC assignedSwapChainDesc = {};
+	DXGI_FORMAT assignedFormat = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
 	UINT assignedWidth = 0;
 	UINT assignedHeight = 0;
 	UINT assignedUpperMouseKeepAlive = 0;

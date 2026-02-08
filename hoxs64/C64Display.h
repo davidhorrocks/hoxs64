@@ -25,10 +25,10 @@ struct VicCursorPosition
 class C64Display : public GameObject2D
 {
 public:
-	HRESULT Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader_2d>& cb_vs_vertexshader_2d, ID3D11SamplerState* pointSamplerState, ID3D11SamplerState* linearSamplerState, HWND hWnd, unsigned int width, unsigned int height, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, IC64* c64, CAppStatus *appStatus);
+	HRESULT Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader_2d>& cb_vs_vertexshader_2d, ID3D11SamplerState* pointSamplerState, ID3D11SamplerState* linearSamplerState, HWND hWnd, unsigned int width, unsigned int height, DXGI_FORMAT format, bool bWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter, IC64* c64, CAppStatus *appStatus);
 	void Draw(const XMMATRIX& orthoMatrix); //2d camera orthogonal matrix
 	void SetDisplaySize(bool windowedMode, unsigned int width, unsigned int height);
-	HRESULT SetRenderStyle(unsigned int width, unsigned int height, bool isWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter);
+	HRESULT SetRenderStyle(unsigned int width, unsigned int height, DXGI_FORMAT format, bool isWindowedMode, HCFG::EMUBORDERSIZE borderSize, bool bShowFloppyLed, HCFG::EMUWINDOWSTRETCH stretch, bool bUsePointFilter);
 	float GetWidth();
 	float GetHeight();
 	bool CanMode1X(UINT Width, UINT Height, const C64WindowDimensions& dims, BOOL bShowFloppyLed);
@@ -99,6 +99,7 @@ private:
 	bool bStatusBarOk = false;
 	unsigned int width = 0;
 	unsigned int height = 0;
+	DXGI_FORMAT format;
 	HCFG::FULLSCREENSYNCMODE syncMode = HCFG::FULLSCREENSYNCMODE::FSSM_VBL;
 	bool isWindowedMode = true;
 	HCFG::EMUBORDERSIZE borderSize = HCFG::EMUBORDERSIZE::EMUBORDER_TV;

@@ -6,7 +6,7 @@ using namespace DirectX;
 class Model
 {
 public:
-	bool Initialize(const std::wstring& filePath, ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader>& cb_vs_vertexshader);
+	bool Initialize(const std::wstring& filePath, ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader>& cb_vs_vertexshader, DXGI_FORMAT format);
 	void Draw(const XMMATRIX& worldMatrix, const XMMATRIX& viewProjectionMatrix);
 
 private:
@@ -21,5 +21,6 @@ private:
 	ID3D11Device* device = nullptr;
 	ID3D11DeviceContext* deviceContext = nullptr;
 	ConstantBuffer<CB_VS_vertexshader>* cb_vs_vertexshader = nullptr;
+	DXGI_FORMAT format;
 	std::wstring directory = L"";
 };

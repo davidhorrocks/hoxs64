@@ -15,22 +15,24 @@ public:
 	C64ScreenTexture(C64ScreenTexture&&) = delete;
 	C64ScreenTexture& operator=(C64ScreenTexture&&) = delete;
 
-	HRESULT Initialize(ID3D11Device* device, UINT width, UINT height);
-	void Cleanup();
-	HRESULT ResizeOrKeep(ID3D11Device* device, UINT width, UINT height);
+	HRESULT Initialize(ID3D11Device* device, UINT width, UINT height, DXGI_FORMAT format);
+	void Cleanup() noexcept;
+	HRESULT ResizeOrKeep(ID3D11Device* device, UINT width, UINT height, DXGI_FORMAT format);
 	ID3D11ShaderResourceView* GetTextureResourceView();
 	ID3D11ShaderResourceView** GetTextureResourceViewAddress();
 	HRESULT GetTextureResource(Microsoft::WRL::ComPtr<ID3D11Resource>* pTextureResource);
-	UINT GetWidth();
-	UINT GetHeight();
+	UINT GetWidth() const;
+	UINT GetHeight() const;
+	DXGI_FORMAT C64ScreenTexture::GetFormat() const;
 
 private:
-	HRESULT CreateSmallSurface(ID3D11Device* device, int width, int height);
-	void FreeSmallSurface();
+	HRESULT CreateSmallSurface(ID3D11Device* device, int width, int height, DXGI_FORMAT format);
+	void FreeSmallSurface() noexcept;
 	Microsoft::WRL::ComPtr<ID3D11Resource> texture = nullptr;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> textureView = nullptr;
 	UINT width = 0;
 	UINT height = 0;
+	DXGI_FORMAT format;
 	unsigned char* pbuffer = nullptr;
 };
 

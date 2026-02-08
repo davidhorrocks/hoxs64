@@ -2,12 +2,12 @@
 #include "StringHelper.h"
 #include "wfs.h"
 
-bool Model::Initialize(const std::wstring& filePath, ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader>& cb_vs_vertexshader)
+bool Model::Initialize(const std::wstring& filePath, ID3D11Device* device, ID3D11DeviceContext* deviceContext, ConstantBuffer<CB_VS_vertexshader>& cb_vs_vertexshader, DXGI_FORMAT format)
 {
 	this->device = device;
 	this->deviceContext = deviceContext;
 	this->cb_vs_vertexshader = &cb_vs_vertexshader;
-
+	this->format = format;
 	try
 	{
 		if (!this->LoadModel(filePath))
@@ -174,10 +174,10 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* pMaterial, aiTextur
 			pMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor);
 			if (aiColor.IsBlack()) //If color = black, just use grey
 			{
-				materialTextures.push_back(Texture(this->device, Color(Colors::UnloadedTextureColor), textureType));
+				materialTextures.push_back(Texture(this->device, this->format, Color(Colors::UnloadedTextureColor), textureType));
 				return materialTextures;
 			}
-			materialTextures.push_back(Texture(this->device, Color(static_cast<BYTE>(aiColor.r * 255), static_cast<BYTE>(aiColor.g * 255), static_cast<BYTE>(aiColor.b * 255)), textureType));
+			materialTextures.push_back(Texture(this->device, this->format, Color(static_cast<BYTE>(aiColor.r * 255), static_cast<BYTE>(aiColor.g * 255), static_cast<BYTE>(aiColor.b * 255)), textureType));
 			return materialTextures;
 		}
 	}
@@ -194,6 +194,7 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* pMaterial, aiTextur
 			{
 				int index = GetTextureIndex(&path);
 				Texture embeddedIndexedTexture(this->device,
+					this->format,
 					reinterpret_cast<uint8_t*>(pScene->mTextures[index]->pcData),
 					pScene->mTextures[index]->mWidth,
 					textureType);
@@ -204,6 +205,7 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* pMaterial, aiTextur
 			{
 				const aiTexture* pTexture = pScene->GetEmbeddedTexture(path.C_Str());
 				Texture embeddedTexture(this->device,
+					this->format,
 					reinterpret_cast<uint8_t*>(pTexture->pcData),
 					pTexture->mWidth,
 					textureType);
@@ -214,7 +216,7 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* pMaterial, aiTextur
 			{
 				std::wstring path2 = StringConverter::StringToWideString(CP_UTF8, path.C_Str());
 				std::wstring filename = Wfs::Path_Combine(this->directory, path2);
-				Texture diskTexture(this->device, filename, textureType);
+				Texture diskTexture(this->device, this->format, filename, textureType);
 				materialTextures.push_back(diskTexture);
 				break;
 			}
@@ -224,7 +226,7 @@ std::vector<Texture> Model::LoadMaterialTextures(aiMaterial* pMaterial, aiTextur
 
 	if (materialTextures.size() == 0)
 	{
-		materialTextures.push_back(Texture(this->device, Color(Colors::UnhandledTextureColor), aiTextureType::aiTextureType_DIFFUSE));
+		materialTextures.push_back(Texture(this->device, this->format, Color(Colors::UnhandledTextureColor), aiTextureType::aiTextureType_DIFFUSE));
 	}
 	return materialTextures;
 

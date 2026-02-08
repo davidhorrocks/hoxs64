@@ -6,17 +6,17 @@
 #include "graphicshelper.h"
 #include "wfs.h"
 
-Texture::Texture(ID3D11Device* device, const Color& color, aiTextureType type)
+Texture::Texture(ID3D11Device* device, DXGI_FORMAT format, const Color& color, aiTextureType type)
 {
-	this->Initialize1x1ColorTexture(device, color, type);
+	this->Initialize1x1ColorTexture(device, format, color, type);
 }
 
-Texture::Texture(ID3D11Device* device, const Color* colorData, UINT width, UINT height, aiTextureType type)
+Texture::Texture(ID3D11Device* device, DXGI_FORMAT format, const Color* colorData, UINT width, UINT height, aiTextureType type)
 {
-	this->InitializeColorTexture(device, colorData, width, height, type);
+	this->InitializeColorTexture(device, format, colorData, width, height, type);
 }
 
-Texture::Texture(ID3D11Device* device, const std::wstring& filePath, aiTextureType type)
+Texture::Texture(ID3D11Device* device, DXGI_FORMAT format, const std::wstring& filePath, aiTextureType type)
 {
 	this->type = type;
 	if (StringConverter::CompareStrCaseInsensitive(Wfs::GetFileExtension(filePath), L".dds"))
@@ -24,7 +24,7 @@ Texture::Texture(ID3D11Device* device, const std::wstring& filePath, aiTextureTy
 		HRESULT hr = DirectX::CreateDDSTextureFromFile(device, filePath.c_str(), texture.GetAddressOf(), this->textureView.GetAddressOf());
 		if (FAILED(hr))
 		{
-			this->Initialize1x1ColorTexture(device, Color(Colors::UnloadedTextureColor), type);
+			this->Initialize1x1ColorTexture(device, format, Color(Colors::UnloadedTextureColor), type);
 		}
 		return;
 	}
@@ -33,13 +33,13 @@ Texture::Texture(ID3D11Device* device, const std::wstring& filePath, aiTextureTy
 		HRESULT hr = DirectX::CreateWICTextureFromFile(device, filePath.c_str(), texture.GetAddressOf(), this->textureView.GetAddressOf());
 		if (FAILED(hr))
 		{
-			this->Initialize1x1ColorTexture(device, Color(Colors::UnloadedTextureColor), type);
+			this->Initialize1x1ColorTexture(device, format, Color(Colors::UnloadedTextureColor), type);
 		}
 		return;
 	}
 }
 
-Texture::Texture(ID3D11Device* device, const uint8_t* pData, size_t size, aiTextureType type)
+Texture::Texture(ID3D11Device* device, DXGI_FORMAT format, const uint8_t* pData, size_t size, aiTextureType type)
 {
 	this->type = type;
 	HRESULT hr = DirectX::CreateWICTextureFromMemory(device, pData, size, this->texture.GetAddressOf(), this->textureView.GetAddressOf());
@@ -61,16 +61,16 @@ ID3D11ShaderResourceView** Texture::GetTextureResourceViewAddress()
 	return this->textureView.GetAddressOf();
 }
 
-void Texture::Initialize1x1ColorTexture(ID3D11Device* device, const Color& colorData, aiTextureType type)
+void Texture::Initialize1x1ColorTexture(ID3D11Device* device, DXGI_FORMAT format, const Color& colorData, aiTextureType type)
 {
-	Color cl(GraphicsHelper::ConvertColour(GraphicsHelper::DefaultPixelFormat, colorData.GetColorRef()));
-	InitializeColorTexture(device, &cl, 1, 1, type);
+	Color cl(GraphicsHelper::ConvertColour(format, colorData.GetColorRef()));
+	InitializeColorTexture(device, format, &cl, 1, 1, type);
 }
 
-void Texture::InitializeColorTexture(ID3D11Device* device, const Color* colorData, UINT width, UINT height, aiTextureType type)
+void Texture::InitializeColorTexture(ID3D11Device* device, DXGI_FORMAT format, const Color* colorData, UINT width, UINT height, aiTextureType type)
 {
 	this->type = type;
-	CD3D11_TEXTURE2D_DESC textureDesc(GraphicsHelper::DefaultPixelFormat, width, height);
+	CD3D11_TEXTURE2D_DESC textureDesc(format, width, height);
 	textureDesc.MipLevels = 1;
 	ID3D11Texture2D* p2DTexture = nullptr;
 	D3D11_SUBRESOURCE_DATA initialData{};

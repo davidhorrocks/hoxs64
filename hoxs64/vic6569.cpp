@@ -2371,10 +2371,15 @@ bit32 cl;
 	}
 
 	DXGI_FORMAT format = GraphicsHelper::DefaultPixelFormat;
-	//if (pGx)
-	//{
-	//	pGx->GetCurrentBufferFormat(&format);
-	//}
+	if (pGx)
+	{
+		DXGI_FORMAT format2 = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
+		pGx->GetCurrentBufferFormat(&format2);
+		if (GraphicsHelper::IsAcceptableFormat(format2))
+		{
+			format = format2;
+		}
+	}
 
 	// Assume 32 bit colour
 	for (i=0 ; i < 256 ; i++)

@@ -105,8 +105,8 @@ DWORD GraphicsHelper::ConvertColour(DXGI_FORMAT format, COLORREF rgb)
 	case DXGI_FORMAT_R10G10B10A2_UNORM:
 	case DXGI_FORMAT_R10G10B10A2_UINT:
 		//case D3DFMT_A2B10G10R10:
-		v = GetBValue(rgb) << 20 | GetGValue(rgb) << 10 | GetRValue(rgb);
-		v |= 0xc0000000;
+		v = GetRValue(rgb) << 2 | GetGValue(rgb) << 12 | GetBValue(rgb) << 22;
+		v |= 0xC0000000;
 		break;
 		//case D3DFMT_A2R10G10B10:
 		//	v = GetRValue(rgb) << 20 | GetGValue(rgb) << 10 | GetBValue(rgb);
@@ -449,37 +449,39 @@ double rate = 0.0;
 	return charBufferLen;
 }
 
-const DXGI_FORMAT GraphicsHelper::Formats2[] = {
-	DXGI_FORMAT_B8G8R8A8_UNORM, // D3DFMT_A8R8G8B8
-	DXGI_FORMAT_B8G8R8X8_UNORM, // D3DFMT_X8R8G8B8
+const DXGI_FORMAT GraphicsHelper::Formats[] = {	
+	DXGI_FORMAT_B8G8R8A8_UNORM, // D3DFMT_A8R8G8B8 GraphicsHelper::DefaultPixelFormat,
 	DXGI_FORMAT_R8G8B8A8_UNORM, // D3DFMT_A8B8G8R8
-	// D3DFMT_X8B8G8R8
 	DXGI_FORMAT_R10G10B10A2_UNORM,// D3DFMT_A2B10G10R10,
-	// D3DFMT_A2R10G10B10,
-	// D3DFMT_R8G8B8,
-	// D3DFMT_X1R5G5B5,
-	DXGI_FORMAT_B5G5R5A1_UNORM,// D3DFMT_A1R5G5B5,
-	DXGI_FORMAT_B5G6R5_UNORM,// D3DFMT_R5G6B5,
-	// D3DFMT_X4R4G4B4,
-	DXGI_FORMAT_B4G4R4A4_UNORM,// D3DFMT_A4R4G4B4,
-	// D3DFMT_A8R3G3B2,
-	DXGI_FORMAT_A8P8,// D3DFMT_A8P8,
-	// D3DFMT_R3G3B2,
-	DXGI_FORMAT_P8// D3DFMT_P8,
 };
 
-const DXGI_FORMAT GraphicsHelper::Formats[] = {
-	GraphicsHelper::DefaultPixelFormat
-};
+double GraphicsHelper::GetRefreshRate(const DXGI_MODE_DESC& desc) noexcept
+{
+	double refreshRate = 0.0;
+	if (desc.RefreshRate.Numerator != 0 && desc.RefreshRate.Denominator != 0)
+	{
+		refreshRate = (double)desc.RefreshRate.Numerator / (double)desc.RefreshRate.Denominator;
+	}
+
+	return refreshRate;
+}
 
 bool GraphicsHelper::IsAcceptableMode(UINT Width, UINT Height) noexcept
 {
+	// Should it be min 640 and min 300?
 	return Width >= 320 && Height >= 200;
 }
 
-bool GraphicsHelper::IsAcceptableMode(UINT Width, UINT Height, DXGI_FORMAT Format) noexcept
+bool GraphicsHelper::IsAcceptableRefreshRate(double rate) noexcept
 {
-	return IsAcceptableMode(Width, Height) && IsAcceptableFormat(Format);
+	constexpr double MIN_REFRESH_RATE = 50.2;
+	return rate >= MIN_REFRESH_RATE;
+}
+
+bool GraphicsHelper::IsAcceptableDisplay(const DXGI_MODE_DESC& desc) noexcept
+{
+	double rate = GetRefreshRate(desc);
+	return IsAcceptableMode(desc.Width, desc.Height) && IsAcceptableFormat(desc.Format) && IsAcceptableRefreshRate(rate);
 }
 
 bool GraphicsHelper::IsAcceptableFormat(DXGI_FORMAT format) noexcept
@@ -488,7 +490,10 @@ bool GraphicsHelper::IsAcceptableFormat(DXGI_FORMAT format) noexcept
 	{
 		if (Formats[i] == format)
 		{
-			return true;
+			if (GraphicsHelper::GetBitsPerPixel(format) == 32)
+			{
+				return true;
+			}
 		}
 	}
 
@@ -517,6 +522,11 @@ bool GraphicsHelper::GetAppFilename(std::wstring& str)
 			{
 				pszAppFullPath = (wchar_t*)malloc(len * sizeof(wchar_t));
 				psz = pszAppFullPath;
+			}
+
+			if (psz == nullptr)
+			{
+				return false;
 			}
 
 			dw = GetModuleFileNameW(GetModuleHandleW(0), psz, len);
@@ -566,6 +576,11 @@ bool GraphicsHelper::GetAppDir(std::wstring &str)
 			{
 				pszAppFullPath = (wchar_t*)malloc(len * sizeof(wchar_t));
 				psz = pszAppFullPath;
+			}
+
+			if (psz == nullptr)
+			{
+				return false;
 			}
 
 			dw = GetModuleFileNameW(GetModuleHandleW(0), psz, len);
@@ -655,135 +670,162 @@ HRESULT GraphicsHelper::GetPreferredMode(ID3D11Device* device, IDXGIOutput* pOut
 		return E_POINTER;
 	}
 
-	DXGI_MODE_DESC selectedDesc = {};
-	bool foundExactModeMatch = false;
-	bool foundBestModeMatch = false;
-	double refreshRateRequested = 0.0;
-	if (pRequestedMode->RefreshRate.Numerator != 0 && pRequestedMode->RefreshRate.Denominator != 0)
-	{
-		refreshRateRequested = (double)pRequestedMode->RefreshRate.Numerator / (double)pRequestedMode->RefreshRate.Denominator;
-	}
-
-	DXGI_OUTPUT_DESC outdesc;
-	hr = pOutput->GetDesc(&outdesc);
+	bool hasDevMode = false;
+	DXGI_OUTPUT_DESC outputDesc = {};
+	DEVMODEW devMode = {};
+	devMode.dmSize = sizeof(DEVMODEW);
+	hr = pOutput->GetDesc(&outputDesc);
 	if (SUCCEEDED(hr))
 	{
-		UINT num = 0;
-		hr = pOutput->GetDisplayModeList(GraphicsHelper::DefaultPixelFormat, DXGI_ENUM_MODES_INTERLACED | DXGI_ENUM_MODES_SCALING, &num, nullptr);
+		if (EnumDisplaySettingsW(outputDesc.DeviceName, ENUM_CURRENT_SETTINGS, &devMode))
+		{
+			if (IsAcceptableMode(devMode.dmPelsWidth, devMode.dmPelsHeight) && IsAcceptableRefreshRate(devMode.dmDisplayFrequency))
+			{
+				hasDevMode = true;
+			}
+		}
+	}
+
+	DXGI_MODE_DESC selectedDesc = {};
+	bool foundBestModeMatch = false;
+	double refreshRateRequested = GetRefreshRate(*pRequestedMode);
+
+	//GraphicsHelper::DefaultPixelFormat
+	DXGI_FORMAT requestedFormat = pRequestedMode->Format;
+
+	int formatIndex = -1; // Means try the requested format before searching the list of formats we support in GraphicsHelper::Formats
+	if (requestedFormat == DXGI_FORMAT::DXGI_FORMAT_UNKNOWN)
+	{
+		// There is no explicitly requested format so search the list of formats we support in GraphicsHelper::Formats
+		formatIndex = 0;
+		requestedFormat = GraphicsHelper::Formats[0];
+	}
+
+	bool quit = false;
+	for (; formatIndex <= 1 && !quit; formatIndex++)
+	{
+		if (formatIndex >= 0 && formatIndex < _countof(GraphicsHelper::Formats))
+		{
+			requestedFormat = GraphicsHelper::Formats[formatIndex];
+		}
+
+		DXGI_OUTPUT_DESC outdesc;
+		hr = pOutput->GetDesc(&outdesc);
 		if (SUCCEEDED(hr))
 		{
-			DXGI_MODE_DESC* pDescs = new DXGI_MODE_DESC[num];
-			try
+			UINT num = 0;
+			hr = pOutput->GetDisplayModeList(requestedFormat, DXGI_ENUM_MODES_INTERLACED | DXGI_ENUM_MODES_SCALING, &num, nullptr);
+			if (SUCCEEDED(hr))
 			{
-				hr = pOutput->GetDisplayModeList(GraphicsHelper::DefaultPixelFormat, DXGI_ENUM_MODES_INTERLACED | DXGI_ENUM_MODES_SCALING, &num, pDescs);
-				if (SUCCEEDED(hr))
+				if (num > 0)
 				{
-					constexpr double MIN_REFRESH_RATE = 50.2;
-					double selectedRefreshRate = 0.0;
-					for (unsigned int modeindex = 0; modeindex < num; modeindex++)
+					DXGI_MODE_DESC* pDescs = new DXGI_MODE_DESC[num];
+					try
 					{
-						DXGI_MODE_DESC* pdesc = &pDescs[modeindex];
-						if (pdesc->Format == GraphicsHelper::DefaultPixelFormat)
+						hr = pOutput->GetDisplayModeList(requestedFormat, DXGI_ENUM_MODES_INTERLACED | DXGI_ENUM_MODES_SCALING, &num, pDescs);
+						if (SUCCEEDED(hr))
 						{
-							double refreshRate = 0.0;
-							if (pdesc->RefreshRate.Numerator != 0 && pdesc->RefreshRate.Denominator != 0)
+							int matchDegree;
+							if (pRequestedMode->Width == 0 || pRequestedMode->Height == 0)
 							{
-								refreshRate = (double)pdesc->RefreshRate.Numerator / (double)pdesc->RefreshRate.Denominator;
+								matchDegree = MatchDegree::None;
+							}
+							else if (pRequestedMode->RefreshRate.Numerator == 0 || pRequestedMode->RefreshRate.Denominator == 0)
+							{
+								matchDegree = MatchDegree::Mode;
+							}
+							else
+							{
+								matchDegree = MatchDegree::ModeAndRefresh;
 							}
 
-							if (pRequestedMode->Width != 0 && pRequestedMode->Height != 0 && pRequestedMode->RefreshRate.Numerator != 0 && pRequestedMode->RefreshRate.Denominator != 0 && pRequestedMode->Width == pdesc->Width && pRequestedMode->Height == pdesc->Height && pRequestedMode->RefreshRate.Numerator == pdesc->RefreshRate.Numerator && pRequestedMode->RefreshRate.Denominator == pdesc->RefreshRate.Denominator && pRequestedMode->ScanlineOrdering == pdesc->ScanlineOrdering && pRequestedMode->Scaling == pdesc->Scaling)
+							for (; matchDegree >= 0 && !quit; matchDegree--)
 							{
-								selectedDesc = *pdesc;
-								foundExactModeMatch = true;
-								foundBestModeMatch = true;
-								break;
-							}
-							else if (refreshRate >= MIN_REFRESH_RATE && pdesc->Width >= 640 && pdesc->Height >= 300)
-							{
-								bool chooseMode = false;
-								if (!foundBestModeMatch)
+								for (unsigned int modeindex = 0; modeindex < num && !quit; modeindex++)
 								{
-									chooseMode = true;
-								}
-								else
-								{
-									if (pRequestedMode->Width == 0 || pRequestedMode->Height == 0)
+									DXGI_MODE_DESC* pdesc = &pDescs[modeindex];
+									if (pdesc->Format == requestedFormat)
 									{
-										if (GetScanRating(selectedDesc.ScanlineOrdering) < MinNonInterlacedScanRating && GetScanRating(pdesc->ScanlineOrdering) >= MinNonInterlacedScanRating)
+										if (!IsAcceptableDisplay(*pdesc))
 										{
-											chooseMode = true;
+											continue;
 										}
-										else if (GetScanRating(pdesc->ScanlineOrdering) >= MinNonInterlacedScanRating || GetScanRating(pdesc->ScanlineOrdering) >= GetScanRating(selectedDesc.ScanlineOrdering))
+
+										double refreshRate = GetRefreshRate(*pdesc);
+										switch ((MatchDegree)matchDegree)
 										{
-											if (pdesc->Width > selectedDesc.Width)
+										case MatchDegree::ModeAndRefresh:
+											if (pRequestedMode->Width != 0 && pRequestedMode->Height != 0 && pRequestedMode->RefreshRate.Numerator != 0 && pRequestedMode->RefreshRate.Denominator != 0 && pRequestedMode->Width == pdesc->Width && pRequestedMode->Height == pdesc->Height && pRequestedMode->RefreshRate.Numerator == pdesc->RefreshRate.Numerator && pRequestedMode->RefreshRate.Denominator == pdesc->RefreshRate.Denominator && pRequestedMode->ScanlineOrdering == pdesc->ScanlineOrdering && pRequestedMode->Scaling == pdesc->Scaling)
 											{
-												chooseMode = true;
+												selectedDesc = *pdesc;
+												foundBestModeMatch = true;
+												quit = true;
 											}
-											else if (pdesc->Width == selectedDesc.Width)
+
+											break;
+										case MatchDegree::Mode:
+											if (pRequestedMode->Width == pdesc->Width && pRequestedMode->Height == pdesc->Height && pRequestedMode->ScanlineOrdering == pdesc->ScanlineOrdering && pRequestedMode->Scaling == pdesc->Scaling)
 											{
-												if (pdesc->Height > selectedDesc.Height)
+												if (!foundBestModeMatch)
 												{
-													chooseMode = true;
+													selectedDesc = *pdesc;
+													foundBestModeMatch = true;
 												}
-												else if (pdesc->Height == selectedDesc.Height)
+												else if (GetRefreshRate(*pdesc) > GetRefreshRate(selectedDesc))
 												{
-													if (refreshRate > selectedRefreshRate)
-													{
-														chooseMode = true;
-													}
-													else if (refreshRate == selectedRefreshRate)
-													{
-														if (GetScaleRating(pdesc->Scaling) > GetScaleRating(selectedDesc.Scaling))
-														{
-															chooseMode = true;
-														}
-														else if (GetScaleRating(pdesc->Scaling) == GetScaleRating(selectedDesc.Scaling))
-														{
-															chooseMode = true;
-														}
-													}
+													selectedDesc = *pdesc;
 												}
 											}
-										}
-									}
-									else if (pRequestedMode->Width == pdesc->Width && pRequestedMode->Height == pdesc->Height && pRequestedMode->ScanlineOrdering == pdesc->ScanlineOrdering && pRequestedMode->Scaling == pdesc->Scaling)
-									{
-										if (refreshRate > selectedRefreshRate)
-										{
-											chooseMode = true;
-										}
-										else if (refreshRate == selectedRefreshRate)
-										{
-											chooseMode = true;
-										}
-									}
-								}
 
-								if (chooseMode)
-								{
-									selectedDesc = *pdesc;
-									selectedRefreshRate = 0.0;
-									if (pdesc->RefreshRate.Numerator != 0 && pdesc->RefreshRate.Denominator != 0)
-									{
-										selectedRefreshRate = (double)selectedDesc.RefreshRate.Numerator / (double)selectedDesc.RefreshRate.Denominator;
-									}
+											break;
+										default:
+											if (hasDevMode)
+											{
+												if (devMode.dmPelsWidth == pdesc->Width && devMode.dmPelsHeight == pdesc->Height)
+												{
+													if (!foundBestModeMatch)
+													{
+														selectedDesc = *pdesc;
+														foundBestModeMatch = true;
+													}
+													else if (GetScanRating(pdesc->ScanlineOrdering) > GetScanRating(selectedDesc.ScanlineOrdering))
+													{
+														selectedDesc = *pdesc;
+													}
+													else if (GetScaleRating(pdesc->Scaling) > GetScaleRating(selectedDesc.Scaling))
+													{
+														selectedDesc = *pdesc;
+													}
+													else if (GetRefreshRate(*pdesc) > GetRefreshRate(selectedDesc))
+													{
+														selectedDesc = *pdesc;
+													}
+												}
+											}
+											else
+											{
+												foundBestModeMatch = false;
+												quit = true;
+											}
 
-									foundBestModeMatch = true;
+											break;
+										}
+									}
 								}
 							}
 						}
 					}
+					catch (std::bad_alloc)
+					{
+						delete[] pDescs;
+						pDescs = nullptr;
+						throw;
+					}
+
+					delete[] pDescs;
+					pDescs = nullptr;
 				}
 			}
-			catch (std::bad_alloc)
-			{
-				delete[] pDescs;
-				pDescs = nullptr;
-				throw;
-			}
-
-			delete[] pDescs;
-			pDescs = nullptr;
 		}
 	}
 
@@ -792,10 +834,23 @@ HRESULT GraphicsHelper::GetPreferredMode(ID3D11Device* device, IDXGIOutput* pOut
 		DXGI_MODE_DESC modeToMatchDesc = {};
 		modeToMatchDesc.Width = pRequestedMode->Width;
 		modeToMatchDesc.Height = pRequestedMode->Height;
-		modeToMatchDesc.Format = GraphicsHelper::DefaultPixelFormat;
+
+		if (pRequestedMode->Width == 0 || pRequestedMode->Height == 0)
+		{
+			if (hasDevMode)
+			{
+				if (IsAcceptableMode(devMode.dmPelsWidth, devMode.dmPelsHeight) && IsAcceptableRefreshRate(devMode.dmDisplayFrequency))
+				{
+					modeToMatchDesc.Width = devMode.dmPelsWidth;
+					modeToMatchDesc.Height = devMode.dmPelsHeight;
+				}
+			}
+		}
+
+		modeToMatchDesc.Format = DXGI_FORMAT::DXGI_FORMAT_UNKNOWN;
 		modeToMatchDesc.Scaling = pRequestedMode->Scaling;
 		modeToMatchDesc.ScanlineOrdering = pRequestedMode->ScanlineOrdering;
-		if (pRequestedMode->RefreshRate.Numerator == 0 || pRequestedMode->RefreshRate.Denominator == 0)
+		if (pRequestedMode->RefreshRate.Numerator == 0 || pRequestedMode->RefreshRate.Denominator == 0 || !IsAcceptableRefreshRate(GetRefreshRate(*pRequestedMode)))
 		{
 			modeToMatchDesc.RefreshRate.Numerator = 0;
 			modeToMatchDesc.RefreshRate.Denominator = 0;
