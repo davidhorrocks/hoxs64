@@ -24,47 +24,47 @@ void VIA::InitReset(ICLK sysclock, bool poweronreset)
 	DevicesClock = sysclock;
 	bLatchA = false;
 	bLatchB = false;
-	ora=0;
-	ira=0;
-	orb=0;
-	irb=0;
-	ddra=0;
-	ddrb=0;
+	ora = 0;
+	ira = 0;
+	orb = 0;
+	irb = 0;
+	ddra = 0;
+	ddrb = 0;
 	if (poweronreset)
 	{
-		timer1_counter.word=0x01AA;
-		timer1_latch.word=0x01AA;
-		timer2_counter.word=0x01AA;
-		timer2_latch.word=0x01AA;
-		shiftRegisterData=0;
+		timer1_counter.word = 0x01AA;
+		timer1_latch.word = 0x01AA;
+		timer2_counter.word = 0x01AA;
+		timer2_latch.word = 0x01AA;
+		shiftRegisterData = 0;
 	}
-	acr=0;
-	pcr=0;
-	ca1_in=false;
-	ca1_in_prev=false;
-	ca2_in=false;
-	ca2_in_prev=false;
-	cb1_in=false;
-	cb1_in_prev=false;
-	cb2_in=false;
-	cb2_in_prev=false;
-	ca2_out=true;
-	cb1_out=true;
-	cb2_out=true;	
-	ifr=0;
-	ier=0;
-	delay=0;
-	feed=VIACountA2 | VIACountB2;
-	shiftRegisterMode=0;
-	shiftClockLevel=true;
+	acr = 0;
+	pcr = 0;
+	ca1_in = false;
+	ca1_in_prev = false;
+	ca2_in = false;
+	ca2_in_prev = false;
+	cb1_in = false;
+	cb1_in_prev = false;
+	cb2_in = false;
+	cb2_in_prev = false;
+	ca2_out = true;
+	cb1_out = true;
+	cb2_out = true;
+	ifr = 0;
+	ier = 0;
+	delay = 0;
+	feed = VIACountA2 | VIACountB2;
+	shiftRegisterMode = 0;
+	shiftClockLevel = true;
 	bPB7TimerMode = 0;
 	bPB7Toggle = 0;
 	bPB7TimerOut = 0;
-	dec_2=1;
-	no_change_count=0;
-	idle=0;
-	shiftRegisterData=0;
-	shiftCounter=0;
+	dec_2 = 1;
+	no_change_count = 0;
+	idle = 0;
+	shiftRegisterData = 0;
+	shiftCounter = 0;
 }
 
 void VIA::Reset(ICLK sysclock, bool poweronreset)
@@ -82,9 +82,9 @@ void VIA::Reset(ICLK sysclock, bool poweronreset)
 
 void VIA::ExecuteCycle(ICLK sysclock)
 {
-bit8 new_ifr=0;
-ICLKS clocks;
-bit8 shiftmsb;
+	bit8 new_ifr = 0;
+	ICLKS clocks;
+	bit8 shiftmsb;
 
 	if ((ICLKS)(DevicesClock - sysclock) < 0)
 	{
@@ -103,8 +103,8 @@ bit8 shiftmsb;
 			if (timer1_counter.word < VIA_MINIMUM_STAY_IDLE)
 			{
 				// Timer 1 16 bit counter is close to timing out.
-				idle=0;
-				no_change_count=0;
+				idle = 0;
+				no_change_count = 0;
 			}
 
 			if (shiftRegisterMode == 0)
@@ -112,21 +112,21 @@ bit8 shiftmsb;
 				if (timer2_counter.word < VIA_MINIMUM_STAY_IDLE && dec_2 != 0)
 				{
 					// Timer 2 16 bit counter is close to timing out.
-					idle=0;
-					no_change_count=0;
+					idle = 0;
+					no_change_count = 0;
 				}
 			}
 			else if (timer2_counter.byte.loByte < VIA_MINIMUM_STAY_IDLE && dec_2 != 0)
 			{
 				// Timer 2 8 bit low order counter is close to timing out.
-				idle=0;
-				no_change_count=0;
+				idle = 0;
+				no_change_count = 0;
 			}
 			else if (shiftRegisterMode == 2 || shiftRegisterMode == 6)
 			{
 				// Shift Register 02 modes
-				idle=0;
-				no_change_count=0;
+				idle = 0;
+				no_change_count = 0;
 			}
 
 			continue;
@@ -136,16 +136,16 @@ bit8 shiftmsb;
 		old_feed = feed;
 		if (delay & VIALoadA2)
 		{
-            timer1_counter.word = timer1_latch.word;
+			timer1_counter.word = timer1_latch.word;
 		}
-        else if (delay & VIACountA3)
-        {
-			timer1_counter.word -= 1;
-        }
-
-		if (timer1_counter.word==0)
+		else if (delay & VIACountA3)
 		{
-            if ((acr & 0x40) != 0 && (feed & VIAPostOneShotA0) == 0)
+			timer1_counter.word -= 1;
+		}
+
+		if (timer1_counter.word == 0)
+		{
+			if ((acr & 0x40) != 0 && (feed & VIAPostOneShotA0) == 0)
 			{
 				//Continuous; Free running; Square wave if PB7 out is enabled; nnnn ... 0001 0000 FFFF nnnn ... 0001 0000 FFFF nnnn ...
 				delay |= VIALoadA0;
@@ -156,13 +156,13 @@ bit8 shiftmsb;
 			{
 				//One shot; Timed interrupt; Underflow nnnn ... 0001 0000 FFFF FFFE FFFD ... 0000 FFFF FFFE FFFD
 				if ((delay & VIAPostOneShotA0) == 0)
-                {
+				{
 					delay |= VIATimer1Timeout0;
-                    bPB7Toggle = bPB7Toggle ^ 0x80;
-                }
+					bPB7Toggle = bPB7Toggle ^ 0x80;
+				}
 
 				feed |= VIAPostOneShotA0;
-                delay |= VIALoadA0;
+				delay |= VIALoadA0;
 			}
 
 			if ((bPB7TimerMode & 0x80) != 0)
@@ -182,13 +182,13 @@ bit8 shiftmsb;
 			timer2_counter.byte.loByte = timer2_latch.byte.loByte;
 		}
 		else if (delay & VIACountB3)
-        {
+		{
 			timer2_counter.word -= 1;
-        }
+		}
 
 		bool timer2LowTimeout = false;
 		bool timer2AllTimeout = false;
-		if (timer2_counter.word==0 && (delay & VIACountB2))
+		if (timer2_counter.word == 0 && (delay & VIACountB2))
 		{
 			if ((delay & VIAPostOneShotB0) == 0)
 			{
@@ -198,10 +198,10 @@ bit8 shiftmsb;
 			feed |= VIAPostOneShotB0;
 			timer2AllTimeout = true;
 		}
-		
-		if (timer2_counter.byte.loByte==0 && (delay & VIACountB2))
+
+		if (timer2_counter.byte.loByte == 0 && (delay & VIACountB2))
 		{
-			timer2LowTimeout = true;			
+			timer2LowTimeout = true;
 		}
 
 		if ((delay & VIATimer2Timeout1) != 0)
@@ -242,14 +242,14 @@ bit8 shiftmsb;
 			}
 
 			if ((delay & VIAShift2) != 0)
-			{				
+			{
 				if (shiftCounter < 8)
 				{
 					shiftClockLevel = !shiftClockLevel;
 					if (shiftClockLevel)
 					{
 						// CB1 rising. Shift in from CB2
-						shiftRegisterData <<= 1; 
+						shiftRegisterData <<= 1;
 						shiftRegisterData |= cb2_in ? 1 : 0;
 						shiftCounter++;
 						if (shiftCounter == 8)
@@ -264,14 +264,14 @@ bit8 shiftmsb;
 			break;
 		case 2:// SHIFT IN UNDER CONTROL OF 02 
 			if ((delay & VIAShift2) != 0)
-			{				
+			{
 				if (shiftCounter < 8)
 				{
 					shiftClockLevel = !shiftClockLevel;
 					if (shiftClockLevel)
 					{
 						// CB1 rising. Shift in from CB2
-						shiftRegisterData <<= 1; 
+						shiftRegisterData <<= 1;
 						shiftRegisterData |= cb2_in ? 1 : 0;
 						shiftCounter++;
 						if (shiftCounter == 8)
@@ -295,7 +295,7 @@ bit8 shiftmsb;
 			}
 
 			if ((delay & VIAShift2) != 0)
-			{				
+			{
 				shiftClockLevel = !shiftClockLevel;
 				if (shiftClockLevel)
 				{
@@ -315,7 +315,7 @@ bit8 shiftmsb;
 			}
 
 			if ((delay & VIAShift2) != 0)
-			{				
+			{
 				if (shiftCounter < 8)
 				{
 					shiftClockLevel = !shiftClockLevel;
@@ -337,7 +337,7 @@ bit8 shiftmsb;
 			break;
 		case 6:// SHIFT OUT UNDER CONTROL OF 02
 			if ((delay & VIAShift2) != 0)
-			{				
+			{
 				if (shiftCounter < 8)
 				{
 					shiftClockLevel = !shiftClockLevel;
@@ -407,49 +407,49 @@ bit8 shiftmsb;
 		}
 
 		if (delay & VIAInterrupt1)
-        {
+		{
 			SetSystemInterrupt();
-        }
-			
+		}
+
 		delay = ((delay << 1) & VIADelayMask) | feed;
-		if (delay==old_delay && feed==old_feed)
+		if (delay == old_delay && feed == old_feed)
 		{
 			if ((timer1_counter.word < VIA_MINIMUM_GO_IDLE_TIME) || (((acr & 0x20) == 0) && timer2_counter.word < VIA_MINIMUM_GO_IDLE_TIME) || (((acr & 0x1c) != 0) && timer2_counter.byte.loByte < VIA_MINIMUM_GO_IDLE_TIME) || ((delay & (VIAShift0 | VIAShift1 | VIAShift2 | VIAShift3 | VIAShift4)) != 0))
-            {
+			{
 				no_change_count = 0;
-            }
+			}
 			else
 			{
 				no_change_count++;
 				if (no_change_count > VIA_NO_CHANGE_TO_IDLE)
 				{
-					idle=1;
-					dec_2=(bit16) ((acr & 0x20)==0);
+					idle = 1;
+					dec_2 = (bit16)((acr & 0x20) == 0);
 				}
 			}
 		}
 		else
-        {
-			no_change_count=0;
-        }
+		{
+			no_change_count = 0;
+		}
 	}
 }
 
 void VIA::WakeUp()
 {
-	no_change_count=0;
-	idle=0;
+	no_change_count = 0;
+	idle = 0;
 }
 
 bit8 VIA::ReadRegister(bit16 address, ICLK sysclock)
 {
-bit8 t;
+	bit8 t;
 
 	ExecuteCycle(sysclock);
 	switch (address & 15)
 	{
 	case 0://port b
-		switch ((pcr>>5) & 7)
+		switch ((pcr >> 5) & 7)
 		{
 		case 0:// cb2 interrupt on negative edge, clear interrupt on port b access
 			ifr &= ~(VIA_INT_CB2);
@@ -458,7 +458,7 @@ bit8 t;
 			break;
 		case 2:// cb2 interrupt on positive edge, clear interrupt on port b access
 			ifr &= ~(VIA_INT_CB2);
-			break;			
+			break;
 		case 3:// cb2 independent interrupt on positive edge
 			break;
 		case 4:// handshake, cb2 goes low until a cb1 active edge occurs
@@ -476,12 +476,12 @@ bit8 t;
 		}
 
 		ifr &= ~(VIA_INT_CB1);
-		if ((ifr & ier)==0)
+		if ((ifr & ier) == 0)
 		{
 			ClearSystemInterrupt();
 		}
 
-		if (((acr & 2) !=0) && bLatchB)
+		if (((acr & 2) != 0) && bLatchB)
 		{
 			//Port latching
 			bLatchB = false;
@@ -494,10 +494,10 @@ bit8 t;
 		}
 
 		t = (((orb & ddrb) | (t & ~ddrb)) & ~bPB7TimerMode) | (bPB7TimerMode & bPB7TimerOut);
-        return t;
+		return t;
 	case 1://port a
-		switch ((pcr>>1) & 7)
-		{		
+		switch ((pcr >> 1) & 7)
+		{
 		case 0:// ca2 interrupt on negative edge, clear interrupt on port a access
 			ifr &= ~(VIA_INT_CA2);
 			break;
@@ -529,12 +529,12 @@ bit8 t;
 		}
 
 		ifr &= ~(VIA_INT_CA1);
-		if ((ifr & ier)==0)
+		if ((ifr & ier) == 0)
 		{
 			ClearSystemInterrupt();
 		}
 
-		if (((acr & 1) !=0) && bLatchA)
+		if (((acr & 1) != 0) && bLatchA)
 		{
 			//Port latching
 			bLatchA = false;
@@ -553,7 +553,7 @@ bit8 t;
 	case 4://t1c-l
 		WakeUp();
 		ifr &= (~VIA_INT_T1);
-		if ((ifr & ier)==0)
+		if ((ifr & ier) == 0)
 		{
 			ClearSystemInterrupt();
 		}
@@ -568,7 +568,7 @@ bit8 t;
 	case 8://t2c-l
 		WakeUp();
 		ifr &= (~VIA_INT_T2);
-		if ((ifr & ier)==0)
+		if ((ifr & ier) == 0)
 		{
 			ClearSystemInterrupt();
 		}
@@ -596,7 +596,7 @@ bit8 t;
 
 		ifr &= (~VIA_INT_SER);
 		if ((ifr & ier) == 0)
-		{			
+		{
 			ClearSystemInterrupt();
 		}
 
@@ -619,7 +619,7 @@ bit8 t;
 	case 14://ier
 		return ier | 0x80;
 	case 15:// port a no handshake
-		switch ((pcr>>1) & 7)
+		switch ((pcr >> 1) & 7)
 		{
 		case 0:// ca2 interrupt on negative edge, clear interrupt on port a access
 			ifr &= ~(VIA_INT_CA2);
@@ -646,11 +646,11 @@ bit8 t;
 		}
 
 		ifr &= ~(VIA_INT_CA1);
-		if ((ifr & ier)==0)
+		if ((ifr & ier) == 0)
 		{
 			ClearSystemInterrupt();
 		}
-		
+
 		if (((acr & 1) != 0) && bLatchA)
 		{
 			//Port latching
@@ -669,13 +669,13 @@ bit8 t;
 
 bit8 VIA::ReadRegister_no_affect(bit16 address, ICLK sysclock)
 {
-bit8 t;
+	bit8 t;
 	ExecuteCycle(sysclock);
 
 	switch (address & 15)
 	{
 	case 0://port b
-		if (((acr & 2) !=0) && bLatchB)
+		if (((acr & 2) != 0) && bLatchB)
 		{
 			//Port latching
 			t = irb;
@@ -688,7 +688,7 @@ bit8 t;
 
 		return (orb & ddrb) | (t & ~ddrb);
 	case 1://port a
-		if (((acr & 1) !=0) && bLatchA)
+		if (((acr & 1) != 0) && bLatchA)
 		{
 			//Port latching
 			return ira;
@@ -726,7 +726,7 @@ bit8 t;
 			return ifr;
 		}
 	case 15://port a no handshake
-		if (((acr & 1) !=0) && bLatchA)
+		if (((acr & 1) != 0) && bLatchA)
 		{
 			//Port latching
 			return ira;
@@ -745,14 +745,14 @@ bit8 t;
 
 void VIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 {
-bit8 oldpb6;
-bit8 newpb6;
+	bit8 oldpb6;
+	bit8 newpb6;
 
 	ExecuteCycle(sysclock);
 	switch (address & 15)
 	{
 	case 0://port b
-		switch ((pcr>>5) & 7)
+		switch ((pcr >> 5) & 7)
 		{
 		case 0:// cb2 as input, interrupt on negative edge, clear interrupt on port b access
 			ifr &= ~(VIA_INT_CB2);
@@ -793,7 +793,7 @@ bit8 newpb6;
 		if (acr & 0x20)
 		{
 			// Timer 2 counts negative going edges on PB6.
-			oldpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;		
+			oldpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;
 		}
 
 		orb = data;
@@ -810,10 +810,10 @@ bit8 newpb6;
 			}
 		}
 
-		break;			
+		break;
 	case 1://port a
-		switch ((pcr>>1) & 7)
-		{		
+		switch ((pcr >> 1) & 7)
+		{
 		case 0:// ca2 as input, interrupt on negative edge, clear interrupt on port a access
 			ifr &= ~(VIA_INT_CA2);
 			break;
@@ -857,7 +857,7 @@ bit8 newpb6;
 		if (acr & 0x20)
 		{
 			// Timer 2 counts negative going edges on PB6.
-			oldpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;		
+			oldpb6 = this->ReadPinsPortB() & this->PortBOutput() & 0x40;
 		}
 
 		ddrb = data;
@@ -894,14 +894,14 @@ bit8 newpb6;
 			ClearSystemInterrupt();
 		}
 
-        delay |= VIALoadA2;
+		delay |= VIALoadA2;
 		delay &= ~VIACountA3;
-        delay &= ~(VIACountA3 | VIALoadA1);
+		delay &= ~(VIACountA3 | VIALoadA1);
 		feed &= ~VIAPostOneShotA0;
 		delay &= ~VIAPostOneShotA0;
 
 		//Toggle PB7 on write to Timer 1 counter high byte		
-        bPB7Toggle = bPB7TimerMode ^ 0x80;
+		bPB7Toggle = bPB7TimerMode ^ 0x80;
 		if ((bPB7TimerMode & 0x80) != 0)
 		{
 			//timer 1 to PB7 enabled
@@ -914,7 +914,7 @@ bit8 newpb6;
 	case 7://t1l-h
 		timer1_latch.byte.hiByte = data;
 		ifr &= (~VIA_INT_T1);
-		if ((ifr & ier)==0)
+		if ((ifr & ier) == 0)
 		{
 			ClearSystemInterrupt();
 		}
@@ -935,7 +935,7 @@ bit8 newpb6;
 		}
 
 		delay &= ~VIACountB3;
-        delay &= ~(VIACountB3 | VIALoadB1);
+		delay &= ~(VIACountB3 | VIALoadB1);
 		feed &= ~VIAPostOneShotB0;
 		delay &= ~VIAPostOneShotB0;
 		break;
@@ -968,17 +968,17 @@ bit8 newpb6;
 	case 11://acr
 		acr = data;
 		shiftRegisterMode = ((data >> 2) & 7);
-        if ((feed & VIAPostOneShotA0) != 0)
-        {
-            bPB7Toggle = bPB7TimerMode ^ 0x80;
-        }
+		if ((feed & VIAPostOneShotA0) != 0)
+		{
+			bPB7Toggle = bPB7TimerMode ^ 0x80;
+		}
 
 		if ((data & 0x20) == 0)
 		{
 			// Count 02 mode;
 			dec_2 = 1;
 			feed |= VIACountB2;
-            delay |= VIACountB2; 
+			delay |= VIACountB2;
 		}
 		else
 		{
@@ -986,18 +986,18 @@ bit8 newpb6;
 			// PB6 counting is not emulated. 
 			// Is PB6 counted in output mode? If not then we should be OK because PB6 for VIA 1 is connected to a 1541 drive dip switch and PB6 for VIA 2 is unconnected.
 			dec_2 = 0;
-			delay &= ~(VIACountB2); 
+			delay &= ~(VIACountB2);
 			feed &= ~VIACountB2;
 		}
 
 		if ((data & 0x80) == 0)
 		{
-            //timer 1 to PB7 disabled
+			//timer 1 to PB7 disabled
 			bPB7TimerMode = 0;
 		}
 		else
 		{
-            //timer 1 to PB7 enabled
+			//timer 1 to PB7 enabled
 			bPB7TimerMode = 0x80;
 			bPB7TimerOut = bPB7Toggle;
 		}
@@ -1023,7 +1023,7 @@ bit8 newpb6;
 		pcr = data;
 
 		// TODO: I do not know if the port handshake state is lost when switching to a non handshake mode and then switching back to handshake mode.
-		switch ((data>>1) & 7)
+		switch ((data >> 1) & 7)
 		{
 		case 0:// ca2 interrupt on negative edge, clear interrupt on port a access
 		case 1:// ca2 independent interrupt on negative edge
@@ -1058,11 +1058,11 @@ bit8 newpb6;
 		default:
 			break;
 		}
-		
+
 		if (shiftRegisterMode == 0)
 		{
 			// The shift register is not controlling CB2.
-			switch ((pcr>>5) & 7)
+			switch ((pcr >> 5) & 7)
 			{
 			case 0:// cb2 interrupt on negative edge, clear interrupt on port a access
 			case 1:// cb2 independent interrupt on negative edge
@@ -1133,7 +1133,7 @@ bit8 newpb6;
 
 		break;
 	case 15://port a no handshake
-		switch ((pcr>>1) & 7)
+		switch ((pcr >> 1) & 7)
 		{
 		case 0:// ca2 interrupt on negative edge, clear interrupt on port a access
 			ifr &= ~(VIA_INT_CA2);
@@ -1316,7 +1316,7 @@ void VIA::TransitionCB2()
 
 void VIA::ActiveTransitionCA1()
 {
-	if (((acr & 1) !=0) && !bLatchA)
+	if (((acr & 1) != 0) && !bLatchA)
 	{
 		bLatchA = true;
 		ira = ReadPinsPortA();
@@ -1352,7 +1352,7 @@ void VIA::ActiveTransitionCA2()
 
 void VIA::ActiveTransitionCB1()
 {
-	if (((acr & 2) !=0) && !bLatchB)
+	if (((acr & 2) != 0) && !bLatchB)
 	{
 		bLatchB = true;
 		irb = ReadPinsPortB();
@@ -1414,11 +1414,11 @@ void VIA::SetCA1Input(bool value, int phase)
 		bool next_in = (delay & VIACA1Trans1) ? !ca1_in_prev : ca1_in_prev;
 		if (next_in != value)
 		{
-			delay|=VIACA1Trans0;
+			delay |= VIACA1Trans0;
 		}
 		else
 		{
-			delay&=~VIACA1Trans0;
+			delay &= ~VIACA1Trans0;
 		}
 	}
 
@@ -1436,7 +1436,7 @@ void VIA::SetCA2Input(bool value, int phase)
 		}
 		else
 		{
-			delay&=~VIACA2Trans1;
+			delay &= ~VIACA2Trans1;
 		}
 	}
 	else
@@ -1444,11 +1444,11 @@ void VIA::SetCA2Input(bool value, int phase)
 		bool next_in = (delay & VIACA2Trans1) ? !ca2_in_prev : ca2_in_prev;
 		if (next_in != value)
 		{
-			delay|=VIACA2Trans0;
+			delay |= VIACA2Trans0;
 		}
 		else
 		{
-			delay&=~VIACA2Trans0;
+			delay &= ~VIACA2Trans0;
 		}
 	}
 }
@@ -1469,7 +1469,7 @@ void VIA::SetCB1Input(bool value, int phase)
 		}
 		else
 		{
-			delay&=~VIACB1Trans1;
+			delay &= ~VIACB1Trans1;
 		}
 	}
 	else
@@ -1485,7 +1485,7 @@ void VIA::SetCB1Input(bool value, int phase)
 		}
 		else
 		{
-			delay&=~VIACB1Trans0;
+			delay &= ~VIACB1Trans0;
 		}
 	}
 }
@@ -1501,7 +1501,7 @@ void VIA::SetCB2Input(bool value, int phase)
 		}
 		else
 		{
-			delay&=~VIACB2Trans1;
+			delay &= ~VIACB2Trans1;
 		}
 	}
 	else
@@ -1509,11 +1509,11 @@ void VIA::SetCB2Input(bool value, int phase)
 		bool next_in = (delay & VIACB2Trans1) ? !cb2_in_prev : cb2_in_prev;
 		if (next_in != value)
 		{
-			delay|=VIACB2Trans0;
+			delay |= VIACB2Trans0;
 		}
 		else
 		{
-			delay&=~VIACB2Trans0;
+			delay &= ~VIACB2Trans0;
 		}
 	}
 }
@@ -1555,17 +1555,17 @@ ICLK VIA::GetCurrentClock()
 
 void VIA::SetCurrentClock(ICLK sysclock)
 {
-ICLK v = sysclock - CurrentClock;
+	ICLK v = sysclock - CurrentClock;
 	CurrentClock = sysclock;
 	DevicesClock += v;
 }
 
-void VIA::GetState(SsViaCommon &state)
+void VIA::GetState(SsViaCommon& state)
 {
 	ZeroMemory(&state, sizeof(state));
 	state.ID = ID;
-	state.CurrentClock = CurrentClock;	
-	state.DevicesClock = DevicesClock;	
+	state.CurrentClock = CurrentClock;
+	state.DevicesClock = DevicesClock;
 	state.bLatchA = bLatchA;
 	state.bLatchB = bLatchB;
 	state.ora = ora;
@@ -1609,11 +1609,11 @@ void VIA::GetState(SsViaCommon &state)
 	state.idle = idle;
 }
 
-void VIA::SetState(const SsViaCommon &state)
+void VIA::SetState(const SsViaCommon& state)
 {
 	ID = state.ID;
-	CurrentClock = state.CurrentClock;	
-	DevicesClock = state.DevicesClock;	
+	CurrentClock = state.CurrentClock;
+	DevicesClock = state.DevicesClock;
 	bLatchA = state.bLatchA != 0;
 	bLatchB = state.bLatchB != 0;
 	ora = state.ora;
