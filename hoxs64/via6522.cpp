@@ -968,10 +968,7 @@ void VIA::WriteRegister(bit16 address, ICLK sysclock, bit8 data)
 	case 11://acr
 		acr = data;
 		shiftRegisterMode = ((data >> 2) & 7);
-		if ((feed & VIAPostOneShotA0) != 0)
-		{
-			bPB7Toggle = bPB7TimerMode ^ 0x80;
-		}
+		bPB7Toggle = bPB7TimerMode ^ 0x80;
 
 		if ((data & 0x20) == 0)
 		{
