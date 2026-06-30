@@ -891,7 +891,6 @@ void CDiagEmulationSettingsTab::FillSizes()
 HWND hVideoPage, hWndCboSize;
 LRESULT lr;
 LRESULT currentSelection = -1;
-//bool bShowFloppyLed;
 
 	if (!GetPage(CDiagEmulationSettingsTab::TABPAGE_VIDEO))
 	{
@@ -919,11 +918,6 @@ LRESULT currentSelection = -1;
 			currentSelection = lr;
 		}
 	}
-
-	HCFG::EMUBORDERSIZE border;
-	ReadBorder(&border);
-	C64WindowDimensions dims;
-	dims.SetBorder(border);
 
 	tw.GetWidth(szVideoFilter_StretchToFit);
 	lr = SendDlgItemMessage(hVideoPage, IDC_CBO_STRETCH, CB_ADDSTRING, 0, (LPARAM)szVideoFilter_StretchToFit);
@@ -2807,9 +2801,6 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 				FillModes();
 				FillFormats();
 				FillRefresh();
-				FillSizes();
-				FillFilters();
-				VideoPageSizeComboBoxes();
 				return TRUE;
 			default:
 				break;
@@ -2822,9 +2813,6 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			case CBN_SELCHANGE:
 				FillFormats();
 				FillRefresh();
-				FillSizes();
-				FillFilters();
-				VideoPageSizeComboBoxes();
 				return TRUE;
 			default:
 				break;
@@ -2836,9 +2824,6 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			{
 			case CBN_SELCHANGE:
 				FillRefresh();
-				FillSizes();
-				FillFilters();
-				VideoPageSizeComboBoxes();
 				return TRUE;
 			default:
 				break;
@@ -2849,8 +2834,6 @@ BOOL CDiagEmulationSettingsTab::OnPageEvent(CTabPageDialog *page, HWND hWndDlg, 
 			switch (HIWORD(wParam))
 			{
 			case CBN_SELCHANGE:
-				FillSizes();
-				VideoPageSizeComboBoxes();
 				return TRUE;
 			default:
 				break;
