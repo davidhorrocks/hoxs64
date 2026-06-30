@@ -313,7 +313,7 @@ void C64Display::SetDisplaySize(bool isWindowedMode, unsigned int width, unsigne
 		}
 		else if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
 		{
-			dims.SetBorder2(width, height - heightToolbar);
+			dims.SetBorder2(borderSize, width, height - heightToolbar);
 			CalcStretchToFitClearingRects(width, height, dims, bShowFloppyLed, drcScreen, drcEraseRects, drcStatusBar);
 		}
 		else
@@ -436,7 +436,7 @@ HRESULT C64Display::SetRenderStyle(unsigned int width, unsigned int height, DXGI
 		}
 		else if (stretch == HCFG::EMUWINSTR_ASPECTSTRETCHBORDERCLIP)
 		{
-			dims.SetBorder2(width, height - heightToolbar);
+			dims.SetBorder2(borderSize, width, height - heightToolbar);
 		}
 		else
 		{

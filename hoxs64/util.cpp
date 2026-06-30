@@ -86,9 +86,9 @@ C64WindowDimensions::Scaling::Scaling() noexcept
 {
 }
 
-void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight)
+void C64WindowDimensions::SetBorder2(HCFG::EMUBORDERSIZE border, int screenWidth, int screenHeight)
 {
-	SetBorder(HCFG::EMUBORDER_TV);
+	SetBorder(border);
 	int h = this->Height;
 	int w = this->Width;
 	int lr = this->LastRasterLine;
@@ -100,8 +100,8 @@ void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight)
 	Scaling scale;
 	int clientHeight = screenHeight;
 	int clientWidth = screenWidth;
-	int withBorderHeight = WDNoBorderHeight + 2 * BEZEL;
-	int withBorderWidth = WDNoBorderWidth + 2 * BEZEL;
+	int withBorderHeight = this->Height;
+	int withBorderWidth = this->Width;
 	c64ratio = (double)WDNoBorderWidth/ (double)WDNoBorderHeight;
 	c64wbratio = (double)(withBorderWidth)/ (double)(withBorderHeight);
 	screenratio = (double)clientWidth / (double)(clientHeight);
@@ -109,6 +109,8 @@ void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight)
 	Scaling scaleTopBottomInner(Scaling::TopBottomInner, (double)clientHeight / (double)(WDNoBorderHeight));
 	Scaling scaleLeftRightOuter(Scaling::LeftRightOuter, (double)clientWidth / (double)(withBorderWidth));
 	Scaling scaleLeftRightInner(Scaling::LeftRightInner, (double)clientWidth / (double)(WDNoBorderWidth));
+
+    // Find the largest scale zoom that fits the C64 inner text rectangle inside the client window, while maintaining the aspect ratio.
 	if (scaleTopBottomInner.scale < scaleLeftRightInner.scale)
 	{
 		scaleInner = scaleTopBottomInner;
@@ -118,6 +120,7 @@ void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight)
 		scaleInner = scaleLeftRightInner;
 	}
 
+    // Find the largest scale zoom that fits either the C64 left/right border or the C64 top/bottom border inside the client window, while maintaining the aspect ratio.
 	if (scaleTopBottomOuter.scale > scaleLeftRightOuter.scale)
 	{
 		scaleOuter = scaleTopBottomOuter;
@@ -127,6 +130,7 @@ void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight)
 		scaleOuter = scaleLeftRightOuter;
 	}
 
+    // Choose the smaller of the two scale zooms, so that the C64 inner text rectangle fits inside the client window.
 	if (scaleOuter.scale < scaleInner.scale)
 	{
 		scale = scaleOuter;
@@ -141,49 +145,65 @@ void C64WindowDimensions::SetBorder2(int screenWidth, int screenHeight)
 	case Scaling::TopBottomOuter:
 		h = withBorderHeight;
 		w = (int)floor(clientWidth / scale.scale);
-		if (w > withBorderWidth)
+		if (w > WDFullWidth)
 		{
-			w = withBorderWidth;
+            w = WDFullWidth;
+			s = WDFullStart;
+		}
+		else
+		{
+			s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
+			fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
 		}
 
-		s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
-		fr = WDNoBorderFirstRaster - BEZEL;		
 		lr = fr + h - 1;
 		break;
 	case Scaling::TopBottomInner:
 		h = WDNoBorderHeight;
 		w = (int)floor(clientWidth / scale.scale);
-		if (w > withBorderWidth)
+		if (w > WDFullWidth)
 		{
-			w = withBorderWidth;
+			w = WDFullWidth;
+			s = WDFullStart;
 		}
+		else
+		{
+			s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
+        }
 
-		s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
 		fr = WDNoBorderFirstRaster;
 		lr = fr + h - 1;
 		break;
 	case Scaling::LeftRightInner:
 		w = WDNoBorderWidth;
 		h = (int)floor(clientHeight / scale.scale);
-		if (h > withBorderHeight)
+		if (h > WDFullHeight)
 		{
-			h = withBorderHeight;
+			h = WDFullHeight;
+			fr = WDFullFirstRaster;
 		}
+		else
+		{
+			fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
+        }
 
 		s = WDNoBorderStart;
-		fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
 		lr = fr + h - 1;
 		break;
 	case Scaling::LeftRightOuter:
 		w = withBorderWidth;
 		h = (int)floor(clientHeight / scale.scale);
-		if (h > withBorderHeight)
+		if (h > WDFullHeight)
 		{
-			h = withBorderHeight;
+			h = WDFullHeight;
+			fr = WDFullFirstRaster;
 		}
+		else
+		{
+			fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
+        }
 
-		s = WDNoBorderStart - BEZEL;
-		fr = WDNoBorderFirstRaster + (WDNoBorderHeight - h) / 2;
+		s = WDNoBorderStart + (WDNoBorderWidth - w) / 2;
 		lr = fr + h - 1;
 		break;
 	}

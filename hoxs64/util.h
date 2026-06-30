@@ -105,8 +105,7 @@ public:
 	int FirstRasterLine;
 	int LastRasterLine;
 	void SetBorder(HCFG::EMUBORDERSIZE border);
-	//void SetBorder(int screenWidth, int screenHeight);
-	void SetBorder2(int screenWidth, int screenHeight);
+	void SetBorder2(HCFG::EMUBORDERSIZE border, int screenWidth, int screenHeight);
 
 	static const int BEZEL = 28;
 
