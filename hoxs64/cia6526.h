@@ -144,6 +144,8 @@ public:
 	ICLKS tod_clock_reload = 0;
 	ICLKS tod_clock_rate = 0;
 	ICLKS tod_tick = 0;
+    bit8 tod_counter = 0;
+	bit8 tod_counter_compare = 0;
 	volatile bit8 tod_alarm = 0;
 	volatile bit8 tod_read_freeze = 0;
 	volatile cia_tod tod_read_latch = {};

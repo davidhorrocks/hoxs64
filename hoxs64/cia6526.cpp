@@ -46,6 +46,8 @@ void CIA::InitCommonReset(ICLK sysclock, bool poweronreset)
 	ddrb=0;
 	tod_read_freeze=0;
 	tod_write_freeze=1;
+	tod_counter = 0;
+	tod_counter_compare = 6;
 	tod_clock_rate=TODDIVIDER60;
 	tod_clock_reload=TODRELOAD60;
 	tod_tick=0;
@@ -214,17 +216,18 @@ bit32 *p;
 	}
 	else
 	{
-		tod.byte.hr = pm | (al & 0x10)| (ah & 0xf);
+		tod.byte.hr = pm | (al & 0x10) | (ah & 0xf);
 	}
 }
 
 void CIA::ExecuteCycle(ICLK sysclock)
 {
-bit8 new_icr;
-ICLKS clocks;
-ICLKS fastClocks;
-ICLKS fastTODClocks;
-ICLKS todclocks;
+	bit8 new_icr;
+	ICLKS clocks;
+	ICLKS fastClocks;
+	ICLKS fastTODClocks;
+	ICLKS tod_counter_clocks;
+	ICLKS tod_tenth_clocks;
 
 	if ((ICLKS)(DevicesClock - sysclock) < 0)
 	{
@@ -248,16 +251,27 @@ ICLKS todclocks;
 		ta_counter.word = ta_counter.word - dec_a * (bit16)fastClocks;
 		tb_counter.word = tb_counter.word - dec_b * (bit16)fastClocks;
 
-		todclocks = ((fastClocks * tod_clock_rate) + tod_tick) / tod_clock_reload;
-		tod_tick = ((fastClocks * tod_clock_rate) + tod_tick) % tod_clock_reload;
-		if(tod_write_freeze==0)
+		tod_counter_clocks = ((fastClocks * tod_clock_rate) + tod_tick) / PALCLOCKSPERSECOND;
+		tod_tick = ((fastClocks * tod_clock_rate) + tod_tick) % PALCLOCKSPERSECOND;
+		if (tod_counter_clocks > 0)
 		{
-			for (ICLKS i = 0 ; i < todclocks; i++)
+			if (tod_counter == tod_counter_compare)
 			{
-				incrementTOD();
+				--tod_counter_clocks;
+				tod_counter = 0;
+			}
+
+            tod_counter = (tod_counter + tod_counter_clocks) % tod_counter_compare;
+			tod_tenth_clocks = tod_counter_clocks / tod_counter_compare;
+			if (tod_write_freeze == 0)
+			{
+				for (ICLKS i = 0; i < tod_tenth_clocks; i++)
+				{
+					incrementTOD();
+				}
 			}
 		}
-			
+
 		CurrentClock += (ICLK)fastClocks;
 		clocks -= fastClocks;
 	}
@@ -266,16 +280,29 @@ ICLKS todclocks;
 	{
 		CurrentClock++;
 
-		todclocks = ((tod_clock_rate) + tod_tick) / tod_clock_reload;
-		tod_tick = ((tod_clock_rate) + tod_tick) % tod_clock_reload;
-		if(tod_write_freeze==0 && todclocks !=0)
+		tod_counter_clocks = (tod_clock_rate + tod_tick) / PALCLOCKSPERSECOND;
+		tod_tick = (tod_clock_rate + tod_tick) % PALCLOCKSPERSECOND;
+		if (tod_counter_clocks != 0)
 		{
-			cia_tod prevtime;
-			prevtime.dword = tod.dword;
-			incrementTOD();
-			if (prevtime.dword != tod.dword)
+			if (tod_write_freeze == 0)
 			{
-				CheckTODAlarmCompare(sysclock);
+				++tod_counter;
+				if (tod_counter == tod_counter_compare)
+				{
+					cia_tod prevtime;
+					tod_counter = 0;
+					prevtime.dword = tod.dword;
+					incrementTOD();
+					if (prevtime.dword != tod.dword)
+					{
+						CheckTODAlarmCompare(sysclock);
+					}
+				}
+			}
+
+			if (tod_counter >= 6)
+			{
+                tod_counter = 0;
 			}
 		}
 
@@ -1025,7 +1052,7 @@ bit8 data_old;
 			if (tod_write_freeze)
 			{
 				tod_write_freeze=0;
-				tod_tick = tod_tick % PALCLOCKSPERSECOND;
+				tod_counter = 0;
 			}
 
 			tod.byte.ths=data & 0xf;
@@ -1328,11 +1355,13 @@ bit8 data_old;
 		{
 			if (data & 0x80)
 			{
+				tod_counter_compare = 5;
 				tod_clock_reload = TODRELOAD50;
 				tod_clock_rate = TODDIVIDER50;
 			}
 			else
 			{
+				tod_counter_compare = 6;
 				tod_clock_reload = TODRELOAD60;
 				tod_clock_rate = TODDIVIDER60;
 			}
@@ -1649,7 +1678,10 @@ void CIA::GetCommonState(SsCiaV2 &state)
 	state.tod_clock_reload = tod_clock_reload;
 	state.tod_clock_rate = tod_clock_rate;
 	state.tod_tick = tod_tick;
-	state.tod_clock_compare_band = 0;
+	state.tod_counter = 0;
+	state.tod_counter_compare = 0;
+	state.tod0 = 0;
+	state.tod1 = 0;
 	state.tod_alarm = tod_alarm;
 	state.tod_read_freeze = tod_read_freeze;	
 	state.tod_read_latch.dword = tod_read_latch.dword;
@@ -1792,10 +1824,34 @@ void CIA::UpgradeStateV1ToV2(const SsCiaV1 &in, SsCiaV2 &out)
 	out.tb_counter = in.tb_counter;
 	out.ta_latch = in.ta_latch;
 	out.tb_latch = in.tb_latch;
-	out.tod_clock_reload = in.tod_clock_reload;
-	out.tod_clock_rate = in.tod_clock_rate;
 	out.tod_tick = in.tod_tick;
-	out.tod_clock_compare_band = in.tod_clock_compare_band;
+	if (out.tod_tick < 0)
+	{
+		out.tod_tick = 0;
+    }
+
+	out.tod_counter = in.tod_tick / PALCLOCKSPERSECOND;
+	out.tod_tick = in.tod_tick % PALCLOCKSPERSECOND;
+	if (in.cra & 0x80)
+	{
+		out.tod_clock_reload = TODRELOAD50;
+		out.tod_clock_rate = TODDIVIDER50;
+		out.tod_counter_compare = 5;
+	}
+	else
+	{
+		out.tod_clock_reload = TODRELOAD60;
+		out.tod_clock_rate = TODDIVIDER60;
+		out.tod_counter_compare = 6;
+	}
+
+	if (out.tod_counter > 5)
+	{
+		out.tod_counter = 0;
+	}
+
+	out.tod0 = 0;
+	out.tod1 = 0;
 	out.tod_alarm = in.tod_alarm;
 	out.tod_read_freeze = in.tod_read_freeze;	
 	out.tod_read_latch.dword = in.tod_read_latch.dword;

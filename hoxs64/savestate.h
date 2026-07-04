@@ -459,7 +459,10 @@ struct SsCiaV2
 	bit32s tod_clock_reload;
 	bit32s tod_clock_rate;
 	bit32s tod_tick;
-	bit32s tod_clock_compare_band;
+	bit8 tod_counter;
+	bit8 tod_counter_compare;
+	bit8 tod0;
+	bit8 tod1;
 	bit8 tod_alarm;
 	bit8 tod_read_freeze;	
 	cia_tod tod_read_latch;
