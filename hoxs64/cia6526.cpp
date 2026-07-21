@@ -228,6 +228,7 @@ void CIA::ExecuteCycle(ICLK sysclock)
 	ICLKS fastTODClocks;
 	ICLKS tod_counter_clocks;
 	ICLKS tod_tenth_clocks;
+	bool SPMODE = (cra & 0x40) != 0;
 
 	if ((ICLKS)(DevicesClock - sysclock) < 0)
 	{
@@ -302,7 +303,7 @@ void CIA::ExecuteCycle(ICLK sysclock)
 
 			if (tod_counter >= 6)
 			{
-                tod_counter = 0;
+				tod_counter = 0;
 			}
 		}
 
@@ -310,10 +311,10 @@ void CIA::ExecuteCycle(ICLK sysclock)
 		{
 			ta_counter.word -= dec_a;
 			tb_counter.word -= dec_b;
-			if ((ta_counter.word < MINIMUM_STAY_IDLE && dec_a!=0) || (tb_counter.word < MINIMUM_STAY_IDLE && dec_b!=0))
+			if ((ta_counter.word < MINIMUM_STAY_IDLE && dec_a != 0) || (tb_counter.word < MINIMUM_STAY_IDLE && dec_b != 0))
 			{
-				idle=false;
-				no_change_count=0;
+				idle = false;
+				no_change_count = 0;
 			}
 			continue;
 		}
@@ -321,27 +322,27 @@ void CIA::ExecuteCycle(ICLK sysclock)
 		ClockNextWakeUpClock = sysclock;
 		old_delay = delay;
 		old_feed = feed;
-		new_icr=0;
-		bool current_cnt = this->ReadCntPinLevel();
+		new_icr = 0;
 		//TIMER A
 		//A bit passed through the pipeline to signal Timer A to decrement
 		if (delay & CountA3)
 		{
 			ta_counter.word--;
 		}
-		timera_output= (ta_counter.word==0) && ((delay & CountA2)!=0);
+
+		timera_output = (ta_counter.word == 0) && ((delay & CountA2) != 0);
 		if (timera_output)
 		{
-			new_icr|=1;
- 			delay|=LoadA1;
+			new_icr |= 1;
+			delay |= LoadA1;
 			// check for one shot.	
 			if ((delay | feed) & OneShotA0)
 			{
 				cra = (cra & 0xFE);
 				feed &= ~CountA2;
-			}	
+			}
 
-			if (cra & 0x40)//Generate serial interrupt after 16 timer a underflows.
+			if (SPMODE)//Generate serial interrupt after 16 timer a underflows.
 			{
 				//serial out
 				if (serial_int_count == 0)
@@ -351,11 +352,11 @@ void CIA::ExecuteCycle(ICLK sysclock)
 						serial_int_count = 16;
 					}
 				}
+			}
 
-				if (serial_int_count)
-				{
-					delay |= SetCntFlip0;
-				}
+			if (serial_int_count)
+			{
+				delay |= SetCntFlip0;
 			}
 
 			// toggle underflow counter bit
@@ -369,7 +370,7 @@ void CIA::ExecuteCycle(ICLK sysclock)
 					bPB67TimerOut |= 0x40;
 					delay |= PB6Low0;
 					delay &= ~PB6Low1;
-				} 
+				}
 				else
 				{
 					// toggle PB6 between high and low
@@ -379,32 +380,34 @@ void CIA::ExecuteCycle(ICLK sysclock)
 		}
 
 		bool is_CNT_rising = false;
-		if (serial_int_count != 0 && (delay & SetCntFlip2) != 0 && (delay & SetCntFlip3) == 0)
+		if (SPMODE && serial_int_count != 0 && (delay & SetCntFlip2) != 0 && (delay & SetCntFlip3) == 0)
 		{
-			if (this->SetSerialCntOut(!this->f_cnt_out))
+			if (serial_int_count == 16)
 			{
-				// Check that CNT was low for one clock cycle.
-				is_CNT_rising = this->f_cnt_out && (delay & SetCnt0) == 0;
-				if (serial_int_count != 0)
+				delay |= SdrStart0;
+			}
+
+			if (serial_int_count != 0)
+			{
+				serial_int_count--;
+				if (serial_int_count == 1)
 				{
-					serial_int_count--;
-					if (serial_int_count == 1)
+					serial_interrupt_delay = 1;
+					if (serial_data_write_loading)
 					{
-						serial_interrupt_delay = 1;
-						if (serial_data_write_loading)
-						{
-							serial_data_write_loading = false;
-							serial_shift_buffer = serial_data_register;
-							serial_shiftregister_loaded = true;
-						}
-						else
-						{
-							serial_shiftregister_loaded = false;
-						}
+						serial_data_write_loading = false;
+						serial_shift_buffer = serial_data_register;
+						serial_shiftregister_loaded = true;
+					}
+					else
+					{
+						serial_shiftregister_loaded = false;
 					}
 				}
 			}
 
+			this->SetSerialCntOut((serial_int_count & 1) == 0);
+			is_CNT_rising = this->f_cnt_out && (delay & SetCnt0) == 0;
 			if (this->f_cnt_out)
 			{
 				feed |= SetCnt0;
@@ -419,8 +422,9 @@ void CIA::ExecuteCycle(ICLK sysclock)
 		{
 			if ((serial_interrupt_delay & 0x04))
 			{
-				new_icr|=8;
+				new_icr |= 8;
 			}
+
 			serial_interrupt_delay = (serial_interrupt_delay << 1) & 0x3f;
 		}
 
@@ -680,6 +684,7 @@ void CIA::ExecuteCycle(ICLK sysclock)
 			no_change_count=0;
 		}
 	}
+	
 	SetTODWakeUpClock();
 	SetWakeUpClock();
 }
@@ -788,7 +793,7 @@ bool CIA::SetSerialCntOut(bool value)
 {
 	if ((cra & 0x40) != 0)
 	{
-		//Serial port output
+		//SP mode on
 		if (value && !this->f_cnt_out)
 		{
 			//CNT rising
@@ -1251,11 +1256,11 @@ bit8 data_old;
 
 		if ((data ^ cra) & 0x40)
 		{
-			//serial direction changing
+			//SP mode changing
 			bool is_CNT_rising = false;
-			bool cnt_next;
-			if ((data & 0x40) == 0) // changed to input
+			if ((data & 0x40) == 0) // SP mode turning off.
 			{
+				bool cnt_next = true;
 				if (this->bEarlyIRQ)
 				{
 					// New CIA
@@ -1267,22 +1272,37 @@ bit8 data_old;
 					cnt_next = (delay & (SetCnt2 | SetCnt1 | SetCnt0)) == (SetCnt2 | SetCnt1 | SetCnt0);
 				}
 
-				if (cnt_next)
-				{
-					if (serial_int_count != 2 && ((this->delay & SetCntFlip2) != 0 && ((delay & SetCntFlip3) == 0)))
+				if (serial_int_count != 2)
+				{					
+					if ((this->delay & SetCntFlip2) != 0 && ((delay & SetCntFlip3) == 0))
 					{
-						cnt_next = !cnt_next;
+						cnt_next = false;
 					}
 				}
 
 				serial_interrupt_on_direction_change = !cnt_next;
+
 				if (this->SetSerialCntOut(true))
 				{
 					// Check that CNT was low for one clock cycle.
 					is_CNT_rising = (delay & SetCnt1) == 0;
+					delay |= SetCntFlip0;
 				}
+
+				if (serial_int_count > 1)
+				{
+					if (serial_int_count < 15 || (serial_int_count == 15 && (delay & (SdrStart0 | SdrStart1 | SdrStart2)) == 0))
+					{
+						serial_interrupt_delay |= 1;
+					}
+				}
+
+				this->serial_int_count = 0;
+				this->serial_data_write_pending = false;
+				this->serial_data_write_loading = false;
+				this->serial_shiftregister_loaded = false;
 			}
-			else // changed to output
+			else // SP mode turning on.
 			{
 				if (this->SetSerialCntOut(true))
 				{
@@ -1293,11 +1313,16 @@ bit8 data_old;
 				if (serial_interrupt_on_direction_change)
 				{
 					serial_interrupt_on_direction_change = false;
+
 					serial_interrupt_delay |= 1;
 				}
+
+				this->serial_int_count = 0;
+				this->serial_data_write_pending = false;
+				this->serial_data_write_loading = false;
+				this->serial_shiftregister_loaded = false;
 			}
 
-			this->delay &= ~(SetCntFlip0 | SetCntFlip1 | SetCntFlip2 | SetCntFlip3);
 			if (this->f_cnt_out)
 			{
 				feed |= SetCnt0;
@@ -1314,11 +1339,6 @@ bit8 data_old;
 				this->delay |= CountA0;
 				this->delay |= CountB0;
 			}
-
-			this->serial_int_count = 0;
-			this->serial_data_write_pending = false;
-			this->serial_data_write_loading = false;
-			this->serial_shiftregister_loaded = false;
 		}
 		
 		//Set PB6 high on Timer A start

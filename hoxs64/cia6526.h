@@ -64,7 +64,10 @@
 #define SetCnt1       0x0000008000000000ULL
 #define SetCnt2       0x0000010000000000ULL
 #define SetCnt3       0x0000020000000000ULL
-#define DelayMask   ~(0x0000040000000000ULL | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0 | SetCntFlip0 | SetCnt0)
+#define SdrStart0     0x0000040000000000ULL
+#define SdrStart1     0x0000080000000000ULL
+#define SdrStart2     0x0000100000000000ULL
+#define DelayMask   ~(0x0000200000000000ULL | CountA0 | CountB0 | LoadA0 | LoadB0 | PB6Low0 | PB7Low0 | Interrupt0 | OneShotA0 | OneShotB0 | ClearIcr0 | ReadIcr0 | WriteIcr0 | SetIcr0 | SetCntFlip0 | SetCnt0 | SdrStart0)
 
 #define CIA_MAX_TEMPERATURE_TIME (1000000 * 60)
 
