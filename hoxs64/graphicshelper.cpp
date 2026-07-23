@@ -474,7 +474,7 @@ bool GraphicsHelper::IsAcceptableMode(UINT Width, UINT Height) noexcept
 
 bool GraphicsHelper::IsAcceptableRefreshRate(double rate) noexcept
 {
-	constexpr double MIN_REFRESH_RATE = 50.2;
+	constexpr double MIN_REFRESH_RATE = 1;
 	return rate >= MIN_REFRESH_RATE;
 }
 
