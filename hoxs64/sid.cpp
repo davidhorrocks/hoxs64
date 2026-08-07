@@ -1291,7 +1291,7 @@ short dxsample;
 				fsample = Min16BitSample;
 			}
 
-			dxsample = (WORD)(fsample);
+			dxsample = (short)(fsample);
 			if (pBuffer1!=0)
 			{
 				WriteSample((bit16)dxsample, (bit16)dxsample);
